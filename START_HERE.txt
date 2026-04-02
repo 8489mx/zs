@@ -1,0 +1,8 @@
+1) Open CMD in this folder
+2) Run: npm install --registry=https://registry.npmjs.org/
+3) Run: npm start
+4) Open: http://localhost:3000
+5) Fresh install default login: ZS / infoadmin
+6) After first login, create a limited admin user for daily use and rotate the super admin password
+
+If login fails on an existing database, reset the admin password with: node scripts/reset-admin-password.js ZS <new-password>
