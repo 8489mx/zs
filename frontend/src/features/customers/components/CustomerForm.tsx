@@ -1,0 +1,43 @@
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Field } from '@/components/ui/Field';
+import { MutationFeedback } from '@/components/shared/MutationFeedback';
+import { SubmitButton } from '@/components/shared/SubmitButton';
+import { DraftStateNotice } from '@/components/shared/DraftStateNotice';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { useCreateCustomerMutation } from '@/features/customers/hooks/useCreateCustomerMutation';
+import { customerFormSchema, type CustomerFormInput, type CustomerFormOutput } from '@/features/customers/schemas/customer.schema';
+
+const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, type: 'cash' as const, creditLimit: 0 };
+
+export function CustomerForm() {
+  const form = useForm<CustomerFormInput, undefined, CustomerFormOutput>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: DEFAULT_VALUES
+  });
+  useUnsavedChangesGuard(form.formState.isDirty && !form.formState.isSubmitSuccessful);
+  const mutation = useCreateCustomerMutation(() => {
+    form.reset(DEFAULT_VALUES);
+  });
+
+  return (
+    <form className="form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="بيانات العميل الجديدة لم تُحفظ بعد" />
+      <Field label="اسم العميل" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
+      <Field label="الهاتف"><input {...form.register('phone')} disabled={mutation.isPending} /></Field>
+      <Field label="العنوان"><input {...form.register('address')} disabled={mutation.isPending} /></Field>
+      <Field label="نوع العميل">
+        <select {...form.register('type')} disabled={mutation.isPending}>
+          <option value="cash">نقدي</option>
+          <option value="vip">مميز</option>
+        </select>
+      </Field>
+      <Field label="رصيد افتتاحي"><input type="number" step="0.01" {...form.register('balance')} disabled={mutation.isPending} /></Field>
+      <Field label="حد الائتمان"><input type="number" step="0.01" {...form.register('creditLimit')} disabled={mutation.isPending} /></Field>
+      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ العميل" successText="تم حفظ العميل بنجاح." />
+      <div className="actions sticky-form-actions">
+        <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ العميل" pendingText="جارٍ الحفظ..." />
+      </div>
+    </form>
+  );
+}

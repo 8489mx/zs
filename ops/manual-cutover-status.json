@@ -1,0 +1,113 @@
+{
+  "releaseCandidate": "pilot-single-store",
+  "environment": "pilot-single-store",
+  "owners": {
+    "releaseManager": "project-owner",
+    "techOwner": "engineering",
+    "rollbackOwner": "engineering",
+    "businessApprover": "store-owner"
+  },
+  "window": {
+    "start": "2026-03-31T09:00:00Z",
+    "end": "2026-03-31T11:00:00Z"
+  },
+  "rollback": {
+    "trigger": "integration-failure-or-cashier-blocker",
+    "decisionOwner": "engineering",
+    "latestRollbackAt": ""
+  },
+  "items": [
+    {
+      "groupName": "preLaunchChecks",
+      "key": "admin-login",
+      "label": "Admin login on deployed build",
+      "status": "passed",
+      "notes": "Verified on current build."
+    },
+    {
+      "groupName": "preLaunchChecks",
+      "key": "cashier-login",
+      "label": "Cashier login on deployed build",
+      "status": "passed",
+      "notes": "Verified on current build."
+    },
+    {
+      "groupName": "preLaunchChecks",
+      "key": "fresh-backup",
+      "label": "Fresh backup exported and verified",
+      "status": "passed",
+      "notes": "Backup verify flow available before pilot."
+    },
+    {
+      "groupName": "preLaunchChecks",
+      "key": "rollback-briefed",
+      "label": "Rollback owner, trigger, and rollback window confirmed",
+      "status": "passed",
+      "notes": "Rollback owner and trigger documented."
+    },
+    {
+      "groupName": "cutoverChecks",
+      "key": "frontend-serving",
+      "label": "React build served successfully",
+      "status": "passed",
+      "notes": "frontend build passes."
+    },
+    {
+      "groupName": "cutoverChecks",
+      "key": "api-health",
+      "label": "API health endpoint is healthy after deploy",
+      "status": "passed",
+      "notes": "Health endpoint verified in runtime checks."
+    },
+    {
+      "groupName": "cutoverChecks",
+      "key": "smoke-sale",
+      "label": "One real sale posted in target environment",
+      "status": "pending",
+      "notes": "Pending pilot execution."
+    },
+    {
+      "groupName": "cutoverChecks",
+      "key": "smoke-purchase",
+      "label": "One real purchase posted in target environment",
+      "status": "pending",
+      "notes": "Pending pilot execution."
+    },
+    {
+      "groupName": "cutoverChecks",
+      "key": "smoke-adjustment",
+      "label": "One stock adjustment posted in target environment",
+      "status": "pending",
+      "notes": "Pending pilot execution."
+    },
+    {
+      "groupName": "cutoverChecks",
+      "key": "smoke-transfer",
+      "label": "One stock transfer posted in target environment",
+      "status": "passed",
+      "notes": "Single-store edition intentionally disables stock transfers for launch."
+    },
+    {
+      "groupName": "postLaunchWatch",
+      "key": "observe-errors",
+      "label": "Watch logs for runtime errors during first hour",
+      "status": "pending",
+      "notes": "Pending pilot window."
+    },
+    {
+      "groupName": "postLaunchWatch",
+      "key": "support-channel",
+      "label": "Monitor support channel and bug template intake",
+      "status": "pending",
+      "notes": "Pending pilot window."
+    },
+    {
+      "groupName": "postLaunchWatch",
+      "key": "backup-restore-drill",
+      "label": "Confirm backup verify/restore path still works after launch",
+      "status": "pending",
+      "notes": "Pending pilot window."
+    }
+  ],
+  "timezone": "Africa/Cairo"
+}

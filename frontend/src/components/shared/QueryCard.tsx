@@ -1,0 +1,52 @@
+import type { ReactNode } from 'react';
+import { Card } from '@/components/ui/Card';
+import { QueryFeedback } from '@/components/shared/QueryFeedback';
+
+interface QueryCardProps {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  isLoading?: boolean;
+  isError?: boolean;
+  error?: unknown;
+  isEmpty?: boolean;
+  loadingText?: string;
+  errorTitle?: string;
+  emptyTitle?: string;
+  emptyHint?: string;
+  children?: ReactNode;
+  className?: string;
+}
+
+export function QueryCard({
+  title,
+  description,
+  actions,
+  isLoading,
+  isError,
+  error,
+  isEmpty,
+  loadingText,
+  errorTitle,
+  emptyTitle,
+  emptyHint,
+  children,
+  className
+}: QueryCardProps) {
+  return (
+    <Card title={title} description={description} actions={actions} className={className}>
+      <QueryFeedback
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        isEmpty={isEmpty}
+        loadingText={loadingText}
+        errorTitle={errorTitle}
+        emptyTitle={emptyTitle}
+        emptyHint={emptyHint}
+      >
+        {children}
+      </QueryFeedback>
+    </Card>
+  );
+}

@@ -1,0 +1,37 @@
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Field } from '@/components/ui/Field';
+import { MutationFeedback } from '@/components/shared/MutationFeedback';
+import { SubmitButton } from '@/components/shared/SubmitButton';
+import { DraftStateNotice } from '@/components/shared/DraftStateNotice';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { useCreateSupplierMutation } from '@/features/suppliers/hooks/useCreateSupplierMutation';
+import { supplierFormSchema, type SupplierFormInput, type SupplierFormOutput } from '@/features/suppliers/schemas/supplier.schema';
+
+const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, notes: '' };
+
+export function SupplierForm() {
+  const form = useForm<SupplierFormInput, undefined, SupplierFormOutput>({
+    resolver: zodResolver(supplierFormSchema),
+    defaultValues: DEFAULT_VALUES
+  });
+  useUnsavedChangesGuard(form.formState.isDirty && !form.formState.isSubmitSuccessful);
+  const mutation = useCreateSupplierMutation(() => {
+    form.reset(DEFAULT_VALUES);
+  });
+
+  return (
+    <form className="form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="بيانات المورد الجديدة لم تُحفظ بعد" />
+      <Field label="اسم المورد" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
+      <Field label="الهاتف"><input {...form.register('phone')} disabled={mutation.isPending} /></Field>
+      <Field label="العنوان"><input {...form.register('address')} disabled={mutation.isPending} /></Field>
+      <Field label="رصيد افتتاحي"><input type="number" step="0.01" {...form.register('balance')} disabled={mutation.isPending} /></Field>
+      <Field label="ملاحظات"><textarea rows={4} {...form.register('notes')} disabled={mutation.isPending} /></Field>
+      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ المورد" successText="تم حفظ المورد بنجاح." />
+      <div className="actions sticky-form-actions">
+        <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ المورد" pendingText="جارٍ الحفظ..." />
+      </div>
+    </form>
+  );
+}

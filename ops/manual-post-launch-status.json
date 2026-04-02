@@ -1,0 +1,16 @@
+{
+  "releaseCandidate": "pilot-single-store",
+  "environment": "pilot-single-store",
+  "usingTemplate": false,
+  "launchStable": false,
+  "counts": {
+    "passed": 6,
+    "pending": 7,
+    "failed": 0,
+    "total": 13
+  },
+  "notes": [
+    "Pre-launch technical checks completed.",
+    "Live pilot smoke steps remain pending execution on the target shop."
+  ]
+}

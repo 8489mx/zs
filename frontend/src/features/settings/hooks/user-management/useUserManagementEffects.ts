@@ -1,0 +1,74 @@
+import { useEffect, type Dispatch, type SetStateAction } from 'react';
+import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
+
+export function useUserManagementEffects({
+  managedUsers,
+  selectedUserKey,
+  setSelectedUserKey,
+  loadUser,
+  setDraft,
+  setPage,
+  setSelectedIds,
+  userSearch,
+  userFilter,
+  setupMode,
+  setupStepKey,
+  currentUserId,
+  operationalAdminsCount,
+  startNewUser,
+}: {
+  managedUsers: ManagedUserRecord[];
+  selectedUserKey: string;
+  setSelectedUserKey: (value: string) => void;
+  loadUser: (user?: ManagedUserRecord | null) => void;
+  setDraft: Dispatch<SetStateAction<ManagedUserRecord>>;
+  setPage: (value: number) => void;
+  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
+  userSearch: string;
+  userFilter: 'all' | 'super-admins' | 'admins' | 'cashiers' | 'inactive' | 'locked';
+  setupMode: boolean;
+  setupStepKey: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null;
+  currentUserId: string;
+  operationalAdminsCount: number;
+  startNewUser: (role?: 'super_admin' | 'admin' | 'cashier') => void;
+}) {
+  useEffect(() => {
+    if (!managedUsers.length) {
+      if (selectedUserKey !== '__new__') setSelectedUserKey('');
+      return;
+    }
+    if (!selectedUserKey) {
+      loadUser(managedUsers[0]);
+      return;
+    }
+    if (selectedUserKey !== '__new__') {
+      const match = managedUsers.find((user) => String(user.id) === selectedUserKey);
+      if (match) {
+        setDraft((current) => current.id === match.id ? { ...match, password: current.password || '' } : current);
+      } else {
+        loadUser(managedUsers[0]);
+      }
+    }
+  }, [loadUser, managedUsers, selectedUserKey, setDraft, setSelectedUserKey]);
+
+  useEffect(() => {
+    setPage(1);
+    setSelectedIds([]);
+  }, [setPage, setSelectedIds, userSearch, userFilter]);
+
+  useEffect(() => {
+    setSelectedIds((current) => current.filter((id) => managedUsers.some((user) => String(user.id || user.username) === id)));
+  }, [managedUsers, setSelectedIds]);
+
+  useEffect(() => {
+    if (!setupMode) return;
+    if (setupStepKey === 'admin-user') {
+      if (!operationalAdminsCount && selectedUserKey !== '__new__') startNewUser('admin');
+      return;
+    }
+    if (setupStepKey === 'secure-account' && currentUserId) {
+      const currentUser = managedUsers.find((user) => String(user.id || '') === currentUserId);
+      if (currentUser && selectedUserKey !== String(currentUser.id || '')) loadUser(currentUser);
+    }
+  }, [currentUserId, loadUser, managedUsers, operationalAdminsCount, selectedUserKey, setupMode, setupStepKey, startNewUser]);
+}
