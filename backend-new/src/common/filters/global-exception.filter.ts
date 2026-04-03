@@ -1,5 +1,6 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { mapToHttpException } from '../mappers/error.mapper';
 import { LoggerService } from '../../logging/logger.service';
 
 @Catch()
@@ -11,16 +12,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
 
-    const isHttpException = exception instanceof HttpException;
-    const status = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const body = isHttpException
-      ? exception.getResponse()
-      : {
-          message: 'Internal server error',
-        };
-
-    const errorMessage = exception instanceof Error ? exception.message : 'Unknown error';
+    const mapped = mapToHttpException(exception);
+    const status = mapped.getStatus();
+    const body = mapped.getResponse();
 
     this.logger.error(
       {
@@ -29,7 +23,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         path: request.url,
         requestId: request.headers['x-request-id'],
       },
-      errorMessage,
+      exception instanceof Error ? exception.message : 'Unknown error',
     );
 
     response.status(status).json({

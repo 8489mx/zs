@@ -4,6 +4,7 @@ import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
 import { KYSELY_DB } from './database.constants';
 import { Database } from './database.types';
+import { TransactionHelper } from './helpers/transaction.helper';
 
 @Global()
 @Module({
@@ -35,7 +36,8 @@ import { Database } from './database.types';
         });
       },
     },
+    TransactionHelper,
   ],
-  exports: [KYSELY_DB],
+  exports: [KYSELY_DB, TransactionHelper],
 })
 export class DatabaseModule {}
