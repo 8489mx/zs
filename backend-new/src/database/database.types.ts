@@ -234,7 +234,102 @@ export interface DamagedStockRecordTable {
 
 export interface SalesTable {
   id: Generated<number>;
+  doc_no: string | null;
   customer_id: number | null;
+  customer_name: string | null;
+  payment_type: 'cash' | 'credit';
+  payment_channel: 'cash' | 'card' | 'mixed' | 'credit';
+  subtotal: number;
+  discount: number;
+  tax_rate: number;
+  tax_amount: number;
+  prices_include_tax: boolean;
+  total: number;
+  paid_amount: number;
+  store_credit_used: number;
+  status: string;
+  note: string;
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  cancelled_at: Date | null;
+  cancelled_by: number | null;
+  cancel_reason: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface SaleItemTable {
+  id: Generated<number>;
+  sale_id: number;
+  product_id: number | null;
+  product_name: string;
+  qty: number;
+  unit_price: number;
+  line_total: number;
+  unit_name: string;
+  unit_multiplier: number;
+  cost_price: number;
+  price_type: 'retail' | 'wholesale';
+}
+
+export interface SalePaymentTable {
+  id: Generated<number>;
+  sale_id: number;
+  payment_channel: 'cash' | 'card';
+  amount: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface HeldSaleTable {
+  id: Generated<number>;
+  customer_id: number | null;
+  payment_type: 'cash' | 'credit';
+  payment_channel: 'cash' | 'card' | 'mixed' | 'credit';
+  paid_amount: number;
+  cash_amount: number;
+  card_amount: number;
+  discount: number;
+  note: string;
+  search: string;
+  price_type: 'retail' | 'wholesale';
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HeldSaleItemTable {
+  id: Generated<number>;
+  held_sale_id: number;
+  product_id: number | null;
+  product_name: string;
+  qty: number;
+  unit_price: number;
+  unit_name: string;
+  unit_multiplier: number;
+  price_type: 'retail' | 'wholesale';
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface TreasuryTransactionTable {
+  id: Generated<number>;
+  txn_type: string;
+  amount: number;
+  note: string;
+  reference_type: string | null;
+  reference_id: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface CashierShiftTable {
+  id: Generated<number>;
+  opened_by: number;
+  status: string;
 }
 
 export interface CustomerPaymentTable {
@@ -245,6 +340,16 @@ export interface CustomerPaymentTable {
 export interface CustomerLedgerTable {
   id: Generated<number>;
   customer_id: number;
+  entry_type: string;
+  amount: number;
+  balance_after: number;
+  note: string;
+  reference_type: string | null;
+  reference_id: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface PurchaseTable {
@@ -284,8 +389,14 @@ export interface Database {
   stock_count_items: StockCountItemTable;
   damaged_stock_records: DamagedStockRecordTable;
   sales: SalesTable;
+  sale_items: SaleItemTable;
+  sale_payments: SalePaymentTable;
+  held_sales: HeldSaleTable;
+  held_sale_items: HeldSaleItemTable;
   customer_payments: CustomerPaymentTable;
   customer_ledger: CustomerLedgerTable;
+  treasury_transactions: TreasuryTransactionTable;
+  cashier_shifts: CashierShiftTable;
   purchases: PurchaseTable;
   supplier_payments: SupplierPaymentTable;
   supplier_ledger: SupplierLedgerTable;
