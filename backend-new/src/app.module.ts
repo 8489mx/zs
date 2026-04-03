@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { SettingsModule } from './settings/settings.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { PartnersModule } from './partners/partners.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { CatalogModule } from './catalog/catalog.module';
     SettingsModule,
     SessionsModule,
     CatalogModule,
+    PartnersModule,
   ],
 })
 export class AppModule {}

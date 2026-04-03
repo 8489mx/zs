@@ -57,13 +57,29 @@ export interface ProductCategoryTable {
 export interface SupplierTable {
   id: Generated<number>;
   name: string;
+  phone: string;
+  address: string;
+  balance: number;
+  notes: string;
   is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
 export interface CustomerTable {
   id: Generated<number>;
   name: string;
+  phone: string;
+  address: string;
+  balance: number;
+  customer_type: 'cash' | 'vip';
+  credit_limit: number;
+  store_credit_balance: number;
+  company_name: string;
+  tax_number: string;
   is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
 export interface ProductTable {
@@ -125,6 +141,36 @@ export interface StockMovementTable {
   product_id: number | null;
 }
 
+export interface SalesTable {
+  id: Generated<number>;
+  customer_id: number | null;
+}
+
+export interface CustomerPaymentTable {
+  id: Generated<number>;
+  customer_id: number;
+}
+
+export interface CustomerLedgerTable {
+  id: Generated<number>;
+  customer_id: number;
+}
+
+export interface PurchaseTable {
+  id: Generated<number>;
+  supplier_id: number;
+}
+
+export interface SupplierPaymentTable {
+  id: Generated<number>;
+  supplier_id: number;
+}
+
+export interface SupplierLedgerTable {
+  id: Generated<number>;
+  supplier_id: number;
+}
+
 export interface Database {
   _phase1_bootstrap: Phase1BootstrapTable;
   sessions: SessionTable;
@@ -139,4 +185,10 @@ export interface Database {
   product_offers: ProductOfferTable;
   product_customer_prices: ProductCustomerPriceTable;
   stock_movements: StockMovementTable;
+  sales: SalesTable;
+  customer_payments: CustomerPaymentTable;
+  customer_ledger: CustomerLedgerTable;
+  purchases: PurchaseTable;
+  supplier_payments: SupplierPaymentTable;
+  supplier_ledger: SupplierLedgerTable;
 }
