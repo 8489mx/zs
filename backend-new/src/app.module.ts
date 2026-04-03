@@ -6,6 +6,9 @@ import { LoggingModule } from './logging/logging.module';
 import { AuthFoundationModule } from './auth/auth.module';
 import { AuditModule } from './audit/audit.module';
 import { ConfigAccessModule } from './config/config-access.module';
+import { UsersModule } from './users/users.module';
+import { SettingsModule } from './settings/settings.module';
+import { SessionsModule } from './sessions/sessions.module';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { ConfigAccessModule } from './config/config-access.module';
     AuthFoundationModule,
     AuditModule,
     HealthModule,
+    UsersModule,
+    SettingsModule,
+    SessionsModule,
   ],
 })
 export class AppModule {}
