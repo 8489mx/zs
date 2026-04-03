@@ -19,6 +19,10 @@ export class PurchasesService {
     private readonly audit: AuditService,
   ) {}
 
+  private hasPermission(auth: AuthContext, permission: string): boolean {
+    return auth.role === 'super_admin' || auth.permissions.includes(permission);
+  }
+
   private computeTotals(subtotal: number, discount: number, taxRate: number, pricesIncludeTax: boolean): { taxAmount: number; total: number } {
     const safeSubtotal = Number(subtotal.toFixed(2));
     const safeDiscount = Number(Math.max(0, discount).toFixed(2));
@@ -255,6 +259,9 @@ export class PurchasesService {
 
       const subtotal = normalizedItems.reduce((sum, item) => sum + item.total, 0);
       const discount = Number(payload.discount || 0);
+      if (!this.hasPermission(auth, 'canDiscount') && Math.abs(discount) > 0.0001) {
+        throw new AppError('Discount change is not allowed', 'DISCOUNT_NOT_ALLOWED', 403);
+      }
       if (discount < 0 || discount > subtotal) throw new AppError('Discount is invalid', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = this.computeTotals(subtotal, discount, Number(payload.taxRate || 0), Boolean(payload.pricesIncludeTax));
       const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
@@ -332,8 +339,9 @@ export class PurchasesService {
     });
 
     await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${purchaseId} بواسطة ${auth.username}`, auth.userId);
+    const purchase = (await this.mapPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
     const purchases = await this.listPurchases({}, auth);
-    return { ok: true, purchaseId: String(purchaseId), purchases: purchases.purchases };
+    return { ok: true, purchase, purchases: purchases.purchases };
   }
 
   async updatePurchase(purchaseId: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -343,6 +351,8 @@ export class PurchasesService {
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be edited', 'PURCHASE_CANCELLED', 400);
 
       const oldItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).execute();
+      if (!(payload.items || []).length) throw new AppError('Purchase must include at least one item', 'PURCHASE_ITEMS_REQUIRED', 400);
+      if (!(Number(payload.supplierId || 0) > 0)) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
       for (const item of oldItems) {
         if (!item.product_id) continue;
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).executeTakeFirst();
@@ -384,13 +394,23 @@ export class PurchasesService {
 
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where('is_active', '=', true).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      const oldByProduct = new Map<number, number>();
+      for (const item of oldItems) {
+        if (!item.product_id) continue;
+        oldByProduct.set(Number(item.product_id), Number(item.unit_cost || 0));
+      }
 
       let subtotal = 0;
       for (const item of payload.items || []) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        const incomingCost = Number(item.cost || 0);
+        const originalCost = oldByProduct.has(Number(item.productId)) ? Number(oldByProduct.get(Number(item.productId)) || 0) : incomingCost;
+        if (Math.abs(incomingCost - originalCost) > 0.0001 && !this.hasPermission(auth, 'canEditPrice')) {
+          throw new AppError(`Cost edit is not allowed for ${product.name}`, 'COST_EDIT_NOT_ALLOWED', 403);
+        }
         const unitMultiplier = Number(item.unitMultiplier || 1) || 1;
-        const lineTotal = Number((Number(item.qty || 0) * Number(item.cost || 0)).toFixed(2));
+        const lineTotal = Number((Number(item.qty || 0) * incomingCost).toFixed(2));
         subtotal += lineTotal;
 
         await trx.insertInto('purchase_items').values({
@@ -398,7 +418,7 @@ export class PurchasesService {
           product_id: item.productId,
           product_name: String(item.name || product.name || '').trim(),
           qty: Number(item.qty || 0),
-          unit_cost: Number(item.cost || 0),
+          unit_cost: incomingCost,
           line_total: lineTotal,
           unit_name: String(item.unitName || 'قطعة').trim() || 'قطعة',
           unit_multiplier: unitMultiplier,
@@ -407,7 +427,7 @@ export class PurchasesService {
         const beforeQty = Number(product.stock_qty || 0);
         const increaseQty = Number((Number(item.qty || 0) * unitMultiplier).toFixed(3));
         const afterQty = Number((beforeQty + increaseQty).toFixed(3));
-        await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, cost_price: Number(item.cost || 0), cost: Number(item.cost || 0), updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, cost_price: incomingCost, cost: incomingCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase_edit_apply',
@@ -423,6 +443,9 @@ export class PurchasesService {
       }
 
       const discount = Number(payload.discount || 0);
+      if (!this.hasPermission(auth, 'canDiscount') && Math.abs(discount - Number(purchase.discount || 0)) > 0.0001) {
+        throw new AppError('Discount change is not allowed', 'DISCOUNT_NOT_ALLOWED', 403);
+      }
       if (discount < 0 || discount > subtotal) throw new AppError('Discount is invalid', 'INVALID_DISCOUNT', 400);
       const totals = this.computeTotals(subtotal, discount, Number(payload.taxRate || 0), Boolean(payload.pricesIncludeTax));
       const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
@@ -450,7 +473,8 @@ export class PurchasesService {
     });
 
     await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth.userId);
-    return { ok: true, purchases: (await this.listPurchases({}, auth)).purchases };
+    const purchase = (await this.mapPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
+    return { ok: true, purchase, purchases: (await this.listPurchases({}, auth)).purchases };
   }
 
   async cancelPurchase(purchaseId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -501,7 +525,8 @@ export class PurchasesService {
     });
 
     await this.audit.log('إلغاء فاتورة شراء', `تم إلغاء فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth.userId);
-    return { ok: true, purchases: (await this.listPurchases({}, auth)).purchases };
+    const purchase = (await this.mapPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
+    return { ok: true, purchase, purchases: (await this.listPurchases({}, auth)).purchases };
   }
 
   async listSupplierPayments(_auth: AuthContext): Promise<Record<string, unknown>> {
