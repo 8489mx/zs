@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import 'reflect-metadata';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';

@@ -7,7 +7,11 @@ export class FileMigrationProvider implements KyselyMigrationProvider {
 
   async getMigrations(): Promise<Record<string, Migration>> {
     const files = readdirSync(this.migrationsPath)
-      .filter((name) => name.endsWith('.ts') || name.endsWith('.js'))
+      .filter(
+  (name) =>
+    !name.endsWith('.d.ts') &&
+    (name.endsWith('.ts') || name.endsWith('.js'))
+)
       .sort();
 
     const migrations: Record<string, Migration> = {};
