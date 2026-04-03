@@ -9,6 +9,7 @@ import { ConfigAccessModule } from './config/config-access.module';
 import { UsersModule } from './users/users.module';
 import { SettingsModule } from './settings/settings.module';
 import { SessionsModule } from './sessions/sessions.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SessionsModule } from './sessions/sessions.module';
     UsersModule,
     SettingsModule,
     SessionsModule,
+    CatalogModule,
   ],
 })
 export class AppModule {}

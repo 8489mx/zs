@@ -46,10 +46,97 @@ export interface AuditLogTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface ProductCategoryTable {
+  id: Generated<number>;
+  name: string;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface SupplierTable {
+  id: Generated<number>;
+  name: string;
+  is_active: boolean;
+}
+
+export interface CustomerTable {
+  id: Generated<number>;
+  name: string;
+  is_active: boolean;
+}
+
+export interface ProductTable {
+  id: Generated<number>;
+  name: string;
+  barcode: string | null;
+  category_id: number | null;
+  supplier_id: number | null;
+  price: number;
+  cost: number;
+  stock: number;
+  cost_price: number;
+  retail_price: number;
+  wholesale_price: number;
+  stock_qty: number;
+  min_stock_qty: number;
+  notes: string;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface ProductUnitTable {
+  id: Generated<number>;
+  product_id: number;
+  name: string;
+  multiplier: number;
+  barcode: string | null;
+  is_base_unit: boolean;
+  is_sale_unit_default: boolean;
+  is_purchase_unit_default: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface ProductOfferTable {
+  id: Generated<number>;
+  product_id: number;
+  offer_type: 'percent' | 'fixed';
+  value: number;
+  start_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface ProductCustomerPriceTable {
+  id: Generated<number>;
+  product_id: number;
+  customer_id: number;
+  price: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface StockMovementTable {
+  id: Generated<number>;
+  product_id: number | null;
+}
+
 export interface Database {
   _phase1_bootstrap: Phase1BootstrapTable;
   sessions: SessionTable;
   users: UserTable;
   settings: SettingTable;
   audit_logs: AuditLogTable;
+  product_categories: ProductCategoryTable;
+  suppliers: SupplierTable;
+  customers: CustomerTable;
+  products: ProductTable;
+  product_units: ProductUnitTable;
+  product_offers: ProductOfferTable;
+  product_customer_prices: ProductCustomerPriceTable;
+  stock_movements: StockMovementTable;
 }
