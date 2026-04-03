@@ -46,6 +46,21 @@ export interface AuditLogTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface BranchTable {
+  id: Generated<number>;
+  name: string;
+  code: string;
+  is_active: boolean;
+}
+
+export interface StockLocationTable {
+  id: Generated<number>;
+  name: string;
+  code: string;
+  branch_id: number | null;
+  is_active: boolean;
+}
+
 export interface ProductCategoryTable {
   id: Generated<number>;
   name: string;
@@ -139,6 +154,82 @@ export interface ProductCustomerPriceTable {
 export interface StockMovementTable {
   id: Generated<number>;
   product_id: number | null;
+  movement_type: string;
+  qty: number;
+  before_qty: number;
+  after_qty: number;
+  reason: string;
+  note: string;
+  reference_type: string | null;
+  reference_id: number | null;
+  created_by: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface StockTransferTable {
+  id: Generated<number>;
+  doc_no: string | null;
+  from_location_id: number;
+  to_location_id: number;
+  from_branch_id: number | null;
+  to_branch_id: number | null;
+  status: 'sent' | 'received' | 'cancelled';
+  note: string;
+  created_by: number | null;
+  received_by: number | null;
+  cancelled_by: number | null;
+  received_at: Date | null;
+  cancelled_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface StockTransferItemTable {
+  id: Generated<number>;
+  transfer_id: number;
+  product_id: number;
+  product_name: string;
+  qty: number;
+}
+
+export interface StockCountSessionTable {
+  id: Generated<number>;
+  doc_no: string;
+  branch_id: number | null;
+  location_id: number | null;
+  status: 'draft' | 'posted';
+  note: string;
+  counted_by: number | null;
+  approved_by: number | null;
+  posted_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface StockCountItemTable {
+  id: Generated<number>;
+  session_id: number;
+  product_id: number;
+  product_name: string;
+  expected_qty: number;
+  counted_qty: number;
+  variance_qty: number;
+  reason: string;
+  note: string;
+}
+
+export interface DamagedStockRecordTable {
+  id: Generated<number>;
+  product_id: number;
+  branch_id: number | null;
+  location_id: number | null;
+  qty: number;
+  reason: string;
+  note: string;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface SalesTable {
@@ -177,6 +268,8 @@ export interface Database {
   users: UserTable;
   settings: SettingTable;
   audit_logs: AuditLogTable;
+  branches: BranchTable;
+  stock_locations: StockLocationTable;
   product_categories: ProductCategoryTable;
   suppliers: SupplierTable;
   customers: CustomerTable;
@@ -185,6 +278,11 @@ export interface Database {
   product_offers: ProductOfferTable;
   product_customer_prices: ProductCustomerPriceTable;
   stock_movements: StockMovementTable;
+  stock_transfers: StockTransferTable;
+  stock_transfer_items: StockTransferItemTable;
+  stock_count_sessions: StockCountSessionTable;
+  stock_count_items: StockCountItemTable;
+  damaged_stock_records: DamagedStockRecordTable;
   sales: SalesTable;
   customer_payments: CustomerPaymentTable;
   customer_ledger: CustomerLedgerTable;
