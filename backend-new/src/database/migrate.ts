@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { Kysely, Migrator, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
 import { Database } from './database.types';
-import { MigrationProvider } from './migration-provider';
+import { FileMigrationProvider } from './migration-provider';
 
 function getMigrationsPath(): string {
   const distPath = join(process.cwd(), 'dist', 'database', 'migrations');
@@ -32,7 +32,7 @@ async function run(): Promise<void> {
 
   const migrator = new Migrator({
     db,
-    provider: new MigrationProvider(getMigrationsPath()),
+    provider: new FileMigrationProvider(getMigrationsPath()),
     migrationTableSchema: process.env.DATABASE_SCHEMA ?? 'public',
   });
 
@@ -45,15 +45,18 @@ async function run(): Promise<void> {
     return;
   }
 
-  const result = command === 'down' ? await migrator.migrateDown() : await migrator.migrateToLatest();
+  const result = command === 'down'
+    ? await migrator.migrateDown()
+    : await migrator.migrateToLatest();
 
   for (const migration of result.results ?? []) {
-    const status = migration.status;
-    process.stdout.write(`${status}: ${migration.migrationName}\n`);
+    process.stdout.write(`${migration.status}: ${migration.migrationName}\n`);
   }
 
   if (result.error) {
-    process.stderr.write(`Migration failed: ${result.error.message}\n`);
+    const message =
+      result.error instanceof Error ? result.error.message : String(result.error);
+    process.stderr.write(`Migration failed: ${message}\n`);
     await db.destroy();
     process.exit(1);
   }

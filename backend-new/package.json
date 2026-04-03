@@ -33,6 +33,7 @@
     "@nestjs/testing": "^11.1.0",
     "@types/express": "^5.0.4",
     "@types/node": "^24.9.1",
+    "@types/pg": "^8.15.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

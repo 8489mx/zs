@@ -1,8 +1,8 @@
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { Migration, MigrationProvider } from 'kysely';
+import { Migration, MigrationProvider as KyselyMigrationProvider } from 'kysely';
 
-export class MigrationProvider implements MigrationProvider {
+export class FileMigrationProvider implements KyselyMigrationProvider {
   constructor(private readonly migrationsPath: string) {}
 
   async getMigrations(): Promise<Record<string, Migration>> {
