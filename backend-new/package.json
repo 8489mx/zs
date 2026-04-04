@@ -12,6 +12,7 @@
     "migration:run": "ts-node src/database/migrate.ts up",
     "migration:revert": "ts-node src/database/migrate.ts down",
     "migration:list": "ts-node src/database/migrate.ts list",
+    "migration:phase5": "ts-node src/migration/index.ts",
     "test:infra": "ts-node test/infra/permission.service.spec.ts && ts-node test/infra/error.mapper.spec.ts"
   },
   "dependencies": {
