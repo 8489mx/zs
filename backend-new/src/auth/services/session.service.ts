@@ -5,13 +5,26 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import type { AuthContext } from '../interfaces/auth-context.interface';
 
-function safeJsonArray(value: string): string[] {
-  try {
-    const parsed = JSON.parse(value || '[]');
-    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : [];
-  } catch {
-    return [];
+function safeJsonArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
   }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+    } catch {
+      return [trimmed];
+    }
+  }
+
+  return [];
 }
 
 function hashPassword(password: string, salt: string): string {
@@ -199,6 +212,13 @@ export class SessionService {
       throw new Error('User not found');
     }
 
+    const settingsRows = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .execute();
+
+    const settingsMap = new Map(settingsRows.map((row) => [String(row.key || ''), String(row.value || '')]));
+
     const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME ?? 'ZS';
     const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD ?? 'infoadmin';
     const usingDefaultAdminPassword =
@@ -212,6 +232,10 @@ export class SessionService {
         username: auth.username,
         role: auth.role,
         permissions: auth.permissions,
+      },
+      settings: {
+        storeName: settingsMap.get('storeName') || 'Z Systems',
+        theme: settingsMap.get('theme') || 'light',
       },
       security: {
         mustChangePassword: Boolean(user.must_change_password),

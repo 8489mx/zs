@@ -25,6 +25,23 @@ export class SettingsService {
     }, {});
   }
 
+  async listBranches(): Promise<Record<string, unknown>> {
+    const rows = await this.db
+      .selectFrom('branches')
+      .select(['id', 'name', 'code'])
+      .where('is_active', '=', true)
+      .orderBy('id asc')
+      .execute();
+
+    return {
+      branches: rows.map((row) => ({
+        id: String(row.id),
+        name: row.name || '',
+        code: row.code || '',
+      })),
+    };
+  }
+
   async saveSettings(payload: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new AppError('Settings payload must be an object', 'SETTINGS_INVALID', 400);

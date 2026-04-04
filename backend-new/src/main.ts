@@ -29,6 +29,11 @@ async function bootstrap(): Promise<void> {
   const host = configService.getOrThrow<string>('app.host');
   const port = configService.getOrThrow<number>('app.port');
 
+app.enableCors({
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true,
+});
+
   await app.listen(port, host);
   logger.log(`API bootstrap complete on ${host}:${port}`);
 }
