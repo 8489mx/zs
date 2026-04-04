@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import type { AuthContext } from '../interfaces/auth-context.interface';
@@ -51,6 +51,85 @@ export class SessionService {
       role: row.role,
       permissions: safeJsonArray(row.permissions_json),
     };
+  }
+
+  async authenticate(
+    username: string,
+    password: string,
+    meta?: { ipAddress?: string; userAgent?: string },
+  ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
+    const normalized = username.trim();
+
+    const user = await this.db
+      .selectFrom('users')
+      .select([
+        'id',
+        'username',
+        'password_hash',
+        'password_salt',
+        'role',
+        'permissions_json',
+        'is_active',
+        'locked_until',
+      ])
+      .where('username', '=', normalized)
+      .executeTakeFirst();
+
+    if (!user) return null;
+    if (!user.is_active) return null;
+    if (user.locked_until && user.locked_until > new Date()) return null;
+
+    const valid = hashPassword(password, user.password_salt) === user.password_hash;
+    if (!valid) {
+      await this.db
+        .updateTable('users')
+        .set({ failed_login_count: 1 })
+        .where('id', '=', user.id)
+        .execute();
+      return null;
+    }
+
+    const sessionId = randomUUID();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    await this.db
+      .insertInto('sessions')
+      .values({
+        id: sessionId,
+        user_id: user.id,
+        expires_at: expiresAt,
+        last_seen_at: now,
+        ip_address: meta?.ipAddress?.slice(0, 255) || '',
+        user_agent: meta?.userAgent?.slice(0, 500) || '',
+      })
+      .execute();
+
+    await this.db
+      .updateTable('users')
+      .set({
+        failed_login_count: 0,
+        last_login_at: now,
+        locked_until: null,
+      })
+      .where('id', '=', user.id)
+      .execute();
+
+    return {
+      sessionId,
+      expiresAt,
+      auth: {
+        userId: user.id,
+        sessionId,
+        username: user.username,
+        role: user.role,
+        permissions: safeJsonArray(user.permissions_json),
+      },
+    };
+  }
+
+  async logout(sessionId: string): Promise<void> {
+    await this.db.deleteFrom('sessions').where('id', '=', sessionId).execute();
   }
 
   async listSessions(userId: number): Promise<Array<Record<string, unknown>>> {

@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../auth/interfaces/request-with-auth.interface';
 import { SessionService } from '../auth/services/session.service';
@@ -6,20 +19,78 @@ import { AuditService } from '../audit/audit.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('api/auth')
-@UseGuards(SessionAuthGuard)
 export class SessionsController {
   constructor(
     private readonly sessionService: SessionService,
     private readonly auditService: AuditService,
   ) {}
 
+  @Post('login')
+  async login(
+    @Body() payload: { username?: string; password?: string },
+    @Req() req: RequestWithAuth,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<Record<string, unknown>> {
+    const username = String(payload?.username || '').trim();
+    const password = String(payload?.password || '');
+
+    if (!username || !password) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    const result = await this.sessionService.authenticate(username, password, {
+      ipAddress: req.ip,
+      userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : '',
+    });
+
+    if (!result) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    res.cookie('session_id', result.sessionId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      expires: result.expiresAt,
+      path: '/',
+    });
+
+    await this.auditService.log('تسجيل دخول', `تم تسجيل دخول المستخدم ${result.auth.username}`, result.auth.userId);
+
+    return {
+      ok: true,
+      sessionId: result.sessionId,
+      user: {
+        id: result.auth.userId,
+        username: result.auth.username,
+        role: result.auth.role,
+        permissions: result.auth.permissions,
+      },
+      expiresAt: result.expiresAt.toISOString(),
+    };
+  }
+
+  @Post('logout')
+  @UseGuards(SessionAuthGuard)
+  async logout(
+    @Req() req: RequestWithAuth,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<Record<string, unknown>> {
+    await this.sessionService.logout(req.authContext!.sessionId);
+    res.clearCookie('session_id', { path: '/' });
+    await this.auditService.log('تسجيل خروج', `تم تسجيل خروج المستخدم ${req.authContext!.username}`, req.authContext!.userId);
+    return { ok: true };
+  }
+
   @Get('sessions')
+  @UseGuards(SessionAuthGuard)
   async list(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     const sessions = await this.sessionService.listSessions(req.authContext!.userId);
     return { sessions };
   }
 
   @Delete('sessions/:id')
+  @UseGuards(SessionAuthGuard)
   async revoke(@Param('id') sessionId: string, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     const removed = await this.sessionService.revokeSessionForUser(sessionId, req.authContext!.userId);
     if (!removed) {
@@ -32,6 +103,7 @@ export class SessionsController {
   }
 
   @Post('sessions/revoke-others')
+  @UseGuards(SessionAuthGuard)
   async revokeOthers(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     const removed = await this.sessionService.revokeOtherSessions(req.authContext!.userId, req.authContext!.sessionId);
     const sessions = await this.sessionService.listSessions(req.authContext!.userId);
@@ -40,6 +112,7 @@ export class SessionsController {
   }
 
   @Post('change-password')
+  @UseGuards(SessionAuthGuard)
   async changePassword(@Body() payload: ChangePasswordDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     await this.sessionService.changePassword(req.authContext!.userId, payload.currentPassword, payload.newPassword);
     const removed = await this.sessionService.revokeOtherSessions(req.authContext!.userId, req.authContext!.sessionId);
@@ -48,6 +121,7 @@ export class SessionsController {
   }
 
   @Get('me')
+  @UseGuards(SessionAuthGuard)
   me(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.sessionService.buildMePayload(req.authContext!);
   }
