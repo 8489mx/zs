@@ -235,6 +235,21 @@ export interface DamagedStockRecordTable {
 export interface SalesTable {
   id: Generated<number>;
   customer_id: number | null;
+  status: 'draft' | 'held' | 'posted' | 'cancelled';
+  total: number;
+  discount: number;
+  branch_id: number | null;
+  location_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface SaleItemTable {
+  id: Generated<number>;
+  sale_id: number;
+  product_name: string;
+  qty: number;
+  line_total: number;
+  cost_price: number;
 }
 
 export interface CustomerPaymentTable {
@@ -245,11 +260,23 @@ export interface CustomerPaymentTable {
 export interface CustomerLedgerTable {
   id: Generated<number>;
   customer_id: number;
+  entry_type: string;
+  amount: number;
+  balance_after: number;
+  note: string;
+  reference_type: string | null;
+  reference_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface PurchaseTable {
   id: Generated<number>;
   supplier_id: number;
+  status: 'draft' | 'posted' | 'cancelled';
+  total: number;
+  branch_id: number | null;
+  location_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface SupplierPaymentTable {
@@ -260,6 +287,26 @@ export interface SupplierPaymentTable {
 export interface SupplierLedgerTable {
   id: Generated<number>;
   supplier_id: number;
+  entry_type: string;
+  amount: number;
+  balance_after: number;
+  note: string;
+  reference_type: string | null;
+  reference_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface TreasuryTransactionTable {
+  id: Generated<number>;
+  txn_type: string;
+  amount: number;
+  note: string;
+  reference_type: string | null;
+  reference_id: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface Database {
@@ -284,9 +331,11 @@ export interface Database {
   stock_count_items: StockCountItemTable;
   damaged_stock_records: DamagedStockRecordTable;
   sales: SalesTable;
+  sale_items: SaleItemTable;
   customer_payments: CustomerPaymentTable;
   customer_ledger: CustomerLedgerTable;
   purchases: PurchaseTable;
   supplier_payments: SupplierPaymentTable;
   supplier_ledger: SupplierLedgerTable;
+  treasury_transactions: TreasuryTransactionTable;
 }
