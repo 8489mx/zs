@@ -42,7 +42,7 @@ export function ReturnsRegisterCard({
   onPageSizeChange,
 }: Props) {
   return (
-    <Card title="سجل المرتجعات" description="اختر أي صف لعرض التفاصيل فورًا مع إبقاء الفلاتر والطباعة والتصدير في نفس المكان." actions={<span className="nav-pill">السجل</span>} className="workspace-panel returns-register-card">
+    <Card title="سجل المرتجعات" actions={<span className="nav-pill">السجل</span>} className="workspace-panel returns-register-card">
       <SearchToolbar search={search} onSearchChange={onSearchChange} searchPlaceholder="ابحث برقم المستند أو الصنف أو الملاحظات">
         <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
       </SearchToolbar>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -8,16 +8,11 @@ import { useSalesPage } from '@/features/sales/hooks/useSalesPage';
 import { useSaleActions } from '@/features/sales/hooks/useSaleActions';
 import { useSalesWorkspaceActions } from '@/features/sales/hooks/useSalesWorkspaceActions';
 import { SalesWorkspaceHeader } from '@/features/sales/components/SalesWorkspaceHeader';
-import { SalesWorkspaceHero } from '@/features/sales/components/SalesWorkspaceHero';
 import { SalesRegisterCard } from '@/features/sales/components/SalesRegisterCard';
 import { SalesSidePanel } from '@/features/sales/components/SalesSidePanel';
 import { SaleEditDialog } from '@/features/sales/components/SaleEditDialog';
 import {
-  buildSalesGuidanceCards,
-  buildSalesScopeRows,
   getSaleCancelDescription,
-  getSalePaymentLabel,
-  getSalesNextStep,
   getSalesViewFilterLabel,
   printSaleDocument,
 } from '@/features/sales/lib/sales-workspace.helpers';
@@ -51,25 +46,7 @@ export function SalesWorkspace() {
     setPage(1);
   }, [search, viewFilter]);
 
-  const scopeRows = useMemo(() => buildSalesScopeRows({
-    activeFilterLabel,
-    totalItems,
-    rangeStart,
-    rangeEnd,
-    search,
-    selectedSale,
-    totalSales: summary?.totalSales || 0,
-  }), [activeFilterLabel, rangeEnd, rangeStart, search, selectedSale, summary?.totalSales, totalItems]);
-
-  const selectedSalePaymentLabel = getSalePaymentLabel(selectedSale);
-  const salesNextStep = getSalesNextStep({ selectedSale, canEditInvoices, totalItems });
-  const salesGuidanceCards = useMemo(() => buildSalesGuidanceCards({
-    activeFilterLabel,
-    salesNextStep,
-    selectedSale,
-    search,
-  }), [activeFilterLabel, salesNextStep, search, selectedSale]);
-  const cancelDescription = useMemo(() => getSaleCancelDescription(saleToCancel), [saleToCancel]);
+  const cancelDescription = getSaleCancelDescription(saleToCancel);
 
   const {
     exportSalesCsv,
@@ -132,7 +109,6 @@ export function SalesWorkspace() {
           error={salesQuery.error}
           canPrint={canPrint}
           canEditInvoices={canEditInvoices}
-          salesNextStep={salesNextStep}
           onSearchChange={setSearch}
           onViewFilterChange={handleViewFilterChange}
           onReset={resetSalesView}
@@ -150,6 +126,7 @@ export function SalesWorkspace() {
           topCustomers={topCustomers}
           canPrint={canPrint}
           canEditInvoices={canEditInvoices}
+          canManageCustomers={canManageCustomers}
           selectedSale={selectedSale}
           isLoading={saleDetailQuery.isLoading}
           onExportTopCustomers={exportTopCustomersCsv}
@@ -172,17 +149,6 @@ export function SalesWorkspace() {
           setSelectedSaleId(saleToEdit.id);
           setSaleToEdit(null);
         }}
-      />
-
-
-      <SalesWorkspaceHero
-        scopeRows={scopeRows}
-        salesGuidanceCards={salesGuidanceCards}
-        activeFilterLabel={activeFilterLabel}
-        selectedSale={selectedSale}
-        selectedSalePaymentLabel={selectedSalePaymentLabel}
-        salesNextStep={salesNextStep}
-        canManageCustomers={canManageCustomers}
       />
 
       <ActionConfirmDialog

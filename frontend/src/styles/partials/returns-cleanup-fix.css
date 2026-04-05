@@ -1,0 +1,107 @@
+/* Returns workspace real layout cleanup */
+.returns-workspace {
+  gap: 14px;
+}
+
+.returns-workspace .returns-register-card,
+.returns-workspace .returns-detail-card,
+.returns-workspace .returns-create-card,
+.returns-workspace .returns-summary-card {
+  border-radius: 20px;
+}
+
+.returns-workspace .returns-register-card .section-title,
+.returns-workspace .returns-detail-card .section-title,
+.returns-workspace .returns-create-card .section-title,
+.returns-workspace .returns-summary-card .section-title {
+  margin-bottom: 12px;
+}
+
+.returns-workspace .returns-register-card .section-description,
+.returns-workspace .returns-detail-card .section-description,
+.returns-workspace .returns-create-card .section-description,
+.returns-workspace .returns-summary-card .section-description {
+  display: none;
+}
+
+.returns-workspace .toolbar-stack {
+  padding: 12px;
+  border-radius: 18px;
+  gap: 10px;
+}
+
+.returns-workspace .toolbar-heading {
+  display: none;
+}
+
+.returns-workspace .toolbar-grid {
+  grid-template-columns: minmax(320px, 1fr) minmax(180px, 0.55fr);
+  gap: 10px;
+}
+
+.returns-workspace .toolbar-extra {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.returns-workspace .filter-chip-row {
+  margin-bottom: 0;
+}
+
+.returns-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.returns-side-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.returns-workspace .returns-create-card,
+.returns-workspace .returns-detail-card,
+.returns-workspace .returns-summary-card {
+  min-width: 0;
+}
+
+.returns-workspace .returns-create-card .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.returns-workspace .returns-create-card textarea {
+  min-height: 72px;
+}
+
+.returns-workspace .returns-create-card .surface-note,
+.returns-workspace .returns-detail-card .surface-note,
+.returns-workspace .returns-summary-card .metric-row,
+.returns-workspace .returns-detail-card .metric-row,
+.returns-workspace .returns-register-card .toolbar-meta-row,
+.returns-workspace .returns-register-card .list-row,
+.returns-workspace .returns-register-card .empty-state-card {
+  border-radius: 14px;
+}
+
+.returns-workspace .returns-summary-card .metric-list,
+.returns-workspace .returns-detail-card .metric-list {
+  gap: 10px;
+}
+
+.returns-workspace .returns-detail-card .empty-state,
+.returns-workspace .returns-summary-card .empty-state {
+  min-height: 160px;
+}
+
+@media (max-width: 1180px) {
+  .returns-layout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .returns-workspace .returns-create-card .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

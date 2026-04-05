@@ -27,7 +27,6 @@ type Props = {
   error: unknown;
   canPrint: boolean;
   canEditInvoices: boolean;
-  salesNextStep: string;
   onSearchChange: (value: string) => void;
   onViewFilterChange: (value: 'all' | 'cash' | 'credit' | 'cancelled') => void;
   onReset: () => void;
@@ -61,7 +60,6 @@ export function SalesRegisterCard(props: Props) {
     error,
     canPrint,
     canEditInvoices,
-    salesNextStep,
     onSearchChange,
     onViewFilterChange,
     onReset,
@@ -81,8 +79,6 @@ export function SalesRegisterCard(props: Props) {
         search={search}
         onSearchChange={onSearchChange}
         searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث بالرقم أو العميل أو الحالة أو المخزن' : 'ابحث بالرقم أو العميل أو الحالة أو الفرع'}
-        title="بحث وتصفية"
-        description="فلترة سريعة لسجل المبيعات مع إبقاء الإجراء الحالي واضحًا في أعلى الجدول."
         actions={<span className="nav-pill">{activeFilterLabel}</span>}
         meta={(
           <>
@@ -103,20 +99,14 @@ export function SalesRegisterCard(props: Props) {
         </div>
       </SearchToolbar>
 
-      <div className="sales-action-strip">
-        <div className="sales-action-card"><span>أفضل خطوة الآن</span><strong>{salesNextStep}</strong></div>
-        <div className="sales-action-card"><span>نتائج النطاق</span><strong>{totalItems} فاتورة مطابقة</strong></div>
-        <div className="sales-action-card"><span>المستند المحدد</span><strong>{selectedSale ? (selectedSale.docNo || selectedSale.id) : 'لم يتم التحديد بعد'}</strong></div>
-      </div>
-
       <QueryFeedback
         isLoading={isLoading}
         isError={isError}
         error={error}
         isEmpty={!rows.length && !isLoading}
         loadingText="جاري تحميل فواتير البيع..."
-        emptyTitle="لا توجد فواتير بيع مطابقة"
-        emptyHint="جرّب إزالة البحث أو أنشئ فاتورة جديدة من شاشة نقطة البيع."
+        emptyTitle="لا توجد فواتير مطابقة"
+        emptyHint="غيّر البحث أو افتح الكاشير لإنشاء فاتورة جديدة."
       >
         <SalesTable
           rows={rows}

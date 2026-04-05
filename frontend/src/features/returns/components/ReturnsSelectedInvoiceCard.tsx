@@ -15,7 +15,7 @@ export function ReturnsSelectedInvoiceCard({
   expectedReturnValue: number;
 }) {
   return (
-    <Card title="ملخص الفاتورة والبنود المختارة" description="راجع الفاتورة وعدد البنود المختارة وقيمة المرتجع المتوقعة قبل الحفظ." actions={<span className="nav-pill">مرجع سريع</span>} className="workspace-panel returns-summary-card">
+    <Card title="ملخص الفاتورة المختارة" actions={<span className="nav-pill">مرجع سريع</span>} className="workspace-panel returns-summary-card">
       {selectedInvoice ? (
         <div className="metric-list">
           <div className="metric-row"><span>رقم الفاتورة</span><strong>{selectedInvoice.docNo || selectedInvoice.id}</strong></div>
@@ -26,7 +26,7 @@ export function ReturnsSelectedInvoiceCard({
           <div className="metric-row"><span>الكمية الإجمالية</span><strong>{selectedQtyTotal}</strong></div>
           <div className="metric-row"><span>قيمة المرتجع المتوقعة</span><strong>{selectedItemsCount ? formatCurrency(expectedReturnValue) : '—'}</strong></div>
         </div>
-      ) : <EmptyState title="اختر فاتورة لعرض بنودها" hint="عند اختيار الفاتورة ستتمكن من تحديد أكثر من بند وكميته في نفس المرتجع." />}
+      ) : <EmptyState title="اختر فاتورة أولًا" hint="بعد اختيار الفاتورة سيظهر الملخص هنا." />}
     </Card>
   );
 }

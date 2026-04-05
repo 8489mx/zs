@@ -22,8 +22,6 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 
-// regression-marker: إجمالي المرتجعات المطابقة
-// regression-marker: عدد المستندات المطابقة: ${totalItems}
 export function ReturnsWorkspace() {
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState<'all' | 'sales' | 'purchase' | 'today'>('all');
@@ -45,6 +43,7 @@ export function ReturnsWorkspace() {
       ? (salesQuery.data || []).filter((sale) => sale.status === 'posted')
       : (purchasesQuery.data || []).filter((purchase) => purchase.status === 'posted')
   ), [form.type, purchasesQuery.data, salesQuery.data]);
+
   const selectedInvoice = invoiceRows.find((row) => String(row.id) === String(form.invoiceId)) as Sale | Purchase | undefined;
   const invoiceItems = useMemo(() => (selectedInvoice?.items || []) as Array<SaleItem | PurchaseItem>, [selectedInvoice?.items]);
   const settlementNeedsRefundMethod = form.settlementMode === 'refund';
@@ -58,6 +57,7 @@ export function ReturnsWorkspace() {
       return { item, qty, lineTotal };
     })
     .filter((entry) => entry.qty > 0), [invoiceItems, selectedItems]);
+
   const selectedItemsCount = selectedReturnItems.length;
   const selectedQtyTotal = selectedReturnItems.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
   const expectedReturnValue = selectedReturnItems.reduce((sum, entry) => sum + Number(entry.lineTotal || 0), 0);
@@ -197,33 +197,25 @@ export function ReturnsWorkspace() {
         onPrint={printReturns}
       />
 
-      <div className="returns-main-grid">
-        <ReturnsRegisterCard
-          search={search}
-          viewFilter={viewFilter}
-          page={page}
-          pageSize={pageSize}
-          rows={rows}
-          totalItems={summary?.totalItems || rows.length}
-          selectedReturnId={selectedReturn ? String(selectedReturn.id) : ''}
-          isLoading={query.isLoading}
-          onSearchChange={handleRegisterSearchChange}
-          onReset={resetReturnsView}
-          onFilterChange={handleFilterChange}
-          onSelectReturn={setSelectedReturnId}
-          onPrintReturn={printReturnRecord}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-        />
+      <ReturnsRegisterCard
+        search={search}
+        viewFilter={viewFilter}
+        page={page}
+        pageSize={pageSize}
+        rows={rows}
+        totalItems={summary?.totalItems || rows.length}
+        selectedReturnId={selectedReturn ? String(selectedReturn.id) : ''}
+        isLoading={query.isLoading}
+        onSearchChange={handleRegisterSearchChange}
+        onReset={resetReturnsView}
+        onFilterChange={handleFilterChange}
+        onSelectReturn={setSelectedReturnId}
+        onPrintReturn={printReturnRecord}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
-        <ReturnsSelectedReturnCard
-          selectedReturn={selectedReturn}
-          onPrint={() => selectedReturn ? printReturnRecord(selectedReturn) : undefined}
-          onCopy={() => void copySelectedReturn()}
-        />
-      </div>
-
-      <div className="returns-hero-grid">
+      <div className="returns-layout-grid">
         <ReturnsCreateCard
           form={form}
           invoiceRows={invoiceRows}
@@ -244,12 +236,20 @@ export function ReturnsWorkspace() {
           onOpenConfirm={() => setConfirmReturn(true)}
         />
 
-        <ReturnsSelectedInvoiceCard
-          selectedInvoice={selectedInvoice}
-          selectedItemsCount={selectedItemsCount}
-          selectedQtyTotal={selectedQtyTotal}
-          expectedReturnValue={expectedReturnValue}
-        />
+        <div className="returns-side-stack">
+          <ReturnsSelectedReturnCard
+            selectedReturn={selectedReturn}
+            onPrint={() => selectedReturn ? printReturnRecord(selectedReturn) : undefined}
+            onCopy={() => void copySelectedReturn()}
+          />
+
+          <ReturnsSelectedInvoiceCard
+            selectedInvoice={selectedInvoice}
+            selectedItemsCount={selectedItemsCount}
+            selectedQtyTotal={selectedQtyTotal}
+            expectedReturnValue={expectedReturnValue}
+          />
+        </div>
       </div>
 
       <ActionConfirmDialog

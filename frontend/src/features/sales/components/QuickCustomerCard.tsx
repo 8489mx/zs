@@ -26,7 +26,7 @@ export function QuickCustomerCard({ canManageCustomers }: { canManageCustomers: 
   });
 
   return (
-    <Card title="إضافة عميل سريع" description="أبقينا هذه الأداة قريبة من الشاشة الرئيسية حتى لا يقطع المستخدم سياقه أثناء مراجعة السجل أو فتح الكاشير." actions={<span className="nav-pill">من نفس الشاشة</span>} className="workspace-panel">
+    <Card title="إضافة عميل سريع" className="workspace-panel sales-quick-customer-card">
       <div className="form-grid">
         <Field label="اسم العميل"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="اسم العميل" disabled={mutation.isPending || !canManageCustomers} /></Field>
         <Field label="الهاتف"><input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="اختياري" disabled={mutation.isPending || !canManageCustomers} /></Field>
@@ -34,9 +34,9 @@ export function QuickCustomerCard({ canManageCustomers }: { canManageCustomers: 
       <div className="actions section-actions-clean">
         <Button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending || !canManageCustomers}>إضافة العميل</Button>
       </div>
-      {!canManageCustomers ? <div className="muted small">هذا الحساب لا يملك صلاحية إنشاء عميل جديد من شاشة المبيعات.</div> : null}
+      {!canManageCustomers ? <div className="muted small">لا تملك صلاحية إضافة عميل جديد.</div> : null}
       <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback="تعذر إضافة العميل" />
-      <MutationFeedback isSuccess={mutation.isSuccess} successText="تمت إضافة العميل وتحديث القوائم." />
+      <MutationFeedback isSuccess={mutation.isSuccess} successText="تمت إضافة العميل." />
     </Card>
   );
 }

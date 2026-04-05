@@ -28,7 +28,7 @@ export function CashDrawerPage() {
   ];
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell cash-drawer-page">
       <PageHeader title="الورديات والدرج النقدي" description="افتح الوردية أو راجع الحالية أولًا، ثم نفذ حركات الدرج، ثم راقب السجل والإغلاقات." badge={<span className="nav-pill">متابعة الورديات</span>} />
 
       <CashDrawerStatsGrid
