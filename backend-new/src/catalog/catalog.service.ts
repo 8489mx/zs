@@ -395,7 +395,7 @@ export class CatalogService {
       units: normalizedUnits,
       offers,
       customerPrices,
-      ...(Object.prototype.hasOwnProperty.call(payload, 'stock') ? { stock: Number(payload.stock || 0) } : {}),
+      ...(payload.stock !== undefined && payload.stock !== null ? { stock: Number(payload.stock || 0) } : {}),
     };
   }
 
@@ -524,7 +524,7 @@ export class CatalogService {
       throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
     }
 
-    if (Object.prototype.hasOwnProperty.call(normalized, 'stock')) {
+    if (normalized.stock !== undefined && normalized.stock !== null) {
       throw new AppError('Stock cannot be edited from product master data. Use inventory adjustment.', 'STOCK_UPDATE_FORBIDDEN', 400);
     }
 

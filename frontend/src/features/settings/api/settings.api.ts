@@ -19,8 +19,6 @@ export interface ManagedUserRecord {
   lastLoginAt?: string | null;
 }
 
-
-
 export interface ManagedUsersSummary {
   totalItems: number;
   superAdmins: number;
@@ -45,12 +43,27 @@ export interface BackupSnapshotRecord {
   payload?: Record<string, unknown>;
 }
 
-
-
 interface ManagedUsersResponse {
   users?: ManagedUserRecord[];
   pagination?: PaginationMeta;
   summary?: ManagedUsersSummary;
+}
+
+function sanitizeUserPayload(payload: ManagedUserRecord) {
+  const password = String(payload.password || '').trim();
+
+  return {
+    ...(payload.id ? { id: payload.id } : {}),
+    username: String(payload.username || '').trim(),
+    ...(password ? { password } : {}),
+    role: payload.role === 'super_admin' ? 'super_admin' : payload.role === 'admin' ? 'admin' : 'cashier',
+    permissions: Array.isArray(payload.permissions) ? payload.permissions.map((entry) => String(entry)).filter(Boolean) : [],
+    name: String(payload.name || '').trim(),
+    branchIds: Array.isArray(payload.branchIds) ? payload.branchIds.map((entry) => String(entry)).filter(Boolean) : [],
+    defaultBranchId: String(payload.defaultBranchId || ''),
+    isActive: payload.isActive !== false,
+    mustChangePassword: payload.mustChangePassword === true,
+  };
 }
 
 export const settingsApi = {
@@ -107,10 +120,10 @@ export const settingsApi = {
     return { rows: allRows, summary: firstPage.summary, pagination: firstPage.pagination };
   },
   backupSnapshots: async () => unwrapArray<BackupSnapshotRecord>(await http<BackupSnapshotRecord[] | { snapshots: BackupSnapshotRecord[] }>('/api/backup-snapshots'), 'snapshots'),
-  createUser: (payload: ManagedUserRecord) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>('/api/users', { method: 'POST', body: JSON.stringify(payload) }),
-  updateUser: (userId: string, payload: ManagedUserRecord) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  createUser: (payload: ManagedUserRecord) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>('/api/users', { method: 'POST', body: JSON.stringify(sanitizeUserPayload(payload)) }),
+  updateUser: (userId: string, payload: ManagedUserRecord) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify(sanitizeUserPayload(payload)) }),
   deleteUser: (userId: string) => http<{ ok: boolean; removedUserId: string; users: ManagedUserRecord[] }>(`/api/users/${userId}`, { method: 'DELETE' }),
   unlockUser: (userId: string) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>(`/api/users/${userId}/unlock`, { method: 'POST' }),
-  saveUsers: (users: ManagedUserRecord[]) => http<{ ok: boolean; users: ManagedUserRecord[] }>('/api/users', { method: 'PUT', body: JSON.stringify({ users }) }),
+  saveUsers: (users: ManagedUserRecord[]) => http<{ ok: boolean; users: ManagedUserRecord[] }>('/api/users', { method: 'PUT', body: JSON.stringify({ users: users.map(sanitizeUserPayload) }) }),
   backupDownloadUrl: () => resolveRequestUrl('/api/backup')
 };

@@ -1,17 +1,30 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import type { AuthContext } from '../interfaces/auth-context.interface';
 
-function safeJsonArray(value: string): string[] {
-  try {
-    const parsed = JSON.parse(value || '[]');
-    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : [];
-  } catch {
-    return [];
+function safeJsonArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
   }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+    } catch {
+      return [trimmed];
+    }
+  }
+
+  return [];
 }
 
 function hashPassword(password: string, salt: string): string {
@@ -51,6 +64,85 @@ export class SessionService {
       role: row.role,
       permissions: safeJsonArray(row.permissions_json),
     };
+  }
+
+  async authenticate(
+    username: string,
+    password: string,
+    meta?: { ipAddress?: string; userAgent?: string },
+  ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
+    const normalized = username.trim();
+
+    const user = await this.db
+      .selectFrom('users')
+      .select([
+        'id',
+        'username',
+        'password_hash',
+        'password_salt',
+        'role',
+        'permissions_json',
+        'is_active',
+        'locked_until',
+      ])
+      .where('username', '=', normalized)
+      .executeTakeFirst();
+
+    if (!user) return null;
+    if (!user.is_active) return null;
+    if (user.locked_until && user.locked_until > new Date()) return null;
+
+    const valid = hashPassword(password, user.password_salt) === user.password_hash;
+    if (!valid) {
+      await this.db
+        .updateTable('users')
+        .set({ failed_login_count: 1 })
+        .where('id', '=', user.id)
+        .execute();
+      return null;
+    }
+
+    const sessionId = randomUUID();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    await this.db
+      .insertInto('sessions')
+      .values({
+        id: sessionId,
+        user_id: user.id,
+        expires_at: expiresAt,
+        last_seen_at: now,
+        ip_address: meta?.ipAddress?.slice(0, 255) || '',
+        user_agent: meta?.userAgent?.slice(0, 500) || '',
+      })
+      .execute();
+
+    await this.db
+      .updateTable('users')
+      .set({
+        failed_login_count: 0,
+        last_login_at: now,
+        locked_until: null,
+      })
+      .where('id', '=', user.id)
+      .execute();
+
+    return {
+      sessionId,
+      expiresAt,
+      auth: {
+        userId: user.id,
+        sessionId,
+        username: user.username,
+        role: user.role,
+        permissions: safeJsonArray(user.permissions_json),
+      },
+    };
+  }
+
+  async logout(sessionId: string): Promise<void> {
+    await this.db.deleteFrom('sessions').where('id', '=', sessionId).execute();
   }
 
   async listSessions(userId: number): Promise<Array<Record<string, unknown>>> {
@@ -120,6 +212,13 @@ export class SessionService {
       throw new Error('User not found');
     }
 
+    const settingsRows = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .execute();
+
+    const settingsMap = new Map(settingsRows.map((row) => [String(row.key || ''), String(row.value || '')]));
+
     const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME ?? 'ZS';
     const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD ?? 'infoadmin';
     const usingDefaultAdminPassword =
@@ -133,6 +232,10 @@ export class SessionService {
         username: auth.username,
         role: auth.role,
         permissions: auth.permissions,
+      },
+      settings: {
+        storeName: settingsMap.get('storeName') || 'Z Systems',
+        theme: settingsMap.get('theme') || 'light',
       },
       security: {
         mustChangePassword: Boolean(user.must_change_password),

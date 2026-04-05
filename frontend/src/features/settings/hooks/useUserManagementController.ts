@@ -40,9 +40,28 @@ export function useUserManagementController({
   const [bulkAction, setBulkAction] = useState<UserBulkAction | null>(null);
   const usersQuery = useSettingsUsersPageQuery({ page, pageSize, search: userSearch, filter: userFilter });
 
-  const managedUsers = useMemo(() => (usersQuery.data?.rows || []).map(normalizeUserRecord), [usersQuery.data]);
+  const usersRows = useMemo(() => {
+    const data = usersQuery.data as Record<string, unknown> | undefined;
+    const rows = (data?.rows || data?.users || []) as ManagedUserRecord[];
+    return Array.isArray(rows) ? rows : [];
+  }, [usersQuery.data]);
+
+  const managedUsers = useMemo(() => usersRows.map(normalizeUserRecord), [usersRows]);
   const selectedSourceUser = useMemo(() => managedUsers.find((user) => String(user.id) === selectedUserKey) || null, [managedUsers, selectedUserKey]);
-  const userSummary = usersQuery.data?.summary || { totalItems: 0, superAdmins: 0, admins: 0, cashiers: 0, inactive: 0, locked: 0, activePrivilegedUsers: 0 };
+
+  const userSummary = useMemo(() => {
+    const summary = (usersQuery.data as Record<string, any> | undefined)?.summary || {};
+    return {
+      totalItems: Number(summary.totalItems ?? summary.total ?? managedUsers.length ?? 0),
+      superAdmins: Number(summary.superAdmins ?? 0),
+      admins: Number(summary.admins ?? 0),
+      cashiers: Number(summary.cashiers ?? 0),
+      inactive: Number(summary.inactive ?? 0),
+      locked: Number(summary.locked ?? 0),
+      activePrivilegedUsers: Number(summary.activePrivilegedUsers ?? 0),
+    };
+  }, [usersQuery.data, managedUsers.length]);
+
   const selectedUsers = useMemo(() => managedUsers.filter((user) => selectedIds.includes(String(user.id || user.username))), [managedUsers, selectedIds]);
   const operationalAdmins = useMemo(() => managedUsers.filter((user) => user.isActive !== false && user.role === 'admin'), [managedUsers]);
 

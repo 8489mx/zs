@@ -27,7 +27,16 @@ export function normalizeCustomerPrices(product?: Product): ProductCustomerPrice
     : [];
 }
 
-export function buildUpdatePayload(values: ProductFormOutput, existingProduct: Product, units: ProductUnit[], customerPrices: ProductCustomerPrice[], offers?: ProductOffer[]) {
+export function buildUpdatePayload(
+  values: ProductFormOutput,
+  existingProduct: Product,
+  units: ProductUnit[],
+  customerPrices: ProductCustomerPrice[],
+  offers?: ProductOffer[]
+) {
+  const categoryId = values.categoryId ? Number(values.categoryId) : undefined;
+  const supplierId = values.supplierId ? Number(values.supplierId) : undefined;
+
   return {
     name: values.name,
     barcode: values.barcode || '',
@@ -35,11 +44,10 @@ export function buildUpdatePayload(values: ProductFormOutput, existingProduct: P
     retailPrice: Number(values.retailPrice || 0),
     wholesalePrice: Number(values.wholesalePrice || 0),
     minStock: Number(values.minStock || 0),
-    categoryId: values.categoryId || '',
-    supplierId: values.supplierId || '',
+    ...(categoryId ? { categoryId } : {}),
+    ...(supplierId ? { supplierId } : {}),
     notes: values.notes || '',
     units: normalizeProductUnits(units, values.barcode || '').map((unit, index) => ({
-      id: unit.id || null,
       name: unit.name,
       multiplier: Number(unit.multiplier || 1) || 1,
       barcode: unit.barcode || (index === 0 ? values.barcode || '' : ''),
@@ -48,16 +56,17 @@ export function buildUpdatePayload(values: ProductFormOutput, existingProduct: P
       isPurchaseUnit: Boolean(unit.isPurchaseUnit)
     })),
     offers: (offers ?? existingProduct.offers ?? []).map((offer) => ({
-      id: offer.id,
       type: offer.type === 'fixed' ? 'fixed' : 'percent',
       value: Number(offer.value || 0),
       from: offer.from || null,
       to: offer.to || null
     })),
-    customerPrices: customerPrices.map((entry) => ({
-      customerId: Number(entry.customerId || 0),
-      price: Number(entry.price || 0)
-    })).filter((entry) => entry.customerId > 0 && entry.price >= 0)
+    customerPrices: customerPrices
+      .map((entry) => ({
+        customerId: Number(entry.customerId || 0),
+        price: Number(entry.price || 0)
+      }))
+      .filter((entry) => entry.customerId > 0 && entry.price >= 0)
   };
 }
 

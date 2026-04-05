@@ -48,7 +48,7 @@ export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | un
     ...user,
     id: user?.id ? String(user.id) : null,
     username: String(user?.username || ''),
-    password: '',
+    password: typeof user?.password === 'string' ? user.password : '',
     role,
     permissions: Array.isArray(user?.permissions) && user.permissions.length
       ? Array.from(new Set((user.permissions || []).map((permission) => String(permission)).filter(Boolean)))

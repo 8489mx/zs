@@ -183,10 +183,6 @@ export class PartnersService {
       throw new AppError('Customer name is required', 'CUSTOMER_NAME_REQUIRED', 400);
     }
 
-    if (await this.customerNameExists(name, id)) {
-      throw new AppError('Customer already exists', 'CUSTOMER_EXISTS', 400);
-    }
-
     await this.db
       .updateTable('customers')
       .set({
@@ -263,7 +259,7 @@ export class PartnersService {
       .where('id', '=', id)
       .execute();
 
-    await this.audit.log('حذف عميل', `تم حذف العميل #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف عميل', `تم تعطيل العميل #${id} بواسطة ${actor.username}`, actor.userId);
 
     const listing = await this.listCustomers({});
     return { ok: true, customers: listing.customers };
@@ -299,11 +295,8 @@ export class PartnersService {
       });
     }
 
-    if (filter === 'debt') {
+    if (filter === 'balance') {
       suppliers = suppliers.filter((supplier) => Number(supplier.balance || 0) > 0);
-    }
-    if (filter === 'withNotes') {
-      suppliers = suppliers.filter((supplier) => Boolean(supplier.notes));
     }
 
     if (!('page' in query) && !('pageSize' in query) && !q && filter === 'all') {
@@ -326,7 +319,6 @@ export class PartnersService {
       summary: {
         totalSuppliers: suppliers.length,
         totalBalance: suppliers.reduce((sum, supplier) => sum + Number(supplier.balance || 0), 0),
-        withNotes: suppliers.filter((supplier) => Boolean(supplier.notes)).length,
       },
     };
   }
@@ -374,10 +366,6 @@ export class PartnersService {
     const name = String(payload.name || '').trim();
     if (!name) {
       throw new AppError('Supplier name is required', 'SUPPLIER_NAME_REQUIRED', 400);
-    }
-
-    if (await this.supplierNameExists(name, id)) {
-      throw new AppError('Supplier already exists', 'SUPPLIER_EXISTS', 400);
     }
 
     await this.db
@@ -437,17 +425,6 @@ export class PartnersService {
       throw new AppError('Supplier has financial history and cannot be deleted', 'SUPPLIER_HAS_HISTORY', 400);
     }
 
-    const inUse = await this.db
-      .selectFrom('products')
-      .select((eb) => eb.fn.countAll<number>().as('count'))
-      .where('supplier_id', '=', id)
-      .where('is_active', '=', true)
-      .executeTakeFirstOrThrow();
-
-    if (Number(inUse.count || 0) > 0) {
-      throw new AppError('Supplier is used by products', 'SUPPLIER_IN_USE', 400);
-    }
-
     await this.db
       .updateTable('suppliers')
       .set({
@@ -457,7 +434,7 @@ export class PartnersService {
       .where('id', '=', id)
       .execute();
 
-    await this.audit.log('حذف مورد', `تم حذف المورد #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف مورد', `تم تعطيل المورد #${id} بواسطة ${actor.username}`, actor.userId);
 
     const listing = await this.listSuppliers({});
     return { ok: true, suppliers: listing.suppliers };

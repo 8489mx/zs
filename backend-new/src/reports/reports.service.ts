@@ -6,20 +6,42 @@ import { KYSELY_DB } from '../database/database.constants';
 import { Database } from '../database/database.types';
 import { ReportRangeQueryDto } from './dto/report-query.dto';
 
+type Range = {
+  from: string;
+  to: string;
+  branchId?: string;
+  locationId?: string;
+};
+
+type TrendPoint = {
+  key: string;
+  value: number;
+};
+
 @Injectable()
 export class ReportsService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
-  private parseRange(query: ReportRangeQueryDto): { from: string; to: string } {
+  private parseRange(query: ReportRangeQueryDto): Range {
     const now = new Date();
     const defaultTo = now.toISOString();
     const defaultFromDate = new Date(now);
     defaultFromDate.setDate(defaultFromDate.getDate() - 30);
     const defaultFrom = defaultFromDate.toISOString();
+
     return {
       from: query.from || defaultFrom,
       to: query.to || defaultTo,
+      branchId: query.branchId ? String(query.branchId) : undefined,
+      locationId: query.locationId ? String(query.locationId) : undefined,
     };
+  }
+
+  private dateKey(value: Date | string | null | undefined): string {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
   }
 
   private paginate<T>(rows: T[], query: ReportRangeQueryDto, defaultSize = 25): { rows: T[]; pagination: Record<string, number> } {
@@ -43,111 +65,298 @@ export class ReportsService {
     });
   }
 
+  private buildLastNDays(days: number): string[] {
+    return Array.from({ length: days }).map((_, index) => {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - (days - index - 1));
+      return this.dateKey(date);
+    });
+  }
+
+  private normalizeProduct(row: {
+    id: number;
+    name: string | null;
+    category_id: number | null;
+    supplier_id: number | null;
+    retail_price: number | string | null;
+    stock_qty: number | string | null;
+    min_stock_qty: number | string | null;
+  }): Record<string, unknown> {
+    return {
+      id: String(row.id),
+      name: row.name || '',
+      barcode: '',
+      categoryId: row.category_id ? String(row.category_id) : '',
+      supplierId: row.supplier_id ? String(row.supplier_id) : '',
+      retailPrice: Number(row.retail_price || 0),
+      wholesalePrice: 0,
+      stock: Number(row.stock_qty || 0),
+      minStock: Number(row.min_stock_qty || 0),
+      notes: '',
+      units: [],
+      offers: [],
+      customerPrices: [],
+    };
+  }
+
   async reportSummary(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
     const range = this.parseRange(query);
 
-    const salesRows = await this.db
+    const salesRows = this.filterScope(await this.db
       .selectFrom('sales')
       .select(['id', 'total', 'discount', 'branch_id', 'location_id', 'created_at'])
       .where('status', '=', 'posted')
       .where('created_at', '>=', new Date(range.from))
       .where('created_at', '<=', new Date(range.to))
-      .execute();
+      .execute(), query);
 
-    const purchasesRows = await this.db
+    const purchasesRows = this.filterScope(await this.db
       .selectFrom('purchases')
       .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
       .where('status', '=', 'posted')
       .where('created_at', '>=', new Date(range.from))
       .where('created_at', '<=', new Date(range.to))
-      .execute();
+      .execute(), query);
 
-    const treasuryRows = await this.db
+    const treasuryRows = this.filterScope(await this.db
       .selectFrom('treasury_transactions')
       .select(['amount', 'branch_id', 'location_id', 'created_at'])
       .where('created_at', '>=', new Date(range.from))
       .where('created_at', '<=', new Date(range.to))
-      .execute();
+      .execute(), query);
 
-    const saleItemsRows = await this.db
+    const saleItemsRows = this.filterScope(await this.db
       .selectFrom('sale_items as si')
       .innerJoin('sales as s', 's.id', 'si.sale_id')
-      .select(['si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_at'])
+      .select([
+        'si.product_id',
+        'si.product_name',
+        'si.qty',
+        'si.line_total',
+        'si.cost_price',
+        's.branch_id',
+        's.location_id',
+        's.created_at',
+      ])
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', new Date(range.from))
       .where('s.created_at', '<=', new Date(range.to))
-      .execute();
+      .execute(), query);
 
-    const sales = this.filterScope(salesRows, query);
-    const purchases = this.filterScope(purchasesRows, query);
-    const treasury = this.filterScope(treasuryRows, query);
-    const saleItems = this.filterScope(saleItemsRows, query);
-
-    const salesTotal = Number(sales.reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2));
-    const purchasesTotal = Number(purchases.reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2));
-    const cogs = Number(saleItems.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0).toFixed(2));
+    const salesTotal = Number(salesRows.reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2));
+    const purchasesTotal = Number(purchasesRows.reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2));
+    const cogs = Number(saleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0).toFixed(2));
     const grossProfit = Number((salesTotal - cogs).toFixed(2));
     const grossMarginPercent = salesTotal > 0 ? Number(((grossProfit / salesTotal) * 100).toFixed(2)) : 0;
 
-    const cashIn = Number(treasury.filter((row) => Number(row.amount || 0) > 0).reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
-    const cashOut = Number(Math.abs(treasury.filter((row) => Number(row.amount || 0) < 0).reduce((sum, row) => sum + Number(row.amount || 0), 0)).toFixed(2));
+    const expensesTotal = 0;
+    const salesReturnsTotal = 0;
+    const purchaseReturnsTotal = 0;
+    const returnsTotal = 0;
 
-    const topProductsMap = new Map<string, { name: string; qty: number; revenue: number }>();
-    for (const row of saleItems) {
-      const key = String(row.product_name || '');
-      const item = topProductsMap.get(key) || { name: key, qty: 0, revenue: 0 };
+    const cashIn = Number(treasuryRows.filter((row) => Number(row.amount || 0) > 0).reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
+    const cashOut = Number(Math.abs(treasuryRows.filter((row) => Number(row.amount || 0) < 0).reduce((sum, row) => sum + Number(row.amount || 0), 0)).toFixed(2));
+
+    const topProductsMap = new Map<string, { name: string; qty: number; revenue: number; total: number }>();
+    for (const row of saleItemsRows) {
+      const key = String(row.product_name || row.product_id || '');
+      const item = topProductsMap.get(key) || { name: String(row.product_name || ''), qty: 0, revenue: 0, total: 0 };
       item.qty += Number(row.qty || 0);
       item.revenue += Number(row.line_total || 0);
+      item.total += Number(row.line_total || 0);
       topProductsMap.set(key, item);
     }
 
+    const netSales = Math.max(0, Number((salesTotal - salesReturnsTotal).toFixed(2)));
+    const netPurchases = Math.max(0, Number((purchasesTotal - purchaseReturnsTotal).toFixed(2)));
+    const netOperatingProfit = Number((grossProfit - expensesTotal).toFixed(2));
+
     return {
       range,
-      summary: {
-        salesCount: sales.length,
-        salesTotal,
-        purchasesCount: purchases.length,
-        purchasesTotal,
+      sales: {
+        count: salesRows.length,
+        total: salesTotal,
+        netSales,
+      },
+      purchases: {
+        count: purchasesRows.length,
+        total: purchasesTotal,
+        netPurchases,
+      },
+      expenses: {
+        count: 0,
+        total: expensesTotal,
+      },
+      returns: {
+        count: 0,
+        total: returnsTotal,
+        salesTotal: salesReturnsTotal,
+        purchasesTotal: purchaseReturnsTotal,
+      },
+      treasury: {
+        cashIn,
+        cashOut,
+        net: Number((cashIn - cashOut).toFixed(2)),
+      },
+      commercial: {
         cogs,
         grossProfit,
         grossMarginPercent,
-        cashIn,
-        cashOut,
-        netCashFlow: Number((cashIn - cashOut).toFixed(2)),
+        netOperatingProfit,
+        informationalOnlyPurchasesInPeriod: netPurchases,
       },
       topProducts: [...topProductsMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10),
     };
   }
 
   async dashboardOverview(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+    const range = this.parseRange(query);
     const summary = await this.reportSummary(query);
 
-    const products = await this.db.selectFrom('products').select(['id', 'name', 'stock_qty', 'min_stock_qty', 'cost_price', 'retail_price']).where('is_active', '=', true).execute();
-    const customers = await this.db.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit']).where('is_active', '=', true).execute();
-    const suppliers = await this.db.selectFrom('suppliers').select(['id', 'name', 'balance']).where('is_active', '=', true).execute();
+    const productsRows = await this.db
+      .selectFrom('products')
+      .select(['id', 'name', 'category_id', 'supplier_id', 'retail_price', 'stock_qty', 'min_stock_qty', 'cost_price'])
+      .where('is_active', '=', true)
+      .execute();
 
-    const lowStock = products.filter((p) => Number(p.stock_qty || 0) <= Number(p.min_stock_qty || 0));
-    const inventoryCost = Number(products.reduce((sum, p) => sum + Number(p.stock_qty || 0) * Number(p.cost_price || 0), 0).toFixed(2));
-    const inventorySaleValue = Number(products.reduce((sum, p) => sum + Number(p.stock_qty || 0) * Number(p.retail_price || 0), 0).toFixed(2));
-    const customerDebt = Number(customers.reduce((sum, c) => sum + Number(c.balance || 0), 0).toFixed(2));
-    const supplierDebt = Number(suppliers.reduce((sum, s) => sum + Number(s.balance || 0), 0).toFixed(2));
+    const customersRows = await this.db
+      .selectFrom('customers')
+      .select(['id', 'name', 'balance', 'credit_limit'])
+      .where('is_active', '=', true)
+      .execute();
+
+    const suppliersRows = await this.db
+      .selectFrom('suppliers')
+      .select(['id', 'name', 'balance'])
+      .where('is_active', '=', true)
+      .execute();
+
+    const todayKey = this.dateKey(new Date());
+
+    const todaySalesRows = this.filterScope(await this.db
+      .selectFrom('sales')
+      .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
+      .where('status', '=', 'posted')
+      .execute(), query).filter((row) => this.dateKey(row.created_at) === todayKey);
+
+    const todayPurchasesRows = this.filterScope(await this.db
+      .selectFrom('purchases')
+      .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
+      .where('status', '=', 'posted')
+      .execute(), query).filter((row) => this.dateKey(row.created_at) === todayKey);
+
+    const todaySaleItemsRows = this.filterScope(await this.db
+      .selectFrom('sale_items as si')
+      .innerJoin('sales as s', 's.id', 'si.sale_id')
+      .select([
+        'si.product_id',
+        'si.product_name',
+        'si.qty',
+        'si.line_total',
+        's.branch_id',
+        's.location_id',
+        's.created_at',
+      ])
+      .where('s.status', '=', 'posted')
+      .execute(), query).filter((row) => this.dateKey(row.created_at) === todayKey);
+
+    const lowStock = productsRows
+      .filter((row) => Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0))
+      .slice(0, 8)
+      .map((row) => this.normalizeProduct(row));
+
+    const inventoryCost = Number(productsRows.reduce((sum, row) => sum + (Number(row.stock_qty || 0) * Number(row.cost_price || 0)), 0).toFixed(2));
+    const inventorySaleValue = Number(productsRows.reduce((sum, row) => sum + (Number(row.stock_qty || 0) * Number(row.retail_price || 0)), 0).toFixed(2));
+    const customerDebt = Number(customersRows.reduce((sum, row) => sum + Number(row.balance || 0), 0).toFixed(2));
+    const supplierDebt = Number(suppliersRows.reduce((sum, row) => sum + Number(row.balance || 0), 0).toFixed(2));
+    const nearCreditLimit = customersRows.filter((row) => Number(row.credit_limit || 0) > 0 && Number(row.balance || 0) >= Number(row.credit_limit || 0) * 0.8 && Number(row.balance || 0) <= Number(row.credit_limit || 0)).length;
+    const aboveCreditLimit = customersRows.filter((row) => Number(row.credit_limit || 0) > 0 && Number(row.balance || 0) > Number(row.credit_limit || 0)).length;
+    const highSupplierBalances = suppliersRows.filter((row) => Number(row.balance || 0) >= 1000).length;
+    const activeOffers = 0;
+
+    const topTodayMap = new Map<string, { productId: string; name: string; qty: number; total: number }>();
+    for (const row of todaySaleItemsRows) {
+      const key = String(row.product_id || row.product_name || '');
+      const entry = topTodayMap.get(key) || {
+        productId: String(row.product_id || ''),
+        name: String(row.product_name || ''),
+        qty: 0,
+        total: 0,
+      };
+      entry.qty += Number(row.qty || 0);
+      entry.total += Number(row.line_total || 0);
+      topTodayMap.set(key, entry);
+    }
+
+    const topCustomers = customersRows
+      .map((row) => ({
+        key: String(row.id),
+        name: row.name || '',
+        total: Number(row.balance || 0),
+        count: Number(row.balance || 0) > 0 ? 1 : 0,
+      }))
+      .filter((row) => row.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    const topSuppliers = suppliersRows
+      .map((row) => ({
+        key: String(row.id),
+        name: row.name || '',
+        total: Number(row.balance || 0),
+        count: Number(row.balance || 0) > 0 ? 1 : 0,
+      }))
+      .filter((row) => row.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    const dayKeys = this.buildLastNDays(7);
+    const salesTrend: TrendPoint[] = dayKeys.map((key) => ({
+      key,
+      value: Number(todaySalesRows.filter((row) => this.dateKey(row.created_at) === key).reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
+    }));
+    const purchasesTrend: TrendPoint[] = dayKeys.map((key) => ({
+      key,
+      value: Number(todayPurchasesRows.filter((row) => this.dateKey(row.created_at) === key).reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
+    }));
 
     return {
-      range: summary.range,
-      summary: summary.summary,
-      stats: {
-        productsCount: products.length,
-        customersCount: customers.length,
-        suppliersCount: suppliers.length,
+      range,
+      summary: {
+        ...(summary as Record<string, unknown>),
+        totalProducts: productsRows.length,
+        totalCustomers: customersRows.length,
+        totalSuppliers: suppliersRows.length,
         lowStockCount: lowStock.length,
-        outOfStockCount: lowStock.filter((entry) => Number(entry.stock_qty || 0) <= 0).length,
+        outOfStockCount: productsRows.filter((row) => Number(row.stock_qty || 0) <= 0).length,
+        activeOffers,
+      },
+      stats: {
+        productsCount: productsRows.length,
+        customersCount: customersRows.length,
+        suppliersCount: suppliersRows.length,
+        todaySalesCount: todaySalesRows.length,
+        todaySalesAmount: Number(todaySalesRows.reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
+        todayPurchasesCount: todayPurchasesRows.length,
+        todayPurchasesAmount: Number(todayPurchasesRows.reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
         inventoryCost,
         inventorySaleValue,
         customerDebt,
         supplierDebt,
+        nearCreditLimit,
+        aboveCreditLimit,
+        highSupplierBalances,
+        activeOffers,
       },
-      lowStock: lowStock.slice(0, 8).map((p) => ({ id: String(p.id), name: p.name, stock: Number(p.stock_qty || 0), minStock: Number(p.min_stock_qty || 0) })),
-      topProducts: summary.topProducts,
+      lowStock,
+      topToday: [...topTodayMap.values()].sort((a, b) => b.total - a.total).slice(0, 5),
+      topCustomers,
+      topSuppliers,
+      trends: {
+        sales: salesTrend,
+        purchases: purchasesTrend,
+      },
     };
   }
 

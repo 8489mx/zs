@@ -17,9 +17,18 @@ export class PermissionsGuard implements CanActivate {
       context.getClass(),
     ]) ?? [];
 
-    const request = context.switchToHttp().getRequest<RequestWithAuth>();
-    const granted = request.authContext?.permissions ?? [];
+    if (required.length === 0) {
+      return true;
+    }
 
+    const request = context.switchToHttp().getRequest<RequestWithAuth>();
+    const auth = request.authContext;
+
+    if (auth?.role === 'super_admin') {
+      return true;
+    }
+
+    const granted = auth?.permissions ?? [];
     if (!this.permissionService.hasAllPermissions(granted, required)) {
       throw new ForbiddenException('Missing required permissions');
     }

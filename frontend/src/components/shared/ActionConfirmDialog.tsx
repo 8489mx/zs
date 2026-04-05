@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { DialogShell } from '@/components/shared/DialogShell';
+import { getErrorMessage } from '@/lib/errors';
 
 interface ActionConfirmDialogProps {
   open: boolean;
@@ -51,12 +52,14 @@ export function ActionConfirmDialog({
   const [confirmationValue, setConfirmationValue] = useState('');
   const [managerPin, setManagerPin] = useState('');
   const [reason, setReason] = useState('');
+  const [submitError, setSubmitError] = useState<string>('');
 
   useEffect(() => {
     if (!open) {
       setConfirmationValue('');
       setManagerPin('');
       setReason('');
+      setSubmitError('');
     }
   }, [open]);
 
@@ -69,6 +72,23 @@ export function ActionConfirmDialog({
   const trimmedReason = reason.trim();
   const isManagerPinReady = !managerPinRequired || Boolean(managerPin.trim());
   const isReasonReady = !reasonRequired || trimmedReason.length >= minReasonLength;
+  const canSubmit = isKeywordMatched && isManagerPinReady && isReasonReady && !isBusy;
+
+  async function handleConfirm() {
+    if (!canSubmit) return;
+
+    setSubmitError('');
+
+    try {
+      await onConfirm({
+        confirmationValue: confirmationValue.trim(),
+        managerPin: managerPin.trim(),
+        reason: trimmedReason,
+      });
+    } catch (error) {
+      setSubmitError(getErrorMessage(error, 'تعذر تنفيذ العملية المطلوبة.'));
+    }
+  }
 
   if (!open) return null;
 
@@ -76,13 +96,17 @@ export function ActionConfirmDialog({
     <DialogShell open={open} onClose={isBusy ? () => {} : onCancel} width="min(560px, 100%)" zIndex={60}>
       <Card title={title} className="dialog-card">
         <div className="muted dialog-description">{description}</div>
+
         {requiresKeyword ? (
           <div className="field" style={{ marginTop: 16 }}>
             <label>
               <span>{confirmationLabel}</span>
               <input
                 value={confirmationValue}
-                onChange={(event) => setConfirmationValue(event.target.value)}
+                onChange={(event) => {
+                  setConfirmationValue(event.target.value);
+                  if (submitError) setSubmitError('');
+                }}
                 placeholder={confirmationKeyword}
                 autoFocus={!managerPinRequired}
                 disabled={isBusy}
@@ -93,15 +117,19 @@ export function ActionConfirmDialog({
             </div>
           </div>
         ) : null}
+
         {reasonRequired ? (
           <div className="field" style={{ marginTop: 16 }}>
             <label>
               <span>{reasonLabel}</span>
               <textarea
-                rows={3}
                 value={reason}
-                onChange={(event) => setReason(event.target.value)}
+                onChange={(event) => {
+                  setReason(event.target.value);
+                  if (submitError) setSubmitError('');
+                }}
                 placeholder={reasonPlaceholder}
+                rows={3}
                 disabled={isBusy}
               />
             </label>
@@ -110,28 +138,54 @@ export function ActionConfirmDialog({
             </div>
           </div>
         ) : null}
+
         {managerPinRequired ? (
           <div className="field" style={{ marginTop: 16 }}>
             <label>
               <span>{managerPinLabel}</span>
               <input
-                type="password"
-                inputMode="numeric"
                 value={managerPin}
-                onChange={(event) => setManagerPin(event.target.value)}
-                placeholder="أدخل رمز المدير"
-                autoFocus={!requiresKeyword}
+                onChange={(event) => {
+                  setManagerPin(event.target.value);
+                  if (submitError) setSubmitError('');
+                }}
+                placeholder="أدخل الرمز"
+                inputMode="numeric"
+                autoFocus={managerPinRequired && !requiresKeyword}
                 disabled={isBusy}
               />
             </label>
             <div className="muted small" style={{ marginTop: 8 }}>
-              {managerPinHint || 'هذه العملية تتطلب اعتماد المدير.'}
+              {managerPinHint || 'أدخل رمز اعتماد المدير لإتمام هذه العملية.'}
             </div>
           </div>
         ) : null}
-        <div className="actions dialog-actions">
-          <Button variant="secondary" onClick={onCancel} disabled={isBusy}>{cancelLabel}</Button>
-          <Button variant={confirmVariant} onClick={() => onConfirm({ confirmationValue, managerPin: managerPin.trim(), reason: trimmedReason })} disabled={isBusy || !isKeywordMatched || !isManagerPinReady || !isReasonReady}>{isBusy ? 'جاري التنفيذ...' : confirmLabel}</Button>
+
+        {submitError ? (
+          <div
+            role="alert"
+            style={{
+              marginTop: 16,
+              padding: '10px 12px',
+              borderRadius: 10,
+              border: '1px solid rgba(220, 38, 38, 0.25)',
+              background: 'rgba(220, 38, 38, 0.08)',
+              color: '#991b1b',
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            {submitError}
+          </div>
+        ) : null}
+
+        <div className="actions" style={{ marginTop: 20, justifyContent: 'flex-end' }}>
+          <Button variant="secondary" onClick={onCancel} disabled={isBusy}>
+            {cancelLabel}
+          </Button>
+          <Button variant={confirmVariant} onClick={() => void handleConfirm()} disabled={!canSubmit}>
+            {isBusy ? 'جارٍ التنفيذ...' : confirmLabel}
+          </Button>
         </div>
       </Card>
     </DialogShell>
