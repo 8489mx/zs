@@ -99,7 +99,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const displayName = useMemo(() => user?.displayName || user?.username || 'مستخدم', [user]);
   const visibleNavigationItems = useMemo(() => {
     const hiddenKeys = new Set(['accounts', 'audit', 'treasury', 'services']);
-    const preferredOrder = ['dashboard', 'pos', 'sales', 'cash-drawer', 'products', 'inventory', 'purchases', 'returns', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'inventory', 'products', 'customers', 'suppliers', 'returns', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: 'الرئيسية',
       pos: 'الكاشير',

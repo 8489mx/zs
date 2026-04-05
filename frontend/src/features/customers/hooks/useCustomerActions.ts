@@ -4,6 +4,11 @@ import { customersApi } from '@/features/customers/api/customers.api';
 import type { CustomerFormOutput } from '@/features/customers/schemas/customer.schema';
 
 function buildCustomerPayload(values: CustomerFormOutput) {
+  const storeCreditBalance =
+    'storeCreditBalance' in values && values.storeCreditBalance !== undefined && values.storeCreditBalance !== null
+      ? Number(values.storeCreditBalance || 0)
+      : 0;
+
   return {
     name: values.name,
     phone: values.phone || '',
@@ -11,7 +16,7 @@ function buildCustomerPayload(values: CustomerFormOutput) {
     balance: Number(values.balance || 0),
     type: values.type,
     creditLimit: Number(values.creditLimit || 0),
-    storeCreditBalance: 0
+    storeCreditBalance
   };
 }
 

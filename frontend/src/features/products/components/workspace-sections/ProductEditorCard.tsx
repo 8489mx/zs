@@ -15,6 +15,13 @@ import type { Category, Product, ProductCustomerPrice, ProductUnit, Supplier } f
 import { ProductCustomerPricesCard } from './ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from './product-workspace.utils';
 
+type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock'> & { stock?: number };
+
+function omitStock(values: ProductFormOutput): ProductFormOutput {
+  const { stock: _stock, ...safeValues } = values as ProductFormOutputWithoutStock;
+  return safeValues as ProductFormOutput;
+}
+
 export function ProductEditorCard({ product, categories, suppliers, customers, onSaved }: { product?: Product; categories: Category[]; suppliers: Supplier[]; customers: Array<{ id: string; name: string }>; onSaved?: (product: Product) => void }) {
   const queryClient = useQueryClient();
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(product?.units, product?.barcode || ''));
@@ -36,7 +43,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
   const mutation = useMutation({
     mutationFn: async (values: ProductFormOutput) => {
       if (!product) throw new Error('اختر صنفًا أولًا');
-      return productsApi.update(product.id, buildUpdatePayload(values, product, units, customerPrices));
+      return productsApi.update(product.id, buildUpdatePayload(omitStock(values), product, units, customerPrices));
     },
     onSuccess: async () => {
       if (!product) return;
@@ -44,13 +51,18 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
       if (refreshed) onSaved?.(refreshed);
     }
   });
-  const hasDraftChanges = (form.formState.isDirty || JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(product?.units, product?.barcode || '')) || JSON.stringify(customerPrices) !== JSON.stringify(normalizeCustomerPrices(product)));
+
+  const hasDraftChanges = (
+    form.formState.isDirty
+    || JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(product?.units, product?.barcode || ''))
+    || JSON.stringify(customerPrices) !== JSON.stringify(normalizeCustomerPrices(product))
+  );
   const canNavigateAway = useUnsavedChangesGuard(hasDraftChanges && !mutation.isPending);
 
   async function saveCustomerPricesOnly() {
     if (!product) return;
     const values = productFormSchema.parse(form.getValues());
-    await mutation.mutateAsync(values);
+    await mutation.mutateAsync(omitStock(values));
   }
 
   if (!product) {
@@ -59,14 +71,14 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
 
   return (
     <div className="page-stack">
-      <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+      <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate(omitStock(values)))}>
         <div className="form-grid">
           <Field label="اسم الصنف" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
           <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
           <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر القطاعي"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
-          <Field label="المخزون الحالي"><input type="number" {...form.register('stock')} disabled /></Field>
+          <Field label="المخزون الحالي"><input type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
           <Field label="الحد الأدنى"><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
           <Field label="القسم">
             <select {...form.register('categoryId')} disabled={mutation.isPending}>

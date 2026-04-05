@@ -200,6 +200,9 @@ export function UserManagementEditorPanel({
   setupMode?: boolean;
   setupStepKey?: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null;
 }) {
+  const showInlineValidationError = Boolean(statusMessage) && !isPending && !isSuccess && !isError;
+  const feedbackError = isError ? error : (showInlineValidationError ? statusMessage : null);
+
   return (
     <div className="page-stack">
       {setupMode
@@ -213,7 +216,13 @@ export function UserManagementEditorPanel({
       {!SINGLE_STORE_MODE ? <UserManagementBranchAccess branches={branches} selectedBranchIds={draft.branchIds} onToggleBranch={onToggleBranch} /> : null}
       <UserManagementPermissionGroups permissions={draft.permissions} role={draft.role} onTogglePermission={onTogglePermission} />
 
-      <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback={statusMessage || 'تعذرت العملية على المستخدم'} successText={statusMessage || 'تم تحديث بيانات المستخدم.'} />
+      <MutationFeedback
+        isError={isError || showInlineValidationError}
+        isSuccess={isSuccess}
+        error={feedbackError}
+        errorFallback={statusMessage || 'تعذرت العملية على المستخدم'}
+        successText={statusMessage || 'تم تحديث بيانات المستخدم.'}
+      />
 
       <div className="actions" style={{ flexWrap: 'wrap' }}>
         <Button type="button" variant="secondary" onClick={onReset} disabled={isPending}>إعادة القيم</Button>

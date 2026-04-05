@@ -30,7 +30,12 @@ export function validateUserDraft({ draft, managedUsers }: { draft: ManagedUserR
   const normalizedDraft = normalizeUserRecord(draft);
   if (!normalizedDraft.username.trim()) throw new Error('اسم المستخدم مطلوب');
   if (!normalizedDraft.name.trim()) normalizedDraft.name = normalizedDraft.username.trim();
-  if (!normalizedDraft.id && !String(normalizedDraft.password || '').trim()) throw new Error('كلمة المرور مطلوبة عند إنشاء مستخدم جديد');
+
+  const passwordText = String(normalizedDraft.password || '').trim();
+  if (!normalizedDraft.id && !passwordText) throw new Error('كلمة المرور مطلوبة عند إنشاء مستخدم جديد');
+  if (!normalizedDraft.id && passwordText.length < 8) throw new Error('كلمة المرور للمستخدم الجديد يجب ألا تقل عن 8 أحرف');
+  if (normalizedDraft.id && passwordText && passwordText.length < 8) throw new Error('كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف');
+
   if (normalizedDraft.defaultBranchId && !normalizedDraft.branchIds.includes(normalizedDraft.defaultBranchId)) normalizedDraft.branchIds = [...normalizedDraft.branchIds, normalizedDraft.defaultBranchId];
   const duplicateUser = managedUsers.find((user) => user.username.trim().toLowerCase() === normalizedDraft.username.trim().toLowerCase() && String(user.id || '') !== String(normalizedDraft.id || ''));
   if (duplicateUser) throw new Error('اسم المستخدم مستخدم بالفعل');

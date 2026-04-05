@@ -15,7 +15,7 @@ export class ApiError extends Error {
 export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 const REQUEST_TIMEOUT_MS = 15_000;
-const RAW_API_BASE = (import.meta.env?.VITE_API_BASE_URL as string | undefined)?.trim();
+const RAW_API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL as string | undefined)?.trim();
 
 function normalizeApiBaseUrl(value?: string) {
   if (value) return value.replace(/\/$/, '');
@@ -33,19 +33,93 @@ function emitWindowEvent<T>(name: string, detail: T) {
   window.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
+function firstNonEmptyString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const nested = firstNonEmptyString(item);
+        if (nested) return nested;
+      }
+    }
+  }
+
+  return null;
+}
+
+function extractMessage(payload: unknown): string | null {
+  if (!payload) return null;
+
+  if (typeof payload === 'string') {
+    return payload.trim() || null;
+  }
+
+  if (Array.isArray(payload)) {
+    return firstNonEmptyString(payload);
+  }
+
+  if (typeof payload === 'object') {
+    const candidate = payload as {
+      message?: unknown;
+      error?: unknown;
+      details?: unknown;
+      code?: unknown;
+    };
+
+    const nestedError =
+      typeof candidate.error === 'object' && candidate.error
+        ? extractMessage(candidate.error)
+        : null;
+
+    const nestedDetails =
+      typeof candidate.details === 'object' && candidate.details
+        ? extractMessage(candidate.details)
+        : null;
+
+    return (
+      firstNonEmptyString(candidate.message)
+      || firstNonEmptyString(candidate.error)
+      || nestedError
+      || nestedDetails
+      || firstNonEmptyString(candidate.details)
+      || null
+    );
+  }
+
+  return null;
+}
+
+function extractCode(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+
+  const candidate = payload as {
+    code?: unknown;
+    error?: unknown;
+    details?: unknown;
+  };
+
+  if (typeof candidate.code === 'string' && candidate.code.trim()) {
+    return candidate.code.trim();
+  }
+
+  if (candidate.error && typeof candidate.error === 'object') {
+    const nested = extractCode(candidate.error);
+    if (nested) return nested;
+  }
+
+  if (candidate.details && typeof candidate.details === 'object') {
+    const nested = extractCode(candidate.details);
+    if (nested) return nested;
+  }
+
+  return undefined;
+}
+
 function buildErrorMessage(payload: unknown, fallback: string) {
-  if (typeof payload === 'object' && payload) {
-    if ('error' in payload && typeof payload.error === 'string' && payload.error.trim()) {
-      return payload.error;
-    }
-    if ('message' in payload && typeof payload.message === 'string' && payload.message.trim()) {
-      return payload.message;
-    }
-  }
-  if (typeof payload === 'string' && payload.trim()) {
-    return payload;
-  }
-  return fallback;
+  return extractMessage(payload) || fallback;
 }
 
 function withTimeout(init?: RequestInit) {
@@ -98,7 +172,11 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
         emitWindowEvent(APP_UNAUTHORIZED_EVENT, { path, status: response.status });
       }
 
-      throw new ApiError(buildErrorMessage(payload, 'Request failed'), response.status, { details: payload });
+      throw new ApiError(
+        buildErrorMessage(payload, 'تعذر تنفيذ العملية المطلوبة.'),
+        response.status,
+        { code: extractCode(payload), details: payload }
+      );
     }
 
     return payload as T;

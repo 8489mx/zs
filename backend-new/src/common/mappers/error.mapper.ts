@@ -1,15 +1,50 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { AppError } from '../errors/app-error';
+import { translateErrorMessageFromCode } from '../errors/error-translations';
+
+function normalizeHttpExceptionBody(response: string | object, status: number): HttpException {
+  if (typeof response === 'string') {
+    return new HttpException(
+      {
+        message: translateErrorMessageFromCode(undefined, response, status),
+        code: status === 401 ? 'UNAUTHORIZED' : status === 403 ? 'FORBIDDEN' : status === 404 ? 'NOT_FOUND' : 'HTTP_ERROR',
+        details: null,
+      },
+      status,
+    );
+  }
+
+  const payload = response as {
+    message?: unknown;
+    error?: unknown;
+    code?: unknown;
+    details?: unknown;
+    statusCode?: unknown;
+  };
+
+  const code = typeof payload.code === 'string' ? payload.code : undefined;
+  const rawMessage = payload.message ?? payload.error;
+  const message = translateErrorMessageFromCode(code, rawMessage, status);
+
+  return new HttpException(
+    {
+      ...payload,
+      message,
+      code: code ?? (status === 401 ? 'UNAUTHORIZED' : status === 403 ? 'FORBIDDEN' : status === 404 ? 'NOT_FOUND' : 'HTTP_ERROR'),
+    },
+    status,
+  );
+}
 
 export function mapToHttpException(error: unknown): HttpException {
   if (error instanceof HttpException) {
-    return error;
+    return normalizeHttpExceptionBody(error.getResponse(), error.getStatus());
   }
 
   if (error instanceof AppError) {
     return new HttpException(
       {
-        message: error.message,
+        message: translateErrorMessageFromCode(error.code, error.message, error.statusCode),
         code: error.code,
         details: error.details ?? null,
       },
@@ -19,7 +54,7 @@ export function mapToHttpException(error: unknown): HttpException {
 
   return new HttpException(
     {
-      message: 'Internal server error',
+      message: translateErrorMessageFromCode('INTERNAL_ERROR', 'Internal server error', HttpStatus.INTERNAL_SERVER_ERROR),
       code: 'INTERNAL_ERROR',
     },
     HttpStatus.INTERNAL_SERVER_ERROR,

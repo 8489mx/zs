@@ -83,20 +83,6 @@ export function PosWorkspace() {
     <div className="page-stack page-shell pos-workspace pos-premium-shell">
       <PosWorkspaceHeader pos={pos} />
 
-      <PosWorkspaceHero
-        selectedCustomerName={selectedCustomerName}
-        paymentLabel={paymentLabel}
-        ownOpenShift={Boolean(pos.ownOpenShift)}
-        workflowSteps={workflowSteps}
-        canSubmitSale={pos.canSubmitSale}
-        nextStepLabel={nextStepLabel}
-        shortSummary={pos.shortSummary}
-      />
-
-      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية العناصر في شاشة الكاشير" />
-      <PosWorkspaceStartupIssues startupIssues={startupIssues} />
-      <PosWorkspaceStatusCards contextBadges={pos.contextBadges} />
-
       <QueryFeedback
         isLoading={catalogsLoading}
         isError={Boolean(catalogsError)}
@@ -183,6 +169,20 @@ export function PosWorkspace() {
             onSubmit={() => void pos.handleSubmit()}
           />
         </div>
+
+        <PosWorkspaceHero
+          selectedCustomerName={selectedCustomerName}
+          paymentLabel={paymentLabel}
+          ownOpenShift={Boolean(pos.ownOpenShift)}
+          workflowSteps={workflowSteps}
+          canSubmitSale={pos.canSubmitSale}
+          nextStepLabel={nextStepLabel}
+          shortSummary={pos.shortSummary}
+        />
+
+        <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية العناصر في شاشة الكاشير" />
+        <PosWorkspaceStartupIssues startupIssues={startupIssues} />
+        <PosWorkspaceStatusCards contextBadges={pos.contextBadges} />
       </QueryFeedback>
     </div>
   );

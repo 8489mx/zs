@@ -12,8 +12,9 @@ function normalizeMoney(value: number) {
 
 export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefined, values: SettingsFormOutput) {
   const managerPin = cleanText(values.managerPin);
-  return {
-    ...currentSettings,
+
+  const settings = {
+    ...(currentSettings || {}),
     storeName: cleanText(values.storeName, 'Z Systems'),
     brandName: cleanText(values.brandName, 'Z Systems'),
     phone: cleanText(values.phone),
@@ -32,6 +33,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     currentBranchId: cleanText(values.currentBranchId),
     currentLocationId: cleanText(values.currentLocationId)
   };
+
+  return { settings };
 }
 
 export function buildBranchPayload(values: BranchFormOutput) {

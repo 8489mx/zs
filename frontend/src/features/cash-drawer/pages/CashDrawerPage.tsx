@@ -79,8 +79,8 @@ export function CashDrawerPage() {
         closeExpectedCash={controller.closeExpectedCash}
         closeVariancePreview={controller.closeVariancePreview}
         closeNoteValue={controller.closeNoteValue}
-        onMovementSubmit={() => void controller.handleMovementSubmit()}
-        onCloseSubmit={() => void controller.handleCloseSubmit()}
+        onMovementSubmit={controller.handleMovementSubmit}
+        onCloseSubmit={controller.handleCloseSubmit}
       />
 
       <ActionConfirmDialog
