@@ -5,11 +5,12 @@ interface PageHeaderProps {
   description?: string;
   badge?: ReactNode;
   actions?: ReactNode;
+  className?: string;
 }
 
-export function PageHeader({ title, description, badge, actions }: PageHeaderProps) {
+export function PageHeader({ title, description, badge, actions, className = '' }: PageHeaderProps) {
   return (
-    <div className="page-header">
+    <div className={`page-header ${className}`.trim()}>
       <div className="page-header-copy">
         <div className="page-header-title-row">
           <h1 className="page-header-title">{title}</h1>

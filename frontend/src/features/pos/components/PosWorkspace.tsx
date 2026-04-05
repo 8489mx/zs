@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
 import { Button } from '@/components/ui/Button';
 import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
 import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
-import { PosWorkspaceHero } from '@/features/pos/components/pos-workspace/PosWorkspaceHero';
-import { PosWorkspaceStartupIssues, PosWorkspaceStatusCards } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
+import { PosWorkspaceQuickShortcuts } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import {
-  getNextStepLabel,
   getSelectedCustomerName,
-  getStartupIssues,
-  getWorkflowSteps,
   printCurrentPosDraft,
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
@@ -25,16 +20,6 @@ export function PosWorkspace() {
   const catalogsError = pos.productsQuery.error || pos.customersQuery.error || pos.branchesQuery.error || pos.locationsQuery.error || pos.settingsQuery.error;
 
   const selectedCustomerName = useMemo(() => getSelectedCustomerName(pos), [pos]);
-  const startupIssues = useMemo(() => getStartupIssues(pos), [pos]);
-  const workflowSteps = useMemo(() => getWorkflowSteps(pos), [pos]);
-  const nextStepLabel = useMemo(() => getNextStepLabel(pos), [pos]);
-  const paymentLabel = pos.paymentType === 'credit' ? 'آجل' : pos.paymentChannel === 'mixed' ? 'مختلط' : pos.paymentChannel === 'card' ? 'بطاقة' : 'نقدي';
-  const focusCards = useMemo(() => ([
-    { key: 'first', label: 'افتح أولًا', value: 'البحث وإضافة الصنف' },
-    { key: 'now', label: 'نفذ الآن', value: pos.cart.length ? `راجع ${pos.cart.length} بنود في السلة` : 'ابدأ تكوين السلة' },
-    { key: 'customer', label: 'بعده', value: selectedCustomerName || 'اختر العميل عند الحاجة' },
-    { key: 'finish', label: 'آخر خطوة', value: pos.canSubmitSale ? 'إتمام البيع' : nextStepLabel },
-  ]), [nextStepLabel, pos.canSubmitSale, pos.cart.length, selectedCustomerName]);
 
   const printCurrentDraft = useCallback(() => {
     printCurrentPosDraft(pos, selectedCustomerName);
@@ -92,6 +77,8 @@ export function PosWorkspace() {
         errorHint="تحقق من الاتصال ثم أعد المحاولة."
         errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
       >
+        <PosWorkspaceQuickShortcuts />
+
         <div className="pos-grid-premium">
           <PosProductsPanel
             search={pos.search}
@@ -169,20 +156,6 @@ export function PosWorkspace() {
             onSubmit={() => void pos.handleSubmit()}
           />
         </div>
-
-        <PosWorkspaceHero
-          selectedCustomerName={selectedCustomerName}
-          paymentLabel={paymentLabel}
-          ownOpenShift={Boolean(pos.ownOpenShift)}
-          workflowSteps={workflowSteps}
-          canSubmitSale={pos.canSubmitSale}
-          nextStepLabel={nextStepLabel}
-          shortSummary={pos.shortSummary}
-        />
-
-        <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية العناصر في شاشة الكاشير" />
-        <PosWorkspaceStartupIssues startupIssues={startupIssues} />
-        <PosWorkspaceStatusCards contextBadges={pos.contextBadges} />
       </QueryFeedback>
     </div>
   );

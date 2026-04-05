@@ -13,20 +13,24 @@ export function PosCartPanel(props: PosCartPanelProps) {
   const alertMessages = getAlertMessages(props);
 
   return (
-    <Card title="مراجعة السلة والدفع" actions={<span className="nav-pill">{props.cart.length} عناصر</span>} className="workspace-panel pos-checkout-card">
-      <PosCartSummary {...props} />
-      <PosCartMetaForm {...props} />
-      <PosCartPaymentSection {...props} />
+    <Card title="مراجعة السلة والدفع" actions={<span className="nav-pill">{props.cart.length} عناصر</span>} className="workspace-panel pos-checkout-card pos-checkout-card-compact">
+      <div className="pos-checkout-static">
+        <PosCartSummary {...props} />
+        <PosCartMetaForm {...props} />
+        <PosCartPaymentSection {...props} />
 
-      {alertMessages.length ? (
-        <div className="warning-box pos-alert-stack" style={{ marginBottom: 12 }}>
-          <strong>راجع هذه النقاط قبل الإتمام:</strong>
-          <ul>{alertMessages.map((message) => <li key={message}>{message}</li>)}</ul>
-        </div>
-      ) : null}
+        {alertMessages.length ? (
+          <div className="warning-box pos-alert-stack pos-compact-message" style={{ marginBottom: 10 }}>
+            <strong>راجع قبل الإتمام:</strong>
+            <ul>{alertMessages.map((message) => <li key={message}>{message}</li>)}</ul>
+          </div>
+        ) : null}
+      </div>
 
-      <PosCartItemsList {...props} />
-      <PosCartFooter {...props} />
+      <div className="pos-checkout-scroll">
+        <PosCartItemsList {...props} />
+        <PosCartFooter {...props} />
+      </div>
     </Card>
   );
 }

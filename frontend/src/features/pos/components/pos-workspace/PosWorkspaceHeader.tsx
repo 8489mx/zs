@@ -6,10 +6,10 @@ export function PosWorkspaceHeader({ pos }: { pos: PosWorkspaceState }) {
   return (
     <PageHeader
       title="الكاشير"
-      description="بيع سريع وواضح: اختر الأصناف، راجع السلة، ثم أكد الدفع من نفس الشاشة بدون لخبطة."
       badge={<span className="nav-pill">نقطة البيع</span>}
+      className="page-header--dense page-header--single-line pos-page-header"
       actions={(
-        <div className="actions compact-actions">
+        <div className="actions compact-actions pos-header-actions-row">
           <Button variant="secondary" onClick={() => { pos.setSearch(''); pos.setProductFilter('all'); }}>تصفير البحث</Button>
           <Button variant="secondary" onClick={pos.resetPosDraft}>تفريغ السلة</Button>
           <Button variant="secondary" onClick={() => void pos.copyLastSaleSummary()} disabled={!pos.lastSale}>نسخ آخر فاتورة</Button>

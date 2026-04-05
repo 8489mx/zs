@@ -1,0 +1,78 @@
+/* Sales workspace cleanup */
+.sales-workspace .sales-main-grid {
+  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.85fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.sales-workspace .sales-side-stack {
+  gap: 14px;
+}
+
+.sales-workspace .sales-insight-card,
+.sales-workspace .sales-quick-customer-card,
+.sales-workspace .sales-selected-card,
+.sales-workspace .sales-register-card {
+  border-radius: 20px;
+}
+
+.sales-workspace .sales-insight-card .section-title,
+.sales-workspace .sales-quick-customer-card .section-title,
+.sales-workspace .sales-selected-card .section-title,
+.sales-workspace .sales-register-card .section-title {
+  margin-bottom: 12px;
+}
+
+.sales-workspace .sales-insight-card .section-description,
+.sales-workspace .sales-quick-customer-card .section-description,
+.sales-workspace .sales-selected-card .section-description,
+.sales-workspace .sales-register-card .section-description {
+  display: none;
+}
+
+.sales-workspace .sales-insight-card .list-row,
+.sales-workspace .sales-selected-card .metric-row {
+  border-radius: 14px;
+}
+
+.sales-workspace .toolbar-stack {
+  padding: 12px;
+  border-radius: 18px;
+  gap: 10px;
+}
+
+.sales-workspace .toolbar-heading {
+  display: none;
+}
+
+.sales-workspace .toolbar-meta-row {
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+
+.sales-workspace .toolbar-grid {
+  grid-template-columns: minmax(260px, 1fr) minmax(300px, 1fr);
+  gap: 10px;
+}
+
+.sales-workspace .toolbar-extra {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.sales-workspace .toolbar-chip-row,
+.sales-workspace .filter-chip-row {
+  margin-bottom: 0;
+}
+
+.sales-workspace .sales-register-card .card-body,
+.sales-workspace .sales-insight-card .card-body,
+.sales-workspace .sales-quick-customer-card .card-body {
+  gap: 12px;
+}
+
+@media (max-width: 1180px) {
+  .sales-workspace .sales-main-grid {
+    grid-template-columns: 1fr;
+  }
+}

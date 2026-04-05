@@ -12,7 +12,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
 >) {
   return (
     <>
-      <div className="three-column-grid compact-fields pos-meta-grid">
+      <div className="three-column-grid compact-fields pos-meta-grid pos-meta-grid-compact">
         <Field label="العميل">
           <select value={props.customerId} onChange={(event) => props.onCustomerChange(event.target.value)}>
             <option value="">عميل نقدي</option>
@@ -43,19 +43,20 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
         )}
       </div>
 
-      <form className="inline-create-panel pos-inline-panel" onSubmit={props.onQuickCustomerSubmit}>
-        <div className="inline-create-grid">
-          <Field label="إضافة عميل سريع">
+      <form className="inline-create-panel pos-inline-panel pos-inline-panel-compact" onSubmit={props.onQuickCustomerSubmit}>
+        <div className="inline-create-grid pos-inline-create-grid-compact">
+          <Field label="عميل سريع">
             <input value={props.quickCustomerName} onChange={(event) => props.onQuickCustomerNameChange(event.target.value)} placeholder="اسم العميل" disabled={props.isQuickCustomerPending} />
           </Field>
           <Field label="الهاتف">
             <input value={props.quickCustomerPhone} onChange={(event) => props.onQuickCustomerPhoneChange(event.target.value)} placeholder="اختياري" disabled={props.isQuickCustomerPending} />
           </Field>
-        </div>
-        <div className="actions compact-actions section-actions-clean">
-          <Button type="submit" variant="secondary" disabled={props.isQuickCustomerPending || !props.quickCustomerName.trim()}>
-            {props.isQuickCustomerPending ? 'جارٍ إضافة العميل...' : 'إضافة عميل وتحديده'}
-          </Button>
+          <div className="field pos-inline-submit-field">
+            <span>إجراء</span>
+            <Button type="submit" variant="secondary" disabled={props.isQuickCustomerPending || !props.quickCustomerName.trim()}>
+              {props.isQuickCustomerPending ? 'جارٍ الإضافة...' : 'إضافة العميل'}
+            </Button>
+          </div>
         </div>
       </form>
     </>

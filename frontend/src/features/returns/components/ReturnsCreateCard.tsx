@@ -49,7 +49,7 @@ export function ReturnsCreateCard(props: Props) {
   } = props;
 
   return (
-    <Card title="إنشاء مرتجع جديد" description="اختر فاتورة وحدد أكثر من صنف مع الكمية المطلوبة لكل بند قبل الحفظ." actions={<span className="nav-pill">إنشاء</span>} className="workspace-panel returns-create-card">
+    <Card title="إنشاء مرتجع جديد" actions={<span className="nav-pill">إنشاء</span>} className="workspace-panel returns-create-card">
       <div className="form-grid">
         <Field label="نوع المرتجع">
           <select value={form.type} onChange={(e) => onFormChange((current) => ({ ...current, type: e.target.value as 'sale' | 'purchase', invoiceId: '', settlementMode: 'refund', refundMethod: 'cash' }))}>
@@ -76,14 +76,14 @@ export function ReturnsCreateCard(props: Props) {
           </select>
         </Field>
         <Field label="ملاحظة إضافية (اختياري)">
-          <textarea rows={3} value={form.note} onChange={(e) => onFormChange((current) => ({ ...current, note: e.target.value }))} placeholder="أي ملاحظة إضافية تظهر في سجل المرتجع" />
+          <textarea rows={3} value={form.note} onChange={(e) => onFormChange((current) => ({ ...current, note: e.target.value }))} placeholder="أي ملاحظة تظهر في سجل المرتجع" />
         </Field>
         <div className="surface-note">
           {form.type === 'purchase'
-            ? 'حدد البنود والكميات المطلوب إرجاعها للمورد. عند الحفظ سيُطلب سبب واضح وموافقة المدير.'
+            ? 'اختر الفاتورة ثم حدّد البنود والكميات المراد إرجاعها.'
             : canUseCreditSettlement
-              ? 'يمكنك استرجاع المبلغ أو تحويله إلى رصيد متجر. عند الحفظ سيُطلب سبب واضح وموافقة المدير.'
-              : 'هذه الفاتورة لا تحتوي على عميل، لذلك المتاح هو استرجاع المبلغ فقط. عند الحفظ سيُطلب سبب واضح وموافقة المدير.'}
+              ? 'اختر الفاتورة ثم حدّد البنود وطريقة التسوية المناسبة.'
+              : 'اختر الفاتورة ثم حدّد البنود المراد إرجاعها.'}
         </div>
         <ReturnsInvoiceItemsTable
           invoiceItems={selectedInvoice ? invoiceItems : []}

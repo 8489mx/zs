@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { settingsApi, type ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { blankUserDraft, normalizeUserRecord } from '@/features/settings/components/user-management.shared';
 import {
@@ -65,18 +65,18 @@ export function useUserManagementController({
   const selectedUsers = useMemo(() => managedUsers.filter((user) => selectedIds.includes(String(user.id || user.username))), [managedUsers, selectedIds]);
   const operationalAdmins = useMemo(() => managedUsers.filter((user) => user.isActive !== false && user.role === 'admin'), [managedUsers]);
 
-  function loadUser(user?: ManagedUserRecord | null) {
+  const loadUser = useCallback((user?: ManagedUserRecord | null) => {
     if (!user) return;
     setSelectedUserKey(user.id ? String(user.id) : '__new__');
     setDraft(normalizeUserRecord(user));
     setStatusMessage('');
-  }
+  }, []);
 
-  function startNewUser(role: 'super_admin' | 'admin' | 'cashier' = 'cashier') {
+  const startNewUser = useCallback((role: 'super_admin' | 'admin' | 'cashier' = 'cashier') => {
     setSelectedUserKey('__new__');
     setDraft(blankUserDraft(role));
     setStatusMessage('');
-  }
+  }, []);
 
   function applyTemplate(templateKey: 'cashier' | 'owner' | 'inventory' | 'accountant') {
     const template = buildTemplateDraft(draft, templateKey);
