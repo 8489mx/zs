@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/Card';
-import { POS_SHORTCUTS } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import { POS_SHORTCUTS, getStartupIssues } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
 export function PosWorkspaceQuickShortcuts() {
   return (
@@ -16,8 +17,23 @@ export function PosWorkspaceQuickShortcuts() {
   );
 }
 
-export function PosWorkspaceStartupIssues() {
-  return null;
+export function PosWorkspaceStartupIssues({ pos }: { pos: PosWorkspaceState }) {
+  const issues = getStartupIssues(pos);
+
+  if (!issues.length) return null;
+
+  return (
+    <Card className="pos-shortcuts-strip-card pos-alert-strip-card">
+      <div className="pos-alert-inline-row">
+        <span className="nav-pill">تنبيهات</span>
+        {issues.map((issue, index) => (
+          <div key={`${index}-${issue}`} className="pos-alert-inline-item">
+            {issue}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 }
 
 export function PosWorkspaceStatusCards() {

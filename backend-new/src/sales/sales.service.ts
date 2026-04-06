@@ -20,6 +20,7 @@ export class SalesService {
   ) {}
 
   private assertCanViewSales(auth: AuthContext): void {
+    if (auth.role === 'super_admin') return;
     if (auth.permissions.includes('sales') || auth.permissions.includes('reports')) return;
     throw new ForbiddenException('Missing required permissions');
   }

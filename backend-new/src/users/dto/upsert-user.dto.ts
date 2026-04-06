@@ -10,7 +10,7 @@ export class UpsertUserDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(8)
+  @MinLength(1)
   password?: string;
 
   @IsString()

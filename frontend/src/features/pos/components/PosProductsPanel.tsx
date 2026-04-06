@@ -1,9 +1,7 @@
 import type { Ref } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
@@ -58,41 +56,56 @@ export function PosProductsPanel({
           </div>
         ) : null}
 
-        <SearchToolbar
-          search={search}
-          onSearchChange={onSearchChange}
-          searchPlaceholder="ابحث بالاسم أو الباركود"
-          onReset={() => { onSearchChange(''); onProductFilterChange('all'); }}
-          resetLabel="تفريغ"
-          inputRef={searchInputRef}
-          className="pos-toolbar-shell pos-toolbar-shell-compact"
-        >
-          <Field label="السعر">
-            <select value={priceType} onChange={(event) => onPriceTypeChange(event.target.value === 'wholesale' ? 'wholesale' : 'retail')}>
-              <option value="retail">قطاعي</option>
-              <option value="wholesale">جملة</option>
-            </select>
-          </Field>
-          <Field label="باركود سريع">
-            <div className="inline-create-row pos-quick-add-row">
-              <input
-                ref={quickAddInputRef}
-                value={quickAddCode}
-                onChange={(event) => onQuickAddCodeChange(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    onQuickAddCodeSubmit();
-                  }
-                }}
-                placeholder="امسح أو اكتب الكود"
-              />
-              <Button type="button" variant="secondary" onClick={() => onQuickAddCodeSubmit()} disabled={!quickAddCode.trim()}>
-                إضافة
-              </Button>
+        <div className="pos-toolbar-shell pos-toolbar-shell-compact">
+          <div className="pos-products-toolbar-stack">
+            <div className="pos-products-top-row">
+              <Field label="بحث سريع">
+                <input
+                  ref={searchInputRef}
+                  value={search}
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  placeholder="ابحث بالاسم أو الباركود"
+                />
+              </Field>
+
+              <Field label="السعر">
+                <select value={priceType} onChange={(event) => onPriceTypeChange(event.target.value === 'wholesale' ? 'wholesale' : 'retail')}>
+                  <option value="retail">قطاعي</option>
+                  <option value="wholesale">جملة</option>
+                </select>
+              </Field>
+
+              <div className="field pos-products-reset-field">
+                <span>إجراء</span>
+                <Button type="button" variant="secondary" onClick={() => { onSearchChange(''); onProductFilterChange('all'); }}>
+                  تفريغ
+                </Button>
+              </div>
             </div>
-          </Field>
-        </SearchToolbar>
+
+            <div className="pos-products-barcode-row">
+              <Field label="باركود سريع">
+                <div className="inline-create-row pos-quick-add-row pos-quick-add-row-wide">
+                  <input
+                    ref={quickAddInputRef}
+                    value={quickAddCode}
+                    onChange={(event) => onQuickAddCodeChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        onQuickAddCodeSubmit();
+                      }
+                    }}
+                    placeholder="امسح أو اكتب الكود"
+                  />
+                  <Button type="button" variant="secondary" onClick={() => onQuickAddCodeSubmit()} disabled={!quickAddCode.trim()}>
+                    إضافة
+                  </Button>
+                </div>
+              </Field>
+            </div>
+          </div>
+        </div>
 
         {scannerMessage ? <div className="success-box pos-compact-message">{scannerMessage}</div> : null}
 
@@ -117,7 +130,7 @@ export function PosProductsPanel({
       </div>
 
       <div className="pos-products-scroll">
-        {!products.length ? <EmptyState title="لا توجد أصناف مطابقة" hint="جرّب بحثًا آخر أو ألغِ الفلاتر." /> : null}
+        {!products.length ? <div className="surface-note pos-compact-empty">لا توجد أصناف مطابقة الآن. جرّب بحثًا آخر أو ألغِ الفلاتر.</div> : null}
         <div className="product-pick-grid pos-product-pick-grid pos-product-pick-grid-compact">
           {products.map((product) => {
             const isLowStock = Number(product.stock || 0) <= Math.max(Number(product.minStock || 0), 0);

@@ -37,10 +37,6 @@ export function PasswordRotationGate() {
       setError('تأكيد كلمة المرور غير مطابق.');
       return;
     }
-    if (newPassword.length < 9) {
-      setError('كلمة المرور الجديدة يجب أن تكون 9 أحرف على الأقل.');
-      return;
-    }
     if (newPassword === currentPassword) {
       setError('كلمة المرور الجديدة يجب أن تختلف عن الحالية.');
       return;

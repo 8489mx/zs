@@ -2,7 +2,6 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/format';
 import { SaleDetailCard } from '@/features/sales/components/SaleDetailCard';
-import { QuickCustomerCard } from '@/features/sales/components/QuickCustomerCard';
 import type { Sale } from '@/types/domain';
 
 type TopCustomer = { name: string; count: number; total: number };
@@ -57,8 +56,6 @@ export function SalesSidePanel({
         onEdit={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? onEditSale : undefined}
         onCancel={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? onCancelSale : undefined}
       />
-
-      <QuickCustomerCard canManageCustomers={canManageCustomers} />
     </div>
   );
 }

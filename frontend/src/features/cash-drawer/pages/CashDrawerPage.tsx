@@ -29,7 +29,11 @@ export function CashDrawerPage() {
 
   return (
     <div className="page-stack page-shell cash-drawer-page">
-      <PageHeader title="الورديات والدرج النقدي" description="افتح الوردية أو راجع الحالية أولًا، ثم نفذ حركات الدرج، ثم راقب السجل والإغلاقات." badge={<span className="nav-pill">متابعة الورديات</span>} />
+      <PageHeader
+        title="الورديات والدرج النقدي"
+        description=""
+        badge={<span className="nav-pill">متابعة الورديات</span>}
+      />
 
       <CashDrawerStatsGrid
         totalItems={controller.summary.totalItems}
@@ -38,7 +42,11 @@ export function CashDrawerPage() {
         totalVariance={controller.totalVariance}
       />
 
-      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في شاشة الورديات" />
+      <SpotlightCardStrip
+        cards={focusCards}
+        ariaLabel="أولوية المشاهدة في شاشة الورديات"
+        className="cash-drawer-focus-strip"
+      />
 
       {controller.copyFeedback ? <div className={controller.copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{controller.copyFeedback.text}</div> : null}
 

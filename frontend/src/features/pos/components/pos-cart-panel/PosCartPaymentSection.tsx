@@ -23,7 +23,9 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
         <div className="pos-payment-wide-field">
           <Field label="ملاحظات"><input value={props.note} onChange={(event) => props.onNoteChange(event.target.value)} placeholder="ملاحظة داخلية" /></Field>
         </div>
-        <div className="field pos-inline-button-field pos-payment-fill-field"><span>تعبئة</span><Button onClick={props.onFillPaidAmount} disabled={props.paymentType === 'credit'}>المبلغ كامل</Button></div>
+        <div className="field pos-inline-button-field pos-payment-fill-field">
+          <Button onClick={props.onFillPaidAmount} disabled={props.paymentType === 'credit'}>المبلغ كامل</Button>
+        </div>
       </div>
     </div>
   );

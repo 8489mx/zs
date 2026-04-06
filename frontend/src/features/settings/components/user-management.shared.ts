@@ -8,6 +8,40 @@ export const DEFAULT_OPERATOR_PERMS = [
   'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','treasury','settings','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageSettings'
 ];
 export const DEFAULT_CASHIER_PERMS = ['dashboard', 'sales', 'customers', 'cashDrawer'];
+
+export const PERMISSION_LABELS: Record<string, string> = {
+  dashboard: 'الشاشة الرئيسية',
+  sales: 'سجل الفواتير',
+  customers: 'العملاء',
+  cashDrawer: 'وردية الكاشير',
+  products: 'الأصناف',
+  inventory: 'المخزون',
+  purchases: 'المشتريات',
+  returns: 'المرتجعات',
+  suppliers: 'الموردون',
+  accounts: 'الحسابات',
+  reports: 'التقارير',
+  canPrint: 'الطباعة',
+  canDiscount: 'تعديل الخصم',
+  canEditPrice: 'تعديل السعر',
+  canEditInvoices: 'تعديل الفواتير',
+  canAdjustInventory: 'تعديل رصيد المخزون',
+  settings: 'الإعدادات',
+  canManageSettings: 'إدارة الإعدادات',
+  canEditUsers: 'تعديل المستخدمين',
+  canManageUsers: 'إدارة المستخدمين',
+  canManageBackups: 'النسخ الاحتياطي والاسترداد',
+  canViewProfit: 'عرض الأرباح',
+  audit: 'سجل المراجعة',
+  treasury: 'الخزينة',
+  services: 'الخدمات',
+  canDelete: 'الحذف',
+};
+
+export function getPermissionLabel(permission: string) {
+  return PERMISSION_LABELS[permission] || permission;
+}
+
 export const USER_PERMISSION_GROUPS = [
   { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'reports'] },
   { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory'] },

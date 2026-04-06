@@ -1,78 +1,84 @@
-/* Sales workspace cleanup */
-.sales-workspace .sales-main-grid {
-  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.85fr);
-  gap: 14px;
-  align-items: start;
+/* Sales register toolbar */
+.sales-workspace .sales-register-card .toolbar-grid {
+  grid-template-columns: minmax(320px, 1fr) auto !important;
+  gap: 10px !important;
+  align-items: start !important;
 }
 
-.sales-workspace .sales-side-stack {
-  gap: 14px;
+.sales-workspace .sales-register-card .toolbar-grid > .field {
+  margin-bottom: 0 !important;
 }
 
-.sales-workspace .sales-insight-card,
-.sales-workspace .sales-quick-customer-card,
-.sales-workspace .sales-selected-card,
-.sales-workspace .sales-register-card {
-  border-radius: 20px;
+.sales-workspace .sales-register-card .toolbar-grid > .field > span,
+.sales-workspace .sales-register-card .toolbar-grid > .field > label {
+  display: none !important;
 }
 
-.sales-workspace .sales-insight-card .section-title,
-.sales-workspace .sales-quick-customer-card .section-title,
-.sales-workspace .sales-selected-card .section-title,
-.sales-workspace .sales-register-card .section-title {
-  margin-bottom: 12px;
+.sales-workspace .sales-register-card .toolbar-grid > .field input {
+  margin-top: 0 !important;
 }
 
-.sales-workspace .sales-insight-card .section-description,
-.sales-workspace .sales-quick-customer-card .section-description,
-.sales-workspace .sales-selected-card .section-description,
-.sales-workspace .sales-register-card .section-description {
-  display: none;
+.sales-workspace .sales-register-card .toolbar-extra {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 44px !important;
 }
 
-.sales-workspace .sales-insight-card .list-row,
-.sales-workspace .sales-selected-card .metric-row {
-  border-radius: 14px;
+.sales-workspace .sales-register-card .toolbar-chip-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  align-items: center !important;
 }
 
-.sales-workspace .toolbar-stack {
-  padding: 12px;
-  border-radius: 18px;
-  gap: 10px;
+.sales-workspace .sales-register-card .toolbar-chip-row .btn,
+.sales-workspace .sales-register-card .toolbar-chip-row .button {
+  white-space: nowrap;
 }
 
-.sales-workspace .toolbar-heading {
-  display: none;
+/* Quick customer card */
+.sales-workspace .sales-quick-customer-inline-wrap {
+  width: 100%;
 }
 
-.sales-workspace .toolbar-meta-row {
-  padding: 8px 10px;
-  border-radius: 14px;
+.sales-workspace .sales-quick-customer-inline-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  justify-content: stretch !important;
+  align-items: start !important;
 }
 
-.sales-workspace .toolbar-grid {
-  grid-template-columns: minmax(260px, 1fr) minmax(300px, 1fr);
-  gap: 10px;
+.sales-workspace .sales-quick-customer-inline-grid .field {
+  margin-bottom: 0 !important;
 }
 
-.sales-workspace .toolbar-extra {
-  grid-template-columns: 1fr;
-  gap: 10px;
+.sales-workspace .sales-quick-customer-inline-grid input {
+  width: 100% !important;
 }
 
-.sales-workspace .toolbar-chip-row,
-.sales-workspace .filter-chip-row {
-  margin-bottom: 0;
-}
-
-.sales-workspace .sales-register-card .card-body,
-.sales-workspace .sales-insight-card .card-body,
-.sales-workspace .sales-quick-customer-card .card-body {
-  gap: 12px;
+.sales-workspace .sales-quick-customer-card .section-actions-clean {
+  margin-top: 12px !important;
 }
 
 @media (max-width: 1180px) {
-  .sales-workspace .sales-main-grid {
-    grid-template-columns: 1fr;
+  .sales-workspace .sales-register-card .toolbar-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sales-workspace .sales-register-card .toolbar-grid > .field > span,
+  .sales-workspace .sales-register-card .toolbar-grid > .field > label {
+    display: block !important;
+  }
+
+  .sales-workspace .sales-register-card .toolbar-chip-row {
+    flex-wrap: wrap !important;
+  }
+
+  .sales-workspace .sales-quick-customer-inline-grid {
+    grid-template-columns: 1fr !important;
   }
 }

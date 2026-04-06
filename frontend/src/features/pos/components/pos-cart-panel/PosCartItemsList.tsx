@@ -1,11 +1,10 @@
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/format';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 export function PosCartItemsList({ cart, lastAddedLineKey, onQtyChange, onRemoveItem }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'onQtyChange' | 'onRemoveItem'>) {
   if (!cart.length) {
-    return <EmptyState title="السلة فارغة" hint="أضف صنفًا أو استرجع فاتورة معلقة." />;
+    return <div className="surface-note pos-compact-empty">السلة فارغة الآن. أضف صنفًا أو استرجع فاتورة معلقة.</div>;
   }
 
   return (
@@ -17,7 +16,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, onQtyChange, onRemove
             <div className="pos-cart-copy">
               <div className="pos-cart-title-row"><strong>{item.name}</strong><span className="status-badge">{item.priceType === 'wholesale' ? 'جملة' : 'قطاعي'}</span></div>
               <div className="muted small">{item.unitName} · متاح {item.stockLimit} · السعر {formatCurrency(item.price)}</div>
-              {reachesLowStock ? <div className="warning-box" style={{ marginTop: 8 }}>بعد إتمام البيع سيصل هذا الصنف إلى حد إعادة الطلب.</div> : null}
+              {reachesLowStock ? <div className="warning-box" style={{ marginTop: 6 }}>بعد إتمام البيع سيصل هذا الصنف إلى حد إعادة الطلب.</div> : null}
             </div>
             <div className="pos-cart-controls">
               <input type="number" min={1} max={item.stockLimit} value={item.qty} onChange={(event) => onQtyChange(item.lineKey, Number(event.target.value || 1))} />

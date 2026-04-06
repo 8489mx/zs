@@ -27,9 +27,11 @@ export function QuickCustomerCard({ canManageCustomers }: { canManageCustomers: 
 
   return (
     <Card title="إضافة عميل سريع" className="workspace-panel sales-quick-customer-card">
-      <div className="form-grid">
-        <Field label="اسم العميل"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="اسم العميل" disabled={mutation.isPending || !canManageCustomers} /></Field>
-        <Field label="الهاتف"><input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="اختياري" disabled={mutation.isPending || !canManageCustomers} /></Field>
+      <div className="sales-quick-customer-inline-wrap">
+        <div className="sales-quick-customer-inline-grid">
+          <Field label="اسم العميل"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="اسم العميل" disabled={mutation.isPending || !canManageCustomers} /></Field>
+          <Field label="الهاتف"><input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="اختياري" disabled={mutation.isPending || !canManageCustomers} /></Field>
+        </div>
       </div>
       <div className="actions section-actions-clean">
         <Button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending || !canManageCustomers}>إضافة العميل</Button>

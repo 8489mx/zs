@@ -44,10 +44,6 @@ export function buildPurchasePayload(values: PurchaseHeaderOutput, items: Purcha
   const subTotal = Number(items.reduce((sum, item) => sum + Number(item.total || 0), 0).toFixed(2));
   const discount = Number(Math.max(0, Number(values.discount || 0)).toFixed(2));
   const taxable = Math.max(0, subTotal - discount);
-  const taxAmount = !taxRate ? 0 : pricesIncludeTax
-    ? Number((taxable - taxable / (1 + taxRate / 100)).toFixed(2))
-    : Number((taxable * (taxRate / 100)).toFixed(2));
-  const total = pricesIncludeTax ? Number(taxable.toFixed(2)) : Number((taxable + taxAmount).toFixed(2));
 
   return {
     supplierId: Number(values.supplierId),
@@ -62,13 +58,9 @@ export function buildPurchasePayload(values: PurchaseHeaderOutput, items: Purcha
       productId: Number(item.productId),
       qty: Number(item.qty),
       cost: Number(item.cost),
-      total: Number(item.total),
       unitName: item.unitName,
       unitMultiplier: Number(item.unitMultiplier || 1)
-    })),
-    subTotal,
-    taxAmount,
-    total
+    }))
   };
 }
 
