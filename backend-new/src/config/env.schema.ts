@@ -19,6 +19,8 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  DEFAULT_ADMIN_USERNAME: z.string().min(1).default('ZS'),
+  DEFAULT_ADMIN_PASSWORD: z.string().min(1).default('infoadmin'),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
