@@ -99,13 +99,34 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const displayName = useMemo(() => user?.displayName || user?.username || 'مستخدم', [user]);
   const visibleNavigationItems = useMemo(() => {
-    const hiddenKeys = new Set(['accounts', 'audit', 'treasury', 'services']);
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'inventory', 'products', 'customers', 'suppliers', 'returns', 'reports', 'settings'];
+    const hiddenKeys = new Set<string>([]);
+    const preferredOrder = [
+      'dashboard',
+      'pos',
+      'cash-drawer',
+      'sales',
+      'purchases',
+      'returns',
+      'accounts',
+      'treasury',
+      'services',
+      'audit',
+      'inventory',
+      'products',
+      'customers',
+      'suppliers',
+      'reports',
+      'settings',
+    ];
     const labelOverrides: Record<string, string> = {
       dashboard: 'الرئيسية',
       pos: 'الكاشير',
       sales: 'سجل الفواتير',
       'cash-drawer': 'وردية الكاشير',
+      accounts: 'الحسابات',
+      treasury: 'الخزينة',
+      services: 'الخدمات',
+      audit: 'سجل النشاط',
     };
 
     const items = navigationItems
@@ -114,7 +135,13 @@ export function AppShell({ children }: PropsWithChildren) {
 
     return items
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
-      .sort((a, b) => preferredOrder.indexOf(a.key) - preferredOrder.indexOf(b.key));
+      .sort((a, b) => {
+        const aIndex = preferredOrder.indexOf(a.key);
+        const bIndex = preferredOrder.indexOf(b.key);
+        const safeA = aIndex === -1 ? 999 : aIndex;
+        const safeB = bIndex === -1 ? 999 : bIndex;
+        return safeA - safeB;
+      });
   }, [user]);
 
   useEffect(() => {

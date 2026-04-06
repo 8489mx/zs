@@ -16,6 +16,7 @@ import { SalesModule } from './sales/sales.module';
 import { PurchasesModule } from './purchases/purchases.module';
 import { ReportsModule } from './reports/reports.module';
 import { CashDrawerModule } from './cash-drawer/cash-drawer.module';
+import { ReturnsModule } from './returns/returns.module';
 import { TreasuryModule } from './treasury/treasury.module';
 import { ServicesModule } from './services/services.module';
 
@@ -38,6 +39,7 @@ import { ServicesModule } from './services/services.module';
     PurchasesModule,
     ReportsModule,
     CashDrawerModule,
+    ReturnsModule,
     TreasuryModule,
     ServicesModule,
   ],
