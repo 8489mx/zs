@@ -6,7 +6,7 @@ import { settingsApi } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
-export type SetupStepKey = 'store' | 'branch-location' | 'admin-user' | 'secure-account';
+export type SetupStepKey = 'store' | 'branch-location' | 'admin-user';
 export type SetupSectionKey = 'core' | 'reference' | 'users';
 
 export interface SetupFlowStep {
@@ -23,7 +23,7 @@ export function useFirstRunSetupFlow() {
   const user = useAuthStore((state) => state.user);
   const sessionStoreName = useAuthStore((state) => state.storeName);
 
-  const enabled = user?.role === 'super_admin';
+  const enabled = user?.role === 'admin';
 
   const [branchesQuery, locationsQuery, usersQuery, settingsQuery] = useQueries({
     queries: [
@@ -69,19 +69,10 @@ export function useFirstRunSetupFlow() {
         to: '/settings/users?setup=1',
         done: operationalAdmins.length > 0,
         ctaLabel: 'افتح إدارة المستخدمين',
-        nextLabel: 'تم إنشاء المستخدم، التالي'
-      },
-      {
-        key: 'secure-account',
-        title: 'تأمين حساب التثبيت',
-        section: 'users',
-        to: '/settings/users?setup=1',
-        done: user?.usingDefaultAdminPassword !== true,
-        ctaLabel: 'اذهب لتغيير كلمة المرور',
         nextLabel: 'إنهاء التهيئة'
       }
     ];
-  }, [branchesQuery.data, locationsQuery.data, sessionStoreName, settingsQuery.data, user?.usingDefaultAdminPassword, usersQuery.data]);
+  }, [branchesQuery.data, locationsQuery.data, sessionStoreName, settingsQuery.data, usersQuery.data]);
 
   const currentStepIndex = steps.findIndex((step) => !step.done);
   const completedCount = steps.filter((step) => step.done).length;

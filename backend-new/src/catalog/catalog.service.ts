@@ -29,6 +29,10 @@ export class CatalogService {
     private readonly audit: AuditService,
   ) {}
 
+  private hasPermission(actor: AuthContext | undefined, permission: string): boolean {
+    return actor?.role === 'super_admin' || Boolean(actor?.permissions?.includes(permission));
+  }
+
   async listCategories(): Promise<Record<string, unknown>> {
     const categories = await this.db
       .selectFrom('product_categories')
@@ -140,7 +144,7 @@ export class CatalogService {
     const q = String(query.q || '').trim().toLowerCase();
     const view = String(query.view || 'all');
 
-    const canViewCost = Boolean(actor?.permissions?.includes('canViewCost'));
+    const canViewCost = this.hasPermission(actor, 'canViewCost');
 
     const products = (await this.db
       .selectFrom('products')
@@ -520,7 +524,7 @@ export class CatalogService {
       Number(normalized.costPrice || 0) !== Number(existing.cost_price || existing.cost || 0) ||
       Number(normalized.retailPrice || 0) !== Number(existing.retail_price || existing.price || 0) ||
       Number(normalized.wholesalePrice || 0) !== Number(existing.wholesale_price || 0);
-    if (priceChanged && !actor.permissions.includes('canEditPrice')) {
+    if (priceChanged && !this.hasPermission(actor, 'canEditPrice')) {
       throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
     }
 

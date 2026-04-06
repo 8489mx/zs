@@ -1,6 +1,6 @@
 import { CSSProperties, PropsWithChildren, ReactNode, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { queryKeys } from '@/app/query-keys';
 import { authApi } from '@/services/api/auth';
@@ -92,6 +92,7 @@ function AppNavIcon({ itemKey }: { itemKey: string }) {
 
 export function AppShell({ children }: PropsWithChildren) {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -141,6 +142,28 @@ export function AppShell({ children }: PropsWithChildren) {
       window.clearTimeout(timeoutId);
     };
   }, [queryClient]);
+
+  useEffect(() => {
+    const resetScroll = () => {
+      const contentWrap = document.querySelector('.content-wrap') as HTMLElement | null;
+      const pageStack = document.querySelector('.content-wrap .page-stack') as HTMLElement | null;
+
+      if (contentWrap) {
+        contentWrap.scrollTop = 0;
+      }
+
+      if (pageStack) {
+        pageStack.scrollTop = 0;
+      }
+
+      window.scrollTo(0, 0);
+    };
+
+    resetScroll();
+    const frameId = window.requestAnimationFrame(resetScroll);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [location.pathname]);
 
   async function handleLogout() {
     try {

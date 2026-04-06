@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/Button';
 import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
 import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
-import { PosWorkspaceQuickShortcuts } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
+import {
+  PosWorkspaceQuickShortcuts,
+  PosWorkspaceStartupIssues,
+} from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -77,6 +80,7 @@ export function PosWorkspace() {
         errorHint="تحقق من الاتصال ثم أعد المحاولة."
         errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
       >
+        <PosWorkspaceStartupIssues pos={pos} />
         <PosWorkspaceQuickShortcuts />
 
         <div className="pos-grid-premium">

@@ -63,13 +63,62 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     paymentChannel: input.paymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
     note: String(input.note || '').trim(),
-    paidAmount: normalizeMoney(Number(input.paidAmount || 0)),
-    payments: (input.payments || []).filter((entry) => Number(entry.amount || 0) > 0).map((entry) => ({ paymentChannel: entry.paymentChannel === 'card' ? 'card' : 'cash', amount: normalizeMoney(Number(entry.amount || 0)) })),
+    payments: (input.payments || [])
+      .filter((entry) => Number(entry.amount || 0) > 0)
+      .map((entry) => ({
+        paymentChannel: entry.paymentChannel === 'card' ? 'card' : 'cash',
+        amount: normalizeMoney(Number(entry.amount || 0))
+      })),
     storeCreditUsed: 0,
     taxRate: normalizeMoney(Number(input.taxRate || 0)),
     pricesIncludeTax: Boolean(input.pricesIncludeTax),
     branchId: input.branchId || null,
     locationId: input.locationId || null,
     items: normalizeCart(input.cart)
+  };
+}
+
+export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
+  validatePosSaleInput(input);
+
+  const normalizedItems = normalizeCart(input.cart);
+  const simplePaymentChannel =
+    input.paymentType === 'credit'
+      ? 'credit'
+      : ((input.payments || []).length === 1 && input.payments[0].paymentChannel === 'card' ? 'card' : 'cash');
+
+  return {
+    customerId: input.customerId || null,
+    paymentType: input.paymentType,
+    paymentChannel: simplePaymentChannel,
+    discount: normalizeMoney(Number(input.discount || 0)),
+    note: String(input.note || '').trim(),
+    taxRate: normalizeMoney(Number(input.taxRate || 0)),
+    pricesIncludeTax: Boolean(input.pricesIncludeTax),
+    branchId: input.branchId || null,
+    locationId: input.locationId || null,
+    items: normalizedItems.map((item) => ({
+      productId: item.productId,
+      qty: item.qty,
+      unitName: item.unitName,
+      unitMultiplier: item.unitMultiplier,
+      price: item.price,
+      priceType: item.priceType
+    }))
+  };
+}
+
+export function buildMinimalPosSalePayload(input: CreatePosSaleInput) {
+  validatePosSaleInput(input);
+
+  const normalizedItems = normalizeCart(input.cart);
+  return {
+    customerId: input.customerId || null,
+    paymentType: input.paymentType,
+    items: normalizedItems.map((item) => ({
+      productId: item.productId,
+      qty: item.qty,
+      price: item.price
+    }))
   };
 }

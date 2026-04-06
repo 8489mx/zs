@@ -1,4 +1,3 @@
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/format';
 import type { PosCartPanelProps } from './posCartPanel.types';
@@ -19,46 +18,50 @@ export function PosCartFooter(props: Pick<PosCartPanelProps,
       </div>
 
       {props.submitMessage ? (
-        <div className={props.isError ? 'error-box' : 'success-box'}>
+        <div className={props.isError ? 'error-box pos-compact-message' : 'success-box pos-compact-message'}>
           <div>{props.submitMessage}</div>
           {!props.isError && props.canShowLastSaleActions ? (
-            <div className="actions compact-actions" style={{ marginTop: 10 }}>
+            <div className="actions compact-actions" style={{ marginTop: 8 }}>
               <Button type="button" variant="secondary" onClick={props.onReprintLastSale}>طباعة الفاتورة الآن</Button>
-              <Button type="button" variant="secondary" onClick={props.onCopyLastSaleSummary}>نسخ ملخص الفاتورة</Button>
+              <Button type="button" variant="secondary" onClick={props.onCopyLastSaleSummary}>نسخ الملخص</Button>
               {props.lastSaleDocNo ? <span className="status-badge">{props.lastSaleDocNo}</span> : null}
             </div>
           ) : null}
         </div>
       ) : null}
 
-      {!props.canSubmitSale && props.canSubmitHint ? <div className="warning-box">{props.canSubmitHint}</div> : null}
+      {!props.canSubmitSale && props.canSubmitHint ? <div className="warning-box pos-compact-message">{props.canSubmitHint}</div> : null}
 
       <div className="actions pos-primary-actions pos-primary-actions-sticky section-actions-clean">
-        <Button variant="secondary" onClick={props.onPrintPreview} disabled={!props.cart.length}>طباعة معاينة</Button>
-        <Button variant="secondary" onClick={props.onHoldDraft} disabled={!props.cart.length || props.isPending}>تعليق الفاتورة</Button>
-        <Button variant="secondary" onClick={props.onResetDraft} disabled={props.isPending}>تفريغ السلة</Button>
+        <Button variant="secondary" onClick={props.onPrintPreview} disabled={!props.cart.length}>معاينة</Button>
+        <Button variant="secondary" onClick={props.onHoldDraft} disabled={!props.cart.length || props.isPending}>تعليق</Button>
+        <Button variant="secondary" onClick={props.onResetDraft} disabled={props.isPending}>تفريغ</Button>
         <Button variant="success" onClick={props.onSubmit} disabled={props.isPending || !props.canSubmitSale}>{props.isPending ? 'جارٍ الحفظ...' : 'إتمام البيع'}</Button>
       </div>
 
-      <div className="divider" />
-      <div className="list-stack">
-        <div className="actions compact-actions" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong>الفواتير المعلقة</strong>
-          <div className="actions compact-actions">
-            <Button variant="secondary" onClick={props.onExportHeldDrafts} disabled={!props.heldDrafts.length}>تصدير المعلقات</Button>
-            <Button variant="danger" onClick={props.onClearHeldDrafts} disabled={!props.heldDrafts.length}>حذف الكل</Button>
-          </div>
-        </div>
-        {props.heldDrafts.length ? props.heldDrafts.map((draft) => (
-          <div className="list-row pos-held-row" key={draft.id}>
-            <div><strong>{draft.label}</strong><div className="muted small">{draft.itemsCount} عناصر · {formatCurrency(draft.total)}</div></div>
-            <div className="actions compact-actions">
-              <Button variant="secondary" onClick={() => props.onRecallDraft(draft.id)}>استرجاع</Button>
-              <Button variant="danger" onClick={() => props.onDeleteDraft(draft.id)}>حذف</Button>
+      {props.heldDrafts.length ? (
+        <>
+          <div className="divider" />
+          <div className="list-stack">
+            <div className="actions compact-actions" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong>الفواتير المعلقة</strong>
+              <div className="actions compact-actions">
+                <Button variant="secondary" onClick={props.onExportHeldDrafts}>تصدير</Button>
+                <Button variant="danger" onClick={props.onClearHeldDrafts}>حذف الكل</Button>
+              </div>
             </div>
+            {props.heldDrafts.map((draft) => (
+              <div className="list-row pos-held-row" key={draft.id}>
+                <div><strong>{draft.label}</strong><div className="muted small">{draft.itemsCount} عناصر · {formatCurrency(draft.total)}</div></div>
+                <div className="actions compact-actions">
+                  <Button variant="secondary" onClick={() => props.onRecallDraft(draft.id)}>استرجاع</Button>
+                  <Button variant="danger" onClick={() => props.onDeleteDraft(draft.id)}>حذف</Button>
+                </div>
+              </div>
+            ))}
           </div>
-        )) : <EmptyState title="لا توجد فواتير معلقة" hint="يمكنك تعليق السلة الحالية عند الحاجة." />}
-      </div>
+        </>
+      ) : null}
     </>
   );
 }

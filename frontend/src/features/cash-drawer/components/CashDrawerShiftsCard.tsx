@@ -32,7 +32,6 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
   return (
     <Card
       title="الورديات الحالية"
-      description="فلترة سريعة مع نسخ الملخص والطباعة والتصدير لكل النتائج المطابقة."
       actions={
         <div className="actions compact-actions">
           <Button variant="secondary" onClick={props.onCopySummary} disabled={!props.totalItems}>نسخ الملخص</Button>
@@ -40,6 +39,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
           <Button variant="secondary" onClick={props.onPrintRows} disabled={!props.totalItems}>طباعة النتائج</Button>
         </div>
       }
+      className="cash-drawer-shifts-card"
     >
       <div className="filter-chip-row">
         <Button variant={props.shiftFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('all')}>الكل</Button>

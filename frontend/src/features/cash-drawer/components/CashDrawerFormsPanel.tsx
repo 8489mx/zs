@@ -34,8 +34,8 @@ interface CashDrawerFormsPanelProps {
 
 export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   return (
-    <div className="three-column-grid panel-grid">
-      <Card title="فتح وردية جديدة" description={SINGLE_STORE_MODE ? 'سجل رصيد الفتح ثم ابدأ الوردية على المخزن الأساسي مباشرة.' : 'سجل رصيد الفتح واربط الوردية بالفرع والموقع عند الحاجة.'} actions={<span className="nav-pill">فتح الوردية</span>}>
+    <div className="three-column-grid panel-grid cash-drawer-forms-grid">
+      <Card title="فتح وردية جديدة" actions={<span className="nav-pill">فتح الوردية</span>} className="cash-drawer-form-card">
         <form className="form-grid" onSubmit={props.openForm.handleSubmit((values) => props.openMutation.mutate(values))}>
           <Field label="رصيد الفتح"><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} /></Field>
           {!SINGLE_STORE_MODE ? <Field label="الفرع">
@@ -50,13 +50,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               {props.locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
             </select>
           </Field>}
-          <Field label="ملاحظة الافتتاح"><textarea rows={3} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>
+          <Field label="ملاحظة الافتتاح"><textarea rows={2} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>
           <MutationFeedback isError={props.openMutation.isError} isSuccess={props.openMutation.isSuccess} error={props.openMutation.error} errorFallback="تعذر فتح الوردية" successText="تم فتح الوردية بنجاح." />
           <SubmitButton type="submit" disabled={props.openMutation.isPending} idleText="فتح الوردية" pendingText="جارٍ الفتح..." />
         </form>
       </Card>
 
-      <Card title="تسجيل حركة درج" description="إضافة حركة إيداع أو صرف على وردية مفتوحة فقط مع سبب واضح لكل حركة." actions={<span className="nav-pill">حركة نقدية</span>}>
+      <Card title="تسجيل حركة درج" actions={<span className="nav-pill">حركة نقدية</span>} className="cash-drawer-form-card">
         <form className="form-grid" onSubmit={props.onMovementSubmit}>
           <Field label="الوردية المفتوحة">
             <select {...props.movementForm.register('shiftId')} disabled={props.movementMutation.isPending}>
@@ -71,13 +71,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             </select>
           </Field>
           <Field label="المبلغ"><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} /></Field>
-          <Field label="سبب الحركة"><textarea rows={3} placeholder="اكتب السبب بوضوح" {...props.movementForm.register('note')} disabled={props.movementMutation.isPending} /></Field>
+          <Field label="سبب الحركة"><textarea rows={2} placeholder="اكتب السبب بوضوح" {...props.movementForm.register('note')} disabled={props.movementMutation.isPending} /></Field>
           <MutationFeedback isError={props.movementMutation.isError} isSuccess={props.movementMutation.isSuccess} error={props.movementMutation.error} errorFallback="تعذر تسجيل الحركة" successText="تم تسجيل حركة الدرج بنجاح." />
           <SubmitButton type="submit" disabled={props.movementMutation.isPending} idleText="حفظ الحركة" pendingText="جارٍ الحفظ..." />
         </form>
       </Card>
 
-      <Card title="إغلاق وردية" description="أغلق الوردية بالمبلغ المعدود فعليًا لتسجيل الفرق النهائي." actions={<span className="nav-pill">إغلاق</span>}>
+      <Card title="إغلاق وردية" actions={<span className="nav-pill">إغلاق</span>} className="cash-drawer-form-card">
         <form className="form-grid" onSubmit={props.onCloseSubmit}>
           <Field label="الوردية المفتوحة">
             <select {...props.closeForm.register('shiftId')} disabled={props.closeMutation.isPending}>
@@ -87,7 +87,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           </Field>
           <Field label="المبلغ المتوقع"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
           <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
-          <Field label="ملاحظة الإغلاق"><textarea rows={3} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل الإغلاق' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
+          <Field label="ملاحظة الإغلاق"><textarea rows={2} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل الإغلاق' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
           <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>
             الفرق المتوقع بعد الإغلاق: <strong>{formatCurrency(props.closeVariancePreview)}</strong>
             {Math.abs(props.closeVariancePreview) >= 0.01 ? ' — يلزم كتابة ملاحظة قبل إغلاق الوردية مع وجود فرق.' : ''}
