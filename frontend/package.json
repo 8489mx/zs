@@ -30,7 +30,8 @@
     "qa:phase60": "node scripts/run-phase60-qa.mjs",
     "lint": "node ./node_modules/eslint/bin/eslint.js .",
     "lint:fix": "node ./node_modules/eslint/bin/eslint.js . --fix",
-    "qa:architecture": "node scripts/feature-structure-check.mjs && node scripts/feature-boundary-check.mjs && node scripts/import-layer-check.mjs"
+    "qa:architecture": "node scripts/feature-structure-check.mjs && node scripts/feature-boundary-check.mjs && node scripts/import-layer-check.mjs",
+    "qa:uat": "npm run qa:guards && npm run qa:critical && npm run qa:release"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
