@@ -6,6 +6,8 @@ import { formatCurrency } from '@/lib/format';
 import { invalidateAccountsDomain, invalidateCatalogDomain } from '@/app/query-invalidation';
 import { useAccountsRouteState } from '@/features/accounts/hooks/useAccountsRouteState';
 
+type BalanceCarrier = { id?: string | number; name?: string; balance?: number | string };
+
 export function useAccountsWorkspaceController() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
@@ -44,21 +46,48 @@ export function useAccountsWorkspaceController() {
     supplierLedgerPagination,
   } = routeState;
 
+  const balanceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    (customerBalanceOptions as BalanceCarrier[]).forEach((customer) => {
+      map.set(String(customer.id || ''), Number(customer.balance || 0));
+    });
+    return map;
+  }, [customerBalanceOptions]);
+
+  const mergedCustomerLedgerOptions = useMemo(() => {
+    return (customers as BalanceCarrier[]).map((customer) => ({
+      ...customer,
+      balance: balanceMap.has(String(customer.id || ''))
+        ? Number(balanceMap.get(String(customer.id || '')) || 0)
+        : Number(customer.balance || 0),
+    }));
+  }, [customers, balanceMap]);
+
+  const collectableCustomers = useMemo(
+    () => mergedCustomerLedgerOptions.filter((customer) => Number((customer as BalanceCarrier).balance || 0) > 0),
+    [mergedCustomerLedgerOptions]
+  );
+
+  const payableSuppliers = useMemo(
+    () => (suppliers as BalanceCarrier[]).filter((supplier) => Number(supplier.balance || 0) > 0),
+    [suppliers]
+  );
+
   const totalCustomerBalance = useMemo(
-    () => customerBalanceOptions.reduce((sum, customer) => sum + Number(customer.balance || 0), 0),
-    [customerBalanceOptions]
+    () => mergedCustomerLedgerOptions.reduce((sum, customer) => sum + Number((customer as BalanceCarrier).balance || 0), 0),
+    [mergedCustomerLedgerOptions]
   );
   const totalSupplierBalance = useMemo(
-    () => suppliers.reduce((sum, supplier) => sum + Number(supplier.balance || 0), 0),
+    () => (suppliers as BalanceCarrier[]).reduce((sum, supplier) => sum + Number(supplier.balance || 0), 0),
     [suppliers]
   );
 
   const selectedCustomer = useMemo(
-    () => customerBalanceOptions.find((customer) => String(customer.id) === selectedCustomerId) || null,
-    [customerBalanceOptions, selectedCustomerId]
+    () => mergedCustomerLedgerOptions.find((customer) => String((customer as BalanceCarrier).id || '') === selectedCustomerId) || null,
+    [mergedCustomerLedgerOptions, selectedCustomerId]
   );
   const selectedSupplier = useMemo(
-    () => suppliers.find((supplier) => String(supplier.id) === selectedSupplierId) || null,
+    () => (suppliers as BalanceCarrier[]).find((supplier) => String(supplier.id || '') === selectedSupplierId) || null,
     [suppliers, selectedSupplierId]
   );
 
@@ -81,9 +110,9 @@ export function useAccountsWorkspaceController() {
         key: 'balance',
         label: 'المؤشر المالي الأوضح',
         value: selectedCustomer
-          ? formatCurrency(selectedCustomer.balance || 0)
+          ? formatCurrency(Number((selectedCustomer as BalanceCarrier).balance || 0))
           : selectedSupplier
-            ? formatCurrency(selectedSupplier.balance || 0)
+            ? formatCurrency(Number((selectedSupplier as BalanceCarrier).balance || 0))
             : formatCurrency(Math.max(totalCustomerBalance, totalSupplierBalance))
       }
     ],
@@ -176,12 +205,12 @@ export function useAccountsWorkspaceController() {
   }
 
   const selectTopCustomer = () => {
-    const topCustomer = [...customerBalanceOptions].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0))[0];
-    setSelectedCustomerId(String(topCustomer?.id || ''));
+    const topCustomer = [...mergedCustomerLedgerOptions].sort((a, b) => Number((b as BalanceCarrier).balance || 0) - Number((a as BalanceCarrier).balance || 0))[0];
+    setSelectedCustomerId(String((topCustomer as BalanceCarrier | undefined)?.id || ''));
   };
 
   const selectTopSupplier = () => {
-    const topSupplier = [...suppliers].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0))[0];
+    const topSupplier = [...(suppliers as BalanceCarrier[])].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0))[0];
     setSelectedSupplierId(String(topSupplier?.id || ''));
   };
 
@@ -194,7 +223,9 @@ export function useAccountsWorkspaceController() {
     supplierLedgerQuery,
     customers,
     suppliers,
-    customerBalanceOptions,
+    collectableCustomers,
+    payableSuppliers,
+    customerBalanceOptions: mergedCustomerLedgerOptions,
     customerEntries,
     supplierEntries,
     customerLedgerSummary,
