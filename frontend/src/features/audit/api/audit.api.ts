@@ -21,10 +21,23 @@ interface AuditLogsResponse {
   summary?: AuditLogsSummary;
 }
 
+function normalizeAuditFilter(mode?: AuditLogsQueryParams['mode']): string | undefined {
+  if (!mode || mode === 'all') return undefined;
+  if (mode === 'today') return 'today';
+  if (mode === 'withDetails') return 'details';
+  return undefined;
+}
 
 export const auditApi = {
   list: async (params: AuditLogsQueryParams = {}) => {
-    const response = await http<AuditLogsResponse>(`/api/audit-logs${buildQueryString(params)}`);
+    const query = {
+      ...(params.page ? { page: params.page } : {}),
+      ...(params.pageSize ? { pageSize: params.pageSize } : {}),
+      ...(params.search ? { search: params.search } : {}),
+      ...(normalizeAuditFilter(params.mode) ? { filter: normalizeAuditFilter(params.mode) } : {}),
+    };
+
+    const response = await http<AuditLogsResponse>(`/api/audit-logs${buildQueryString(query)}`);
     return {
       rows: Array.isArray(response.auditLogs) ? response.auditLogs : [],
       pagination: response.pagination || {

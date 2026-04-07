@@ -401,28 +401,50 @@ export class ReportsService {
   }
 
   async customerBalances(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    let customers = await this.db
+    const customers = await this.db
       .selectFrom('customers')
       .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
       .where('is_active', '=', true)
-      .where('balance', '>', 0)
-      .orderBy('balance desc')
+      .orderBy('name asc')
       .execute();
+
+    const ledgerRows = await this.db
+      .selectFrom('customer_ledger')
+      .select(['customer_id', 'amount'])
+      .execute();
+
+    const ledgerTotals = new Map<string, number>();
+    for (const row of ledgerRows) {
+      const key = String(row.customer_id || '');
+      const current = Number(ledgerTotals.get(key) || 0);
+      ledgerTotals.set(key, Number((current + Number(row.amount || 0)).toFixed(2)));
+    }
 
     const search = String(query.search || '').toLowerCase();
     const filter = String(query.filter || 'all').toLowerCase();
-    if (search) {
-      customers = customers.filter((row) => [row.name, row.phone].some((x) => String(x || '').toLowerCase().includes(search)));
-    }
 
-    let rows = customers.map((row) => ({
-      id: String(row.id),
-      name: row.name || '',
-      phone: row.phone || '',
-      balance: Number(row.balance || 0),
-      creditLimit: Number(row.credit_limit || 0),
-      availableCredit: Number((Number(row.credit_limit || 0) - Number(row.balance || 0)).toFixed(2)),
-    }));
+    let rows = customers.map((row) => {
+      const derivedBalance = ledgerTotals.has(String(row.id))
+        ? Number(ledgerTotals.get(String(row.id)) || 0)
+        : Number(row.balance || 0);
+
+      return {
+        id: String(row.id),
+        name: row.name || '',
+        phone: row.phone || '',
+        balance: derivedBalance,
+        creditLimit: Number(row.credit_limit || 0),
+        availableCredit: Number((Number(row.credit_limit || 0) - derivedBalance).toFixed(2)),
+      };
+    });
+
+    rows = rows.filter((row) => Number(row.balance || 0) > 0);
+
+    if (search) {
+      rows = rows.filter((row) =>
+        [row.name, row.phone].some((x) => String(x || '').toLowerCase().includes(search)),
+      );
+    }
 
     if (filter === 'over-limit') rows = rows.filter((row) => row.creditLimit > 0 && row.balance > row.creditLimit);
     if (filter === 'high-balance') rows = rows.filter((row) => row.balance >= 1000);
@@ -438,6 +460,7 @@ export class ReportsService {
       },
     };
   }
+
 
   async customerLedger(customerId: number, query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
     const customer = await this.db.selectFrom('customers').select(['id', 'name', 'phone', 'balance', 'credit_limit']).where('id', '=', customerId).where('is_active', '=', true).executeTakeFirst();
