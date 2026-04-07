@@ -15,7 +15,7 @@ export class ApiError extends Error {
 export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 const REQUEST_TIMEOUT_MS = 15_000;
-const RAW_API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL as string | undefined)?.trim();
+const RAW_API_BASE = (import.meta.env?.VITE_API_BASE_URL )?.trim();
 
 function normalizeApiBaseUrl(value?: string) {
   if (value) return value.replace(/\/$/, '');

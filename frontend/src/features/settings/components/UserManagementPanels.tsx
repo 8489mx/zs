@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/Button';
-import { DataTable } from '@/components/ui/DataTable';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
+import { Button } from '@/shared/ui/button';
+import { DataTable } from '@/shared/ui/data-table';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import type { Branch } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';

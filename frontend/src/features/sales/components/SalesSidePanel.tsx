@@ -1,5 +1,5 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { SaleDetailCard } from '@/features/sales/components/SaleDetailCard';
 import type { Sale } from '@/types/domain';
@@ -10,7 +10,6 @@ type Props = {
   topCustomers: TopCustomer[];
   canPrint: boolean;
   canEditInvoices: boolean;
-  canManageCustomers: boolean;
   selectedSale: Sale | null | undefined;
   isLoading: boolean;
   onExportTopCustomers: () => void | Promise<void>;
@@ -24,7 +23,6 @@ export function SalesSidePanel({
   topCustomers,
   canPrint,
   canEditInvoices,
-  canManageCustomers,
   selectedSale,
   isLoading,
   onExportTopCustomers,

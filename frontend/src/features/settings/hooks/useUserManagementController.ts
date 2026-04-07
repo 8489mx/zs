@@ -50,7 +50,7 @@ export function useUserManagementController({
   const selectedSourceUser = useMemo(() => managedUsers.find((user) => String(user.id) === selectedUserKey) || null, [managedUsers, selectedUserKey]);
 
   const userSummary = useMemo(() => {
-    const summary = (usersQuery.data as Record<string, any> | undefined)?.summary || {};
+    const summary = (((usersQuery.data as Record<string, unknown> | undefined)?.summary as Record<string, unknown> | undefined) || {});
     return {
       totalItems: Number(summary.totalItems ?? summary.total ?? managedUsers.length ?? 0),
       superAdmins: Number(summary.superAdmins ?? 0),

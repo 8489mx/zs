@@ -1,8 +1,8 @@
-import { Card } from '@/components/ui/Card';
-import { DataTable } from '@/components/ui/DataTable';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { PaginationControls } from '@/components/shared/PaginationControls';
+import { Card } from '@/shared/ui/card';
+import { DataTable } from '@/shared/ui/data-table';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { QueryFeedback } from '@/shared/components/query-feedback';
+import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { ExpenseRecord } from '@/types/domain';

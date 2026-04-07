@@ -1,6 +1,6 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { formatCurrency } from '@/lib/format';
 import type { PurchasesListSummary } from '@/features/purchases/api/purchases.api';
 

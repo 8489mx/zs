@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { Field } from '@/components/ui/Field';
-import { Card } from '@/components/ui/Card';
-import { DataTable } from '@/components/ui/DataTable';
+import { Field } from '@/shared/ui/field';
+import { Card } from '@/shared/ui/card';
+import { DataTable } from '@/shared/ui/data-table';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Customer, CustomerLedgerEntry, LedgerPagination, LedgerSummary, Supplier, SupplierLedgerEntry } from '@/types/domain';
 

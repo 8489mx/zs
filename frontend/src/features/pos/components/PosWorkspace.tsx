@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { Button } from '@/components/ui/Button';
+import { QueryFeedback } from '@/shared/components/query-feedback';
+import { Button } from '@/shared/ui/button';
 import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
 import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';

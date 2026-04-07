@@ -1,8 +1,8 @@
 import type { UseFormReturn } from 'react-hook-form';
-import { Card } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { SubmitButton } from '@/components/shared/SubmitButton';
+import { Card } from '@/shared/ui/card';
+import { Field } from '@/shared/ui/field';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { SubmitButton } from '@/shared/components/submit-button';
 import { formatCurrency } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, CashierShift, Location } from '@/types/domain';

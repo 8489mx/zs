@@ -1,7 +1,7 @@
-import { Card } from '@/components/ui/Card';
-import { DataTable } from '@/components/ui/DataTable';
-import { Button } from '@/components/ui/Button';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
+import { Card } from '@/shared/ui/card';
+import { DataTable } from '@/shared/ui/data-table';
+import { Button } from '@/shared/ui/button';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { getReturnDateValue, returnTypeLabel } from '@/features/returns/lib/returns-workspace.helpers';
 import type { ReturnRecord } from '@/types/domain';

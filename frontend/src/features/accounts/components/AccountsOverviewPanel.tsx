@@ -1,5 +1,5 @@
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
-import { Button } from '@/components/ui/Button';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
+import { Button } from '@/shared/ui/button';
 
 export function AccountsOverviewPanel({
   stats,

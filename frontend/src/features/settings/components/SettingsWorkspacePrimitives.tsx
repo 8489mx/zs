@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/shared/ui/button';
 import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export interface BackupSnapshotRecord {

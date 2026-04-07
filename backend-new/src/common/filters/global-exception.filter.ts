@@ -1,7 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { mapToHttpException } from '../mappers/error.mapper';
-import { LoggerService } from '../../logging/logger.service';
+import { LoggerService } from '../../core/logging/logger.service';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {

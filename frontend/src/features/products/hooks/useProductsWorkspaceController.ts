@@ -6,7 +6,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { catalogApi } from '@/lib/api/catalog';
 import { queryKeys } from '@/app/query-keys';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
-import { useHasAnyPermission } from '@/hooks/usePermission';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { Product } from '@/types/domain';
 import { useProductsPageQuery } from '@/features/products/hooks/useProductsPageQuery';
 

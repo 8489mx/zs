@@ -1,8 +1,8 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { PaginationControls } from '@/components/shared/PaginationControls';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { QueryFeedback } from '@/shared/components/query-feedback';
+import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency } from '@/lib/format';
 import { PurchasesTable } from '@/features/purchases/components/PurchasesTable';
 import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';

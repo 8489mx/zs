@@ -1,4 +1,4 @@
-import { QueryCard } from '@/components/shared/QueryCard';
+import { QueryCard } from '@/shared/components/query-card';
 import { UserManagementSection } from '@/features/settings/components/UserManagementSection';
 import {
   SettingsOverviewStats,

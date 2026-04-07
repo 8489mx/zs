@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/empty-state';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { useSalesPage } from '@/features/sales/hooks/useSalesPage';
 import { useSaleActions } from '@/features/sales/hooks/useSaleActions';
 import { useSalesWorkspaceActions } from '@/features/sales/hooks/useSalesWorkspaceActions';
@@ -16,7 +16,7 @@ import {
   getSalesViewFilterLabel,
   printSaleDocument,
 } from '@/features/sales/lib/sales-workspace.helpers';
-import { useHasAnyPermission } from '@/hooks/usePermission';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { Sale } from '@/types/domain';
 
 export function SalesWorkspace() {
@@ -34,7 +34,6 @@ export function SalesWorkspace() {
   const hasSellableProducts = availableProducts.length > 0;
   const canPrint = useHasAnyPermission('canPrint');
   const canEditInvoices = useHasAnyPermission('canEditInvoices');
-  const canManageCustomers = useHasAnyPermission('customers');
   const selectedSale = saleDetailQuery.data;
   const activeFilterLabel = getSalesViewFilterLabel(viewFilter);
   const totalItems = pagination?.totalItems || 0;
@@ -126,7 +125,6 @@ export function SalesWorkspace() {
           topCustomers={topCustomers}
           canPrint={canPrint}
           canEditInvoices={canEditInvoices}
-          canManageCustomers={canManageCustomers}
           selectedSale={selectedSale}
           isLoading={saleDetailQuery.isLoading}
           onExportTopCustomers={exportTopCustomersCsv}

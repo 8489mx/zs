@@ -1,6 +1,6 @@
 import type { Sale } from '@/types/domain';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
 
 interface SaleDetailCardProps {

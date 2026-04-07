@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 
 type Props = {
   totalItems: number;

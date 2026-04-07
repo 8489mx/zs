@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/empty-state';
 import { parseCsvRows } from '@/lib/browser';
 
 function normalizeHeader(value: string) {

@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { CreateCustomerPaymentDto, CreateSupplierPaymentDto } from '../../src/purchases/dto/create-party-payment.dto';
-import { UpsertPurchaseDto } from '../../src/purchases/dto/upsert-purchase.dto';
+import { CreateCustomerPaymentDto, CreateSupplierPaymentDto } from '../../src/modules/purchases/dto/create-party-payment.dto';
+import { UpsertPurchaseDto } from '../../src/modules/purchases/dto/upsert-purchase.dto';
 
 function assertValid<T>(cls: new () => T, payload: unknown): void {
   const instance = plainToInstance(cls, payload);

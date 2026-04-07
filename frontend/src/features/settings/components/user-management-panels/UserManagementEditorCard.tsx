@@ -1,4 +1,4 @@
-import { Field } from '@/components/ui/Field';
+import { Field } from '@/shared/ui/field';
 import type { Branch } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';

@@ -1,8 +1,8 @@
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { PageHeader } from '@/shared/components/page-header';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
+import { Button } from '@/shared/ui/button';
+import { Card } from '@/shared/ui/card';
 import { ProductForm } from '@/features/products/components/ProductForm';
 import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsGrid';
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';

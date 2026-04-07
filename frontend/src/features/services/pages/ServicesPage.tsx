@@ -1,14 +1,14 @@
 // legacy marker: عدد الخدمات المطابقة: ${totalItems}
 // legacy marker: servicesApi.listAll({ search, filter: viewFilter })
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { DataTable } from '@/components/ui/DataTable';
-import { Button } from '@/components/ui/Button';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
+import { Card } from '@/shared/ui/card';
+import { DataTable } from '@/shared/ui/data-table';
+import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { QueryFeedback } from '@/shared/components/query-feedback';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { ServiceRecord } from '@/types/domain';

@@ -1,8 +1,8 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { PaginationControls } from '@/components/shared/PaginationControls';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { QueryFeedback } from '@/shared/components/query-feedback';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { PaginationControls } from '@/shared/components/pagination-controls';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { formatCurrency } from '@/lib/format';
 import { SalesTable } from '@/features/sales/components/SalesTable';

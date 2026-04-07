@@ -1,5 +1,5 @@
-import { PageHeader } from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import { ReportsSectionTabs } from '@/features/reports/pages/ReportsSectionTabs';
 import { ReportsSectionContent } from '@/features/reports/components/ReportsSectionContent';
 import { ReportsGuidanceStrip } from '@/features/reports/components/ReportsGuidanceStrip';

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { authApi } from '@/services/api/auth';
+import { authApi } from '@/shared/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
 import { ApiError } from '@/lib/http';
 

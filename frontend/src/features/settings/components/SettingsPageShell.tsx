@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { QueryCard } from '@/components/shared/QueryCard';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
+import { PageHeader } from '@/shared/components/page-header';
+import { QueryCard } from '@/shared/components/query-card';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { SettingsSectionTabs } from '@/features/settings/pages/SettingsSectionTabs';
-import { SettingsSetupFlowCard } from '@/components/system/SettingsSetupFlowCard';
+import { SettingsSetupFlowCard } from '@/shared/system/settings-setup-flow-card';
 import type { SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import type { SetupSectionKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 

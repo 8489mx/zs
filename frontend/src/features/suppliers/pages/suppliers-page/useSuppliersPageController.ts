@@ -4,7 +4,7 @@ import type { Supplier } from '@/types/domain';
 import { useSuppliersPageQuery } from '@/features/suppliers/hooks/useSuppliersPageQuery';
 import { useDeleteSupplierMutation } from '@/features/suppliers/hooks/useSupplierActions';
 import { useSuppliersPageActions } from '@/features/suppliers/hooks/useSuppliersPageActions';
-import { useHasAnyPermission } from '@/hooks/usePermission';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 
 export function useSuppliersPageController() {
   const [search, setSearch] = useState('');

@@ -1,4 +1,4 @@
-import { AnimatedValue } from '@/components/shared/AnimatedValue';
+import { AnimatedValue } from '@/shared/components/animated-value';
 import { formatCurrency } from '@/lib/format';
 
 interface DashboardMetricCardProps {

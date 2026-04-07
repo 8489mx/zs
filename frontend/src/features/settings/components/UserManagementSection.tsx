@@ -1,7 +1,7 @@
 // regression marker: startNewUser('admin')
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { QueryFeedback } from '@/shared/components/query-feedback';
 import type { Branch } from '@/types/domain';
 import { settingsApi } from '@/features/settings/api/settings.api';
 import { exportUsersCsv, normalizeUserRecord, printUsersList } from '@/features/settings/components/user-management.shared';

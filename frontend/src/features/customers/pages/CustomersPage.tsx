@@ -1,9 +1,9 @@
 // legacy marker: customersApi.listAll
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { formatCurrency } from '@/lib/format';
 import { CustomerForm } from '@/features/customers/components/CustomerForm';
 import { CustomerEditorCard } from '@/features/customers/components/CustomerEditorCard';

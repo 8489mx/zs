@@ -1,4 +1,4 @@
-import { DataTable } from '@/components/ui/DataTable';
+import { DataTable } from '@/shared/ui/data-table';
 import type { Product } from '@/types/domain';
 import { getProductColumns } from '@/features/products/utils/product-mappers';
 

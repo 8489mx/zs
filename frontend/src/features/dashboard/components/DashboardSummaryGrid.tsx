@@ -1,5 +1,5 @@
-import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { Card } from '@/shared/ui/card';
+import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 import type { DashboardAlert } from '@/features/dashboard/lib/dashboard-page.utils';
 import type { DashboardTopItem } from '@/features/dashboard/api/dashboard.types';

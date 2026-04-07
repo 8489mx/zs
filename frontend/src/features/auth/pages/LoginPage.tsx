@@ -1,7 +1,7 @@
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
-import { SystemStatusBanner } from '@/components/system/SystemStatusBanner';
+import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 
 export function LoginPage() {
   const { form, onSubmit, submitError, isSubmitting } = useLoginForm();

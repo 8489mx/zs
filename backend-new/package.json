@@ -1,5 +1,5 @@
 {
-  "name": "backend-new",
+  "name": "backend",
   "version": "0.1.0",
   "private": true,
   "description": "Phase 1 NestJS backend scaffold for POS migration",
@@ -13,7 +13,8 @@
     "migration:revert": "ts-node src/database/migrate.ts down",
     "migration:list": "ts-node src/database/migrate.ts list",
     "migration:phase5": "ts-node src/migration/index.ts",
-    "test:infra": "ts-node test/infra/permission.service.spec.ts && ts-node test/infra/error.mapper.spec.ts"
+    "test:infra": "ts-node test/infra/permission.service.spec.ts && ts-node test/infra/error.mapper.spec.ts && ts-node test/infra/sales.phase4e.dto.spec.ts && ts-node test/infra/purchases.phase4f.dto.spec.ts && ts-node test/infra/reports.phase4g.dto.spec.ts && npm run test:critical",
+    "test:critical": "ts-node test/critical/financial-integrity.spec.ts && ts-node test/critical/return-payload.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",

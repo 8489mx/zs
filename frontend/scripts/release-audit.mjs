@@ -10,8 +10,8 @@ const requiredDocs = [
 
 const requiredFiles = [
   path.join(projectRoot, 'src', 'server.js'),
-  path.join(projectRoot, 'frontend', 'src', 'components', 'system', 'BackendHealthBadge.tsx'),
-  path.join(projectRoot, 'frontend', 'src', 'components', 'system', 'SystemStatusBanner.tsx'),
+  path.join(projectRoot, 'frontend', 'src', 'components', 'system', 'backend-health-badge.tsx'),
+  path.join(projectRoot, 'frontend', 'src', 'components', 'system', 'system-status-banner.tsx'),
 ];
 
 let failed = false;

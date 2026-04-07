@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import type { Product, ProductOffer } from '@/types/domain';

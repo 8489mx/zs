@@ -1,5 +1,5 @@
-import { QueryCard } from '@/components/shared/QueryCard';
-import { Button } from '@/components/ui/Button';
+import { QueryCard } from '@/shared/components/query-card';
+import { Button } from '@/shared/ui/button';
 import { SummaryList, downloadSummaryCsv, printSummaryList } from '@/features/settings/components/SettingsWorkspacePrimitives';
 
 interface SettingsReadinessSectionProps {

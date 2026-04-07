@@ -1,7 +1,7 @@
 import type { FormEventHandler, ReactNode } from 'react';
-import { QueryCard } from '@/components/shared/QueryCard';
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
+import { QueryCard } from '@/shared/components/query-card';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
 
 export function AccountsPartyCard({
   title,

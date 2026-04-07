@@ -8,7 +8,7 @@ const checks = [
   },
   {
     file: path.resolve(process.cwd(), 'src/features/settings/pages/SettingsPage.tsx'),
-    mustInclude: ['QueryCard', 'useSettingsAdminWorkspace']
+    mustInclude: ['query-card', 'useSettingsAdminWorkspace']
   },
   {
     file: path.resolve(process.cwd(), 'src/features/pos/pages/PosPage.tsx'),

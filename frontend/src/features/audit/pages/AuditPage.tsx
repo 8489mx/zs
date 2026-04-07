@@ -1,12 +1,12 @@
 // legacy marker: النطاق المعروض الآن
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { DataTable } from '@/components/ui/DataTable';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { PaginationControls } from '@/components/shared/PaginationControls';
+import { Card } from '@/shared/ui/card';
+import { DataTable } from '@/shared/ui/data-table';
+import { PageHeader } from '@/shared/components/page-header';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { QueryFeedback } from '@/shared/components/query-feedback';
+import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatDate } from '@/lib/format';
 import { useAuditLogs } from '@/features/audit/hooks/useAuditLogs';
 import { useAuditPageActions } from '@/features/audit/hooks/useAuditPageActions';
