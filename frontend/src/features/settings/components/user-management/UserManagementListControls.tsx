@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
 import { USER_ROLE_TEMPLATES } from '@/features/settings/components/user-management.shared';
 import type { UserBulkAction } from '@/features/settings/hooks/useUserManagementController';
 

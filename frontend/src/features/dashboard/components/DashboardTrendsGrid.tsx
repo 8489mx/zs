@@ -1,4 +1,4 @@
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/shared/ui/card';
 import { formatCurrency } from '@/lib/format';
 
 interface DashboardTrendRow {

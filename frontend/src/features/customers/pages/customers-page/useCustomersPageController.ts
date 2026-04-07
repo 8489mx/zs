@@ -4,7 +4,7 @@ import { formatCurrency } from '@/lib/format';
 import { useCustomersPageQuery } from '@/features/customers/hooks/useCustomersPageQuery';
 import { useDeleteCustomerMutation } from '@/features/customers/hooks/useCustomerActions';
 import { useCustomersPageActions } from '@/features/customers/hooks/useCustomersPageActions';
-import { useHasAnyPermission } from '@/hooks/usePermission';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 
 export function useCustomersPageController() {
   const [search, setSearch] = useState('');

@@ -1,8 +1,8 @@
-import { Card } from '@/components/ui/Card';
-import { DataTable } from '@/components/ui/DataTable';
-import { Button } from '@/components/ui/Button';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
+import { Card } from '@/shared/ui/card';
+import { DataTable } from '@/shared/ui/data-table';
+import { Button } from '@/shared/ui/button';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { QueryFeedback } from '@/shared/components/query-feedback';
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
 

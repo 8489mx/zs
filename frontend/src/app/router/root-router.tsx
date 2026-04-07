@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router-dom';
 import { createLazyRoute } from '@/app/router/lazy-route';
-import { AppShell } from '@/components/layout/AppShell';
-import { AppErrorBoundary } from '@/components/system/AppErrorBoundary';
+import { AppShell } from '@/shared/layout/app-shell';
+import { AppErrorBoundary } from '@/shared/system/app-error-boundary';
 import { useBootstrapAuth } from '@/features/auth/useBootstrapAuth';
 import { useAuthStore } from '@/stores/auth-store';
 import { appRoutes, navigationItems } from '@/app/router/registry';

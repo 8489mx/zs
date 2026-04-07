@@ -1,8 +1,8 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { SubmitButton } from '@/components/shared/SubmitButton';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { SubmitButton } from '@/shared/components/submit-button';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Location } from '@/types/domain';
 import type { ExpenseFormState } from '@/features/treasury/lib/treasury-page.helpers';

@@ -1,4 +1,4 @@
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/shared/ui/card';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { formatCurrency } from '@/lib/format';
 import { relativePercent } from '@/features/reports/lib/reports-format';

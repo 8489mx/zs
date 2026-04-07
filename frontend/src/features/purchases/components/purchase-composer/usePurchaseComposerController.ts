@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import type { AppSettings, Branch, Location, Product } from '@/types/domain';
 import { buildPurchaseDraftItem, upsertPurchaseDraftItem, type PurchaseDraftItem } from '@/features/purchases/contracts';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';

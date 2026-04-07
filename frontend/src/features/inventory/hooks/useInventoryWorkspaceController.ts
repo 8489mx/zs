@@ -14,7 +14,7 @@ import {
   getInventorySectionDescription,
 } from '@/features/inventory/lib/inventory-workspace.helpers';
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
-import { useHasAnyPermission } from '@/hooks/usePermission';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 
 export function useInventoryWorkspaceController(currentSection: InventorySectionKey) {
   const queryClient = useQueryClient();

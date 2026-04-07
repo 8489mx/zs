@@ -1,5 +1,5 @@
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 export function PosCartPaymentSection(props: Pick<PosCartPanelProps,

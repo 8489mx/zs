@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
 
 export function NotFoundPage() {
   return (

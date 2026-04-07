@@ -1,4 +1,4 @@
-import { EmptyState } from '@/components/ui/EmptyState';
+import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 import type { PurchaseItem, SaleItem } from '@/types/domain';
 

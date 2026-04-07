@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
-import { DialogShell } from '@/components/shared/DialogShell';
-import { DraftStateNotice } from '@/components/shared/DraftStateNotice';
-import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { DraftStateNotice } from '@/shared/components/draft-state-notice';
+import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { formatCurrency } from '@/lib/format';
 import type { Sale } from '@/types/domain';
 

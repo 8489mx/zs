@@ -1,5 +1,5 @@
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { PosCartPanelProps } from './posCartPanel.types';
 

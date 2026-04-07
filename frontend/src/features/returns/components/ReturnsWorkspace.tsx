@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateReturnsDomain } from '@/app/query-invalidation';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { returnsApi } from '@/features/returns/api/returns.api';
 import { useReturnsPage } from '@/features/returns/hooks/useReturnsPage';
 import { catalogApi } from '@/lib/api/catalog';

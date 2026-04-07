@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import type { Branch, Location } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import {
@@ -11,7 +11,7 @@ import {
   type LocationActionState,
   type ReferenceDeleteConfirmState,
 } from '@/features/settings/components/workspace-sections/reference-section.shared';
-import { QueryCard } from '@/components/shared/QueryCard';
+import { QueryCard } from '@/shared/components/query-card';
 
 interface SettingsReferenceSectionProps {
   branches: Branch[];

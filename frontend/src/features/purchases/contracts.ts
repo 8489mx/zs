@@ -41,10 +41,7 @@ export function upsertPurchaseDraftItem(items: PurchaseDraftItem[], incoming: Pu
 }
 
 export function buildPurchasePayload(values: PurchaseHeaderOutput, items: PurchaseDraftItem[], taxRate: number, pricesIncludeTax: boolean) {
-  const subTotal = Number(items.reduce((sum, item) => sum + Number(item.total || 0), 0).toFixed(2));
   const discount = Number(Math.max(0, Number(values.discount || 0)).toFixed(2));
-  const taxable = Math.max(0, subTotal - discount);
-
   return {
     supplierId: Number(values.supplierId),
     paymentType: values.paymentType,

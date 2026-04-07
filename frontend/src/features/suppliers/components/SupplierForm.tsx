@@ -1,10 +1,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Field } from '@/components/ui/Field';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { SubmitButton } from '@/components/shared/SubmitButton';
-import { DraftStateNotice } from '@/components/shared/DraftStateNotice';
-import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { Field } from '@/shared/ui/field';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { SubmitButton } from '@/shared/components/submit-button';
+import { DraftStateNotice } from '@/shared/components/draft-state-notice';
+import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { useCreateSupplierMutation } from '@/features/suppliers/hooks/useCreateSupplierMutation';
 import { supplierFormSchema, type SupplierFormInput, type SupplierFormOutput } from '@/features/suppliers/schemas/supplier.schema';
 

@@ -1,10 +1,10 @@
-import { Card } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { SubmitButton } from '@/components/shared/SubmitButton';
-import { DraftStateNotice } from '@/components/shared/DraftStateNotice';
+import { Card } from '@/shared/ui/card';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { QueryFeedback } from '@/shared/components/query-feedback';
+import { SubmitButton } from '@/shared/components/submit-button';
+import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import type { Product, Supplier, Branch, Location, AppSettings } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { usePurchaseComposerController } from '@/features/purchases/components/purchase-composer/usePurchaseComposerController';

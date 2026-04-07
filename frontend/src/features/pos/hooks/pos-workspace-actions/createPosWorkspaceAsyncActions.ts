@@ -45,12 +45,14 @@ export function createPosWorkspaceAsyncActions(
         paymentChannel: params.paymentChannel,
         discount: params.totals.discountValue,
         note: params.note,
+        paidAmount: params.paymentType === 'credit' ? 0 : Number(params.paidAmount || 0),
         payments: params.paymentType === 'credit' ? [] : [
           ...(Number(params.cashAmount || 0) > 0 ? [{ paymentChannel: 'cash' as const, amount: Number(params.cashAmount || 0) }] : []),
           ...(Number(params.cardAmount || 0) > 0 ? [{ paymentChannel: 'card' as const, amount: Number(params.cardAmount || 0) }] : []),
         ],
         taxRate: params.totals.taxRate,
         pricesIncludeTax: params.totals.pricesIncludeTax,
+        expectedTotal: Number(params.totals.total || 0),
         branchId: params.branchId || (params.currentBranch?.id != null ? String(params.currentBranch.id) : null),
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
       });

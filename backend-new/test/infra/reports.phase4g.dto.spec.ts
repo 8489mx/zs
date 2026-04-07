@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { ReportRangeQueryDto } from '../../src/reports/dto/report-query.dto';
+import { ReportRangeQueryDto } from '../../src/modules/reports/dto/report-query.dto';
 
 function assertValid(payload: unknown): void {
   const instance = plainToInstance(ReportRangeQueryDto, payload);

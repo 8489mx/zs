@@ -1,8 +1,8 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { DataTable } from '@/components/ui/DataTable';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/empty-state';
+import { DataTable } from '@/shared/ui/data-table';
+import { QueryFeedback } from '@/shared/components/query-feedback';
 import { formatDate } from '@/lib/format';
 import type { StockTransfer } from '@/types/domain';
 

@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { HeldSaleDto } from '../../src/sales/dto/held-sale.dto';
-import { UpsertSaleDto } from '../../src/sales/dto/upsert-sale.dto';
+import { HeldSaleDto } from '../../src/modules/sales/dto/held-sale.dto';
+import { UpsertSaleDto } from '../../src/modules/sales/dto/upsert-sale.dto';
 
 function assertValid<T>(cls: new () => T, payload: unknown): void {
   const instance = plainToInstance(cls, payload);

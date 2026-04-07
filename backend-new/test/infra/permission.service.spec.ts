@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { PermissionService } from '../../src/auth/services/permission.service';
+import { PermissionService } from '../../src/core/auth/services/permission.service';
 
 function run(): void {
   const service = new PermissionService();

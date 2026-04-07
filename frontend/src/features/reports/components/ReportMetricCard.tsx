@@ -1,4 +1,4 @@
-import { AnimatedValue } from '@/components/shared/AnimatedValue';
+import { AnimatedValue } from '@/shared/components/animated-value';
 
 interface ReportMetricCardProps {
   label: string;

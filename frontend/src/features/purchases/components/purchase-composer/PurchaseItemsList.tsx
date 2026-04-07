@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import type { PurchaseDraftItem } from '@/features/purchases/contracts';
 

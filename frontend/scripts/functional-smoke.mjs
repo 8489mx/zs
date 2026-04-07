@@ -7,11 +7,11 @@ const src = path.join(root, 'src');
 const requiredFiles = [
   'app/router/root-router.tsx',
   'app/router/registry.ts',
-  'components/layout/AppShell.tsx',
-  'components/system/AppErrorBoundary.tsx',
-  'components/shared/QueryFeedback.tsx',
-  'components/shared/MutationFeedback.tsx',
-  'components/shared/SubmitButton.tsx',
+  'components/layout/app-shell.tsx',
+  'components/system/app-error-boundary.tsx',
+  'components/shared/query-feedback.tsx',
+  'components/shared/mutation-feedback.tsx',
+  'components/shared/Submitbutton.tsx',
   'lib/errors.ts'
 ];
 

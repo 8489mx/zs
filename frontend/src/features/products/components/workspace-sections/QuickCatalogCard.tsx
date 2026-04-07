@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { productsApi } from '@/features/products/api/products.api';
 

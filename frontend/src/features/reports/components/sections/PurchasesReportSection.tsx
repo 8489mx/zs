@@ -1,4 +1,4 @@
-import { QueryCard } from '@/components/shared/QueryCard';
+import { QueryCard } from '@/shared/components/query-card';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { relativePercent } from '@/features/reports/lib/reports-format';
 import { formatCurrency } from '@/lib/format';

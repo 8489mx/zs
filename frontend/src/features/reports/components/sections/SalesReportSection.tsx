@@ -1,7 +1,7 @@
-import { QueryCard } from '@/components/shared/QueryCard';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { DataTable } from '@/components/ui/DataTable';
+import { QueryCard } from '@/shared/components/query-card';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { DataTable } from '@/shared/ui/data-table';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { relativePercent } from '@/features/reports/lib/reports-format';
 import { formatCurrency } from '@/lib/format';

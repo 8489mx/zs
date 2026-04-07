@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Field } from '@/components/ui/Field';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { SubmitButton } from '@/components/shared/SubmitButton';
-import { DraftStateNotice } from '@/components/shared/DraftStateNotice';
+import { Field } from '@/shared/ui/field';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { SubmitButton } from '@/shared/components/submit-button';
+import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { useSettingsUpdateMutation } from '@/features/settings/hooks/useSettingsMutations';
 import { settingsFormSchema, type SettingsFormInput, type SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
-import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { BrandPreview, readFileAsDataUrl, type SettingsMainFormProps } from '@/features/settings/components/forms/settings-forms.shared';
 

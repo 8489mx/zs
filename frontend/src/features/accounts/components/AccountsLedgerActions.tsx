@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/shared/ui/button';
 import { copyLedgerSummary, exportLedgerCsv, printLedgerSummary } from '@/features/accounts/lib/ledger-actions';
 import type { CustomerLedgerEntry, SupplierLedgerEntry } from '@/types/domain';
 

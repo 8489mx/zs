@@ -1,7 +1,7 @@
 import type { Ref } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
+import { Card } from '@/shared/ui/card';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
 import type { PosPriceType } from '@/features/pos/types/pos.types';

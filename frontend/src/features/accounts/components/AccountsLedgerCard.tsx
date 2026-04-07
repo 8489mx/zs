@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { QueryCard } from '@/components/shared/QueryCard';
+import { QueryCard } from '@/shared/components/query-card';
 
 export function AccountsLedgerCard({
   title,

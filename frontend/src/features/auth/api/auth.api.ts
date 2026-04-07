@@ -1,3 +1,3 @@
-import { authApi as sharedAuthApi } from '@/services/api/auth';
+import { authApi as sharedAuthApi } from '@/shared/api/auth';
 
 export const authApi = sharedAuthApi;

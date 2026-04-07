@@ -1,4 +1,4 @@
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import type { UserBulkAction } from '@/features/settings/hooks/useUserManagementController';
 
