@@ -1,13 +1,9 @@
 import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kysely } from 'kysely';
-import { createHash, randomBytes } from 'node:crypto';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
-
-function hashPassword(password: string, salt: string): string {
-  return createHash('sha256').update(`${password}:${salt}`).digest('hex');
-}
+import { createPasswordRecord } from '../utils/password-hasher';
 
 const SUPER_ADMIN_PERMISSIONS = [
   'dashboard',
@@ -65,15 +61,14 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
       return;
     }
 
-    const salt = randomBytes(16).toString('hex');
-    const passwordHash = hashPassword(input.password, salt);
+    const passwordRecord = await createPasswordRecord(input.password);
 
     await this.db
       .insertInto('users')
       .values({
         username: input.username,
-        password_hash: passwordHash,
-        password_salt: salt,
+        password_hash: passwordRecord.hash,
+        password_salt: passwordRecord.salt,
         role: input.role,
         is_active: true,
         permissions_json: JSON.stringify(input.permissions),
@@ -96,8 +91,30 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
       return;
     }
 
-    const bootstrapSuperAdminUsername = this.configService.get<string>('DEFAULT_ADMIN_USERNAME') || 'admin';
-    const bootstrapSuperAdminPassword = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD') || 'ChangeMe123!';
+    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
+    const allowInProduction = this.configService.get<boolean>('ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION') === true;
+    const bootstrapSuperAdminUsername = (this.configService.get<string>('DEFAULT_ADMIN_USERNAME') || '').trim();
+    const bootstrapSuperAdminPassword = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD') || '';
+
+    if (nodeEnv === 'production' && !allowInProduction) {
+      throw new Error('Bootstrap admin seeding is blocked in production unless ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION=true');
+    }
+
+    if (!bootstrapSuperAdminUsername) {
+      throw new Error('Bootstrap admin seeding requires DEFAULT_ADMIN_USERNAME when ENABLE_BOOTSTRAP_ADMIN=true');
+    }
+
+    if (!bootstrapSuperAdminPassword) {
+      throw new Error('Bootstrap admin seeding requires DEFAULT_ADMIN_PASSWORD when ENABLE_BOOTSTRAP_ADMIN=true');
+    }
+
+    if (bootstrapSuperAdminPassword === 'ChangeMe123!') {
+      throw new Error('Bootstrap admin seeding refuses to start with the default administrator password');
+    }
+
+    if (bootstrapSuperAdminPassword.length < 14) {
+      throw new Error('Bootstrap admin password must be at least 14 characters long');
+    }
 
     await this.ensureBootstrapUser({
       username: bootstrapSuperAdminUsername,
@@ -108,7 +125,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     });
 
     this.logger.warn(
-      `Bootstrap administrator '${bootstrapSuperAdminUsername}' is enabled. Rotate this password after first login.`,
+      `Bootstrap administrator '${bootstrapSuperAdminUsername}' is enabled. Disable seeding after first login.`,
     );
   }
 }

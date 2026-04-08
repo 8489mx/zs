@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { AppConfigModule } from './config/config.module';
 import { ConfigAccessModule } from './config/config-access.module';
 import { DatabaseModule } from './database/database.module';
@@ -20,6 +20,9 @@ import { ReturnsModule } from './modules/returns/returns.module';
 import { TreasuryModule } from './modules/treasury/treasury.module';
 import { ServicesModule } from './modules/services/services.module';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
+import { LoginRateLimitMiddleware } from './common/middleware/login-rate-limit.middleware';
+import { AuthBurstRateLimitMiddleware } from './common/middleware/auth-burst-rate-limit.middleware';
+import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit.service';
 
 @Module({
   imports: [
@@ -44,9 +47,23 @@ import { SecurityHeadersMiddleware } from './common/middleware/security-headers.
     TreasuryModule,
     ServicesModule,
   ],
+  providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(SecurityHeadersMiddleware).forRoutes('*');
+
+    consumer
+      .apply(LoginRateLimitMiddleware)
+      .forRoutes({ path: 'api/auth/login', method: RequestMethod.POST });
+
+    consumer
+      .apply(AuthBurstRateLimitMiddleware)
+      .forRoutes(
+        { path: 'api/auth/logout', method: RequestMethod.POST },
+        { path: 'api/auth/change-password', method: RequestMethod.POST },
+        { path: 'api/auth/sessions/revoke-others', method: RequestMethod.POST },
+        { path: 'api/auth/sessions/:id', method: RequestMethod.DELETE },
+      );
   }
 }

@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
-import { createHash, randomBytes } from 'node:crypto';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -8,10 +7,7 @@ import { Database } from '../../database/database.types';
 import { AuditService } from '../../core/audit/audit.service';
 import { UpsertUserDto } from './dto/upsert-user.dto';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
-
-function hashPassword(password: string, salt: string): string {
-  return createHash('sha256').update(`${password}:${salt}`).digest('hex');
-}
+import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 
 function safeJsonArray(value: string): string[] {
   try {
@@ -108,13 +104,13 @@ export class UsersService {
 
     await this.ensureUniqueUsername(payload.username);
 
-    const salt = randomBytes(16).toString('hex');
+    const passwordRecord = await createPasswordRecord(payload.password);
     const result = await this.db
       .insertInto('users')
       .values({
         username: payload.username.trim(),
-        password_hash: hashPassword(payload.password, salt),
-        password_salt: salt,
+        password_hash: passwordRecord.hash,
+        password_salt: passwordRecord.salt,
         role: payload.role,
         is_active: payload.isActive !== false,
         permissions_json: JSON.stringify(payload.permissions ?? []),
@@ -159,7 +155,9 @@ export class UsersService {
     };
 
     if (payload.password) {
-      updates.password_hash = hashPassword(payload.password, existing.password_salt);
+      const passwordRecord = await createPasswordRecord(payload.password);
+      updates.password_hash = passwordRecord.hash;
+      updates.password_salt = passwordRecord.salt;
       updates.must_change_password = false;
       updates.failed_login_count = 0;
       updates.locked_until = null;

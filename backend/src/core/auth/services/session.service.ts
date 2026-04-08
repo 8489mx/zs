@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kysely } from 'kysely';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { createPasswordRecord, verifyPassword } from '../utils/password-hasher';
 
 function safeJsonArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -26,10 +27,6 @@ function safeJsonArray(value: unknown): string[] {
   }
 
   return [];
-}
-
-function hashPassword(password: string, salt: string): string {
-  return createHash('sha256').update(`${password}:${salt}`).digest('hex');
 }
 
 @Injectable()
@@ -104,8 +101,8 @@ export class SessionService {
     if (!user.is_active) return null;
     if (user.locked_until && user.locked_until > new Date()) return null;
 
-    const valid = hashPassword(password, user.password_salt) === user.password_hash;
-    if (!valid) {
+    const passwordCheck = await verifyPassword(password, user.password_hash, user.password_salt);
+    if (!passwordCheck.valid) {
       const { maxAttempts, lockoutMinutes } = this.lockoutConfig;
       const nextFailedLoginCount = Number(user.failed_login_count ?? 0) + 1;
       const shouldLock = nextFailedLoginCount >= maxAttempts;
@@ -137,13 +134,21 @@ export class SessionService {
       })
       .execute();
 
+    const userSecurityUpdates: Record<string, unknown> = {
+      failed_login_count: 0,
+      last_login_at: now,
+      locked_until: null,
+    };
+
+    if (passwordCheck.needsRehash) {
+      const upgradedPassword = await createPasswordRecord(password);
+      userSecurityUpdates.password_hash = upgradedPassword.hash;
+      userSecurityUpdates.password_salt = upgradedPassword.salt;
+    }
+
     await this.db
       .updateTable('users')
-      .set({
-        failed_login_count: 0,
-        last_login_at: now,
-        locked_until: null,
-      })
+      .set(userSecurityUpdates)
       .where('id', '=', user.id)
       .execute();
 
@@ -213,14 +218,18 @@ export class SessionService {
       throw new Error('User not found');
     }
 
-    if (hashPassword(currentPassword, user.password_salt) !== user.password_hash) {
+    const currentPasswordCheck = await verifyPassword(currentPassword, user.password_hash, user.password_salt);
+    if (!currentPasswordCheck.valid) {
       throw new Error('Current password is incorrect');
     }
+
+    const nextPassword = await createPasswordRecord(newPassword);
 
     await this.db
       .updateTable('users')
       .set({
-        password_hash: hashPassword(newPassword, user.password_salt),
+        password_hash: nextPassword.hash,
+        password_salt: nextPassword.salt,
         must_change_password: false,
         failed_login_count: 0,
         locked_until: null,
@@ -249,10 +258,11 @@ export class SessionService {
 
     const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME ?? 'admin';
     const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD ?? 'ChangeMe123!';
+    const defaultPasswordCheck = await verifyPassword(defaultPassword, user.password_hash, user.password_salt);
     const usingDefaultAdminPassword =
       user.role === 'super_admin'
       && user.username.toLowerCase() === defaultUsername.toLowerCase()
-      && hashPassword(defaultPassword, user.password_salt) === user.password_hash;
+      && defaultPasswordCheck.valid;
 
     return {
       user: {

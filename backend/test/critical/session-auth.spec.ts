@@ -177,11 +177,16 @@ async function run(): Promise<void> {
   assert.ok((db.users[0].locked_until as any) instanceof Date);
 
   db.users[0].locked_until = null;
+  const oldHash = db.users[0].password_hash;
+  const oldSalt = db.users[0].password_salt;
   const valid = await service.authenticate('admin', password, { ipAddress: '127.0.0.1', userAgent: 'spec' });
   assert.ok(valid);
   assert.equal(db.sessions.length, 1);
   assert.equal(db.users[0].failed_login_count, 0);
   assert.equal(valid?.auth.username, 'admin');
+  assert.notEqual(db.users[0].password_hash, oldHash);
+  assert.notEqual(db.users[0].password_salt, oldSalt);
+  assert.ok(db.users[0].password_hash.startsWith('$2'));
 
   const me = await service.buildMePayload(valid!.auth);
   assert.equal((me.security as any).mustChangePassword, true);
