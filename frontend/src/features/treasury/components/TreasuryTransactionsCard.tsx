@@ -2,11 +2,20 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { FilterChipGroup } from '@/shared/components/filter-chip-group';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { formatScopeLabel, type TreasuryTransactionFilter, type TreasuryTransactionRow } from '@/features/treasury/lib/treasury-page.helpers';
+
+const treasuryFilterOptions = [
+  { value: 'all', label: 'الكل' },
+  { value: 'today', label: 'اليوم' },
+  { value: 'in', label: 'داخل' },
+  { value: 'out', label: 'خارج' },
+  { value: 'expense', label: 'مصروفات' },
+] as const;
 
 export function TreasuryTransactionsCard({ search, onSearchChange, txnFilter, onTxnFilterChange, onReset, onExport, onPrint, isExporting, transactionsQuery, transactionRows, transactionPagination, txnPageSize, setTxnPage, setTxnPageSize }: {
   search: string;
@@ -27,7 +36,7 @@ export function TreasuryTransactionsCard({ search, onSearchChange, txnFilter, on
   return (
     <Card title="حركات الخزينة" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onReset}>إعادة الضبط</Button><Button variant="secondary" onClick={onExport} disabled={!transactionPagination?.totalItems || isExporting}>{isExporting ? 'جارٍ التصدير...' : 'تصدير النتائج'}</Button><Button variant="secondary" onClick={onPrint} disabled={!transactionPagination?.totalItems || isExporting}>طباعة النتائج</Button></div>}>
       <SearchToolbar search={search} onSearchChange={onSearchChange} searchPlaceholder="ابحث بالنوع أو البيان أو المرجع أو المنفذ" />
-      <div className="filter-chip-row">{[['all','الكل'],['today','اليوم'],['in','داخل'],['out','خارج'],['expense','مصروفات']].map(([value,label]) => <Button key={value} variant={txnFilter === value ? 'primary' : 'secondary'} onClick={() => onTxnFilterChange(value as TreasuryTransactionFilter)}>{label}</Button>)}</div>
+      <FilterChipGroup value={txnFilter} options={treasuryFilterOptions} onChange={onTxnFilterChange} />
       <QueryFeedback isLoading={transactionsQuery.isLoading} isError={transactionsQuery.isError} error={transactionsQuery.error} isEmpty={!transactionPagination?.totalItems} loadingText="جاري تحميل الخزينة..." errorTitle="تعذر تحميل حركات الخزينة" emptyTitle="لا توجد حركات خزينة حاليًا" emptyHint="ستظهر هنا الحركات المالية بعد التسجيل أو تغيير الفلاتر.">
         <DataTable rows={transactionRows} columns={[
           { key: 'type', header: 'النوع', cell: (row: TreasuryTransactionRow) => row.txnType || row.type || '—' },

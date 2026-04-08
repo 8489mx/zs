@@ -12,26 +12,118 @@ export type TrendPoint = {
   value: number;
 };
 
+type ZonedDateParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+};
+
+function pad2(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+function normalizeTimezone(value: string | null | undefined): string {
+  const candidate = String(value || '').trim();
+  if (!candidate) return 'UTC';
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(new Date());
+    return candidate;
+  } catch {
+    return 'UTC';
+  }
+}
+
+export function getBusinessTimezone(): string {
+  return normalizeTimezone(process.env.BUSINESS_TIMEZONE || process.env.APP_TIMEZONE || 'UTC');
+}
+
+function getFormatter(timezone: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function getZonedParts(value: Date, timezone: string): ZonedDateParts {
+  const parts = getFormatter(timezone).formatToParts(value);
+  const map = new Map(parts.map((part) => [part.type, part.value]));
+  return {
+    year: Number(map.get('year') || 0),
+    month: Number(map.get('month') || 0),
+    day: Number(map.get('day') || 0),
+    hour: Number(map.get('hour') || 0),
+    minute: Number(map.get('minute') || 0),
+    second: Number(map.get('second') || 0),
+  };
+}
+
+function getTimezoneOffsetMs(value: Date, timezone: string): number {
+  const zoned = getZonedParts(value, timezone);
+  const utcFromZoned = Date.UTC(zoned.year, zoned.month - 1, zoned.day, zoned.hour, zoned.minute, zoned.second);
+  return utcFromZoned - value.getTime();
+}
+
+function zonedDateTimeToUtc(
+  timezone: string,
+  year: number,
+  month: number,
+  day: number,
+  hour = 0,
+  minute = 0,
+  second = 0,
+  millisecond = 0,
+): Date {
+  const utcGuess = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+  let offset = getTimezoneOffsetMs(new Date(utcGuess), timezone);
+  let corrected = utcGuess - offset;
+  const nextOffset = getTimezoneOffsetMs(new Date(corrected), timezone);
+  if (nextOffset !== offset) {
+    corrected = utcGuess - nextOffset;
+  }
+  return new Date(corrected);
+}
+
+export function getBusinessDayBounds(value: Date | string = new Date(), timezone = getBusinessTimezone()): { start: Date; end: Date; key: string } {
+  const source = value instanceof Date ? value : new Date(value);
+  const zoned = getZonedParts(source, timezone);
+  const start = zonedDateTimeToUtc(timezone, zoned.year, zoned.month, zoned.day, 0, 0, 0, 0);
+  const nextDayStart = zonedDateTimeToUtc(timezone, zoned.year, zoned.month, zoned.day + 1, 0, 0, 0, 0);
+  return {
+    start,
+    end: new Date(nextDayStart.getTime() - 1),
+    key: `${zoned.year}-${pad2(zoned.month)}-${pad2(zoned.day)}`,
+  };
+}
+
 export function parseRange(query: ReportRangeQueryDto): Range {
-  const now = new Date();
-  const defaultTo = now.toISOString();
-  const defaultFromDate = new Date(now);
-  defaultFromDate.setDate(defaultFromDate.getDate() - 30);
-  const defaultFrom = defaultFromDate.toISOString();
+  const timezone = getBusinessTimezone();
+  const today = getBusinessDayBounds(new Date(), timezone);
+  const thirtyDaysAgo = new Date(today.start);
+  thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
 
   return {
-    from: query.from || defaultFrom,
-    to: query.to || defaultTo,
+    from: query.from || thirtyDaysAgo.toISOString(),
+    to: query.to || today.end.toISOString(),
     branchId: query.branchId ? String(query.branchId) : undefined,
     locationId: query.locationId ? String(query.locationId) : undefined,
   };
 }
 
-export function dateKey(value: Date | string | null | undefined): string {
+export function dateKey(value: Date | string | null | undefined, timezone = getBusinessTimezone()): string {
   if (!value) return '';
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0, 10);
+  const zoned = getZonedParts(date, timezone);
+  return `${zoned.year}-${pad2(zoned.month)}-${pad2(zoned.day)}`;
 }
 
 export function getPagination(query: ReportRangeQueryDto, defaultSize = 25): { page: number; pageSize: number; offset: number } {
@@ -74,12 +166,12 @@ export function filterScope<T extends { branch_id?: number | null; location_id?:
   });
 }
 
-export function buildLastNDays(days: number): string[] {
+export function buildLastNDays(days: number, timezone = getBusinessTimezone(), anchor = new Date()): string[] {
+  const today = getBusinessDayBounds(anchor, timezone).start;
   return Array.from({ length: days }).map((_, index) => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - (days - index - 1));
-    return dateKey(date);
+    const date = new Date(today);
+    date.setUTCDate(date.getUTCDate() - (days - index - 1));
+    return dateKey(date, timezone);
   });
 }
 

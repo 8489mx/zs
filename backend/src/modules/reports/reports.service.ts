@@ -5,7 +5,7 @@ import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { ReportRangeQueryDto } from './dto/report-query.dto';
-import { TrendPoint, buildLastNDays, buildPagination, dateKey, filterScope, getPagination, normalizeProduct, paginate, parseRange } from './helpers/reports-range.helper';
+import { TrendPoint, buildLastNDays, buildPagination, dateKey, filterScope, getBusinessDayBounds, getBusinessTimezone, getPagination, normalizeProduct, paginate, parseRange } from './helpers/reports-range.helper';
 import { buildAggregatedBalances, buildTrendMap, sumMoney, toMoney } from './helpers/reports-math.helper';
 
 @Injectable()
@@ -163,13 +163,12 @@ export class ReportsService {
       .where('is_active', '=', true)
       .execute();
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStart = new Date(today);
-    const todayEnd = new Date(today);
-    todayEnd.setHours(23, 59, 59, 999);
-    const trendStart = new Date(today);
-    trendStart.setDate(trendStart.getDate() - 6);
+    const businessTimezone = getBusinessTimezone();
+    const today = getBusinessDayBounds(new Date(), businessTimezone);
+    const todayStart = today.start;
+    const todayEnd = today.end;
+    const trendStart = new Date(todayStart);
+    trendStart.setUTCDate(trendStart.getUTCDate() - 6);
 
     const recentSalesRows = filterScope(await this.db
       .selectFrom('sales')
@@ -187,8 +186,8 @@ export class ReportsService {
       .where('created_at', '<=', todayEnd)
       .execute(), query);
 
-    const todaySalesRows = recentSalesRows.filter((row) => dateKey(row.created_at) === dateKey(todayStart));
-    const todayPurchasesRows = recentPurchasesRows.filter((row) => dateKey(row.created_at) === dateKey(todayStart));
+    const todaySalesRows = recentSalesRows.filter((row) => dateKey(row.created_at, businessTimezone) === today.key);
+    const todayPurchasesRows = recentPurchasesRows.filter((row) => dateKey(row.created_at, businessTimezone) === today.key);
 
     const todaySaleItemsRows = filterScope(await this.db
       .selectFrom('sale_items as si')
@@ -253,7 +252,7 @@ export class ReportsService {
     }).length;
     const highSupplierBalances = suppliersRows.filter((row) => Number(supplierBalances.get(String(row.id)) || 0) >= 1000).length;
 
-    const todayIso = todayStart.toISOString().slice(0, 10);
+    const todayIso = today.key;
     const activeOffersRows = await this.db
       .selectFrom('product_offers')
       .select(['id'])
@@ -309,9 +308,9 @@ export class ReportsService {
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
-    const dayKeys = buildLastNDays(7);
-    const salesTrend: TrendPoint[] = buildTrendMap(recentSalesRows, dayKeys, (row) => dateKey(row.created_at), (row) => row.total);
-    const purchasesTrend: TrendPoint[] = buildTrendMap(recentPurchasesRows, dayKeys, (row) => dateKey(row.created_at), (row) => row.total);
+    const dayKeys = buildLastNDays(7, businessTimezone, new Date());
+    const salesTrend: TrendPoint[] = buildTrendMap(recentSalesRows, dayKeys, (row) => dateKey(row.created_at, businessTimezone), (row) => row.total);
+    const purchasesTrend: TrendPoint[] = buildTrendMap(recentPurchasesRows, dayKeys, (row) => dateKey(row.created_at, businessTimezone), (row) => row.total);
 
     return {
       range,

@@ -5,12 +5,20 @@ import { DataTable } from '@/shared/ui/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { FilterChipGroup } from '@/shared/components/filter-chip-group';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatDate } from '@/lib/format';
 import { useAuditLogs } from '@/features/audit/hooks/useAuditLogs';
 import { useAuditPageActions } from '@/features/audit/hooks/useAuditPageActions';
 import type { AuditLog } from '@/types/domain';
+
+const auditFilterOptions = [
+  { value: 'all', label: 'الكل' },
+  { value: 'today', label: 'اليوم' },
+  { value: 'withDetails', label: 'بسجل تفاصيل' },
+] as const;
 
 export function AuditPage() {
   const [search, setSearch] = useState('');
@@ -35,6 +43,12 @@ export function AuditPage() {
     { key: 'today', label: 'تابع اليوم', value: `${summary.todayCount} سجل اليوم` },
     { key: 'after', label: 'ثم نفذ', value: totalRows ? 'تصدير أو طباعة النتائج' : 'نسخ الملخص بعد ظهور النتائج' },
   ];
+  const stats = [
+    { key: 'total', label: 'إجمالي السجلات المطابقة', value: totalRows },
+    { key: 'users', label: 'عدد المنفذين', value: summary.distinctUsers },
+    { key: 'today', label: 'سجلات اليوم', value: summary.todayCount },
+    { key: 'range', label: 'المعروض الآن', value: `${rangeStart}-${rangeEnd}` },
+  ] as const;
 
   const { copyFeedback, isExporting, copyAuditSummary, exportAuditRows, printAuditRows } = useAuditPageActions({
     search,
@@ -67,18 +81,9 @@ export function AuditPage() {
           </div>
         }
       >
-        <div className="filter-chip-row">
-          <button className={`button ${filterMode === 'all' ? 'button-primary' : 'button-secondary'}`} onClick={() => setFilterMode('all')}>الكل</button>
-          <button className={`button ${filterMode === 'today' ? 'button-primary' : 'button-secondary'}`} onClick={() => setFilterMode('today')}>اليوم</button>
-          <button className={`button ${filterMode === 'withDetails' ? 'button-primary' : 'button-secondary'}`} onClick={() => setFilterMode('withDetails')}>بسجل تفاصيل</button>
-        </div>
+        <FilterChipGroup value={filterMode} options={auditFilterOptions} onChange={setFilterMode} />
         <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالإجراء أو التفاصيل أو المنفذ" />
-        <div className="stats-grid compact-grid">
-          <div className="stat-card"><span>إجمالي السجلات المطابقة</span><strong>{totalRows}</strong></div>
-          <div className="stat-card"><span>عدد المنفذين</span><strong>{summary.distinctUsers}</strong></div>
-          <div className="stat-card"><span>سجلات اليوم</span><strong>{summary.todayCount}</strong></div>
-          <div className="stat-card"><span>المعروض الآن</span><strong>{rangeStart}-{rangeEnd}</strong></div>
-        </div>
+        <StatsGrid items={stats} />
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
