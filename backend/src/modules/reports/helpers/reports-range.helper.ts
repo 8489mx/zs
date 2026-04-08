@@ -34,16 +34,35 @@ export function dateKey(value: Date | string | null | undefined): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function paginate<T>(rows: T[], query: ReportRangeQueryDto, defaultSize = 25): { rows: T[]; pagination: Record<string, number> } {
+export function getPagination(query: ReportRangeQueryDto, defaultSize = 25): { page: number; pageSize: number; offset: number } {
   const page = Math.max(1, Number(query.page || 1));
   const pageSize = Math.min(200, Math.max(1, Number(query.pageSize || defaultSize)));
-  const totalItems = rows.length;
+  return {
+    page,
+    pageSize,
+    offset: (page - 1) * pageSize,
+  };
+}
+
+export function buildPagination(page: number, pageSize: number, totalItems: number): Record<string, number> {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, totalPages);
-  const start = (safePage - 1) * pageSize;
+  return {
+    page: safePage,
+    pageSize,
+    totalItems,
+    totalPages,
+  };
+}
+
+export function paginate<T>(rows: T[], query: ReportRangeQueryDto, defaultSize = 25): { rows: T[]; pagination: Record<string, number> } {
+  const { page, pageSize } = getPagination(query, defaultSize);
+  const totalItems = rows.length;
+  const pagination = buildPagination(page, pageSize, totalItems);
+  const start = (pagination.page - 1) * pageSize;
   return {
     rows: rows.slice(start, start + pageSize),
-    pagination: { page: safePage, pageSize, totalItems, totalPages },
+    pagination,
   };
 }
 

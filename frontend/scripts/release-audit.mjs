@@ -1,38 +1,32 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const projectRoot = path.resolve(process.cwd(), '..');
+const root = process.cwd();
 const requiredDocs = [
-  path.join(projectRoot, 'RELEASE_CHECKLIST.md'),
-  path.join(projectRoot, 'LAUNCH_CANDIDATE_GUIDE.md'),
-  path.join(projectRoot, 'docs', 'frontend-phase25-notes.md'),
+  path.join(root, 'ARCHITECTURE.md'),
+  path.join(root, 'CLIENT_UAT_CHECKLIST.md'),
+  path.join(root, 'PHASE15_COMMERCIAL_POLISH.md'),
+  path.join(root, 'UAT_SIGNOFF.md'),
 ];
 
 const requiredFiles = [
-  path.join(projectRoot, 'src', 'server.js'),
-  path.join(projectRoot, 'frontend', 'src', 'components', 'system', 'backend-health-badge.tsx'),
-  path.join(projectRoot, 'frontend', 'src', 'components', 'system', 'system-status-banner.tsx'),
+  path.join(root, 'src', 'lib', 'http.ts'),
+  path.join(root, 'src', 'shared', 'system', 'system-status-banner.tsx'),
+  path.join(root, 'src', 'shared', 'layout', 'app-shell.tsx'),
+  path.join(root, 'src', 'features', 'auth', 'pages', 'LoginPage.tsx'),
+  path.join(root, 'src', 'app', 'providers.tsx'),
 ];
 
 let failed = false;
 for (const file of [...requiredDocs, ...requiredFiles]) {
   if (!fs.existsSync(file)) {
-    console.error(`[release-audit] missing: ${path.relative(projectRoot, file)}`);
+    console.error(`[release-audit] missing: ${path.relative(root, file)}`);
     failed = true;
   }
 }
 
-const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
-const frontendPackageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'frontend', 'package.json'), 'utf8'));
-
-for (const scriptName of ['syntax:check', 'smoke-test', 'frontend:build']) {
-  if (!packageJson.scripts?.[scriptName]) {
-    console.error(`[release-audit] missing root script: ${scriptName}`);
-    failed = true;
-  }
-}
-
-for (const scriptName of ['build', 'qa:phase23', 'qa:release']) {
+const frontendPackageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+for (const scriptName of ['build', 'qa:critical', 'qa:guards', 'qa:release', 'qa:rc']) {
   if (!frontendPackageJson.scripts?.[scriptName]) {
     console.error(`[release-audit] missing frontend script: ${scriptName}`);
     failed = true;

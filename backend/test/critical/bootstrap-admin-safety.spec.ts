@@ -1,10 +1,7 @@
 import { strict as assert } from 'node:assert';
-import { createHash } from 'node:crypto';
+import { BootstrapAdminService } from '../../src/core/auth/services/bootstrap-admin.service';
 import { SessionService } from '../../src/core/auth/services/session.service';
-
-function hashPassword(password: string, salt: string): string {
-  return createHash('sha256').update(`${password}:${salt}`).digest('hex');
-}
+import { createPasswordRecord } from '../../src/core/auth/utils/password-hasher';
 
 class FakeConfigService {
   constructor(private readonly values: Record<string, unknown>) {}
@@ -32,17 +29,35 @@ class FakeDb {
   }
 }
 
-async function run(): Promise<void> {
-  const salt = 'salt-2';
+class FakeBootstrapDb {
+  insertInto() {
+    return {
+      values: () => ({
+        onConflict: () => ({ execute: async () => ({}) }),
+      }),
+    };
+  }
+
+  selectFrom() {
+    return {
+      select: () => ({
+        where: () => ({ limit: () => ({ executeTakeFirst: async () => undefined }) }),
+      }),
+    };
+  }
+}
+
+async function runMePayloadSafety(): Promise<void> {
   const defaultPassword = 'ChangeMe123!';
+  const passwordRecord = await createPasswordRecord(defaultPassword);
   const user = {
     id: 7,
     username: 'admin',
     role: 'super_admin',
     permissions_json: JSON.stringify(['settings']),
     must_change_password: true,
-    password_salt: salt,
-    password_hash: hashPassword(defaultPassword, salt),
+    password_salt: passwordRecord.salt,
+    password_hash: passwordRecord.hash,
   };
 
   const service = new SessionService(
@@ -62,6 +77,57 @@ async function run(): Promise<void> {
   assert.equal((payload.settings as any).theme, 'light');
 }
 
-run().then(() => {
+async function runBootstrapGuardrails(): Promise<void> {
+  const baseDb = new FakeBootstrapDb() as any;
+
+  await assert.rejects(
+    async () => {
+      const service = new BootstrapAdminService(
+        baseDb,
+        new FakeConfigService({
+          ENABLE_BOOTSTRAP_ADMIN: true,
+          DEFAULT_ADMIN_USERNAME: 'admin',
+          DEFAULT_ADMIN_PASSWORD: 'ChangeMe123!',
+          NODE_ENV: 'development',
+          ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: false,
+        }) as any,
+      );
+      await service.onApplicationBootstrap();
+    },
+    /refuses to start with the default administrator password/,
+  );
+
+  await assert.rejects(
+    async () => {
+      const service = new BootstrapAdminService(
+        baseDb,
+        new FakeConfigService({
+          ENABLE_BOOTSTRAP_ADMIN: true,
+          DEFAULT_ADMIN_USERNAME: 'owner',
+          DEFAULT_ADMIN_PASSWORD: 'VeryStrongAdminPass123!',
+          NODE_ENV: 'production',
+          ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: false,
+        }) as any,
+      );
+      await service.onApplicationBootstrap();
+    },
+    /blocked in production/,
+  );
+
+  const service = new BootstrapAdminService(
+    baseDb,
+    new FakeConfigService({
+      ENABLE_BOOTSTRAP_ADMIN: true,
+      DEFAULT_ADMIN_USERNAME: 'owner',
+      DEFAULT_ADMIN_PASSWORD: 'VeryStrongAdminPass123!',
+      NODE_ENV: 'development',
+      ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: false,
+    }) as any,
+  );
+
+  await service.onApplicationBootstrap();
+}
+
+Promise.all([runMePayloadSafety(), runBootstrapGuardrails()]).then(() => {
   console.log('bootstrap-admin-safety.spec: ok');
 });

@@ -4,10 +4,10 @@ import { resolve } from 'node:path';
 const root = process.cwd();
 const checks = [
   ['src/lib/http.ts', ['APP_UNAUTHORIZED_EVENT', 'APP_NETWORK_STATE_EVENT', 'REQUEST_TIMEOUT_MS']],
-  ['src/components/system/system-status-banner.tsx', ['APP_UNAUTHORIZED_EVENT', 'APP_NETWORK_STATE_EVENT', 'useNavigate']],
-  ['src/components/layout/app-shell.tsx', ['system-status-banner', 'backend-health-badge', 'React فقط']],
-  ['src/features/auth/pages/LoginPage.tsx', ['system-status-banner']],
-  ['src/app/providers.tsx', ['mutations', 'retry: false']]
+  ['src/shared/system/system-status-banner.tsx', ['APP_UNAUTHORIZED_EVENT', 'APP_NETWORK_STATE_EVENT']],
+  ['src/shared/layout/app-shell.tsx', ['SystemStatusBanner']],
+  ['src/features/auth/pages/LoginPage.tsx', ['SystemStatusBanner']],
+  ['src/app/providers.tsx', ['retry: false']],
 ];
 
 for (const [file, markers] of checks) {

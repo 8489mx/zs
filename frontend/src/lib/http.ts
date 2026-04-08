@@ -16,6 +16,8 @@ export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 const REQUEST_TIMEOUT_MS = 15_000;
 const RAW_API_BASE = (import.meta.env?.VITE_API_BASE_URL )?.trim();
+const CSRF_COOKIE_NAME = 'csrf_token';
+const CSRF_HEADER_NAME = 'x-csrf-token';
 
 function normalizeApiBaseUrl(value?: string) {
   if (value) return value.replace(/\/$/, '');
@@ -140,6 +142,41 @@ function withTimeout(init?: RequestInit) {
   };
 }
 
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+
+  const prefix = `${name}=`;
+  for (const part of document.cookie.split(';')) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(prefix)) {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    }
+  }
+
+  return null;
+}
+
+function isUnsafeMethod(method: string | undefined): boolean {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || 'GET').toUpperCase());
+}
+
+function buildHeaders(init?: RequestInit): Headers {
+  const headers = new Headers(init?.headers || {});
+
+  if (!headers.has('Content-Type') && init?.body != null) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (isUnsafeMethod(init?.method)) {
+    const csrfToken = readCookie(CSRF_COOKIE_NAME);
+    if (csrfToken && !headers.has(CSRF_HEADER_NAME)) {
+      headers.set(CSRF_HEADER_NAME, csrfToken);
+    }
+  }
+
+  return headers;
+}
+
 export function resolveRequestUrl(path: string) {
   if (/^https?:\/\//i.test(path)) return path;
   if (!API_BASE_URL) return path;
@@ -152,10 +189,7 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     const response = await fetch(resolveRequestUrl(path), {
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(init?.headers || {})
-      },
+      headers: buildHeaders(init),
       ...init,
       signal
     });

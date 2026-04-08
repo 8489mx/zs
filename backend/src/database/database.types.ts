@@ -313,6 +313,38 @@ export interface HeldSaleItemTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+
+export interface ExpenseTable {
+  id: Generated<number>;
+  title: string;
+  amount: number;
+  expense_date: ColumnType<Date, string | undefined, string | undefined>;
+  note: string;
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ReturnTable {
+  id: Generated<number>;
+  doc_no: string | null;
+  return_type: 'sale' | 'purchase';
+  invoice_id: number | null;
+  product_id: number | null;
+  product_name: string;
+  qty: number;
+  total: number;
+  settlement_mode: string;
+  refund_method: string;
+  exchange_sale_id: number | null;
+  note: string;
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface TreasuryTransactionTable {
   id: Generated<number>;
   txn_type: string;
@@ -449,6 +481,8 @@ export interface Database {
   held_sale_items: HeldSaleItemTable;
   customer_payments: CustomerPaymentTable;
   customer_ledger: CustomerLedgerTable;
+  expenses: ExpenseTable;
+  returns: ReturnTable;
   treasury_transactions: TreasuryTransactionTable;
   cashier_shifts: CashierShiftTable;
   purchases: PurchaseTable;

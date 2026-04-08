@@ -18,9 +18,12 @@ const checks = [
   'PHASE15_FINAL_COMMERCIAL_POLISH.md',
   'scripts/check-go-live.cjs',
   'scripts/check-permissions-audit.cjs',
+  'scripts/check-env-safety.cjs',
   'scripts/verify-readiness.cjs',
   'test/critical/financial-integrity.spec.ts',
   'test/critical/session-auth.spec.ts',
+  'test/critical/reports-treasury-pagination.spec.ts',
+  'test/critical/reports-audit-logs-pagination.spec.ts',
 ];
 
 const missing = checks.filter((entry) => !fs.existsSync(path.join(root, entry)));

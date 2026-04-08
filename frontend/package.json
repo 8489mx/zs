@@ -22,6 +22,7 @@
     "qa:rc": "node scripts/release-candidate-check.mjs",
     "qa:contracts": "node scripts/api-mutation-envelope-check.mjs",
     "qa:release": "node scripts/release-audit.mjs",
+    "qa:commercial-ready": "npm run qa:guards && npm run qa:critical && npm run qa:rc && npm run qa:release",
     "repair:permissions": "node scripts/fix-binary-permissions.cjs",
     "qa:phase23": "node scripts/release-candidate-check.mjs",
     "qa:phase57": "node scripts/run-phase60-qa.mjs",

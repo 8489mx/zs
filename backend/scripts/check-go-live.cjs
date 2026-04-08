@@ -2,15 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const backendRoot = path.resolve(__dirname, '..');
-const repoRoot = path.resolve(backendRoot, '..');
-const requiredRepoFiles = [
-  'README.md',
-  'CHANGELOG_PHASES.md',
-  'FINAL_VERDICT.md',
-  'KNOWN_GAPS.md',
-  'ROADMAP_TO_95.md',
-  'CLIENT_HANDOFF.md',
-];
 const requiredBackendFiles = [
   'PRODUCTION_CHECKLIST.md',
   'BACKUP_RESTORE.md',
@@ -19,20 +10,31 @@ const requiredBackendFiles = [
   'PERMISSIONS_AUDIT.md',
   'RELEASE_GATE_FINAL.md',
   'GO_LIVE_GATE.md',
+  'PRE_SALE_HARDENING.md',
+  'PHASE12_FINANCIAL_INTEGRITY.md',
+  'PHASE13_CRITICAL_FLOW_CONFIDENCE.md',
+  'PHASE14_OPERATIONS_READINESS.md',
+  'PHASE15_FINAL_COMMERCIAL_POLISH.md',
   '.env.example',
 ];
 
 const requiredEnvKeys = [
   'NODE_ENV',
-  'PORT',
+  'APP_HOST',
+  'APP_PORT',
   'DATABASE_HOST',
   'DATABASE_NAME',
   'DATABASE_USER',
   'DATABASE_PASSWORD',
   'CORS_ORIGINS',
-  'COOKIE_SECURE',
-  'COOKIE_SAME_SITE',
+  'SESSION_COOKIE_SECURE',
+  'SESSION_COOKIE_SAME_SITE',
+  'SESSION_CSRF_SECRET',
+  'ALLOW_SESSION_ID_HEADER',
+  'ENABLE_BOOTSTRAP_ADMIN',
   'DEFAULT_ADMIN_PASSWORD',
+  'LOGIN_RATE_LIMIT_MAX',
+  'AUTH_BURST_RATE_LIMIT_MAX',
 ];
 
 function assertFile(base, rel) {
@@ -42,7 +44,6 @@ function assertFile(base, rel) {
   }
 }
 
-for (const file of requiredRepoFiles) assertFile(repoRoot, file);
 for (const file of requiredBackendFiles) assertFile(backendRoot, file);
 
 const envExample = fs.readFileSync(path.join(backendRoot, '.env.example'), 'utf8');
@@ -53,11 +54,11 @@ for (const key of requiredEnvKeys) {
 }
 
 const pkg = JSON.parse(fs.readFileSync(path.join(backendRoot, 'package.json'), 'utf8'));
-const requiredScripts = ['build', 'test:infra', 'check:readiness', 'check:permissions', 'check:release-gate'];
+const requiredScripts = ['build', 'test:infra', 'check:readiness', 'check:permissions', 'check:env-safety', 'check:release-gate'];
 for (const script of requiredScripts) {
   if (!pkg.scripts || !pkg.scripts[script]) {
     throw new Error(`Missing package.json script: ${script}`);
   }
 }
 
-console.log('[check:go-live] repository handoff files, env template, and release scripts look ready.');
+console.log('[check:go-live] backend handoff files, env template, and release scripts look ready.');
