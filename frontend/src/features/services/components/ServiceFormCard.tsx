@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
+import { FormResetButton } from '@/shared/components/form-reset-button';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
+import { useMutationFeedbackReset } from '@/shared/hooks/use-mutation-feedback-reset';
 import type { ServiceRecord } from '@/types/domain';
 import { useSaveServiceMutation, type ServiceFormValues } from '@/features/services/hooks/useServiceMutations';
 
@@ -37,6 +39,13 @@ export function ServiceFormCard({ service, onSaved }: { service?: ServiceRecord;
     onSaved?.();
   });
   useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
+  const watchedValues = useWatch({ control: form.control });
+
+  useMutationFeedbackReset(
+    mutation.isSuccess || mutation.isError,
+    mutation.reset,
+    [watchedValues, service?.id],
+  );
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -51,8 +60,9 @@ export function ServiceFormCard({ service, onSaved }: { service?: ServiceRecord;
 
   useEffect(() => {
     form.reset(buildDefaultValues(service));
+    mutation.reset();
     setIsMenuOpen(false);
-  }, [service, form]);
+  }, [service, form, mutation.reset]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -66,9 +76,15 @@ export function ServiceFormCard({ service, onSaved }: { service?: ServiceRecord;
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  function handleReset() {
+    mutation.reset();
+    form.reset(buildDefaultValues(service));
+    setIsMenuOpen(false);
+  }
+
   return (
     <form className="form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title={service ? 'تعديلات الخدمه الحاليه غير محفوظة' : 'بيانات الخدمه الجديدة لم تحفظ بعد'} />
+      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title={service ? 'تعديلات الخدمه الحاليه غير محفوظة' : 'بيانات الخدمه الجديدة لم تحفظ بعد'} hint={service ? 'يمكنك حفظ التعديل أو إعادة القيم الأصلية قبل تغيير التحديد.' : 'يمكنك تفريغ النموذج سريعًا قبل إدخال خدمه جديدة أخرى.'} />
 
       <Field label="اسم الخدمه">
         <div ref={wrapperRef} style={{ position: 'relative' }}>
@@ -155,6 +171,7 @@ export function ServiceFormCard({ service, onSaved }: { service?: ServiceRecord;
       />
 
       <div className="actions sticky-form-actions">
+        <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>{service ? 'إعادة القيم' : 'تفريغ النموذج'}</FormResetButton>
         {service ? (
           <Button type="button" variant="secondary" onClick={() => onSaved?.()} disabled={mutation.isPending}>
             الغاء التحديد

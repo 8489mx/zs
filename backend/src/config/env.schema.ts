@@ -33,6 +33,7 @@ const envSchema = z.object({
   LOGIN_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().min(30).max(86400).default(600),
   AUTH_BURST_RATE_LIMIT_MAX: z.coerce.number().int().min(10).max(5000).default(60),
   AUTH_BURST_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().min(10).max(3600).default(60),
+  BUSINESS_TIMEZONE: z.string().default('UTC'),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -52,6 +53,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
       config.SESSION_CSRF_SECRET
       ?? `${String(config.DATABASE_PASSWORD ?? 'local-dev-csrf-secret')}:csrf:v1`,
     ALLOW_SESSION_ID_HEADER: config.ALLOW_SESSION_ID_HEADER ?? 'false',
+    BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
   };
 
   return envSchema.parse(raw);

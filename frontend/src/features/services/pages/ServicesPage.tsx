@@ -8,7 +8,9 @@ import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { FilterChipGroup } from '@/shared/components/filter-chip-group';
 import { QueryFeedback } from '@/shared/components/query-feedback';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { ServiceRecord } from '@/types/domain';
@@ -26,6 +28,13 @@ function printServiceReceipt(service: ServiceRecord) {
     <div class="section"><strong>المنفذ:</strong> ${escapeHtml(service.createdByName || '—')}</div>
   `);
 }
+
+const serviceFilterOptions = [
+  { value: 'all', label: 'الكل' },
+  { value: 'today', label: 'اليوم' },
+  { value: 'high', label: 'الأعلى قيمة' },
+  { value: 'notes', label: 'بملاحظات' },
+] as const;
 
 export function ServicesPage() {
   const [search, setSearch] = useState('');
@@ -74,6 +83,12 @@ export function ServicesPage() {
     { key: 'today', label: 'تابع اليوم', value: `${insights.todayCount} خدمات` },
     { key: 'after', label: 'ثم راجع', value: insights.totalItems ? formatCurrency(insights.totalAmount) : 'قيمة الخدمات' },
   ];
+  const stats = [
+    { key: 'count', label: 'عدد الخدمات', value: insights.totalItems },
+    { key: 'amount', label: 'إجمالي القيمة', value: formatCurrency(insights.totalAmount) },
+    { key: 'today', label: 'خدمات اليوم', value: insights.todayCount },
+    { key: 'avg', label: 'متوسط الخدمة', value: formatCurrency(insights.averageAmount) },
+  ] as const;
 
   return (
     <div className="page-stack page-shell">
@@ -83,24 +98,14 @@ export function ServicesPage() {
         badge={<span className="nav-pill">الخدمات</span>}
       />
 
-      <div className="stats-grid compact-grid">
-        <div className="stat-card"><span>عدد الخدمات</span><strong>{insights.totalItems}</strong></div>
-        <div className="stat-card"><span>إجمالي القيمة</span><strong>{formatCurrency(insights.totalAmount)}</strong></div>
-        <div className="stat-card"><span>خدمات اليوم</span><strong>{insights.todayCount}</strong></div>
-        <div className="stat-card"><span>متوسط الخدمة</span><strong>{formatCurrency(insights.averageAmount)}</strong></div>
-      </div>
+      <StatsGrid items={stats} />
 
       <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في شاشة الخدمات" />
 
       <Card title="سجل الخدمات">
         <SearchToolbar search={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} searchPlaceholder="ابحث باسم الخدمة أو الملاحظات أو المنفذ" />
-        <div className="filter-chip-row services-filter-row">
-          <Button variant={viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setViewFilter('all'); setPage(1); }}>الكل</Button>
-          <Button variant={viewFilter === 'today' ? 'primary' : 'secondary'} onClick={() => { setViewFilter('today'); setPage(1); }}>اليوم</Button>
-          <Button variant={viewFilter === 'high' ? 'primary' : 'secondary'} onClick={() => { setViewFilter('high'); setPage(1); }}>الأعلى قيمة</Button>
-          <Button variant={viewFilter === 'notes' ? 'primary' : 'secondary'} onClick={() => { setViewFilter('notes'); setPage(1); }}>بملاحظات</Button>
-          <Button variant="secondary" onClick={resetServicesView}>إعادة الضبط</Button>
-        </div>
+        <FilterChipGroup value={viewFilter} options={serviceFilterOptions} onChange={(value) => { setViewFilter(value); setPage(1); }} className="filter-chip-row services-filter-row" />
+        <div className="actions compact-actions"><Button variant="secondary" onClick={resetServicesView}>إعادة الضبط</Button></div>
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
