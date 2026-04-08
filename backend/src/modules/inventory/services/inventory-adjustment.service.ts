@@ -39,7 +39,7 @@ export class InventoryAdjustmentService {
         ensureNonNegativeStock(afterQty, 'INSUFFICIENT_STOCK', 'Cannot deduct more than current stock');
       }
 
-      await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, updated_at: sql`NOW()` }).where('id', '=', payload.productId).execute();
+      await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', payload.productId).execute();
       await trx
         .insertInto('stock_movements')
         .values({

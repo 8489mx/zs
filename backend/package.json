@@ -21,13 +21,17 @@
     "check:env-safety": "node scripts/check-env-safety.cjs",
     "check:release-gate": "npm run build && npm run test:infra && npm run check:readiness && npm run check:permissions && npm run check:env-safety",
     "check:go-live": "npm run check:release-gate && node scripts/check-go-live.cjs",
-    "check:commercial-ready": "npm run check:go-live && node scripts/check-commercial-ready.cjs"
+    "check:commercial-ready": "npm run check:go-live && node scripts/check-commercial-ready.cjs",
+    "test:e2e:auth": "ts-node test/e2e/auth-session.e2e.ts",
+    "test:e2e:catalog": "ts-node test/e2e/catalog-master-data.e2e.ts",
+    "test:e2e:flows": "ts-node test/e2e/commercial-flows.e2e.ts",
+    "test:e2e": "npm run test:e2e:auth && npm run test:e2e:catalog && npm run test:e2e:flows"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.0",
-    "@nestjs/config": "^4.0.2",
-    "@nestjs/core": "^11.1.0",
-    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/common": "11.1.18",
+    "@nestjs/config": "4.0.3",
+    "@nestjs/core": "11.1.18",
+    "@nestjs/platform-express": "11.1.18",
     "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
@@ -40,13 +44,18 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.10",
+    "@nestjs/cli": "11.0.18",
     "@nestjs/schematics": "^11.0.4",
-    "@nestjs/testing": "^11.1.0",
+    "@nestjs/testing": "11.1.18",
     "@types/express": "^5.0.4",
     "@types/node": "^24.9.1",
     "@types/pg": "^8.15.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "lodash": "4.18.1",
+    "path-to-regexp": "8.4.2",
+    "picomatch": "4.0.4"
   }
 }

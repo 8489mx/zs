@@ -148,7 +148,7 @@ export class SalesWriteService {
           })
           .execute();
 
-        await trx.updateTable('products').set({ stock_qty: item.afterQty, stock: item.afterQty, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        await trx.updateTable('products').set({ stock_qty: item.afterQty, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
         await trx
           .insertInto('stock_movements')
           .values({
@@ -208,7 +208,7 @@ export class SalesWriteService {
         const restoreQty = Number(item.qty || 0) * Number(item.unit_multiplier || 1);
         const beforeQty = Number(product.stock_qty || 0);
         const afterQty = Number((beforeQty + restoreQty).toFixed(3));
-        await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
+        await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
         await trx
           .insertInto('stock_movements')
           .values({

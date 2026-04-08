@@ -72,7 +72,6 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
         role: input.role,
         is_active: true,
         permissions_json: JSON.stringify(input.permissions),
-        branch_ids_json: JSON.stringify([]),
         default_branch_id: null,
         display_name: input.displayName,
         failed_login_count: 0,

@@ -103,7 +103,7 @@ export class PurchasesWriteService {
         const beforeQty = Number(current?.stock_qty || 0);
         const increasedQty = Number((item.qty * item.unitMultiplier).toFixed(3));
         const afterQty = Number((beforeQty + increasedQty).toFixed(3));
-        await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, cost_price: item.cost, cost: item.cost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        await trx.updateTable('products').set({ stock_qty: afterQty, cost_price: item.cost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase',
@@ -161,7 +161,7 @@ export class PurchasesWriteService {
         const beforeQty = Number(product.stock_qty || 0);
         const afterQty = Number((beforeQty - removeQty).toFixed(3));
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
-        await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
+        await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.product_id,
           movement_type: 'purchase_edit_restore',
@@ -219,7 +219,7 @@ export class PurchasesWriteService {
         const beforeQty = Number(product.stock_qty || 0);
         const increaseQty = Number((Number(item.qty || 0) * unitMultiplier).toFixed(3));
         const afterQty = Number((beforeQty + increaseQty).toFixed(3));
-        await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, cost_price: incomingCost, cost: incomingCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        await trx.updateTable('products').set({ stock_qty: afterQty, cost_price: incomingCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase_edit_apply',
@@ -287,7 +287,7 @@ export class PurchasesWriteService {
         if (beforeQty < removeQty) throw new AppError(`Cannot cancel purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_CANCEL_STOCK_INVALID', 400);
         const afterQty = Number((beforeQty - removeQty).toFixed(3));
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
-        await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
+        await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.product_id,
           movement_type: 'purchase_cancel',
