@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { SettingsService } from './settings.service';
@@ -33,20 +33,47 @@ export class SettingsController {
   }
 
   @Post('branches')
-  createBranch(
-    @Body() payload: { name?: string; code?: string },
-    @Req() req: RequestWithAuth,
-  ): Promise<Record<string, unknown>> {
+  createBranch(@Body() payload: { name?: string; code?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
     return this.settingsService.createBranch(payload, req.authContext!);
   }
 
+  @Put('branches/:id')
+  updateBranch(@Param('id') id: string, @Body() payload: { name?: string; code?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    this.assertSettingsPermission(req);
+    return this.settingsService.updateBranch(Number(id), payload, req.authContext!);
+  }
+
+  @Delete('branches/:id')
+  deleteBranch(@Param('id') id: string, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    this.assertSettingsPermission(req);
+    return this.settingsService.deleteBranch(Number(id), req.authContext!);
+  }
+
+  @Get('locations')
+  listLocations(): Promise<Record<string, unknown>> {
+    return this.settingsService.listLocations();
+  }
+
   @Post('locations')
-  createLocation(
+  createLocation(@Body() payload: { name?: string; code?: string; branchId?: string | number | null }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    this.assertSettingsPermission(req);
+    return this.settingsService.createLocation(payload, req.authContext!);
+  }
+
+  @Put('locations/:id')
+  updateLocation(
+    @Param('id') id: string,
     @Body() payload: { name?: string; code?: string; branchId?: string | number | null },
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
-    return this.settingsService.createLocation(payload, req.authContext!);
+    return this.settingsService.updateLocation(Number(id), payload, req.authContext!);
+  }
+
+  @Delete('locations/:id')
+  deleteLocation(@Param('id') id: string, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    this.assertSettingsPermission(req);
+    return this.settingsService.deleteLocation(Number(id), req.authContext!);
   }
 }

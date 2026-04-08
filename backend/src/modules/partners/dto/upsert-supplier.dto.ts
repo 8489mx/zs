@@ -16,9 +16,10 @@ export class UpsertSupplierDto {
   @MaxLength(500)
   address?: string;
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  balance!: number;
+  balance?: number;
 
   @IsOptional()
   @IsString()

@@ -16,9 +16,10 @@ export class UpsertCustomerDto {
   @MaxLength(500)
   address?: string;
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  balance!: number;
+  balance?: number;
 
   @IsOptional()
   @IsIn(['cash', 'vip'])
