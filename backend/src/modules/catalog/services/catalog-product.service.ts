@@ -91,7 +91,7 @@ export class CatalogProductService {
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
     await this.ensureProductIdentityAvailable(normalized);
-    const result = await this.db.insertInto('products').values({ name: normalized.name, barcode: normalized.barcode || null, category_id: normalized.categoryId, supplier_id: normalized.supplierId, price: normalized.retailPrice, cost: normalized.costPrice, stock: Number(normalized.stock || 0), cost_price: normalized.costPrice, retail_price: normalized.retailPrice, wholesale_price: normalized.wholesalePrice, stock_qty: Number(normalized.stock || 0), min_stock_qty: normalized.minStock, notes: normalized.notes, is_active: true }).returning('id').executeTakeFirstOrThrow();
+    const result = await this.db.insertInto('products').values({ name: normalized.name, barcode: normalized.barcode || null, category_id: normalized.categoryId, supplier_id: normalized.supplierId, cost_price: normalized.costPrice, retail_price: normalized.retailPrice, wholesale_price: normalized.wholesalePrice, stock_qty: Number(normalized.stock || 0), min_stock_qty: normalized.minStock, notes: normalized.notes, is_active: true }).returning('id').executeTakeFirstOrThrow();
     const productId = Number(result.id); await this.replaceProductRelations(productId, normalized);
     await this.audit.log('إضافة صنف', `تم إضافة الصنف ${normalized.name} بواسطة ${actor.username}`, actor.userId);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
@@ -103,10 +103,10 @@ export class CatalogProductService {
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
     await this.ensureProductIdentityAvailable(normalized, id);
-    const priceChanged = Number(normalized.costPrice || 0) !== Number(existing.cost_price || existing.cost || 0) || Number(normalized.retailPrice || 0) !== Number(existing.retail_price || existing.price || 0) || Number(normalized.wholesalePrice || 0) !== Number(existing.wholesale_price || 0);
+    const priceChanged = Number(normalized.costPrice || 0) !== Number(existing.cost_price || 0) || Number(normalized.retailPrice || 0) !== Number(existing.retail_price || 0) || Number(normalized.wholesalePrice || 0) !== Number(existing.wholesale_price || 0);
     if (priceChanged && !this.hasPermission(actor, 'canEditPrice')) throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
     if (normalized.stock !== undefined && normalized.stock !== null) throw new AppError('Stock cannot be edited from product master data. Use inventory adjustment.', 'STOCK_UPDATE_FORBIDDEN', 400);
-    await this.db.updateTable('products').set({ name: normalized.name, barcode: normalized.barcode || null, category_id: normalized.categoryId, supplier_id: normalized.supplierId, price: normalized.retailPrice, cost: normalized.costPrice, cost_price: normalized.costPrice, retail_price: normalized.retailPrice, wholesale_price: normalized.wholesalePrice, min_stock_qty: normalized.minStock, notes: normalized.notes, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+    await this.db.updateTable('products').set({ name: normalized.name, barcode: normalized.barcode || null, category_id: normalized.categoryId, supplier_id: normalized.supplierId, cost_price: normalized.costPrice, retail_price: normalized.retailPrice, wholesale_price: normalized.wholesalePrice, min_stock_qty: normalized.minStock, notes: normalized.notes, updated_at: sql`NOW()` }).where('id', '=', id).execute();
     await this.replaceProductRelations(id, normalized);
     await this.audit.log('تعديل صنف', `تم تحديث الصنف #${id} بواسطة ${actor.username}`, actor.userId);
     return { ok: true, products: (await this.listProducts({}, actor)).products };

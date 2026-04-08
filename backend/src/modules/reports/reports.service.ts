@@ -41,7 +41,7 @@ export class ReportsService {
       .execute(), query);
 
     const returnsRows = filterScope(await this.db
-      .selectFrom('returns')
+      .selectFrom('return_documents')
       .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_at'])
       .where('created_at', '>=', fromDate)
       .where('created_at', '<=', toDate)

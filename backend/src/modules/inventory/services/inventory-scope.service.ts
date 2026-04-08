@@ -5,15 +5,6 @@ import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
-function asJsonArray(value: string | null | undefined): string[] {
-  try {
-    const parsed = JSON.parse(value || '[]');
-    return Array.isArray(parsed) ? parsed.map((entry) => String(entry)) : [];
-  } catch {
-    return [];
-  }
-}
-
 @Injectable()
 export class InventoryScopeService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
@@ -22,13 +13,16 @@ export class InventoryScopeService {
     if (auth.role === 'super_admin') return [];
     const user = await this.db
       .selectFrom('users')
-      .select(['branch_ids_json', 'default_branch_id'])
+      .select(['default_branch_id'])
       .where('id', '=', auth.userId)
       .executeTakeFirst();
     if (!user) return [];
-    const ids = asJsonArray(user.branch_ids_json)
-      .map((entry) => Number(entry))
-      .filter((entry) => Number.isInteger(entry) && entry > 0);
+    const rows = await this.db
+      .selectFrom('user_branches')
+      .select(['branch_id'])
+      .where('user_id', '=', auth.userId)
+      .execute();
+    const ids = rows.map((entry) => Number(entry.branch_id)).filter((entry) => Number.isInteger(entry) && entry > 0);
     if (user.default_branch_id && !ids.includes(user.default_branch_id)) ids.push(user.default_branch_id);
     return Array.from(new Set(ids));
   }

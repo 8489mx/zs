@@ -23,7 +23,6 @@ export interface UserTable {
   role: 'super_admin' | 'admin' | 'cashier';
   is_active: boolean;
   permissions_json: string;
-  branch_ids_json: string;
   default_branch_id: number | null;
   display_name: string;
   must_change_password: boolean;
@@ -59,6 +58,13 @@ export interface StockLocationTable {
   code: string;
   branch_id: number | null;
   is_active: boolean;
+}
+
+export interface UserBranchTable {
+  id: Generated<number>;
+  user_id: number;
+  branch_id: number;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface ProductCategoryTable {
@@ -103,9 +109,6 @@ export interface ProductTable {
   barcode: string | null;
   category_id: number | null;
   supplier_id: number | null;
-  price: number;
-  cost: number;
-  stock: number;
   cost_price: number;
   retail_price: number;
   wholesale_price: number;
@@ -326,22 +329,30 @@ export interface ExpenseTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
-export interface ReturnTable {
+export interface ReturnDocumentTable {
   id: Generated<number>;
   doc_no: string | null;
   return_type: 'sale' | 'purchase';
   invoice_id: number | null;
-  product_id: number | null;
-  product_name: string;
-  qty: number;
-  total: number;
   settlement_mode: string;
   refund_method: string;
   exchange_sale_id: number | null;
+  total: number;
   note: string;
   branch_id: number | null;
   location_id: number | null;
   created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ReturnItemTable {
+  id: Generated<number>;
+  return_document_id: number;
+  product_id: number | null;
+  product_name: string;
+  qty: number;
+  unit_total: number;
+  line_total: number;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -352,6 +363,7 @@ export interface TreasuryTransactionTable {
   note: string;
   reference_type: string | null;
   reference_id: number | null;
+  return_document_id: number | null;
   branch_id: number | null;
   location_id: number | null;
   created_by: number | null;
@@ -384,6 +396,7 @@ export interface CustomerLedgerTable {
   note: string;
   reference_type: string | null;
   reference_id: number | null;
+  return_document_id: number | null;
   branch_id: number | null;
   location_id: number | null;
   created_by: number | null;
@@ -447,6 +460,7 @@ export interface SupplierLedgerTable {
   note: string;
   reference_type: string | null;
   reference_id: number | null;
+  return_document_id: number | null;
   branch_id: number | null;
   location_id: number | null;
   created_by: number | null;
@@ -461,6 +475,7 @@ export interface Database {
   audit_logs: AuditLogTable;
   branches: BranchTable;
   stock_locations: StockLocationTable;
+  user_branches: UserBranchTable;
   product_categories: ProductCategoryTable;
   suppliers: SupplierTable;
   customers: CustomerTable;
@@ -482,7 +497,8 @@ export interface Database {
   customer_payments: CustomerPaymentTable;
   customer_ledger: CustomerLedgerTable;
   expenses: ExpenseTable;
-  returns: ReturnTable;
+  return_documents: ReturnDocumentTable;
+  return_items: ReturnItemTable;
   treasury_transactions: TreasuryTransactionTable;
   cashier_shifts: CashierShiftTable;
   purchases: PurchaseTable;

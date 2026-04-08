@@ -230,7 +230,7 @@ export class InventoryCountService {
         if (variance === 0) continue;
         const counted = Number(item.counted_qty || 0);
 
-        await trx.updateTable('products').set({ stock_qty: counted, stock: counted, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
+        await trx.updateTable('products').set({ stock_qty: counted, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
         await trx
           .insertInto('stock_movements')
           .values({
@@ -334,7 +334,7 @@ export class InventoryCountService {
       const afterQty = beforeQty - Number(payload.qty || 0);
       ensureNonNegativeStock(afterQty, 'INSUFFICIENT_STOCK', 'Cannot mark more damaged stock than current stock');
 
-      await trx.updateTable('products').set({ stock_qty: afterQty, stock: afterQty, updated_at: sql`NOW()` }).where('id', '=', payload.productId).execute();
+      await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', payload.productId).execute();
       await trx
         .insertInto('stock_movements')
         .values({

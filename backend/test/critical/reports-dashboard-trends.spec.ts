@@ -52,7 +52,7 @@ class FakeDb {
       { id: 1, total: 80, branch_id: 1, location_id: 1, created_at: today.toISOString() },
     ],
     expenses: [],
-    returns: [],
+    return_documents: [],
     treasury_transactions: [],
     products,
     customers: [

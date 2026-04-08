@@ -35,7 +35,7 @@ class FakeDb {
       { id: 1, amount: 120, branch_id: 1, location_id: 1, expense_date: '2026-04-03T10:00:00.000Z' },
       { id: 2, amount: 30, branch_id: 1, location_id: 1, expense_date: '2026-04-04T10:00:00.000Z' },
     ],
-    returns: [
+    return_documents: [
       { id: 1, return_type: 'sale', total: 80, branch_id: 1, location_id: 1, created_at: '2026-04-03T10:00:00.000Z' },
       { id: 2, return_type: 'purchase', total: 50, branch_id: 1, location_id: 1, created_at: '2026-04-04T10:00:00.000Z' },
     ],

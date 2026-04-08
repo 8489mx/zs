@@ -54,7 +54,6 @@ export async function migrateUsers(ctx: MigrationContext): Promise<EntityCounter
           role: row.role,
           is_active: asBoolean(row.is_active),
           permissions_json: '[]',
-          branch_ids_json: '[]',
           default_branch_id: null,
           display_name: asString(row.username),
           must_change_password: false,
