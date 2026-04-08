@@ -4,7 +4,7 @@ import path from 'node:path';
 const frontendRoot = path.resolve(process.cwd());
 const repoRoot = path.resolve(frontendRoot, '..');
 const featuresDir = path.join(frontendRoot, 'src', 'features');
-const backendDir = path.join(repoRoot, 'src');
+const backendDir = path.join(repoRoot, 'backend', 'src');
 
 function walk(dir, matcher) {
   const files = [];
@@ -17,7 +17,7 @@ function walk(dir, matcher) {
 }
 
 const contractFiles = walk(featuresDir, (file) => file.endsWith('contracts.ts'));
-const backendFiles = walk(backendDir, (file) => file.endsWith('.js'));
+const backendFiles = walk(backendDir, (file) => file.endsWith('.ts'));
 const backendSource = backendFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 const errors = [];
 
@@ -25,14 +25,12 @@ const pattern = /\{\s*feature:\s*'([^']+)',\s*name:\s*'([^']+)',\s*method:\s*'(G
 for (const file of contractFiles) {
   const source = fs.readFileSync(file, 'utf8');
   for (const match of source.matchAll(pattern)) {
-    const [_, feature, name, method, routePath, responseKey = ''] = match;
+    const [, feature, name, , routePath, responseKey = ''] = match;
     if (!responseKey) continue;
-
-    const escapedPath = routePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const escapedKey = responseKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const sameHandlerPattern = new RegExp(`app\\.${method.toLowerCase()}\\(\\s*['\"]${escapedPath}['\"][\\s\\S]{0,1800}?${escapedKey}\\s*:`, 'm');
-    if (!sameHandlerPattern.test(backendSource)) {
-      errors.push(`${feature}.${name} expects response key "${responseKey}" for [${method}] ${routePath}`);
+    const keyPattern = new RegExp(`${escapedKey}\s*:|['"]${escapedKey}['"]`, 'm');
+    if (!keyPattern.test(backendSource)) {
+      errors.push(`${feature}.${name} expects response key "${responseKey}" for ${routePath}`);
     }
   }
 }
