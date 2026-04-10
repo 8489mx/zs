@@ -34,7 +34,7 @@ export function AccountsWorkspace() {
           controller.setSelectedSupplierId('');
         }}
         disableTopCustomer={!controller.customerBalanceOptions.length}
-        disableTopSupplier={!controller.suppliers.length}
+        disableTopSupplier={!controller.supplierBalanceOptions.length}
       />
 
       <div className="two-column-grid">
@@ -90,10 +90,10 @@ export function AccountsWorkspace() {
               loadAllEntries={controller.exportSupplierLedger}
             />
           )}
-          isLoading={controller.suppliersQuery.isLoading || controller.supplierLedgerQuery.isLoading}
-          isError={controller.suppliersQuery.isError || controller.supplierLedgerQuery.isError}
-          error={controller.suppliersQuery.error || controller.supplierLedgerQuery.error}
-          isEmpty={!controller.suppliers.length}
+          isLoading={controller.supplierBalancesQuery.isLoading || controller.supplierLedgerQuery.isLoading}
+          isError={controller.supplierBalancesQuery.isError || controller.supplierLedgerQuery.isError}
+          error={controller.supplierBalancesQuery.error || controller.supplierLedgerQuery.error}
+          isEmpty={!controller.supplierBalanceOptions.length}
           loadingText="جاري تحميل كشف المورد..."
           emptyTitle="لا توجد بيانات موردين للحسابات"
           emptyHint="سيظهر كشف المورد هنا بمجرد وجود موردين أو حركة مالية."
@@ -102,7 +102,7 @@ export function AccountsWorkspace() {
             title="كشف حساب مورد"
             value={controller.selectedSupplierId}
             onChange={controller.setSelectedSupplierId}
-            options={controller.suppliers as Supplier[]}
+            options={controller.supplierBalanceOptions as Supplier[]}
             emptyLabel="اختر المورد"
             entries={controller.supplierEntries}
             search={controller.supplierLedgerSearch}
@@ -145,9 +145,9 @@ export function AccountsWorkspace() {
           title="دفع لمورد"
           description="اختر المورد أولًا ثم سجل الدفع على الموردين الذين لهم رصيد مستحق."
           badge="دفع"
-          isLoading={controller.suppliersQuery.isLoading}
-          isError={controller.suppliersQuery.isError}
-          error={controller.suppliersQuery.error}
+          isLoading={controller.supplierBalancesQuery.isLoading}
+          isError={controller.supplierBalancesQuery.isError}
+          error={controller.supplierBalancesQuery.error}
           isEmpty={!controller.payableSuppliers.length}
           loadingText="جاري تحميل الموردين..."
           emptyTitle="لا يوجد موردون عليهم رصيد حاليًا"

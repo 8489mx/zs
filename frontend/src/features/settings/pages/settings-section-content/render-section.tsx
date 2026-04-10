@@ -37,11 +37,14 @@ export interface SharedSettingsSectionProps {
   canManageSettings: boolean;
   canManageBackups: boolean;
   backupBusy: boolean;
+  backupSelectedFileName: string;
   backupMessage: string;
+  backupMessageKind: 'success' | 'error';
   backupResult: unknown;
   restoreSnapshotId: string;
   handleBackupDownload: () => Promise<void>;
-  handleSnapshotDownload: (snapshot: BackupSnapshotRecord) => Promise<void>;
+  handleBackupFile: (file: File, mode: 'verify' | 'restore') => Promise<void>;
+  handleSnapshotDownload: (snapshot: BackupSnapshotRecord) => void;
   onRequestRestoreFile: (file: File) => void;
   onRequestRestoreSnapshot: (snapshot: BackupSnapshotRecord) => void;
   onUpdateBranch: (branchId: string, values: { name: string; code: string }) => Promise<void>;
@@ -141,11 +144,13 @@ export function renderBackupSection(props: SharedSettingsSectionProps) {
       autoBackupEnabled={props.settings?.autoBackup !== 'off'}
       canManageBackups={props.canManageBackups}
       backupBusy={props.backupBusy}
+      backupSelectedFileName={props.backupSelectedFileName}
       backupMessage={props.backupMessage}
+      backupMessageKind={props.backupMessageKind}
       backupResult={props.backupResult}
       restoreSnapshotId={props.restoreSnapshotId}
       handleBackupDownload={props.handleBackupDownload}
-      handleBackupFile={() => Promise.resolve()}
+      handleBackupFile={props.handleBackupFile}
       handleSnapshotDownload={props.handleSnapshotDownload}
       onRequestRestoreFile={props.onRequestRestoreFile}
       onRequestRestoreSnapshot={props.onRequestRestoreSnapshot}

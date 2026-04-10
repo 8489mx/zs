@@ -41,6 +41,12 @@ export class ReportsController {
     return this.reportsService.customerLedger(id, query);
   }
 
+  @Get('reports/supplier-balances')
+  @RequirePermissions('reports')
+  supplierBalances(@Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+    return this.reportsService.supplierBalances(query);
+  }
+
   @Get('reports/suppliers/:id/ledger')
   @RequirePermissions('reports')
   supplierLedger(@Param('id', ParseIntPipe) id: number, @Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {

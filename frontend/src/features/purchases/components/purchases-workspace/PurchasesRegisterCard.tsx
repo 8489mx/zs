@@ -5,7 +5,6 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency } from '@/lib/format';
 import { PurchasesTable } from '@/features/purchases/components/PurchasesTable';
-import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';
 import type { Purchase } from '@/types/domain';
 import type { PurchasesListSummary } from '@/features/purchases/api/purchases.api';
 
@@ -40,36 +39,79 @@ interface Props {
 
 export function PurchasesRegisterCard(props: Props) {
   const queryState = props.purchasesQuery.purchasesQuery;
+  const selectedLabel = props.selectedPurchase ? (props.selectedPurchase.docNo || props.selectedPurchase.id) : 'لا يوجد';
+
   return (
-    <Card title="سجل فواتير الشراء" description="حافظنا على نفس أدوات السجل لكن نقلناها إلى سطح أكثر هدوءًا: البحث، الفلاتر، التصدير، والطباعة كلها في مسار واحد." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void props.exportPurchasesCsv()} disabled={!props.totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void props.printPurchasesRegister()} disabled={!props.totalItems}>طباعة السجل</Button><span className="nav-pill">السجل</span></div>} className="workspace-panel purchases-register-card">
+    <Card
+      title="سجل فواتير الشراء"
+      description="راجع الفواتير بسرعة، فلتر النتائج، وافتح التفاصيل من نفس المكان."
+      actions={
+        <div className="section-title-actions purchases-register-header-actions">
+          <span className="nav-pill">النتائج: {props.totalItems}</span>
+          <span className="nav-pill">المحدد: {selectedLabel}</span>
+        </div>
+      }
+      className="workspace-panel purchases-register-card"
+    >
       <SearchToolbar
         search={props.search}
         onSearchChange={props.setSearch}
-        searchPlaceholder="ابحث بالرقم أو المورد أو الحالة أو الفرع"
-        title="بحث وتصفية"
-        description="فلترة سريعة لسجل المشتريات مع إبقاء الإجراء الحالي واضحًا في أعلى الجدول."
+        searchPlaceholder="ابحث بالرقم أو المورد أو الحالة"
+        title="البحث والتصفية"
+        description="ابدأ بالبحث، ثم اختر نوع الفواتير المطلوب عرضه."
         actions={<span className="nav-pill">{props.activeFilterLabel}</span>}
-        meta={<><span className="toolbar-meta-pill">النتائج: {props.totalItems}</span><span className="toolbar-meta-pill">المعروض: {props.rangeStart}-{props.rangeEnd}</span><span className="toolbar-meta-pill">الإجمالي: {formatCurrency(props.summary?.totalAmount || 0)}</span><span className="toolbar-meta-pill">المحدد: {props.selectedPurchase ? (props.selectedPurchase.docNo || props.selectedPurchase.id) : 'لا يوجد'}</span></>}
+        meta={
+          <div className="purchases-register-meta-grid">
+            <span className="toolbar-meta-pill">النتائج: {props.totalItems}</span>
+            <span className="toolbar-meta-pill">الإجمالي: {formatCurrency(props.summary?.totalAmount || 0)}</span>
+            <span className="toolbar-meta-pill">المعروض: {props.rangeStart}-{props.rangeEnd}</span>
+          </div>
+        }
+        className="purchases-register-toolbar"
         onReset={props.resetPurchasesView}
         resetLabel="تفريغ"
       >
-        <div className="filter-chip-row toolbar-chip-row">
+        <div className="filter-chip-row toolbar-chip-row purchases-filter-row">
           <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('all')}>الكل</Button>
           <Button variant={props.viewFilter === 'cash' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('cash')}>نقدي</Button>
           <Button variant={props.viewFilter === 'credit' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('credit')}>آجل</Button>
           <Button variant={props.viewFilter === 'cancelled' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('cancelled')}>ملغاة</Button>
         </div>
       </SearchToolbar>
-      <QueryFeedback isLoading={queryState.isLoading} isError={queryState.isError} error={queryState.error} isEmpty={!props.rows.length && !queryState.isLoading} loadingText="جاري تحميل فواتير الشراء..." emptyTitle="لا توجد فواتير شراء مطابقة" emptyHint="أضف أول فاتورة من نموذج الإنشاء أعلاه أو غيّر البحث الحالي.">
+
+      <QueryFeedback
+        isLoading={queryState.isLoading}
+        isError={queryState.isError}
+        error={queryState.error}
+        isEmpty={!props.rows.length && !queryState.isLoading}
+        loadingText="جاري تحميل فواتير الشراء..."
+        emptyTitle="لا توجد فواتير شراء مطابقة"
+        emptyHint="أضف أول فاتورة من نموذج الإنشاء أو غيّر البحث الحالي."
+      >
         <PurchasesTable
           rows={props.rows}
           selectedId={props.selectedPurchaseId}
           onSelect={(purchase) => props.setSelectedPurchaseId(purchase.id)}
           onEdit={props.canEditInvoices ? (purchase) => { props.setSelectedPurchaseId(purchase.id); props.setPurchaseToEdit(purchase); } : undefined}
           onCancel={props.canEditInvoices ? (purchase) => props.setPurchaseToCancel(purchase) : undefined}
-          onPrint={props.canPrint ? (purchase) => printPurchaseDocument(purchase) : undefined}
+          onPrint={props.canPrint ? undefined : undefined}
         />
-        <PaginationControls page={props.pagination?.page || props.page} totalPages={props.pagination?.totalPages || 1} pageSize={props.pagination?.pageSize || props.pageSize} pageSizeOptions={[15, 25, 50, 100]} totalItems={props.totalItems} rangeStart={props.rangeStart} rangeEnd={props.rangeEnd} onPageChange={props.setPage} onPageSizeChange={(nextPageSize) => { props.setPageSize(nextPageSize); props.setPage(1); }} itemLabel="فاتورة" />
+
+        <PaginationControls
+          page={props.pagination?.page || props.page}
+          totalPages={props.pagination?.totalPages || 1}
+          pageSize={props.pagination?.pageSize || props.pageSize}
+          pageSizeOptions={[15, 25, 50, 100]}
+          totalItems={props.totalItems}
+          rangeStart={props.rangeStart}
+          rangeEnd={props.rangeEnd}
+          onPageChange={props.setPage}
+          onPageSizeChange={(nextPageSize) => {
+            props.setPageSize(nextPageSize);
+            props.setPage(1);
+          }}
+          itemLabel="فاتورة"
+        />
       </QueryFeedback>
     </Card>
   );

@@ -69,9 +69,12 @@ export function SettingsPage() {
           canManageBackups={page.canManageBackups}
           canManageMaintenance={page.canManageMaintenance}
           backupBusy={page.backupBusy}
+          backupSelectedFileName={page.backupSelectedFileName}
           backupMessage={page.backupMessage}
+          backupMessageKind={page.backupMessageKind}
           backupResult={page.backupResult}
           restoreSnapshotId={page.restoreSnapshotId}
+          handleBackupFile={page.handleBackupFile}
           supportCopyStatus={page.supportCopyStatus}
           diagnosticsCounts={page.diagnosticsCounts}
           diagnosticsFinance={page.diagnosticsFinance}

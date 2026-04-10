@@ -19,14 +19,26 @@ export function PurchasesTable({ rows, selectedId, onSelect, onEdit, onCancel, o
       key: 'actions',
       header: 'إجراءات',
       cell: (purchase: Purchase) => (
-        <div className="actions compact-actions">
+        <div className="actions compact-actions purchases-table-actions">
           {onSelect ? <Button variant={selectedId === purchase.id ? 'primary' : 'secondary'} onClick={() => onSelect(purchase)}>تفاصيل</Button> : null}
-          {onPrint ? <Button variant="secondary" onClick={() => onPrint(purchase)}>طباعة</Button> : null}
           {onEdit && purchase.status !== 'cancelled' ? <Button variant="secondary" onClick={() => onEdit(purchase)}>تعديل</Button> : null}
           {onCancel && purchase.status !== 'cancelled' ? <Button variant="danger" onClick={() => onCancel(purchase)}>إلغاء</Button> : null}
+          {onPrint ? <Button variant="secondary" onClick={() => onPrint(purchase)}>طباعة</Button> : null}
         </div>
       )
     });
   }
-  return <DataTable rows={rows} columns={columns} rowKey={(purchase) => String(purchase.id)} rowClassName={(purchase) => selectedId === purchase.id ? 'table-row-selected' : ''} onRowClick={onSelect ? (purchase) => onSelect(purchase) : undefined} rowTitle={() => 'انقر لعرض تفاصيل فاتورة الشراء'} />;
+
+  return (
+    <DataTable
+      rows={rows}
+      columns={columns}
+      density="compact"
+      maxHeight={560}
+      rowKey={(purchase) => String(purchase.id)}
+      rowClassName={(purchase) => selectedId === purchase.id ? 'table-row-selected' : ''}
+      onRowClick={onSelect ? (purchase) => onSelect(purchase) : undefined}
+      rowTitle={() => 'انقر لعرض تفاصيل فاتورة الشراء'}
+    />
+  );
 }

@@ -13,11 +13,12 @@ interface PurchaseDetailCardProps {
 }
 
 export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCancel, onPrint }: PurchaseDetailCardProps) {
-  if (isLoading) return <Card title="تفاصيل الفاتورة"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></Card>;
-  if (!purchase) return <Card title="تفاصيل الفاتورة"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></Card>;
+  if (isLoading) return <Card title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></Card>;
+  if (!purchase) return <Card title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></Card>;
 
   return (
     <Card
+      className="purchase-detail-card"
       title={`تفاصيل ${purchase.docNo || purchase.id}`}
       actions={purchase.status !== 'cancelled' ? (
         <div className="actions compact-actions">

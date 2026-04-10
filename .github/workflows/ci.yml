@@ -40,7 +40,7 @@ jobs:
       DEFAULT_ADMIN_PASSWORD: OwnerBootstrap2026!
       SESSION_COOKIE_SECURE: 'false'
       SESSION_COOKIE_SAME_SITE: lax
-      SESSION_CSRF_SECRET: ci-csrf-secret
+      SESSION_CSRF_SECRET: ci-csrf-secret-0123456789
       ALLOW_SESSION_ID_HEADER: 'false'
       LOGIN_MAX_ATTEMPTS: 5
       LOGIN_LOCKOUT_MINUTES: 15
@@ -77,8 +77,24 @@ jobs:
       - name: Start backend for E2E
         run: |
           npm run migration:run
-          nohup npm start > /tmp/backend.log 2>&1 &
-          bash ../scripts/wait-for-http.sh http://127.0.0.1:3001/health 90 2
+          chmod +x ../scripts/wait-for-http.sh
+          node dist/main.js > /tmp/backend.log 2>&1 &
+          BACKEND_PID=$!
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:3001/health/live > /dev/null; then
+              echo "Backend is live"
+              exit 0
+            fi
+            if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+              echo "Backend process exited before becoming healthy"
+              cat /tmp/backend.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "Timed out waiting for backend liveness"
+          cat /tmp/backend.log
+          exit 1
         working-directory: backend
       - name: Run backend E2E
         run: npm run test:e2e

@@ -1022,3 +1022,170 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Purchase composer compact pass */
+.purchase-composer-card {
+  padding: 14px;
+}
+
+.purchase-composer-card .section-title {
+  margin-bottom: 10px;
+}
+
+.purchase-composer-card .section-title h3 {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.purchase-composer-card .nav-pill {
+  min-height: 24px;
+  padding: 3px 9px;
+  font-size: 10px;
+}
+
+.purchase-composer-form {
+  gap: 8px;
+}
+
+.purchase-composer-card .field {
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.purchase-composer-card .field > span,
+.purchase-composer-card .field > label {
+  font-size: 11px;
+}
+
+.purchase-composer-card input,
+.purchase-composer-card select,
+.purchase-composer-card textarea {
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: 11px;
+  font-size: 12px;
+}
+
+.purchase-composer-card textarea {
+  min-height: 74px;
+}
+
+.purchase-composer-card .draft-state-notice {
+  transform: scale(0.95);
+  transform-origin: top right;
+}
+
+.purchase-composer-card .divider {
+  margin: 0;
+}
+
+.purchase-line-composer,
+.purchase-items-list {
+  gap: 8px;
+}
+
+.purchase-line-composer > strong,
+.purchase-items-list .empty-state strong {
+  font-size: 14px;
+}
+
+.purchase-composer-card .toolbar-grid {
+  gap: 8px;
+}
+
+.purchase-composer-card .error-box,
+.purchase-composer-card .warning-box,
+.purchase-composer-card .success-box {
+  padding: 10px 12px;
+  border-radius: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.purchase-composer-card .form-subactions .button,
+.purchase-composer-card .form-subactions button {
+  min-height: 34px;
+  padding: 6px 11px;
+  border-radius: 11px;
+  font-size: 12px;
+}
+
+.purchase-items-list .list-row {
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 10px;
+}
+
+.purchase-items-list .muted.small {
+  font-size: 11px;
+}
+
+.purchase-items-list .strong-amount {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 11px;
+  font-size: 12px;
+}
+
+.purchase-items-list .button,
+.purchase-items-list button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.purchase-items-list .empty-state {
+  padding: 14px 12px;
+  border-radius: 14px;
+}
+
+.purchase-items-list .empty-state span {
+  font-size: 11px;
+}
+
+.purchase-totals-grid {
+  gap: 8px;
+}
+
+.purchase-totals-grid .stat-card {
+  padding: 10px 12px !important;
+}
+
+.purchase-composer-card .sticky-form-actions {
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.purchase-composer-card .sticky-form-actions .button,
+.purchase-composer-card .sticky-form-actions button,
+.purchase-composer-card .sticky-form-actions .btn {
+  min-height: 36px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .purchase-composer-card {
+    padding: 12px;
+  }
+
+  .purchase-composer-card input,
+  .purchase-composer-card select,
+  .purchase-composer-card textarea {
+    min-height: 34px;
+    font-size: 11px;
+  }
+
+  .purchase-composer-card textarea {
+    min-height: 68px;
+  }
+
+  .purchase-line-composer > strong {
+    font-size: 13px;
+  }
+}
+
