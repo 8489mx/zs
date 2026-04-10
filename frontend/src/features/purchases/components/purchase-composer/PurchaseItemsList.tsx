@@ -4,7 +4,7 @@ import type { PurchaseDraftItem } from '@/features/purchases/contracts';
 
 export function PurchaseItemsList({ items, isPending, onRemoveItem }: { items: PurchaseDraftItem[]; isPending: boolean; onRemoveItem: (productId: string, unitName: string) => void }) {
   return (
-    <div className="list-stack" style={{ gridColumn: '1 / -1' }}>
+    <div className="list-stack purchase-items-list" style={{ gridColumn: '1 / -1' }}>
       {items.length ? items.map((item) => (
         <div key={`${item.productId}-${item.unitName}`} className="list-row stacked-row">
           <div>

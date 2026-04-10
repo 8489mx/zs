@@ -21,6 +21,7 @@ export function useAccountsRouteState(
       customers,
       suppliers,
       customerBalanceOptions,
+      supplierBalanceOptions,
       customerEntries,
       supplierBalanceOptions,
       supplierEntries,

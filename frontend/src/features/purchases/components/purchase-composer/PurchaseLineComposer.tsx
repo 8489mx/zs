@@ -15,7 +15,7 @@ export function PurchaseLineComposer({ products, lineProductId, lineQty, lineCos
   onAddItem: () => void;
 }) {
   return (
-    <div className="list-stack" style={{ gridColumn: '1 / -1' }}>
+    <div className="list-stack purchase-line-composer" style={{ gridColumn: '1 / -1' }}>
       <strong>إضافة صنف للفاتورة</strong>
       <div className="toolbar-grid">
         <Field label="الصنف">

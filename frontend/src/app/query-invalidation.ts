@@ -141,7 +141,7 @@ export async function invalidateSettingsReferenceDomain(
 
 export async function invalidateImportedReferenceData(queryClient: QueryClient) {
   await Promise.all([
-    invalidateCatalogDomain(queryClient, { includeCustomers: true, includeSuppliers: true, includeProducts: true }),
+    invalidateCatalogDomain(queryClient, { includeCustomers: true, includeSuppliers: true, includeProducts: true, includeSupplierBalances: true }),
     invalidateSettingsReferenceDomain(queryClient),
     queryClient.invalidateQueries({ queryKey: queryKeys.inventoryReport }),
     queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements }),

@@ -230,7 +230,7 @@ export function useAccountsWorkspaceController() {
 
   const selectTopSupplier = () => {
     const topSupplier = [...mergedSupplierLedgerOptions].sort((a, b) => Number((b as BalanceCarrier).balance || 0) - Number((a as BalanceCarrier).balance || 0))[0];
-    setSelectedSupplierId(String(topSupplier?.id || ''));
+    setSelectedSupplierId(String((topSupplier as BalanceCarrier | undefined)?.id || ''));
   };
 
   return {

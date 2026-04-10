@@ -39,7 +39,7 @@ export function PurchaseComposer({ products, suppliers, branches, locations, set
         emptyTitle="لا يمكن إنشاء فاتورة شراء الآن"
         emptyHint="تأكد من وجود مورد واحد وصنف واحد على الأقل قبل إنشاء الفاتورة."
       >
-        <form className="form-grid" onSubmit={headerForm.handleSubmit((values) => mutation.mutate({ values, items, taxRate: totals.taxRate, pricesIncludeTax: totals.pricesIncludeTax }))}>
+        <form className="form-grid purchase-composer-form" onSubmit={headerForm.handleSubmit((values) => mutation.mutate({ values, items, taxRate: totals.taxRate, pricesIncludeTax: totals.pricesIncludeTax }))}>
           <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة" hint="احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد." />
           <Field label="المورد" error={headerForm.formState.errors.supplierId?.message}>
             <select {...headerForm.register('supplierId')} disabled={mutation.isPending}>

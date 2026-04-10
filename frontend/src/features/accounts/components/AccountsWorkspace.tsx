@@ -145,9 +145,9 @@ export function AccountsWorkspace() {
           title="دفع لمورد"
           description="اختر المورد أولًا ثم سجل الدفع على الموردين الذين لهم رصيد مستحق."
           badge="دفع"
-          isLoading={controller.suppliersQuery.isLoading}
-          isError={controller.suppliersQuery.isError}
-          error={controller.suppliersQuery.error}
+          isLoading={controller.supplierBalancesQuery.isLoading}
+          isError={controller.supplierBalancesQuery.isError}
+          error={controller.supplierBalancesQuery.error}
           isEmpty={!controller.payableSuppliers.length}
           loadingText="جاري تحميل الموردين..."
           emptyTitle="لا يوجد موردون عليهم رصيد حاليًا"
