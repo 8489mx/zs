@@ -1,8 +1,10 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { SettingsService } from './settings.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { BranchPayloadDto } from './dto/branch-payload.dto';
+import { LocationPayloadDto } from './dto/location-payload.dto';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard)
@@ -33,21 +35,21 @@ export class SettingsController {
   }
 
   @Post('branches')
-  createBranch(@Body() payload: { name?: string; code?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  createBranch(@Body() payload: BranchPayloadDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
     return this.settingsService.createBranch(payload, req.authContext!);
   }
 
   @Put('branches/:id')
-  updateBranch(@Param('id') id: string, @Body() payload: { name?: string; code?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  updateBranch(@Param('id', ParseIntPipe) id: number, @Body() payload: BranchPayloadDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
-    return this.settingsService.updateBranch(Number(id), payload, req.authContext!);
+    return this.settingsService.updateBranch(id, payload, req.authContext!);
   }
 
   @Delete('branches/:id')
-  deleteBranch(@Param('id') id: string, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  deleteBranch(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
-    return this.settingsService.deleteBranch(Number(id), req.authContext!);
+    return this.settingsService.deleteBranch(id, req.authContext!);
   }
 
   @Get('locations')
@@ -56,24 +58,24 @@ export class SettingsController {
   }
 
   @Post('locations')
-  createLocation(@Body() payload: { name?: string; code?: string; branchId?: string | number | null }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  createLocation(@Body() payload: LocationPayloadDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
     return this.settingsService.createLocation(payload, req.authContext!);
   }
 
   @Put('locations/:id')
   updateLocation(
-    @Param('id') id: string,
-    @Body() payload: { name?: string; code?: string; branchId?: string | number | null },
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: LocationPayloadDto,
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
-    return this.settingsService.updateLocation(Number(id), payload, req.authContext!);
+    return this.settingsService.updateLocation(id, payload, req.authContext!);
   }
 
   @Delete('locations/:id')
-  deleteLocation(@Param('id') id: string, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  deleteLocation(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
-    return this.settingsService.deleteLocation(Number(id), req.authContext!);
+    return this.settingsService.deleteLocation(id, req.authContext!);
   }
 }

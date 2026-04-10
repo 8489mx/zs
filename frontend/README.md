@@ -1,32 +1,36 @@
 # zsystems react frontend
 
-واجهة React + TypeScript جديدة للمشروع، مبنية للحفاظ على نفس الهوية البصرية تقريبًا مع تنظيف كامل للبنية الداخلية.
+واجهة React + TypeScript حديثة للنظام، مبنية على feature-based architecture مع React Router وTanStack Query وZustand.
 
-## run
+## التشغيل
 ```bash
-npm install --registry=https://registry.npmjs.org
+npm ci
 npm run dev
 ```
 
-## build
+## البناء
 ```bash
 npm run build
 ```
 
-## scope of this first migration cut
-- auth login
-- shell / sidebar / layout
-- dashboard overview
-- products page
-- sales overview
-- purchases overview
-- inventory overview
-- reports summary
-- settings overview
+## فحوص الواجهة
+```bash
+npm run qa
+```
 
-## next phase
-- sales invoice composer
-- pos flow
-- purchases composer
-- inventory adjustments
-- settings forms
+## النطاق الحالي
+- تسجيل الدخول والجلسات
+- لوحة التحكم
+- الأصناف
+- المبيعات ونقطة البيع
+- المشتريات
+- المخزون
+- العملاء والموردون والحسابات
+- المرتجعات
+- التقارير
+- الخزنة والخدمات والإعدادات
+- حراسة الصلاحيات والمسارات
+
+## ملاحظات
+- الفحوص الوظيفية تم تحديثها لتطابق البنية الحالية تحت `src/shared` و`src/features`.
+- الراوتر الفعلي يعتمد على `src/app/router/registry.ts`.

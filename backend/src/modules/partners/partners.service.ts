@@ -1,15 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, Selectable, sql } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
-import { CustomerTable, Database, SupplierTable } from '../../database/database.types';
+import { Database } from '../../database/database.types';
 import { UpsertCustomerDto } from './dto/upsert-customer.dto';
 import { UpsertSupplierDto } from './dto/upsert-supplier.dto';
-
-type CustomerRow = Selectable<CustomerTable>;
-type SupplierRow = Selectable<SupplierTable>;
+import { buildCustomerSearchPredicate, buildSupplierSearchPredicate, calculatePagination, mapCustomerRow, mapSupplierRow, parsePartnersListQuery } from './helpers/partners-listing.helper';
 
 @Injectable()
 export class PartnersService {
@@ -17,32 +15,6 @@ export class PartnersService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
   ) {}
-
-  private mapCustomer(row: CustomerRow): Record<string, unknown> {
-    return {
-      id: String(row.id),
-      name: row.name || '',
-      phone: row.phone || '',
-      address: row.address || '',
-      balance: Number(row.balance || 0),
-      type: row.customer_type || 'cash',
-      creditLimit: Number(row.credit_limit || 0),
-      storeCreditBalance: Number(row.store_credit_balance || 0),
-      companyName: row.company_name || '',
-      taxNumber: row.tax_number || '',
-    };
-  }
-
-  private mapSupplier(row: SupplierRow): Record<string, unknown> {
-    return {
-      id: String(row.id),
-      name: row.name || '',
-      phone: row.phone || '',
-      address: row.address || '',
-      balance: Number(row.balance || 0),
-      notes: row.notes || '',
-    };
-  }
 
   private async customerNameExists(name: string, excludeId?: number): Promise<boolean> {
     const row = await this.db
@@ -107,10 +79,7 @@ export class PartnersService {
   }
 
   async listCustomers(query: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const page = Math.max(1, Number(query.page || 1));
-    const pageSize = Math.min(100, Math.max(5, Number(query.pageSize || 20)));
-    const q = String(query.q || '').trim().toLowerCase();
-    const filter = String(query.filter || 'all');
+    const { page, pageSize, q, filter, isUnpagedDefault } = parsePartnersListQuery(query);
 
     let listQuery = this.db.selectFrom('customers').selectAll().where('is_active', '=', true);
     let countQuery = this.db.selectFrom('customers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true);
@@ -121,19 +90,11 @@ export class PartnersService {
       sql<number>`coalesce(sum(case when customer_type = 'vip' then 1 else 0 end), 0)`.as('vip_count'),
     ]).where('is_active', '=', true);
 
-    if (q) {
-      const term = `%${q}%`;
-      const predicate = sql<boolean>`(
-        lower(name) like ${term}
-        or lower(phone) like ${term}
-        or lower(address) like ${term}
-        or lower(customer_type) like ${term}
-        or lower(company_name) like ${term}
-        or lower(tax_number) like ${term}
-      )`;
-      listQuery = listQuery.where(predicate);
-      countQuery = countQuery.where(predicate);
-      summaryQuery = summaryQuery.where(predicate);
+    const searchPredicate = buildCustomerSearchPredicate(q);
+    if (searchPredicate) {
+      listQuery = listQuery.where(searchPredicate);
+      countQuery = countQuery.where(searchPredicate);
+      summaryQuery = summaryQuery.where(searchPredicate);
     }
 
     if (filter === 'debt') {
@@ -150,9 +111,9 @@ export class PartnersService {
       summaryQuery = summaryQuery.where('customer_type', '=', 'cash');
     }
 
-    if (!('page' in query) && !('pageSize' in query) && !q && filter === 'all') {
+    if (isUnpagedDefault) {
       const rows = await listQuery.orderBy('id asc').execute();
-      return { customers: rows.map((row) => this.mapCustomer(row)) };
+      return { customers: rows.map((row) => mapCustomerRow(row)) };
     }
 
     const [rows, countRow, summaryRow] = await Promise.all([
@@ -162,11 +123,10 @@ export class PartnersService {
     ]);
 
     const totalItems = Number(countRow.count || 0);
-    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
     return {
-      customers: rows.map((row) => this.mapCustomer(row)),
-      pagination: { page: Math.min(page, totalPages), pageSize, totalItems, totalPages },
+      customers: rows.map((row) => mapCustomerRow(row)),
+      pagination: calculatePagination(page, pageSize, totalItems),
       summary: {
         totalCustomers: Number(summaryRow.total_customers || 0),
         totalBalance: Number(summaryRow.total_balance || 0),
@@ -280,10 +240,7 @@ export class PartnersService {
   }
 
   async listSuppliers(query: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const page = Math.max(1, Number(query.page || 1));
-    const pageSize = Math.min(100, Math.max(5, Number(query.pageSize || 20)));
-    const q = String(query.q || '').trim().toLowerCase();
-    const filter = String(query.filter || 'all');
+    const { page, pageSize, q, filter, isUnpagedDefault } = parsePartnersListQuery(query);
 
     let listQuery = this.db.selectFrom('suppliers').selectAll().where('is_active', '=', true);
     let countQuery = this.db.selectFrom('suppliers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true);
@@ -293,17 +250,11 @@ export class PartnersService {
       sql<number>`coalesce(sum(case when trim(notes) <> '' then 1 else 0 end), 0)`.as('with_notes'),
     ]).where('is_active', '=', true);
 
-    if (q) {
-      const term = `%${q}%`;
-      const predicate = sql<boolean>`(
-        lower(name) like ${term}
-        or lower(phone) like ${term}
-        or lower(address) like ${term}
-        or lower(notes) like ${term}
-      )`;
-      listQuery = listQuery.where(predicate);
-      countQuery = countQuery.where(predicate);
-      summaryQuery = summaryQuery.where(predicate);
+    const searchPredicate = buildSupplierSearchPredicate(q);
+    if (searchPredicate) {
+      listQuery = listQuery.where(searchPredicate);
+      countQuery = countQuery.where(searchPredicate);
+      summaryQuery = summaryQuery.where(searchPredicate);
     }
 
     if (filter === 'balance' || filter === 'debt') {
@@ -317,9 +268,9 @@ export class PartnersService {
       summaryQuery = summaryQuery.where(notesPredicate);
     }
 
-    if (!('page' in query) && !('pageSize' in query) && !q && filter === 'all') {
+    if (isUnpagedDefault) {
       const rows = await listQuery.orderBy('id asc').execute();
-      return { suppliers: rows.map((row) => this.mapSupplier(row)) };
+      return { suppliers: rows.map((row) => mapSupplierRow(row)) };
     }
 
     const [rows, countRow, summaryRow] = await Promise.all([
@@ -329,11 +280,10 @@ export class PartnersService {
     ]);
 
     const totalItems = Number(countRow.count || 0);
-    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
     return {
-      suppliers: rows.map((row) => this.mapSupplier(row)),
-      pagination: { page: Math.min(page, totalPages), pageSize, totalItems, totalPages },
+      suppliers: rows.map((row) => mapSupplierRow(row)),
+      pagination: calculatePagination(page, pageSize, totalItems),
       summary: {
         totalSuppliers: Number(summaryRow.total_suppliers || 0),
         totalBalance: Number(summaryRow.total_balance || 0),

@@ -5,6 +5,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { AppError } from '../../../common/errors/app-error';
 import { paginateRows } from '../../../common/utils/pagination';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
+import { beginLocationTransfer, previewAssignedLocationStockQty, receiveLocationTransfer, restoreLocationTransfer } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
@@ -137,16 +138,42 @@ export class InventoryTransferService {
       for (const item of payload.items) {
         const product = await trx
           .selectFrom('products')
-          .select(['id', 'name', 'stock_qty'])
+          .select(['id', 'name'])
           .where('id', '=', item.productId)
           .where('is_active', '=', true)
           .executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-        const remaining = Number(product.stock_qty || 0) - Number(item.qty || 0);
-        ensureNonNegativeStock(remaining, 'INSUFFICIENT_STOCK', `Insufficient stock for ${product.name}`);
+        const availableAtSource = await previewAssignedLocationStockQty(trx, { productId: item.productId, branchId: from.branchId, locationId: from.id });
+        const remaining = Number(availableAtSource || 0) - Number(item.qty || 0);
+        ensureNonNegativeStock(remaining, 'INSUFFICIENT_LOCATION_STOCK', `Insufficient stock at ${from.name} for ${product.name}`);
         await trx
           .insertInto('stock_transfer_items')
           .values({ transfer_id: id, product_id: item.productId, product_name: product.name || '', qty: item.qty })
+          .execute();
+        const stockChange = await beginLocationTransfer(trx, {
+          productId: item.productId,
+          qty: Number(item.qty || 0),
+          branchId: from.branchId,
+          locationId: from.id,
+          errorCode: 'INSUFFICIENT_LOCATION_STOCK',
+          errorMessage: `Insufficient stock at ${from.name} for ${product.name}`,
+        });
+        await trx
+          .insertInto('stock_movements')
+          .values({
+            product_id: item.productId,
+            movement_type: 'transfer_send',
+            qty: -Number(item.qty || 0),
+            before_qty: stockChange.sourceBefore,
+            after_qty: stockChange.sourceAfter,
+            reason: 'transfer_send',
+            note: `Sent transfer TR-${id}`,
+            reference_type: 'transfer',
+            reference_id: id,
+            created_by: auth.userId,
+            branch_id: from.branchId,
+            location_id: from.id,
+          })
           .execute();
       }
 
@@ -165,22 +192,22 @@ export class InventoryTransferService {
 
       const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).execute();
       for (const item of items) {
-        const product = await trx
-          .selectFrom('products')
-          .select(['id', 'stock_qty'])
-          .where('id', '=', item.product_id)
-          .where('is_active', '=', true)
-          .executeTakeFirst();
-        if (!product) throw new AppError(`Product #${item.product_id} not found`, 'PRODUCT_NOT_FOUND', 404);
-        const beforeQty = Number(product.stock_qty || 0);
+        const stockChange = await receiveLocationTransfer(trx, {
+          productId: Number(item.product_id),
+          qty: Number(item.qty || 0),
+          branchId: transfer.to_branch_id,
+          locationId: transfer.to_location_id,
+          errorCode: 'TRANSFER_TRANSIT_STOCK_INVALID',
+          errorMessage: `Transfer TR-${transferId} cannot be received because in-transit stock is missing`,
+        });
         await trx
           .insertInto('stock_movements')
           .values({
-            product_id: product.id,
+            product_id: Number(item.product_id),
             movement_type: 'transfer_receive',
             qty: item.qty,
-            before_qty: beforeQty,
-            after_qty: beforeQty,
+            before_qty: stockChange.targetBefore,
+            after_qty: stockChange.targetAfter,
             reason: 'transfer_receive',
             note: `Received transfer TR-${transferId}`,
             reference_type: 'transfer',
@@ -208,6 +235,34 @@ export class InventoryTransferService {
       const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
       if ((transfer.status || 'sent') !== 'sent') throw new AppError('Only sent transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
+      const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).execute();
+      for (const item of items) {
+        const stockChange = await restoreLocationTransfer(trx, {
+          productId: Number(item.product_id),
+          qty: Number(item.qty || 0),
+          branchId: transfer.from_branch_id,
+          locationId: transfer.from_location_id,
+          errorCode: 'TRANSFER_TRANSIT_STOCK_INVALID',
+          errorMessage: `Transfer TR-${transferId} cannot be cancelled because in-transit stock is missing`,
+        });
+        await trx
+          .insertInto('stock_movements')
+          .values({
+            product_id: Number(item.product_id),
+            movement_type: 'transfer_cancel',
+            qty: item.qty,
+            before_qty: stockChange.targetBefore,
+            after_qty: stockChange.targetAfter,
+            reason: 'transfer_cancel',
+            note: `Cancelled transfer TR-${transferId}`,
+            reference_type: 'transfer',
+            reference_id: transferId,
+            created_by: auth.userId,
+            branch_id: transfer.from_branch_id,
+            location_id: transfer.from_location_id,
+          })
+          .execute();
+      }
       await trx
         .updateTable('stock_transfers')
         .set({ status: 'cancelled', cancelled_by: auth.userId, cancelled_at: sql`NOW()`, updated_at: sql`NOW()` })

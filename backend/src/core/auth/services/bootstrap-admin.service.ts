@@ -4,6 +4,7 @@ import { Kysely } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { createPasswordRecord } from '../utils/password-hasher';
+import { assertStrongPassword } from '../utils/password-policy';
 
 const SUPER_ADMIN_PERMISSIONS = [
   'dashboard',
@@ -111,9 +112,11 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
       throw new Error('Bootstrap admin seeding refuses to start with the default administrator password');
     }
 
-    if (bootstrapSuperAdminPassword.length < 14) {
-      throw new Error('Bootstrap admin password must be at least 14 characters long');
-    }
+    assertStrongPassword(bootstrapSuperAdminPassword, {
+      minLength: 14,
+      code: 'BOOTSTRAP_PASSWORD_TOO_WEAK',
+      message: 'Bootstrap admin password must be at least 14 characters long',
+    });
 
     await this.ensureBootstrapUser({
       username: bootstrapSuperAdminUsername,

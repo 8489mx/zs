@@ -3,6 +3,7 @@ import { Kysely, sql } from 'kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
+import { applyStockDelta, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -11,6 +12,7 @@ import { TransactionHelper } from '../../../database/helpers/transaction.helper'
 import { HeldSaleDto } from '../dto/held-sale.dto';
 import { UpsertSaleDto } from '../dto/upsert-sale.dto';
 import { normalizeSalePayload } from '../helpers/sales-payload.helper';
+import { buildPreparedSaleItem, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../helpers/sales-write.helper';
 import { SalesAuthorizationService } from './sales-authorization.service';
 import { SalesFinanceService } from './sales-finance.service';
 import { SalesQueryService } from './sales-query.service';
@@ -42,36 +44,23 @@ export class SalesWriteService {
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
 
       let subtotal = 0;
-      const preparedItems: Array<{ productId: number; productName: string; qty: number; unitPrice: number; lineTotal: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; costPrice: number; requiredQty: number; beforeQty: number; afterQty: number }> = [];
+      const preparedItems = [];
       for (const item of normalized.items) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-        const requiredQty = Number(item.qty) * Number(item.unitMultiplier || 1);
-        const beforeQty = Number(product.stock_qty || 0);
-        if (beforeQty < requiredQty) throw new AppError(`Insufficient stock for ${product.name}`, 'INSUFFICIENT_STOCK', 400);
-        const lineTotal = Number((item.qty * item.price).toFixed(2));
-        subtotal += lineTotal;
-        preparedItems.push({
-          productId: Number(product.id),
-          productName: product.name || '',
-          qty: item.qty,
-          unitPrice: item.price,
-          lineTotal,
-          unitName: item.unitName,
-          unitMultiplier: item.unitMultiplier,
-          priceType: item.priceType,
-          costPrice: Number((Number(product.cost_price || 0) * item.unitMultiplier).toFixed(2)),
-          requiredQty,
-          beforeQty,
-          afterQty: Number((beforeQty - requiredQty).toFixed(3)),
-        });
+        const availableStockQty = normalized.locationId
+          ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId })
+          : Number(product.stock_qty || 0);
+        const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item);
+        subtotal += preparedItem.lineTotal;
+        preparedItems.push(preparedItem);
       }
 
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
 
-      const collectibleTotal = Number(Math.max(0, total - normalized.storeCreditUsed).toFixed(2));
+      const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
       if (normalized.paymentType !== 'credit' && !['admin', 'super_admin'].includes(auth.role) && (normalized.payments.some((entry) => entry.paymentChannel === 'cash') || normalized.paymentChannel === 'cash')) {
         const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth);
         if (!hasOpenShift) throw new AppError('Open cashier shift is required before posting a cash sale', 'OPEN_SHIFT_REQUIRED', 400);
@@ -91,10 +80,8 @@ export class SalesWriteService {
         }
       }
 
-      const payments = normalized.paymentType === 'credit'
-        ? []
-        : (normalized.payments.length ? normalized.payments : (collectibleTotal > 0 ? [{ paymentChannel: 'cash' as const, amount: collectibleTotal }] : []));
-      const paidAmount = Number(payments.reduce((sum, entry) => sum + Number(entry.amount || 0), 0).toFixed(2));
+      const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal);
+      const paidAmount = calculatePaidAmount(payments);
       if (normalized.paymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) {
         throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
       }
@@ -105,7 +92,7 @@ export class SalesWriteService {
           customer_id: normalized.customerId,
           customer_name: customer?.name || 'عميل نقدي',
           payment_type: normalized.paymentType,
-          payment_channel: normalized.paymentType === 'credit' ? 'credit' : (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || 'cash')),
+          payment_channel: resolvePostedSalePaymentChannel(normalized.paymentType, payments),
           subtotal: Number(subtotal.toFixed(2)),
           discount: normalized.discount,
           tax_rate: normalized.taxRate,
@@ -148,15 +135,22 @@ export class SalesWriteService {
           })
           .execute();
 
-        await trx.updateTable('products').set({ stock_qty: item.afterQty, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        const stockChange = await applyStockDelta(trx, {
+          productId: item.productId,
+          delta: -item.requiredQty,
+          branchId: normalized.branchId,
+          locationId: normalized.locationId,
+          errorCode: 'INSUFFICIENT_STOCK',
+          errorMessage: `Insufficient stock for ${item.productName}`,
+        });
         await trx
           .insertInto('stock_movements')
           .values({
             product_id: item.productId,
             movement_type: 'sale',
             qty: -item.requiredQty,
-            before_qty: item.beforeQty,
-            after_qty: item.afterQty,
+            before_qty: stockChange.scopeBefore,
+            after_qty: stockChange.scopeAfter,
             reason: 'sale',
             note: `Sale S-${id}`,
             reference_type: 'sale',
@@ -205,18 +199,21 @@ export class SalesWriteService {
         if (!item.product_id) continue;
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).executeTakeFirst();
         if (!product) continue;
-        const restoreQty = Number(item.qty || 0) * Number(item.unit_multiplier || 1);
-        const beforeQty = Number(product.stock_qty || 0);
-        const afterQty = Number((beforeQty + restoreQty).toFixed(3));
-        await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
+        const { restoreQty } = calculateRestoredStockQuantity(product.stock_qty, item.qty, item.unit_multiplier);
+        const stockChange = await applyStockDelta(trx, {
+          productId: Number(item.product_id),
+          delta: restoreQty,
+          branchId: sale.branch_id,
+          locationId: sale.location_id,
+        });
         await trx
           .insertInto('stock_movements')
           .values({
             product_id: item.product_id,
             movement_type: 'sale_cancel',
             qty: restoreQty,
-            before_qty: beforeQty,
-            after_qty: afterQty,
+            before_qty: stockChange.scopeBefore,
+            after_qty: stockChange.scopeAfter,
             reason: 'sale_cancel',
             note: `Cancel S-${saleId}`,
             reference_type: 'sale',

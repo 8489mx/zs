@@ -1,9 +1,9 @@
-import { DependencyList, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 export function useMutationFeedbackReset(
   settled: boolean,
   resetFeedback: () => void,
-  deps: DependencyList,
+  resetKey: unknown,
 ) {
   const shouldResetRef = useRef(false);
 
@@ -17,5 +17,5 @@ export function useMutationFeedbackReset(
     if (!shouldResetRef.current) return;
     resetFeedback();
     shouldResetRef.current = false;
-  }, deps);
+  }, [resetFeedback, resetKey]);
 }

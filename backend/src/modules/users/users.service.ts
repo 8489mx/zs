@@ -8,15 +8,8 @@ import { AuditService } from '../../core/audit/audit.service';
 import { UpsertUserDto } from './dto/upsert-user.dto';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
-
-function safeJsonArray(value: string): string[] {
-  try {
-    const parsed = JSON.parse(value || '[]');
-    return Array.isArray(parsed) ? parsed.map((item) => String(item)) : [];
-  } catch {
-    return [];
-  }
-}
+import { assertStrongPassword } from '../../core/auth/utils/password-policy';
+import { ensureUsersPayload, filterUsers, mapUserRow, normalizeBranchIds, normalizeUserId, normalizeUserListQuery, summarizeUsers } from './helpers/users.helper';
 
 @Injectable()
 export class UsersService {
@@ -59,35 +52,9 @@ export class UsersService {
     return map;
   }
 
-  private mapUser(row: Record<string, unknown>, branchIds: string[]): Record<string, unknown> {
-    return {
-      id: String(row.id),
-      username: row.username,
-      role: row.role,
-      permissions: safeJsonArray(String(row.permissions_json || '[]')),
-      name: row.display_name || row.username,
-      branchIds,
-      defaultBranchId: row.default_branch_id ? String(row.default_branch_id) : '',
-      isActive: Boolean(row.is_active),
-      mustChangePassword: Boolean(row.must_change_password),
-      failedLoginCount: Number(row.failed_login_count || 0),
-      lockedUntil: row.locked_until || null,
-      lastLoginAt: row.last_login_at || null,
-    };
-  }
-
-  private normalizeBranchIds(branchIds: string[] | undefined): number[] {
-    return Array.from(
-      new Set(
-        (branchIds ?? [])
-          .map((value) => Number(value))
-          .filter((value) => Number.isInteger(value) && value > 0),
-      ),
-    );
-  }
 
   private async replaceUserBranches(userId: number, branchIds: string[] | undefined): Promise<void> {
-    const normalized = this.normalizeBranchIds(branchIds);
+    const normalized = normalizeBranchIds(branchIds);
     await sql`delete from user_branches where user_id = ${userId}`.execute(this.db);
 
     if (!normalized.length) return;
@@ -101,34 +68,17 @@ export class UsersService {
   }
 
   async listUsers(query: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const search = String(query.search || '').trim().toLowerCase();
-    const role = String(query.role || '').trim();
-    const includeInactive = String(query.includeInactive || 'true') !== 'false';
+    const normalizedQuery = normalizeUserListQuery(query);
 
     const allRows = await this.db.selectFrom('users').selectAll().orderBy('id asc').execute();
     const branchMap = await this.loadBranchMap(allRows.map((row) => Number(row.id)));
-    let users = allRows.map((row) =>
-      this.mapUser(row as unknown as Record<string, unknown>, branchMap.get(Number(row.id)) ?? []),
+    const users = filterUsers(
+      allRows.map((row) => mapUserRow(row, branchMap.get(Number(row.id)) ?? [])),
+      normalizedQuery,
     );
 
-    if (!includeInactive) {
-      users = users.filter((row) => row.isActive === true);
-    }
-
-    if (role) {
-      users = users.filter((row) => String(row.role) === role);
-    }
-
-    if (search) {
-      users = users.filter((row) => {
-        const username = String(row.username || '').toLowerCase();
-        const name = String(row.name || '').toLowerCase();
-        return username.includes(search) || name.includes(search);
-      });
-    }
-
     const paged = paginateRows(users, query, { defaultSize: 10 });
-    const active = users.filter((row) => row.isActive).length;
+    const summary = summarizeUsers(users);
 
     return {
       users: paged.rows,
@@ -138,11 +88,7 @@ export class UsersService {
         total: users.length,
         totalPages: paged.pagination.totalPages,
       },
-      summary: {
-        total: users.length,
-        active,
-        inactive: users.length - active,
-      },
+      summary,
     };
   }
 
@@ -152,6 +98,7 @@ export class UsersService {
     }
 
     await this.ensureUniqueUsername(payload.username);
+    assertStrongPassword(payload.password);
 
     const passwordRecord = await createPasswordRecord(payload.password);
     const result = await this.db
@@ -181,7 +128,7 @@ export class UsersService {
     const branchMap = await this.loadBranchMap([Number(result.id)]);
     return {
       ok: true,
-      user: this.mapUser(created as unknown as Record<string, unknown>, branchMap.get(Number(result.id)) ?? []),
+      user: mapUserRow(created, branchMap.get(Number(result.id)) ?? []),
       users: usersState.users,
     };
   }
@@ -205,6 +152,7 @@ export class UsersService {
     };
 
     if (payload.password) {
+      assertStrongPassword(payload.password);
       const passwordRecord = await createPasswordRecord(payload.password);
       updates.password_hash = passwordRecord.hash;
       updates.password_salt = passwordRecord.salt;
@@ -229,18 +177,16 @@ export class UsersService {
     const branchMap = await this.loadBranchMap([id]);
     return {
       ok: true,
-      user: this.mapUser(updated as unknown as Record<string, unknown>, branchMap.get(id) ?? []),
+      user: mapUserRow(updated, branchMap.get(id) ?? []),
       users: usersState.users,
     };
   }
 
   async syncUsers(usersPayload: UpsertUserDto[], actor: AuthContext, actorSessionId?: string): Promise<Record<string, unknown>> {
-    if (!Array.isArray(usersPayload)) {
-      throw new AppError('users payload must be an array', 'USERS_PAYLOAD_INVALID', 400);
-    }
+    ensureUsersPayload(usersPayload);
 
     for (const entry of usersPayload) {
-      const id = Number((entry as unknown as { id?: string | number }).id || 0);
+      const id = normalizeUserId((entry as unknown as { id?: string | number }).id);
       if (id > 0) {
         await this.updateUser(id, entry, actor, Number(id) === actor.userId ? actorSessionId : undefined);
       } else {
@@ -298,7 +244,7 @@ export class UsersService {
     const branchMap = await this.loadBranchMap([id]);
     return {
       ok: true,
-      user: this.mapUser(updated as unknown as Record<string, unknown>, branchMap.get(id) ?? []),
+      user: mapUserRow(updated, branchMap.get(id) ?? []),
       users: usersState.users,
     };
   }

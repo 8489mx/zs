@@ -154,6 +154,17 @@ export interface ProductCustomerPriceTable {
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
+
+export interface ProductLocationStockTable {
+  id: Generated<number>;
+  product_id: number;
+  branch_id: number | null;
+  location_id: number | null;
+  qty: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface StockMovementTable {
   id: Generated<number>;
   product_id: number | null;
@@ -483,6 +494,7 @@ export interface Database {
   product_units: ProductUnitTable;
   product_offers: ProductOfferTable;
   product_customer_prices: ProductCustomerPriceTable;
+  product_location_stock: ProductLocationStockTable;
   stock_movements: StockMovementTable;
   stock_transfers: StockTransferTable;
   stock_transfer_items: StockTransferItemTable;

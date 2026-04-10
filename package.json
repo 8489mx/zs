@@ -1,0 +1,31 @@
+{
+  "name": "zs-main",
+  "private": true,
+  "version": "1.1.0",
+  "scripts": {
+    "install:all": "npm --prefix backend ci && npm --prefix frontend ci",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "qa": "npm --prefix backend run check:commercial-ready && npm --prefix frontend run qa",
+    "qa:backend": "npm --prefix backend run check:commercial-ready",
+    "qa:frontend": "npm --prefix frontend run qa",
+    "lint": "npm --prefix frontend run lint",
+    "typecheck": "npm --prefix backend run typecheck",
+    "test:critical": "npm --prefix backend run test:critical",
+    "e2e:backend": "npm --prefix backend run test:e2e",
+    "compose:up": "docker compose up --build -d",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f --tail=200",
+    "compose:e2e": "docker compose up -d postgres backend && ./scripts/wait-for-http.sh http://127.0.0.1:3001/health 90 2 && npm --prefix backend run test:e2e",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "qa:release": "npm run qa && npm run compose:e2e && npm run package:clean",
+    "e2e:self": "./scripts/run-backend-e2e-local.sh",
+    "package:clean": "./scripts/package-clean-release.sh",
+    "qa:sale-ready": "./scripts/certify-sale-ready.sh",
+    "qa:toolchain": "node ./scripts/check-toolchain-alignment.cjs"
+  },
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10 <11"
+  }
+}

@@ -1,34 +1,36 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, ParseBoolPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
+import { AdminRoleGuard } from '../../../core/auth/guards/admin-role.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { SettingsBackupService } from '../services/settings-backup.service';
+import { BackupEnvelopeDto } from '../dto/backup-envelope.dto';
 
 @Controller('api')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, AdminRoleGuard)
 export class SettingsBackupController {
   constructor(private readonly backupService: SettingsBackupService) {}
 
   @Get('backup')
-  getBackup(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    this.backupService.assertAdmin(req.authContext);
+  getBackup(@Req() _req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.backupService.exportBackup();
   }
 
   @Get('backup-snapshots')
-  listSnapshots(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    this.backupService.assertAdmin(req.authContext);
+  listSnapshots(@Req() _req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.backupService.listSnapshots();
   }
 
   @Post('backup/verify')
-  verifyBackup(@Body() payload: unknown, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    this.backupService.assertAdmin(req.authContext);
+  verifyBackup(@Body() payload: BackupEnvelopeDto, @Req() _req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.backupService.verifyBackup(payload);
   }
 
   @Post('backup/restore')
-  restoreBackup(@Body() payload: unknown, @Req() req: RequestWithAuth, @Query('dryRun') dryRun?: string): Promise<Record<string, unknown>> {
-    this.backupService.assertAdmin(req.authContext);
-    return this.backupService.restoreBackup(payload, req.authContext!, dryRun === 'true');
+  restoreBackup(
+    @Body() payload: BackupEnvelopeDto,
+    @Req() req: RequestWithAuth,
+    @Query('dryRun', new ParseBoolPipe({ optional: true })) dryRun?: boolean,
+  ): Promise<Record<string, unknown>> {
+    return this.backupService.restoreBackup(payload, req.authContext!, dryRun ?? false);
   }
 }

@@ -3,6 +3,7 @@ import { Kysely, sql } from 'kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
+import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
@@ -84,6 +85,7 @@ export class SettingsImportService {
     if (!Array.isArray(rows)) throw new AppError('rows must be an array', 'IMPORT_ROWS_INVALID', 400);
     let inserted = 0;
     let updated = 0;
+    let stockQtyIgnoredOnUpdate = 0;
 
     for (const rawRow of rows) {
       const row = rawRow as Record<string, unknown>;
@@ -105,16 +107,27 @@ export class SettingsImportService {
       };
 
       if (existing) {
+        const requestedStockQty = toNumber(row.stockQty || 0);
+        if (Math.abs(requestedStockQty) > 0.0001) {
+          stockQtyIgnoredOnUpdate += 1;
+        }
+
         await this.db.updateTable('products').set({ ...payload, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).execute();
         updated += 1;
       } else {
-        await this.db.insertInto('products').values({ ...payload, stock_qty: toNumber(row.stockQty || 0), is_active: true }).execute();
+        const initialStockQty = toNumber(row.stockQty || 0);
+        await this.db.transaction().execute(async (trx) => {
+          const insertedProduct = await trx.insertInto('products').values({ ...payload, stock_qty: initialStockQty, is_active: true }).returning('id').executeTakeFirstOrThrow();
+          if (initialStockQty > 0) {
+            await trx.insertInto('product_location_stock').values({ product_id: Number(insertedProduct.id), branch_id: null, location_id: null, qty: initialStockQty }).execute();
+          }
+        });
         inserted += 1;
       }
     }
 
     await this.audit.log('استيراد أصناف', `تم استيراد/تحديث ${inserted + updated} صنف بواسطة ${actor.username}`, actor.userId);
-    return { ok: true, inserted, updated };
+    return { ok: true, inserted, updated, warnings: stockQtyIgnoredOnUpdate > 0 ? [`تم تجاهل stockQty لعدد ${stockQtyIgnoredOnUpdate} من الأصناف الموجودة مسبقًا. استخدم استيراد الرصيد الافتتاحي أو تسويات المخزون بدلًا من ذلك.`] : [] };
   }
 
   async importCustomers(rows: unknown[], actor: AuthContext): Promise<Record<string, unknown>> {
@@ -201,22 +214,27 @@ export class SettingsImportService {
         : await this.db.selectFrom('products').select(['id', 'name', 'stock_qty']).where(sql`LOWER(name)`, '=', productName.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
       if (!product) continue;
 
-      const beforeQty = Number(product.stock_qty || 0);
-      const afterQty = Number((beforeQty + qty).toFixed(3));
-      await this.db.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', Number(product.id)).execute();
+      const branchId = toNumber(row.branchId || row.branch || 0) || null;
+      const locationId = toNumber(row.locationId || row.location || 0) || null;
+      const stockChange = await applyStockDelta(this.db, {
+        productId: Number(product.id),
+        delta: qty,
+        branchId,
+        locationId,
+      });
       await this.db.insertInto('stock_movements').values({
         product_id: Number(product.id),
         movement_type: 'opening_stock',
         qty,
-        before_qty: beforeQty,
-        after_qty: afterQty,
+        before_qty: stockChange.scopeBefore,
+        after_qty: stockChange.scopeAfter,
         reason: 'opening_stock',
         note: 'رصيد افتتاحي من الاستيراد',
         reference_type: 'product',
         reference_id: Number(product.id),
         created_by: actor.userId,
-        branch_id: null,
-        location_id: null,
+        branch_id: branchId,
+        location_id: locationId,
       }).execute();
       updated += 1;
     }

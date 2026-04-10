@@ -1,6 +1,7 @@
 import { Field } from '@/shared/ui/field';
 import type { Branch } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
+import { PASSWORD_MIN_LENGTH_HINT } from '@/config/security';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { formatDateTime } from '@/features/settings/components/user-management.shared';
 
@@ -41,6 +42,7 @@ export function UserManagementEditorCard({
           </select>
         </Field>
         <Field label="كلمة المرور الجديدة / الأولى"><input type="password" value={draft.password || ''} onChange={(e) => onDraftChange((current) => ({ ...current, password: e.target.value }))} placeholder={draft.id ? 'اتركها فارغة إن لم ترد التغيير' : 'مطلوبة للمستخدم الجديد'} /></Field>
+        <div className="muted small" style={{ gridColumn: '1 / -1', marginTop: -6 }}>{PASSWORD_MIN_LENGTH_HINT}</div>
         {!SINGLE_STORE_MODE ? <Field label="الفرع الافتراضي">
           <select value={draft.defaultBranchId} onChange={(e) => onDraftChange((current) => ({ ...current, defaultBranchId: e.target.value }))}>
             <option value="">بدون افتراضي</option>

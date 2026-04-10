@@ -6,6 +6,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { createPasswordRecord, verifyPassword } from '../utils/password-hasher';
+import { assertStrongPassword } from '../utils/password-policy';
 
 function safeJsonArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -223,6 +224,8 @@ export class SessionService {
       throw new Error('Current password is incorrect');
     }
 
+    assertStrongPassword(newPassword);
+
     const nextPassword = await createPasswordRecord(newPassword);
 
     await this.db
@@ -256,8 +259,8 @@ export class SessionService {
 
     const settingsMap = new Map(settingsRows.map((row) => [String(row.key || ''), String(row.value || '')]));
 
-    const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME ?? 'admin';
-    const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD ?? 'ChangeMe123!';
+    const defaultUsername = (this.configService.get<string>('DEFAULT_ADMIN_USERNAME') || 'admin').trim();
+    const defaultPassword = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD') || 'ChangeMe123!';
     const defaultPasswordCheck = await verifyPassword(defaultPassword, user.password_hash, user.password_salt);
     const usingDefaultAdminPassword =
       user.role === 'super_admin'

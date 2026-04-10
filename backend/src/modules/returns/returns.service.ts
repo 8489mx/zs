@@ -4,8 +4,11 @@ import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
-import { ensureNonNegativeStock, ensureReturnQtyWithinLimit } from '../../common/utils/financial-integrity';
+import { ensureReturnQtyWithinLimit } from '../../common/utils/financial-integrity';
+import { applyStockDelta, previewConsumableStockQty } from '../../common/utils/location-stock-ledger';
 import { normalizeReturnItems } from './helpers/return-payload.helper';
+import { filterReturnRows, mapReturnRows, summarizeReturnRows } from './helpers/returns-listing.helper';
+import { buildPurchaseReturnLine, buildSaleReturnLine, calculateNextLedgerBalance, calculateReturnDocumentTotal } from './helpers/returns-write.helper';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
@@ -67,7 +70,7 @@ export class ReturnsService {
     locationId: number | null,
   ): Promise<void> {
     const customer = await trx.selectFrom('customers').select(['balance']).where('id', '=', customerId).executeTakeFirstOrThrow();
-    const balanceAfter = Number((Number(customer.balance || 0) + amount).toFixed(2));
+    const balanceAfter = calculateNextLedgerBalance(customer.balance, amount);
     await trx.insertInto('customer_ledger').values({
       customer_id: customerId,
       entry_type: entryType,
@@ -96,7 +99,7 @@ export class ReturnsService {
     locationId: number | null,
   ): Promise<void> {
     const supplier = await trx.selectFrom('suppliers').select(['balance']).where('id', '=', supplierId).executeTakeFirstOrThrow();
-    const balanceAfter = Number((Number(supplier.balance || 0) + amount).toFixed(2));
+    const balanceAfter = calculateNextLedgerBalance(supplier.balance, amount);
     await trx.insertInto('supplier_ledger').values({
       supplier_id: supplierId,
       entry_type: entryType,
@@ -115,7 +118,7 @@ export class ReturnsService {
 
   private async addStoreCredit(trx: Kysely<Database>, customerId: number, amount: number): Promise<void> {
     const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', customerId).executeTakeFirstOrThrow();
-    const nextBalance = Number((Number(customer.store_credit_balance || 0) + amount).toFixed(2));
+    const nextBalance = calculateNextLedgerBalance(customer.store_credit_balance, amount);
     await trx.updateTable('customers').set({ store_credit_balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).execute();
   }
 
@@ -190,49 +193,13 @@ export class ReturnsService {
       .orderBy('ri.id asc')
       .execute();
 
-    let mapped = rows.map((row) => ({
-      id: String(row.return_document_id),
-      rowId: String(row.id),
-      docNo: row.doc_no || ('RET-' + String(row.return_document_id)),
-      returnType: row.return_type || 'sale',
-      type: row.return_type || 'sale',
-      invoiceId: row.invoice_id ? String(row.invoice_id) : '',
-      productId: row.product_id ? String(row.product_id) : '',
-      productName: row.product_name || '',
-      qty: Number(row.qty || 0),
-      total: Number(row.line_total || 0),
-      note: row.note || '',
-      settlementMode: row.settlement_mode || 'refund',
-      refundMethod: row.refund_method || '',
-      createdAt: row.created_at,
-      date: row.created_at,
-    }));
-
-    const q = String(query.search || query.q || '').trim().toLowerCase();
-    const filter = String(query.filter || query.view || 'all').trim();
     const today = new Date().toISOString().slice(0, 10);
-
-    mapped = mapped.filter((row) => {
-      if (filter === 'sales' && row.returnType !== 'sale') return false;
-      if (filter === 'purchase' && row.returnType !== 'purchase') return false;
-      if (filter === 'today' && String(row.createdAt || '').slice(0, 10) !== today) return false;
-      if (!q) return true;
-      return [row.docNo, row.productName, row.note, row.returnType].some((value) => String(value || '').toLowerCase().includes(q));
-    });
-
+    const mapped = filterReturnRows(mapReturnRows(rows as Array<Record<string, unknown>>), query, today);
     const paged = paginateRows(mapped, query, { defaultSize: 20 });
-    const uniqueDocs = new Set(mapped.map((row) => row.id));
     return {
       returns: paged.rows,
       pagination: paged.pagination,
-      summary: {
-        totalItems: uniqueDocs.size,
-        totalAmount: Number(mapped.reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
-        salesReturns: new Set(mapped.filter((row) => row.returnType === 'sale').map((row) => row.id)).size,
-        purchaseReturns: new Set(mapped.filter((row) => row.returnType === 'purchase').map((row) => row.id)).size,
-        todayCount: new Set(mapped.filter((row) => String(row.createdAt || '').slice(0, 10) === today).map((row) => row.id)).size,
-        latestDocNo: mapped[0]?.docNo || '',
-      },
+      summary: summarizeReturnRows(mapped, today),
     };
   }
 
@@ -264,18 +231,19 @@ export class ReturnsService {
       ensureReturnQtyWithinLimit(requestItem.qty, alreadyReturnedQty, soldQty);
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const unitTotal = soldQty > 0 ? Number((Number(saleItem.line_total || 0) / soldQty).toFixed(2)) : 0;
-      const lineTotal = Number((requestItem.qty * unitTotal).toFixed(2));
-      const stockDelta = Number((requestItem.qty * Number(saleItem.unit_multiplier || 1)).toFixed(3));
-      const beforeQty = Number(product.stock_qty || 0);
-      const afterQty = Number((beforeQty + stockDelta).toFixed(3));
-      await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', requestItem.productId).execute();
+      const preparedLine = buildSaleReturnLine(saleItem, product, requestItem);
+      const stockChange = await applyStockDelta(trx, {
+        productId: requestItem.productId,
+        delta: preparedLine.stockDelta,
+        branchId: sale.branch_id,
+        locationId: sale.location_id,
+      });
       await trx.insertInto('stock_movements').values({
         product_id: requestItem.productId,
         movement_type: 'sale_return',
-        qty: stockDelta,
-        before_qty: beforeQty,
-        after_qty: afterQty,
+        qty: preparedLine.stockDelta,
+        before_qty: stockChange.scopeBefore,
+        after_qty: stockChange.scopeAfter,
         reason: 'sale_return',
         note: 'مرتجع بيع على الفاتورة S-' + String(sale.id),
         reference_type: 'sale_return',
@@ -285,15 +253,15 @@ export class ReturnsService {
         created_by: auth.userId,
       }).execute();
       normalizedLines.push({
-        productId: requestItem.productId,
-        productName: saleItem.product_name || requestItem.productName || '',
-        qty: requestItem.qty,
-        unitTotal,
-        lineTotal,
+        productId: preparedLine.productId,
+        productName: preparedLine.productName,
+        qty: preparedLine.qty,
+        unitTotal: preparedLine.unitTotal,
+        lineTotal: preparedLine.lineTotal,
       });
     }
 
-    const total = Number(normalizedLines.reduce((sum, line) => sum + line.lineTotal, 0).toFixed(2));
+    const total = calculateReturnDocumentTotal(normalizedLines);
     const returnDocumentId = await this.insertReturnDocument(trx, {
       returnType: 'sale',
       invoiceId: Number(payload.invoiceId),
@@ -341,21 +309,24 @@ export class ReturnsService {
       const alreadyReturnedQty = await this.getReturnedQty(trx, 'purchase', Number(payload.invoiceId), requestItem.productId);
       const purchasedQty = Number(purchaseItem.qty || 0);
       ensureReturnQtyWithinLimit(requestItem.qty, alreadyReturnedQty, purchasedQty);
+      const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchase.location_id });
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const stockDelta = Number((requestItem.qty * Number(purchaseItem.unit_multiplier || 1)).toFixed(3));
-      const beforeQty = Number(product.stock_qty || 0);
-      if (beforeQty + 0.0001 < stockDelta) throw new AppError('المخزون الحالي لا يسمح بتنفيذ مرتجع الشراء لهذا الصنف', 'PURCHASE_RETURN_STOCK_INVALID', 400);
-      const afterQty = Number((beforeQty - stockDelta).toFixed(3));
-      const unitTotal = purchasedQty > 0 ? Number((Number(purchaseItem.line_total || 0) / purchasedQty).toFixed(2)) : 0;
-      const lineTotal = Number((requestItem.qty * unitTotal).toFixed(2));
-      await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', requestItem.productId).execute();
+      const preparedLine = buildPurchaseReturnLine(purchaseItem, { ...product, stock_qty: availableQty }, requestItem);
+      const stockChange = await applyStockDelta(trx, {
+        productId: requestItem.productId,
+        delta: -preparedLine.stockDelta,
+        branchId: purchase.branch_id,
+        locationId: purchase.location_id,
+        errorCode: 'PURCHASE_RETURN_STOCK_INVALID',
+        errorMessage: 'المخزون الحالي لا يسمح بتنفيذ مرتجع الشراء لهذا الصنف',
+      });
       await trx.insertInto('stock_movements').values({
         product_id: requestItem.productId,
         movement_type: 'purchase_return',
-        qty: -stockDelta,
-        before_qty: beforeQty,
-        after_qty: afterQty,
+        qty: -preparedLine.stockDelta,
+        before_qty: stockChange.scopeBefore,
+        after_qty: stockChange.scopeAfter,
         reason: 'purchase_return',
         note: 'مرتجع شراء على الفاتورة PUR-' + String(purchase.id),
         reference_type: 'purchase_return',
@@ -365,15 +336,15 @@ export class ReturnsService {
         created_by: auth.userId,
       }).execute();
       normalizedLines.push({
-        productId: requestItem.productId,
-        productName: purchaseItem.product_name || requestItem.productName || '',
-        qty: requestItem.qty,
-        unitTotal,
-        lineTotal,
+        productId: preparedLine.productId,
+        productName: preparedLine.productName,
+        qty: preparedLine.qty,
+        unitTotal: preparedLine.unitTotal,
+        lineTotal: preparedLine.lineTotal,
       });
     }
 
-    const total = Number(normalizedLines.reduce((sum, line) => sum + line.lineTotal, 0).toFixed(2));
+    const total = calculateReturnDocumentTotal(normalizedLines);
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
     const returnDocumentId = await this.insertReturnDocument(trx, {
       returnType: 'purchase',

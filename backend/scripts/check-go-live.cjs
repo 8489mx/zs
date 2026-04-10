@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const backendRoot = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(backendRoot, '..');
 const requiredBackendFiles = [
   'PRODUCTION_CHECKLIST.md',
   'BACKUP_RESTORE.md',
@@ -16,6 +17,9 @@ const requiredBackendFiles = [
   'PHASE14_OPERATIONS_READINESS.md',
   'PHASE15_FINAL_COMMERCIAL_POLISH.md',
   '.env.example',
+  'scripts/check-architecture-guardrails.cjs',
+  'src/common/utils/location-stock-ledger.ts',
+  'src/database/migrations/1710000006000-location-stock-ledger.ts',
 ];
 
 const requiredEnvKeys = [
@@ -53,12 +57,41 @@ for (const key of requiredEnvKeys) {
   }
 }
 
-const pkg = JSON.parse(fs.readFileSync(path.join(backendRoot, 'package.json'), 'utf8'));
-const requiredScripts = ['build', 'test:infra', 'check:readiness', 'check:permissions', 'check:env-safety', 'check:release-gate'];
-for (const script of requiredScripts) {
-  if (!pkg.scripts || !pkg.scripts[script]) {
-    throw new Error(`Missing package.json script: ${script}`);
+const backendPkg = JSON.parse(fs.readFileSync(path.join(backendRoot, 'package.json'), 'utf8'));
+const requiredBackendScripts = [
+  'build',
+  'typecheck',
+  'test:infra',
+  'test:critical',
+  'test:e2e',
+  'check:architecture',
+  'check:readiness',
+  'check:permissions',
+  'check:env-safety',
+  'check:release-gate',
+];
+for (const script of requiredBackendScripts) {
+  if (!backendPkg.scripts || !backendPkg.scripts[script]) {
+    throw new Error(`Missing backend package.json script: ${script}`);
   }
 }
 
-console.log('[check:go-live] backend handoff files, env template, and release scripts look ready.');
+const repoPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+for (const script of ['qa', 'qa:backend', 'qa:frontend', 'compose:e2e', 'qa:release', 'package:clean', 'qa:sale-ready']) {
+  if (!repoPkg.scripts || !repoPkg.scripts[script]) {
+    throw new Error(`Missing repo package.json script: ${script}`);
+  }
+}
+
+const saleReadyScript = fs.readFileSync(path.join(repoRoot, 'scripts', 'certify-sale-ready.sh'), 'utf8');
+if (!saleReadyScript.includes('docker compose up -d postgres backend frontend')) {
+  throw new Error('Sale readiness script must boot postgres, backend, and frontend');
+}
+if (!saleReadyScript.includes('health/ready')) {
+  throw new Error('Sale readiness script must wait for the readiness endpoint');
+}
+if (!saleReadyScript.includes('npm run qa')) {
+  throw new Error('Sale readiness script must execute the QA suite before packaging');
+}
+
+console.log('[check:go-live] backend/repo release wiring, stock ledger migration, and QA scripts look ready.');

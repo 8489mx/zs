@@ -4,6 +4,7 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { UpsertUserDto } from './dto/upsert-user.dto';
+import { SyncUsersDto } from './dto/sync-users.dto';
 import { UsersService } from './users.service';
 
 @Controller('api/users')
@@ -36,7 +37,7 @@ export class UsersController {
   @Put()
   @RequirePermissions('canManageUsers')
   sync(
-    @Body() payload: { users?: UpsertUserDto[] },
+    @Body() payload: SyncUsersDto,
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     return this.usersService.syncUsers(payload.users ?? [], req.authContext!, req.authContext?.sessionId);

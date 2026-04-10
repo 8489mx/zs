@@ -40,11 +40,14 @@ export function ServiceFormCard({ service, onSaved }: { service?: ServiceRecord;
   });
   useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
   const watchedValues = useWatch({ control: form.control });
+  const resetMutationFeedback = mutation.reset;
+
+  const feedbackResetKey = JSON.stringify([watchedValues, service?.id ?? null]);
 
   useMutationFeedbackReset(
     mutation.isSuccess || mutation.isError,
-    mutation.reset,
-    [watchedValues, service?.id],
+    resetMutationFeedback,
+    feedbackResetKey,
   );
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -60,9 +63,9 @@ export function ServiceFormCard({ service, onSaved }: { service?: ServiceRecord;
 
   useEffect(() => {
     form.reset(buildDefaultValues(service));
-    mutation.reset();
+    resetMutationFeedback();
     setIsMenuOpen(false);
-  }, [service, form, mutation.reset]);
+  }, [service, form, resetMutationFeedback]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -77,7 +80,7 @@ export function ServiceFormCard({ service, onSaved }: { service?: ServiceRecord;
   }, []);
 
   function handleReset() {
-    mutation.reset();
+    resetMutationFeedback();
     form.reset(buildDefaultValues(service));
     setIsMenuOpen(false);
   }

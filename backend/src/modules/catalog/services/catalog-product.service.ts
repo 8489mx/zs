@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, Transaction, sql } from 'kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
@@ -8,6 +8,7 @@ import { Database } from '../../../database/database.types';
 import { NormalizedProductOffer, NormalizedUpsertProduct, UpsertProductDto } from '../dto/upsert-product.dto';
 
 type ProductRow = { id: number; name: string; barcode: string | null; category_id: number | null; supplier_id: number | null; cost_price: string | number; retail_price: string | number; wholesale_price: string | number; stock_qty: string | number; min_stock_qty: string | number; notes: string; };
+type ProductWriteExecutor = Kysely<Database> | Transaction<Database>;
 
 @Injectable()
 export class CatalogProductService {
@@ -78,21 +79,30 @@ export class CatalogProductService {
     if (payload.barcode) { let query = this.db.selectFrom('products').select('id').where(sql`LOWER(barcode)`, '=', payload.barcode.toLowerCase()).where('is_active', '=', true); if (productId) query = query.where('id', '!=', productId); const existing = await query.executeTakeFirst(); if (existing) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400); }
   }
 
-  private async replaceProductRelations(productId: number, payload: NormalizedUpsertProduct): Promise<void> {
-    await this.db.deleteFrom('product_units').where('product_id', '=', productId).execute();
-    await this.db.deleteFrom('product_offers').where('product_id', '=', productId).execute();
-    await this.db.deleteFrom('product_customer_prices').where('product_id', '=', productId).execute();
-    for (const unit of payload.units) await this.db.insertInto('product_units').values({ product_id: productId, name: unit.name, multiplier: unit.multiplier, barcode: unit.barcode || null, is_base_unit: unit.isBaseUnit, is_sale_unit_default: unit.isSaleUnit, is_purchase_unit_default: unit.isPurchaseUnit }).execute();
-    for (const offer of payload.offers) await this.db.insertInto('product_offers').values({ product_id: productId, offer_type: offer.type, value: offer.value, start_date: offer.from, end_date: offer.to, is_active: true }).execute();
-    for (const price of payload.customerPrices) await this.db.insertInto('product_customer_prices').values({ product_id: productId, customer_id: price.customerId, price: price.price }).execute();
+  private async replaceProductRelations(db: ProductWriteExecutor, productId: number, payload: NormalizedUpsertProduct): Promise<void> {
+    await db.deleteFrom('product_units').where('product_id', '=', productId).execute();
+    await db.deleteFrom('product_offers').where('product_id', '=', productId).execute();
+    await db.deleteFrom('product_customer_prices').where('product_id', '=', productId).execute();
+    for (const unit of payload.units) await db.insertInto('product_units').values({ product_id: productId, name: unit.name, multiplier: unit.multiplier, barcode: unit.barcode || null, is_base_unit: unit.isBaseUnit, is_sale_unit_default: unit.isSaleUnit, is_purchase_unit_default: unit.isPurchaseUnit }).execute();
+    for (const offer of payload.offers) await db.insertInto('product_offers').values({ product_id: productId, offer_type: offer.type, value: offer.value, start_date: offer.from, end_date: offer.to, is_active: true }).execute();
+    for (const price of payload.customerPrices) await db.insertInto('product_customer_prices').values({ product_id: productId, customer_id: price.customerId, price: price.price }).execute();
   }
 
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
     await this.ensureProductIdentityAvailable(normalized);
-    const result = await this.db.insertInto('products').values({ name: normalized.name, barcode: normalized.barcode || null, category_id: normalized.categoryId, supplier_id: normalized.supplierId, cost_price: normalized.costPrice, retail_price: normalized.retailPrice, wholesale_price: normalized.wholesalePrice, stock_qty: Number(normalized.stock || 0), min_stock_qty: normalized.minStock, notes: normalized.notes, is_active: true }).returning('id').executeTakeFirstOrThrow();
-    const productId = Number(result.id); await this.replaceProductRelations(productId, normalized);
+
+    await this.db.transaction().execute(async (trx) => {
+      const initialStockQty = Number(normalized.stock || 0);
+      const result = await trx.insertInto('products').values({ name: normalized.name, barcode: normalized.barcode || null, category_id: normalized.categoryId, supplier_id: normalized.supplierId, cost_price: normalized.costPrice, retail_price: normalized.retailPrice, wholesale_price: normalized.wholesalePrice, stock_qty: initialStockQty, min_stock_qty: normalized.minStock, notes: normalized.notes, is_active: true }).returning('id').executeTakeFirstOrThrow();
+      const productId = Number(result.id);
+      await this.replaceProductRelations(trx, productId, normalized);
+      if (initialStockQty > 0) {
+        await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: null, qty: initialStockQty }).execute();
+      }
+    });
+
     await this.audit.log('إضافة صنف', `تم إضافة الصنف ${normalized.name} بواسطة ${actor.username}`, actor.userId);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
@@ -106,19 +116,25 @@ export class CatalogProductService {
     const priceChanged = Number(normalized.costPrice || 0) !== Number(existing.cost_price || 0) || Number(normalized.retailPrice || 0) !== Number(existing.retail_price || 0) || Number(normalized.wholesalePrice || 0) !== Number(existing.wholesale_price || 0);
     if (priceChanged && !this.hasPermission(actor, 'canEditPrice')) throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
     if (normalized.stock !== undefined && normalized.stock !== null) throw new AppError('Stock cannot be edited from product master data. Use inventory adjustment.', 'STOCK_UPDATE_FORBIDDEN', 400);
-    await this.db.updateTable('products').set({ name: normalized.name, barcode: normalized.barcode || null, category_id: normalized.categoryId, supplier_id: normalized.supplierId, cost_price: normalized.costPrice, retail_price: normalized.retailPrice, wholesale_price: normalized.wholesalePrice, min_stock_qty: normalized.minStock, notes: normalized.notes, updated_at: sql`NOW()` }).where('id', '=', id).execute();
-    await this.replaceProductRelations(id, normalized);
+
+    await this.db.transaction().execute(async (trx) => {
+      await trx.updateTable('products').set({ name: normalized.name, barcode: normalized.barcode || null, category_id: normalized.categoryId, supplier_id: normalized.supplierId, cost_price: normalized.costPrice, retail_price: normalized.retailPrice, wholesale_price: normalized.wholesalePrice, min_stock_qty: normalized.minStock, notes: normalized.notes, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+      await this.replaceProductRelations(trx, id, normalized);
+    });
+
     await this.audit.log('تعديل صنف', `تم تحديث الصنف #${id} بواسطة ${actor.username}`, actor.userId);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
 
   async deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const product = await this.db.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', id).where('is_active', '=', true).executeTakeFirst();
-    if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-    if (Math.abs(Number(product.stock_qty || 0)) > 0.0001) throw new AppError('Product still has stock on hand', 'PRODUCT_HAS_STOCK', 400);
-    const movementCount = await this.db.selectFrom('stock_movements').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirstOrThrow();
-    if (Number(movementCount.count || 0) > 0) throw new AppError('Product has transaction history and cannot be deleted', 'PRODUCT_HAS_HISTORY', 400);
-    await this.db.updateTable('products').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+    await this.db.transaction().execute(async (trx) => {
+      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', id).where('is_active', '=', true).executeTakeFirst();
+      if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+      if (Math.abs(Number(product.stock_qty || 0)) > 0.0001) throw new AppError('Product still has stock on hand', 'PRODUCT_HAS_STOCK', 400);
+      const movementCount = await trx.selectFrom('stock_movements').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirstOrThrow();
+      if (Number(movementCount.count || 0) > 0) throw new AppError('Product has transaction history and cannot be deleted', 'PRODUCT_HAS_HISTORY', 400);
+      await trx.updateTable('products').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+    });
     await this.audit.log('حذف صنف', `تم حذف الصنف #${id} بواسطة ${actor.username}`, actor.userId);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }

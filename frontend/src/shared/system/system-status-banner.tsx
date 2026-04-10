@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { APP_NETWORK_STATE_EVENT, APP_UNAUTHORIZED_EVENT } from '@/lib/http';
+import { resetAuthenticatedClient } from '@/lib/query-client-session';
 import { useAuthStore } from '@/stores/auth-store';
 
 function normalizeReason(search: string) {
@@ -14,12 +16,22 @@ function normalizeReason(search: string) {
 export function SystemStatusBanner() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const clearSession = useAuthStore((state) => state.clearSession);
   const [isOffline, setIsOffline] = useState<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const [reconnected, setReconnected] = useState(false);
+  const reconnectTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    function clearReconnectTimer() {
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    }
+
     function handleOffline() {
+      clearReconnectTimer();
       setReconnected(false);
       setIsOffline(true);
     }
@@ -27,11 +39,15 @@ export function SystemStatusBanner() {
     function handleOnline() {
       setIsOffline(false);
       setReconnected(true);
-      window.setTimeout(() => setReconnected(false), 3500);
+      clearReconnectTimer();
+      reconnectTimerRef.current = window.setTimeout(() => {
+        setReconnected(false);
+        reconnectTimerRef.current = null;
+      }, 3500);
     }
 
     function handleUnauthorized() {
-      clearSession();
+      void resetAuthenticatedClient(queryClient, clearSession);
       if (location.pathname !== '/login') {
         navigate('/login?reason=expired', { replace: true });
       }
@@ -54,8 +70,9 @@ export function SystemStatusBanner() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener(APP_UNAUTHORIZED_EVENT, handleUnauthorized);
       window.removeEventListener(APP_NETWORK_STATE_EVENT, handleNetworkState as EventListener);
+      clearReconnectTimer();
     };
-  }, [clearSession, location.pathname, navigate]);
+  }, [clearSession, location.pathname, navigate, queryClient]);
 
   const loginReason = useMemo(() => (location.pathname === '/login' ? normalizeReason(location.search) : ''), [location.pathname, location.search]);
 

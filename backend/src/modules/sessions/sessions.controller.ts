@@ -18,6 +18,7 @@ import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.in
 import { SessionService } from '../../core/auth/services/session.service';
 import { AuditService } from '../../core/audit/audit.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { LoginDto } from './dto/login.dto';
 import { createCsrfToken, CSRF_COOKIE_NAME } from '../../core/auth/utils/csrf-token';
 
 @Controller('api/auth')
@@ -62,7 +63,7 @@ export class SessionsController {
 
   @Post('login')
   async login(
-    @Body() payload: { username?: string; password?: string },
+    @Body() payload: LoginDto,
     @Req() req: RequestWithAuth,
     @Res({ passthrough: true }) res: Response,
   ): Promise<Record<string, unknown>> {

@@ -23,10 +23,12 @@ export function SupplierForm() {
   });
   const watchedValues = useWatch({ control: form.control });
 
+  const feedbackResetKey = JSON.stringify(watchedValues);
+
   useMutationFeedbackReset(
     mutation.isSuccess || mutation.isError,
     mutation.reset,
-    [watchedValues],
+    feedbackResetKey,
   );
 
   function handleReset() {

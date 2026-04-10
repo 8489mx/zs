@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuthStore } from '@/stores/auth-store';
+import { DEFAULT_STORE_NAME, DEFAULT_THEME, useAuthStore } from '@/stores/auth-store';
 import { authApi } from '@/features/auth/api/auth.api';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
+import { clearQueryClientData } from '@/lib/query-client-session';
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'اسم المستخدم مطلوب'),
+  username: z.string().trim().min(1, 'اسم المستخدم مطلوب'),
   password: z.string().min(1, 'كلمة المرور مطلوبة')
 });
 
@@ -16,6 +18,7 @@ export type LoginSchema = z.infer<typeof loginSchema>;
 
 export function useLoginForm() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const setSession = useAuthStore((state) => state.setSession);
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,6 +27,16 @@ export function useLoginForm() {
     resolver: zodResolver(loginSchema),
     defaultValues: { username: '', password: '' }
   });
+
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      if (submitError) {
+        setSubmitError('');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, submitError]);
 
   async function onSubmit(values: LoginSchema) {
     if (isSubmitting) return;
@@ -34,22 +47,17 @@ export function useLoginForm() {
     try {
       await authApi.login(values);
       const me = await authApi.me();
-
-      setSession({
-        user: {
-          ...me.user,
-          mustChangePassword: me.security?.mustChangePassword === true,
-          usingDefaultAdminPassword: me.security?.usingDefaultAdminPassword === true,
-        },
-        storeName: me.settings.storeName || 'Z Systems',
-        theme: me.settings.theme || 'light'
-      });
-
-      navigate(getPostLoginRoute({
+      const storeName = me.settings.storeName || DEFAULT_STORE_NAME;
+      const theme = me.settings.theme || DEFAULT_THEME;
+      const user = {
         ...me.user,
         mustChangePassword: me.security?.mustChangePassword === true,
         usingDefaultAdminPassword: me.security?.usingDefaultAdminPassword === true,
-      }, me.settings.storeName || 'Z Systems'), { replace: true });
+      };
+
+      await clearQueryClientData(queryClient);
+      setSession({ user, storeName, theme });
+      navigate(getPostLoginRoute(user, storeName), { replace: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول';
       setSubmitError(message);

@@ -43,6 +43,7 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   USER_EXISTS: 'يوجد مستخدم بنفس الاسم بالفعل.',
   USERNAME_REQUIRED: 'اسم المستخدم مطلوب.',
   PASSWORD_REQUIRED: 'كلمة المرور مطلوبة.',
+  PASSWORD_TOO_WEAK: 'كلمة المرور يجب أن تكون 12 حرفًا على الأقل.',
   CURRENT_PASSWORD_INVALID: 'كلمة المرور الحالية غير صحيحة.',
   SETTINGS_INVALID: 'بيانات الإعدادات غير صحيحة.',
   APP_BOOTSTRAP_REQUIRED: 'يجب إكمال تهيئة النظام أولًا.',

@@ -5,11 +5,13 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
+import { applyStockDelta, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { CreateCustomerPaymentDto, CreateSupplierPaymentDto } from '../dto/create-party-payment.dto';
 import { UpsertPurchaseDto } from '../dto/upsert-purchase.dto';
+import { buildHistoricCostMap, buildNormalizedPurchaseItem, buildPurchaseReferenceNote, calculatePurchaseStockDecrease, calculatePurchaseStockIncrease, calculatePurchaseSubtotal, ensureAmountWithinOutstanding, normalizeOptionalNote, normalizePositiveAmount, normalizePurchaseScope } from '../helpers/purchases-write.helper';
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { PurchasesQueryService } from './purchases-query.service';
 
@@ -36,23 +38,14 @@ export class PurchasesWriteService {
       if (!items.length) throw new AppError('Purchase must include at least one item', 'PURCHASE_ITEMS_REQUIRED', 400);
       ensureUniqueFlowItems(items, 'PURCHASE_DUPLICATE_PRODUCT', 'Purchase must not contain duplicate product rows with the same unit');
 
-      const normalizedItems: Array<{ productId: number; name: string; qty: number; cost: number; unitName: string; unitMultiplier: number; total: number }> = [];
+      const normalizedItems = [];
       for (const item of items) {
         const product = await trx.selectFrom('products').select(['id', 'name']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-        const unitMultiplier = Number(item.unitMultiplier || 1) || 1;
-        normalizedItems.push({
-          productId: item.productId,
-          name: String(item.name || product.name || '').trim(),
-          qty: Number(item.qty || 0),
-          cost: Number(item.cost || 0),
-          unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
-          unitMultiplier,
-          total: Number((Number(item.qty || 0) * Number(item.cost || 0)).toFixed(2)),
-        });
+        normalizedItems.push(buildNormalizedPurchaseItem(item, product));
       }
 
-      const subtotal = normalizedItems.reduce((sum, item) => sum + item.total, 0);
+      const subtotal = calculatePurchaseSubtotal(normalizedItems);
       const discount = Number(payload.discount || 0);
       if (!this.hasPermission(auth, 'canDiscount') && Math.abs(discount) > 0.0001) {
         throw new AppError('Discount change is not allowed', 'DISCOUNT_NOT_ALLOWED', 403);
@@ -60,8 +53,7 @@ export class PurchasesWriteService {
       if (discount < 0 || discount > subtotal) throw new AppError('Discount is invalid', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, discount, Number(payload.taxRate || 0), Boolean(payload.pricesIncludeTax));
       const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
-      const branchId = payload.branchId ? Number(payload.branchId) : null;
-      const locationId = payload.locationId ? Number(payload.locationId) : null;
+      const { branchId, locationId } = normalizePurchaseScope(payload);
 
       const insert = await trx
         .insertInto('purchases')
@@ -74,7 +66,7 @@ export class PurchasesWriteService {
           tax_amount: taxAmount,
           prices_include_tax: Boolean(payload.pricesIncludeTax),
           total,
-          note: String(payload.note || '').trim(),
+          note: normalizeOptionalNote(payload.note),
           status: 'posted',
           branch_id: branchId,
           location_id: locationId,
@@ -99,17 +91,20 @@ export class PurchasesWriteService {
           unit_multiplier: item.unitMultiplier,
         }).execute();
 
-        const current = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.productId).executeTakeFirst();
-        const beforeQty = Number(current?.stock_qty || 0);
-        const increasedQty = Number((item.qty * item.unitMultiplier).toFixed(3));
-        const afterQty = Number((beforeQty + increasedQty).toFixed(3));
-        await trx.updateTable('products').set({ stock_qty: afterQty, cost_price: item.cost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
+        const stockChange = await applyStockDelta(trx, {
+          productId: item.productId,
+          delta: increasedQty,
+          branchId,
+          locationId,
+        });
+        await trx.updateTable('products').set({ cost_price: item.cost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase',
           qty: increasedQty,
-          before_qty: beforeQty,
-          after_qty: afterQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
           reason: 'purchase',
           note: `فاتورة شراء PUR-${id}`,
           reference_type: 'purchase',
@@ -146,51 +141,52 @@ export class PurchasesWriteService {
       if (!(Number(payload.supplierId || 0) > 0)) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
       for (const item of oldItems) {
         if (!item.product_id) continue;
-        const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).executeTakeFirst();
-        if (!product) continue;
-        const removeQty = Number(item.qty || 0) * Number(item.unit_multiplier || 1);
-        const beforeQty = Number(product.stock_qty || 0);
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id });
+        const { removedQty: removeQty, beforeQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         if (beforeQty < removeQty) throw new AppError(`Cannot edit purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_EDIT_STOCK_INVALID', 400);
       }
 
       for (const item of oldItems) {
         if (!item.product_id) continue;
-        const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).executeTakeFirst();
-        if (!product) continue;
-        const removeQty = Number(item.qty || 0) * Number(item.unit_multiplier || 1);
-        const beforeQty = Number(product.stock_qty || 0);
-        const afterQty = Number((beforeQty - removeQty).toFixed(3));
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id });
+        const { removedQty: removeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
-        await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
+        const stockChange = await applyStockDelta(trx, {
+          productId: Number(item.product_id),
+          delta: -removeQty,
+          branchId: purchase.branch_id,
+          locationId: purchase.location_id,
+          errorCode: 'PURCHASE_EDIT_STOCK_INVALID',
+          errorMessage: `Cannot edit purchase because stock would go negative for product #${item.product_id}`,
+        });
         await trx.insertInto('stock_movements').values({
           product_id: item.product_id,
           movement_type: 'purchase_edit_restore',
           qty: -removeQty,
-          before_qty: beforeQty,
-          after_qty: afterQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
           reason: 'purchase_edit_restore',
-          note: `Edit restore ${purchase.doc_no || purchase.id}`,
+          note: buildPurchaseReferenceNote('Edit restore', purchase),
           reference_type: 'purchase',
           reference_id: purchaseId,
+          branch_id: purchase.branch_id,
+          location_id: purchase.location_id,
           created_by: auth.userId,
         }).execute();
       }
 
       if (purchase.payment_type === 'credit' && purchase.supplier_id) {
-        await this.financeService.addSupplierLedgerEntry(trx, purchase.supplier_id, -Number(purchase.total || 0), 'purchase_edit_restore', `عكس فاتورة شراء ${purchase.doc_no || purchase.id} قبل التعديل`, 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
+        await this.financeService.addSupplierLedgerEntry(trx, purchase.supplier_id, -Number(purchase.total || 0), 'purchase_edit_restore', `${buildPurchaseReferenceNote('عكس فاتورة شراء', purchase)} قبل التعديل`, 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
       } else {
-        await this.financeService.addTreasuryTransaction(trx, 'purchase_edit_restore', Number(purchase.total || 0), `عكس فاتورة شراء ${purchase.doc_no || purchase.id} قبل التعديل`, 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
+        await this.financeService.addTreasuryTransaction(trx, 'purchase_edit_restore', Number(purchase.total || 0), `${buildPurchaseReferenceNote('عكس فاتورة شراء', purchase)} قبل التعديل`, 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
       }
 
       await trx.deleteFrom('purchase_items').where('purchase_id', '=', purchaseId).execute();
 
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where('is_active', '=', true).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
-      const oldByProduct = new Map<number, number>();
-      for (const item of oldItems) {
-        if (!item.product_id) continue;
-        oldByProduct.set(Number(item.product_id), Number(item.unit_cost || 0));
-      }
+      const oldByProduct = buildHistoricCostMap(oldItems);
+      const { branchId, locationId } = normalizePurchaseScope(payload);
 
       let subtotal = 0;
       for (const item of payload.items || []) {
@@ -201,35 +197,40 @@ export class PurchasesWriteService {
         if (Math.abs(incomingCost - originalCost) > 0.0001 && !this.hasPermission(auth, 'canEditPrice')) {
           throw new AppError(`Cost edit is not allowed for ${product.name}`, 'COST_EDIT_NOT_ALLOWED', 403);
         }
-        const unitMultiplier = Number(item.unitMultiplier || 1) || 1;
-        const lineTotal = Number((Number(item.qty || 0) * incomingCost).toFixed(2));
-        subtotal += lineTotal;
+        const normalizedItem = buildNormalizedPurchaseItem({ ...item, cost: incomingCost }, product);
+        subtotal += normalizedItem.total;
 
         await trx.insertInto('purchase_items').values({
           purchase_id: purchaseId,
-          product_id: item.productId,
-          product_name: String(item.name || product.name || '').trim(),
-          qty: Number(item.qty || 0),
-          unit_cost: incomingCost,
-          line_total: lineTotal,
-          unit_name: String(item.unitName || 'قطعة').trim() || 'قطعة',
-          unit_multiplier: unitMultiplier,
+          product_id: normalizedItem.productId,
+          product_name: normalizedItem.name,
+          qty: normalizedItem.qty,
+          unit_cost: normalizedItem.cost,
+          line_total: normalizedItem.total,
+          unit_name: normalizedItem.unitName,
+          unit_multiplier: normalizedItem.unitMultiplier,
         }).execute();
 
-        const beforeQty = Number(product.stock_qty || 0);
-        const increaseQty = Number((Number(item.qty || 0) * unitMultiplier).toFixed(3));
-        const afterQty = Number((beforeQty + increaseQty).toFixed(3));
-        await trx.updateTable('products').set({ stock_qty: afterQty, cost_price: incomingCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        const { increasedQty: increaseQty } = calculatePurchaseStockIncrease(normalizedItem.qty, normalizedItem.unitMultiplier, 0);
+        const stockChange = await applyStockDelta(trx, {
+          productId: item.productId,
+          delta: increaseQty,
+          branchId,
+          locationId,
+        });
+        await trx.updateTable('products').set({ cost_price: incomingCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase_edit_apply',
           qty: increaseQty,
-          before_qty: beforeQty,
-          after_qty: afterQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
           reason: 'purchase_edit_apply',
-          note: `Edit apply ${purchase.doc_no || purchase.id}`,
+          note: buildPurchaseReferenceNote('Edit apply', purchase),
           reference_type: 'purchase',
           reference_id: purchaseId,
+          branch_id: branchId,
+          location_id: locationId,
           created_by: auth.userId,
         }).execute();
       }
@@ -241,13 +242,11 @@ export class PurchasesWriteService {
       if (discount < 0 || discount > subtotal) throw new AppError('Discount is invalid', 'INVALID_DISCOUNT', 400);
       const totals = computeInvoiceTotals(subtotal, discount, Number(payload.taxRate || 0), Boolean(payload.pricesIncludeTax));
       const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
-      const branchId = payload.branchId ? Number(payload.branchId) : null;
-      const locationId = payload.locationId ? Number(payload.locationId) : null;
 
       if (paymentType === 'credit') {
-        await this.financeService.addSupplierLedgerEntry(trx, supplier.id, totals.total, 'purchase_edit_apply', `تطبيق تعديل فاتورة شراء ${purchase.doc_no || purchase.id}`, 'purchase', purchaseId, auth, branchId, locationId);
+        await this.financeService.addSupplierLedgerEntry(trx, supplier.id, totals.total, 'purchase_edit_apply', buildPurchaseReferenceNote('تطبيق تعديل فاتورة شراء', purchase), 'purchase', purchaseId, auth, branchId, locationId);
       } else {
-        await this.financeService.addTreasuryTransaction(trx, 'purchase_edit_apply', -totals.total, `تطبيق تعديل فاتورة شراء ${purchase.doc_no || purchase.id}`, 'purchase', purchaseId, auth, branchId, locationId);
+        await this.financeService.addTreasuryTransaction(trx, 'purchase_edit_apply', -totals.total, buildPurchaseReferenceNote('تطبيق تعديل فاتورة شراء', purchase), 'purchase', purchaseId, auth, branchId, locationId);
       }
 
       await trx.updateTable('purchases').set({
@@ -280,22 +279,26 @@ export class PurchasesWriteService {
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).execute();
       for (const item of items) {
         if (!item.product_id) continue;
-        const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).executeTakeFirst();
-        if (!product) continue;
-        const removeQty = Number(item.qty || 0) * Number(item.unit_multiplier || 1);
-        const beforeQty = Number(product.stock_qty || 0);
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id });
+        const { removedQty: removeQty, beforeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         if (beforeQty < removeQty) throw new AppError(`Cannot cancel purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_CANCEL_STOCK_INVALID', 400);
-        const afterQty = Number((beforeQty - removeQty).toFixed(3));
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
-        await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
+        const stockChange = await applyStockDelta(trx, {
+          productId: Number(item.product_id),
+          delta: -removeQty,
+          branchId: purchase.branch_id,
+          locationId: purchase.location_id,
+          errorCode: 'PURCHASE_CANCEL_STOCK_INVALID',
+          errorMessage: `Cannot cancel purchase because stock would go negative for product #${item.product_id}`,
+        });
         await trx.insertInto('stock_movements').values({
           product_id: item.product_id,
           movement_type: 'purchase_cancel',
           qty: -removeQty,
-          before_qty: beforeQty,
-          after_qty: afterQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
           reason: 'purchase_cancel',
-          note: `Cancel ${purchase.doc_no || purchase.id}`,
+          note: buildPurchaseReferenceNote('Cancel', purchase),
           reference_type: 'purchase',
           reference_id: purchaseId,
           branch_id: purchase.branch_id,
@@ -305,9 +308,9 @@ export class PurchasesWriteService {
       }
 
       if (purchase.payment_type === 'credit' && purchase.supplier_id) {
-        await this.financeService.addSupplierLedgerEntry(trx, purchase.supplier_id, -Number(purchase.total || 0), 'purchase_cancel', `إلغاء فاتورة شراء ${purchase.doc_no || purchase.id}`, 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
+        await this.financeService.addSupplierLedgerEntry(trx, purchase.supplier_id, -Number(purchase.total || 0), 'purchase_cancel', buildPurchaseReferenceNote('إلغاء فاتورة شراء', purchase), 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
       } else {
-        await this.financeService.addTreasuryTransaction(trx, 'purchase_cancel', Number(purchase.total || 0), `إلغاء فاتورة شراء ${purchase.doc_no || purchase.id}`, 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
+        await this.financeService.addTreasuryTransaction(trx, 'purchase_cancel', Number(purchase.total || 0), buildPurchaseReferenceNote('إلغاء فاتورة شراء', purchase), 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
       }
 
       await trx.updateTable('purchases').set({
@@ -333,15 +336,14 @@ export class PurchasesWriteService {
       const currentBalance = Number(supplier.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Supplier has no outstanding balance', 'SUPPLIER_NO_BALANCE', 400);
       if (amount > currentBalance + 0.0001) throw new AppError('Supplier payment cannot exceed outstanding balance', 'SUPPLIER_OVERPAYMENT', 400);
-      const branchId = payload.branchId ? Number(payload.branchId) : null;
-      const locationId = payload.locationId ? Number(payload.locationId) : null;
+      const { branchId, locationId } = normalizePurchaseScope(payload);
 
       const insert = await trx
         .insertInto('supplier_payments')
         .values({
           supplier_id: supplier.id,
           amount,
-          note: String(payload.note || '').trim(),
+          note: normalizeOptionalNote(payload.note),
           branch_id: branchId,
           location_id: locationId,
           created_by: auth.userId,
@@ -351,8 +353,9 @@ export class PurchasesWriteService {
 
       const id = Number(insert.id);
       await trx.updateTable('supplier_payments').set({ doc_no: `PO-${id}` }).where('id', '=', id).execute();
-      await this.financeService.addSupplierLedgerEntry(trx, supplier.id, -amount, 'supplier_payment', `دفع إلى ${supplier.name}${payload.note ? ` - ${payload.note}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}`, 'supplier_payment', id, auth, branchId, locationId);
+      const paymentNote = normalizeOptionalNote(payload.note);
+      await this.financeService.addSupplierLedgerEntry(trx, supplier.id, -amount, 'supplier_payment', `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
       return id;
     });
 
@@ -369,15 +372,14 @@ export class PurchasesWriteService {
       const currentBalance = Number(customer.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Customer has no outstanding balance', 'CUSTOMER_NO_BALANCE', 400);
       if (amount > currentBalance + 0.0001) throw new AppError('Customer payment cannot exceed outstanding balance', 'CUSTOMER_OVERPAYMENT', 400);
-      const branchId = payload.branchId ? Number(payload.branchId) : null;
-      const locationId = payload.locationId ? Number(payload.locationId) : null;
+      const { branchId, locationId } = normalizePurchaseScope(payload);
 
       const insert = await trx
         .insertInto('customer_payments')
         .values({
           customer_id: customer.id,
           amount,
-          note: String(payload.note || '').trim(),
+          note: normalizeOptionalNote(payload.note),
           branch_id: branchId,
           location_id: locationId,
           created_by: auth.userId,
@@ -386,8 +388,9 @@ export class PurchasesWriteService {
         .executeTakeFirstOrThrow();
 
       const paymentId = Number(insert.id);
-      await this.financeService.addCustomerLedgerEntry(trx, customer.id, -amount, `تحصيل من العميل ${customer.name}${payload.note ? ` - ${payload.note}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, `تحصيل من العميل ${customer.name}${payload.note ? ` - ${payload.note}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
+      const paymentNote = normalizeOptionalNote(payload.note);
+      await this.financeService.addCustomerLedgerEntry(trx, customer.id, -amount, `تحصيل من العميل ${customer.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, `تحصيل من العميل ${customer.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
     });
 
     await this.audit.log('تحصيل عميل', `تم تسجيل تحصيل عميل بواسطة ${auth.username}`, auth.userId);

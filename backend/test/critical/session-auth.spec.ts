@@ -190,6 +190,12 @@ async function run(): Promise<void> {
 
   const me = await service.buildMePayload(valid!.auth);
   assert.equal((me.security as any).mustChangePassword, true);
+
+  await assert.rejects(async () => {
+    await service.changePassword(1, password, 'short');
+  }, /PASSWORD_TOO_WEAK/);
+
+  await service.changePassword(1, password, 'AdminEvenStronger123!');
 }
 
 run().then(() => {

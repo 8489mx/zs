@@ -3,6 +3,9 @@ import { Button } from '@/shared/ui/button';
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 
+const SUPPORT_URL = (import.meta.env?.VITE_SUPPORT_URL || '').trim();
+const SUPPORT_LABEL = (import.meta.env?.VITE_SUPPORT_LABEL || 'الدعم الفني').trim() || 'الدعم الفني';
+
 export function LoginPage() {
   const { form, onSubmit, submitError, isSubmitting } = useLoginForm();
 
@@ -28,9 +31,13 @@ export function LoginPage() {
           </Button>
           <div className="login-support">
             <span className="muted small">بحاجة إلى مساعدة؟</span>
-            <a className="login-support-link" href="https://wa.me/201018017523" target="_blank" rel="noreferrer">
-              الدعم الفني عبر واتساب
-            </a>
+            {SUPPORT_URL ? (
+              <a className="login-support-link" href={SUPPORT_URL} target="_blank" rel="noreferrer">
+                {SUPPORT_LABEL}
+              </a>
+            ) : (
+              <span className="muted small">راجع مسؤول النظام أو قناة الدعم المخصّصة لهذا العميل.</span>
+            )}
           </div>
         </form>
       </div>

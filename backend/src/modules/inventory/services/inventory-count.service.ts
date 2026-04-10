@@ -4,12 +4,14 @@ import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
 import { paginateRows } from '../../../common/utils/pagination';
-import { ensureNonNegativeStock } from '../../../common/utils/financial-integrity';
+import { applyStockDelta, previewAssignedLocationStockQty, previewConsumableStockQty, setScopedStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
 import { CreateDamagedStockDto } from '../dto/create-damaged-stock.dto';
 import { CreateStockCountSessionDto } from '../dto/create-stock-count-session.dto';
+import { buildDamagedStockSummary, buildStockCountSummary, buildStockMovementSummary, groupStockCountItemsBySession, mapDamagedStockRow, mapStockCountSessionRow, mapStockMovementRow } from '../helpers/inventory-count-listing.helper';
+import { assertDamagedStockNote, assertInventoryLocationBranchMatch, buildDamagedStockWriteModels, buildDamageRecordFromCount, buildStockCountItemValues, buildStockCountPostingMovement, buildStockCountSessionDocNo, shouldCreateDamageRecordFromCount } from '../helpers/inventory-count-write.helper';
 import { InventoryScopeService } from './inventory-scope.service';
 
 @Injectable()
@@ -35,25 +37,7 @@ export class InventoryCountService {
       .orderBy('m.id desc')
       .execute();
 
-    let mapped = rows.map((r) => ({
-      id: String(r.id),
-      productId: r.product_id ? String(r.product_id) : '',
-      productName: r.product_name || '',
-      type: r.movement_type || '',
-      qty: Number(r.qty || 0),
-      beforeQty: Number(r.before_qty || 0),
-      afterQty: Number(r.after_qty || 0),
-      reason: r.reason || '',
-      note: r.note || '',
-      referenceType: r.reference_type || '',
-      referenceId: r.reference_id ? String(r.reference_id) : '',
-      branchId: r.branch_id ? String(r.branch_id) : '',
-      branchName: r.branch_name || '',
-      locationId: r.location_id ? String(r.location_id) : '',
-      locationName: r.location_name || '',
-      createdBy: r.created_by_name || '',
-      date: r.created_at,
-    }));
+    let mapped = rows.map(mapStockMovementRow);
 
     mapped = await this.scope.filterByScope(mapped, auth);
     const search = String(query.search || '').toLowerCase();
@@ -66,16 +50,7 @@ export class InventoryCountService {
 
     if (!query.page && !query.pageSize && !query.search && !query.type) return { stockMovements: filtered };
     const paged = paginateRows(filtered, query, { defaultSize: 20 });
-    const sum = filtered.reduce(
-      (acc, r) => {
-        if (r.qty >= 0) acc.positive += Number(r.qty);
-        else acc.negative += Math.abs(Number(r.qty));
-        return acc;
-      },
-      { positive: 0, negative: 0, totalItems: filtered.length },
-    );
-
-    return { stockMovements: paged.rows, pagination: paged.pagination, summary: sum };
+    return { stockMovements: paged.rows, pagination: paged.pagination, summary: buildStockMovementSummary(filtered as Array<{ qty: number }>) };
   }
 
   async listStockCountSessions(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -93,37 +68,9 @@ export class InventoryCountService {
       .execute();
 
     const items = await this.db.selectFrom('stock_count_items').selectAll().orderBy('session_id asc').execute();
-    const bySession = new Map<string, Record<string, unknown>[]>();
-    for (const item of items) {
-      const key = String(item.session_id);
-      if (!bySession.has(key)) bySession.set(key, []);
-      bySession.get(key)!.push({
-        id: String(item.id),
-        productId: String(item.product_id),
-        productName: item.product_name || '',
-        expectedQty: Number(item.expected_qty || 0),
-        countedQty: Number(item.counted_qty || 0),
-        varianceQty: Number(item.variance_qty || 0),
-        reason: item.reason || '',
-        note: item.note || '',
-      });
-    }
+    const bySession = groupStockCountItemsBySession(items as never);
 
-    let mapped = sessions.map((row) => ({
-      id: String(row.id),
-      docNo: row.doc_no || `COUNT-${row.id}`,
-      branchId: row.branch_id ? String(row.branch_id) : '',
-      branchName: row.branch_name || '',
-      locationId: row.location_id ? String(row.location_id) : '',
-      locationName: row.location_name || '',
-      status: row.status || 'draft',
-      note: row.note || '',
-      countedBy: row.counted_by_name || '',
-      approvedBy: row.approved_by_name || '',
-      postedAt: row.posted_at || '',
-      createdAt: row.created_at,
-      items: bySession.get(String(row.id)) || [],
-    }));
+    let mapped = sessions.map((row) => mapStockCountSessionRow(row as never, bySession));
 
     mapped = await this.scope.filterByScope(mapped, auth);
 
@@ -143,30 +90,19 @@ export class InventoryCountService {
     return {
       stockCountSessions: paged.rows,
       pagination: paged.pagination,
-      summary: {
-        totalItems: filtered.length,
-        draft: filtered.filter((r) => r.status === 'draft').length,
-        posted: filtered.filter((r) => r.status === 'posted').length,
-        totalVariance: Number(
-          filtered
-            .reduce((sum, row) => sum + Number((row.items as Array<{ varianceQty: number }>).reduce((x, i) => x + Number(i.varianceQty || 0), 0)), 0)
-            .toFixed(3),
-        ),
-      },
+      summary: buildStockCountSummary(filtered as unknown as Array<{ status: string; items: Array<{ varianceQty: number }> }>),
     };
   }
 
   async createStockCountSession(payload: CreateStockCountSessionDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const location = await this.scope.assertLocationScope(payload.locationId, auth);
-    if (payload.branchId && location.branchId && payload.branchId !== location.branchId) {
-      throw new AppError('Location does not belong to the selected branch', 'LOCATION_BRANCH_MISMATCH', 400);
-    }
+    assertInventoryLocationBranchMatch(payload.branchId, location.branchId);
 
     const sessionId = await this.tx.runInTransaction(this.db, async (trx) => {
       const result = await trx
         .insertInto('stock_count_sessions')
         .values({
-          doc_no: `COUNT-${Date.now()}`,
+          doc_no: buildStockCountSessionDocNo(),
           branch_id: location.branchId,
           location_id: location.id,
           status: 'draft',
@@ -185,21 +121,10 @@ export class InventoryCountService {
           .where('is_active', '=', true)
           .executeTakeFirst();
         if (!product) throw new AppError('Product not found in stock count session', 'PRODUCT_NOT_FOUND', 404);
-        const expectedQty = Number(product.stock_qty || 0);
-        const countedQty = Number(item.countedQty || 0);
-        const varianceQty = Number((countedQty - expectedQty).toFixed(3));
+        const expectedQty = await previewAssignedLocationStockQty(trx, { productId: item.productId, branchId: location.branchId, locationId: location.id });
         await trx
           .insertInto('stock_count_items')
-          .values({
-            session_id: id,
-            product_id: item.productId,
-            product_name: product.name || '',
-            expected_qty: expectedQty,
-            counted_qty: countedQty,
-            variance_qty: varianceQty,
-            reason: String(item.reason || ''),
-            note: String(item.note || ''),
-          })
+          .values(buildStockCountItemValues({ ...product, stock_qty: expectedQty }, item, id))
           .execute();
       }
 
@@ -230,35 +155,29 @@ export class InventoryCountService {
         if (variance === 0) continue;
         const counted = Number(item.counted_qty || 0);
 
-        await trx.updateTable('products').set({ stock_qty: counted, updated_at: sql`NOW()` }).where('id', '=', item.product_id).execute();
+        const stockChange = await setScopedStockQty(trx, {
+          productId: Number(item.product_id),
+          nextQty: counted,
+          branchId: session.branch_id,
+          locationId: session.location_id,
+          errorCode: 'INSUFFICIENT_STOCK',
+          errorMessage: 'Stock count posting cannot drive total stock below zero',
+        });
         await trx
           .insertInto('stock_movements')
           .values({
-            product_id: item.product_id,
-            movement_type: variance > 0 ? 'stock_count_gain' : 'stock_count_loss',
-            qty: variance,
-            before_qty: Number(item.expected_qty || 0),
-            after_qty: counted,
-            reason: item.reason || 'inventory_count',
-            note: item.note || '',
-            reference_type: 'stock_count_session',
-            reference_id: sessionId,
-            created_by: auth.userId,
+            ...buildStockCountPostingMovement(item, sessionId, auth.userId),
+            before_qty: stockChange.scopeBefore,
+            after_qty: stockChange.scopeAfter,
+            branch_id: session.branch_id,
+            location_id: session.location_id,
           })
           .execute();
 
-        if (String(item.reason || '').toLowerCase() === 'damage' && Math.abs(variance) > 0) {
+        if (shouldCreateDamageRecordFromCount(item)) {
           await trx
             .insertInto('damaged_stock_records')
-            .values({
-              product_id: item.product_id,
-              branch_id: session.branch_id,
-              location_id: session.location_id,
-              qty: Math.abs(Math.min(variance, 0)) || Math.abs(variance),
-              reason: 'damage',
-              note: item.note || 'جلسة جرد',
-              created_by: auth.userId,
-            })
+            .values(buildDamageRecordFromCount(item, session, auth.userId))
             .execute();
         }
       }
@@ -290,20 +209,7 @@ export class InventoryCountService {
       .orderBy('d.id desc')
       .execute();
 
-    let mapped = rows.map((r) => ({
-      id: String(r.id),
-      productId: String(r.product_id),
-      productName: r.product_name || '',
-      branchId: r.branch_id ? String(r.branch_id) : '',
-      branchName: r.branch_name || '',
-      locationId: r.location_id ? String(r.location_id) : '',
-      locationName: r.location_name || '',
-      qty: Number(r.qty || 0),
-      reason: r.reason || 'damage',
-      note: r.note || '',
-      createdBy: r.created_by_name || '',
-      date: r.created_at,
-    }));
+    let mapped = rows.map(mapDamagedStockRow);
     mapped = await this.scope.filterByScope(mapped, auth);
 
     const search = String(query.search || query.q || '').toLowerCase();
@@ -314,15 +220,13 @@ export class InventoryCountService {
     return {
       damagedStockRecords: paged.rows,
       pagination: paged.pagination,
-      summary: { totalItems: filtered.length, totalQty: Number(filtered.reduce((sum, r) => sum + Number(r.qty || 0), 0).toFixed(3)) },
+      summary: buildDamagedStockSummary(filtered as Array<{ qty: number }>),
     };
   }
 
   async createDamagedStock(payload: CreateDamagedStockDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const location = await this.scope.assertLocationScope(payload.locationId, auth);
-    if (payload.branchId && location.branchId && payload.branchId !== location.branchId) {
-      throw new AppError('Location does not belong to the selected branch', 'LOCATION_BRANCH_MISMATCH', 400);
-    }
+    assertInventoryLocationBranchMatch(payload.branchId, location.branchId);
     if (String(payload.note || '').trim().length < 8) {
       throw new AppError('اكتب سبب التالف بوضوح في 8 أحرف على الأقل', 'DAMAGE_NOTE_REQUIRED', 400);
     }
@@ -330,37 +234,30 @@ export class InventoryCountService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const product = await trx.selectFrom('products').selectAll().where('id', '=', payload.productId).where('is_active', '=', true).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const beforeQty = Number(product.stock_qty || 0);
-      const afterQty = beforeQty - Number(payload.qty || 0);
-      ensureNonNegativeStock(afterQty, 'INSUFFICIENT_STOCK', 'Cannot mark more damaged stock than current stock');
+      const availableQty = await previewConsumableStockQty(trx, { productId: payload.productId, branchId: location.branchId, locationId: location.id });
+      const writeModels = buildDamagedStockWriteModels({ ...product, stock_qty: availableQty }, payload, location, auth.userId);
 
-      await trx.updateTable('products').set({ stock_qty: afterQty, updated_at: sql`NOW()` }).where('id', '=', payload.productId).execute();
+      const stockChange = await applyStockDelta(trx, {
+        productId: payload.productId,
+        delta: -Number(payload.qty || 0),
+        branchId: location.branchId,
+        locationId: location.id,
+        errorCode: 'INSUFFICIENT_STOCK',
+        errorMessage: 'Cannot mark more damaged stock than current stock',
+      });
       await trx
         .insertInto('stock_movements')
         .values({
-          product_id: payload.productId,
-          movement_type: 'damaged',
-          qty: -Number(payload.qty || 0),
-          before_qty: beforeQty,
-          after_qty: afterQty,
-          reason: payload.reason || 'damage',
-          note: payload.note || '',
-          reference_type: 'damaged_stock',
-          reference_id: payload.productId,
-          created_by: auth.userId,
+          ...writeModels.stockMovement,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          branch_id: location.branchId ?? null,
+          location_id: location.id,
         })
         .execute();
       await trx
         .insertInto('damaged_stock_records')
-        .values({
-          product_id: payload.productId,
-          branch_id: location.branchId,
-          location_id: location.id,
-          qty: Number(payload.qty || 0),
-          reason: payload.reason || 'damage',
-          note: payload.note || '',
-          created_by: auth.userId,
-        })
+        .values(writeModels.damagedRecord)
         .execute();
     });
 

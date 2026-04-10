@@ -3,6 +3,7 @@ import { queryKeys } from '@/app/query-keys';
 import { settingsApi, type ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { normalizeUserRecord } from '@/features/settings/components/user-management.shared';
 import type { UserMutationAction } from '@/features/settings/hooks/user-management/user-management.types';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function useUserManagementMutation({
   draft,
@@ -34,6 +35,7 @@ export function useUserManagementMutation({
   setPage: (value: number) => void;
 }) {
   const queryClient = useQueryClient();
+  const updateSessionUser = useAuthStore((state) => state.updateUser);
 
   return useMutation({
     mutationFn: async (action: UserMutationAction) => {
@@ -47,6 +49,9 @@ export function useUserManagementMutation({
     onSuccess: async (payload, action) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.settingsUsers });
       const nextUsers = Array.isArray(payload.users) ? payload.users.map(normalizeUserRecord) : [];
+      const isSelfUpdate = action.type === 'update' && String(action.id || '') === String(currentUserId || '');
+      const rotatedOwnPassword = isSelfUpdate && Boolean(String(draft.password || '').trim());
+
       if (action.type === 'delete') {
         const nextSelected = nextUsers.find((user) => user.isActive !== false) || nextUsers[0] || null;
         if (nextSelected) loadUser(nextSelected); else startNewUser('cashier');
@@ -55,6 +60,7 @@ export function useUserManagementMutation({
         setStatusMessage('تم حذف المستخدم المحدد.');
         return;
       }
+
       const payloadUser = 'user' in payload ? payload.user : null;
       const updatedUser = payloadUser ? normalizeUserRecord(payloadUser) : null;
       const selectedUser = updatedUser
@@ -62,6 +68,7 @@ export function useUserManagementMutation({
         || nextUsers.find((user) => user.username === draft.username)
         || nextUsers[0]
         || null;
+
       if (selectedUser) {
         if (action.type === 'create') {
           setUserSearch(selectedUser.username || '');
@@ -69,10 +76,27 @@ export function useUserManagementMutation({
           setPage(1);
         }
         loadUser(selectedUser);
+
+        if (isSelfUpdate) {
+          updateSessionUser({
+            username: selectedUser.username || '',
+            displayName: selectedUser.name || selectedUser.username || '',
+            role: selectedUser.role,
+            permissions: Array.isArray(selectedUser.permissions) ? [...selectedUser.permissions] : [],
+            branchIds: Array.isArray(selectedUser.branchIds) ? [...selectedUser.branchIds] : [],
+            defaultBranchId: selectedUser.defaultBranchId || '',
+            mustChangePassword: selectedUser.mustChangePassword === true,
+          });
+        }
       }
+
+      if (rotatedOwnPassword) {
+        updateSessionUser({ mustChangePassword: false, usingDefaultAdminPassword: false });
+      }
+
       setStatusMessage(action.type === 'create' ? 'تمت إضافة المستخدم بنجاح.' : action.type === 'unlock' ? 'تم فتح قفل المستخدم وإعادة ضبط محاولات الدخول.' : 'تم حفظ المستخدم بنجاح.');
       if (setupMode && action.type === 'create' && setupStepKey === 'admin-user') onSetupAdvance?.();
-      if (setupMode && action.type === 'update' && setupStepKey === 'secure-account' && String(action.id || '') === currentUserId && Boolean(String(draft.password || '').trim())) onSetupAdvance?.();
+      if (setupMode && isSelfUpdate && setupStepKey === 'secure-account' && rotatedOwnPassword) onSetupAdvance?.();
     },
     onError: (error) => setStatusMessage(error instanceof Error ? error.message : 'تعذرت العملية على المستخدم'),
   });

@@ -1,5 +1,6 @@
 import { blankUserDraft, normalizeUserRecord, USER_ROLE_TEMPLATES } from '@/features/settings/components/user-management.shared';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
+import { MIN_PASSWORD_LENGTH } from '@/config/security';
 
 export function applyRolePermissions(role: 'super_admin' | 'admin' | 'cashier') {
   return role === 'super_admin' ? blankUserDraft('super_admin').permissions : role === 'admin' ? [] : blankUserDraft('cashier').permissions;
@@ -33,8 +34,8 @@ export function validateUserDraft({ draft, managedUsers }: { draft: ManagedUserR
 
   const passwordText = String(normalizedDraft.password || '').trim();
   if (!normalizedDraft.id && !passwordText) throw new Error('كلمة المرور مطلوبة عند إنشاء مستخدم جديد');
-  if (!normalizedDraft.id && passwordText.length < 8) throw new Error('كلمة المرور للمستخدم الجديد يجب ألا تقل عن 8 أحرف');
-  if (normalizedDraft.id && passwordText && passwordText.length < 8) throw new Error('كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف');
+  if (!normalizedDraft.id && passwordText.length < MIN_PASSWORD_LENGTH) throw new Error(`كلمة المرور للمستخدم الجديد يجب ألا تقل عن ${MIN_PASSWORD_LENGTH} حرفًا`);
+  if (normalizedDraft.id && passwordText && passwordText.length < MIN_PASSWORD_LENGTH) throw new Error(`كلمة المرور الجديدة يجب ألا تقل عن ${MIN_PASSWORD_LENGTH} حرفًا`);
 
   if (normalizedDraft.defaultBranchId && !normalizedDraft.branchIds.includes(normalizedDraft.defaultBranchId)) normalizedDraft.branchIds = [...normalizedDraft.branchIds, normalizedDraft.defaultBranchId];
   const duplicateUser = managedUsers.find((user) => user.username.trim().toLowerCase() === normalizedDraft.username.trim().toLowerCase() && String(user.id || '') !== String(normalizedDraft.id || ''));

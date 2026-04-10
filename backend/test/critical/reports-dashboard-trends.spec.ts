@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { ReportsService } from '../../src/modules/reports/reports.service';
+import { dateKey, getBusinessTimezone } from '../../src/modules/reports/helpers/reports-range.helper';
 
 type RowMap = Record<string, unknown[]>;
 
@@ -24,12 +25,14 @@ class FakeDb {
 }
 
 (async () => {
+  const businessTimezone = getBusinessTimezone();
+
   const today = new Date();
-  today.setHours(10, 0, 0, 0);
+  today.setUTCHours(10, 0, 0, 0);
   const oneDayAgo = new Date(today);
-  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+  oneDayAgo.setUTCDate(oneDayAgo.getUTCDate() - 1);
   const eightDaysAgo = new Date(today);
-  eightDaysAgo.setDate(eightDaysAgo.getDate() - 8);
+  eightDaysAgo.setUTCDate(eightDaysAgo.getUTCDate() - 8);
 
   const products = Array.from({ length: 10 }, (_, index) => ({
     id: index + 1,
@@ -81,9 +84,9 @@ class FakeDb {
 
   const result = await service.dashboardOverview({ branchId: 1, locationId: 1 });
   const trends = (result.trends as any).sales as Array<{ key: string; value: number }>;
-  const todayKey = today.toISOString().slice(0, 10);
-  const oneDayAgoKey = oneDayAgo.toISOString().slice(0, 10);
-  const eightDaysAgoKey = eightDaysAgo.toISOString().slice(0, 10);
+  const todayKey = dateKey(today, businessTimezone);
+  const oneDayAgoKey = dateKey(oneDayAgo, businessTimezone);
+  const eightDaysAgoKey = dateKey(eightDaysAgo, businessTimezone);
 
   assert.equal(trends.find((item) => item.key === todayKey)?.value, 100);
   assert.equal(trends.find((item) => item.key === oneDayAgoKey)?.value, 50);

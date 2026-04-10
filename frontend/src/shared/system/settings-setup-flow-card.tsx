@@ -22,6 +22,7 @@ export function SettingsSetupFlowCard({ currentSection }: SettingsSetupFlowCardP
   const canAdvance = onStepSection && activeStep.done;
   const canSubmitCurrentStep = onStepSection && activeStep.key === 'store' && !activeStep.done;
   const canSubmitReferenceStep = onStepSection && activeStep.key === 'branch-location' && !activeStep.done;
+  const canSecureBootstrapAccount = onStepSection && activeStep.key === 'secure-account' && !activeStep.done;
 
   function handlePrevious() {
     if (!previousStep) return;
@@ -68,6 +69,10 @@ export function SettingsSetupFlowCard({ currentSection }: SettingsSetupFlowCardP
           ) : canSubmitReferenceStep ? (
             <Button variant="secondary" disabled title="أكمل تجهيز المتجر والمخزن الأساسي للمتابعة">
               أكمل تعريف المتجر ونقطة التشغيل أولًا
+            </Button>
+          ) : canSecureBootstrapAccount ? (
+            <Button variant="secondary" disabled title="استخدم نموذج المستخدم الحالي أو نافذة تغيير كلمة المرور لتأمين حساب التثبيت">
+              غيّر كلمة مرور حساب التثبيت لإكمال التهيئة
             </Button>
           ) : (
             <Button variant="secondary" onClick={handleNext} disabled={!canAdvance} title={!canAdvance ? 'أكمل هذه الخطوة أولًا ثم انتقل للتالية' : undefined}>

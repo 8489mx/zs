@@ -10,11 +10,13 @@ import { customersApi } from '@/features/customers/api/customers.api';
 import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
 import { dashboardApi } from '@/features/dashboard/api/dashboard.api';
 import { dayRangeLast30 } from '@/lib/format';
-import { useAuthStore } from '@/stores/auth-store';
+import { resetAuthenticatedClient } from '@/lib/query-client-session';
+import { DEFAULT_STORE_NAME, useAuthStore } from '@/stores/auth-store';
 import { navigationItems } from '@/app/router/registry';
 import { canAccessNavigationItem } from '@/app/router/access';
 import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
+import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
 
 function SideIcon({ children }: { children: ReactNode }) {
   return (
@@ -95,9 +97,15 @@ export function AppShell({ children }: PropsWithChildren) {
   const location = useLocation();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
+  const storeName = useAuthStore((state) => state.storeName);
   const clearSession = useAuthStore((state) => state.clearSession);
 
   const displayName = useMemo(() => user?.displayName || user?.username || 'مستخدم', [user]);
+  const workspaceName = useMemo(() => {
+    const trimmed = String(storeName || '').trim();
+    return trimmed || DEFAULT_STORE_NAME;
+  }, [storeName]);
+  const isDefaultWorkspace = workspaceName === DEFAULT_STORE_NAME;
   const visibleNavigationItems = useMemo(() => {
     const hiddenKeys = new Set<string>([]);
     const preferredOrder = [
@@ -196,7 +204,7 @@ export function AppShell({ children }: PropsWithChildren) {
     try {
       await authApi.logout();
     } finally {
-      clearSession();
+      await resetAuthenticatedClient(queryClient, clearSession);
       navigate('/login?reason=signed-out', { replace: true });
     }
   }
@@ -207,9 +215,9 @@ export function AppShell({ children }: PropsWithChildren) {
         <div className="brand">
           <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
           <div>
-            <div className="brand-title">Z Systems</div>
-            <div className="brand-sub">نظام كاشير ومخزون لمتجر واحد</div>
-            <div className="brand-sub muted">سريع وواضح للاستخدام اليومي</div>
+            <div className="brand-title">{workspaceName}</div>
+            <div className="brand-sub">{isDefaultWorkspace ? 'نظام كاشير ومخزون لمتجر واحد' : 'تشغيل وإدارة الأعمال اليومية'}</div>
+            <div className="brand-sub muted">{isDefaultWorkspace ? 'سريع وواضح للاستخدام اليومي' : 'منصة Z Systems لإدارة المبيعات والمخزون'}</div>
           </div>
         </div>
         <nav className="sidebar-nav">
@@ -246,6 +254,7 @@ export function AppShell({ children }: PropsWithChildren) {
       </aside>
       <div className="content-wrap">
         <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
+          <BootstrapAdminBanner />
           <SystemStatusBanner />
         </div>
         <main className="page-stack">{children}</main>

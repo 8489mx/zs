@@ -15,15 +15,15 @@ export class ApiError extends Error {
 export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 const REQUEST_TIMEOUT_MS = 15_000;
-const RAW_API_BASE = (import.meta.env?.VITE_API_BASE_URL )?.trim();
+const RAW_API_BASE = import.meta.env?.VITE_API_BASE_URL?.trim();
 const CSRF_COOKIE_NAME = 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
 
-function normalizeApiBaseUrl(value?: string) {
+export function normalizeApiBaseUrl(value?: string) {
   if (value) return value.replace(/\/$/, '');
   if (typeof window === 'undefined') return '';
   if (window.location.port === '5173') {
-    return `${window.location.protocol}//${window.location.hostname}:3000`;
+    return `${window.location.protocol}//${window.location.hostname}:3001`;
   }
   return window.location.origin;
 }

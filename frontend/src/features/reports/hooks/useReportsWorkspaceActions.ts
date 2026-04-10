@@ -27,7 +27,7 @@ export function useReportsWorkspaceActions({
 }) {
   const exportLowStock = async () => {
     const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter });
-    downloadCsvFile('low-stock-products.csv', ['name', 'stock', 'minStock', 'category', 'supplier', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.status]));
+    downloadCsvFile('low-stock-products.csv', ['name', 'stock', 'minStock', 'category', 'supplier', 'topLocation', 'locations', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.topLocationName || '', item.locationsLabel || '', item.status]));
   };
 
   const exportCustomerBalances = async () => {
@@ -79,8 +79,8 @@ export function useReportsWorkspaceActions({
     printHtmlDocument('أصناف تحتاج متابعة', `
       <div class="meta">عدد الأصناف المطابقة: ${rows.length}</div>
       <table>
-        <thead><tr><th>الصنف</th><th>المخزون</th><th>الحد الأدنى</th><th>القسم</th><th>المورد</th></tr></thead>
-        <tbody>${rows.map((item: ReportInventoryRow) => `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(String(item.stock))}</td><td>${escapeHtml(String(item.minStock || 0))}</td><td>${escapeHtml(item.category || '—')}</td><td>${escapeHtml(item.supplier || '—')}</td></tr>`).join('')}</tbody>
+        <thead><tr><th>الصنف</th><th>المخزون</th><th>الحد الأدنى</th><th>القسم</th><th>المورد</th><th>أكبر موقع</th><th>توزيع المواقع</th></tr></thead>
+        <tbody>${rows.map((item: ReportInventoryRow) => `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(String(item.stock))}</td><td>${escapeHtml(String(item.minStock || 0))}</td><td>${escapeHtml(item.category || '—')}</td><td>${escapeHtml(item.supplier || '—')}</td><td>${escapeHtml(item.topLocationName || '—')}</td><td>${escapeHtml(item.locationsLabel || '—')}</td></tr>`).join('')}</tbody>
       </table>
     `, { subtitle: 'قائمة متابعة المخزون منخفض الكمية', pageSize: 'A4' });
   };

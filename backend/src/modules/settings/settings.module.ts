@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { BranchesController } from './branches.controller';
 import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
 import { SettingsAdminController } from './controllers/settings-admin.controller';
@@ -10,7 +9,7 @@ import { SettingsImportController } from './controllers/settings-import.controll
 import { SettingsImportService } from './services/settings-import.service';
 
 @Module({
-  controllers: [SettingsController, BranchesController, SettingsAdminController, SettingsBackupController, SettingsImportController],
+  controllers: [SettingsController, SettingsAdminController, SettingsBackupController, SettingsImportController],
   providers: [SettingsService, SettingsAdminService, SettingsBackupService, SettingsImportService],
 })
 export class SettingsModule {}

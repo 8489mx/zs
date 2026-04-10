@@ -60,10 +60,12 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
   const hasUnitsDraftChanges = useMemo(() => JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(undefined, (watchedBarcode || '').trim())), [units, watchedBarcode]);
   const hasDraftChanges = form.formState.isDirty || hasUnitsDraftChanges || Boolean(inlineCategoryName.trim()) || Boolean(inlineSupplierName.trim()) || Boolean(inlineSupplierPhone.trim());
 
+  const productFeedbackResetKey = JSON.stringify([watchedValues, units, inlineCategoryName, inlineSupplierName, inlineSupplierPhone]);
+
   useMutationFeedbackReset(
     mutation.isSuccess || mutation.isError,
     mutation.reset,
-    [watchedValues, units, inlineCategoryName, inlineSupplierName, inlineSupplierPhone],
+    productFeedbackResetKey,
   );
 
   useEffect(() => {
@@ -115,13 +117,13 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
   useMutationFeedbackReset(
     categoryMutation.isSuccess || categoryMutation.isError,
     categoryMutation.reset,
-    [inlineCategoryName],
+    inlineCategoryName.trim(),
   );
 
   useMutationFeedbackReset(
     supplierMutation.isSuccess || supplierMutation.isError,
     supplierMutation.reset,
-    [inlineSupplierName, inlineSupplierPhone],
+    JSON.stringify([inlineSupplierName.trim(), inlineSupplierPhone.trim()]),
   );
 
   const canNavigateAway = useUnsavedChangesGuard(hasDraftChanges && !mutation.isPending && !categoryMutation.isPending && !supplierMutation.isPending);

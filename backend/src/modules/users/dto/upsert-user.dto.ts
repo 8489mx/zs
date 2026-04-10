@@ -1,4 +1,5 @@
 import { IsArray, IsBoolean, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { MIN_PASSWORD_LENGTH } from '../../../core/auth/utils/password-policy';
 
 export class UpsertUserDto {
   @IsOptional()
@@ -10,7 +11,7 @@ export class UpsertUserDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(1)
+  @MinLength(MIN_PASSWORD_LENGTH)
   password?: string;
 
   @IsString()
