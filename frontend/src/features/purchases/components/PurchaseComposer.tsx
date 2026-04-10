@@ -28,7 +28,7 @@ export function PurchaseComposer({ products, suppliers, branches, locations, set
   const { headerForm, items, lineDraft, mutation, hasDraftChanges, totals, actions } = controller;
 
   return (
-    <Card title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>}>
+    <Card title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>} className="purchase-composer-card">
       <QueryFeedback
         isLoading={isCatalogLoading}
         isError={isCatalogError}

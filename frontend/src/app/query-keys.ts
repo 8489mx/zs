@@ -37,6 +37,8 @@ export const queryKeys = {
   stockMovementsPage: (paramsKey: string) => ['stock-movements', 'page', paramsKey] as const,
   customerBalances: ['customer-balances'] as const,
   customerBalancesPage: (paramsKey: string) => ['customer-balances', 'page', paramsKey] as const,
+  supplierBalances: ['supplier-balances'] as const,
+  supplierBalancesPage: (paramsKey: string) => ['supplier-balances', 'page', paramsKey] as const,
   reportsSummary: (from: string, to: string) => ['reports-summary', from, to] as const,
   customerLedger: (customerId: string) => ['customer-ledger', customerId] as const,
   customerLedgerPage: (customerId: string, paramsKey: string) => ['customer-ledger', customerId, 'page', paramsKey] as const,

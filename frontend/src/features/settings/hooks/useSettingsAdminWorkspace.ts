@@ -7,6 +7,7 @@ import { type BackupSnapshotRecord, settingsApi } from '@/features/settings/api/
 import { downloadJsonFile, triggerDownload } from '@/lib/browser';
 
 type AdminWorkspaceSection = 'overview' | 'core' | 'reference' | 'backup' | 'users' | 'diagnostics' | 'readiness';
+type BackupMessageKind = 'success' | 'error';
 
 async function readTextFile(file: File) {
   return await file.text();
@@ -38,7 +39,9 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
 
   const [backupResult, setBackupResult] = useState<Record<string, unknown> | null>(null);
   const [backupMessage, setBackupMessage] = useState('');
+  const [backupMessageKind, setBackupMessageKind] = useState<BackupMessageKind>('success');
   const [backupBusy, setBackupBusy] = useState(false);
+  const [backupSelectedFileName, setBackupSelectedFileName] = useState('');
   const [supportCopyStatus, setSupportCopyStatus] = useState('');
   const [restoreSnapshotId, setRestoreSnapshotId] = useState('');
 
@@ -70,12 +73,15 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
   const handleBackupDownload = async () => {
     setBackupBusy(true);
     setBackupMessage('');
+    setBackupMessageKind('success');
     try {
       const blob = await fetchBackupBlob();
       triggerDownload(blob, `z-systems-backup-${new Date().toISOString().slice(0, 10)}.json`);
       setBackupMessage('تم تنزيل النسخة الاحتياطية بنجاح.');
+      setBackupMessageKind('success');
     } catch (error) {
       setBackupMessage(error instanceof Error ? error.message : 'تعذر تنزيل النسخة الاحتياطية');
+      setBackupMessageKind('error');
     } finally {
       setBackupBusy(false);
     }
@@ -83,7 +89,9 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
 
   const handleBackupFile = async (file: File, mode: 'verify' | 'restore') => {
     setBackupBusy(true);
-    setBackupMessage('');
+    setBackupSelectedFileName(file.name || 'backup.json');
+    setBackupMessage(mode === 'restore' ? 'جاري فحص الملف ثم تنفيذ الاسترجاع...' : 'جاري فحص الملف...');
+    setBackupMessageKind('success');
     try {
       const payload = JSON.parse(await readTextFile(file));
       const verified = await settingsApi.verifyBackup(payload);
@@ -92,13 +100,19 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
         await settingsApi.restoreBackup(payload, true);
         const restored = await settingsApi.restoreBackup(payload, false);
         setBackupResult(restored);
-        await refreshAdminQueries();
+        try {
+          await refreshAdminQueries();
+        } catch {
+          // لا نجعل تحديثات الواجهة اللاحقة تبدو كأن الاسترجاع نفسه فشل
+        }
         setBackupMessage('تمت استعادة النسخة الاحتياطية بعد اجتياز التحقق.');
       } else {
-        setBackupMessage('تم التحقق من النسخة الاحتياطية بنجاح.');
+        setBackupMessage(`تم التحقق من الملف: ${file.name}`);
       }
+      setBackupMessageKind('success');
     } catch (error) {
       setBackupMessage(error instanceof Error ? error.message : 'تعذر فحص ملف النسخة الاحتياطية');
+      setBackupMessageKind('error');
     } finally {
       setBackupBusy(false);
     }
@@ -113,14 +127,21 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     if (!snapshot.payload) return;
     setRestoreSnapshotId(snapshot.id);
     setBackupMessage('');
+    setBackupMessageKind('success');
     try {
       await settingsApi.restoreBackup(snapshot.payload, true);
       const restored = await settingsApi.restoreBackup(snapshot.payload, false);
       setBackupResult(restored);
       setBackupMessage('تمت استعادة النسخة التلقائية بنجاح.');
-      await refreshAdminQueries();
+      setBackupMessageKind('success');
+      try {
+        await refreshAdminQueries();
+      } catch {
+        // لا نجعل تحديثات الواجهة اللاحقة تبدو كأن الاسترجاع نفسه فشل
+      }
     } catch (error) {
       setBackupMessage(error instanceof Error ? error.message : 'تعذر استعادة النسخة التلقائية');
+      setBackupMessageKind('error');
     } finally {
       setRestoreSnapshotId('');
     }
@@ -156,7 +177,9 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     importOpeningStockMutation,
     backupResult,
     backupMessage,
+    backupMessageKind,
     backupBusy,
+    backupSelectedFileName,
     supportCopyStatus,
     restoreSnapshotId,
     handleBackupDownload,

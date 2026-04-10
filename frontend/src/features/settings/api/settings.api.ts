@@ -1,4 +1,6 @@
 import { http, resolveRequestUrl } from '@/lib/http';
+
+const BACKUP_RESTORE_TIMEOUT_MS = 120_000;
 import { unwrapArray, unwrapByKey, type PaginationMeta } from '@/lib/api/contracts';
 import type { AppSettings, Branch, Location } from '@/types/domain';
 import { buildQueryString } from '@/lib/query-string';
@@ -88,7 +90,7 @@ export const settingsApi = {
   reconcileCustomers: () => http<Record<string, unknown>>('/api/admin/maintenance/reconcile-customers', { method: 'POST' }),
   reconcileSuppliers: () => http<Record<string, unknown>>('/api/admin/maintenance/reconcile-suppliers', { method: 'POST' }),
   verifyBackup: (payload: unknown) => http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', body: JSON.stringify(payload) }),
-  restoreBackup: (payload: unknown, dryRun = false) => http<Record<string, unknown>>(`/api/backup/restore${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: JSON.stringify(payload) }),
+  restoreBackup: (payload: unknown, dryRun = false) => http<Record<string, unknown>>(`/api/backup/restore${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: JSON.stringify(payload), timeoutMs: BACKUP_RESTORE_TIMEOUT_MS }),
   importProducts: (rows: unknown) => http<Record<string, unknown>>('/api/import/products', { method: 'POST', body: JSON.stringify({ rows }) }),
   importCustomers: (rows: unknown) => http<Record<string, unknown>>('/api/import/customers', { method: 'POST', body: JSON.stringify({ rows }) }),
   importSuppliers: (rows: unknown) => http<Record<string, unknown>>('/api/import/suppliers', { method: 'POST', body: JSON.stringify({ rows }) }),
