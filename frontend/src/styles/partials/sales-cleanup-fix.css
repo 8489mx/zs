@@ -1,0 +1,84 @@
+/* Sales register toolbar */
+.sales-workspace .sales-register-card .toolbar-grid {
+  grid-template-columns: minmax(320px, 1fr) auto !important;
+  gap: 10px !important;
+  align-items: start !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-grid > .field {
+  margin-bottom: 0 !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-grid > .field > span,
+.sales-workspace .sales-register-card .toolbar-grid > .field > label {
+  display: none !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-grid > .field input {
+  margin-top: 0 !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-extra {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 44px !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-chip-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  align-items: center !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-chip-row .btn,
+.sales-workspace .sales-register-card .toolbar-chip-row .button {
+  white-space: nowrap;
+}
+
+/* Quick customer card */
+.sales-workspace .sales-quick-customer-inline-wrap {
+  width: 100%;
+}
+
+.sales-workspace .sales-quick-customer-inline-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  justify-content: stretch !important;
+  align-items: start !important;
+}
+
+.sales-workspace .sales-quick-customer-inline-grid .field {
+  margin-bottom: 0 !important;
+}
+
+.sales-workspace .sales-quick-customer-inline-grid input {
+  width: 100% !important;
+}
+
+.sales-workspace .sales-quick-customer-card .section-actions-clean {
+  margin-top: 12px !important;
+}
+
+@media (max-width: 1180px) {
+  .sales-workspace .sales-register-card .toolbar-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sales-workspace .sales-register-card .toolbar-grid > .field > span,
+  .sales-workspace .sales-register-card .toolbar-grid > .field > label {
+    display: block !important;
+  }
+
+  .sales-workspace .sales-register-card .toolbar-chip-row {
+    flex-wrap: wrap !important;
+  }
+
+  .sales-workspace .sales-quick-customer-inline-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

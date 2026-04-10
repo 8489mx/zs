@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: zsdb
+      POSTGRES_USER: zs
+      POSTGRES_PASSWORD: zs
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zs -d zsdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      APP_HOST: 0.0.0.0
+      APP_PORT: 3001
+      LOG_LEVEL: info
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: zsdb
+      DATABASE_USER: zs
+      DATABASE_PASSWORD: zs
+      DATABASE_SCHEMA: public
+      DATABASE_SSL: "false"
+      DATABASE_LOGGING: "false"
+      ENABLE_BOOTSTRAP_ADMIN: "true"
+      ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: "false"
+      DEFAULT_ADMIN_USERNAME: owner
+      DEFAULT_ADMIN_PASSWORD: OwnerBootstrap2026!
+      SESSION_COOKIE_SECURE: "false"
+      SESSION_COOKIE_SAME_SITE: lax
+      SESSION_CSRF_SECRET: local-dev-csrf-secret-change-me
+      ALLOW_SESSION_ID_HEADER: "false"
+      LOGIN_MAX_ATTEMPTS: 5
+      LOGIN_LOCKOUT_MINUTES: 15
+      CORS_ORIGINS: http://localhost:5173
+      LOGIN_RATE_LIMIT_MAX: 10
+      LOGIN_RATE_LIMIT_WINDOW_SECONDS: 600
+      AUTH_BURST_RATE_LIMIT_MAX: 60
+      AUTH_BURST_RATE_LIMIT_WINDOW_SECONDS: 60
+      BUSINESS_TIMEZONE: UTC
+    ports:
+      - "3001:3001"
+    command: sh -c "npm run migration:run && npm start"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:3001
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+
+volumes:
+  pgdata:

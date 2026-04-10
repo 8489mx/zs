@@ -1,0 +1,12 @@
+@import './partials/base.css';
+@import './partials/layout.css';
+@import './partials/dashboard.css';
+@import './partials/features.css';
+@import './partials/pos-compact-fix.css';
+@import './partials/dashboard-compact-fix.css';
+@import './partials/cash-drawer-compact-fix.css';
+@import './partials/inventory-compact-fix.css';
+@import './partials/sales-cleanup-fix.css';
+@import './partials/reports-compact-fix.css';
+@import './partials/returns-cleanup-fix.css';
+@import './partials/pos-1080-layout-fix.css';

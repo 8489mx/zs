@@ -1,0 +1,522 @@
+.page-stack {
+  gap: 14px;
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
+}
+
+.page-header-copy {
+  gap: 6px;
+  flex: none;
+}
+
+.page-header-title-row {
+  gap: 10px;
+}
+
+.page-header-title {
+  font-size: 24px;
+}
+
+.page-header-description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.page-header-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.page-header-toolbar .actions,
+.page-header-toolbar .compact-actions {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  padding-bottom: 2px;
+}
+
+.page-header-toolbar .btn,
+.page-header-toolbar .button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.card {
+  padding: 16px;
+  border-radius: 20px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.section-title {
+  margin-bottom: 12px;
+}
+
+.btn,
+.button {
+  min-height: 38px;
+  padding: 9px 13px;
+  border-radius: 12px;
+}
+
+input,
+select,
+textarea {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+textarea {
+  min-height: 88px;
+}
+
+.field {
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.inline-create-panel,
+.toolbar-stack {
+  padding: 12px;
+  border-radius: 16px;
+}
+
+.toolbar-stack {
+  gap: 10px;
+}
+
+.toolbar-grid {
+  gap: 10px;
+}
+
+.toolbar-extra {
+  gap: 10px;
+}
+
+.list-stack {
+  gap: 8px;
+}
+
+.list-row {
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.filter-chip-row .btn,
+.filter-chip-row .button {
+  min-height: 34px;
+}
+
+.pos-compact-workspace {
+  gap: 12px;
+}
+
+.pos-inline-warning-strip {
+  margin-top: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.pos-inline-warning-strip ul,
+.pos-alert-stack ul {
+  margin: 6px 0 0;
+  padding-inline-start: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.pos-header-actions {
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.pos-header-actions .btn {
+  min-height: 34px;
+  padding: 7px 11px;
+  font-size: 13px;
+}
+
+.pos-grid-premium-compact {
+  grid-template-columns: minmax(0, 1.12fr) minmax(390px, 0.88fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.pos-products-card-compact,
+.pos-checkout-card-compact {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 250px);
+  overflow: hidden;
+}
+
+.pos-products-card-compact .section-title,
+.pos-checkout-card-compact .section-title {
+  margin-bottom: 10px;
+}
+
+.pos-products-card-compact .section-title h3,
+.pos-checkout-card-compact .section-title h3 {
+  font-size: 18px;
+}
+
+.pos-products-static,
+.pos-checkout-static {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.pos-products-scroll,
+.pos-checkout-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-left: 2px;
+}
+
+.pos-products-scroll {
+  padding-top: 6px;
+}
+
+.pos-checkout-scroll {
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pos-context-chip-row-compact,
+.pos-filter-row-compact {
+  margin-bottom: 0;
+}
+
+.cashier-chip {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.pos-toolbar-shell-compact,
+.pos-payment-shell-compact,
+.pos-inline-panel-compact,
+.pos-recent-panel-compact {
+  margin-bottom: 0;
+}
+
+.pos-toolbar-shell-compact .toolbar-grid {
+  grid-template-columns: minmax(220px, 1.1fr) minmax(260px, 1fr);
+  gap: 8px;
+}
+
+.pos-toolbar-shell-compact .toolbar-extra {
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+
+.pos-quick-add-row {
+  flex-wrap: nowrap;
+}
+
+.pos-quick-add-row .btn {
+  flex: 0 0 auto;
+  min-height: 36px;
+}
+
+.pos-compact-message {
+  margin-top: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.pos-recent-panel-compact {
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.pos-recent-panel-compact strong {
+  font-size: 13px;
+}
+
+.pos-recent-buttons-row {
+  margin-bottom: 0;
+  gap: 6px;
+}
+
+.pos-recent-buttons-row .btn {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.pos-product-pick-grid-compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pos-product-card-compact {
+  padding: 12px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.pos-product-card-compact strong {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pos-product-card-compact .status-badge,
+.pos-product-card-compact .low-stock-badge {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+.pos-product-card-compact .pick-meta-row {
+  margin-top: 10px;
+}
+
+.pos-checkout-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pos-checkout-summary {
+  padding: 10px 12px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.pos-checkout-summary span {
+  font-size: 11px;
+}
+
+.pos-checkout-summary strong {
+  margin-top: 4px;
+  font-size: 17px;
+}
+
+.pos-decision-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pos-decision-card {
+  padding: 10px 12px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.pos-decision-card span {
+  font-size: 11px;
+}
+
+.pos-decision-card strong {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+.pos-meta-grid-compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pos-meta-grid-compact .field,
+.pos-payment-grid-premium-compact .field,
+.pos-inline-create-grid-compact .field {
+  margin-bottom: 0;
+}
+
+.pos-inline-panel-compact {
+  padding: 10px 12px;
+}
+
+.pos-inline-create-grid-compact {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) 150px;
+  gap: 8px;
+}
+
+.pos-inline-submit-field .btn {
+  width: 100%;
+  min-height: 40px;
+}
+
+.pos-payment-shell-compact {
+  padding: 10px 12px;
+  border-radius: 18px;
+}
+
+.pos-payment-grid-premium-compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pos-payment-wide-field {
+  grid-column: span 2;
+}
+
+.pos-payment-fill-field .btn {
+  width: 100%;
+  min-height: 40px;
+}
+
+.pos-cart-list-premium {
+  margin-top: 0;
+}
+
+.pos-cart-list-premium .list-row {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.pos-cart-title-row strong {
+  font-size: 13px;
+}
+
+.pos-cart-controls {
+  grid-template-columns: 78px 1fr auto;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.pos-cart-controls input {
+  min-height: 38px;
+}
+
+.strong-amount {
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.pos-totals-list-premium {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pos-totals-list-premium .metric-row {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.pos-totals-list-premium .metric-row span {
+  font-size: 12px;
+}
+
+.pos-totals-list-premium .metric-row strong {
+  font-size: 14px;
+}
+
+.pos-primary-actions {
+  gap: 8px;
+}
+
+.pos-primary-actions-sticky {
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.pos-primary-actions .btn {
+  min-height: 38px;
+  font-size: 13px;
+}
+
+.pos-held-row {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.divider {
+  margin: 2px 0;
+}
+
+.pos-checkout-scroll .empty-state,
+.pos-products-scroll .empty-state {
+  padding: 14px;
+}
+
+@media (max-width: 1380px) {
+  .pos-grid-premium-compact {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-products-card-compact,
+  .pos-checkout-card-compact {
+    height: auto;
+    min-height: 0;
+  }
+
+  .pos-products-scroll,
+  .pos-checkout-scroll {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 1100px) {
+  .pos-product-pick-grid-compact,
+  .pos-checkout-summary-grid,
+  .pos-payment-grid-premium-compact,
+  .pos-meta-grid-compact,
+  .pos-totals-list-premium {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pos-toolbar-shell-compact .toolbar-grid,
+  .pos-toolbar-shell-compact .toolbar-extra,
+  .pos-inline-create-grid-compact {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-payment-wide-field {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-header {
+    padding: 12px 14px;
+  }
+
+  .page-header-title {
+    font-size: 22px;
+  }
+
+  .page-header-toolbar .actions,
+  .page-header-toolbar .compact-actions,
+  .pos-header-actions {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .pos-product-pick-grid-compact,
+  .pos-checkout-summary-grid,
+  .pos-decision-strip,
+  .pos-payment-grid-premium-compact,
+  .pos-meta-grid-compact,
+  .pos-inline-create-grid-compact,
+  .pos-totals-list-premium,
+  .pos-primary-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-cart-controls {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+}
