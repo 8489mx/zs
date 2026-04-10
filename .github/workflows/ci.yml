@@ -78,8 +78,23 @@ jobs:
         run: |
           npm run migration:run
           chmod +x ../scripts/wait-for-http.sh
-          nohup npm start > /tmp/backend.log 2>&1 &
-          bash ../scripts/wait-for-http.sh http://127.0.0.1:3001/health 90 2
+          node dist/main.js > /tmp/backend.log 2>&1 &
+          BACKEND_PID=$!
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:3001/health/live > /dev/null; then
+              echo "Backend is live"
+              exit 0
+            fi
+            if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+              echo "Backend process exited before becoming healthy"
+              cat /tmp/backend.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "Timed out waiting for backend liveness"
+          cat /tmp/backend.log
+          exit 1
         working-directory: backend
       - name: Run backend E2E
         run: npm run test:e2e
