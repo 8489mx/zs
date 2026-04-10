@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
-import { Card } from '@/components/ui/Card';
-import { AnimatedValue } from '@/components/shared/AnimatedValue';
+import { Card } from '@/shared/ui/card';
+import { AnimatedValue } from '@/shared/components/animated-value';
 import { DashboardMetricCard } from '@/features/dashboard/components/DashboardMetricCard';
 import { dashboardQuickLinks, formatInteger } from '@/features/dashboard/lib/dashboard-page.utils';
 

@@ -1,4 +1,4 @@
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/shared/ui/card';
 import { PosCartSummary } from '@/features/pos/components/pos-cart-panel/PosCartSummary';
 import { PosCartMetaForm } from '@/features/pos/components/pos-cart-panel/PosCartMetaForm';
 import { PosCartPaymentSection } from '@/features/pos/components/pos-cart-panel/PosCartPaymentSection';

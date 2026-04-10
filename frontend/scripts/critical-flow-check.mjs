@@ -39,9 +39,11 @@ function assertIncludes(relativePath, pattern, label) {
   }
 }
 
-function assertIncludesAny(candidates, pattern, label) {
+function assertIncludesAny(candidates, patterns, label) {
+  const requiredPatterns = Array.isArray(patterns) ? patterns : [patterns];
   for (const relativePath of candidates) {
-    if (read(relativePath).includes(pattern)) {
+    const content = read(relativePath);
+    if (requiredPatterns.every((pattern) => content.includes(pattern))) {
       return;
     }
   }
@@ -50,7 +52,11 @@ function assertIncludesAny(candidates, pattern, label) {
 }
 
 assertIncludes('pos/hooks/usePosSaleMutation.ts', 'buildPosSalePayload', 'POS payload builder usage');
-assertIncludesAny(['pos/hooks/usePosWorkspace.ts', 'pos/components/PosWorkspace.tsx'], 'expectedTotal: totals.total', 'POS expected total wiring');
+assertIncludesAny(
+  ['pos/hooks/usePosWorkspace.ts', 'pos/components/PosWorkspace.tsx', 'pos/hooks/pos-workspace-actions/createPosWorkspaceAsyncActions.ts'],
+  ['expectedTotal', 'totals.total'],
+  'POS expected total wiring',
+);
 assertIncludes('pos/pages/PosPage.tsx', '<PosWorkspace />', 'POS route wrapper composition');
 assertIncludes('accounts/hooks/useAccountingMutations.ts', 'buildCustomerPaymentPayload', 'customer payment payload builder usage');
 assertIncludes('accounts/hooks/useAccountingMutations.ts', 'buildSupplierPaymentPayload', 'supplier payment payload builder usage');

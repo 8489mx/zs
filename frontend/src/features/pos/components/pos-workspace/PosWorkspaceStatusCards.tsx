@@ -1,6 +1,5 @@
-import { Card } from '@/components/ui/Card';
-import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
-import { POS_SHORTCUTS, getStartupIssues } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import { Card } from '@/shared/ui/card';
+import { POS_SHORTCUTS, getStartupIssues, type PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
 export function PosWorkspaceQuickShortcuts() {
   return (

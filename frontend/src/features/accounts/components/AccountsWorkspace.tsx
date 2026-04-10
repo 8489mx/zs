@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/shared/PageHeader';
+import { PageHeader } from '@/shared/components/page-header';
 import { CustomerPaymentForm, SupplierPaymentForm } from '@/features/accounts/components/PaymentForms';
 import { LedgerPanel } from '@/features/accounts/components/LedgerPanel';
 import { AccountsOverviewPanel } from '@/features/accounts/components/AccountsOverviewPanel';
@@ -6,7 +6,8 @@ import { AccountsPartyCard } from '@/features/accounts/components/AccountsPartyC
 import { AccountsLedgerCard } from '@/features/accounts/components/AccountsLedgerCard';
 import { AccountsLedgerActions } from '@/features/accounts/components/AccountsLedgerActions';
 import { useAccountsWorkspaceController } from '@/features/accounts/hooks/useAccountsWorkspaceController';
-import { useHasAnyPermission } from '@/hooks/usePermission';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
+import type { Customer, Supplier } from '@/types/domain';
 
 export function AccountsWorkspace() {
   const controller = useAccountsWorkspaceController();
@@ -14,10 +15,6 @@ export function AccountsWorkspace() {
   const canManageCustomers = useHasAnyPermission('customers');
   const canManageSuppliers = useHasAnyPermission('suppliers');
   const canPrint = useHasAnyPermission('canPrint');
-
-  // Regression markers retained for source-based tests:
-  // invalidateAccountsDomain
-  // disabled={!selectedCustomerId || !canPrint}
 
   return (
     <div className="page-stack page-shell accounts-workspace">
@@ -67,7 +64,7 @@ export function AccountsWorkspace() {
             title="كشف حساب عميل"
             value={controller.selectedCustomerId}
             onChange={controller.setSelectedCustomerId}
-            options={controller.customerBalanceOptions}
+            options={controller.customerBalanceOptions as Customer[]}
             emptyLabel="اختر العميل"
             entries={controller.customerEntries}
             search={controller.customerLedgerSearch}
@@ -105,7 +102,7 @@ export function AccountsWorkspace() {
             title="كشف حساب مورد"
             value={controller.selectedSupplierId}
             onChange={controller.setSelectedSupplierId}
-            options={controller.suppliers}
+            options={controller.suppliers as Supplier[]}
             emptyLabel="اختر المورد"
             entries={controller.supplierEntries}
             search={controller.supplierLedgerSearch}
@@ -121,15 +118,15 @@ export function AccountsWorkspace() {
       <div className="two-column-grid">
         <AccountsPartyCard
           title="تحصيل من عميل"
-          description="اختر العميل أولًا ثم سجل التحصيل أو أضفه سريعًا من نفس البطاقة."
+          description="اختر العميل أولًا ثم سجل التحصيل على العملاء الذين لديهم رصيد مستحق."
           badge="تحصيل"
           isLoading={controller.customersQuery.isLoading}
           isError={controller.customersQuery.isError}
           error={controller.customersQuery.error}
-          isEmpty={!controller.customers.length}
+          isEmpty={!controller.collectableCustomers.length}
           loadingText="جاري تحميل العملاء..."
-          emptyTitle="لا يوجد عملاء"
-          emptyHint="أضف عميلًا أولًا قبل تسجيل التحصيل."
+          emptyTitle="لا يوجد عملاء عليهم رصيد حاليًا"
+          emptyHint="سيظهر العملاء هنا بمجرد وجود رصيد مستحق للتحصيل."
           quickLabel="إضافة عميل سريع"
           quickName={controller.quickCustomerName}
           onQuickNameChange={controller.setQuickCustomerName}
@@ -141,20 +138,20 @@ export function AccountsWorkspace() {
           quickSubmitLabel="إضافة العميل فورًا"
           permissionHint="هذا الحساب لا يملك صلاحية إنشاء عميل جديد من شاشة الحسابات."
         >
-          <CustomerPaymentForm customers={controller.customers} activeCustomerId={controller.selectedCustomerId} disabled={!canManageAccounts} />
+          <CustomerPaymentForm customers={controller.collectableCustomers as Customer[]} activeCustomerId={controller.selectedCustomerId} disabled={!canManageAccounts} />
         </AccountsPartyCard>
 
         <AccountsPartyCard
           title="دفع لمورد"
-          description="اختر المورد أولًا ثم سجل الدفع أو أضفه سريعًا من نفس البطاقة."
+          description="اختر المورد أولًا ثم سجل الدفع على الموردين الذين لهم رصيد مستحق."
           badge="دفع"
           isLoading={controller.suppliersQuery.isLoading}
           isError={controller.suppliersQuery.isError}
           error={controller.suppliersQuery.error}
-          isEmpty={!controller.suppliers.length}
+          isEmpty={!controller.payableSuppliers.length}
           loadingText="جاري تحميل الموردين..."
-          emptyTitle="لا يوجد موردون"
-          emptyHint="أضف موردًا أولًا قبل تسجيل الدفع."
+          emptyTitle="لا يوجد موردون عليهم رصيد حاليًا"
+          emptyHint="سيظهر الموردون هنا بمجرد وجود رصيد مستحق للسداد."
           quickLabel="إضافة مورد سريع"
           quickName={controller.quickSupplierName}
           onQuickNameChange={controller.setQuickSupplierName}
@@ -166,7 +163,7 @@ export function AccountsWorkspace() {
           quickSubmitLabel="إضافة المورد فورًا"
           permissionHint="هذا الحساب لا يملك صلاحية إنشاء مورد جديد من شاشة الحسابات."
         >
-          <SupplierPaymentForm suppliers={controller.suppliers} activeSupplierId={controller.selectedSupplierId} disabled={!canManageAccounts} />
+          <SupplierPaymentForm suppliers={controller.payableSuppliers as Supplier[]} activeSupplierId={controller.selectedSupplierId} disabled={!canManageAccounts} />
         </AccountsPartyCard>
       </div>
     </div>

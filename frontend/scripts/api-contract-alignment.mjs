@@ -4,7 +4,7 @@ import path from 'node:path';
 const frontendRoot = path.resolve(process.cwd());
 const repoRoot = path.resolve(frontendRoot, '..');
 const featuresDir = path.join(frontendRoot, 'src', 'features');
-const backendDir = path.join(repoRoot, 'src');
+const backendDir = path.join(repoRoot, 'backend', 'src');
 
 function walk(dir, matcher) {
   const files = [];
@@ -14,6 +14,11 @@ function walk(dir, matcher) {
     else if (matcher(full)) files.push(full);
   }
   return files;
+}
+
+function normalizePath(prefix, route) {
+  const joined = `/${[prefix, route].filter(Boolean).join('/')}`.replace(/\/+/g, '/');
+  return joined.replace(/\/:(\w+)/g, '/:$1').replace(/\/$/, '') || '/';
 }
 
 function readContracts() {
@@ -30,13 +35,15 @@ function readContracts() {
 }
 
 function readBackendRoutes() {
-  const files = walk(backendDir, (file) => file.endsWith('.js'));
+  const files = walk(backendDir, (file) => file.endsWith('.controller.ts'));
   const routes = [];
-  const pattern = /app\.(get|post|put|delete)\(\s*['"]([^'"]+)['"]/g;
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
-    for (const match of source.matchAll(pattern)) {
-      routes.push({ file: path.relative(repoRoot, file), method: match[1].toUpperCase(), path: match[2] });
+    const controllerMatch = source.match(/@Controller\(\s*['"]([^'"]*)['"]\s*\)/);
+    const prefix = controllerMatch?.[1] || '';
+    const routePattern = /@(Get|Post|Put|Delete)\(\s*['"]([^'"]*)['"]\s*\)/g;
+    for (const match of source.matchAll(routePattern)) {
+      routes.push({ file: path.relative(repoRoot, file), method: match[1].toUpperCase(), path: normalizePath(prefix, match[2]) });
     }
   }
   return routes;

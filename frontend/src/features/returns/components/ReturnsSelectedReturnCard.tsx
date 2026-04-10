@@ -1,6 +1,6 @@
-import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Button } from '@/components/ui/Button';
+import { Card } from '@/shared/ui/card';
+import { EmptyState } from '@/shared/ui/empty-state';
+import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { getReturnDateValue, returnTypeLabel } from '@/features/returns/lib/returns-workspace.helpers';
 import type { ReturnRecord } from '@/types/domain';

@@ -7,17 +7,18 @@ const src = path.join(root, 'src');
 const requiredFiles = [
   'app/router/root-router.tsx',
   'app/router/registry.ts',
-  'components/layout/AppShell.tsx',
-  'components/system/AppErrorBoundary.tsx',
-  'components/shared/QueryFeedback.tsx',
-  'components/shared/MutationFeedback.tsx',
-  'components/shared/SubmitButton.tsx',
+  'shared/layout/app-shell.tsx',
+  'shared/system/app-error-boundary.tsx',
+  'shared/components/query-feedback.tsx',
+  'shared/components/mutation-feedback.tsx',
+  'shared/components/submit-button.tsx',
   'lib/errors.ts'
 ];
 
 const routes = [
-  'dashboard', 'products', 'sales', 'pos', 'purchases', 'inventory',
-  'customers', 'suppliers', 'accounts', 'reports', 'settings'
+  'dashboard', 'products', 'sales', 'pos', 'cash-drawer', 'purchases', 'inventory',
+  'customers', 'suppliers', 'accounts', 'returns', 'reports', 'audit', 'treasury',
+  'services', 'settings'
 ];
 
 const failures = [];

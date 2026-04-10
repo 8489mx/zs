@@ -1,6 +1,6 @@
 import type { ProductUnit } from '@/types/domain';
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
 
 const UNIT_PRESETS = ['قطعة', 'علبة', 'كرتونة', 'باكيت', 'زجاجة', 'شريط', 'كيلو', 'جرام', 'لتر', 'متر', 'دستة', 'زوج'];
 

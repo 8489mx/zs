@@ -1,12 +1,35 @@
-import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation, useNavigate } from 'react-router-dom';
 import { createLazyRoute } from '@/app/router/lazy-route';
-import { AppShell } from '@/components/layout/AppShell';
-import { AppErrorBoundary } from '@/components/system/AppErrorBoundary';
+import { AppShell } from '@/shared/layout/app-shell';
+import { AppErrorBoundary } from '@/shared/system/app-error-boundary';
+import { Button } from '@/shared/ui/button';
 import { useBootstrapAuth } from '@/features/auth/useBootstrapAuth';
 import { useAuthStore } from '@/stores/auth-store';
 import { appRoutes, navigationItems } from '@/app/router/registry';
-import { canAccessPath, getFirstAccessibleRoute } from '@/app/router/access';
+import { canAccessPath, findFirstAccessibleRoute } from '@/app/router/access';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
+
+function NoWorkspaceAccess() {
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const navigate = useNavigate();
+
+  function handleExit() {
+    clearSession();
+    navigate('/login?reason=signed-out', { replace: true });
+  }
+
+  return (
+    <div className="screen-center">
+      <div className="loading-card stack gap-12" style={{ maxWidth: 420, textAlign: 'center' }}>
+        <h2 style={{ margin: 0 }}>لا توجد صلاحيات مفعّلة لهذا الحساب</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          لا يمكن فتح أي مساحة عمل حاليًا. راجع مسؤول النظام لتفعيل صلاحيات مناسبة لهذا المستخدم.
+        </p>
+        <Button type="button" variant="secondary" onClick={handleExit}>تسجيل الخروج</Button>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedLayout() {
   const { initialized, user } = useAuthStore();
@@ -21,8 +44,13 @@ function ProtectedLayout() {
     return <Navigate to="/login" replace />;
   }
 
+  const firstAccessibleRoute = findFirstAccessibleRoute(user, navigationItems);
+
   if (!canAccessPath(user, location.pathname)) {
-    return <Navigate to={getFirstAccessibleRoute(user, navigationItems)} replace />;
+    if (!firstAccessibleRoute) {
+      return <NoWorkspaceAccess />;
+    }
+    return <Navigate to={firstAccessibleRoute} replace />;
   }
 
   if (location.pathname === '/') {

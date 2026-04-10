@@ -1,7 +1,7 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { QueryFeedback } from '@/shared/components/query-feedback';
 import { formatCurrency } from '@/lib/format';
 import { InventoryStatusFilterField } from '@/features/inventory/components/InventoryStatusFilter';
 import { InventoryTable } from '@/features/inventory/components/InventoryTable';

@@ -1,5 +1,5 @@
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { Button } from '@/components/ui/Button';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { Button } from '@/shared/ui/button';
 
 export function ReferenceSearchToolbar({ search, onSearchChange, title, searchPlaceholder, countLabel, metaItems, filterValue, filterOptions, onFilterChange, onReset }: {
   search: string;

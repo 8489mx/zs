@@ -1,8 +1,9 @@
-import { PageHeader } from '@/components/shared/PageHeader';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
-import { LoadingState } from '@/components/ui/LoadingState';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { CompactFirstRunSetupPrompt } from '@/components/system/CompactFirstRunSetupPrompt';
+import { PageHeader } from '@/shared/components/page-header';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
+import { LoadingState } from '@/shared/ui/loading-state';
+import { ErrorState } from '@/shared/ui/error-state';
+import { CompactFirstRunSetupPrompt } from '@/shared/system/compact-first-run-setup-prompt';
+import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { DashboardHeroSection } from '@/features/dashboard/components/DashboardHeroSection';
 import { DashboardMetricsSection } from '@/features/dashboard/components/DashboardMetricsSection';
@@ -64,6 +65,7 @@ export function DashboardPage() {
       />
 
       <CompactFirstRunSetupPrompt />
+      <FirstRunSetupChecklist />
       <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في الرئيسية" />
 
       <DashboardHeroSection

@@ -5,7 +5,7 @@ const srcRoot = path.resolve('src');
 const featuresRoot = path.join(srcRoot, 'features');
 const forbidden = [
   "@/services/api/catalog",
-  "@/hooks/useCatalogQueries"
+  "@/hooks/use-catalog-queries"
 ];
 
 const violations = [];

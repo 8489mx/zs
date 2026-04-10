@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/Button';
-import { DataTable } from '@/components/ui/DataTable';
+import { Button } from '@/shared/ui/button';
+import { DataTable } from '@/shared/ui/data-table';
 import type { Purchase } from '@/types/domain';
 import { getPurchaseColumns } from '@/features/purchases/utils/purchases-mappers';
 

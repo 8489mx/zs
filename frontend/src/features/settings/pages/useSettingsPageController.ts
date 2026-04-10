@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
-import { useHasAnyPermission } from '@/hooks/usePermission';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { useSettingsAdminWorkspace } from '@/features/settings/hooks/useSettingsAdminWorkspace';
 import { useDeleteBranchMutation, useDeleteLocationMutation, useUpdateBranchMutation, useUpdateLocationMutation } from '@/features/settings/hooks/useSettingsMutations';
 import { useFirstRunSetupFlow } from '@/features/settings/hooks/useFirstRunSetupFlow';

@@ -1,8 +1,9 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import { SupplierForm } from '@/features/suppliers/components/SupplierForm';
 import { SupplierEditorCard } from '@/features/suppliers/components/SupplierEditorCard';
@@ -11,11 +12,17 @@ import { useSuppliersPageController } from '@/features/suppliers/pages/suppliers
 
 export function SuppliersPage() {
   const controller = useSuppliersPageController();
+  const stats = [
+    { key: 'suppliers', label: 'عدد الموردين', value: controller.summary?.totalSuppliers || 0 },
+    { key: 'balance', label: 'إجمالي الأرصدة', value: formatCurrency(controller.totalBalance) },
+    { key: 'notes', label: 'عليهم ملاحظات', value: controller.withNotes },
+    { key: 'matched', label: 'مطابقون للبحث', value: controller.summary?.totalSuppliers || 0 },
+  ] as const;
 
   return (
     <div className="page-stack page-shell">
       <PageHeader title="الموردون" description="ابدأ بسجل الموردين والبحث ثم انتقل للتعديل أو الإضافة حسب المورد الذي تعمل عليه." badge={<span className="nav-pill">{controller.summary?.totalSuppliers || 0} مورد</span>} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetSuppliersView}>إعادة الضبط</Button><Button variant="secondary" onClick={controller.exportSuppliersCsv} disabled={!controller.summary?.totalSuppliers}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.copySuppliersSummary()} disabled={!controller.summary?.totalSuppliers}>نسخ الملخص</Button><Button variant="secondary" onClick={controller.printSuppliersRegister} disabled={!controller.summary?.totalSuppliers || !controller.canPrint}>طباعة السجل</Button></div>} />
-      <div className="stats-grid compact-grid"><div className="stat-card"><span>عدد الموردين</span><strong>{controller.summary?.totalSuppliers || 0}</strong></div><div className="stat-card"><span>إجمالي الأرصدة</span><strong>{formatCurrency(controller.totalBalance)}</strong></div><div className="stat-card"><span>عليهم ملاحظات</span><strong>{controller.withNotes}</strong></div><div className="stat-card"><span>مطابقون للبحث</span><strong>{controller.summary?.totalSuppliers || 0}</strong></div></div>
+      <StatsGrid items={stats} />
 
       <SpotlightCardStrip cards={controller.supplierGuidanceCards} ariaLabel="إرشاد سريع لشاشة الموردين" />
 

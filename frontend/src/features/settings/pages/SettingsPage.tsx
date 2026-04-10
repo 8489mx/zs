@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { SettingsSectionContent } from '@/features/settings/pages/SettingsSectionContent';
 import { isSettingsSection, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import { downloadJsonFile } from '@/lib/browser';

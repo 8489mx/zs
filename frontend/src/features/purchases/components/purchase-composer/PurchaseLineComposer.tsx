@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
 import type { Product } from '@/types/domain';
 
 export function PurchaseLineComposer({ products, lineProductId, lineQty, lineCost, lineError, isPending, onProductChange, onQtyChange, onCostChange, onAddItem }: {

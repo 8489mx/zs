@@ -10,7 +10,7 @@ import {
   getPurchasesNextStep,
   getPurchasesViewFilterLabel,
 } from '@/features/purchases/lib/purchases-workspace.helpers';
-import { useHasAnyPermission } from '@/hooks/usePermission';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { Purchase } from '@/types/domain';
 
 export function usePurchasesWorkspaceController() {

@@ -1,13 +1,38 @@
 import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/empty-state';
 import { parseCsvRows } from '@/lib/browser';
 
-function normalizeHeader(value: string) {
+export function normalizeHeader(value: string) {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
 }
 
 type CsvRow = Record<string, string>;
+
+
+export function summarizeImportResult(result: unknown, rowCount: number, fileName: string): { kind: 'success' | 'warning'; text: string } {
+  const payload = (result && typeof result === 'object' ? result : {}) as Record<string, unknown>;
+  const inserted = Number(payload.inserted || 0);
+  const updated = Number(payload.updated || 0);
+  const warnings = Array.isArray(payload.warnings)
+    ? payload.warnings.map((entry) => String(entry || '').trim()).filter(Boolean)
+    : [];
+
+  const summaryParts: string[] = [];
+  if (inserted > 0) summaryParts.push(`إضافة ${inserted}`);
+  if (updated > 0) summaryParts.push(`تحديث ${updated}`);
+  if (!summaryParts.length) summaryParts.push(`معالجة ${rowCount}`);
+
+  const baseText = `تمت العملية بنجاح (${summaryParts.join('، ')}) من ${fileName || 'الملف المحدد'}.`;
+  if (!warnings.length) {
+    return { kind: 'success', text: baseText };
+  }
+
+  return {
+    kind: 'warning',
+    text: `${baseText} تحذيرات: ${warnings.join(' ')}`,
+  };
+}
 
 interface ImportWorkbenchProps {
   title: string;
@@ -22,7 +47,7 @@ export function ImportWorkbench({ title, description = '', requiredColumns, onDo
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [status, setStatus] = useState<{ kind: 'success' | 'error' | ''; text: string }>({ kind: '', text: '' });
+  const [status, setStatus] = useState<{ kind: 'success' | 'warning' | 'error' | ''; text: string }>({ kind: '', text: '' });
 
   const normalizedHeaderMap = useMemo(() => {
     return headers.reduce<Record<string, string>>((acc, header) => {
@@ -72,8 +97,8 @@ export function ImportWorkbench({ title, description = '', requiredColumns, onDo
     try {
       if (!rows.length) throw new Error('اختر ملف CSV أولًا.');
       if (missingColumns.length) throw new Error(`الأعمدة المطلوبة غير موجودة: ${missingColumns.join('، ')}`);
-      await onImportRows(rows);
-      setStatus({ kind: 'success', text: `تم استيراد ${rows.length} صف من ${fileName || 'الملف المحدد'} بنجاح.` });
+      const result = await onImportRows(rows);
+      setStatus(summarizeImportResult(result, rows.length, fileName || 'الملف المحدد'));
     } catch (error) {
       setStatus({ kind: 'error', text: error instanceof Error ? error.message : 'تعذر استيراد الملف.' });
     }
@@ -89,7 +114,15 @@ export function ImportWorkbench({ title, description = '', requiredColumns, onDo
       <div className="inline-create-grid">
         <div className="field">
           <span>ملف CSV</span>
-          <input type="file" accept=".csv,text/csv" onChange={async (event) => { await handleFileSelect(event.target.files?.[0]); event.currentTarget.value = ''; }} />
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={async (event) => {
+              const input = event.currentTarget;
+              await handleFileSelect(input.files?.[0]);
+              input.value = '';
+            }}
+          />
         </div>
         <div className="field">
           <span>الأعمدة المطلوبة</span>
@@ -105,7 +138,7 @@ export function ImportWorkbench({ title, description = '', requiredColumns, onDo
 
       {missingColumns.length ? <div className="warning-box">الأعمدة الناقصة: {missingColumns.join('، ')}</div> : null}
       {rowIssueCount ? <div className="warning-box">يوجد {rowIssueCount} صف يفتقد قيمة واحدة أو أكثر من الحقول المطلوبة.</div> : null}
-      {status.text ? <div className={status.kind === 'error' ? 'warning-box' : 'success-box'}>{status.text}</div> : null}
+      {status.text ? <div className={status.kind === 'error' || status.kind === 'warning' ? 'warning-box' : 'success-box'}>{status.text}</div> : null}
 
       {previewRows.length ? (
         <div className="table-wrap import-preview-table">

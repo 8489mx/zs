@@ -19,8 +19,8 @@ export function useCreateExpenseMutation(onSuccess?: () => void) {
       amount: Number(payload.amount || 0),
       note: payload.note,
       date: new Date(payload.date).toISOString(),
-      branchId: payload.branchId || '',
-      locationId: payload.locationId || ''
+      ...(payload.branchId ? { branchId: Number(payload.branchId) } : {}),
+      ...(payload.locationId ? { locationId: Number(payload.locationId) } : {}),
     }),
     onSuccess: async () => {
       await Promise.all([

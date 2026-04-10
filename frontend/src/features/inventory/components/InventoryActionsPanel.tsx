@@ -1,12 +1,12 @@
 import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Card } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { SubmitButton } from '@/components/shared/SubmitButton';
+import { Card } from '@/shared/ui/card';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { QueryFeedback } from '@/shared/components/query-feedback';
+import { SubmitButton } from '@/shared/components/submit-button';
 import type { Branch, Location, Product } from '@/types/domain';
 import { useDamagedStockMutation, useInventoryAdjustmentMutation } from '@/features/inventory/hooks/useInventoryMutations';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';

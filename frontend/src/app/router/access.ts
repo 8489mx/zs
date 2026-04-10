@@ -77,7 +77,10 @@ export function canAccessNavigationItem(user: AuthUser | null | undefined, item:
   return hasAnyPermission(user, getRoutePermissionRequirement(item.key || item.to));
 }
 
+export function findFirstAccessibleRoute(user: AuthUser | null | undefined, navigationItems: NavigationItemDefinition[]) {
+  return navigationItems.find((item) => canAccessNavigationItem(user, item))?.to ?? null;
+}
+
 export function getFirstAccessibleRoute(user: AuthUser | null | undefined, navigationItems: NavigationItemDefinition[]) {
-  const firstAccessible = navigationItems.find((item) => canAccessNavigationItem(user, item));
-  return firstAccessible?.to || '/';
+  return findFirstAccessibleRoute(user, navigationItems) || '/';
 }

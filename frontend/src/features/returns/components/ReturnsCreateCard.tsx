@@ -1,8 +1,8 @@
-import { Card } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { SubmitButton } from '@/components/shared/SubmitButton';
+import { Card } from '@/shared/ui/card';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { SubmitButton } from '@/shared/components/submit-button';
 import { ReturnsInvoiceItemsTable } from '@/features/returns/components/ReturnsInvoiceItemsTable';
 import type { ReturnFormState } from '@/features/returns/lib/returns-workspace.helpers';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';

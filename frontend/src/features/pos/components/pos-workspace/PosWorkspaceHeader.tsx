@@ -1,5 +1,5 @@
-import { PageHeader } from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
 export function PosWorkspaceHeader({ pos }: { pos: PosWorkspaceState }) {

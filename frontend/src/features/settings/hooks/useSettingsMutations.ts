@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateSettingsReferenceDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import { settingsApi } from '@/features/settings/api/settings.api';
+import { useAuthStore } from '@/stores/auth-store';
 import { buildBranchPayload, buildLocationPayload, buildSettingsUpdatePayload } from '@/features/settings/contracts';
 import type { AppSettings } from '@/types/domain';
 import type { BranchFormOutput, LocationFormOutput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
@@ -12,9 +13,14 @@ export type LocationFormValues = LocationFormOutput;
 
 export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSuccessCallback?: () => void) {
   const queryClient = useQueryClient();
+  const updateSessionMeta = useAuthStore((state) => state.updateSessionMeta);
   return useMutation({
     mutationFn: (values: SettingsFormValues) => settingsApi.update(buildSettingsUpdatePayload(currentSettings, values)),
-    onSuccess: async () => {
+    onSuccess: async (updatedSettings) => {
+      updateSessionMeta({
+        storeName: typeof updatedSettings?.storeName === 'string' ? updatedSettings.storeName : undefined,
+        theme: typeof updatedSettings?.theme === 'string' ? updatedSettings.theme : undefined,
+      });
       await queryClient.invalidateQueries({ queryKey: queryKeys.settings });
       onSuccessCallback?.();
     }

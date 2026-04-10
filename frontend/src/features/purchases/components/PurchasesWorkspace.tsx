@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/Button';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PurchaseComposer } from '@/features/purchases/components/PurchaseComposer';
 import { PurchaseDetailCard } from '@/features/purchases/components/PurchaseDetailCard';
 import { PurchaseEditDialog } from '@/features/purchases/components/PurchaseEditDialog';

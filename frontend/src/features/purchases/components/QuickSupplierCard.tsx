@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
+import { Card } from '@/shared/ui/card';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { queryKeys } from '@/app/query-keys';
 import { catalogApi } from '@/lib/api/catalog';
 

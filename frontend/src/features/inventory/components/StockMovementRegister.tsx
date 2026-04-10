@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
-import { QueryFeedback } from '@/components/shared/QueryFeedback';
-import { SearchToolbar } from '@/components/shared/SearchToolbar';
-import { Button } from '@/components/ui/Button';
-import { DataTable } from '@/components/ui/DataTable';
+import { QueryFeedback } from '@/shared/components/query-feedback';
+import { SearchToolbar } from '@/shared/components/search-toolbar';
+import { Button } from '@/shared/ui/button';
+import { DataTable } from '@/shared/ui/data-table';
 import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatDate } from '@/lib/format';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';

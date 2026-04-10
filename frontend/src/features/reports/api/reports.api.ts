@@ -3,14 +3,41 @@ import { unwrapArray, unwrapByKey } from '@/lib/api/contracts';
 import type { Customer, InventoryReport, Product, ReportSummary } from '@/types/domain';
 import { buildQueryString } from '@/lib/query-string';
 
+export interface ReportInventoryLocationBreakdown {
+  locationId: string;
+  locationName: string;
+  branchId?: string;
+  branchName?: string;
+  qty: number;
+}
+
+export interface ReportInventoryLocationHighlight {
+  locationId: string;
+  locationName: string;
+  branchId?: string;
+  branchName?: string;
+  totalQty: number;
+  trackedProducts: number;
+  attentionItems: number;
+  lowStockItems: number;
+  outOfStockItems: number;
+}
+
 export interface ReportInventoryRow {
   id: string;
   name: string;
   category?: string;
   supplier?: string;
   stock: number;
+  stockQty?: number;
   minStock: number;
   status?: string;
+  topLocationName?: string;
+  topLocationQty?: number;
+  locationsLabel?: string;
+  assignedQty?: number;
+  unassignedQty?: number;
+  locations?: ReportInventoryLocationBreakdown[];
 }
 
 export interface ReportInventoryQueryParams {
@@ -28,7 +55,16 @@ export interface CustomerBalancesQueryParams {
 }
 
 interface ReportInventoryPageResponse {
-  items?: ReportInventoryRow[];
+  items?: Array<ReportInventoryRow & {
+    stockQty?: number;
+    stock?: number;
+    topLocationName?: string;
+    topLocationQty?: number;
+    locationsLabel?: string;
+    assignedQty?: number;
+    unassignedQty?: number;
+    locations?: ReportInventoryLocationBreakdown[];
+  }>;
   inventory?: InventoryReport;
   pagination?: {
     page: number;
@@ -43,7 +79,9 @@ interface ReportInventoryPageResponse {
     outOfStock: number;
     lowStock: number;
     healthy: number;
+    trackedLocations?: number;
   };
+  locationHighlights?: ReportInventoryLocationHighlight[];
 }
 
 interface CustomerBalancesPageResponse {
@@ -84,21 +122,36 @@ export const reportsApi = {
   inventory: async () => unwrapByKey<InventoryReport>(await http<InventoryReport | { inventory: InventoryReport }>('/api/reports/inventory'), 'inventory', {} as InventoryReport),
   inventoryPage: async (params: ReportInventoryQueryParams) => {
     const response = await http<ReportInventoryPageResponse>(`/api/reports/inventory${buildQueryString(params as Record<string, string | number | undefined | null>)}`);
+    const rows = Array.isArray(response.items)
+      ? response.items.map((item) => ({
+          ...item,
+          stock: Number(item.stock ?? item.stockQty ?? 0),
+          stockQty: Number(item.stockQty ?? item.stock ?? 0),
+          minStock: Number(item.minStock ?? 0),
+          topLocationQty: Number(item.topLocationQty ?? 0),
+          assignedQty: Number(item.assignedQty ?? 0),
+          unassignedQty: Number(item.unassignedQty ?? 0),
+          locationsLabel: item.locationsLabel || '',
+          locations: Array.isArray(item.locations) ? item.locations : [],
+        }))
+      : [];
     return {
-      rows: Array.isArray(response.items) ? response.items : [],
+      rows,
       pagination: response.pagination || {
         page: 1,
-        pageSize: Array.isArray(response.items) ? response.items.length || Number(params.pageSize || 10) : Number(params.pageSize || 10),
-        totalItems: Array.isArray(response.items) ? response.items.length : 0,
+        pageSize: rows.length || Number(params.pageSize || 10),
+        totalItems: rows.length,
         totalPages: 1,
-        rangeStart: Array.isArray(response.items) && response.items.length ? 1 : 0,
-        rangeEnd: Array.isArray(response.items) ? response.items.length : 0,
+        rangeStart: rows.length ? 1 : 0,
+        rangeEnd: rows.length,
       },
-      summary: response.summary || {
-        totalItems: Array.isArray(response.items) ? response.items.length : 0,
-        outOfStock: 0,
-        lowStock: 0,
-        healthy: 0,
+      summary: {
+        totalItems: Number(response.summary?.totalItems ?? rows.length),
+        outOfStock: Number(response.summary?.outOfStock ?? 0),
+        lowStock: Number(response.summary?.lowStock ?? 0),
+        healthy: Number(response.summary?.healthy ?? 0),
+        trackedLocations: Number(response.summary?.trackedLocations ?? 0),
+        locationHighlights: Array.isArray(response.locationHighlights) ? response.locationHighlights : [],
       },
     };
   },

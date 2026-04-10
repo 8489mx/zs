@@ -3,10 +3,11 @@ import { useQueries } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { referenceDataApi } from '@/services/reference-data.api';
 import { settingsApi } from '@/features/settings/api/settings.api';
+import { DEFAULT_STORE_NAME } from '@/config/app-defaults';
 import { useAuthStore } from '@/stores/auth-store';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
-export type SetupStepKey = 'store' | 'branch-location' | 'admin-user';
+export type SetupStepKey = 'store' | 'branch-location' | 'admin-user' | 'secure-account';
 export type SetupSectionKey = 'core' | 'reference' | 'users';
 
 export interface SetupFlowStep {
@@ -19,11 +20,16 @@ export interface SetupFlowStep {
   nextLabel: string;
 }
 
+function hasSecureBootstrapAccount(user: { usingDefaultAdminPassword?: boolean; mustChangePassword?: boolean } | null | undefined) {
+  if (!user) return false;
+  return user.usingDefaultAdminPassword !== true && user.mustChangePassword !== true;
+}
+
 export function useFirstRunSetupFlow() {
   const user = useAuthStore((state) => state.user);
   const sessionStoreName = useAuthStore((state) => state.storeName);
 
-  const enabled = user?.role === 'admin';
+  const enabled = user?.role === 'super_admin';
 
   const [branchesQuery, locationsQuery, usersQuery, settingsQuery] = useQueries({
     queries: [
@@ -41,7 +47,8 @@ export function useFirstRunSetupFlow() {
     const settings = settingsQuery.data;
     const operationalAdmins = users.filter((candidate) => candidate.isActive !== false && candidate.role === 'admin');
     const resolvedStoreName = String(settings?.storeName || sessionStoreName || '').trim();
-    const hasNamedStore = Boolean(resolvedStoreName && resolvedStoreName !== 'Z Systems');
+    const hasNamedStore = Boolean(resolvedStoreName && resolvedStoreName !== DEFAULT_STORE_NAME);
+    const secureBootstrapAccount = hasSecureBootstrapAccount(user);
 
     return [
       {
@@ -69,10 +76,19 @@ export function useFirstRunSetupFlow() {
         to: '/settings/users?setup=1',
         done: operationalAdmins.length > 0,
         ctaLabel: 'افتح إدارة المستخدمين',
+        nextLabel: 'الانتقال إلى تأمين حساب التثبيت'
+      },
+      {
+        key: 'secure-account',
+        title: 'تأمين حساب التثبيت',
+        section: 'users',
+        to: '/settings/users?setup=1',
+        done: secureBootstrapAccount,
+        ctaLabel: 'افتح حساب التثبيت',
         nextLabel: 'إنهاء التهيئة'
       }
     ];
-  }, [branchesQuery.data, locationsQuery.data, sessionStoreName, settingsQuery.data, usersQuery.data]);
+  }, [branchesQuery.data, locationsQuery.data, sessionStoreName, settingsQuery.data, user, usersQuery.data]);
 
   const currentStepIndex = steps.findIndex((step) => !step.done);
   const completedCount = steps.filter((step) => step.done).length;

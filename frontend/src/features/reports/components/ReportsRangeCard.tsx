@@ -1,6 +1,6 @@
-import { Card } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
+import { Card } from '@/shared/ui/card';
+import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
 import { fromDateTimeInputValue, toDateTimeInputValue } from '@/features/reports/lib/reports-format';
 
 export function ReportsRangeCard({

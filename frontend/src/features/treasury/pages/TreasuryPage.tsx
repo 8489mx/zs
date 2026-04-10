@@ -1,7 +1,7 @@
 // regression marker: طباعة النتائج
 // regression marker: المصروفات المطابقة
 import { useEffect, useMemo, useState } from 'react';
-import { PageHeader } from '@/components/shared/PageHeader';
+import { PageHeader } from '@/shared/components/page-header';
 import { formatCurrency } from '@/lib/format';
 import { useTreasuryPage } from '@/features/treasury/hooks/useTreasuryPage';
 import { useTreasuryPageActions } from '@/features/treasury/hooks/useTreasuryPageActions';

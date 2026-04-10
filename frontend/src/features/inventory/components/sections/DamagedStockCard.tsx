@@ -1,7 +1,7 @@
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { DataTable } from '@/components/ui/DataTable';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/empty-state';
+import { DataTable } from '@/shared/ui/data-table';
 import { formatDate } from '@/lib/format';
 import type { DamagedStockRecord } from '@/types/domain';
 

@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useMemo, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category, ProductUnit, Supplier } from '@/types/domain';
-import { Field } from '@/components/ui/Field';
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { SubmitButton } from '@/components/shared/SubmitButton';
+import { Field } from '@/shared/ui/field';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { SubmitButton } from '@/shared/components/submit-button';
+import { DraftStateNotice } from '@/shared/components/draft-state-notice';
+import { FormResetButton } from '@/shared/components/form-reset-button';
+import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
+import { useMutationFeedbackReset } from '@/shared/hooks/use-mutation-feedback-reset';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -19,6 +23,19 @@ interface ProductFormProps {
   onSupplierCreated?: (supplierId: string) => void;
 }
 
+const DEFAULT_VALUES: ProductFormInput = {
+  name: '',
+  barcode: '',
+  costPrice: 0,
+  retailPrice: 0,
+  wholesalePrice: 0,
+  stock: 0,
+  minStock: 5,
+  categoryId: '',
+  supplierId: '',
+  notes: ''
+};
+
 export function ProductForm({ categories, suppliers, onCategoryCreated, onSupplierCreated }: ProductFormProps) {
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(undefined, ''));
   const [inlineCategoryName, setInlineCategoryName] = useState('');
@@ -26,25 +43,30 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
   const [inlineSupplierPhone, setInlineSupplierPhone] = useState('');
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: {
-      name: '',
-      barcode: '',
-      costPrice: 0,
-      retailPrice: 0,
-      wholesalePrice: 0,
-      stock: 0,
-      minStock: 5,
-      categoryId: '',
-      supplierId: '',
-      notes: ''
-    }
+    defaultValues: DEFAULT_VALUES
   });
 
   const queryClient = useQueryClient();
   const mutation = useCreateProductMutation(() => {
-    form.reset();
+    form.reset(DEFAULT_VALUES);
     setUnits(normalizeProductUnits(undefined, ''));
+    setInlineCategoryName('');
+    setInlineSupplierName('');
+    setInlineSupplierPhone('');
   });
+
+  const watchedValues = useWatch({ control: form.control });
+  const watchedBarcode = form.watch('barcode');
+  const hasUnitsDraftChanges = useMemo(() => JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(undefined, (watchedBarcode || '').trim())), [units, watchedBarcode]);
+  const hasDraftChanges = form.formState.isDirty || hasUnitsDraftChanges || Boolean(inlineCategoryName.trim()) || Boolean(inlineSupplierName.trim()) || Boolean(inlineSupplierPhone.trim());
+
+  const productFeedbackResetKey = JSON.stringify([watchedValues, units, inlineCategoryName, inlineSupplierName, inlineSupplierPhone]);
+
+  useMutationFeedbackReset(
+    mutation.isSuccess || mutation.isError,
+    mutation.reset,
+    productFeedbackResetKey,
+  );
 
   useEffect(() => {
     const currentCategoryId = form.getValues('categoryId');
@@ -92,7 +114,19 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
     }
   });
 
-  const watchedBarcode = form.watch('barcode');
+  useMutationFeedbackReset(
+    categoryMutation.isSuccess || categoryMutation.isError,
+    categoryMutation.reset,
+    inlineCategoryName.trim(),
+  );
+
+  useMutationFeedbackReset(
+    supplierMutation.isSuccess || supplierMutation.isError,
+    supplierMutation.reset,
+    JSON.stringify([inlineSupplierName.trim(), inlineSupplierPhone.trim()]),
+  );
+
+  const canNavigateAway = useUnsavedChangesGuard(hasDraftChanges && !mutation.isPending && !categoryMutation.isPending && !supplierMutation.isPending);
 
   function handleUnitsChange(nextUnits: ProductUnit[]) {
     const baseBarcode = (watchedBarcode || '').trim();
@@ -103,8 +137,22 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
     setUnits(mapped);
   }
 
+  function handleReset() {
+    if (!hasDraftChanges) return;
+    if (!canNavigateAway()) return;
+    mutation.reset();
+    categoryMutation.reset();
+    supplierMutation.reset();
+    form.reset(DEFAULT_VALUES);
+    setUnits(normalizeProductUnits(undefined, ''));
+    setInlineCategoryName('');
+    setInlineSupplierName('');
+    setInlineSupplierPhone('');
+  }
+
   return (
     <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...values, units }))}>
+      <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="بيانات الصنف الحالي لم تُحفظ بعد" hint="يشمل ذلك الوحدات الجديدة أو الإضافة السريعة للقسم والمورد من نفس النموذج." />
       <div className="form-grid">
         <Field label="اسم الصنف" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
         <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
@@ -144,7 +192,10 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
       <MutationFeedback isError={supplierMutation.isError} error={supplierMutation.error} errorFallback="تعذر إضافة المورد" />
       <MutationFeedback isSuccess={supplierMutation.isSuccess} successText="تمت إضافة المورد وتحديده تلقائيًا." />
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الصنف" successText="تم حفظ الصنف بنجاح." />
-      <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ الصنف" pendingText="جارٍ الحفظ..." />
+      <div className="actions sticky-form-actions">
+        <FormResetButton onReset={handleReset} disabled={mutation.isPending || categoryMutation.isPending || supplierMutation.isPending || !hasDraftChanges}>تفريغ النموذج</FormResetButton>
+        <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ الصنف" pendingText="جارٍ الحفظ..." />
+      </div>
     </form>
   );
 }

@@ -13,8 +13,8 @@ const failures = [];
 for (const relativePath of targets) {
   const absolutePath = path.join(root, relativePath);
   const content = fs.readFileSync(absolutePath, 'utf8');
-  if (!content.includes('useUnsavedChangesGuard')) failures.push(`${relativePath}: missing useUnsavedChangesGuard`);
-  if (!content.includes('UnsavedChangesNotice')) failures.push(`${relativePath}: missing UnsavedChangesNotice`);
+  if (!content.includes('use-unsaved-changes-guard')) failures.push(`${relativePath}: missing useUnsavedChangesGuard`);
+  if (!content.includes('unsaved-changes-notice')) failures.push(`${relativePath}: missing UnsavedChangesNotice`);
 }
 
 if (failures.length) {

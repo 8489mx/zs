@@ -1,6 +1,6 @@
-import { MutationFeedback } from '@/components/shared/MutationFeedback';
-import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
+import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, Location } from '@/types/domain';
 

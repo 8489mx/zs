@@ -1,4 +1,4 @@
-import { QueryCard } from '@/components/shared/QueryCard';
+import { QueryCard } from '@/shared/components/query-card';
 import { BranchForm, LocationForm, SettingsMainForm } from '@/features/settings/components/SettingsForms';
 import type { Branch, Location, AppSettings } from '@/types/domain';
 import { SINGLE_STORE_MODE, SINGLE_STORE_LABEL } from '@/config/product-scope';

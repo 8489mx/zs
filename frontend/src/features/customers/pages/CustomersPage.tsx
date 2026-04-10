@@ -1,9 +1,10 @@
 // legacy marker: customersApi.listAll
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { SpotlightCardStrip } from '@/components/shared/SpotlightCardStrip';
-import { ActionConfirmDialog } from '@/components/shared/ActionConfirmDialog';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import { CustomerForm } from '@/features/customers/components/CustomerForm';
 import { CustomerEditorCard } from '@/features/customers/components/CustomerEditorCard';
@@ -12,11 +13,17 @@ import { useCustomersPageController } from '@/features/customers/pages/customers
 
 export function CustomersPage() {
   const controller = useCustomersPageController();
+  const stats = [
+    { key: 'customers', label: 'عدد العملاء', value: controller.summary?.totalCustomers || 0 },
+    { key: 'balance', label: 'إجمالي الأرصدة', value: formatCurrency(controller.totalBalance) },
+    { key: 'credit', label: 'إجمالي حدود الائتمان', value: formatCurrency(controller.totalCredit) },
+    { key: 'vip', label: 'عملاء VIP', value: controller.vipCount },
+  ] as const;
 
   return (
     <div className="page-stack page-shell">
       <PageHeader title="العملاء" description="ابدأ بالسجل والبحث ثم راجع العميل المحدد أو أضف عميلًا جديدًا من نفس الشاشة." badge={<span className="nav-pill">{controller.summary?.totalCustomers || 0} عميل</span>} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetCustomersView}>إعادة الضبط</Button><Button variant="secondary" onClick={controller.exportCustomersCsv} disabled={!controller.summary?.totalCustomers}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.copyCustomersSummary()} disabled={!controller.summary?.totalCustomers}>نسخ الملخص</Button><Button variant="secondary" onClick={controller.printCustomersRegister} disabled={!controller.rows.length || !controller.canPrint}>طباعة السجل</Button></div>} />
-      <div className="stats-grid compact-grid"><div className="stat-card"><span>عدد العملاء</span><strong>{controller.summary?.totalCustomers || 0}</strong></div><div className="stat-card"><span>إجمالي الأرصدة</span><strong>{formatCurrency(controller.totalBalance)}</strong></div><div className="stat-card"><span>إجمالي حدود الائتمان</span><strong>{formatCurrency(controller.totalCredit)}</strong></div><div className="stat-card"><span>عملاء VIP</span><strong>{controller.vipCount}</strong></div></div>
+      <StatsGrid items={stats} />
 
       <SpotlightCardStrip cards={controller.customerGuidanceCards} ariaLabel="إرشاد سريع لشاشة العملاء" />
 

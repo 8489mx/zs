@@ -1,4 +1,4 @@
-import { QueryCard } from '@/components/shared/QueryCard';
+import { QueryCard } from '@/shared/components/query-card';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { formatCurrency } from '@/lib/format';
 import type { ReportsSectionContentProps } from '@/features/reports/components/reports-section.types';
