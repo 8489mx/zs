@@ -23,20 +23,7 @@ export function PurchasesWorkspace() {
         actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetPurchasesView}>إعادة الضبط</Button><Button variant="secondary" onClick={() => void controller.copyPurchasesSummary()} disabled={!controller.totalItems}>نسخ الملخص</Button><Button variant="secondary" onClick={() => void controller.exportPurchasesCsv()} disabled={!controller.totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.printPurchasesRegister()} disabled={!controller.totalItems || !controller.canPrint}>طباعة السجل</Button></div>}
       />
 
-      <div className="two-column-grid workspace-grid-balanced purchases-composer-grid">
-        <PurchaseComposer
-          products={controller.purchaseCatalog.productsQuery.data || []}
-          suppliers={controller.purchaseCatalog.suppliersQuery.data || []}
-          branches={controller.purchaseCatalog.branchesQuery.data || []}
-          locations={controller.purchaseCatalog.locationsQuery.data || []}
-          settings={controller.purchaseCatalog.settingsQuery.data}
-          isCatalogLoading={controller.purchaseCatalog.isLoading}
-          isCatalogError={controller.purchaseCatalog.isError}
-          catalogError={controller.purchaseCatalog.error}
-        />
-        <QuickSupplierCard canManageSuppliers={controller.canManageSuppliers} />
-      </div>
-
+      
       <PurchasesOverviewSection
         purchaseGuidanceCards={controller.purchaseGuidanceCards}
         totalItems={controller.totalItems}
@@ -57,6 +44,21 @@ export function PurchasesWorkspace() {
         onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
         onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
       />
+
+      <div className="two-column-grid workspace-grid-balanced purchases-composer-grid">
+        <PurchaseComposer
+          products={controller.purchaseCatalog.productsQuery.data || []}
+          suppliers={controller.purchaseCatalog.suppliersQuery.data || []}
+          branches={controller.purchaseCatalog.branchesQuery.data || []}
+          locations={controller.purchaseCatalog.locationsQuery.data || []}
+          settings={controller.purchaseCatalog.settingsQuery.data}
+          isCatalogLoading={controller.purchaseCatalog.isLoading}
+          isCatalogError={controller.purchaseCatalog.isError}
+          catalogError={controller.purchaseCatalog.error}
+        />
+        <QuickSupplierCard canManageSuppliers={controller.canManageSuppliers} />
+      </div>
+
 
       <PurchaseEditDialog
         open={Boolean(controller.purchaseToEdit)}

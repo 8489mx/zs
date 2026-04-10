@@ -13,6 +13,7 @@ export async function invalidateCatalogDomain(
     includeSuppliers?: boolean;
     includeCategories?: boolean;
     includeCustomerBalances?: boolean;
+    includeSupplierBalances?: boolean;
   }
 ) {
   const {
@@ -21,6 +22,7 @@ export async function invalidateCatalogDomain(
     includeSuppliers = false,
     includeCategories = false,
     includeCustomerBalances = false,
+    includeSupplierBalances = false,
   } = options || {};
   const tasks = [];
   if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.products }));
@@ -28,6 +30,7 @@ export async function invalidateCatalogDomain(
   if (includeSuppliers) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.suppliers }));
   if (includeCategories) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.categories }));
   if (includeCustomerBalances) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }));
+  if (includeSupplierBalances) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances }));
   await Promise.all(tasks);
 }
 
@@ -56,6 +59,7 @@ export async function invalidateSalesDomain(
   const tasks = [
     queryClient.invalidateQueries({ queryKey: queryKeys.sales }),
     queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances }),
   ];
   if (saleId) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.saleDetail(saleId) }));
   if (includeDashboard) tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
@@ -76,7 +80,7 @@ export async function invalidatePurchasesDomain(
   if (includeDashboard) tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
   await Promise.all(tasks);
   await Promise.all([
-    invalidateCatalogDomain(queryClient, { includeProducts: true, includeSuppliers: true }),
+    invalidateCatalogDomain(queryClient, { includeProducts: true, includeSuppliers: true, includeSupplierBalances: true }),
     invalidateInventoryDomain(queryClient, { includeProducts: true, includeDashboard }),
   ]);
 }
@@ -87,7 +91,7 @@ export async function invalidateReturnsDomain(queryClient: QueryClient) {
     invalidateSalesDomain(queryClient),
     invalidatePurchasesDomain(queryClient),
     invalidateTreasuryDomain(queryClient),
-    invalidateCatalogDomain(queryClient, { includeProducts: true, includeCustomers: true, includeSuppliers: true, includeCustomerBalances: true }),
+    invalidateCatalogDomain(queryClient, { includeProducts: true, includeCustomers: true, includeSuppliers: true, includeCustomerBalances: true, includeSupplierBalances: true }),
   ]);
 }
 
@@ -104,6 +108,7 @@ export async function invalidateAccountsDomain(queryClient: QueryClient, activeC
     queryClient.invalidateQueries({ queryKey: queryKeys.customers }),
     queryClient.invalidateQueries({ queryKey: queryKeys.suppliers }),
     queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances }),
   ];
   if (activeCustomerId) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.customerLedger(activeCustomerId) }));
   if (activeSupplierId) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.supplierLedger(activeSupplierId) }));

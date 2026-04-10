@@ -1022,3 +1022,600 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.purchases-kpi-grid-five {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 12px;
+}
+
+.purchases-kpi-card {
+  min-height: 78px;
+  height: 78px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.purchases-kpi-card span {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.purchases-kpi-card strong {
+  margin-top: 6px;
+  font-size: 16px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1400px) {
+  .purchases-kpi-grid-five {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .purchases-kpi-grid-five {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+
+/* Purchases KPI cards compact desktop standard */
+.purchases-kpi-grid-five {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.purchases-kpi-card {
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 8px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+.purchases-kpi-card span {
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+}
+
+.purchases-kpi-card strong {
+  margin-top: 4px !important;
+  font-size: 15px !important;
+  line-height: 1.1 !important;
+}
+
+@media (max-width: 1400px) {
+  .purchases-kpi-grid-five {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .purchases-kpi-grid-five {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .purchases-kpi-card {
+    min-height: 58px !important;
+    height: 58px !important;
+  }
+}
+
+
+
+/* Purchases register cleanup */
+.purchases-register-card .section-description {
+  max-width: 520px;
+}
+
+.purchases-register-header-actions {
+  justify-content: flex-end;
+}
+
+.purchases-register-toolbar {
+  margin-bottom: 14px;
+}
+
+.purchases-register-toolbar .toolbar-stack {
+  padding: 14px;
+  gap: 12px;
+  border-radius: 20px;
+  background: #fbfdff;
+}
+
+.purchases-register-toolbar .toolbar-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.purchases-register-toolbar .toolbar-description {
+  line-height: 1.55;
+}
+
+.purchases-register-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.purchases-register-meta-grid .toolbar-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.purchases-filter-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.purchases-filter-row .button {
+  width: 100%;
+}
+
+.purchases-table-actions {
+  gap: 6px;
+}
+
+.purchases-table-actions .button {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.purchases-register-card .table-wrap {
+  border-radius: 16px;
+}
+
+.purchases-register-card th,
+.purchases-register-card td {
+  padding: 10px 12px;
+}
+
+.purchases-register-card th {
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .purchases-register-meta-grid,
+  .purchases-filter-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .purchases-register-toolbar .toolbar-heading,
+  .purchases-register-toolbar .toolbar-grid,
+  .purchases-register-toolbar .toolbar-extra,
+  .purchases-register-meta-grid,
+  .purchases-filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .purchases-register-card .section-title {
+    align-items: stretch;
+  }
+
+  .purchases-register-header-actions {
+    justify-content: flex-start;
+  }
+}
+
+
+/* Purchases register compact polish */
+.purchases-register-card {
+  gap: 12px;
+}
+
+.purchases-register-card .card-header {
+  margin-bottom: 6px;
+}
+
+.purchases-register-card .section-title h2,
+.purchases-register-card .card-title {
+  font-size: 15px;
+}
+
+.purchases-register-card .section-description,
+.purchases-register-card .card-description {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.purchases-register-header-actions .nav-pill,
+.purchases-register-card .nav-pill {
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.purchases-register-toolbar {
+  margin-bottom: 10px;
+}
+
+.purchases-register-toolbar .toolbar-stack {
+  padding: 12px;
+  gap: 10px;
+  border-radius: 18px;
+}
+
+.purchases-register-toolbar .toolbar-title,
+.purchases-register-toolbar .toolbar-heading h3,
+.purchases-register-toolbar .toolbar-heading .toolbar-title {
+  font-size: 14px;
+}
+
+.purchases-register-toolbar .toolbar-description {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.purchases-register-toolbar input,
+.purchases-register-toolbar select,
+.purchases-register-toolbar .input,
+.purchases-register-toolbar .select {
+  min-height: 38px;
+  font-size: 13px;
+}
+
+.purchases-register-meta-grid {
+  gap: 6px;
+}
+
+.purchases-register-meta-grid .toolbar-meta-pill {
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+
+.purchases-filter-row {
+  gap: 8px;
+}
+
+.purchases-filter-row .button,
+.purchases-filter-row button {
+  min-height: 38px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.purchases-register-card .table-wrap {
+  border-radius: 14px;
+}
+
+.purchases-register-card table {
+  font-size: 13px;
+}
+
+.purchases-register-card th,
+.purchases-register-card td {
+  padding: 8px 10px;
+}
+
+.purchases-register-card th {
+  font-size: 12px;
+}
+
+.purchases-table-actions {
+  gap: 5px;
+}
+
+.purchases-table-actions .button,
+.purchases-table-actions button {
+  min-height: 31px;
+  padding: 5px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.purchases-register-card .pagination-wrap,
+.purchases-register-card .pagination-controls {
+  margin-top: 8px;
+}
+
+.purchases-register-card .pagination-wrap .button,
+.purchases-register-card .pagination-controls .button,
+.purchases-register-card .pagination-wrap button,
+.purchases-register-card .pagination-controls button {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 12px;
+}
+
+.purchases-register-card .pagination-wrap select,
+.purchases-register-card .pagination-controls select {
+  min-height: 36px;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .purchases-register-card table {
+    font-size: 12px;
+  }
+
+  .purchases-filter-row .button,
+  .purchases-filter-row button {
+    min-height: 36px;
+    font-size: 12px;
+  }
+}
+
+
+/* Purchases page compact professional pass */
+.purchases-workspace {
+  gap: 14px;
+}
+
+.purchase-composer-card,
+.purchase-detail-card {
+  padding: 16px;
+}
+
+.purchase-composer-card .section-title,
+.purchase-detail-card .section-title {
+  margin-bottom: 12px;
+}
+
+.purchase-composer-card .section-title h3,
+.purchase-detail-card .section-title h3 {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.purchase-composer-card .nav-pill,
+.purchase-detail-card .nav-pill {
+  min-height: 26px;
+  padding: 4px 9px;
+  font-size: 11px;
+}
+
+.purchase-composer-card .field,
+.purchase-detail-card .field {
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.purchase-composer-card .field > span,
+.purchase-composer-card .field > label {
+  font-size: 12px;
+}
+
+.purchase-composer-card input,
+.purchase-composer-card select,
+.purchase-composer-card textarea {
+  min-height: 40px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.purchase-composer-card textarea {
+  min-height: 84px;
+}
+
+.purchase-composer-card .divider {
+  margin: 2px 0;
+}
+
+.purchase-composer-card .list-stack {
+  gap: 10px;
+}
+
+.purchase-composer-card .list-stack > strong {
+  font-size: 15px;
+}
+
+.purchase-composer-card .toolbar-grid {
+  gap: 10px;
+}
+
+.purchase-composer-card .list-row.stacked-row {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.purchase-composer-card .empty-state {
+  padding: 18px 14px;
+  border-radius: 14px;
+}
+
+.purchase-composer-card .empty-state strong {
+  font-size: 15px;
+}
+
+.purchase-composer-card .empty-state span {
+  font-size: 12px;
+}
+
+.purchase-composer-card .stats-grid.compact-grid {
+  gap: 10px;
+}
+
+.purchase-composer-card .stats-grid.compact-grid .stat-card,
+.purchase-detail-card .stats-grid.compact-grid .stat-card {
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+
+.purchase-composer-card .stats-grid.compact-grid .stat-card span,
+.purchase-detail-card .stats-grid.compact-grid .stat-card span {
+  font-size: 11px;
+}
+
+.purchase-composer-card .stats-grid.compact-grid .stat-card strong,
+.purchase-detail-card .stats-grid.compact-grid .stat-card strong {
+  margin-top: 6px;
+  font-size: 16px;
+}
+
+.purchase-composer-card .button,
+.purchase-composer-card button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.purchase-composer-card .sticky-form-actions {
+  gap: 8px;
+}
+
+.purchase-detail-card .actions.compact-actions .button,
+.purchase-detail-card .actions.compact-actions button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 11px;
+  font-size: 11px;
+}
+
+.purchase-detail-card .table-wrap {
+  margin-top: 10px !important;
+  border-radius: 14px;
+}
+
+.purchase-detail-card th,
+.purchase-detail-card td {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.purchases-register-card .filter-chip-row .button,
+.purchases-register-card .filter-chip-row button {
+  min-height: 34px;
+  padding: 6px 11px;
+  border-radius: 11px;
+  font-size: 12px;
+}
+
+.purchases-register-card .pagination-bar {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.purchases-register-card .pagination-count,
+.purchases-register-card .pagination-page-indicator,
+.purchases-register-card .pagination-page-size {
+  font-size: 12px;
+}
+
+.purchases-register-card .pagination-page-size select {
+  min-height: 32px;
+  min-width: 74px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.purchases-register-card .pagination-actions .button,
+.purchases-register-card .pagination-actions button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .purchase-composer-card,
+  .purchase-detail-card {
+    padding: 14px;
+  }
+
+  .purchase-composer-card input,
+  .purchase-composer-card select,
+  .purchase-composer-card textarea {
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  .purchase-composer-card textarea {
+    min-height: 76px;
+  }
+
+  .purchase-composer-card .stats-grid.compact-grid,
+  .purchase-detail-card .stats-grid.compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* Global unified KPI card standard based on purchases page */
+.stats-grid.compact-grid .stat-card,
+.sales-guidance-card,
+.sales-action-card,
+.inventory-spotlight-card {
+  border-radius: 18px;
+  padding: 12px 14px !important;
+  min-height: 54px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stats-grid.compact-grid .stat-card span,
+.sales-guidance-card span,
+.sales-action-card span,
+.inventory-spotlight-card span {
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-grid.compact-grid .stat-card strong,
+.sales-guidance-card strong,
+.sales-action-card strong,
+.inventory-spotlight-card strong {
+  margin-top: 4px !important;
+  font-size: 14px !important;
+  line-height: 1.1 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-spotlight-grid,
+.sales-guidance-grid,
+.sales-action-strip,
+.inventory-spotlight-grid {
+  gap: 14px;
+}
+
+@media (max-width: 1200px) {
+  .stats-grid.compact-grid .stat-card,
+  .sales-guidance-card,
+  .sales-action-card,
+  .inventory-spotlight-card {
+    min-height: 50px !important;
+    padding: 11px 12px !important;
+  }
+
+  .stats-grid.compact-grid .stat-card strong,
+  .sales-guidance-card strong,
+  .sales-action-card strong,
+  .inventory-spotlight-card strong {
+    font-size: 14px !important;
+  }
+}
+

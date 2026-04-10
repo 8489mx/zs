@@ -57,10 +57,22 @@ const BACKUP_TABLES: BackupTableName[] = [
   'audit_logs',
 ];
 
-const CLEAR_ORDER: BackupTableName[] = [...BACKUP_TABLES].reverse();
+const CLEAR_ORDER: (BackupTableName | 'services')[] = ['services', ...[...BACKUP_TABLES].reverse()];
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeRowForInsert(row: Record<string, unknown>): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (key.endsWith('_json') && typeof value !== 'string' && value !== null && value !== undefined) {
+      normalized[key] = JSON.stringify(value);
+      continue;
+    }
+    normalized[key] = value;
+  }
+  return normalized;
 }
 
 @Injectable()
@@ -154,14 +166,38 @@ export class SettingsBackupService {
     };
   }
 
-  private async resetIdentity(table: BackupTableName): Promise<void> {
+  private async tableHasId(trx: Kysely<Database>, table: string): Promise<boolean> {
+    const result = await sql<{ exists: boolean }>`
+      select exists (
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = ${table}
+          and column_name = 'id'
+      ) as exists
+    `.execute(trx);
+
+    return Boolean(result.rows[0]?.exists);
+  }
+
+  private async resetIdentity(trx: Kysely<Database>, table: string): Promise<void> {
+    const hasId = await this.tableHasId(trx, table);
+    if (!hasId) return;
+
+    const seqResult = await sql<{ seq_name: string | null }>`
+      select pg_get_serial_sequence(${table}, 'id') as seq_name
+    `.execute(trx).catch(() => ({ rows: [{ seq_name: null }] } as { rows: { seq_name: string | null }[] }));
+
+    const seqName = seqResult.rows[0]?.seq_name;
+    if (!seqName) return;
+
     await sql`
       select setval(
-        pg_get_serial_sequence(${table}, 'id'),
-        coalesce((select max(id) from ${sql.table(table)}), 1),
-        true
+        ${seqName},
+        coalesce((select max(id)::bigint from ${sql.table(table)}), 0) + 1,
+        false
       )
-    `.execute(this.db).catch(() => undefined);
+    `.execute(trx).catch(() => undefined);
   }
 
   async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> {
@@ -185,15 +221,9 @@ export class SettingsBackupService {
         if (!rows.length) continue;
         for (const row of rows) {
           if (!isObjectRecord(row)) continue;
-          await trx.insertInto(table).values(row as any).execute();
+          await trx.insertInto(table).values(normalizeRowForInsert(row) as any).execute();
         }
-        await sql`
-          select setval(
-            pg_get_serial_sequence(${table}, 'id'),
-            coalesce((select max(id) from ${sql.table(table)}), 1),
-            true
-          )
-        `.execute(trx).catch(() => undefined);
+        await this.resetIdentity(trx as unknown as Kysely<Database>, table);
       }
     });
 
@@ -202,7 +232,9 @@ export class SettingsBackupService {
       values (${`restore-${new Date().toISOString()}`}, ${'restore'}, ${JSON.stringify(envelope)}::jsonb)
     `.execute(this.db);
 
-    await this.audit.log('استعادة نسخة احتياطية', `تمت استعادة نسخة احتياطية بواسطة ${actor.username}`, actor.userId);
+    await this.audit
+      .log('استعادة نسخة احتياطية', `تمت استعادة نسخة احتياطية بواسطة ${actor.username}`, actor.userId)
+      .catch(() => undefined);
 
     return {
       ok: true,

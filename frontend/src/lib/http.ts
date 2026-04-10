@@ -15,6 +15,10 @@ export class ApiError extends Error {
 export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 const REQUEST_TIMEOUT_MS = 15_000;
+
+export interface HttpRequestOptions extends RequestInit {
+  timeoutMs?: number;
+}
 const RAW_API_BASE = import.meta.env?.VITE_API_BASE_URL?.trim();
 const CSRF_COOKIE_NAME = 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
@@ -124,9 +128,10 @@ function buildErrorMessage(payload: unknown, fallback: string) {
   return extractMessage(payload) || fallback;
 }
 
-function withTimeout(init?: RequestInit) {
+function withTimeout(init?: HttpRequestOptions) {
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutMs = typeof init?.timeoutMs === 'number' && init.timeoutMs > 0 ? init.timeoutMs : REQUEST_TIMEOUT_MS;
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
   if (init?.signal) {
     if (init.signal.aborted) {
@@ -183,7 +188,7 @@ export function resolveRequestUrl(path: string) {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
-export async function http<T>(path: string, init?: RequestInit): Promise<T> {
+export async function http<T>(path: string, init?: HttpRequestOptions): Promise<T> {
   const { signal, clear } = withTimeout(init);
 
   try {

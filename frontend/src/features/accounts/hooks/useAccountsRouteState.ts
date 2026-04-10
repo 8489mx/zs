@@ -13,6 +13,7 @@ export function useAccountsRouteState(
     const customers = queries.customersQuery.data || [];
     const suppliers = queries.suppliersQuery.data || [];
     const customerBalanceOptions = queries.customerBalancesQuery.data || [];
+    const supplierBalanceOptions = queries.supplierBalancesQuery.data || [];
     const customerEntries = queries.customerLedgerQuery.data?.entries || [];
     const supplierEntries = queries.supplierLedgerQuery.data?.entries || [];
 
@@ -21,6 +22,7 @@ export function useAccountsRouteState(
       suppliers,
       customerBalanceOptions,
       customerEntries,
+      supplierBalanceOptions,
       supplierEntries,
       customerLedgerSummary: queries.customerLedgerQuery.data?.summary || null,
       supplierLedgerSummary: queries.supplierLedgerQuery.data?.summary || null,
@@ -31,6 +33,7 @@ export function useAccountsRouteState(
     queries.customersQuery.data,
     queries.suppliersQuery.data,
     queries.customerBalancesQuery.data,
+    queries.supplierBalancesQuery.data,
     queries.customerLedgerQuery.data,
     queries.supplierLedgerQuery.data
   ]);
