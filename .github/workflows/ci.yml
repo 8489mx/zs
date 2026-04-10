@@ -40,7 +40,7 @@ jobs:
       DEFAULT_ADMIN_PASSWORD: OwnerBootstrap2026!
       SESSION_COOKIE_SECURE: 'false'
       SESSION_COOKIE_SAME_SITE: lax
-      SESSION_CSRF_SECRET: ci-csrf-secret
+      SESSION_CSRF_SECRET: ci-csrf-secret-0123456789
       ALLOW_SESSION_ID_HEADER: 'false'
       LOGIN_MAX_ATTEMPTS: 5
       LOGIN_LOCKOUT_MINUTES: 15
