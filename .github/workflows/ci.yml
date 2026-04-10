@@ -77,6 +77,7 @@ jobs:
       - name: Start backend for E2E
         run: |
           npm run migration:run
+          chmod +x ../scripts/wait-for-http.sh
           nohup npm start > /tmp/backend.log 2>&1 &
           bash ../scripts/wait-for-http.sh http://127.0.0.1:3001/health 90 2
         working-directory: backend
