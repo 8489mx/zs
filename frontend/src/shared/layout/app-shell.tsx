@@ -105,7 +105,6 @@ export function AppShell({ children }: PropsWithChildren) {
     const trimmed = String(storeName || '').trim();
     return trimmed || DEFAULT_STORE_NAME;
   }, [storeName]);
-  const isDefaultWorkspace = workspaceName === DEFAULT_STORE_NAME;
   const visibleNavigationItems = useMemo(() => {
     const hiddenKeys = new Set<string>([]);
     const preferredOrder = [
@@ -209,16 +208,18 @@ export function AppShell({ children }: PropsWithChildren) {
     }
   }
 
+  const cleanWorkspaceName = workspaceName.replace(/^\s*["'”“]+|["'”“]+\s*$/g, '').trim() || workspaceName;
+
   return (
     <div className="app-layout">
       <aside className="sidebar-fixed">
         <div className="brand">
-          <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
-          <div>
-            <div className="brand-title">{workspaceName}</div>
-            <div className="brand-sub">{isDefaultWorkspace ? 'نظام كاشير ومخزون لمتجر واحد' : 'تشغيل وإدارة الأعمال اليومية'}</div>
-            <div className="brand-sub muted">{isDefaultWorkspace ? 'سريع وواضح للاستخدام اليومي' : 'منصة Z Systems لإدارة المبيعات والمخزون'}</div>
+          <div className="brand-copy">
+            <div className="brand-title">{cleanWorkspaceName}</div>
+            <div className="brand-sub">منصة Z Systems</div>
+            <div className="brand-sub muted">لإدارة المبيعات والمخزون</div>
           </div>
+          <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
         </div>
         <nav className="sidebar-nav">
           {visibleNavigationItems.map((item) => {

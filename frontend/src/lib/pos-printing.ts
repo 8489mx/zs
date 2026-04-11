@@ -57,7 +57,7 @@ function getAdaptiveBrandFontSize(brandName: string, compact = false) {
 }
 
 function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = false) {
-  const { brandName, storeName } = resolveStoreIdentity(settings);
+  const { brandName } = resolveStoreIdentity(settings);
   const showLogo = getPrintOption(settings, 'printShowLogo', true);
   const showPhone = getPrintOption(settings, 'printShowPhone', true);
   const showAddress = getPrintOption(settings, 'printShowAddress', true);
@@ -71,7 +71,7 @@ function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = fal
     phone ? `<span>الهاتف: ${escapeHtml(phone)}</span>` : '',
     address ? `<span>العنوان: ${escapeHtml(address)}</span>` : '',
     taxNumber ? `<span>ض.م: ${escapeHtml(taxNumber)}</span>` : '',
-  ].filter(Boolean).join('<span class="dot">•</span>');
+  ].filter(Boolean).join(' ');
 
   const adaptiveBrandFontSize = getAdaptiveBrandFontSize(brandName, compact);
 
@@ -81,7 +81,6 @@ function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = fal
         ${logoData ? `<img class="invoice-logo" src="${escapeHtml(logoData)}" alt="شعار المتجر" />` : `<div class="invoice-logo-fallback">${escapeHtml(brandName.slice(0, 1).toUpperCase())}</div>`}
         <div class="invoice-brand-copy">
           <h2 title="${escapeHtml(brandName)}" style="font-size:${adaptiveBrandFontSize}">${escapeHtml(brandName)}</h2>
-          ${storeName && storeName !== brandName ? `<div class="store-subtitle">${escapeHtml(storeName)}</div>` : ''}
           ${details ? `<div class="store-inline-details">${details}</div>` : ''}
         </div>
       </div>
@@ -248,12 +247,6 @@ function getInvoiceStyles(compact = false) {
       white-space: nowrap;
       letter-spacing: -0.2px;
     }
-    .store-subtitle {
-      margin-top: 2px;
-      color: var(--print-muted);
-      font-size: ${compact ? '9.5px' : '11px'};
-      text-align: center;
-    }
     .store-inline-details {
       margin-top: ${compact ? '4px' : '6px'};
       color: var(--print-muted);
@@ -265,7 +258,6 @@ function getInvoiceStyles(compact = false) {
       justify-content: center;
       text-align: center;
     }
-    .store-inline-details .dot { opacity: .65; }
     .invoice-meta-panel { display: grid; gap: ${compact ? '1px' : '2px'}; }
     .meta-line {
       display: flex;
@@ -288,10 +280,17 @@ function getInvoiceStyles(compact = false) {
       font-size: ${compact ? '10px' : '12px'};
       border: 1px solid var(--print-border);
       text-align: center;
+      white-space: nowrap;
+      line-height: 1.15;
     }
-    .invoice-items-table .name-cell { text-align: right; }
+    .invoice-items-table .name-cell {
+      text-align: right;
+      white-space: normal;
+      width: 100%;
+    }
     .invoice-items-table.compact th,
-    .invoice-items-table.compact td { font-size: 9.5px; }
+    .invoice-items-table.compact td { font-size: 9px; }
+    .invoice-items-table.compact th { font-size: 8.5px; }
     .invoice-items-table.compact th:first-child,
     .invoice-items-table.compact td:first-child { text-align: right; }
     .invoice-payment-card .section-title {
