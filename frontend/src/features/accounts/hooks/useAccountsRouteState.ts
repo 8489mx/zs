@@ -23,7 +23,6 @@ export function useAccountsRouteState(
       customerBalanceOptions,
       supplierBalanceOptions,
       customerEntries,
-      supplierBalanceOptions,
       supplierEntries,
       customerLedgerSummary: queries.customerLedgerQuery.data?.summary || null,
       supplierLedgerSummary: queries.supplierLedgerQuery.data?.summary || null,
