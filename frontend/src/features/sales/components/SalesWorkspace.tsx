@@ -17,6 +17,7 @@ import {
   printSaleDocument,
 } from '@/features/sales/lib/sales-workspace.helpers';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Sale } from '@/types/domain';
 
 export function SalesWorkspace() {
@@ -30,6 +31,7 @@ export function SalesWorkspace() {
 
   const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter });
   const { saleDetailQuery, cancelMutation, updateMutation } = useSaleActions(selectedSaleId);
+  const settingsQuery = useSettingsQuery();
 
   const hasSellableProducts = availableProducts.length > 0;
   const canPrint = useHasAnyPermission('canPrint');
@@ -40,6 +42,7 @@ export function SalesWorkspace() {
   const topCustomers = summary?.topCustomers || [];
   const rangeStart = pagination?.rangeStart || 0;
   const rangeEnd = pagination?.rangeEnd || 0;
+  const printSettings = settingsQuery.data || null;
 
   useEffect(() => {
     setPage(1);
@@ -116,7 +119,7 @@ export function SalesWorkspace() {
           onCancelSale={setSaleToCancel}
           onExportCsv={exportSalesCsv}
           onPrintRegister={printSalesRegister}
-          onPrintSale={printSaleDocument}
+          onPrintSale={(sale) => printSaleDocument(sale, printSettings, 'receipt')}
           onPageChange={setPage}
           onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
         />
@@ -129,7 +132,7 @@ export function SalesWorkspace() {
           isLoading={saleDetailQuery.isLoading}
           onExportTopCustomers={exportTopCustomersCsv}
           onPrintTopCustomers={printTopCustomers}
-          onPrintSale={() => selectedSale ? printSaleDocument(selectedSale) : undefined}
+          onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, 'receipt') : undefined}
           onEditSale={() => selectedSale ? setSaleToEdit(selectedSale) : undefined}
           onCancelSale={() => selectedSale ? setSaleToCancel(selectedSale) : undefined}
         />
