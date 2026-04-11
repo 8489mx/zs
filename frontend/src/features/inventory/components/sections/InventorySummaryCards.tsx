@@ -21,7 +21,7 @@ export function InventoryOverviewStats({
   inventoryValue: number | null;
 }) {
   return (
-    <div className="stats-grid compact-grid workspace-stats-grid inventory-overview-grid">
+    <div className="stats-grid compact-grid workspace-stats-grid inventory-overview-grid inventory-overview-grid--compact">
       <div className="stat-card inventory-overview-card"><span>إجمالي الأصناف</span><strong>{total}</strong></div>
       <div className="stat-card inventory-overview-card is-danger"><span>نافد المخزون</span><strong>{outOfStock}</strong></div>
       <div className="stat-card inventory-overview-card is-warning"><span>منخفض المخزون</span><strong>{lowStock}</strong></div>
@@ -62,7 +62,7 @@ export function InventoryStatusCard({
   includeSensitivePricing?: boolean;
 }) {
   return (
-    <Card title="متابعة حالة الأصناف" description="فلترة سريعة ومراجعة مريحة للأصناف مع الحفاظ على واجهة موحدة بصريًا بين البحث والجداول والعمليات التشغيلية." actions={<span className="nav-pill">حالة الأصناف</span>}>
+    <Card title="متابعة حالة الأصناف" description="ابدأ هنا: فلتر سريع ثم راجع الجدول وحدد الصنف المحتاج متابعة." actions={<span className="nav-pill">حالة الأصناف</span>}>
       <div className="filter-chip-row">
         <Button type="button" variant={statusFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('all')}>الكل</Button>
         <Button type="button" variant={statusFilter === 'healthy' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('healthy')}>سليم</Button>

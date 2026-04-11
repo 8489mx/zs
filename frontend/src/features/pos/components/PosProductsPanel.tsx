@@ -62,9 +62,10 @@ export function PosProductsPanel({
               <Field label="بحث سريع">
                 <input
                   ref={searchInputRef}
+                  autoFocus
                   value={search}
                   onChange={(event) => onSearchChange(event.target.value)}
-                  placeholder="ابحث بالاسم أو الباركود"
+                  placeholder="اكتب اسم الصنف أو اضرب الباركود مباشرة"
                 />
               </Field>
 

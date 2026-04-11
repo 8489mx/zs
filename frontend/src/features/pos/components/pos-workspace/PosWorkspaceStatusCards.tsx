@@ -3,7 +3,7 @@ import { POS_SHORTCUTS, getStartupIssues, type PosWorkspaceState } from '@/featu
 
 export function PosWorkspaceQuickShortcuts() {
   return (
-    <Card className="pos-shortcuts-strip-card">
+    <Card className="pos-shortcuts-strip-card pos-secondary-tools-card">
       <div className="pos-shortcuts-inline-row">
         {POS_SHORTCUTS.map((shortcut) => (
           <div key={shortcut.key} className="pos-shortcut-inline-item">
