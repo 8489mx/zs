@@ -1,6 +1,8 @@
 const ERROR_CODE_MESSAGES: Record<string, string> = {
   INTERNAL_ERROR: 'حدث خطأ داخلي في الخادم.',
   VALIDATION_ERROR: 'البيانات المرسلة غير صحيحة.',
+  DAMAGE_NOTE_REQUIRED: 'لازم تكتب سبب في خانة الملاحظات.',
+  LOCATION_BRANCH_MISMATCH: 'الموقع المختار لا يتبع الفرع المحدد.',
   FORBIDDEN: 'غير مسموح بتنفيذ هذه العملية.',
   UNAUTHORIZED: 'غير مصرح لك بالوصول.',
   CUSTOMER_EXISTS: 'يوجد عميل بنفس الاسم بالفعل.',
@@ -133,13 +135,24 @@ function firstString(value: unknown): string | null {
 }
 
 export function translateErrorMessageFromCode(code?: string | null, fallbackMessage?: unknown, statusCode?: number): string {
+  const fallback = firstString(fallbackMessage);
+
+  if (code === 'VALIDATION_ERROR') {
+    if (fallback && fallback !== ERROR_CODE_MESSAGES.VALIDATION_ERROR) {
+      if (looksArabic(fallback)) return fallback;
+      const translated = translateKnownEnglishMessage(fallback);
+      if (translated && translated !== ERROR_CODE_MESSAGES.VALIDATION_ERROR) return translated;
+      return fallback;
+    }
+    return ERROR_CODE_MESSAGES.VALIDATION_ERROR;
+  }
+
   if (code) {
     if (ERROR_CODE_MESSAGES[code]) return ERROR_CODE_MESSAGES[code];
     const pattern = translateByCodePattern(code);
     if (pattern) return pattern;
   }
 
-  const fallback = firstString(fallbackMessage);
   if (fallback) {
     if (looksArabic(fallback)) return fallback;
     const translated = translateKnownEnglishMessage(fallback);

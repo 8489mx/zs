@@ -16,7 +16,7 @@ export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 const REQUEST_TIMEOUT_MS = 15_000;
 
-export interface HttpRequestOptions extends RequestInit {
+export interface HttpRequestInit extends RequestInit {
   timeoutMs?: number;
 }
 const RAW_API_BASE = import.meta.env?.VITE_API_BASE_URL?.trim();
@@ -128,9 +128,9 @@ function buildErrorMessage(payload: unknown, fallback: string) {
   return extractMessage(payload) || fallback;
 }
 
-function withTimeout(init?: HttpRequestOptions) {
+function withTimeout(init?: HttpRequestInit) {
   const controller = new AbortController();
-  const timeoutMs = typeof init?.timeoutMs === 'number' && init.timeoutMs > 0 ? init.timeoutMs : REQUEST_TIMEOUT_MS;
+  const timeoutMs = init?.timeoutMs ?? REQUEST_TIMEOUT_MS;
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
   if (init?.signal) {
@@ -165,7 +165,7 @@ function isUnsafeMethod(method: string | undefined): boolean {
   return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || 'GET').toUpperCase());
 }
 
-function buildHeaders(init?: RequestInit): Headers {
+function buildHeaders(init?: HttpRequestInit): Headers {
   const headers = new Headers(init?.headers || {});
 
   if (!headers.has('Content-Type') && init?.body != null) {
@@ -188,7 +188,7 @@ export function resolveRequestUrl(path: string) {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
-export async function http<T>(path: string, init?: HttpRequestOptions): Promise<T> {
+export async function http<T>(path: string, init?: HttpRequestInit): Promise<T> {
   const { signal, clear } = withTimeout(init);
 
   try {

@@ -5,7 +5,7 @@ import { PurchaseComposer } from '@/features/purchases/components/PurchaseCompos
 import { PurchaseDetailCard } from '@/features/purchases/components/PurchaseDetailCard';
 import { PurchaseEditDialog } from '@/features/purchases/components/PurchaseEditDialog';
 import { QuickSupplierCard } from '@/features/purchases/components/QuickSupplierCard';
-import { PurchasesOverviewSection } from '@/features/purchases/components/purchases-workspace/PurchasesOverviewSection';
+import { PurchasesKpiSection, PurchasesSummarySection } from '@/features/purchases/components/purchases-workspace/PurchasesOverviewSection';
 import { PurchasesRegisterCard } from '@/features/purchases/components/purchases-workspace/PurchasesRegisterCard';
 import { usePurchasesWorkspaceController } from '@/features/purchases/components/purchases-workspace/usePurchasesWorkspaceController';
 import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';
@@ -19,13 +19,28 @@ export function PurchasesWorkspace() {
     <div className="page-stack page-shell purchases-workspace">
       <PageHeader
         title="المشتريات"
+        description="ابدأ بإنشاء فاتورة شراء ثم راجع السجل والتفاصيل عند الحاجة."
         badge={<span className="nav-pill">{controller.totalItems} فاتورة</span>}
         actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetPurchasesView}>إعادة الضبط</Button><Button variant="secondary" onClick={() => void controller.copyPurchasesSummary()} disabled={!controller.totalItems}>نسخ الملخص</Button><Button variant="secondary" onClick={() => void controller.exportPurchasesCsv()} disabled={!controller.totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.printPurchasesRegister()} disabled={!controller.totalItems || !controller.canPrint}>طباعة السجل</Button></div>}
       />
 
-      
-      <PurchasesOverviewSection
-        purchaseGuidanceCards={controller.purchaseGuidanceCards}
+      <PurchasesKpiSection totalItems={controller.totalItems} summary={controller.summary || null} />
+
+      <div className="two-column-grid workspace-grid-balanced purchases-composer-grid">
+        <PurchaseComposer
+          products={controller.purchaseCatalog.productsQuery.data || []}
+          suppliers={controller.purchaseCatalog.suppliersQuery.data || []}
+          branches={controller.purchaseCatalog.branchesQuery.data || []}
+          locations={controller.purchaseCatalog.locationsQuery.data || []}
+          settings={controller.purchaseCatalog.settingsQuery.data}
+          isCatalogLoading={controller.purchaseCatalog.isLoading}
+          isCatalogError={controller.purchaseCatalog.isError}
+          catalogError={controller.purchaseCatalog.error}
+        />
+        <QuickSupplierCard canManageSuppliers={controller.canManageSuppliers} />
+      </div>
+
+      <PurchasesSummarySection
         totalItems={controller.totalItems}
         summary={controller.summary || null}
         activeFilterLabel={controller.activeFilterLabel}
@@ -44,21 +59,6 @@ export function PurchasesWorkspace() {
         onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
         onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
       />
-
-      <div className="two-column-grid workspace-grid-balanced purchases-composer-grid">
-        <PurchaseComposer
-          products={controller.purchaseCatalog.productsQuery.data || []}
-          suppliers={controller.purchaseCatalog.suppliersQuery.data || []}
-          branches={controller.purchaseCatalog.branchesQuery.data || []}
-          locations={controller.purchaseCatalog.locationsQuery.data || []}
-          settings={controller.purchaseCatalog.settingsQuery.data}
-          isCatalogLoading={controller.purchaseCatalog.isLoading}
-          isCatalogError={controller.purchaseCatalog.isError}
-          catalogError={controller.purchaseCatalog.error}
-        />
-        <QuickSupplierCard canManageSuppliers={controller.canManageSuppliers} />
-      </div>
-
 
       <PurchaseEditDialog
         open={Boolean(controller.purchaseToEdit)}

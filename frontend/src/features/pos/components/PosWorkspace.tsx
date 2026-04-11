@@ -29,6 +29,18 @@ export function PosWorkspace() {
   }, [pos, selectedCustomerName]);
 
   useEffect(() => {
+    if (catalogsLoading) return;
+    const activeElement = document.activeElement as HTMLElement | null;
+    const isTypingTarget = Boolean(activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT' || activeElement.isContentEditable));
+    if (isTypingTarget) return;
+    const handle = window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [catalogsLoading]);
+
+  useEffect(() => {
     const listener = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const isTypingTarget = Boolean(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable));
@@ -80,8 +92,8 @@ export function PosWorkspace() {
         errorHint="تحقق من الاتصال ثم أعد المحاولة."
         errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
       >
-        <PosWorkspaceStartupIssues pos={pos} />
         <PosWorkspaceQuickShortcuts />
+        <PosWorkspaceStartupIssues pos={pos} />
 
         <div className="pos-grid-premium">
           <PosProductsPanel

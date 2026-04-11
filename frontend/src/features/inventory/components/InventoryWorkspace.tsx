@@ -46,7 +46,14 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
       {inventory.copyFeedback ? <div className={inventory.copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{inventory.copyFeedback.text}</div> : null}
 
       {currentSection === 'overview' ? (
-        <>
+        <div className="inventory-overview-stack">
+          <InventoryOverviewStats
+            total={inventory.inventory.total}
+            outOfStock={inventory.inventory.outOfStock.length}
+            lowStock={inventory.inventory.lowStock.length}
+            inventoryValue={inventory.canViewSensitivePricing ? inventory.inventory.inventoryValue : null}
+          />
+
           <InventoryStatusCard
             statusFilter={inventory.statusFilter}
             onStatusFilterChange={inventory.setStatusFilter}
@@ -60,13 +67,6 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             includeSensitivePricing={inventory.canViewSensitivePricing}
           />
 
-          <InventoryOverviewStats
-            total={inventory.inventory.total}
-            outOfStock={inventory.inventory.outOfStock.length}
-            lowStock={inventory.inventory.lowStock.length}
-            inventoryValue={inventory.canViewSensitivePricing ? inventory.inventory.inventoryValue : null}
-          />
-
           <InventoryActionsPanel
             products={inventory.products}
             branches={inventory.branches}
@@ -76,7 +76,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             catalogError={inventory.actionCatalog.error}
             canManageInventory={inventory.canAdjustInventory}
           />
-        </>
+        </div>
       ) : null}
 
       {currentSection === 'transfers' ? (

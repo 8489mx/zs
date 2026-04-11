@@ -63,13 +63,27 @@ export function useInventoryWorkspaceMutations({
   });
 
   const createCountMutation = useMutation({
-    mutationFn: () => inventoryApi.createStockCountSession({
-      branchId: countForm.branchId,
-      locationId: countForm.locationId,
-      note: countForm.note,
-      managerPin: countForm.managerPin,
-      items: countItems.map((item) => ({ productId: item.productId, countedQty: item.countedQty, reason: item.reason, note: item.note })),
-    }),
+    mutationFn: () => {
+      const payload: Record<string, unknown> = {
+        locationId: Number(countForm.locationId),
+        items: countItems.map((item) => {
+          const countItem: Record<string, unknown> = {
+            productId: item.productId,
+            countedQty: item.countedQty,
+          };
+
+          if (String(item.reason || '').trim()) countItem.reason = item.reason;
+          if (String(item.note || '').trim()) countItem.note = item.note;
+          return countItem;
+        }),
+      };
+
+      if (String(countForm.branchId || '').trim()) payload.branchId = Number(countForm.branchId);
+      if (String(countForm.note || '').trim()) payload.note = countForm.note.trim();
+      if (String(countForm.managerPin || '').trim()) payload.managerPin = countForm.managerPin.trim();
+
+      return inventoryApi.createStockCountSession(payload);
+    },
     onSuccess: async () => {
       await refreshInventoryQueries();
       setCountItems([]);
