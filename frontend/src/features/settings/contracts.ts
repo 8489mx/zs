@@ -31,7 +31,21 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     accentColor: cleanText(values.accentColor, '#2563eb'),
     logoData: cleanText(values.logoData),
     currentBranchId: cleanText(values.currentBranchId),
-    currentLocationId: cleanText(values.currentLocationId)
+    currentLocationId: cleanText(values.currentLocationId),
+    printShowLogo: values.printShowLogo !== false,
+    printShowPhone: values.printShowPhone !== false,
+    printShowAddress: values.printShowAddress !== false,
+    printShowTaxNumber: values.printShowTaxNumber === true,
+    printShowCustomer: values.printShowCustomer !== false,
+    printShowCashier: values.printShowCashier !== false,
+    printShowBranch: values.printShowBranch !== false,
+    printShowLocation: values.printShowLocation !== false,
+    printShowTax: values.printShowTax !== false,
+    printShowPaymentMethod: values.printShowPaymentMethod !== false,
+    printShowItemSummary: values.printShowItemSummary !== false,
+    printShowPaymentBreakdown: values.printShowPaymentBreakdown !== false,
+    printShowFooter: values.printShowFooter !== false,
+    printCompactReceipt: values.printCompactReceipt !== false,
   };
 
   return { settings };

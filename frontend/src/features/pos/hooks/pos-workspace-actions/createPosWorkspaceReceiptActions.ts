@@ -6,7 +6,7 @@ import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorksp
 export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParams) {
   function reprintLastSale() {
     if (!params.lastSale) return;
-    printPostedSaleReceipt(params.lastSale, { pageSize: params.settings?.paperSize === 'receipt' ? 'receipt' : 'a4' });
+    printPostedSaleReceipt(params.lastSale, { pageSize: params.settings?.paperSize === 'receipt' ? 'receipt' : 'a4', settings: params.settings || null });
   }
 
   async function copyLastSaleSummary() {

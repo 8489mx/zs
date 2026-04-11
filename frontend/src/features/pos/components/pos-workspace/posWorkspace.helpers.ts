@@ -55,5 +55,6 @@ export function printCurrentPosDraft(pos: PosWorkspaceState, customerName: strin
     total: pos.totals.total,
     note: pos.note,
     pageSize: pos.settingsQuery.data?.paperSize === 'receipt' ? 'receipt' : 'a4',
+    settings: pos.settingsQuery.data || null,
   });
 }

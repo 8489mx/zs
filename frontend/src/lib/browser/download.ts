@@ -12,13 +12,18 @@ export function downloadJsonFile(data: unknown, filename: string) {
   triggerDownload(blob, filename);
 }
 
+function csvEscape(value: string | number | null | undefined) {
+  const text = String(value ?? '');
+  if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
+}
+
+function buildCsvContent(headers: string[], rows: Array<Array<string | number | null | undefined>>) {
+  const csv = [headers.map(csvEscape).join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\r\n');
+  return `\uFEFF${csv}`;
+}
+
 export function downloadCsvFile(filename: string, headers: string[], rows: Array<Array<string | number | null | undefined>>) {
-  const csvEscape = (value: string | number | null | undefined) => {
-    const text = String(value ?? '');
-    if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-    return text;
-  };
-  const csv = [headers.map(csvEscape).join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([buildCsvContent(headers, rows)], { type: 'text/csv;charset=utf-8' });
   triggerDownload(blob, filename);
 }
