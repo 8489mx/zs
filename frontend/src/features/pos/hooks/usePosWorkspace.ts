@@ -34,6 +34,10 @@ export interface HeldPosDraft extends PosDraftSnapshot {
   savedAt: string;
 }
 
+function getSaleKey(sale: { docNo?: string | number; id?: string | number } | null) {
+  return String(sale?.docNo || sale?.id || '');
+}
+
 export function usePosWorkspace() {
   const state = usePosWorkspaceState();
   const paidAmount = state.paymentType === 'credit' ? 0 : Number((Number(state.cashAmount || 0) + Number(state.cardAmount || 0)).toFixed(2));
@@ -133,6 +137,9 @@ export function usePosWorkspace() {
     setLastAddedLineKey: state.setLastAddedLineKey,
     setRecentProductIds: state.setRecentProductIds,
     setLastSale: state.setLastSale,
+    postSaleSaleKey: state.postSaleSaleKey,
+    setPostSaleSaleKey: state.setPostSaleSaleKey,
+    requestBarcodeFocus: state.requestBarcodeFocus,
     lastSale: state.lastSale,
     products: productsQuery.data || [],
     branches: branchesQuery.data || [],
@@ -196,6 +203,7 @@ export function usePosWorkspace() {
     productFilter: state.productFilter,
     setProductFilter: state.setProductFilter,
     submitMessage: state.submitMessage,
+    canShowLastSaleActions: Boolean(state.postSaleSaleKey && state.lastSale && getSaleKey(state.lastSale) === state.postSaleSaleKey && state.submitMessage && !createSale.isError),
     setSubmitMessage: state.setSubmitMessage,
     heldDrafts,
     recentProductIds: state.recentProductIds,
@@ -209,6 +217,7 @@ export function usePosWorkspace() {
     scannerMessage: state.scannerMessage,
     setScannerMessage: state.setScannerMessage,
     lastAddedLineKey: state.lastAddedLineKey,
+    barcodeFocusTick: state.barcodeFocusTick,
     customersQuery,
     settingsQuery,
     branchesQuery,

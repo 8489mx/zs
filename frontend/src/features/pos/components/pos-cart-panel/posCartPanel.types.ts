@@ -64,7 +64,9 @@ export interface PosCartPanelProps {
   onResetDraft: () => void;
   onPrintPreview: () => void;
   onReprintLastSale: () => void;
-  onCopyLastSaleSummary: () => void;
+  onPrintReceiptNow: () => void;
+  onPrintA4Now: () => void;
+  onExportPdfNow: () => void;
   onExportHeldDrafts: () => void;
   onSubmit: () => void;
 }

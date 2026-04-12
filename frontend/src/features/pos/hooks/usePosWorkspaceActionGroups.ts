@@ -44,6 +44,9 @@ export interface PosWorkspaceActionParams {
   setLastAddedLineKey: Dispatch<SetStateAction<string>>;
   setRecentProductIds: Dispatch<SetStateAction<string[]>>;
   setLastSale: Dispatch<SetStateAction<Sale | null>>;
+  postSaleSaleKey: string;
+  setPostSaleSaleKey: Dispatch<SetStateAction<string>>;
+  requestBarcodeFocus: () => void;
   lastSale: Sale | null;
   products: Product[];
   branches: Array<{ id: string | number }>;

@@ -29,6 +29,8 @@ export function usePosWorkspaceState() {
   const [quickAddCode, setQuickAddCode] = useState('');
   const [scannerMessage, setScannerMessage] = useState('');
   const [lastAddedLineKey, setLastAddedLineKey] = useState('');
+  const [postSaleSaleKey, setPostSaleSaleKey] = useState('');
+  const [barcodeFocusTick, setBarcodeFocusTick] = useState(0);
 
   return {
     persistedState,
@@ -74,5 +76,9 @@ export function usePosWorkspaceState() {
     setScannerMessage,
     lastAddedLineKey,
     setLastAddedLineKey,
+    postSaleSaleKey,
+    setPostSaleSaleKey,
+    barcodeFocusTick,
+    requestBarcodeFocus: () => setBarcodeFocusTick((current) => current + 1),
   };
 }

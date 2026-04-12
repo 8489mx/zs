@@ -13,14 +13,16 @@ interface PosWorkspaceActions {
   handleAddProduct: (product: Product) => void;
   handleQuickAddCodeSubmit: (rawCode?: string) => boolean;
   handleQuickCustomerSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  handleSubmit: () => Promise<void>;
+  handleSubmit: (options?: { fastCash?: boolean }) => Promise<void>;
   exportHeldDrafts: () => void;
   holdDraft: () => Promise<void>;
   recallDraft: (draftId: string) => Promise<void>;
   deleteDraft: (draftId: string) => Promise<void>;
   clearHeldDrafts: () => Promise<void>;
   reprintLastSale: () => void;
-  copyLastSaleSummary: () => Promise<void>;
+  printReceiptNow: () => void;
+  printA4Now: () => void;
+  exportPdfNow: () => void;
   setQty: (lineKey: string, qty: number) => void;
   removeItem: (lineKey: string) => void;
   fillPaidAmount: () => void;
@@ -49,7 +51,9 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     deleteDraft: asyncActions.deleteDraft,
     clearHeldDrafts: asyncActions.clearHeldDrafts,
     reprintLastSale: receiptActions.reprintLastSale,
-    copyLastSaleSummary: receiptActions.copyLastSaleSummary,
+    printReceiptNow: receiptActions.printReceiptNow,
+    printA4Now: receiptActions.printA4Now,
+    exportPdfNow: receiptActions.exportPdfNow,
     heldDraftSummaries: receiptActions.heldDraftSummaries,
   };
 }

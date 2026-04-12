@@ -29,7 +29,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.setScannerMessage('');
     params.setLastAddedLineKey('');
     params.setSubmitMessage('');
+    params.setPostSaleSaleKey('');
     clearDraftSnapshot();
+    params.requestBarcodeFocus();
   }
 
   function handleAddProduct(product: Product) {
@@ -39,6 +41,8 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       registerRecentProduct(product.id);
       params.setScannerMessage('');
       params.setSubmitMessage('');
+      params.setPostSaleSaleKey('');
+      params.requestBarcodeFocus();
     } catch (error) {
       params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر إضافة الصنف');
     }
@@ -60,7 +64,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       return false;
     }
     handleAddProduct(result.match.product);
-    params.setSearch(code);
+    params.setSearch('');
     params.setQuickAddCode('');
     params.setScannerMessage(result.match.kind === 'unit' && result.match.unitName ? `تمت إضافة ${result.match.product.name} بوحدة ${result.match.unitName}.` : `تمت إضافة ${result.match.product.name} إلى السلة.`);
     return true;

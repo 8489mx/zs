@@ -28,17 +28,32 @@ export function PosWorkspace() {
     printCurrentPosDraft(pos, selectedCustomerName);
   }, [pos, selectedCustomerName]);
 
+  const focusBarcodeEntry = useCallback(() => {
+    const handle = window.requestAnimationFrame(() => {
+      const barcodeInput = quickAddInputRef.current;
+      if (barcodeInput) {
+        barcodeInput.focus();
+        barcodeInput.select();
+        return;
+      }
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, []);
+
   useEffect(() => {
     if (catalogsLoading) return;
     const activeElement = document.activeElement as HTMLElement | null;
     const isTypingTarget = Boolean(activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT' || activeElement.isContentEditable));
     if (isTypingTarget) return;
-    const handle = window.requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
-      searchInputRef.current?.select();
-    });
-    return () => window.cancelAnimationFrame(handle);
-  }, [catalogsLoading]);
+    return focusBarcodeEntry();
+  }, [catalogsLoading, focusBarcodeEntry]);
+
+  useEffect(() => {
+    if (catalogsLoading) return;
+    return focusBarcodeEntry();
+  }, [catalogsLoading, focusBarcodeEntry, pos.barcodeFocusTick]);
 
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -47,8 +62,7 @@ export function PosWorkspace() {
 
       if (event.key === 'F2') {
         event.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
+        focusBarcodeEntry();
         return;
       }
       if (event.key === 'F3') {
@@ -57,7 +71,7 @@ export function PosWorkspace() {
         quickAddInputRef.current?.select();
         return;
       }
-      if (isTypingTarget && !['F4', 'F6', 'F8', 'F9', 'Escape'].includes(event.key)) return;
+      if (isTypingTarget && !['F4', 'F6', 'F8', 'F9', 'F12', 'Escape'].includes(event.key)) return;
       if (event.key === 'F4') {
         event.preventDefault();
         pos.holdDraft();
@@ -69,7 +83,14 @@ export function PosWorkspace() {
         printCurrentDraft();
       } else if (event.key === 'F9') {
         event.preventDefault();
-        void pos.handleSubmit();
+        if (pos.canShowLastSaleActions) {
+          pos.printReceiptNow();
+        } else {
+          void pos.handleSubmit({ fastCash: true });
+        }
+      } else if (event.key === 'F12') {
+        event.preventDefault();
+        if (pos.canShowLastSaleActions) pos.printA4Now();
       } else if (event.key === 'Escape' && pos.cart.length) {
         event.preventDefault();
         pos.resetPosDraft();
@@ -77,7 +98,7 @@ export function PosWorkspace() {
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [pos, printCurrentDraft]);
+  }, [focusBarcodeEntry, pos, printCurrentDraft]);
 
   return (
     <div className="page-stack page-shell pos-workspace pos-premium-shell">
@@ -131,7 +152,7 @@ export function PosWorkspace() {
             note={pos.note}
             submitMessage={pos.submitMessage}
             lastSaleDocNo={pos.lastSale?.docNo || pos.lastSale?.id || ''}
-            canShowLastSaleActions={Boolean(pos.lastSale && pos.submitMessage && !pos.createSale.isError)}
+            canShowLastSaleActions={pos.canShowLastSaleActions}
             quickCustomerName={pos.quickCustomerName}
             quickCustomerPhone={pos.quickCustomerPhone}
             isQuickCustomerPending={pos.quickCustomerMutation.isPending}
@@ -166,7 +187,9 @@ export function PosWorkspace() {
             onResetDraft={pos.resetPosDraft}
             onPrintPreview={printCurrentDraft}
             onReprintLastSale={pos.reprintLastSale}
-            onCopyLastSaleSummary={pos.copyLastSaleSummary}
+            onPrintReceiptNow={pos.printReceiptNow}
+            onPrintA4Now={pos.printA4Now}
+            onExportPdfNow={pos.exportPdfNow}
             onExportHeldDrafts={pos.exportHeldDrafts}
             onSubmit={() => void pos.handleSubmit()}
           />
