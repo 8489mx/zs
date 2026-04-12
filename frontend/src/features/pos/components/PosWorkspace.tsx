@@ -77,7 +77,7 @@ export function PosWorkspace() {
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [pos, printCurrentDraft, selectedCustomerName]);
+  }, [pos, printCurrentDraft]);
 
   return (
     <div className="page-stack page-shell pos-workspace pos-premium-shell">
@@ -91,9 +91,8 @@ export function PosWorkspace() {
         errorTitle="تعذر تحميل بيانات الكاشير"
         errorHint="تحقق من الاتصال ثم أعد المحاولة."
         errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
-      >
+      >        <PosWorkspaceStartupIssues pos={pos} />
         <PosWorkspaceQuickShortcuts />
-        <PosWorkspaceStartupIssues pos={pos} />
 
         <div className="pos-grid-premium">
           <PosProductsPanel

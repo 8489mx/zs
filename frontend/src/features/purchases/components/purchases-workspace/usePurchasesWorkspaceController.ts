@@ -24,7 +24,7 @@ export function usePurchasesWorkspaceController() {
 
   const purchasesQuery = usePurchasesPage({ page, pageSize, search, filter: viewFilter });
   const purchaseCatalog = usePurchaseComposerCatalog();
-  const { purchaseDetailQuery, cancelMutation, updateMutation } = usePurchaseActions(selectedPurchaseId);
+  const { cancelMutation, updateMutation } = usePurchaseActions();
   const canPrint = useHasAnyPermission('canPrint');
   const canEditInvoices = useHasAnyPermission('canEditInvoices');
   const canManageSuppliers = useHasAnyPermission('suppliers');
@@ -36,7 +36,10 @@ export function usePurchasesWorkspaceController() {
   const pagination = purchasesQuery.pagination;
   const summary = purchasesQuery.summary;
   const rows = purchasesQuery.rows;
-  const selectedPurchase = purchaseDetailQuery.data;
+  const selectedPurchase = useMemo(
+    () => rows.find((purchase) => String(purchase.id) === String(selectedPurchaseId)) || null,
+    [rows, selectedPurchaseId],
+  );
   const totalItems = pagination?.totalItems || 0;
   const topSuppliers = useMemo(() => summary?.topSuppliers || [], [summary?.topSuppliers]);
   const rangeStart = pagination?.rangeStart || 0;
@@ -98,7 +101,6 @@ export function usePurchasesWorkspaceController() {
     pagination,
     summary,
     purchaseCatalog,
-    purchaseDetailQuery,
     cancelMutation,
     updateMutation,
     selectedPurchase,

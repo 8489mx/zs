@@ -25,11 +25,11 @@ interface SettingsGuidanceInput {
 }
 
 export function getSettingsSectionDescription(section: string) {
-  if (section === 'overview') return 'راجع أهم ما يخص بيانات المتجر، الفروع، النسخ، ثم ادخل إلى القسم الذي يحتاج تدخلك.';
-  if (section === 'core') return 'عدّل بيانات المتجر الأساسية ثم احفظ قبل الانتقال لأي إعداد تشغيلي آخر.';
-  if (section === 'reference') return 'نظّم الفروع والمواقع حتى تبقى الحركات والمخزون مرتبطة بالمكان الصحيح.';
-  if (section === 'users') return 'أدر المستخدمين والصلاحيات من مكان واحد مع وضوح أكبر للحسابات الفعالة.';
-  return 'خذ نسخة احتياطية، استورد البيانات، أو نفّذ الاستعادة بحذر من نفس الشاشة.';
+  if (section === 'overview') return 'راجع الملخص وافتح القسم الذي تريد تعديله.';
+  if (section === 'core') return 'عدّل بيانات المتجر ثم احفظ.';
+  if (section === 'reference') return 'نظّم الفروع والمواقع من نفس الصفحة.';
+  if (section === 'users') return 'أدر المستخدمين والصلاحيات من مكان واحد.';
+  return 'خذ نسخة احتياطية أو استورد البيانات من نفس الشاشة.';
 }
 
 export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {

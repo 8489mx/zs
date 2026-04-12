@@ -2,9 +2,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { ReportsSectionTabs } from '@/features/reports/pages/ReportsSectionTabs';
 import { ReportsSectionContent } from '@/features/reports/components/ReportsSectionContent';
-import { ReportsGuidanceStrip } from '@/features/reports/components/ReportsGuidanceStrip';
 import { ReportsRangeCard } from '@/features/reports/components/ReportsRangeCard';
-import { ReportsQuickOverviewCard } from '@/features/reports/components/ReportsQuickOverviewCard';
 import { useReportsWorkspaceController } from '@/features/reports/hooks/useReportsWorkspaceController';
 import type { ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
 
@@ -14,23 +12,21 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
   const controller = useReportsWorkspaceController(currentSection);
 
   return (
-    <div className="page-stack page-shell reports-workspace reports-animated-shell">
+    <div className="page-stack page-shell reports-workspace reports-animated-shell reports-workspace--compact">
       <PageHeader
         title="التقارير"
-        description={controller.sectionMeta.description}
+        description="اختر القسم والفترة ثم راجع التقرير مباشرة بدون صفوف تمهيدية إضافية."
         badge={<span className="nav-pill">{controller.rangeDays} يوم</span>}
-        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.exportExecutiveSummary} disabled={!controller.report}>تصدير الملخص</Button><Button variant="secondary" onClick={controller.printExecutiveSummary} disabled={!controller.report}>طباعة الملخص</Button><Button variant="secondary" onClick={() => void controller.copyExecutiveSummary()} disabled={!controller.report}>نسخ الملخص</Button></div>}
+        actions={(
+          <div className="actions compact-actions">
+            <Button variant="secondary" onClick={controller.exportExecutiveSummary} disabled={!controller.report}>تصدير الملخص</Button>
+            <Button variant="secondary" onClick={controller.printExecutiveSummary} disabled={!controller.report}>طباعة الملخص</Button>
+            <Button variant="secondary" onClick={() => void controller.copyExecutiveSummary()} disabled={!controller.report}>نسخ الملخص</Button>
+          </div>
+        )}
       />
 
       <ReportsSectionTabs currentSection={currentSection} />
-
-      <ReportsQuickOverviewCard
-        spotlightCards={controller.spotlightCards}
-        movementBars={controller.movementBars}
-        report={controller.report}
-        salesDailyAverage={controller.salesDailyAverage}
-        totalCustomerBalance={controller.balancesQuery.data?.summary.totalBalance || 0}
-      />
 
       <ReportsRangeCard
         from={controller.from}
@@ -44,8 +40,6 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         onReset={controller.resetRange}
         healthRows={controller.reportHealthRows}
       />
-
-      <ReportsGuidanceStrip cards={controller.sectionGuidanceCards} />
 
       <ReportsSectionContent
         section={currentSection}

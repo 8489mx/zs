@@ -74,7 +74,12 @@ export function SalesRegisterCard(props: Props) {
   } = props;
 
   return (
-    <Card title="سجل فواتير البيع" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint}>طباعة السجل</Button><span className="nav-pill">السجل</span></div>} className="workspace-panel sales-register-card">
+    <Card
+      title="1. راجع سجل الفواتير"
+      description="ابحث عن الفاتورة أولًا ثم اخترها لتظهر التفاصيل والإجراءات في العمود الجانبي."
+      actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint}>طباعة السجل</Button><span className="nav-pill">السجل</span></div>}
+      className="workspace-panel sales-register-card"
+    >
       <SearchToolbar
         search={search}
         onSearchChange={onSearchChange}

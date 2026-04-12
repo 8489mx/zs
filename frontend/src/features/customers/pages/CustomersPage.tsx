@@ -2,7 +2,6 @@
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
-import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
@@ -21,11 +20,10 @@ export function CustomersPage() {
   ] as const;
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell customers-page">
       <PageHeader title="العملاء" description="ابدأ بالسجل والبحث ثم راجع العميل المحدد أو أضف عميلًا جديدًا من نفس الشاشة." badge={<span className="nav-pill">{controller.summary?.totalCustomers || 0} عميل</span>} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetCustomersView}>إعادة الضبط</Button><Button variant="secondary" onClick={controller.exportCustomersCsv} disabled={!controller.summary?.totalCustomers}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.copyCustomersSummary()} disabled={!controller.summary?.totalCustomers}>نسخ الملخص</Button><Button variant="secondary" onClick={controller.printCustomersRegister} disabled={!controller.rows.length || !controller.canPrint}>طباعة السجل</Button></div>} />
       <StatsGrid items={stats} />
 
-      <SpotlightCardStrip cards={controller.customerGuidanceCards} ariaLabel="إرشاد سريع لشاشة العملاء" />
 
       <CustomersRegisterCard {...controller} />
 

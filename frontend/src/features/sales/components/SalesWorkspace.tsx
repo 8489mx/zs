@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -13,6 +13,7 @@ import { SalesSidePanel } from '@/features/sales/components/SalesSidePanel';
 import { SaleEditDialog } from '@/features/sales/components/SaleEditDialog';
 import {
   getSaleCancelDescription,
+  getSalesNextStep,
   getSalesViewFilterLabel,
   printSaleDocument,
 } from '@/features/sales/lib/sales-workspace.helpers';
@@ -49,6 +50,11 @@ export function SalesWorkspace() {
   }, [search, viewFilter]);
 
   const cancelDescription = getSaleCancelDescription(saleToCancel);
+  const totalSales = summary?.totalSales || 0;
+  const salesNextStep = useMemo(() => getSalesNextStep({ selectedSale, canEditInvoices, totalItems }), [selectedSale, canEditInvoices, totalItems]);
+  const headerDescription = selectedSale
+    ? `الفاتورة ${selectedSale.docNo || selectedSale.id} محددة الآن. ${salesNextStep}`
+    : 'ابدأ بتصفية السجل أو البحث عن الفاتورة المطلوبة، ثم راجع التفاصيل والإجراءات من نفس الشاشة.';
 
   const {
     exportSalesCsv,
@@ -79,7 +85,7 @@ export function SalesWorkspace() {
 
   return (
     <div className="page-stack page-shell sales-workspace">
-      <SalesWorkspaceHeader totalItems={totalItems} onCopySummary={copySalesSummary} />
+      <SalesWorkspaceHeader totalItems={totalItems} description={headerDescription} onCopySummary={copySalesSummary} />
 
       {!hasSellableProducts ? (
         <Card title="جاهزية البيع" actions={<span className="nav-pill">التحقق قبل البيع</span>} className="workspace-panel">
@@ -90,7 +96,6 @@ export function SalesWorkspace() {
           </div>
         </Card>
       ) : null}
-
       <div className="sales-main-grid">
         <SalesRegisterCard
           search={search}
@@ -99,7 +104,7 @@ export function SalesWorkspace() {
           totalItems={totalItems}
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
-          totalSales={summary?.totalSales || 0}
+          totalSales={totalSales}
           selectedSale={selectedSale}
           selectedSaleId={selectedSaleId}
           rows={rows}

@@ -6,7 +6,6 @@ import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
-import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { FilterChipGroup } from '@/shared/components/filter-chip-group';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -77,12 +76,6 @@ export function ServicesPage() {
     latestCreatedByName: summary?.latestCreatedByName || '—'
   }), [summary]);
 
-  const focusCards = [
-    { key: 'first', label: 'افتح أولًا', value: 'سجل الخدمات والبحث' },
-    { key: 'now', label: 'الإجراء الأساسي', value: selectedService ? `تعديل ${selectedService.name}` : 'اختر خدمة أو أضف جديدة' },
-    { key: 'today', label: 'تابع اليوم', value: `${insights.todayCount} خدمات` },
-    { key: 'after', label: 'ثم راجع', value: insights.totalItems ? formatCurrency(insights.totalAmount) : 'قيمة الخدمات' },
-  ];
   const stats = [
     { key: 'count', label: 'عدد الخدمات', value: insights.totalItems },
     { key: 'amount', label: 'إجمالي القيمة', value: formatCurrency(insights.totalAmount) },
@@ -91,7 +84,7 @@ export function ServicesPage() {
   ] as const;
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell services-page">
       <PageHeader
         title="الخدمات"
         description="ابدأ بالسجل والبحث ثم انتقل إلى النموذج لتعديل الخدمة المحددة أو إضافة خدمة جديدة."
@@ -100,7 +93,6 @@ export function ServicesPage() {
 
       <StatsGrid items={stats} />
 
-      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في شاشة الخدمات" />
 
       <Card title="سجل الخدمات">
         <SearchToolbar search={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} searchPlaceholder="ابحث باسم الخدمة أو الملاحظات أو المنفذ" />

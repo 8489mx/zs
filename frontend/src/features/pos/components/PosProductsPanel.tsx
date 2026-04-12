@@ -45,7 +45,8 @@ export function PosProductsPanel({
 }: PosProductsPanelProps) {
   return (
     <Card
-      title="اختيار الأصناف"
+      title="1. اختيار الأصناف"
+      description="ابدأ بالبحث أو الباركود، ثم أضف الصنف مباشرة إلى السلة من نفس القائمة."
       actions={<span className="nav-pill">{products.length} صنف</span>}
       className="workspace-panel pos-products-card pos-products-card-compact"
     >
@@ -69,7 +70,7 @@ export function PosProductsPanel({
                 />
               </Field>
 
-              <Field label="السعر">
+              <Field label="نوع السعر">
                 <select value={priceType} onChange={(event) => onPriceTypeChange(event.target.value === 'wholesale' ? 'wholesale' : 'retail')}>
                   <option value="retail">قطاعي</option>
                   <option value="wholesale">جملة</option>
@@ -85,7 +86,7 @@ export function PosProductsPanel({
             </div>
 
             <div className="pos-products-barcode-row">
-              <Field label="باركود سريع">
+              <Field label="إضافة بالباركود">
                 <div className="inline-create-row pos-quick-add-row pos-quick-add-row-wide">
                   <input
                     ref={quickAddInputRef}

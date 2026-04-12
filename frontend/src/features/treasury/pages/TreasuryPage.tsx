@@ -70,31 +70,55 @@ export function TreasuryPage() {
   };
 
   return (
-    <div className="page-stack page-shell">
-      <PageHeader title="الخزينة" description="ابدأ بحركة الخزينة والسجل أولًا، ثم سجّل المصروف الجديد عند الحاجة." badge={<span className="nav-pill">الحركات المالية</span>} />
-      <div className="stats-grid compact-grid">
+    <div className="page-stack page-shell treasury-workspace treasury-workspace--compact">
+      <PageHeader title="الخزينة" description="ابدأ بحركة الخزينة أولًا، وسجل المصروف عند الحاجة من العمود الجانبي مباشرة." badge={<span className="nav-pill">الحركات المالية</span>} />
+      <div className="stats-grid compact-grid treasury-stats-grid">
         <div className="stat-card"><span>عدد الحركات المطابقة</span><strong>{transactionPagination?.totalItems || 0}</strong></div>
         <div className="stat-card"><span>داخل الخزينة</span><strong>{formatCurrency(transactionSummary.cashIn)}</strong></div>
         <div className="stat-card"><span>خارج الخزينة</span><strong>{formatCurrency(transactionSummary.cashOut)}</strong></div>
         <div className="stat-card"><span>صافي الخزينة</span><strong>{formatCurrency(transactionSummary.net)}</strong></div>
       </div>
 
-      <TreasuryTransactionsCard
-        search={search}
-        onSearchChange={setSearch}
-        txnFilter={txnFilter}
-        onTxnFilterChange={setTxnFilter}
-        onReset={() => { setSearch(''); setTxnFilter('all'); setTxnPage(1); }}
-        onExport={() => void exportTransactions()}
-        onPrint={() => void printMatchingTransactions(search, txnFilter)}
-        isExporting={isExportingTransactions}
-        transactionsQuery={transactionsQuery}
-        transactionRows={transactionRows}
-        transactionPagination={transactionPagination}
-        txnPageSize={txnPageSize}
-        setTxnPage={setTxnPage}
-        setTxnPageSize={setTxnPageSize}
-      />
+      <div className="treasury-primary-grid">
+        <TreasuryTransactionsCard
+          search={search}
+          onSearchChange={setSearch}
+          txnFilter={txnFilter}
+          onTxnFilterChange={setTxnFilter}
+          onReset={() => { setSearch(''); setTxnFilter('all'); setTxnPage(1); }}
+          onExport={() => void exportTransactions()}
+          onPrint={() => void printMatchingTransactions(search, txnFilter)}
+          isExporting={isExportingTransactions}
+          transactionsQuery={transactionsQuery}
+          transactionRows={transactionRows}
+          transactionPagination={transactionPagination}
+          txnPageSize={txnPageSize}
+          setTxnPage={setTxnPage}
+          setTxnPageSize={setTxnPageSize}
+        />
+
+        <div className="treasury-side-stack">
+          <TreasuryExpenseSummaryCard
+            expenseSummary={expenseSummary}
+            expenses={expenses}
+            canPrintSummary={Boolean(transactionPagination?.totalItems || expensePagination?.totalItems)}
+            onExportExpenses={() => void exportExpenses()}
+            onPrintExpenses={() => void printMatchingExpenses(expenseSearch)}
+            onPrintSummary={() => void printMatchingTreasurySummary(search, txnFilter, expenseSearch, transactionSummary, expenseSummary)}
+            isExportingExpenses={isExportingExpenses}
+          />
+          <TreasuryExpenseEntryCard
+            expenseForm={expenseForm}
+            setExpenseForm={setExpenseForm}
+            branches={branches}
+            locations={locations}
+            availableLocations={availableLocations}
+            expenseValidationErrors={expenseValidationErrors}
+            expenseMutation={expenseMutation}
+            onReset={() => setExpenseForm(initialExpenseForm())}
+          />
+        </div>
+      </div>
 
       <TreasuryExpensesRegisterCard
         expenseSearch={expenseSearch}
@@ -108,28 +132,6 @@ export function TreasuryPage() {
         setExpensePage={setExpensePage}
         setExpensePageSize={setExpensePageSize}
       />
-
-      <div className="two-column-grid panel-grid">
-        <TreasuryExpenseEntryCard
-          expenseForm={expenseForm}
-          setExpenseForm={setExpenseForm}
-          branches={branches}
-          locations={locations}
-          availableLocations={availableLocations}
-          expenseValidationErrors={expenseValidationErrors}
-          expenseMutation={expenseMutation}
-          onReset={() => setExpenseForm(initialExpenseForm())}
-        />
-        <TreasuryExpenseSummaryCard
-          expenseSummary={expenseSummary}
-          expenses={expenses}
-          canPrintSummary={Boolean(transactionPagination?.totalItems || expensePagination?.totalItems)}
-          onExportExpenses={() => void exportExpenses()}
-          onPrintExpenses={() => void printMatchingExpenses(expenseSearch)}
-          onPrintSummary={() => void printMatchingTreasurySummary(search, txnFilter, expenseSearch, transactionSummary, expenseSummary)}
-          isExportingExpenses={isExportingExpenses}
-        />
-      </div>
     </div>
   );
 }

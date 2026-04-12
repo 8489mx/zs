@@ -1,4 +1,3 @@
-import { QueryCard } from '@/shared/components/query-card';
 import { UserManagementSection } from '@/features/settings/components/UserManagementSection';
 import {
   SettingsOverviewStats,
@@ -71,11 +70,7 @@ export interface SharedSettingsSectionProps {
 
 export function renderOverviewSection({ branches, locations, snapshots, settings }: SharedSettingsSectionProps) {
   return (
-    <QueryCard
-      title="ملخص المتجر"
-      description="راجع الإعدادات الأساسية وبيانات المتجر والحفظ الوقائي قبل الدخول إلى التفاصيل الإدارية."
-      actions={<span className="nav-pill">نظرة عامة</span>}
-    >
+    <div className="page-stack settings-overview-section">
       <SettingsOverviewStats
         branchesCount={branches.length}
         locationsCount={locations.length}
@@ -84,7 +79,7 @@ export function renderOverviewSection({ branches, locations, snapshots, settings
         isUatReady={false}
         isSupportReady={false}
       />
-    </QueryCard>
+    </div>
   );
 }
 

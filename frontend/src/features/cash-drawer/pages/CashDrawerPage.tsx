@@ -1,6 +1,5 @@
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
-import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { CashDrawerFormsPanel } from '@/features/cash-drawer/components/CashDrawerFormsPanel';
 import { CashDrawerShiftsCard } from '@/features/cash-drawer/components/CashDrawerShiftsCard';
 import { CashDrawerStatsGrid } from '@/features/cash-drawer/components/CashDrawerStatsGrid';
@@ -20,18 +19,14 @@ export function CashDrawerPage() {
     : 'سيتم إغلاق الوردية الحالية وتسجيل المبلغ المعدود والفرق النهائي بعد اعتماد المدير.';
   const confirmKeyword = controller.confirmAction?.kind === 'movement' ? 'صرف' : 'إغلاق';
   const confirmBusy = controller.movementMutation.isPending || controller.closeMutation.isPending;
-  const focusCards = [
-    { key: 'first', label: 'افتح أولًا', value: controller.openShift ? 'حركة الدرج أو الإغلاق' : 'فتح وردية جديدة' },
-    { key: 'status', label: 'الحالة الحالية', value: controller.openShift ? `وردية مفتوحة ${controller.openShift.docNo || ''}` : 'لا توجد وردية مفتوحة' },
-    { key: 'track', label: 'راقب', value: `${controller.summary.totalItems} ورديات بالسجل` },
-    { key: 'close', label: 'آخر خطوة', value: 'تسوية الفروقات والإغلاق' },
-  ];
+
+
 
   return (
     <div className="page-stack page-shell cash-drawer-page">
       <PageHeader
         title="الورديات والدرج النقدي"
-        description=""
+        description="ابدأ بالسجل الحالي ثم افتح وردية جديدة أو نفّذ الحركة المطلوبة مباشرة."
         badge={<span className="nav-pill">متابعة الورديات</span>}
       />
 
@@ -42,11 +37,6 @@ export function CashDrawerPage() {
         totalVariance={controller.totalVariance}
       />
 
-      <SpotlightCardStrip
-        cards={focusCards}
-        ariaLabel="أولوية المشاهدة في شاشة الورديات"
-        className="cash-drawer-focus-strip"
-      />
 
       {controller.copyFeedback ? <div className={controller.copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{controller.copyFeedback.text}</div> : null}
 

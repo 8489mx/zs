@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/shared/ui/card';
 import { DataTable } from '@/shared/ui/data-table';
 import { PageHeader } from '@/shared/components/page-header';
-import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { FilterChipGroup } from '@/shared/components/filter-chip-group';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -37,12 +36,6 @@ export function AuditPage() {
   const totalRows = pagination?.totalItems || 0;
   const rangeStart = pagination?.rangeStart || 0;
   const rangeEnd = pagination?.rangeEnd || 0;
-  const focusCards = [
-    { key: 'first', label: 'ابدأ من', value: 'البحث والفلاتر' },
-    { key: 'now', label: 'الإجراء الأساسي', value: totalRows ? 'راجع السجل الحالي' : 'وسّع الفلاتر أو ابدأ البحث' },
-    { key: 'today', label: 'تابع اليوم', value: `${summary.todayCount} سجل اليوم` },
-    { key: 'after', label: 'ثم نفذ', value: totalRows ? 'تصدير أو طباعة النتائج' : 'نسخ الملخص بعد ظهور النتائج' },
-  ];
   const stats = [
     { key: 'total', label: 'إجمالي السجلات المطابقة', value: totalRows },
     { key: 'users', label: 'عدد المنفذين', value: summary.distinctUsers },
@@ -66,9 +59,8 @@ export function AuditPage() {
   };
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-shell audit-page">
       <PageHeader title="سجل النشاط" description="ابدأ بالبحث والفلاتر ثم راجع السجل الحالي أو صدّر النتائج عند الحاجة." badge={<span className="nav-pill">سجل العمليات</span>} />
-      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في شاشة سجل النشاط" />
       {copyFeedback ? <div className={copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{copyFeedback.text}</div> : null}
       <Card
         title="آخر الأنشطة"

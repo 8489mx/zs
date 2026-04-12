@@ -27,7 +27,7 @@ export function ProductsWorkspace() {
   const hasProducts = controller.metrics.total > 0;
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell products-workspace-page">
       <PageHeader
         title="الأصناف"
         description="ابدأ من السجل والبحث لو عندك أصناف، أو أضف أول صنف لو الصفحة لسه فاضية. الأدوات الثانوية زي الباركود والعروض موجودة أسفل الصفحة حتى ما تزحمش الشغل اليومي."
@@ -88,16 +88,18 @@ export function ProductsWorkspace() {
         </Card>
       ) : null}
 
-      <ProductsStatsGrid
-        total={controller.metrics.total}
-        lowStockCount={controller.metrics.lowStockCount}
-        outOfStockCount={controller.metrics.outOfStockCount}
-        visibleCount={controller.visibleProducts.length}
-        inventoryCost={controller.inventoryCost}
-        inventorySaleValue={controller.inventorySaleValue}
-        activeOffersCount={controller.activeOffersCount}
-        customerPriceCount={controller.customerPriceCount}
-      />
+      <div className="products-header-stats">
+        <ProductsStatsGrid
+          total={controller.metrics.total}
+          lowStockCount={controller.metrics.lowStockCount}
+          outOfStockCount={controller.metrics.outOfStockCount}
+          visibleCount={controller.visibleProducts.length}
+          inventoryCost={controller.inventoryCost}
+          inventorySaleValue={controller.inventorySaleValue}
+          activeOffersCount={controller.activeOffersCount}
+          customerPriceCount={controller.customerPriceCount}
+        />
+      </div>
 
       <ProductsTableCard
         search={controller.search}

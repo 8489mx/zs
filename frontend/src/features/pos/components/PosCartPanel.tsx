@@ -13,7 +13,12 @@ export function PosCartPanel(props: PosCartPanelProps) {
   const alertMessages = getAlertMessages(props);
 
   return (
-    <Card title="مراجعة السلة والدفع" actions={<span className="nav-pill">{props.cart.length} عناصر</span>} className="workspace-panel pos-checkout-card pos-checkout-card-compact">
+    <Card
+      title="2. مراجعة السلة والدفع"
+      description="راجع العميل، طريقة السداد، والإجمالي النهائي قبل تأكيد الفاتورة أو تعليقها."
+      actions={<span className="nav-pill">{props.cart.length} عناصر</span>}
+      className="workspace-panel pos-checkout-card pos-checkout-card-compact"
+    >
       <div className="pos-checkout-static">
         <PosCartSummary {...props} />
         <PosCartMetaForm {...props} />

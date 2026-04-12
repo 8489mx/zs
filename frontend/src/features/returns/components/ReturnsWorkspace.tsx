@@ -189,7 +189,6 @@ export function ReturnsWorkspace() {
         totalItems={summary?.totalItems || 0}
         salesReturns={salesReturns}
         purchaseReturns={purchaseReturns}
-        totalAmount={total}
         copyFeedback={copyFeedback}
         onReset={resetReturnsView}
         onCopySummary={copyReturnsSummary}
@@ -237,17 +236,17 @@ export function ReturnsWorkspace() {
         />
 
         <div className="returns-side-stack">
-          <ReturnsSelectedReturnCard
-            selectedReturn={selectedReturn}
-            onPrint={() => selectedReturn ? printReturnRecord(selectedReturn) : undefined}
-            onCopy={() => void copySelectedReturn()}
-          />
-
           <ReturnsSelectedInvoiceCard
             selectedInvoice={selectedInvoice}
             selectedItemsCount={selectedItemsCount}
             selectedQtyTotal={selectedQtyTotal}
             expectedReturnValue={expectedReturnValue}
+          />
+
+          <ReturnsSelectedReturnCard
+            selectedReturn={selectedReturn}
+            onPrint={() => selectedReturn ? printReturnRecord(selectedReturn) : undefined}
+            onCopy={() => void copySelectedReturn()}
           />
         </div>
       </div>

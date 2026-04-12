@@ -1,0 +1,78 @@
+/* Wave 4 compact polish: customers, suppliers, services */
+
+.directory-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.directory-summary-grid .stat-card {
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+
+.directory-summary-grid .stat-card span {
+  font-size: 11px;
+}
+
+.directory-summary-grid .stat-card strong {
+  margin-top: 6px;
+  font-size: 18px;
+}
+
+.directory-editor-grid {
+  grid-template-columns: minmax(340px, 1.08fr) minmax(320px, 0.92fr);
+  align-items: start;
+}
+
+.directory-editor-grid > *,
+.services-compact-grid > * {
+  min-width: 0;
+}
+
+.services-compact-grid {
+  grid-template-columns: minmax(360px, 1.15fr) minmax(280px, 0.85fr);
+  align-items: start;
+}
+
+.services-page .toolbar-description,
+.customers-page .toolbar-description,
+.suppliers-page .toolbar-description {
+  display: none;
+}
+
+.services-page .toolbar-heading,
+.customers-page .toolbar-heading,
+.suppliers-page .toolbar-heading {
+  margin-bottom: 8px;
+}
+
+.services-page .toolbar-meta-row,
+.customers-page .toolbar-meta-row,
+.suppliers-page .toolbar-meta-row {
+  margin-bottom: 8px;
+}
+
+.services-page .metric-row {
+  padding-block: 10px;
+}
+
+.services-page .services-insights-list {
+  gap: 10px;
+}
+
+@media (max-width: 1180px) {
+  .directory-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .directory-editor-grid,
+  .services-compact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .directory-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -60,10 +60,10 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
   return (
     <>
       <Card
-        title="إدارة المستخدمين والصلاحيات"
+        className="settings-users-card"
+        title="المستخدمون والصلاحيات"
         actions={(
           <div className="actions compact-actions">
-            <span className="nav-pill">تشغيل وصلاحيات</span>
             {!setupMode ? <Button type="button" variant="secondary" onClick={async () => { const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter }); exportUsersCsv('users-results.csv', payload.rows.map(normalizeUserRecord)); }}>تصدير النتائج</Button> : null}
             {!setupMode ? <Button type="button" variant="secondary" onClick={async () => { const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter }); printUsersList('قائمة المستخدمين', payload.rows.map(normalizeUserRecord)); }}>طباعة النتائج</Button> : null}
           </div>

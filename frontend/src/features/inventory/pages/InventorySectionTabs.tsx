@@ -3,16 +3,22 @@ import { inventorySections, type InventorySectionKey } from '@/features/inventor
 
 export function InventorySectionTabs({ currentSection }: { currentSection: InventorySectionKey }) {
   return (
-    <div className="filter-chip-row toolbar-chip-row inventory-section-tabs">
-      {inventorySections.map((section) => (
-        <NavLink
-          key={section.key}
-          to={`/inventory/${section.key}`}
-          className={({ isActive }) => `btn ${isActive || currentSection === section.key ? 'btn-primary' : 'btn-secondary'}`}
-        >
-          {section.label}
-        </NavLink>
-      ))}
+    <div className="sales-action-strip inventory-section-tabs">
+      {inventorySections.map((section) => {
+        const isActive = currentSection === section.key;
+        return (
+          <NavLink
+            key={section.key}
+            to={`/inventory/${section.key}`}
+            className={`sales-action-card inventory-section-tab ${isActive ? 'is-active' : ''}`.trim()}
+            style={{ textDecoration: 'none' }}
+          >
+            <span>{section.shortLabel || section.label}</span>
+            <strong>{section.label}</strong>
+            <span>{section.description}</span>
+          </NavLink>
+        );
+      })}
     </div>
   );
 }

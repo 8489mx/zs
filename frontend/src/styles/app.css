@@ -10,3 +10,10 @@
 @import './partials/reports-compact-fix.css';
 @import './partials/returns-cleanup-fix.css';
 @import './partials/pos-1080-layout-fix.css';
+
+@import './partials/wave2-compact-fix.css';
+
+@import "./partials/purchases-followup-fix.css";
+@import "./partials/wave6-final-polish.css";
+
+@import './partials/internal-detail-review.css';

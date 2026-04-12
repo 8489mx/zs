@@ -1,20 +1,9 @@
-import { InventoryActionsPanel } from '@/features/inventory/components/InventoryActionsPanel';
 import { InventoryWorkspaceHeader } from '@/features/inventory/components/InventoryWorkspaceHeader';
-import { InventoryPostSessionDialog, InventoryTransferActionDialog } from '@/features/inventory/components/InventoryWorkspaceDialogs';
-import {
-  DamagedStockCard,
-  InventoryMovementCard,
-  InventoryOverviewStats,
-  InventoryStatusCard,
-  StockCountComposerCard,
-  StockCountMonitorCard,
-  StockTransferComposerCard,
-  TransferMonitorCard,
-} from '@/features/inventory/components/InventoryWorkspaceSections';
-import { useInventoryWorkspaceController } from '@/features/inventory/hooks/useInventoryWorkspaceController';
-// const canAdjustInventory = useHasAnyPermission('canAdjustInventory');
-// الجرد والتالف والتحويلات تُدار الآن عبر controller منفصل لتخفيف الملف الرئيسي.
 import { InventorySectionTabs } from '@/features/inventory/pages/InventorySectionTabs';
+import { InventoryMovementCard, InventoryOverviewStats, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, StockTransferComposerCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
+import { InventoryTransferActionDialog, InventoryPostSessionDialog } from '@/features/inventory/components/InventoryWorkspaceDialogs';
+import { InventoryActionsPanel } from '@/features/inventory/components/InventoryActionsPanel';
+import { useInventoryWorkspaceController } from '@/features/inventory/hooks/useInventoryWorkspaceController';
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
 
 export function InventoryWorkspace({ currentSection }: { currentSection: InventorySectionKey }) {
@@ -26,8 +15,9 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
         canPrint={inventory.canPrint}
         hasRows={inventory.hasRows}
         description={inventory.sectionDescription}
+        currentSection={currentSection}
         onReset={inventory.resetInventoryView}
-        onCopySummary={() => void inventory.copyInventorySummary()}
+        onCopySummary={() => void Promise.resolve(inventory.copyInventorySummary())}
         onExportCsv={() => void Promise.resolve(inventory.sectionExportHandler())}
         onPrintList={() => void Promise.resolve(inventory.sectionPrintHandler())}
       />

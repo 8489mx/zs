@@ -17,7 +17,7 @@ export function UserManagementQuickActions({
   onCopyPermissions: () => void;
 }) {
   return (
-    <div className="actions compact-actions" style={{ marginBottom: 8 }}>
+    <div className="actions compact-actions settings-users-quick-actions" style={{ marginBottom: 8 }}>
       <Button type="button" onClick={onNewUser}>{setupMode ? 'إنشاء المستخدم المطلوب' : 'مستخدم جديد'}</Button>
       {!setupMode ? <Button type="button" variant="secondary" onClick={onApplyRolePermissions}>مزامنة صلاحيات الدور</Button> : null}
       {!setupMode ? (
@@ -48,14 +48,14 @@ export function UserManagementStatsFilters({
 }) {
   return (
     <>
-      <div className="stats-grid" style={{ marginBottom: 8 }}>
+      <div className="stats-grid settings-users-stats-grid" style={{ marginBottom: 8 }}>
         <div className="stat-card"><span>الإجمالي</span><strong>{summary.totalItems}</strong></div>
         <div className="stat-card"><span>السوبر أدمن</span><strong>{summary.superAdmins}</strong></div>
         <div className="stat-card"><span>مديرو النظام</span><strong>{summary.admins}</strong></div>
         <div className="stat-card"><span>الكاشير</span><strong>{summary.cashiers}</strong></div>
         <div className="stat-card"><span>الموقوفون</span><strong>{summary.inactive}</strong></div>
       </div>
-      <div className="page-stack" style={{ gap: 8, marginBottom: 8 }}>
+      <div className="page-stack settings-users-filters" style={{ gap: 8, marginBottom: 8 }}>
         <Field label="بحث سريع">
           <input value={userSearch} onChange={(e) => onUserSearchChange(e.target.value)} placeholder="ابحث بالاسم أو المستخدم أو الصلاحية" />
         </Field>

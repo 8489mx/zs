@@ -33,7 +33,7 @@ export function SalesSidePanel({
 }: Props) {
   return (
     <div className="sales-side-stack">
-      <Card title="أعلى العملاء" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportTopCustomers()} disabled={!topCustomers.length}>تصدير CSV</Button><Button variant="secondary" onClick={() => void onPrintTopCustomers()} disabled={!topCustomers.length || !canPrint}>طباعة</Button></div>} className="workspace-panel sales-insight-card">
+      <Card title="3. أهم العملاء في النطاق الحالي" description="مؤشر سريع على أكثر العملاء نشاطًا داخل النتائج الحالية." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportTopCustomers()} disabled={!topCustomers.length}>تصدير CSV</Button><Button variant="secondary" onClick={() => void onPrintTopCustomers()} disabled={!topCustomers.length || !canPrint}>طباعة</Button></div>} className="workspace-panel sales-insight-card">
         <div className="list-stack">
           {topCustomers.length ? topCustomers.map((customer) => (
             <div className="list-row" key={customer.name}>

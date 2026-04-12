@@ -88,7 +88,7 @@ export function SettingsBackupImportSection({
 
   return (
     <div className="two-column-grid">
-      <QueryCard className="settings-admin-card" title="نسخ احتياطي واستعادة" actions={<span className="nav-pill">النسخ الاحتياطي</span>}>
+      <QueryCard className="settings-admin-card settings-backup-card" title="النسخ الاحتياطية" actions={<span className="nav-pill">النسخ الاحتياطي</span>}>
         <div className="actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
           <Button onClick={handleBackupDownload} disabled={backupBusy || !canManageBackups}>تنزيل نسخة احتياطية الآن</Button>
         </div>
@@ -128,7 +128,7 @@ export function SettingsBackupImportSection({
         ) : null}
       </QueryCard>
 
-      <QueryCard className="settings-admin-card" title="استيراد البيانات" actions={<span className="nav-pill">ملفات CSV</span>}>
+      <QueryCard className="settings-admin-card settings-import-card" title="استيراد CSV" actions={<span className="nav-pill">ملفات CSV</span>}>
         <div className="two-column-grid">
           {!canManageBackups ? <div className="muted small" style={{ gridColumn: '1 / -1' }}>إدارة النسخ الاحتياطية والاستيراد غير متاحة لهذا الحساب.</div> : null}
           <ImportWorkbench

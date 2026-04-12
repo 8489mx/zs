@@ -26,24 +26,18 @@ export function PurchasesKpiSection(props: Pick<BaseProps, 'totalItems' | 'summa
   );
 }
 
-export function PurchasesSummarySection(props: BaseProps) {
-  const compactScopeRows = props.scopeRows.slice(0, 4);
-
+export function TopSuppliersCard(props: Pick<BaseProps, 'topSuppliers' | 'exportTopSuppliersCsv' | 'printTopSuppliers'>) {
   return (
-    <div className="two-column-grid workspace-grid-balanced purchases-summary-grid">
-      <Card title="ملخص النطاق الحالي" actions={<span className="nav-pill">{props.activeFilterLabel}</span>} className="workspace-panel purchases-scope-card">
-        <div className="metric-list compact-metric-list">
-          {compactScopeRows.map((row) => <div className="metric-row" key={row.label}><span>{row.label}</span><strong>{row.value}</strong></div>)}
-        </div>
-      </Card>
-
-      <Card title="أعلى الموردين" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={props.exportTopSuppliersCsv} disabled={!props.topSuppliers.length}>CSV</Button><Button variant="secondary" onClick={props.printTopSuppliers} disabled={!props.topSuppliers.length}>طباعة</Button></div>} className="workspace-panel purchases-insight-card">
-        <div className="list-stack compact-list-stack">
-          {props.topSuppliers.length ? props.topSuppliers.map((supplier) => (
-            <div className="list-row" key={supplier.name}><div><strong>{supplier.name}</strong><div className="muted small">{supplier.count} فاتورة</div></div><strong>{formatCurrency(supplier.total)}</strong></div>
-          )) : <div className="muted">لا توجد نتائج كافية.</div>}
-        </div>
-      </Card>
-    </div>
+    <Card
+      title="أعلى الموردين"
+      actions={<div className="actions compact-actions"><Button variant="secondary" onClick={props.exportTopSuppliersCsv} disabled={!props.topSuppliers.length}>CSV</Button><Button variant="secondary" onClick={props.printTopSuppliers} disabled={!props.topSuppliers.length}>طباعة</Button></div>}
+      className="workspace-panel purchases-insight-card"
+    >
+      <div className="list-stack compact-list-stack">
+        {props.topSuppliers.length ? props.topSuppliers.map((supplier) => (
+          <div className="list-row" key={supplier.name}><div><strong>{supplier.name}</strong><div className="muted small">{supplier.count} فاتورة</div></div><strong>{formatCurrency(supplier.total)}</strong></div>
+        )) : <div className="muted">لا توجد نتائج كافية.</div>}
+      </div>
+    </Card>
   );
 }

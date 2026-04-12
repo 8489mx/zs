@@ -194,3 +194,60 @@
 .inventory-workspace .inventory-action-summary-copy {
   flex: 1 1 auto;
 }
+
+/* Inventory section tabs: compact, single row, preserve readable active state */
+.inventory-workspace .inventory-section-tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.inventory-workspace .inventory-section-tab {
+  min-height: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
+}
+
+.inventory-workspace .inventory-section-tab span {
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.inventory-workspace .inventory-section-tab strong {
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.inventory-workspace .inventory-section-tab.is-active {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: rgba(239, 246, 255, 0.95);
+}
+
+.inventory-workspace .inventory-section-tab.is-active span {
+  color: var(--muted);
+}
+
+.inventory-workspace .inventory-section-tab.is-active strong {
+  color: var(--primary);
+}
+
+@media (max-width: 1280px) {
+  .inventory-workspace .inventory-section-tabs {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 920px) {
+  .inventory-workspace .inventory-section-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .inventory-workspace .inventory-section-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

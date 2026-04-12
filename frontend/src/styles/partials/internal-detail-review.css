@@ -1,0 +1,457 @@
+/* Final internal detail review on latest frontend snapshot */
+
+/* Dashboard: tighten internals without removing hero/spotlight */
+.dashboard-premium-shell .dashboard-content-grid,
+.dashboard-premium-shell .dashboard-content-grid-wide,
+.dashboard-premium-shell .dashboard-premium-stats-grid {
+  gap: 12px;
+  align-items: start;
+}
+
+.dashboard-premium-shell .dashboard-card-compact,
+.dashboard-premium-shell .dashboard-trend-card,
+.dashboard-premium-shell .dashboard-side-card {
+  min-height: 0;
+  padding: 14px;
+}
+
+.dashboard-premium-shell .dashboard-card-compact .section-title,
+.dashboard-premium-shell .dashboard-trend-card .section-title,
+.dashboard-premium-shell .dashboard-side-card .section-title {
+  margin-bottom: 10px;
+}
+
+.dashboard-premium-shell .dashboard-card-compact .metric-list,
+.dashboard-premium-shell .dashboard-card-compact .list-stack,
+.dashboard-premium-shell .dashboard-trend-card .list-stack,
+.dashboard-premium-shell .dashboard-side-card .dashboard-actions-grid-premium {
+  gap: 8px;
+}
+
+.dashboard-premium-shell .dashboard-card-compact .metric-row,
+.dashboard-premium-shell .dashboard-card-compact .list-row,
+.dashboard-premium-shell .dashboard-trend-card .list-row,
+.dashboard-premium-shell .dashboard-side-card .dashboard-action-link {
+  padding: 9px 11px;
+  border-radius: 14px;
+}
+
+.dashboard-premium-shell .dashboard-side-card .dashboard-action-link {
+  min-height: 84px;
+}
+
+.dashboard-premium-shell .dashboard-premium-stats-grid .dashboard-metric-card,
+.dashboard-premium-shell .dashboard-hero-spotlight .dashboard-metric-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+
+.dashboard-premium-shell .dashboard-metric-copy strong {
+  font-size: 20px;
+}
+
+.dashboard-premium-shell .dashboard-content-grid-wide .dashboard-card-compact .list-stack,
+.dashboard-premium-shell .dashboard-content-grid .dashboard-trend-card .list-stack {
+  max-height: 340px;
+  overflow: auto;
+  padding-inline-end: 2px;
+}
+
+/* Settings internals */
+.settings-page-shell .settings-main-grid,
+.settings-page-shell .settings-diagnostics-grid,
+.settings-page-shell .two-column-grid {
+  align-items: start;
+  gap: 14px;
+}
+
+.settings-page-shell .settings-primary-card,
+.settings-page-shell .settings-admin-card,
+.settings-page-shell .settings-reference-card {
+  padding: 14px;
+}
+
+.settings-page-shell .settings-primary-card .section-title,
+.settings-page-shell .settings-admin-card .section-title,
+.settings-page-shell .settings-reference-card .section-title {
+  margin-bottom: 10px;
+}
+
+.settings-page-shell .settings-primary-card .section-description,
+.settings-page-shell .settings-admin-card .section-description,
+.settings-page-shell .settings-reference-card .section-description {
+  max-width: 58ch;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.settings-page-shell .settings-primary-card .form-grid,
+.settings-page-shell .settings-admin-card .form-grid,
+.settings-page-shell .settings-reference-card .form-grid {
+  gap: 10px;
+}
+
+.settings-page-shell .settings-users-quick-actions {
+  margin-bottom: 10px !important;
+}
+
+.settings-page-shell .settings-users-stats-grid,
+.settings-page-shell .settings-overview-grid,
+.settings-page-shell .settings-reference-stats {
+  gap: 10px;
+}
+
+.settings-page-shell .settings-users-stats-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.settings-page-shell .settings-users-stats-grid .stat-card,
+.settings-page-shell .settings-overview-grid .stat-card,
+.settings-page-shell .settings-reference-stats .stat-card {
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.settings-page-shell .settings-users-stats-grid .stat-card span,
+.settings-page-shell .settings-overview-grid .stat-card span,
+.settings-page-shell .settings-reference-stats .stat-card span {
+  font-size: 11px;
+}
+
+.settings-page-shell .settings-users-stats-grid .stat-card strong,
+.settings-page-shell .settings-overview-grid .stat-card strong,
+.settings-page-shell .settings-reference-stats .stat-card strong {
+  margin-top: 6px;
+  font-size: 16px;
+}
+
+.settings-page-shell .settings-users-filters {
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.settings-page-shell .settings-users-filters .actions.compact-actions,
+.settings-page-shell .settings-reference-card .actions.compact-actions,
+.settings-page-shell .settings-admin-card .actions.compact-actions,
+.settings-page-shell .settings-primary-card .actions.compact-actions {
+  gap: 6px;
+}
+
+.settings-page-shell .settings-reference-card .list-row,
+.settings-page-shell .settings-admin-card .list-row,
+.settings-page-shell .settings-primary-card .list-row,
+.settings-page-shell .bulk-toolbar {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.settings-page-shell .toolbar-meta-pill {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+/* Accounts */
+.accounts-workspace .accounts-focus-grid {
+  align-items: start;
+  gap: 14px;
+}
+
+.accounts-workspace .accounts-focus-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.accounts-workspace .accounts-shortcuts-row,
+.accounts-workspace .accounts-focus-tabs {
+  margin-bottom: 0;
+}
+
+.accounts-workspace .card .section-description {
+  max-width: 52ch;
+}
+
+.accounts-workspace .inline-create-panel {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.accounts-workspace .inline-create-panel .inline-create-grid {
+  gap: 10px;
+}
+
+.accounts-workspace .inline-create-panel .actions {
+  justify-content: flex-start;
+}
+
+.accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid) {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid) .stat-card {
+  min-height: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid) .stat-card span {
+  font-size: 11px;
+}
+
+.accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid) .stat-card strong {
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+.accounts-workspace .table-wrap {
+  margin-top: 10px;
+}
+
+/* Treasury */
+.treasury-workspace .treasury-primary-grid {
+  align-items: start;
+  gap: 14px;
+}
+
+.treasury-workspace .treasury-side-stack {
+  gap: 12px;
+}
+
+.treasury-workspace .treasury-primary-grid > .card,
+.treasury-workspace .treasury-side-stack > .card {
+  min-height: 0;
+}
+
+.treasury-workspace .card .section-description {
+  max-width: 52ch;
+}
+
+.treasury-workspace .metric-row,
+.treasury-workspace .list-row {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.treasury-workspace .toolbar,
+.treasury-workspace .search-toolbar,
+.treasury-workspace .filter-chip-row {
+  margin-bottom: 10px;
+}
+
+.treasury-workspace .form-grid {
+  gap: 10px;
+}
+
+.treasury-workspace .actions.section-actions {
+  justify-content: flex-end;
+}
+
+/* Products */
+.products-workspace-page .workspace-grid-balanced {
+  gap: 14px;
+  align-items: start;
+}
+
+.products-workspace-page .workspace-panel {
+  min-height: 0;
+}
+
+.products-workspace-page .workspace-panel .section-description {
+  max-width: 58ch;
+}
+
+.products-workspace-page .page-header-actions {
+  gap: 6px;
+}
+
+.products-workspace-page .products-header-stats .workspace-stats-grid,
+.products-workspace-page .mini-stats-grid {
+  gap: 10px;
+}
+
+.products-workspace-page .mini-stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.products-workspace-page details {
+  padding: 12px !important;
+  border-radius: 16px !important;
+}
+
+.products-workspace-page details summary {
+  font-size: 14px;
+}
+
+.products-workspace-page .barcode-preview-panel {
+  padding: 12px;
+  border-radius: 16px;
+}
+
+.products-workspace-page .list-row.stacked-row {
+  align-items: flex-start;
+}
+
+/* Purchases internals */
+.purchases-workspace .purchases-primary-grid {
+  gap: 14px;
+  align-items: start;
+}
+
+.purchases-workspace .purchase-composer-card .section-description {
+  max-width: 58ch;
+}
+
+.purchases-workspace .purchase-composer-form {
+  gap: 10px;
+}
+
+.purchases-workspace .purchase-composer-form .divider {
+  margin: 2px 0;
+}
+
+.purchases-workspace .purchase-totals-grid .stat-card {
+  min-height: 82px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.purchases-workspace .purchase-totals-grid .stat-card span {
+  font-size: 11px;
+}
+
+.purchases-workspace .purchase-totals-grid .stat-card strong {
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+.purchases-workspace .sticky-form-actions {
+  padding-top: 6px;
+}
+
+/* Returns internals */
+.returns-workspace .returns-layout-grid {
+  align-items: start;
+  gap: 14px;
+}
+
+.returns-workspace .returns-side-stack {
+  gap: 12px;
+}
+
+.returns-workspace .returns-create-card .form-grid {
+  gap: 10px;
+}
+
+.returns-workspace .returns-summary-card .metric-list,
+.returns-workspace .returns-detail-card .metric-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.returns-workspace .returns-summary-card .metric-row,
+.returns-workspace .returns-detail-card .metric-row {
+  min-height: 0;
+  padding: 9px 11px;
+  border-radius: 14px;
+}
+
+/* Reports internals */
+.reports-workspace .reports-focus-card,
+.reports-workspace .reports-executive-card,
+.reports-workspace .reports-breakdown-card,
+.reports-workspace .reports-motion-card {
+  padding: 14px;
+}
+
+.reports-workspace .reports-focus-card .section-description,
+.reports-workspace .reports-executive-card .section-description,
+.reports-workspace .reports-breakdown-card .section-description,
+.reports-workspace .reports-motion-card .section-description {
+  max-width: 58ch;
+  font-size: 12px;
+}
+
+.reports-workspace .reports-spotlight-grid {
+  gap: 10px;
+}
+
+.reports-workspace .report-metric-card {
+  padding: 14px;
+  border-radius: 18px;
+  min-height: 112px;
+}
+
+.reports-workspace .report-metric-helper {
+  min-height: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.reports-workspace .report-metric-value {
+  font-size: 18px;
+}
+
+.reports-workspace .reports-metric-list .metric-row,
+.reports-workspace .list-row {
+  padding: 9px 11px;
+  border-radius: 14px;
+}
+
+.reports-workspace .toolbar-grid.compact-toolbar-grid,
+.reports-workspace .reports-range-grid--compact,
+.reports-workspace .reports-mini-overview-grid--compact {
+  gap: 10px;
+}
+
+.reports-workspace .reports-mini-overview-grid--compact .stat-card,
+.reports-workspace .reports-range-card--compact .report-mini-stat-card {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.reports-workspace .reports-mini-overview-grid--compact .stat-card span,
+.reports-workspace .reports-range-card--compact .report-mini-stat-card span {
+  font-size: 11px;
+}
+
+.reports-workspace .reports-mini-overview-grid--compact .stat-card strong,
+.reports-workspace .reports-range-card--compact .report-mini-stat-card strong {
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+@media (max-width: 1280px) {
+  .settings-page-shell .settings-users-stats-grid,
+  .accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .dashboard-premium-shell .dashboard-side-card .dashboard-actions-grid-premium,
+  .products-workspace-page .mini-stats-grid,
+  .returns-workspace .returns-summary-card .metric-list,
+  .returns-workspace .returns-detail-card .metric-list {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-page-shell .settings-users-stats-grid,
+  .accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .settings-page-shell .settings-users-stats-grid,
+  .accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid),
+  .products-workspace-page .mini-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

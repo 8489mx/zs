@@ -1,10 +1,11 @@
 export type InventorySectionKey = 'overview' | 'transfers' | 'counts' | 'damaged' | 'movements';
 
-export const inventorySections: Array<{ key: InventorySectionKey; label: string; description: string }> = [
-  { key: 'overview', label: 'نظرة عامة', description: 'ملخص حالة المخزون والإجراءات السريعة وحالة الأصناف.' },
-  { key: 'counts', label: 'الجرد', description: 'إنشاء جلسات الجرد ومراجعتها واعتمادها.' },
-  { key: 'damaged', label: 'التالف', description: 'مراجعة سجلات الأصناف التالفة وتصديرها وطباعتها.' },
-  { key: 'movements', label: 'الحركات', description: 'استعراض سجل حركات المخزون مع البحث والفلترة.' }
+export const inventorySections: Array<{ key: InventorySectionKey; label: string; shortLabel?: string; description: string }> = [
+  { key: 'overview', label: 'نظرة عامة', shortLabel: 'ابدأ من هنا', description: 'ملخص حالة المخزون، التنبيهات، والإجراءات السريعة اليومية.' },
+  { key: 'transfers', label: 'التحويلات', shortLabel: 'نقل بين المواقع', description: 'إنشاء التحويلات بين المواقع ومتابعة الاستلام أو الإلغاء.' },
+  { key: 'counts', label: 'الجرد', shortLabel: 'جلسات الجرد', description: 'إنشاء جلسات الجرد ومراجعتها واعتمادها.' },
+  { key: 'damaged', label: 'التالف', shortLabel: 'الأصناف التالفة', description: 'مراجعة سجلات الأصناف التالفة وتصديرها وطباعتها.' },
+  { key: 'movements', label: 'الحركات', shortLabel: 'سجل الحركات', description: 'استعراض سجل حركات المخزون مع البحث والفلترة.' }
 ];
 
 export function isInventorySection(value: string | undefined): value is InventorySectionKey {
