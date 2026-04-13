@@ -123,6 +123,7 @@ export function PosProductsPanel({
                 </div>
                 <div className="muted small">{product.barcode || 'بدون باركود'}</div>
                 <div className="muted small">{product.units?.map((unit) => unit.name).join(' / ') || 'قطعة'}</div>
+                {product.itemKind === 'fashion' ? <div className="muted small">{[product.styleCode, product.color, product.size].filter(Boolean).join(' • ') || 'Variant ملابس'}</div> : null}
                 <div className="pick-meta-row pos-pick-meta-row">
                   <span>{formatCurrency(Number(price || 0))}</span>
                   <span className="small muted">انقر للإضافة</span>

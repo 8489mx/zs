@@ -19,6 +19,9 @@ interface ProductsTableCardProps {
   selectedProduct: Product | null;
   onSelectProduct: (product: Product | null) => void;
   onDeleteProduct: (product: Product) => void;
+  onOpenOfferDialog: (product: Product) => void;
+  onOpenBarcodeDialog: (product: Product, mode?: 'scan' | 'generate') => void;
+  onOpenPrintDialog: (product: Product) => void;
   canDelete: boolean;
   canPrint: boolean;
   onExportCsv: () => void;
@@ -38,8 +41,8 @@ interface ProductsTableCardProps {
 
 export function ProductsTableCard(props: ProductsTableCardProps) {
   return (
-    <Card title="قائمة الأصناف الحالية" actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير CSV</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
-      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو اسم/باركود الوحدة" />
+    <Card title="قائمة الأصناف الحالية" description="العروض والباركود والملصقات أصبحت متاحة مباشرة من كل سطر داخل السجل." actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير CSV</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
+      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو اللون أو المقاس أو اسم/باركود الوحدة" />
       <div className="filter-chip-row">
         <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')}>الكل</Button>
         <Button variant={props.viewFilter === 'low' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('low')}>منخفضة</Button>
@@ -96,12 +99,14 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 <div>
                   <strong>{product.name}</strong>
                   <div className="muted small">وحدات: {(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>
+                  {product.itemKind === 'fashion' ? <div className="muted small">ملابس{product.styleCode ? ` • موديل ${product.styleCode}` : ''}{product.color ? ` • ${product.color}` : ''}{product.size ? ` • ${product.size}` : ''}</div> : null}
                   {(product.offers || []).length ? <div className="muted small">عروض: {(product.offers || []).length}</div> : null}
                   {(product.customerPrices || []).length ? <div className="muted small">أسعار خاصة: {(product.customerPrices || []).length}</div> : null}
                 </div>
               )
             },
             { key: 'barcode', header: 'الباركود', cell: (product: Product) => product.barcode || '—' },
+            { key: 'variant', header: 'اللون / المقاس', cell: (product: Product) => product.itemKind === 'fashion' ? `${product.color || '—'} / ${product.size || '—'}` : '—' },
             { key: 'category', header: 'القسم', cell: (product: Product) => props.categoryNames[product.categoryId] || '—' },
             { key: 'supplier', header: 'المورد', cell: (product: Product) => props.supplierNames[product.supplierId] || '—' },
             { key: 'cost', header: 'الشراء', cell: (product: Product) => formatCurrency(product.costPrice) },
@@ -113,9 +118,13 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
               key: 'actions',
               header: 'إجراءات',
               cell: (product: Product) => (
-                <div className="actions">
-                  <Button variant="secondary" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
-                  <Button variant="danger" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>
+                <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()}>
+                  <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
+                  <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>عرض</Button>
+                  <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>إضافة باركود</Button>
+                  <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'generate')}>توليد باركود</Button>
+                  <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(product)} disabled={!props.canPrint}>ملصقات</Button>
+                  <Button variant="danger" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>
                 </div>
               )
             }

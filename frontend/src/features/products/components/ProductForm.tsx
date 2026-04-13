@@ -26,6 +26,13 @@ interface ProductFormProps {
 const DEFAULT_VALUES: ProductFormInput = {
   name: '',
   barcode: '',
+  itemKind: 'standard',
+  styleCode: '',
+  color: '',
+  size: '',
+  fashionColors: '',
+  fashionSizes: '',
+  variantStock: 0,
   costPrice: 0,
   retailPrice: 0,
   wholesalePrice: 0,
@@ -35,6 +42,13 @@ const DEFAULT_VALUES: ProductFormInput = {
   supplierId: '',
   notes: ''
 };
+
+function splitTokens(value: string | undefined) {
+  return String(value || '')
+    .split(/[\n،,|/]+/g)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
 
 export function ProductForm({ categories, suppliers, onCategoryCreated, onSupplierCreated }: ProductFormProps) {
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(undefined, ''));
@@ -57,8 +71,19 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
 
   const watchedValues = useWatch({ control: form.control });
   const watchedBarcode = form.watch('barcode');
-  const hasUnitsDraftChanges = useMemo(() => JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(undefined, (watchedBarcode || '').trim())), [units, watchedBarcode]);
+  const watchedItemKind = form.watch('itemKind');
+  const hasUnitsDraftChanges = useMemo(
+    () => watchedItemKind === 'fashion' ? false : JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(undefined, (watchedBarcode || '').trim())),
+    [units, watchedBarcode, watchedItemKind],
+  );
   const hasDraftChanges = form.formState.isDirty || hasUnitsDraftChanges || Boolean(inlineCategoryName.trim()) || Boolean(inlineSupplierName.trim()) || Boolean(inlineSupplierPhone.trim());
+
+  const colorTokens = splitTokens(form.watch('fashionColors'));
+  const sizeTokens = splitTokens(form.watch('fashionSizes'));
+  const variantsPreview = useMemo(
+    () => colorTokens.flatMap((color) => sizeTokens.map((size) => `${color} / ${size}`)),
+    [colorTokens, sizeTokens],
+  );
 
   const productFeedbackResetKey = JSON.stringify([watchedValues, units, inlineCategoryName, inlineSupplierName, inlineSupplierPhone]);
 
@@ -114,26 +139,14 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
     }
   });
 
-  useMutationFeedbackReset(
-    categoryMutation.isSuccess || categoryMutation.isError,
-    categoryMutation.reset,
-    inlineCategoryName.trim(),
-  );
-
-  useMutationFeedbackReset(
-    supplierMutation.isSuccess || supplierMutation.isError,
-    supplierMutation.reset,
-    JSON.stringify([inlineSupplierName.trim(), inlineSupplierPhone.trim()]),
-  );
+  useMutationFeedbackReset(categoryMutation.isSuccess || categoryMutation.isError, categoryMutation.reset, inlineCategoryName.trim());
+  useMutationFeedbackReset(supplierMutation.isSuccess || supplierMutation.isError, supplierMutation.reset, JSON.stringify([inlineSupplierName.trim(), inlineSupplierPhone.trim()]));
 
   const canNavigateAway = useUnsavedChangesGuard(hasDraftChanges && !mutation.isPending && !categoryMutation.isPending && !supplierMutation.isPending);
 
   function handleUnitsChange(nextUnits: ProductUnit[]) {
     const baseBarcode = (watchedBarcode || '').trim();
-    const mapped = nextUnits.map((unit, index) => ({
-      ...unit,
-      barcode: unit.barcode || (index === 0 ? baseBarcode : unit.barcode)
-    }));
+    const mapped = nextUnits.map((unit, index) => ({ ...unit, barcode: unit.barcode || (index === 0 ? baseBarcode : unit.barcode) }));
     setUnits(mapped);
   }
 
@@ -154,12 +167,27 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
     <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...values, units }))}>
       <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="بيانات الصنف الحالي لم تُحفظ بعد" hint="يشمل ذلك الوحدات الجديدة أو الإضافة السريعة للقسم والمورد من نفس النموذج." />
       <div className="form-grid">
-        <Field label="اسم الصنف" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
-        <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
+        <Field label="نوع الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي</option><option value="fashion">موديل ملابس</option></select></Field>
+        <Field label="اسم الصنف / الموديل" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
+        {watchedItemKind === 'fashion' ? (
+          <>
+            <Field label="كود الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} placeholder="مثال: TS-2401" /></Field>
+            <Field label="ألوان الموديل"><textarea rows={3} {...form.register('fashionColors')} disabled={mutation.isPending} placeholder="أسود، أبيض، كحلي" /></Field>
+            <Field label="مقاسات الموديل"><textarea rows={3} {...form.register('fashionSizes')} disabled={mutation.isPending} placeholder="S، M، L، XL" /></Field>
+            <Field label="مخزون افتتاحي لكل Variant"><input type="number" {...form.register('variantStock')} disabled={mutation.isPending} /></Field>
+          </>
+        ) : (
+          <>
+            <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
+            <Field label="اللون"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
+            <Field label="المقاس"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
+            <Field label="كود الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
+          </>
+        )}
         <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
         <Field label="سعر القطاعي"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
         <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
-        <Field label="المخزون الافتتاحي"><input type="number" {...form.register('stock')} disabled={mutation.isPending} /></Field>
+        {watchedItemKind === 'fashion' ? null : <Field label="المخزون الافتتاحي"><input type="number" {...form.register('stock')} disabled={mutation.isPending} /></Field>}
         <Field label="الحد الأدنى"><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
         <div className="field">
           <label>القسم</label>
@@ -186,15 +214,22 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
         </div>
         <Field label="ملاحظات"><textarea {...form.register('notes')} rows={4} disabled={mutation.isPending} /></Field>
       </div>
-      <ProductUnitsEditor units={units} onChange={handleUnitsChange} disabled={mutation.isPending} title="وحدات الصنف الجديد" />
-      <MutationFeedback isError={categoryMutation.isError} error={categoryMutation.error} errorFallback="تعذر إضافة القسم" />
-      <MutationFeedback isSuccess={categoryMutation.isSuccess} successText="تمت إضافة القسم وتحديده تلقائيًا." />
-      <MutationFeedback isError={supplierMutation.isError} error={supplierMutation.error} errorFallback="تعذر إضافة المورد" />
-      <MutationFeedback isSuccess={supplierMutation.isSuccess} successText="تمت إضافة المورد وتحديده تلقائيًا." />
-      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الصنف" successText="تم حفظ الصنف بنجاح." />
-      <div className="actions sticky-form-actions">
-        <FormResetButton onReset={handleReset} disabled={mutation.isPending || categoryMutation.isPending || supplierMutation.isPending || !hasDraftChanges}>تفريغ النموذج</FormResetButton>
-        <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ الصنف" pendingText="جارٍ الحفظ..." />
+
+      {watchedItemKind === 'fashion' ? (
+        <div className="page-stack surface-note" style={{ padding: 12 }}>
+          <strong>معاينة Variants</strong>
+          <div className="muted small">سيتم إنشاء كل لون/مقاس كصنف مستقل بنفس الأسعار والمورد والقسم. هذا يجعل البيع والشراء والمخزون والباركود يعملون فورًا بدون تعقيد إضافي.</div>
+          <div className="muted small">الإجمالي المتوقع: {variantsPreview.length} Variant</div>
+          {variantsPreview.length ? <div className="badge-row">{variantsPreview.slice(0, 24).map((entry) => <span key={entry} className="cashier-chip">{entry}</span>)}{variantsPreview.length > 24 ? <span className="cashier-chip">+{variantsPreview.length - 24}</span> : null}</div> : <div className="muted small">اكتب الألوان والمقاسات لتظهر المعاينة.</div>}
+        </div>
+      ) : (
+        <ProductUnitsEditor units={units} onChange={handleUnitsChange} disabled={mutation.isPending} title="وحدات الصنف" />
+      )}
+
+      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الصنف" successText={watchedItemKind === 'fashion' ? 'تم إنشاء موديل الملابس بنجاح.' : 'تم حفظ الصنف بنجاح.'} />
+      <div className="actions">
+        <FormResetButton onReset={handleReset} disabled={!hasDraftChanges || mutation.isPending}>إعادة القيم</FormResetButton>
+        <SubmitButton type="submit" disabled={mutation.isPending || (watchedItemKind === 'fashion' && !variantsPreview.length)} idleText={watchedItemKind === 'fashion' ? 'إنشاء Variants الملابس' : 'حفظ الصنف'} pendingText="جارٍ الحفظ..." />
       </div>
     </form>
   );

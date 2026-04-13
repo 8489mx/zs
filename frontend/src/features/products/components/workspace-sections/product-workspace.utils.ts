@@ -10,6 +10,13 @@ export function toProductFormValues(product: Product): ProductFormOutput {
   return {
     name: product.name || '',
     barcode: product.barcode || '',
+    itemKind: product.itemKind === 'fashion' ? 'fashion' : 'standard',
+    styleCode: product.styleCode || '',
+    color: product.color || '',
+    size: product.size || '',
+    fashionColors: product.color || '',
+    fashionSizes: product.size || '',
+    variantStock: Number(product.stock || 0),
     costPrice: Number(product.costPrice || 0),
     retailPrice: Number(product.retailPrice || 0),
     wholesalePrice: Number(product.wholesalePrice || 0),
@@ -36,10 +43,25 @@ export function buildUpdatePayload(
 ) {
   const categoryId = values.categoryId ? Number(values.categoryId) : undefined;
   const supplierId = values.supplierId ? Number(values.supplierId) : undefined;
+  const itemKind = values.itemKind === 'fashion' ? 'fashion' : 'standard';
+  const normalizedUnits = itemKind === 'fashion'
+    ? [{ name: 'قطعة', multiplier: 1, barcode: values.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }]
+    : normalizeProductUnits(units, values.barcode || '').map((unit, index) => ({
+        name: unit.name,
+        multiplier: Number(unit.multiplier || 1) || 1,
+        barcode: unit.barcode || (index === 0 ? values.barcode || '' : ''),
+        isBaseUnit: Boolean(unit.isBaseUnit),
+        isSaleUnit: Boolean(unit.isSaleUnit),
+        isPurchaseUnit: Boolean(unit.isPurchaseUnit)
+      }));
 
   return {
     name: values.name,
     barcode: values.barcode || '',
+    itemKind,
+    styleCode: values.styleCode || '',
+    color: values.color || '',
+    size: values.size || '',
     costPrice: Number(values.costPrice || 0),
     retailPrice: Number(values.retailPrice || 0),
     wholesalePrice: Number(values.wholesalePrice || 0),
@@ -47,17 +69,11 @@ export function buildUpdatePayload(
     ...(categoryId ? { categoryId } : {}),
     ...(supplierId ? { supplierId } : {}),
     notes: values.notes || '',
-    units: normalizeProductUnits(units, values.barcode || '').map((unit, index) => ({
-      name: unit.name,
-      multiplier: Number(unit.multiplier || 1) || 1,
-      barcode: unit.barcode || (index === 0 ? values.barcode || '' : ''),
-      isBaseUnit: Boolean(unit.isBaseUnit),
-      isSaleUnit: Boolean(unit.isSaleUnit),
-      isPurchaseUnit: Boolean(unit.isPurchaseUnit)
-    })),
+    units: normalizedUnits,
     offers: (offers ?? existingProduct.offers ?? []).map((offer) => ({
-      type: offer.type === 'fixed' ? 'fixed' : 'percent',
+      type: offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
       value: Number(offer.value || 0),
+      minQty: Math.max(1, Number(offer.minQty || 1)),
       from: offer.from || null,
       to: offer.to || null
     })),
@@ -66,7 +82,8 @@ export function buildUpdatePayload(
         customerId: Number(entry.customerId || 0),
         price: Number(entry.price || 0)
       }))
-      .filter((entry) => entry.customerId > 0 && entry.price >= 0)
+      .filter((entry) => entry.customerId > 0 && entry.price >= 0),
+    fashionVariants: []
   };
 }
 

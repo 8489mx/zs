@@ -7,7 +7,7 @@ import { catalogApi } from '@/lib/api/catalog';
 import { queryKeys } from '@/app/query-keys';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
-import type { Product } from '@/types/domain';
+import type { Product, ProductUnit } from '@/types/domain';
 import { useProductsPageQuery } from '@/features/products/hooks/useProductsPageQuery';
 
 export function useProductsWorkspaceController() {
@@ -19,6 +19,11 @@ export function useProductsWorkspaceController() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [offerDialogProduct, setOfferDialogProduct] = useState<Product | null>(null);
+  const [barcodeDialogProduct, setBarcodeDialogProduct] = useState<Product | null>(null);
+  const [barcodeDialogMode, setBarcodeDialogMode] = useState<'scan' | 'generate'>('scan');
+  const [printDialogState, setPrintDialogState] = useState<{ product: Product; unit?: ProductUnit | null } | null>(null);
+
   const productsQuery = useProductsPageQuery({ page, pageSize, q: search, view: viewFilter });
   const categoriesQuery = useQuery({ queryKey: queryKeys.categories, queryFn: productsApi.categories });
   const suppliersQuery = useQuery({ queryKey: queryKeys.suppliers, queryFn: productsApi.suppliers });
@@ -75,10 +80,15 @@ export function useProductsWorkspaceController() {
   const selectedProducts = visibleProducts.filter((product) => selectedIds.includes(String(product.id)));
 
   useEffect(() => {
-    if (selectedProduct && !visibleProducts.some((product) => String(product.id) === String(selectedProduct.id))) {
+    if (selectedProduct) {
+      const refreshed = visibleProducts.find((product) => String(product.id) === String(selectedProduct.id));
+      if (refreshed) {
+        setSelectedProduct(refreshed);
+        return;
+      }
       setSelectedProduct(null);
     }
-  }, [visibleProducts, selectedProduct]);
+  }, [visibleProducts, selectedProduct?.id]);
 
   const resetProductsView = () => {
     setSearch('');
@@ -89,8 +99,12 @@ export function useProductsWorkspaceController() {
   };
 
   const exportProductsCsv = () => {
-    downloadCsvFile('products-register.csv', ['name', 'barcode', 'category', 'supplier', 'costPrice', 'retailPrice', 'wholesalePrice', 'stock', 'minStock', 'units', 'offers', 'customerPrices', 'notes'], visibleProducts.map((product) => [
+    downloadCsvFile('products-register.csv', ['name', 'itemKind', 'styleCode', 'color', 'size', 'barcode', 'category', 'supplier', 'costPrice', 'retailPrice', 'wholesalePrice', 'stock', 'minStock', 'units', 'offers', 'customerPrices', 'notes'], visibleProducts.map((product) => [
       product.name,
+      product.itemKind || 'standard',
+      product.styleCode || '',
+      product.color || '',
+      product.size || '',
       product.barcode,
       categoryNames[product.categoryId] || '',
       supplierNames[product.supplierId] || '',
@@ -100,7 +114,7 @@ export function useProductsWorkspaceController() {
       product.stock,
       product.minStock,
       (product.units || []).map((unit) => `${unit.name} x ${unit.multiplier}${unit.barcode ? ` [${unit.barcode}]` : ''}`).join(' | '),
-      (product.offers || []).map((offer) => `${offer.type}:${offer.value}:${offer.from || ''}:${offer.to || ''}`).join(' | '),
+      (product.offers || []).map((offer) => `${offer.type}:${offer.value}:${offer.minQty || 1}:${offer.from || ''}:${offer.to || ''}`).join(' | '),
       (product.customerPrices || []).map((entry) => `${entry.customerId}:${entry.price}`).join(' | '),
       product.notes || ''
     ]));
@@ -111,6 +125,10 @@ export function useProductsWorkspaceController() {
     const summaryText = [
       `الصنف: ${selectedProduct.name}`,
       `الباركود: ${selectedProduct.barcode || '-'}`,
+      `نوع الصنف: ${selectedProduct.itemKind === 'fashion' ? 'ملابس' : 'عادي'}`,
+      `كود الموديل: ${selectedProduct.styleCode || '-'}`,
+      `اللون: ${selectedProduct.color || '-'}`,
+      `المقاس: ${selectedProduct.size || '-'}`,
       `القسم: ${categoryNames[selectedProduct.categoryId] || '-'}`,
       `المورد: ${supplierNames[selectedProduct.supplierId] || '-'}`,
       `شراء: ${Number(selectedProduct.costPrice || 0)}`,
@@ -162,6 +180,29 @@ export function useProductsWorkspaceController() {
     printHtmlDocument('قائمة الأصناف', html);
   };
 
+  const openOfferDialog = (product: Product) => {
+    setSelectedProduct(product);
+    setOfferDialogProduct(product);
+  };
+
+  const openBarcodeDialog = (product: Product, mode: 'scan' | 'generate' = 'scan') => {
+    setSelectedProduct(product);
+    setBarcodeDialogProduct(product);
+    setBarcodeDialogMode(mode);
+  };
+
+  const openPrintDialog = (product: Product, unit?: ProductUnit | null) => {
+    setSelectedProduct(product);
+    setPrintDialogState({ product, unit });
+  };
+
+  const applyProductPatch = (product: Product) => {
+    setSelectedProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
+    setOfferDialogProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
+    setBarcodeDialogProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
+    setPrintDialogState((current) => (current && String(current.product.id) === String(product.id) ? { ...current, product } : current));
+  };
+
   return {
     search,
     viewFilter,
@@ -190,6 +231,10 @@ export function useProductsWorkspaceController() {
     activeOffersCount,
     customerPriceCount,
     selectedProducts,
+    offerDialogProduct,
+    barcodeDialogProduct,
+    barcodeDialogMode,
+    printDialogState,
     setSearch,
     setViewFilter,
     setSelectedProduct,
@@ -198,10 +243,17 @@ export function useProductsWorkspaceController() {
     setBulkDeleteOpen,
     setPage,
     setPageSize,
+    setOfferDialogProduct,
+    setBarcodeDialogProduct,
+    setPrintDialogState,
     queryClient,
     exportProductsCsv,
     copySelectedProductSummary,
     resetProductsView,
     printProductsList,
+    openOfferDialog,
+    openBarcodeDialog,
+    openPrintDialog,
+    applyProductPatch,
   };
 }

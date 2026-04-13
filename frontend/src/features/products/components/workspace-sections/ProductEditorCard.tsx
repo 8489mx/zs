@@ -15,10 +15,15 @@ import type { Category, Product, ProductCustomerPrice, ProductUnit, Supplier } f
 import { ProductCustomerPricesCard } from './ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from './product-workspace.utils';
 
-type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock'> & { stock?: number };
+type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
+  stock?: number;
+  variantStock?: number;
+  fashionColors?: string;
+  fashionSizes?: string;
+};
 
 function omitStock(values: ProductFormOutput): ProductFormOutput {
-  const { stock: _stock, ...safeValues } = values as ProductFormOutputWithoutStock;
+  const { stock: _stock, variantStock: _variantStock, fashionColors: _fashionColors, fashionSizes: _fashionSizes, ...safeValues } = values as ProductFormOutputWithoutStock;
   return safeValues as ProductFormOutput;
 }
 
@@ -29,9 +34,12 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
-      name: '', barcode: '', costPrice: 0, retailPrice: 0, wholesalePrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: ''
+      name: '', barcode: '', itemKind: 'standard', styleCode: '', color: '', size: '', fashionColors: '', fashionSizes: '', variantStock: 0,
+      costPrice: 0, retailPrice: 0, wholesalePrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: ''
     }
   });
+
+  const watchedItemKind = form.watch('itemKind');
 
   useEffect(() => {
     if (!product) return;
@@ -54,7 +62,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
 
   const hasDraftChanges = (
     form.formState.isDirty
-    || JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(product?.units, product?.barcode || ''))
+    || (watchedItemKind === 'fashion' ? false : JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(product?.units, product?.barcode || '')))
     || JSON.stringify(customerPrices) !== JSON.stringify(normalizeCustomerPrices(product))
   );
   const canNavigateAway = useUnsavedChangesGuard(hasDraftChanges && !mutation.isPending);
@@ -73,8 +81,12 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
     <div className="page-stack">
       <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate(omitStock(values)))}>
         <div className="form-grid">
+          <Field label="نوع الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي</option><option value="fashion">ملابس / Variant</option></select></Field>
           <Field label="اسم الصنف" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
           <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
+          <Field label="كود الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
+          <Field label="اللون"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
+          <Field label="المقاس"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
           <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر القطاعي"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
@@ -94,7 +106,14 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
           </Field>
           <Field label="ملاحظات"><textarea rows={4} {...form.register('notes')} disabled={mutation.isPending} /></Field>
         </div>
-        <ProductUnitsEditor units={units} onChange={setUnits} disabled={mutation.isPending} title="وحدات الصنف" />
+        {watchedItemKind === 'fashion' ? (
+          <div className="surface-note" style={{ padding: 12 }}>
+            <strong>معلومة مهمة</strong>
+            <div className="muted small">في موديول الملابس الحالي كل لون/مقاس يُسجَّل كصنف مستقل. عدّل اللون والمقاس والباركود هنا لهذا الـ Variant نفسه، بينما إنشاء دفعة Variants جديدة يتم من نموذج الإضافة أعلى الصفحة.</div>
+          </div>
+        ) : (
+          <ProductUnitsEditor units={units} onChange={setUnits} disabled={mutation.isPending} title="وحدات الصنف" />
+        )}
         <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="تعديلات الصنف الحالية غير محفوظة" hint="احفظ الصنف أو أعد القيم الأصلية قبل الانتقال إلى سجل آخر حتى لا تفقد الوحدات أو الأسعار الخاصة." />
         <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر تحديث الصنف" successText="تم تحديث الصنف بنجاح." />
         <div className="actions">

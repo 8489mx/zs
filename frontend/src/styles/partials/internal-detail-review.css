@@ -455,3 +455,74 @@
     grid-template-columns: 1fr;
   }
 }
+.products-workspace-page .products-row-actions {
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 320px;
+}
+
+.products-workspace-page .products-row-actions .btn {
+  min-width: 82px;
+}
+
+.products-workspace-page .barcode-label-preview-shell {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(255,255,255,0.98));
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 18px;
+  padding: 14px;
+  overflow: auto;
+}
+
+.products-workspace-page .barcode-label-preview-shell .barcode-preview-sheet {
+  display: grid;
+  align-items: stretch;
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  min-height: 420px;
+}
+
+.products-workspace-page .barcode-label-preview-shell .barcode-preview-sheet-thermal {
+  max-width: 340px;
+  min-height: 280px;
+}
+
+.products-workspace-page .barcode-label-preview-shell .barcode-label-card {
+  border: 1px dashed #94a3b8;
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100px;
+}
+
+.products-workspace-page .barcode-label-preview-shell .barcode-label-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.products-workspace-page .barcode-label-preview-shell .barcode-label-unit,
+.products-workspace-page .barcode-label-preview-shell .barcode-label-price {
+  font-size: 12px;
+  color: #475569;
+}
+
+.products-workspace-page .barcode-label-preview-shell .barcode-label-svg {
+  margin: 8px 0 4px;
+  height: 72px;
+}
+
+.products-workspace-page .barcode-label-preview-shell .barcode-label-svg svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.products-workspace-page .barcode-label-preview-shell .barcode-label-text {
+  font-size: 12px;
+  font-weight: 700;
+  direction: ltr;
+}

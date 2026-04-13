@@ -109,6 +109,10 @@ export interface ProductTable {
   barcode: string | null;
   category_id: number | null;
   supplier_id: number | null;
+  item_kind: ColumnType<'standard' | 'fashion', 'standard' | 'fashion' | undefined, 'standard' | 'fashion' | undefined>;
+  style_code: string | null;
+  color: string | null;
+  size: string | null;
   cost_price: number;
   retail_price: number;
   wholesale_price: number;
@@ -136,8 +140,9 @@ export interface ProductUnitTable {
 export interface ProductOfferTable {
   id: Generated<number>;
   product_id: number;
-  offer_type: 'percent' | 'fixed';
+  offer_type: 'percent' | 'fixed' | 'price';
   value: number;
+  min_qty: ColumnType<number, number | undefined, number>;
   start_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   is_active: boolean;
