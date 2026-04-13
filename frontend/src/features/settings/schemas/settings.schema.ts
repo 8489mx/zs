@@ -25,6 +25,8 @@ export const settingsFormSchema = z.object({
   logoData: z.string().optional(),
   currentBranchId: z.string().optional(),
   currentLocationId: z.string().optional(),
+  clothingModuleEnabled: z.boolean().default(false),
+  defaultProductKind: z.enum(['standard', 'fashion']).default('standard'),
   printShowLogo: z.boolean().default(true),
   printShowPhone: z.boolean().default(true),
   printShowAddress: z.boolean().default(true),

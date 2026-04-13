@@ -10,6 +10,7 @@ import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { FormResetButton } from '@/shared/components/form-reset-button';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { useMutationFeedbackReset } from '@/shared/hooks/use-mutation-feedback-reset';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -23,25 +24,27 @@ interface ProductFormProps {
   onSupplierCreated?: (supplierId: string) => void;
 }
 
-const DEFAULT_VALUES: ProductFormInput = {
-  name: '',
-  barcode: '',
-  itemKind: 'standard',
-  styleCode: '',
-  color: '',
-  size: '',
-  fashionColors: '',
-  fashionSizes: '',
-  variantStock: 0,
-  costPrice: 0,
-  retailPrice: 0,
-  wholesalePrice: 0,
-  stock: 0,
-  minStock: 5,
-  categoryId: '',
-  supplierId: '',
-  notes: ''
-};
+function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): ProductFormInput {
+  return {
+    name: '',
+    barcode: '',
+    itemKind,
+    styleCode: '',
+    color: '',
+    size: '',
+    fashionColors: '',
+    fashionSizes: '',
+    variantStock: 0,
+    costPrice: 0,
+    retailPrice: 0,
+    wholesalePrice: 0,
+    stock: 0,
+    minStock: 5,
+    categoryId: '',
+    supplierId: '',
+    notes: ''
+  };
+}
 
 function splitTokens(value: string | undefined) {
   return String(value || '')
@@ -51,18 +54,21 @@ function splitTokens(value: string | undefined) {
 }
 
 export function ProductForm({ categories, suppliers, onCategoryCreated, onSupplierCreated }: ProductFormProps) {
+  const settingsQuery = useSettingsQuery();
+  const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+  const defaultItemKind: 'standard' | 'fashion' = clothingModuleEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(undefined, ''));
   const [inlineCategoryName, setInlineCategoryName] = useState('');
   const [inlineSupplierName, setInlineSupplierName] = useState('');
   const [inlineSupplierPhone, setInlineSupplierPhone] = useState('');
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: DEFAULT_VALUES
+    defaultValues: getDefaultValues(defaultItemKind)
   });
 
   const queryClient = useQueryClient();
   const mutation = useCreateProductMutation(() => {
-    form.reset(DEFAULT_VALUES);
+    form.reset(getDefaultValues(defaultItemKind));
     setUnits(normalizeProductUnits(undefined, ''));
     setInlineCategoryName('');
     setInlineSupplierName('');
@@ -71,7 +77,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
 
   const watchedValues = useWatch({ control: form.control });
   const watchedBarcode = form.watch('barcode');
-  const watchedItemKind = form.watch('itemKind');
+  const watchedItemKind = clothingModuleEnabled && form.watch('itemKind') === 'fashion' ? 'fashion' : 'standard';
   const hasUnitsDraftChanges = useMemo(
     () => watchedItemKind === 'fashion' ? false : JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(undefined, (watchedBarcode || '').trim())),
     [units, watchedBarcode, watchedItemKind],
@@ -103,6 +109,16 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
       form.setValue('supplierId', '');
     }
   }, [categories, suppliers, form]);
+
+  useEffect(() => {
+    if (!clothingModuleEnabled && form.getValues('itemKind') !== 'standard') {
+      form.setValue('itemKind', 'standard', { shouldDirty: false, shouldValidate: true });
+      return;
+    }
+    if (clothingModuleEnabled && !form.formState.isDirty && form.getValues('itemKind') !== defaultItemKind) {
+      form.setValue('itemKind', defaultItemKind, { shouldDirty: false, shouldValidate: true });
+    }
+  }, [clothingModuleEnabled, defaultItemKind, form]);
 
   const categoryMutation = useMutation<{ id?: string | number; category?: { id?: string | number }; data?: { id?: string | number } }, Error, void>({
     mutationFn: async () => {
@@ -156,7 +172,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
     mutation.reset();
     categoryMutation.reset();
     supplierMutation.reset();
-    form.reset(DEFAULT_VALUES);
+    form.reset(getDefaultValues(defaultItemKind));
     setUnits(normalizeProductUnits(undefined, ''));
     setInlineCategoryName('');
     setInlineSupplierName('');
@@ -164,10 +180,10 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
   }
 
   return (
-    <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...values, units }))}>
+    <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...values, itemKind: watchedItemKind, units }))}>
       <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="بيانات الصنف الحالي لم تُحفظ بعد" hint="يشمل ذلك الوحدات الجديدة أو الإضافة السريعة للقسم والمورد من نفس النموذج." />
       <div className="form-grid">
-        <Field label="نوع الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي</option><option value="fashion">موديل ملابس</option></select></Field>
+        {clothingModuleEnabled ? <Field label="نوع الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي</option><option value="fashion">موديل ملابس</option></select></Field> : null}
         <Field label="اسم الصنف / الموديل" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
         {watchedItemKind === 'fashion' ? (
           <>
@@ -179,9 +195,9 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
         ) : (
           <>
             <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
-            <Field label="اللون"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
-            <Field label="المقاس"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
-            <Field label="كود الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
+            {clothingModuleEnabled ? <Field label="اللون"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+            {clothingModuleEnabled ? <Field label="المقاس"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+            {clothingModuleEnabled ? <Field label="كود الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
           </>
         )}
         <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>

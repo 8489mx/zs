@@ -3,6 +3,7 @@ import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { ProductForm } from '@/features/products/components/ProductForm';
 import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsGrid';
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';
@@ -21,6 +22,9 @@ void productsWorkspaceRegressionLabels;
 
 export function ProductsWorkspace() {
   const controller = useProductsWorkspaceController();
+  const settingsQuery = useSettingsQuery();
+  const clothingEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+  const defaultProductKind = clothingEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const addProductRef = useRef<HTMLDivElement | null>(null);
   const editProductRef = useRef<HTMLDivElement | null>(null);
   const toolsRef = useRef<HTMLDivElement | null>(null);
@@ -30,7 +34,7 @@ export function ProductsWorkspace() {
     <div className="page-stack page-shell products-workspace-page">
       <PageHeader
         title="الأصناف"
-        description="العروض والباركود والملصقات صارت مباشرة داخل سطر الصنف نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية."
+        description={clothingEnabled ? 'العروض والباركود والملصقات صارت مباشرة داخل سطر الصنف نفسه، مع دعم خصائص الملابس من نفس شاشة الأصناف.' : 'العروض والباركود والملصقات صارت مباشرة داخل سطر الصنف نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية.'}
         badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} صنف</span>}
         actions={(
           <div className="actions compact-actions page-header-actions">
@@ -40,7 +44,7 @@ export function ProductsWorkspace() {
                 addProductRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
             >
-              إضافة صنف جديد
+              {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
             </Button>
             <Button
               variant="secondary"
@@ -69,7 +73,7 @@ export function ProductsWorkspace() {
               لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للمحل، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
             </div>
             <div className="actions compact-actions">
-              <Button onClick={() => addProductRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>إضافة أول صنف الآن</Button>
+              <Button onClick={() => addProductRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
               <Button variant="secondary" onClick={() => toolsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>إضافة قسم أو مورد</Button>
             </div>
           </div>
@@ -120,13 +124,14 @@ export function ProductsWorkspace() {
         totalItems={controller.summary?.totalProducts || controller.visibleProducts.length}
         onPageChange={controller.setPage}
         onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
+        clothingEnabled={clothingEnabled}
       />
 
       <div className="two-column-grid workspace-grid-balanced">
         <div ref={addProductRef}>
-          <Card title="إضافة صنف جديد" actions={<span className="nav-pill">الإجراء الأساسي</span>} className="workspace-panel">
+          <Card title={defaultProductKind === 'fashion' ? 'إضافة موديل جديد' : 'إضافة صنف جديد'} actions={<span className="nav-pill">الإجراء الأساسي</span>} className="workspace-panel">
             <div className="muted" style={{ marginBottom: 12 }}>
-              أضف الصنف أولًا، ثم نفّذ العرض أو الباركود أو الملصقات من زراره المباشر داخل السجل.
+              {clothingEnabled ? 'إضافة الصنف أو الموديل تتم من نفس النموذج حسب النوع الافتراضي الموجود في الإعدادات، وبعدها تنفّذ العرض أو الباركود أو الملصقات من زراره المباشر داخل السجل.' : 'أضف الصنف أولًا، ثم نفّذ العرض أو الباركود أو الملصقات من زراره المباشر داخل السجل.'}
             </div>
             <ProductForm
               categories={controller.categoriesQuery.data || []}

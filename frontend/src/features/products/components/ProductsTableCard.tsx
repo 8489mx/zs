@@ -37,9 +37,49 @@ interface ProductsTableCardProps {
   totalItems: number;
   onPageChange: (value: number) => void;
   onPageSizeChange: (value: number) => void;
+  clothingEnabled: boolean;
 }
 
 export function ProductsTableCard(props: ProductsTableCardProps) {
+  const columns = [
+    {
+      key: 'name',
+      header: 'الصنف',
+      cell: (product: Product) => (
+        <div>
+          <strong>{product.name}</strong>
+          <div className="muted small">وحدات: {(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>
+          {props.clothingEnabled && product.itemKind === 'fashion' ? <div className="muted small">ملابس{product.styleCode ? ` • موديل ${product.styleCode}` : ''}{product.color ? ` • ${product.color}` : ''}{product.size ? ` • ${product.size}` : ''}</div> : null}
+          {(product.offers || []).length ? <div className="muted small">عروض: {(product.offers || []).length}</div> : null}
+          {(product.customerPrices || []).length ? <div className="muted small">أسعار خاصة: {(product.customerPrices || []).length}</div> : null}
+        </div>
+      )
+    },
+    { key: 'barcode', header: 'الباركود', cell: (product: Product) => product.barcode || '—' },
+    ...(props.clothingEnabled ? [{ key: 'variant', header: 'اللون / المقاس', cell: (product: Product) => product.itemKind === 'fashion' ? `${product.color || '—'} / ${product.size || '—'}` : '—' }] : []),
+    { key: 'category', header: 'القسم', cell: (product: Product) => props.categoryNames[product.categoryId] || '—' },
+    { key: 'supplier', header: 'المورد', cell: (product: Product) => props.supplierNames[product.supplierId] || '—' },
+    { key: 'cost', header: 'الشراء', cell: (product: Product) => formatCurrency(product.costPrice) },
+    { key: 'retail', header: 'القطاعي', cell: (product: Product) => formatCurrency(product.retailPrice) },
+    { key: 'wholesale', header: 'الجملة', cell: (product: Product) => formatCurrency(product.wholesalePrice) },
+    { key: 'stock', header: 'المخزون', cell: (product: Product) => <span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span> },
+    { key: 'notes', header: 'ملاحظات', cell: (product: Product) => product.notes || '—' },
+    {
+      key: 'actions',
+      header: 'إجراءات',
+      cell: (product: Product) => (
+        <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()}>
+          <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
+          <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>عرض</Button>
+          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>إضافة باركود</Button>
+          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'generate')}>توليد باركود</Button>
+          <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(product)} disabled={!props.canPrint}>ملصقات</Button>
+          <Button variant="danger" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>
+        </div>
+      )
+    }
+  ];
+
   return (
     <Card title="قائمة الأصناف الحالية" description="العروض والباركود والملصقات أصبحت متاحة مباشرة من كل سطر داخل السجل." actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير CSV</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
       <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو اللون أو المقاس أو اسم/باركود الوحدة" />
@@ -91,44 +131,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             onPageSizeChange: props.onPageSizeChange,
             itemLabel: 'صنف'
           }}
-          columns={[
-            {
-              key: 'name',
-              header: 'الصنف',
-              cell: (product: Product) => (
-                <div>
-                  <strong>{product.name}</strong>
-                  <div className="muted small">وحدات: {(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>
-                  {product.itemKind === 'fashion' ? <div className="muted small">ملابس{product.styleCode ? ` • موديل ${product.styleCode}` : ''}{product.color ? ` • ${product.color}` : ''}{product.size ? ` • ${product.size}` : ''}</div> : null}
-                  {(product.offers || []).length ? <div className="muted small">عروض: {(product.offers || []).length}</div> : null}
-                  {(product.customerPrices || []).length ? <div className="muted small">أسعار خاصة: {(product.customerPrices || []).length}</div> : null}
-                </div>
-              )
-            },
-            { key: 'barcode', header: 'الباركود', cell: (product: Product) => product.barcode || '—' },
-            { key: 'variant', header: 'اللون / المقاس', cell: (product: Product) => product.itemKind === 'fashion' ? `${product.color || '—'} / ${product.size || '—'}` : '—' },
-            { key: 'category', header: 'القسم', cell: (product: Product) => props.categoryNames[product.categoryId] || '—' },
-            { key: 'supplier', header: 'المورد', cell: (product: Product) => props.supplierNames[product.supplierId] || '—' },
-            { key: 'cost', header: 'الشراء', cell: (product: Product) => formatCurrency(product.costPrice) },
-            { key: 'retail', header: 'القطاعي', cell: (product: Product) => formatCurrency(product.retailPrice) },
-            { key: 'wholesale', header: 'الجملة', cell: (product: Product) => formatCurrency(product.wholesalePrice) },
-            { key: 'stock', header: 'المخزون', cell: (product: Product) => <span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span> },
-            { key: 'notes', header: 'ملاحظات', cell: (product: Product) => product.notes || '—' },
-            {
-              key: 'actions',
-              header: 'إجراءات',
-              cell: (product: Product) => (
-                <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()}>
-                  <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
-                  <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>عرض</Button>
-                  <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>إضافة باركود</Button>
-                  <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'generate')}>توليد باركود</Button>
-                  <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(product)} disabled={!props.canPrint}>ملصقات</Button>
-                  <Button variant="danger" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>
-                </div>
-              )
-            }
-          ]}
+          columns={columns}
         />
       </QueryFeedback>
     </Card>

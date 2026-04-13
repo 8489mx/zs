@@ -11,6 +11,7 @@ import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/c
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Category, Product, ProductCustomerPrice, ProductUnit, Supplier } from '@/types/domain';
 import { ProductCustomerPricesCard } from './ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from './product-workspace.utils';
@@ -28,6 +29,8 @@ function omitStock(values: ProductFormOutput): ProductFormOutput {
 }
 
 export function ProductEditorCard({ product, categories, suppliers, customers, onSaved }: { product?: Product; categories: Category[]; suppliers: Supplier[]; customers: Array<{ id: string; name: string }>; onSaved?: (product: Product) => void }) {
+  const settingsQuery = useSettingsQuery();
+  const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const queryClient = useQueryClient();
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(product?.units, product?.barcode || ''));
   const [customerPrices, setCustomerPrices] = useState<ProductCustomerPrice[]>(normalizeCustomerPrices(product));
@@ -39,7 +42,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
     }
   });
 
-  const watchedItemKind = form.watch('itemKind');
+  const watchedItemKind = clothingModuleEnabled && form.watch('itemKind') === 'fashion' ? 'fashion' : 'standard';
 
   useEffect(() => {
     if (!product) return;
@@ -48,10 +51,16 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
     setCustomerPrices(normalizeCustomerPrices(product));
   }, [product, form]);
 
+  useEffect(() => {
+    if (!clothingModuleEnabled && form.getValues('itemKind') !== 'standard') {
+      form.setValue('itemKind', 'standard', { shouldDirty: false, shouldValidate: true });
+    }
+  }, [clothingModuleEnabled, form]);
+
   const mutation = useMutation({
     mutationFn: async (values: ProductFormOutput) => {
       if (!product) throw new Error('اختر صنفًا أولًا');
-      return productsApi.update(product.id, buildUpdatePayload(omitStock(values), product, units, customerPrices));
+      return productsApi.update(product.id, buildUpdatePayload({ ...omitStock(values), itemKind: watchedItemKind }, product, units, customerPrices));
     },
     onSuccess: async () => {
       if (!product) return;
@@ -70,7 +79,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
   async function saveCustomerPricesOnly() {
     if (!product) return;
     const values = productFormSchema.parse(form.getValues());
-    await mutation.mutateAsync(omitStock(values));
+    await mutation.mutateAsync({ ...omitStock(values), itemKind: watchedItemKind });
   }
 
   if (!product) {
@@ -79,14 +88,14 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
 
   return (
     <div className="page-stack">
-      <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate(omitStock(values)))}>
+      <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }))}>
         <div className="form-grid">
-          <Field label="نوع الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي</option><option value="fashion">ملابس / Variant</option></select></Field>
+          {clothingModuleEnabled ? <Field label="نوع الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي</option><option value="fashion">ملابس / Variant</option></select></Field> : null}
           <Field label="اسم الصنف" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
           <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
-          <Field label="كود الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
-          <Field label="اللون"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
-          <Field label="المقاس"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
+          {clothingModuleEnabled ? <Field label="كود الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+          {clothingModuleEnabled ? <Field label="اللون"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+          {clothingModuleEnabled ? <Field label="المقاس"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
           <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر القطاعي"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
@@ -106,7 +115,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
           </Field>
           <Field label="ملاحظات"><textarea rows={4} {...form.register('notes')} disabled={mutation.isPending} /></Field>
         </div>
-        {watchedItemKind === 'fashion' ? (
+        {clothingModuleEnabled && watchedItemKind === 'fashion' ? (
           <div className="surface-note" style={{ padding: 12 }}>
             <strong>معلومة مهمة</strong>
             <div className="muted small">في موديول الملابس الحالي كل لون/مقاس يُسجَّل كصنف مستقل. عدّل اللون والمقاس والباركود هنا لهذا الـ Variant نفسه، بينما إنشاء دفعة Variants جديدة يتم من نموذج الإضافة أعلى الصفحة.</div>

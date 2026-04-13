@@ -104,6 +104,8 @@ export interface AppSettings {
   printShowPaymentBreakdown?: boolean;
   printShowFooter?: boolean;
   printCompactReceipt?: boolean;
+  clothingModuleEnabled?: boolean;
+  defaultProductKind?: 'standard' | 'fashion' | string;
   theme?: string;
 }
 

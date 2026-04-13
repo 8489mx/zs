@@ -12,6 +12,8 @@ function normalizeMoney(value: number) {
 
 export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefined, values: SettingsFormOutput) {
   const managerPin = cleanText(values.managerPin);
+  const clothingModuleEnabled = values.clothingModuleEnabled === true;
+  const defaultProductKind = clothingModuleEnabled && values.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
 
   const settings = {
     ...(currentSettings || {}),
@@ -32,6 +34,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     logoData: cleanText(values.logoData),
     currentBranchId: cleanText(values.currentBranchId),
     currentLocationId: cleanText(values.currentLocationId),
+    clothingModuleEnabled,
+    defaultProductKind,
     printShowLogo: values.printShowLogo !== false,
     printShowPhone: values.printShowPhone !== false,
     printShowAddress: values.printShowAddress !== false,

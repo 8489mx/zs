@@ -48,6 +48,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       logoData: '',
       currentBranchId: '',
       currentLocationId: '',
+      clothingModuleEnabled: false,
+      defaultProductKind: 'standard',
       printShowLogo: true,
       printShowPhone: true,
       printShowAddress: true,
@@ -68,6 +70,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const [showAdvanced, setShowAdvanced] = useState(false);
   const currentBranchId = form.watch('currentBranchId');
   const currentLocationId = form.watch('currentLocationId');
+  const clothingModuleEnabled = form.watch('clothingModuleEnabled');
   const resolvedBranchId = SINGLE_STORE_MODE ? (currentBranchId || settings?.currentBranchId || branches[0]?.id || '') : currentBranchId;
   const visibleLocations = useMemo(
     () => locations.filter((location) => !resolvedBranchId || String(location.branchId || '') === String(resolvedBranchId)),
@@ -79,6 +82,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
   useEffect(() => {
     if (!settings) return;
+    const clothingEnabled = settings.clothingModuleEnabled === true;
     form.reset({
       storeName: settings.storeName || '',
       brandName: settings.brandName || settings.storeName || 'Z Systems',
@@ -97,6 +101,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       logoData: settings.logoData || '',
       currentBranchId: settings.currentBranchId || '',
       currentLocationId: settings.currentLocationId || '',
+      clothingModuleEnabled: clothingEnabled,
+      defaultProductKind: clothingEnabled && settings.defaultProductKind === 'fashion' ? 'fashion' : 'standard',
       printShowLogo: settings.printShowLogo !== false,
       printShowPhone: settings.printShowPhone !== false,
       printShowAddress: settings.printShowAddress !== false,
@@ -132,6 +138,12 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       form.setValue('currentLocationId', String(visibleLocations[0].id), { shouldDirty: false });
     }
   }, [visibleLocations, form]);
+
+  useEffect(() => {
+    if (!clothingModuleEnabled && form.getValues('defaultProductKind') !== 'standard') {
+      form.setValue('defaultProductKind', 'standard', { shouldDirty: true });
+    }
+  }, [clothingModuleEnabled, form]);
 
   return (
     <form id="settings-main-form" className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
@@ -215,6 +227,27 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               />
             </Field>
           </div>
+
+          <section className="panel page-stack">
+            <div>
+              <strong>موديول الملابس</strong>
+              <div className="muted small">فعّل خصائص الملابس داخل شاشة الأصناف فقط. عند الإيقاف ستعود شاشة الإضافة والتعديل إلى وضع الصنف العادي بدون لون/مقاس/موديل ملابس.</div>
+            </div>
+            <div className="form-grid three-col-form">
+              <label style={printCheckboxStyle}>
+                <input type="checkbox" {...form.register('clothingModuleEnabled')} disabled={mutation.isPending || !canManageSettings} />
+                تفعيل خصائص الملابس داخل شاشة الأصناف
+              </label>
+              <Field label="الصنف الافتراضي عند الضغط على إضافة صنف">
+                <select {...form.register('defaultProductKind')} disabled={mutation.isPending || !canManageSettings || !clothingModuleEnabled}>
+                  <option value="standard">صنف عادي</option>
+                  <option value="fashion">موديل ملابس</option>
+                </select>
+                <div className="muted small">يحدد النوع الذي يظهر أولًا في نموذج الإضافة. ما زال بإمكانك تغييره يدويًا داخل الشاشة نفسها طالما موديول الملابس مفعّل.</div>
+              </Field>
+            </div>
+          </section>
+
           <section className="panel page-stack">
             <div>
               <strong>عناصر الطباعة</strong>
