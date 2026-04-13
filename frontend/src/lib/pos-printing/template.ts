@@ -108,7 +108,7 @@ function renderPaymentBreakdown(payments?: Sale['payments'], settings?: Partial<
       <div class="payment-grid">
         ${payments.map((payment) => `
           <div class="payment-chip">
-            <span>${escapeHtml(payment.paymentChannel === 'cash' ? 'نقدي' : payment.paymentChannel === 'card' ? 'بطاقة' : payment.paymentChannel === 'credit' ? 'آجل' : 'مختلط')}</span>
+            <span>${escapeHtml(payment.paymentChannel === 'cash' ? 'نقدي' : payment.paymentChannel === 'card' ? 'بطاقة / فيزا' : payment.paymentChannel === 'credit' ? 'آجل' : 'مختلط')}</span>
             <strong>${formatCurrency(Number(payment.amount || 0))}</strong>
           </div>
         `).join('')}

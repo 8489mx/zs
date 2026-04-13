@@ -5,7 +5,7 @@ export type PosPrintPageSize = 'a4' | 'receipt';
 export function paymentLabel(value?: string) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'cash') return 'نقدي';
-  if (normalized === 'card') return 'بطاقة';
+  if (normalized === 'card') return 'بطاقة / فيزا';
   if (normalized === 'credit') return 'آجل';
   if (normalized === 'mixed') return 'مختلط';
   return value || 'نقدي';

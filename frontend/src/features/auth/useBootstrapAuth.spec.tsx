@@ -1,19 +1,26 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, waitFor } from '@testing-library/react';
 import { type PropsWithChildren } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/http';
 import { useBootstrapAuth } from '@/features/auth/useBootstrapAuth';
 import { DEFAULT_STORE_NAME, DEFAULT_THEME, useAuthStore } from '@/stores/auth-store';
 import { createTestQueryClient } from '@/test/test-query-client';
 
-const { meMock } = vi.hoisted(() => ({
+const { meMock, activationStatusMock } = vi.hoisted(() => ({
   meMock: vi.fn(),
+  activationStatusMock: vi.fn(),
 }));
 
 vi.mock('@/shared/api/auth', () => ({
   authApi: {
     me: meMock,
+  },
+}));
+
+vi.mock('@/shared/api/activation', () => ({
+  activationApi: {
+    status: activationStatusMock,
   },
 }));
 
@@ -34,6 +41,20 @@ function createWrapper() {
 }
 
 describe('useBootstrapAuth', () => {
+  beforeEach(() => {
+    activationStatusMock.mockReset();
+    meMock.mockReset();
+    activationStatusMock.mockResolvedValue({
+      activationRequired: false,
+      activated: true,
+      setupRequired: false,
+      machineId: null,
+      customerName: null,
+      activatedAt: null,
+      licenseMode: 'desktop',
+    });
+  });
+
   it('clears cached data and resets the auth store when the bootstrap me() call returns 401', async () => {
     meMock.mockRejectedValueOnce(new ApiError('expired', 401));
 

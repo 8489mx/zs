@@ -27,6 +27,12 @@ interface PosWorkspaceActions {
   removeItem: (lineKey: string) => void;
   fillPaidAmount: () => void;
   setPriceType: (nextPriceType: PosPriceType) => void;
+  setPaymentPreset: (preset: 'cash' | 'card' | 'credit') => void;
+  selectCartLine: (lineKey: string) => void;
+  changeSelectedQty: (delta: number) => boolean;
+  editSelectedQty: () => boolean;
+  removeSelectedItem: () => boolean;
+  selectAdjacentCartLine: (direction: 'next' | 'prev') => boolean;
   heldDraftSummaries: Array<{ id: string; label: string; total: number; itemsCount: number }>;
 }
 
@@ -44,6 +50,12 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     removeItem: base.removeItem,
     fillPaidAmount: base.fillPaidAmount,
     setPriceType: base.applyPriceType,
+    setPaymentPreset: base.setPaymentPreset,
+    selectCartLine: base.selectCartLine,
+    changeSelectedQty: base.changeSelectedQty,
+    editSelectedQty: base.editSelectedQty,
+    removeSelectedItem: base.removeSelectedItem,
+    selectAdjacentCartLine: base.selectAdjacentCartLine,
     handleQuickCustomerSubmit: asyncActions.handleQuickCustomerSubmit,
     handleSubmit: asyncActions.handleSubmit,
     holdDraft: asyncActions.holdDraft,

@@ -10,6 +10,8 @@ import { createPosWorkspaceReceiptActions } from '@/features/pos/hooks/pos-works
 export interface PosWorkspaceActionParams {
   cart: PosItem[];
   setCart: Dispatch<SetStateAction<PosItem[]>>;
+  selectedLineKey: string;
+  setSelectedLineKey: Dispatch<SetStateAction<string>>;
   customerId: string;
   setCustomerId: Dispatch<SetStateAction<string>>;
   discount: number;

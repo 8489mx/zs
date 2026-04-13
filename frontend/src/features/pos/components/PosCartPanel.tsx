@@ -32,7 +32,7 @@ export function PosCartPanel(props: PosCartPanelProps) {
         ) : null}
       </div>
 
-      <div className="pos-checkout-scroll">
+      <div className="pos-checkout-body">
         <PosCartItemsList {...props} />
         <PosCartFooter {...props} />
       </div>

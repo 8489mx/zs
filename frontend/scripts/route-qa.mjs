@@ -31,7 +31,7 @@ function parseRoutesFile(featureName) {
   return { featureName, filePath, missing: false, routes, navigation };
 }
 
-const featureNames = readDirNames(featuresDir).filter((feature) => feature !== 'auth' && feature !== 'not-found');
+const featureNames = readDirNames(featuresDir).filter((feature) => !['auth', 'not-found', 'activation'].includes(feature));
 const parsedModules = featureNames.map(parseRoutesFile);
 const errors = [];
 

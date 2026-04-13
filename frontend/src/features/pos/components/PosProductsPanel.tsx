@@ -9,6 +9,7 @@ import type { PosPriceType } from '@/features/pos/types/pos.types';
 interface PosProductsPanelProps {
   search: string;
   onSearchChange: (value: string) => void;
+  onSearchSubmitFirstResult: () => boolean;
   priceType: PosPriceType;
   onPriceTypeChange: (value: PosPriceType) => void;
   products: Product[];
@@ -17,17 +18,14 @@ interface PosProductsPanelProps {
   onAddProduct: (product: Product) => void;
   productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent';
   onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent') => void;
-  quickAddCode: string;
-  onQuickAddCodeChange: (value: string) => void;
-  onQuickAddCodeSubmit: (value?: string) => boolean;
   scannerMessage: string;
   searchInputRef?: Ref<HTMLInputElement>;
-  quickAddInputRef?: Ref<HTMLInputElement>;
 }
 
 export function PosProductsPanel({
   search,
   onSearchChange,
+  onSearchSubmitFirstResult,
   priceType,
   onPriceTypeChange,
   products,
@@ -36,17 +34,13 @@ export function PosProductsPanel({
   onAddProduct,
   productFilter,
   onProductFilterChange,
-  quickAddCode,
-  onQuickAddCodeChange,
-  onQuickAddCodeSubmit,
   scannerMessage,
   searchInputRef,
-  quickAddInputRef,
 }: PosProductsPanelProps) {
   return (
     <Card
       title="1. اختيار الأصناف"
-      description="ابدأ بالبحث أو الباركود، ثم أضف الصنف مباشرة إلى السلة من نفس القائمة."
+      description="ابحث بالاسم أو اضرب الباركود من نفس الخانة، ثم أضف الصنف مباشرة إلى السلة."
       actions={<span className="nav-pill">{products.length} صنف</span>}
       className="workspace-panel pos-products-card pos-products-card-compact"
     >
@@ -59,16 +53,22 @@ export function PosProductsPanel({
 
         <div className="pos-toolbar-shell pos-toolbar-shell-compact">
           <div className="pos-products-toolbar-stack">
-            <div className="pos-products-top-row">
-              <Field label="بحث سريع">
+            <div className="pos-products-top-row pos-products-top-row-unified">
+              <div className="pos-products-unified-search-field"><Field label="ابحث بالاسم أو اضرب الباركود">
                 <input
                   ref={searchInputRef}
                   autoFocus
                   value={search}
                   onChange={(event) => onSearchChange(event.target.value)}
-                  placeholder="اكتب اسم الصنف أو اضرب الباركود مباشرة"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      onSearchSubmitFirstResult();
+                    }
+                  }}
+                  placeholder="اكتب اسم الصنف أو اضرب الباركود هنا"
                 />
-              </Field>
+              </Field></div>
 
               <Field label="نوع السعر">
                 <select value={priceType} onChange={(event) => onPriceTypeChange(event.target.value === 'wholesale' ? 'wholesale' : 'retail')}>
@@ -83,28 +83,6 @@ export function PosProductsPanel({
                   تفريغ
                 </Button>
               </div>
-            </div>
-
-            <div className="pos-products-barcode-row">
-              <Field label="إضافة بالباركود">
-                <div className="inline-create-row pos-quick-add-row pos-quick-add-row-wide">
-                  <input
-                    ref={quickAddInputRef}
-                    value={quickAddCode}
-                    onChange={(event) => onQuickAddCodeChange(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        onQuickAddCodeSubmit();
-                      }
-                    }}
-                    placeholder="امسح أو اكتب الكود"
-                  />
-                  <Button type="button" variant="secondary" onClick={() => onQuickAddCodeSubmit()} disabled={!quickAddCode.trim()}>
-                    إضافة
-                  </Button>
-                </div>
-              </Field>
             </div>
           </div>
         </div>

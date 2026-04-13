@@ -73,6 +73,8 @@ export function usePosWorkspace() {
     lastSale: state.lastSale,
     lastAddedLineKey: state.lastAddedLineKey,
     setLastAddedLineKey: state.setLastAddedLineKey,
+    selectedLineKey: state.selectedLineKey,
+    setSelectedLineKey: state.setSelectedLineKey,
     branches: branchesQuery.data || [],
     locations: locationsQuery.data || [],
   });
@@ -103,6 +105,8 @@ export function usePosWorkspace() {
   const actions = createPosWorkspaceActions({
     cart: state.cart,
     setCart: state.setCart,
+    selectedLineKey: state.selectedLineKey,
+    setSelectedLineKey: state.setSelectedLineKey,
     customerId: state.customerId,
     setCustomerId: state.setCustomerId,
     discount: state.discount,
@@ -195,6 +199,8 @@ export function usePosWorkspace() {
     setNote: state.setNote,
     cart: state.cart,
     setCart: state.setCart,
+    selectedLineKey: state.selectedLineKey,
+    setSelectedLineKey: state.setSelectedLineKey,
     priceType: state.priceType,
     branchId: state.branchId,
     setBranchId: state.setBranchId,

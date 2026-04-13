@@ -29,6 +29,8 @@ export function usePosWorkspaceEffects({
   lastSale,
   lastAddedLineKey,
   setLastAddedLineKey,
+  selectedLineKey,
+  setSelectedLineKey,
   branches,
   locations,
 }: {
@@ -54,6 +56,8 @@ export function usePosWorkspaceEffects({
   lastSale: Sale | null;
   lastAddedLineKey: string;
   setLastAddedLineKey: (value: string) => void;
+  selectedLineKey: string;
+  setSelectedLineKey: (value: string) => void;
   branches: Array<{ id: string | number }>;
   locations: Array<{ id: string | number }>;
 }) {
@@ -86,6 +90,18 @@ export function usePosWorkspaceEffects({
       if (cardAmount !== 0) setCardAmount(0);
     }
   }, [cashAmount, cardAmount, paymentChannel, paymentType, setCashAmount, setCardAmount, setPaymentChannel]);
+
+  useEffect(() => {
+    if (!cart.length) {
+      if (selectedLineKey) setSelectedLineKey('');
+      return;
+    }
+    if (selectedLineKey && cart.some((item) => item.lineKey === selectedLineKey)) return;
+    const preferredLineKey = cart.some((item) => item.lineKey === lastAddedLineKey) ? lastAddedLineKey : cart[0]?.lineKey || '';
+    if (preferredLineKey && preferredLineKey !== selectedLineKey) {
+      setSelectedLineKey(preferredLineKey);
+    }
+  }, [cart, lastAddedLineKey, selectedLineKey, setSelectedLineKey]);
 
   useEffect(() => {
     if (!lastAddedLineKey || typeof window === 'undefined') return;

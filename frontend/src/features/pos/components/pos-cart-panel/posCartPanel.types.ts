@@ -43,6 +43,7 @@ export interface PosCartPanelProps {
   canSubmitSale: boolean;
   canSubmitHint: string;
   lastAddedLineKey?: string;
+  selectedLineKey?: string;
   onCustomerChange: (value: string) => void;
   onQuickCustomerNameChange: (value: string) => void;
   onQuickCustomerPhoneChange: (value: string) => void;
@@ -50,13 +51,18 @@ export interface PosCartPanelProps {
   onBranchChange: (value: string) => void;
   onLocationChange: (value: string) => void;
   onPaymentTypeChange: (value: PaymentType) => void;
+  onPaymentPresetChange: (value: 'cash' | 'card' | 'credit') => void;
   onCashAmountChange: (value: number) => void;
   onCardAmountChange: (value: number) => void;
   onDiscountChange: (value: number) => void;
   onNoteChange: (value: string) => void;
   onQtyChange: (lineKey: string, qty: number) => void;
   onRemoveItem: (lineKey: string) => void;
+  onSelectLine: (lineKey: string) => void;
   onFillPaidAmount: () => void;
+  onChangeSelectedQty: (delta: number) => void;
+  onEditSelectedQty: () => void;
+  onRemoveSelectedItem: () => void;
   onHoldDraft: () => void;
   onRecallDraft: (draftId: string) => void;
   onDeleteDraft: (draftId: string) => void;

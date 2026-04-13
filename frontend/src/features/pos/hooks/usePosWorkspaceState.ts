@@ -17,6 +17,7 @@ export function usePosWorkspaceState() {
   const [paymentChannel, setPaymentChannel] = useState<PaymentChannel>(storedDraft?.paymentChannel || 'cash');
   const [note, setNote] = useState(storedDraft?.note || '');
   const [cart, setCart] = useState<PosItem[]>(storedDraft?.cart || []);
+  const [selectedLineKey, setSelectedLineKey] = useState((storedDraft?.cart || [])[0]?.lineKey || '');
   const [priceType, setPriceType] = useState<PosPriceType>(storedDraft?.priceType || 'retail');
   const [branchId, setBranchId] = useState(storedDraft?.branchId || '');
   const [locationId, setLocationId] = useState(storedDraft?.locationId || '');
@@ -52,6 +53,8 @@ export function usePosWorkspaceState() {
     setNote,
     cart,
     setCart,
+    selectedLineKey,
+    setSelectedLineKey,
     priceType,
     setPriceType,
     branchId,

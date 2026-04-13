@@ -19,6 +19,7 @@ import { CashDrawerModule } from './modules/cash-drawer/cash-drawer.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 import { TreasuryModule } from './modules/treasury/treasury.module';
 import { ServicesModule } from './modules/services/services.module';
+import { ActivationModule } from './modules/activation/activation.module';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { LoginRateLimitMiddleware } from './common/middleware/login-rate-limit.middleware';
 import { AuthBurstRateLimitMiddleware } from './common/middleware/auth-burst-rate-limit.middleware';
@@ -46,6 +47,7 @@ import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit
     ReturnsModule,
     TreasuryModule,
     ServicesModule,
+    ActivationModule,
   ],
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })

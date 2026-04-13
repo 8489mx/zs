@@ -20,6 +20,9 @@ const envSchema = z.object({
   DATABASE_SSL: booleanString,
   DATABASE_LOGGING: booleanString,
   ENABLE_BOOTSTRAP_ADMIN: booleanString,
+  LICENSE_MODE: z.enum(['desktop', 'server']).default('desktop'),
+  ACTIVATION_ENFORCED: booleanString,
+  ACTIVATION_PUBLIC_KEY: z.string().default(''),
   ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: booleanString,
   DEFAULT_ADMIN_USERNAME: z.string().trim().default(''),
   DEFAULT_ADMIN_PASSWORD: z.string().default(''),
@@ -42,6 +45,9 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   const raw = {
     ...config,
     ENABLE_BOOTSTRAP_ADMIN: config.ENABLE_BOOTSTRAP_ADMIN ?? 'false',
+    LICENSE_MODE: config.LICENSE_MODE ?? 'desktop',
+    ACTIVATION_ENFORCED: config.ACTIVATION_ENFORCED ?? 'false',
+    ACTIVATION_PUBLIC_KEY: config.ACTIVATION_PUBLIC_KEY ?? '',
     ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: config.ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION ?? 'false',
     SESSION_COOKIE_SECURE:
       config.SESSION_COOKIE_SECURE

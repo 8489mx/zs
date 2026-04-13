@@ -37,15 +37,36 @@ export function createPosWorkspaceAsyncActions(
       params.requestBarcodeFocus();
     } catch (error) {
       params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر إضافة العميل');
+      params.requestBarcodeFocus();
     }
   }
 
   async function handleSubmit(options: SubmitOptions = {}) {
-    if (!params.hasOperationalSetup) return params.setSubmitMessage('أكمل تعريف المتجر ونقطة التشغيل قبل أول فاتورة.');
-    if (!params.hasCatalogReady) return params.setSubmitMessage('أضف الأصناف أولًا قبل استخدام شاشة الكاشير.');
-    if (params.requiresCashierShift && !params.ownOpenShift) return params.setSubmitMessage('افتح وردية كاشير أولًا قبل تسجيل فاتورة نقدية أو بطاقة.');
-    if (params.hasCreditWithoutCustomer && !options.fastCash) return params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يحتاج حساب عميل.');
-    if (params.hasZeroPriceLine) return params.setSubmitMessage('يوجد صنف بسعر صفر. راجع التسعير قبل إتمام البيع.');
+    if (!params.hasOperationalSetup) {
+      params.setSubmitMessage('أكمل تعريف المتجر ونقطة التشغيل قبل أول فاتورة.');
+      params.requestBarcodeFocus();
+      return;
+    }
+    if (!params.hasCatalogReady) {
+      params.setSubmitMessage('أضف الأصناف أولًا قبل استخدام شاشة الكاشير.');
+      params.requestBarcodeFocus();
+      return;
+    }
+    if (params.requiresCashierShift && !params.ownOpenShift) {
+      params.setSubmitMessage('افتح وردية كاشير أولًا قبل تسجيل فاتورة نقدية أو بطاقة.');
+      params.requestBarcodeFocus();
+      return;
+    }
+    if (params.hasCreditWithoutCustomer && !options.fastCash) {
+      params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يحتاج حساب عميل.');
+      params.requestBarcodeFocus();
+      return;
+    }
+    if (params.hasZeroPriceLine) {
+      params.setSubmitMessage('يوجد صنف بسعر صفر. راجع التسعير قبل إتمام البيع.');
+      params.requestBarcodeFocus();
+      return;
+    }
 
     const effectivePaymentType = options.fastCash ? 'cash' : params.paymentType;
     const effectivePaymentChannel = options.fastCash ? 'cash' : params.paymentChannel;
@@ -57,7 +78,9 @@ export function createPosWorkspaceAsyncActions(
     const isUnderpaid = effectivePaymentType !== 'credit' && effectivePaidAmount < Number(params.totals.total || 0);
 
     if (isUnderpaid) {
-      return params.setSubmitMessage('المبلغ المدفوع أقل من المطلوب. أكمل المدفوع أو اختر بيعًا آجلًا.');
+      params.setSubmitMessage('المبلغ المدفوع أقل من المطلوب. أكمل المدفوع أو اختر بيعًا آجلًا.');
+      params.requestBarcodeFocus();
+      return;
     }
 
     if (options.fastCash) {
@@ -96,12 +119,14 @@ export function createPosWorkspaceAsyncActions(
       params.requestBarcodeFocus();
     } catch (error) {
       params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر حفظ الفاتورة');
+      params.requestBarcodeFocus();
     }
   }
 
   async function holdDraft() {
     if (!params.cart.length) {
       params.setSubmitMessage('لا يمكن تعليق فاتورة فارغة');
+      params.requestBarcodeFocus();
       return;
     }
     try {
@@ -123,6 +148,7 @@ export function createPosWorkspaceAsyncActions(
       params.requestBarcodeFocus();
     } catch (error) {
       params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر حفظ الفاتورة المعلقة');
+      params.requestBarcodeFocus();
     }
   }
 
@@ -154,9 +180,11 @@ export function createPosWorkspaceAsyncActions(
     recallDraft,
     deleteDraft: async (draftId: string) => {
       await params.deleteHeldDraftMutation.mutateAsync(draftId);
+      params.requestBarcodeFocus();
     },
     clearHeldDrafts: async () => {
       await params.clearHeldDraftsMutation.mutateAsync();
+      params.requestBarcodeFocus();
     },
   };
 }
