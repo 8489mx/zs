@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { normalizePaymentChannel } from '@/features/pos/lib/pos-workspace.helpers';
 import { buildDraftState, persistDraftSnapshot, persistLastSale, persistRecentProductIds } from '@/features/pos/lib/pos.persistence';
+import { syncPosCartStock } from '@/features/pos/lib/pos.domain';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
-import type { Sale } from '@/types/domain';
+import type { Product, Sale } from '@/types/domain';
 import type { PaymentChannel, PaymentType } from '@/features/pos/hooks/usePosWorkspace';
 
 export function usePosWorkspaceEffects({
@@ -25,6 +26,9 @@ export function usePosWorkspaceEffects({
   setBranchId,
   locationId,
   setLocationId,
+  products,
+  setCart,
+  setSubmitMessage,
   recentProductIds,
   lastSale,
   lastAddedLineKey,
@@ -52,6 +56,9 @@ export function usePosWorkspaceEffects({
   setBranchId: (value: string) => void;
   locationId: string;
   setLocationId: (value: string) => void;
+  products: Product[];
+  setCart: (value: PosItem[] | ((current: PosItem[]) => PosItem[])) => void;
+  setSubmitMessage: (value: string) => void;
   recentProductIds: string[];
   lastSale: Sale | null;
   lastAddedLineKey: string;
@@ -70,6 +77,19 @@ export function usePosWorkspaceEffects({
     if (typeof window === 'undefined') return;
     persistRecentProductIds(recentProductIds);
   }, [recentProductIds]);
+
+  useEffect(() => {
+    if (!cart.length || !products.length) return;
+    const result = syncPosCartStock(cart, products);
+    if (result.cart === cart) return;
+    setCart(result.cart);
+    if (result.removedCount || result.clampedCount) {
+      const parts = [];
+      if (result.removedCount) parts.push(`تم حذف ${result.removedCount} صنف غير متاح في الموقع الحالي`);
+      if (result.clampedCount) parts.push(`تم تعديل كمية ${result.clampedCount} صنف حسب المخزون المتاح`);
+      setSubmitMessage(`${parts.join('، ')}.`);
+    }
+  }, [cart, products, setCart, setSubmitMessage]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

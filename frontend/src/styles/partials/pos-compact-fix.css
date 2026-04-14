@@ -1360,3 +1360,39 @@
     flex: 1 1 180px;
   }
 }
+
+
+.pos-inline-details-card {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.pos-inline-details-card > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pos-inline-details-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pos-inline-details-card[open] > summary {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.pos-inline-details-card .pos-shortcuts-strip-card,
+.pos-inline-details-card .pos-recent-panel {
+  border: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+.pos-workspace .pos-product-card-meta {
+  min-height: 18px;
+}

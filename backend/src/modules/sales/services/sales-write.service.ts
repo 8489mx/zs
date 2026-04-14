@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql, type Transaction } from 'kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
@@ -12,7 +12,7 @@ import { TransactionHelper } from '../../../database/helpers/transaction.helper'
 import { HeldSaleDto } from '../dto/held-sale.dto';
 import { UpsertSaleDto } from '../dto/upsert-sale.dto';
 import { normalizeSalePayload } from '../helpers/sales-payload.helper';
-import { buildPreparedSaleItem, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../helpers/sales-write.helper';
+import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../helpers/sales-write.helper';
 import { SalesAuthorizationService } from './sales-authorization.service';
 import { SalesFinanceService } from './sales-finance.service';
 import { SalesQueryService } from './sales-query.service';
@@ -27,6 +27,33 @@ export class SalesWriteService {
     private readonly finance: SalesFinanceService,
     private readonly query: SalesQueryService,
   ) {}
+
+  private assertDiscountChangeAllowed(auth: AuthContext, discount: number): void {
+    if (Math.abs(Number(discount || 0)) <= 0.0001) return;
+    if (this.authz.hasPermission(auth, 'canDiscount')) return;
+    throw new AppError('Discount changes require canDiscount permission', 'DISCOUNT_CHANGE_FORBIDDEN', 403);
+  }
+
+  private assertUnitPriceChangeAllowed(auth: AuthContext, providedPrice: number, allowedPrice: number): void {
+    if (Math.abs(Number(providedPrice || 0) - Number(allowedPrice || 0)) <= 0.0001) return;
+    if (this.authz.hasPermission(auth, 'canEditPrice')) return;
+    throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
+  }
+
+  private async getCurrentProductOffers(trx: Kysely<Database> | Transaction<Database>, productId: number) {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    return trx
+      .selectFrom('product_offers')
+      .select(['offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
+      .where('product_id', '=', productId)
+      .where('is_active', '=', true)
+      .where((eb) => eb.and([
+        eb.or([eb('start_date', 'is', null), eb('start_date', '<=', todayIso)]),
+        eb.or([eb('end_date', 'is', null), eb('end_date', '>=', todayIso)]),
+      ]))
+      .orderBy('id', 'desc')
+      .execute();
+  }
 
   async createSale(payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const normalized = normalizeSalePayload(payload);
@@ -48,6 +75,15 @@ export class SalesWriteService {
       for (const item of normalized.items) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        const activeOffers = await this.getCurrentProductOffers(trx, item.productId);
+        const allowedUnitPrice = calculateAllowedSaleUnitPrice({
+          retailPrice: product.retail_price,
+          wholesalePrice: product.wholesale_price,
+          priceType: item.priceType,
+          offers: activeOffers,
+        });
+        this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
+
         const availableStockQty = normalized.locationId
           ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId })
           : Number(product.stock_qty || 0);
@@ -56,6 +92,7 @@ export class SalesWriteService {
         preparedItems.push(preparedItem);
       }
 
+      this.assertDiscountChangeAllowed(auth, normalized.discount);
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
@@ -269,6 +306,20 @@ export class SalesWriteService {
         .filter((entry) => entry.productId > 0 && entry.qty > 0);
 
       if (!items.length) throw new AppError('Held draft must include at least one item', 'HELD_DRAFT_ITEMS_REQUIRED', 400);
+      this.assertDiscountChangeAllowed(auth, Number(payload.discount || 0));
+
+      for (const item of items) {
+        const product = await trx.selectFrom('products').select(['id', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
+        if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        const activeOffers = await this.getCurrentProductOffers(trx, item.productId);
+        const allowedUnitPrice = calculateAllowedSaleUnitPrice({
+          retailPrice: product.retail_price,
+          wholesalePrice: product.wholesale_price,
+          priceType: item.priceType,
+          offers: activeOffers,
+        });
+        this.assertUnitPriceChangeAllowed(auth, item.unitPrice, allowedUnitPrice);
+      }
 
       const cashAmount = Math.max(0, Number(payload.cashAmount || 0));
       const cardAmount = Math.max(0, Number(payload.cardAmount || 0));

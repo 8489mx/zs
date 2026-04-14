@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
+import { getProductPrice } from '@/features/pos/lib/pos.domain';
 import type { PaymentChannel, PaymentType, PosProductFilter } from '@/features/pos/hooks/usePosWorkspace';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product, Sale } from '@/types/domain';
@@ -14,6 +15,7 @@ interface PosWorkspaceDerivedParams {
   locations: Array<{ id: string | number; name: string }>;
   openShiftRows: Array<{ id: string | number; docNo?: string; openedById?: string | number }>;
   authUserId?: string | number | null;
+  authPermissions?: string[];
   settings?: { taxRate?: number | string; taxMode?: string } | null;
   heldDrafts: Array<unknown>;
   recentProductIds: string[];
@@ -37,6 +39,8 @@ function getCanSubmitHint(params: {
   ownOpenShift: { id: string | number } | null;
   hasCreditWithoutCustomer: boolean;
   hasZeroPriceLine: boolean;
+  hasDiscountPermissionViolation?: boolean;
+  hasPricePermissionViolation?: boolean;
   hasUnderpaidSale: boolean;
 }) {
   if (!params.cartLength) return 'أضف صنفًا واحدًا على الأقل.';
@@ -45,6 +49,8 @@ function getCanSubmitHint(params: {
   if (params.requiresCashierShift && !params.ownOpenShift) return 'افتح وردية كاشير أولًا.';
   if (params.hasCreditWithoutCustomer) return 'البيع الآجل يحتاج اختيار عميل.';
   if (params.hasZeroPriceLine) return 'راجع السلة: يوجد صنف بسعر صفر.';
+  if ((params as typeof params & { hasDiscountPermissionViolation?: boolean }).hasDiscountPermissionViolation) return 'لا تملك صلاحية تعديل الخصم.';
+  if ((params as typeof params & { hasPricePermissionViolation?: boolean }).hasPricePermissionViolation) return 'لا تملك صلاحية تعديل السعر.';
   if (params.hasUnderpaidSale) return 'أكمل المدفوع أو حوّل العملية إلى آجل.';
   return '';
 }
@@ -89,12 +95,21 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const currentBranch = params.branches.find((branch) => String(branch.id) === String(params.branchId)) || params.branches[0] || null;
   const currentLocation = params.locations.find((location) => String(location.id) === String(params.locationId)) || params.locations[0] || null;
   const ownOpenShift = params.openShiftRows.find((shift) => String(shift.openedById || '') === String(params.authUserId || '')) || null;
+  const authPermissions = params.authPermissions || [];
+  const canApplyDiscount = authPermissions.includes('canDiscount') || authPermissions.includes('*');
+  const canEditPrice = authPermissions.includes('canEditPrice') || authPermissions.includes('*');
   const hasOperationalSetup = Boolean(params.branches.length > 0 && params.locations.length > 0);
   const hasCatalogReady = Boolean(params.products.length > 0);
   const requiresCashierShift = params.paymentType !== 'credit';
   const hasZeroPriceLine = params.cart.some((item) => Number(item.price || 0) <= 0);
   const hasCreditWithoutCustomer = params.paymentType === 'credit' && !params.customerId;
   const hasUnderpaidSale = params.paymentType !== 'credit' && Number(params.paidAmount || 0) < Number(totals.total || 0);
+  const hasDiscountPermissionViolation = !canApplyDiscount && Math.abs(Number(params.discount || 0)) > 0.0001;
+  const hasPricePermissionViolation = !canEditPrice && params.cart.some((item) => {
+    const product = params.products.find((entry) => String(entry.id) === String(item.productId));
+    if (!product) return false;
+    return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType) || 0)) > 0.0001;
+  });
 
   const canSubmitSale = Boolean(
     params.cart.length
@@ -103,7 +118,9 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     && (!requiresCashierShift || ownOpenShift)
     && !hasZeroPriceLine
     && !hasCreditWithoutCustomer
-    && !hasUnderpaidSale,
+    && !hasUnderpaidSale
+    && !hasDiscountPermissionViolation
+    && !hasPricePermissionViolation,
   );
 
   const canSubmitHint = getCanSubmitHint({
@@ -114,8 +131,10 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     ownOpenShift,
     hasCreditWithoutCustomer,
     hasZeroPriceLine,
+    hasDiscountPermissionViolation,
+    hasPricePermissionViolation,
     hasUnderpaidSale,
-  });
+  } as Parameters<typeof getCanSubmitHint>[0]);
 
   const contextBadges = [
     ...(SINGLE_STORE_MODE ? [] : [{ key: 'branch', label: `الفرع: ${currentBranch?.name || 'الافتراضي'}` }]),
@@ -151,7 +170,11 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     requiresCashierShift,
     hasZeroPriceLine,
     hasCreditWithoutCustomer,
+    hasDiscountPermissionViolation,
+    hasPricePermissionViolation,
     hasUnderpaidSale,
+    canApplyDiscount,
+    canEditPrice,
     canSubmitSale,
     canSubmitHint,
     contextBadges,

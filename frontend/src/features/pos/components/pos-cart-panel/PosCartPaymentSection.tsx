@@ -10,7 +10,7 @@ function isPresetActive(paymentType: PosCartPanelProps['paymentType'], paymentCh
 }
 
 export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
-  'paymentType' | 'paymentChannel' | 'cashAmount' | 'cardAmount' | 'paidAmount' | 'discount' |
+  'paymentType' | 'paymentChannel' | 'cashAmount' | 'cardAmount' | 'paidAmount' | 'discount' | 'canApplyDiscount' | 'hasDiscountPermissionViolation' |
   'onPaymentPresetChange' | 'onCashAmountChange' | 'onCardAmountChange' | 'onDiscountChange' | 'onFillPaidAmount'
 >) {
   return (
@@ -28,12 +28,14 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
         <Field label="نقدي"><input type="number" step="0.01" value={props.paymentType === 'credit' ? 0 : props.cashAmount} onChange={(event) => props.onCashAmountChange(Number(event.target.value || 0))} disabled={props.paymentType === 'credit'} /></Field>
         <Field label="فيزا"><input type="number" step="0.01" value={props.paymentType === 'credit' ? 0 : props.cardAmount} onChange={(event) => props.onCardAmountChange(Number(event.target.value || 0))} disabled={props.paymentType === 'credit'} /></Field>
         <Field label="المدفوع"><input type="number" step="0.01" value={props.paymentType === 'credit' ? 0 : props.paidAmount} readOnly disabled /></Field>
-        <Field label="الخصم"><input type="number" step="0.01" value={props.discount} onChange={(event) => props.onDiscountChange(Number(event.target.value || 0))} /></Field>
+        <Field label="الخصم"><input type="number" step="0.01" value={props.discount} onChange={(event) => props.onDiscountChange(Number(event.target.value || 0))} disabled={!props.canApplyDiscount} /></Field>
         <div className="field pos-inline-button-field pos-payment-fill-field pos-payment-fill-field-inline">
           <span>&nbsp;</span>
           <Button onClick={props.onFillPaidAmount} disabled={props.paymentType === 'credit'}>المبلغ كامل</Button>
         </div>
       </div>
+      {!props.canApplyDiscount ? <div className="muted small" style={{ marginTop: 8 }}>لا تملك صلاحية تعديل الخصم.</div> : null}
+      {props.hasDiscountPermissionViolation ? <div className="warning-box" style={{ marginTop: 8 }}>تم اكتشاف خصم غير مسموح به في هذه الفاتورة. صفّره أو سجّل الدخول بحساب لديه الصلاحية.</div> : null}
     </div>
   );
 }

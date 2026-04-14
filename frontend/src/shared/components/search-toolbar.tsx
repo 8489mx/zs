@@ -1,6 +1,7 @@
 import type { ReactNode, Ref } from 'react';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
+import { normalizeArabicSearchText } from '@/lib/arabic-normalization';
 
 interface SearchToolbarProps {
   search: string;
@@ -57,7 +58,7 @@ export function SearchToolbar({
           <input
             ref={inputRef}
             value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
+            onChange={(event) => onSearchChange(normalizeArabicSearchText(event.target.value))}
             placeholder={searchPlaceholder}
             aria-label={inputAriaLabel || searchPlaceholder}
           />

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -79,6 +80,17 @@ export function StockCountMonitorCard({
   onSelectedSessionIdsChange,
   onPostSelectedSessions,
 }: StockCountMonitorCardProps) {
+  const detailPanelRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedSessionId = selectedSession?.id;
+
+  useEffect(() => {
+    if (!selectedSessionId) return;
+    window.requestAnimationFrame(() => {
+      detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+    });
+  }, [selectedSessionId]);
+
   return (
     <Card title="جلسات الجرد" description="عرض جدولي قابل للترقيم للجلسات مع لوحة تفصيل جلسة الجرد نفسها: البنود والفروقات والإجماليات ونقطة الاعتماد." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onPrintCountSessions} disabled={!stockCountSessions.length}>طباعة الجلسات</Button><Button variant="secondary" onClick={onPrintDamagedRecords} disabled={!damagedRecords.length}>طباعة التالف</Button><Button variant="secondary" onClick={onExportDamagedCsv} disabled={!damagedRecords.length}>تصدير التالف</Button><span className="nav-pill">{sessionTotalItems} جلسة</span></div>}>
       <Field label="كود اعتماد الجلسة">
@@ -170,7 +182,7 @@ export function StockCountMonitorCard({
               ]}
             />
           </div>
-          <div className="detail-panel">
+          <div ref={detailPanelRef} className="detail-panel">
             {selectedSession ? (
               <div className="section-stack">
                 <div className="detail-panel-header">

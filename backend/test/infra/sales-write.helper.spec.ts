@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { AppError } from '../../src/common/errors/app-error';
-import { buildPreparedSaleItem, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../../src/modules/sales/helpers/sales-write.helper';
+import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../../src/modules/sales/helpers/sales-write.helper';
 
 const prepared = buildPreparedSaleItem(
   { id: 2, name: 'Tea', stock_qty: '10', cost_price: '3.5' },
@@ -20,6 +20,13 @@ assert.deepEqual(prepared, {
   beforeQty: 10,
   afterQty: 7,
 });
+
+
+assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'wholesale' }), 80);
+assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 90);
+assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'fixed', value: 15, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 85);
+assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'price', value: 72, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 72);
 
 assert.equal(calculateCollectibleTotal(120, 20), 100);
 assert.deepEqual(resolveSalePayments('credit', [{ paymentChannel: 'cash', amount: 10 }], 100), []);

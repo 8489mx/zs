@@ -28,6 +28,7 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   PRODUCT_HAS_HISTORY: 'لا يمكن حذف الصنف لأن له حركات أو تاريخًا سابقًا.',
   STOCK_UPDATE_FORBIDDEN: 'لا يمكن تعديل المخزون من شاشة بيانات الصنف. استخدم شاشة المخزون أو التسوية.',
   PRICE_CHANGE_FORBIDDEN: 'تعديل الأسعار يتطلب صلاحية تعديل الأسعار.',
+  DISCOUNT_CHANGE_FORBIDDEN: 'تعديل الخصم يتطلب صلاحية تعديل الخصم.',
   CUSTOMER_PRICE_INVALID: 'سعر العميل غير صحيح.',
   CASHIER_SHIFT_NOT_FOUND: 'الوردية غير موجودة.',
   SHIFT_NOT_FOUND: 'الوردية غير موجودة.',
@@ -96,6 +97,7 @@ function translateKnownEnglishMessage(message: string): string | null {
     'Product already exists': 'يوجد صنف بنفس الاسم أو الباركود بالفعل.',
     'Stock cannot be edited from product master data. Use inventory adjustment.': 'لا يمكن تعديل المخزون من شاشة بيانات الصنف. استخدم شاشة المخزون أو التسوية.',
     'Price changes require canEditPrice permission': 'تعديل الأسعار يتطلب صلاحية تعديل الأسعار.',
+    'Discount changes require canDiscount permission': 'تعديل الخصم يتطلب صلاحية تعديل الخصم.',
     'Could not open cashier shift': 'تعذر فتح الوردية.',
   };
 

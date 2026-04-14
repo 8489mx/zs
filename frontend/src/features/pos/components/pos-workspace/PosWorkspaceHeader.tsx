@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -13,7 +14,7 @@ function buildDescription(pos: PosWorkspaceState) {
   return `راجع السلة الحالية. ${pos.canSubmitHint || 'أكمل المطلوب أولًا قبل تأكيد الفاتورة.'}`;
 }
 
-export function PosWorkspaceHeader({ pos }: { pos: PosWorkspaceState }) {
+function PosWorkspaceHeaderComponent({ pos }: { pos: PosWorkspaceState }) {
   const paymentMode = paymentLabel(pos.paymentType, pos.paymentChannel);
 
   return (
@@ -36,3 +37,17 @@ export function PosWorkspaceHeader({ pos }: { pos: PosWorkspaceState }) {
     />
   );
 }
+
+function areEqual(prev: { pos: PosWorkspaceState }, next: { pos: PosWorkspaceState }) {
+  return prev.pos.paymentType === next.pos.paymentType
+    && prev.pos.paymentChannel === next.pos.paymentChannel
+    && prev.pos.ownOpenShift === next.pos.ownOpenShift
+    && prev.pos.hasOperationalSetup === next.pos.hasOperationalSetup
+    && prev.pos.hasCatalogReady === next.pos.hasCatalogReady
+    && prev.pos.requiresCashierShift === next.pos.requiresCashierShift
+    && prev.pos.cart === next.pos.cart
+    && prev.pos.canSubmitSale === next.pos.canSubmitSale
+    && prev.pos.canSubmitHint === next.pos.canSubmitHint;
+}
+
+export const PosWorkspaceHeader = memo(PosWorkspaceHeaderComponent, areEqual);

@@ -11,5 +11,6 @@ import { InventoryTransferService } from './services/inventory-transfer.service'
   imports: [AuditModule],
   controllers: [InventoryController],
   providers: [InventoryScopeService, InventoryTransferService, InventoryCountService, InventoryAdjustmentService, InventoryService],
+  exports: [InventoryScopeService],
 })
 export class InventoryModule {}

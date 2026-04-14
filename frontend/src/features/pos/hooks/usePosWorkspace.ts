@@ -41,7 +41,7 @@ function getSaleKey(sale: { docNo?: string | number; id?: string | number } | nu
 export function usePosWorkspace() {
   const state = usePosWorkspaceState();
   const paidAmount = state.paymentType === 'credit' ? 0 : Number((Number(state.cashAmount || 0) + Number(state.cardAmount || 0)).toFixed(2));
-  const { saleProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search);
+  const { saleProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search, state.locationId);
   const createSale = usePosSaleMutation();
   const queryClient = useQueryClient();
   const authUser = useAuthStore((entry) => entry.user);
@@ -69,6 +69,9 @@ export function usePosWorkspace() {
     setBranchId: state.setBranchId,
     locationId: state.locationId,
     setLocationId: state.setLocationId,
+    products: productsQuery.data || [],
+    setCart: state.setCart,
+    setSubmitMessage: state.setSubmitMessage,
     recentProductIds: state.recentProductIds,
     lastSale: state.lastSale,
     lastAddedLineKey: state.lastAddedLineKey,
@@ -87,6 +90,7 @@ export function usePosWorkspace() {
     locations: locationsQuery.data || [],
     openShiftRows,
     authUserId: authUser?.id,
+    authPermissions: authUser?.permissions || [],
     settings: settingsQuery.data || null,
     heldDrafts,
     recentProductIds: state.recentProductIds,

@@ -23,6 +23,8 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks: function (id) {
+                    if (id.includes('html2canvas') || id.includes('jspdf'))
+                        return 'vendor-pdf';
                     if (!id.includes('node_modules'))
                         return undefined;
                     if (id.includes('react-router'))

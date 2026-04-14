@@ -5,16 +5,22 @@ import { POS_SHORTCUTS, getStartupIssues, type PosWorkspaceState } from '@/featu
 
 export function PosWorkspaceQuickShortcuts() {
   return (
-    <Card className="pos-shortcuts-strip-card pos-secondary-tools-card" title="اختصارات التشغيل السريع" description="اختصارات لوحة المفاتيح المهمة في العمل اليومي داخل الكاشير.">
-      <div className="pos-shortcuts-inline-row">
-        {POS_SHORTCUTS.map((shortcut) => (
-          <div key={shortcut.key} className="pos-shortcut-inline-item">
-            <span className="kbd-chip">{shortcut.key}</span>
-            <strong>{shortcut.label}</strong>
-          </div>
-        ))}
-      </div>
-    </Card>
+    <details className="pos-inline-details-card">
+      <summary>
+        <span>اختصارات التشغيل</span>
+        <span className="muted small">افتحها عند الحاجة</span>
+      </summary>
+      <Card className="pos-shortcuts-strip-card pos-secondary-tools-card" title="اختصارات التشغيل السريع" description="اختصارات لوحة المفاتيح المهمة في العمل اليومي داخل الكاشير.">
+        <div className="pos-shortcuts-inline-row">
+          {POS_SHORTCUTS.map((shortcut) => (
+            <div key={shortcut.key} className="pos-shortcut-inline-item">
+              <span className="kbd-chip">{shortcut.key}</span>
+              <strong>{shortcut.label}</strong>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </details>
   );
 }
 

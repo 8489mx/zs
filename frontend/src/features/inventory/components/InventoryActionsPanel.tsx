@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card } from '@/shared/ui/card';
@@ -30,6 +30,9 @@ interface InventoryActionsPanelProps {
 }
 
 export function InventoryActionsPanel({ products, branches, locations, isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
+  const adjustmentDisclosureRef = useRef<HTMLDetailsElement | null>(null);
+  const damagedDisclosureRef = useRef<HTMLDetailsElement | null>(null);
+
   const adjustmentForm = useForm<InventoryAdjustmentInput, undefined, InventoryAdjustmentOutput>({
     resolver: zodResolver(inventoryAdjustmentSchema),
     defaultValues: { productId: '', actionType: 'adjust', qty: 0, reason: 'inventory_count', note: '', managerPin: '' }
@@ -57,6 +60,13 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
     : (locations.find((location) => String(location.id) === String(damagedForm.getValues('locationId')))?.name || '—');
   const remainingAfterDamage = Math.max(0, Number(selectedDamagedProduct?.stock || 0) - damagedQty);
 
+  function scrollDisclosureToView(details: HTMLDetailsElement | null) {
+    if (!details) return;
+    window.requestAnimationFrame(() => {
+      details.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+    });
+  }
+
   return (
     <QueryFeedback
       isLoading={isCatalogLoading}
@@ -74,7 +84,13 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
         actions={<span className="nav-pill">إجراءات المخزون</span>}
       >
         <div className="inventory-actions-disclosure-stack">
-          <details className="inventory-action-disclosure">
+          <details
+            ref={adjustmentDisclosureRef}
+            className="inventory-action-disclosure"
+            onToggle={(event) => {
+              if ((event.currentTarget as HTMLDetailsElement).open) scrollDisclosureToView(adjustmentDisclosureRef.current);
+            }}
+          >
             <summary>
               <div className="inventory-action-summary-copy">
                 <strong>تسوية / تعديل مخزون</strong>
@@ -108,7 +124,13 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
             </form>
           </details>
 
-          <details className="inventory-action-disclosure">
+          <details
+            ref={damagedDisclosureRef}
+            className="inventory-action-disclosure"
+            onToggle={(event) => {
+              if ((event.currentTarget as HTMLDetailsElement).open) scrollDisclosureToView(damagedDisclosureRef.current);
+            }}
+          >
             <summary>
               <div className="inventory-action-summary-copy">
                 <strong>تسجيل تالف مباشر</strong>

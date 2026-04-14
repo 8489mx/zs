@@ -230,6 +230,9 @@ export function PosWorkspace() {
             changeAmount={pos.changeAmount}
             amountDue={pos.amountDue}
             hasOpenShift={Boolean(pos.ownOpenShift)}
+            canApplyDiscount={pos.canApplyDiscount}
+            hasDiscountPermissionViolation={pos.hasDiscountPermissionViolation}
+            hasPricePermissionViolation={pos.hasPricePermissionViolation}
             canSubmitSale={pos.canSubmitSale}
             canSubmitHint={pos.canSubmitHint}
             lastAddedLineKey={pos.lastAddedLineKey}

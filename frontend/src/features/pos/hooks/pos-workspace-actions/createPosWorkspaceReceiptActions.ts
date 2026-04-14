@@ -1,4 +1,4 @@
-import { exportPostedSalePdf, printPostedSaleReceipt } from '@/lib/pos-printing';
+import { printPostedSaleReceipt } from '@/lib/pos-printing';
 import { computeDraftTotal } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 
@@ -39,10 +39,12 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     if (!hasFreshLastSale() || !params.lastSale) return;
     const sale = params.lastSale;
     completePostSaleCycle('جارٍ تنزيل ملف PDF بحجم A4. جاهز لعميل جديد.');
-    void exportPostedSalePdf(sale, { settings: params.settings || null }).catch(() => {
-      params.setSubmitMessage('تعذر تنزيل PDF. حاول مرة أخرى.');
-      params.requestBarcodeFocus();
-    });
+    void import('@/lib/pos-printing/pdf')
+      .then(({ exportPostedSalePdf }) => exportPostedSalePdf(sale, { settings: params.settings || null }))
+      .catch(() => {
+        params.setSubmitMessage('تعذر تنزيل PDF. حاول مرة أخرى.');
+        params.requestBarcodeFocus();
+      });
   }
 
   return {

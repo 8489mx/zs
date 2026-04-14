@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -7,9 +7,6 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { ProductForm } from '@/features/products/components/ProductForm';
 import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsGrid';
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';
-import { ProductOfferDialog } from '@/features/products/components/ProductOfferDialog';
-import { ProductBarcodeDialog } from '@/features/products/components/ProductBarcodeDialog';
-import { BarcodePrintDialog } from '@/features/products/components/BarcodePrintDialog';
 import {
   QuickCatalogCard,
   ProductEditorCard,
@@ -17,8 +14,17 @@ import {
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 
+const LazyProductOfferDialog = lazy(() => import('@/features/products/components/ProductOfferDialog').then((module) => ({ default: module.ProductOfferDialog })));
+const LazyProductBarcodeDialog = lazy(() => import('@/features/products/components/ProductBarcodeDialog').then((module) => ({ default: module.ProductBarcodeDialog })));
+const LazyBarcodePrintDialog = lazy(() => import('@/features/products/components/BarcodePrintDialog').then((module) => ({ default: module.BarcodePrintDialog })));
+
 const productsWorkspaceRegressionLabels = ['باركود', 'وحدات'];
 void productsWorkspaceRegressionLabels;
+
+function scrollToRef(target: HTMLDivElement | null) {
+  if (!target || typeof target.scrollIntoView !== 'function') return;
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 export function ProductsWorkspace() {
   const controller = useProductsWorkspaceController();
@@ -29,6 +35,11 @@ export function ProductsWorkspace() {
   const editProductRef = useRef<HTMLDivElement | null>(null);
   const toolsRef = useRef<HTMLDivElement | null>(null);
   const hasProducts = controller.metrics.total > 0;
+
+  useEffect(() => {
+    if (!controller.selectedProduct) return;
+    scrollToRef(editProductRef.current);
+  }, [controller.selectedProduct]);
 
   return (
     <div className="page-stack page-shell products-workspace-page">
@@ -41,7 +52,7 @@ export function ProductsWorkspace() {
             <Button
               onClick={() => {
                 controller.setSelectedProduct(null);
-                addProductRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                scrollToRef(addProductRef.current);
               }}
             >
               {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
@@ -50,16 +61,16 @@ export function ProductsWorkspace() {
               variant="secondary"
               onClick={() => {
                 if (controller.selectedProduct) {
-                  editProductRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  scrollToRef(editProductRef.current);
                   return;
                 }
-                addProductRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                scrollToRef(addProductRef.current);
               }}
             >
               {controller.selectedProduct ? 'الانتقال للتعديل' : 'الانتقال للإضافة'}
             </Button>
             <Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button>
-            <Button variant="secondary" onClick={() => toolsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>القسم والمورد</Button>
+            <Button variant="secondary" onClick={() => scrollToRef(toolsRef.current)}>القسم والمورد</Button>
             <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير CSV</Button>
             <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
           </div>
@@ -73,8 +84,8 @@ export function ProductsWorkspace() {
               لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للمحل، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
             </div>
             <div className="actions compact-actions">
-              <Button onClick={() => addProductRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
-              <Button variant="secondary" onClick={() => toolsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>إضافة قسم أو مورد</Button>
+              <Button onClick={() => scrollToRef(addProductRef.current)}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
+              <Button variant="secondary" onClick={() => scrollToRef(toolsRef.current)}>إضافة قسم أو مورد</Button>
             </div>
           </div>
         </Card>
@@ -183,29 +194,33 @@ export function ProductsWorkspace() {
         <QuickCatalogCard canManageSuppliers={controller.canManageSuppliers} />
       </div>
 
-      <ProductOfferDialog
-        open={Boolean(controller.offerDialogProduct)}
-        product={controller.offerDialogProduct}
-        onClose={() => controller.setOfferDialogProduct(null)}
-        onSaved={(product) => controller.applyProductPatch(product)}
-      />
+      {(controller.offerDialogProduct || controller.barcodeDialogProduct || controller.printDialogState) ? (
+        <Suspense fallback={<div className="loading-card">جاري تحميل الأدوات الإضافية...</div>}>
+          <LazyProductOfferDialog
+            open={Boolean(controller.offerDialogProduct)}
+            product={controller.offerDialogProduct}
+            onClose={() => controller.setOfferDialogProduct(null)}
+            onSaved={(product) => controller.applyProductPatch(product)}
+          />
 
-      <ProductBarcodeDialog
-        open={Boolean(controller.barcodeDialogProduct)}
-        product={controller.barcodeDialogProduct}
-        products={controller.visibleProducts}
-        mode={controller.barcodeDialogMode}
-        onClose={() => controller.setBarcodeDialogProduct(null)}
-        onSaved={(product) => controller.applyProductPatch(product)}
-        onOpenPrint={(product, unit) => controller.openPrintDialog(product, unit)}
-      />
+          <LazyProductBarcodeDialog
+            open={Boolean(controller.barcodeDialogProduct)}
+            product={controller.barcodeDialogProduct}
+            products={controller.visibleProducts}
+            mode={controller.barcodeDialogMode}
+            onClose={() => controller.setBarcodeDialogProduct(null)}
+            onSaved={(product) => controller.applyProductPatch(product)}
+            onOpenPrint={(product, unit) => controller.openPrintDialog(product, unit)}
+          />
 
-      <BarcodePrintDialog
-        open={Boolean(controller.printDialogState)}
-        product={controller.printDialogState?.product || null}
-        unit={controller.printDialogState?.unit}
-        onClose={() => controller.setPrintDialogState(null)}
-      />
+          <LazyBarcodePrintDialog
+            open={Boolean(controller.printDialogState)}
+            product={controller.printDialogState?.product || null}
+            unit={controller.printDialogState?.unit}
+            onClose={() => controller.setPrintDialogState(null)}
+          />
+        </Suspense>
+      ) : null}
 
       <ActionConfirmDialog
         open={Boolean(controller.productToDelete)}

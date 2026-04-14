@@ -25,9 +25,9 @@ export function useProductsWorkspaceController() {
   const [printDialogState, setPrintDialogState] = useState<{ product: Product; unit?: ProductUnit | null } | null>(null);
 
   const productsQuery = useProductsPageQuery({ page, pageSize, q: search, view: viewFilter });
-  const categoriesQuery = useQuery({ queryKey: queryKeys.categories, queryFn: productsApi.categories });
-  const suppliersQuery = useQuery({ queryKey: queryKeys.suppliers, queryFn: productsApi.suppliers });
-  const customersQuery = useQuery({ queryKey: queryKeys.customers, queryFn: catalogApi.listCustomers });
+  const categoriesQuery = useQuery({ queryKey: queryKeys.productsCategories, queryFn: productsApi.categories, staleTime: 60_000 });
+  const suppliersQuery = useQuery({ queryKey: queryKeys.productsSuppliers, queryFn: productsApi.suppliers, staleTime: 60_000 });
+  const customersQuery = useQuery({ queryKey: queryKeys.productsCustomers, queryFn: catalogApi.listCustomers, staleTime: 60_000 });
   const queryClient = useQueryClient();
   const canDelete = useHasAnyPermission('canDelete');
   const canPrint = useHasAnyPermission('canPrint');
@@ -88,7 +88,7 @@ export function useProductsWorkspaceController() {
       }
       setSelectedProduct(null);
     }
-  }, [visibleProducts, selectedProduct?.id]);
+  }, [visibleProducts, selectedProduct]);
 
   const resetProductsView = () => {
     setSearch('');

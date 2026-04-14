@@ -40,6 +40,9 @@ export interface PosCartPanelProps {
   changeAmount: number;
   amountDue: number;
   hasOpenShift: boolean;
+  canApplyDiscount: boolean;
+  hasDiscountPermissionViolation?: boolean;
+  hasPricePermissionViolation?: boolean;
   canSubmitSale: boolean;
   canSubmitHint: string;
   lastAddedLineKey?: string;

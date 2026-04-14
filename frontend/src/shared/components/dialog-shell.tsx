@@ -37,6 +37,7 @@ export function DialogShell({
     const focusDialog = () => {
       const shell = shellRef.current;
       if (!shell) return;
+      shell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
       const focusable = getFocusableElements(shell);
       const preferredTarget = shell.querySelector<HTMLElement>('[data-autofocus]');
       (preferredTarget || focusable[0] || shell).focus();

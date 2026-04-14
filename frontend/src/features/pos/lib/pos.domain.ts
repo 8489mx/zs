@@ -92,3 +92,58 @@ export function updatePosItemQty(cart: PosItem[], lineKey: string, qty: number) 
 export function removePosItem(cart: PosItem[], lineKey: string) {
   return cart.filter((row) => row.lineKey !== lineKey);
 }
+
+
+export function syncPosCartStock(cart: PosItem[], products: Product[]) {
+  let changed = false;
+  let removedCount = 0;
+  let clampedCount = 0;
+
+  const nextCart = cart.flatMap((item) => {
+    const product = products.find((entry) => String(entry.id) === String(item.productId));
+    if (!product) return [item];
+    const unit = safeUnits(product).find((entry) => String(entry.id || '') === String(item.unitId || '') || String(entry.name || '') === String(item.unitName || '')) || getSaleUnit(product);
+    const stockLimit = getStockLimit(product, unit);
+    if (stockLimit <= 0) {
+      changed = true;
+      removedCount += 1;
+      return [];
+    }
+
+    const nextQty = Math.max(1, Math.min(Number(item.qty || 1), stockLimit));
+    const nextItem = {
+      ...item,
+      unitId: String(unit.id || item.unitId || ''),
+      unitName: unit.name || item.unitName,
+      unitMultiplier: Math.max(Number(unit.multiplier || 1), 1),
+      stockLimit,
+      currentStock: Number(product.stock || 0),
+      minStock: Number(product.minStock || 0),
+    };
+
+    if (nextQty !== item.qty) {
+      nextItem.qty = nextQty;
+      changed = true;
+      clampedCount += 1;
+    }
+
+    if (
+      Number(nextItem.stockLimit) !== Number(item.stockLimit)
+      || Number(nextItem.currentStock) !== Number(item.currentStock)
+      || Number(nextItem.minStock) !== Number(item.minStock)
+      || Number(nextItem.unitMultiplier) !== Number(item.unitMultiplier)
+      || String(nextItem.unitId || '') !== String(item.unitId || '')
+      || String(nextItem.unitName || '') !== String(item.unitName || '')
+    ) {
+      changed = true;
+    }
+
+    return [nextItem];
+  });
+
+  return {
+    cart: changed ? nextCart : cart,
+    removedCount,
+    clampedCount,
+  };
+}

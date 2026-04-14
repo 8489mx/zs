@@ -17,7 +17,7 @@ async function postSale(payload: unknown) {
 }
 
 export const posApi = {
-  products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products'), 'products'),
+  products: async (locationId?: string) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(`/api/products${locationId ? `?locationId=${encodeURIComponent(locationId)}` : ''}`), 'products'),
   customers: async () => unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>('/api/customers'), 'customers'),
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),

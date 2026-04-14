@@ -14,6 +14,7 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Category, Product, ProductCustomerPrice, ProductUnit, Supplier } from '@/types/domain';
 import { ProductCustomerPricesCard } from './ProductCustomerPricesCard';
+import { FashionGroupEditorCard } from './FashionGroupEditorCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from './product-workspace.utils';
 
 type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
@@ -43,6 +44,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
   });
 
   const watchedItemKind = clothingModuleEnabled && form.watch('itemKind') === 'fashion' ? 'fashion' : 'standard';
+  const groupedEntry = Boolean(String(product?.styleCode || '').trim());
 
   useEffect(() => {
     if (!product) return;
@@ -86,6 +88,17 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
     return <div className="muted">اختر صنفًا من الجدول لعرض نموذج التعديل. تعديل رصيد المخزون نفسه يتم من تبويب المخزون وليس من master data.</div>;
   }
 
+  if (groupedEntry) {
+    return (
+      <FashionGroupEditorCard
+        product={product}
+        categories={categories}
+        suppliers={suppliers}
+        onSaved={onSaved}
+      />
+    );
+  }
+
   return (
     <div className="page-stack">
       <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }))}>
@@ -115,14 +128,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
           </Field>
           <Field label="ملاحظات"><textarea rows={4} {...form.register('notes')} disabled={mutation.isPending} /></Field>
         </div>
-        {clothingModuleEnabled && watchedItemKind === 'fashion' ? (
-          <div className="surface-note" style={{ padding: 12 }}>
-            <strong>معلومة مهمة</strong>
-            <div className="muted small">في موديول الملابس الحالي كل لون/مقاس يُسجَّل كصنف مستقل. عدّل اللون والمقاس والباركود هنا لهذا الـ Variant نفسه، بينما إنشاء دفعة Variants جديدة يتم من نموذج الإضافة أعلى الصفحة.</div>
-          </div>
-        ) : (
-          <ProductUnitsEditor units={units} onChange={setUnits} disabled={mutation.isPending} title="وحدات الصنف" />
-        )}
+        <ProductUnitsEditor units={units} onChange={setUnits} disabled={mutation.isPending} title="وحدات الصنف" />
         <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="تعديلات الصنف الحالية غير محفوظة" hint="احفظ الصنف أو أعد القيم الأصلية قبل الانتقال إلى سجل آخر حتى لا تفقد الوحدات أو الأسعار الخاصة." />
         <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر تحديث الصنف" successText="تم تحديث الصنف بنجاح." />
         <div className="actions">

@@ -26,11 +26,10 @@ describe('app ui coverage', () => {
 
   it('switches settings tabs across core, reference, users, and backup', async () => {
     const user = userEvent.setup();
-    await renderAppAt('/settings/overview');
-    await user.click(await screen.findByRole('link', { name: 'بيانات المتجر' }));
+    await renderAppAt('/settings/core');
     expect((await screen.findAllByText(/بيانات المتجر/)).length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole('link', { name: 'المخزن والمواقع' }));
+    await user.click(await screen.findByRole('link', { name: 'المخزن والمواقع' }));
     expect((await screen.findAllByText(/المخزن والمواقع/)).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('link', { name: 'المستخدمون والصلاحيات' }));
@@ -43,21 +42,22 @@ describe('app ui coverage', () => {
   it('switches accounts between customer and supplier workflows', async () => {
     const user = userEvent.setup();
     await renderAppAt('/accounts');
-    expect(await screen.findByText('تحصيل من عميل')).toBeInTheDocument();
-    expect(await screen.findByText('كشف حساب عميل')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'تحصيل من عميل' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'كشف حساب عميل' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'الموردون' }));
-    expect(await screen.findByText('دفع لمورد')).toBeInTheDocument();
-    expect((await screen.findAllByText('كشف حساب مورد')).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: 'دفع لمورد' })).toBeInTheDocument();
+    expect((await screen.findAllByRole('heading', { name: 'كشف حساب مورد' })).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'العملاء' }));
-    expect(await screen.findByText('تحصيل من عميل')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'تحصيل من عميل' })).toBeInTheDocument();
   });
 
   it('opens product edit state from the products register', async () => {
     const user = userEvent.setup();
     await renderAppAt('/products');
-    await user.click(await screen.findByRole('button', { name: 'تعديل' }));
+    const editButtons = await screen.findAllByRole('button', { name: /^(تعديل|تعديل الأساسي|عرض\/تعديل)$/ });
+    await user.click(editButtons[0]);
     expect(await screen.findByText(/تعديل:/)).toBeInTheDocument();
     expect(await screen.findByText('التعديل النشط')).toBeInTheDocument();
   });
@@ -99,8 +99,8 @@ describe('app ui coverage', () => {
   it('keeps treasury and services operational areas visible', async () => {
     await renderAppAt('/treasury');
     expect((await screen.findAllByText(/الخزينة/)).length).toBeGreaterThan(0);
-    expect(await screen.findByText('حركات الخزينة')).toBeInTheDocument();
-    expect(await screen.findByText('تسجيل مصروف')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'حركات الخزينة' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'تسجيل مصروف' })).toBeInTheDocument();
 
     cleanup();
     installGlobalAppFetchMock();

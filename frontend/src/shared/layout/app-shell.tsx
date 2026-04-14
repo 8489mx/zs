@@ -4,11 +4,6 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { queryKeys } from '@/app/query-keys';
 import { authApi } from '@/shared/api/auth';
-import { referenceDataApi } from '@/services/reference-data.api';
-import { productsApi } from '@/features/products/api/products.api';
-import { customersApi } from '@/features/customers/api/customers.api';
-import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
-import { dashboardApi } from '@/features/dashboard/api/dashboard.api';
 import { dayRangeLast30 } from '@/lib/format';
 import { resetAuthenticatedClient } from '@/lib/query-client-session';
 import { DEFAULT_STORE_NAME, useAuthStore } from '@/stores/auth-store';
@@ -77,16 +72,115 @@ const dashboardWarmRange = (() => {
   return dayRangeLast30(reference);
 })();
 
-const warmupQueries: Array<{ queryKey: readonly string[]; queryFn: () => Promise<unknown> }> = [
-  { queryKey: queryKeys.dashboardOverview(dashboardWarmRange.from, dashboardWarmRange.to), queryFn: () => dashboardApi.overview(dashboardWarmRange.from, dashboardWarmRange.to) },
-  { queryKey: queryKeys.settings, queryFn: referenceDataApi.settings },
-  { queryKey: queryKeys.branches, queryFn: referenceDataApi.branches },
-  { queryKey: queryKeys.locations, queryFn: referenceDataApi.locations },
-  { queryKey: queryKeys.categories, queryFn: productsApi.categories },
-  { queryKey: queryKeys.products, queryFn: productsApi.list },
-  { queryKey: queryKeys.customers, queryFn: customersApi.list },
-  { queryKey: queryKeys.suppliers, queryFn: suppliersApi.list },
-];
+type WarmupQueryDefinition = {
+  key: string;
+  queryKey: readonly string[];
+  queryFn: () => Promise<unknown>;
+};
+
+function buildWarmupQueries(pathname: string): WarmupQueryDefinition[] {
+  const queries: WarmupQueryDefinition[] = [];
+
+  if (pathname === '/') {
+    queries.push({
+      key: 'dashboard-overview',
+      queryKey: queryKeys.dashboardOverview(dashboardWarmRange.from, dashboardWarmRange.to),
+      queryFn: async () => {
+        const { dashboardApi } = await import('@/features/dashboard/api/dashboard.api');
+        return dashboardApi.overview(dashboardWarmRange.from, dashboardWarmRange.to);
+      },
+    });
+  }
+
+  if (pathname.startsWith('/products') || pathname.startsWith('/inventory')) {
+    queries.push(
+      {
+        key: 'products-categories',
+        queryKey: queryKeys.productsCategories,
+        queryFn: async () => {
+          const { productsApi } = await import('@/features/products/api/products.api');
+          return productsApi.categories();
+        },
+      },
+      {
+        key: 'products-suppliers',
+        queryKey: queryKeys.productsSuppliers,
+        queryFn: async () => {
+          const { productsApi } = await import('@/features/products/api/products.api');
+          return productsApi.suppliers();
+        },
+      },
+    );
+  }
+
+  if (pathname.startsWith('/pos')) {
+    queries.push(
+      {
+        key: 'pos-settings',
+        queryKey: queryKeys.posSettings,
+        queryFn: async () => {
+          const { posApi } = await import('@/features/pos/api/pos.api');
+          return posApi.settings();
+        },
+      },
+      {
+        key: 'pos-branches',
+        queryKey: queryKeys.posBranches,
+        queryFn: async () => {
+          const { posApi } = await import('@/features/pos/api/pos.api');
+          return posApi.branches();
+        },
+      },
+      {
+        key: 'pos-locations',
+        queryKey: queryKeys.posLocations,
+        queryFn: async () => {
+          const { posApi } = await import('@/features/pos/api/pos.api');
+          return posApi.locations();
+        },
+      },
+      {
+        key: 'pos-customers',
+        queryKey: queryKeys.posCustomers,
+        queryFn: async () => {
+          const { posApi } = await import('@/features/pos/api/pos.api');
+          return posApi.customers();
+        },
+      },
+    );
+  }
+
+  if (pathname.startsWith('/settings')) {
+    queries.push(
+      {
+        key: 'settings',
+        queryKey: queryKeys.settings,
+        queryFn: async () => {
+          const { settingsApi } = await import('@/features/settings/api/settings.api');
+          return settingsApi.settings();
+        },
+      },
+      {
+        key: 'branches',
+        queryKey: queryKeys.branches,
+        queryFn: async () => {
+          const { settingsApi } = await import('@/features/settings/api/settings.api');
+          return settingsApi.branches();
+        },
+      },
+      {
+        key: 'settings-locations',
+        queryKey: queryKeys.settingsLocations,
+        queryFn: async () => {
+          const { settingsApi } = await import('@/features/settings/api/settings.api');
+          return settingsApi.locations();
+        },
+      },
+    );
+  }
+
+  return queries;
+}
 
 function AppNavIcon({ itemKey }: { itemKey: string }) {
   return <>{iconMap[itemKey] || <SideIcon><circle cx="12" cy="12" r="8" /></SideIcon>}</>;
@@ -153,9 +247,12 @@ export function AppShell({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let cancelled = false;
+    const warmupQueries = buildWarmupQueries(location.pathname);
+
     const warm = () => {
       if (cancelled) return;
       warmupQueries.forEach((query) => {
+        if (queryClient.getQueryState(query.queryKey)) return;
         void queryClient.prefetchQuery({
           queryKey: query.queryKey,
           queryFn: query.queryFn,
@@ -165,8 +262,8 @@ export function AppShell({ children }: PropsWithChildren) {
     };
 
     const idleWindow = window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void; };
-    const idleId = idleWindow.requestIdleCallback?.(warm, { timeout: 1200 });
-    const timeoutId = window.setTimeout(warm, 450);
+    const idleId = idleWindow.requestIdleCallback?.(warm, { timeout: 2000 });
+    const timeoutId = window.setTimeout(warm, 1200);
 
     return () => {
       cancelled = true;
@@ -175,7 +272,7 @@ export function AppShell({ children }: PropsWithChildren) {
       }
       window.clearTimeout(timeoutId);
     };
-  }, [queryClient]);
+  }, [location.pathname, queryClient]);
 
   useEffect(() => {
     const resetScroll = () => {

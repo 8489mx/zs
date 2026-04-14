@@ -83,6 +83,7 @@ function apiPayload(pathname: string) {
   if (pathname === '/api/settings') return { settings };
   if (pathname === '/api/branches') return { branches };
   if (pathname === '/api/locations') return { locations };
+  if (pathname === '/api/settings/locations') return { locations };
   if (pathname === '/api/products') return pageEnvelope('products', products, { totalProducts: 1, lowStockCount: 0, outOfStockCount: 0, inventoryCost: 100, inventorySaleValue: 200, activeOffersCount: 0, customerPriceCount: 0 });
   if (pathname === '/api/categories') return { categories: [{ id: 'cat-1', name: 'مشروبات' }] };
   if (pathname === '/api/customers') return pageEnvelope('customers', customers, { totalCustomers: 2, totalBalance: 150, totalCredit: 150, vipCount: 1 });
@@ -160,7 +161,7 @@ describe('app route smoke', () => {
   it('shows customer balances on accounts page', async () => {
     await renderAt('/accounts');
     expect((await screen.findAllByText(/الحسابات/)).length).toBeGreaterThan(0);
-    expect(await screen.findByText('عميل الآجل')).toBeInTheDocument();
-    expect(await screen.findByText('تحصيل من عميل')).toBeInTheDocument();
+    expect((await screen.findAllByText('عميل الآجل')).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: 'تحصيل من عميل' })).toBeInTheDocument();
   });
 });

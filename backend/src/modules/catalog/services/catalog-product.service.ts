@@ -6,6 +6,8 @@ import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { NormalizedFashionVariant, NormalizedProductOffer, NormalizedUpsertProduct, UpsertProductDto } from '../dto/upsert-product.dto';
+import { InventoryScopeService } from '../../inventory/services/inventory-scope.service';
+import { normalizeArabicInput, normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 
 type ProductRow = {
   id: number;
@@ -41,7 +43,7 @@ type ProductOfferReadRow = {
 export class CatalogProductService {
   private productOfferColumnCapabilitiesPromise?: Promise<ProductOfferColumnCapabilities>;
 
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
+  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService, private readonly inventoryScope: InventoryScopeService) {}
 
   private hasPermission(actor: AuthContext | undefined, permission: string): boolean {
     return actor?.role === 'super_admin' || Boolean(actor?.permissions?.includes(permission));
@@ -79,10 +81,12 @@ export class CatalogProductService {
   async listProducts(query: Record<string, unknown>, actor?: AuthContext): Promise<Record<string, unknown>> {
     const page = Math.max(1, Number(query.page || 1));
     const pageSize = Math.min(100, Math.max(5, Number(query.pageSize || 20)));
-    const q = String(query.q || '').trim().toLowerCase();
+    const q = normalizeArabicSearch(query.q);
     const view = String(query.view || 'all');
     const canViewCost = this.hasPermission(actor, 'canViewCost');
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
+    const requestedLocationId = Number(query.locationId || 0);
+    const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
 
     const products = (await this.db
       .selectFrom('products')
@@ -90,6 +94,29 @@ export class CatalogProductService {
       .where('is_active', '=', true)
       .orderBy('id', 'desc')
       .execute()) as ProductRow[];
+
+    const scopedStockByProduct = new Map<string, number>();
+    if (scopedLocation && products.length) {
+      const stockRows = await this.db
+        .selectFrom('product_location_stock as pls')
+        .select(['pls.product_id', 'pls.location_id', 'pls.qty'])
+        .where('pls.product_id', 'in', products.map((product) => Number(product.id)))
+        .where((eb) => eb.or([eb('pls.location_id', '=', scopedLocation.id), eb('pls.location_id', 'is', null)]))
+        .execute();
+
+      const locationQtyByProduct = new Map<string, number>();
+      const unassignedQtyByProduct = new Map<string, number>();
+      for (const row of stockRows) {
+        const key = String(row.product_id);
+        const qty = Number(row.qty || 0);
+        if (row.location_id == null) unassignedQtyByProduct.set(key, qty);
+        if (Number(row.location_id || 0) === scopedLocation.id) locationQtyByProduct.set(key, qty);
+      }
+      for (const product of products) {
+        const key = String(product.id);
+        scopedStockByProduct.set(key, Number((Number(locationQtyByProduct.get(key) || 0) + Number(unassignedQtyByProduct.get(key) || 0)).toFixed(3)));
+      }
+    }
 
     const units = await this.db
       .selectFrom('product_units')
@@ -173,7 +200,7 @@ export class CatalogProductService {
         costPrice: Number(product.cost_price || 0),
         retailPrice: Number(product.retail_price || 0),
         wholesalePrice: Number(product.wholesale_price || 0),
-        stock: Number(product.stock_qty || 0),
+        stock: scopedLocation ? Number(scopedStockByProduct.get(String(product.id)) || 0) : Number(product.stock_qty || 0),
         minStock: Number(product.min_stock_qty || 0),
         notes: product.notes || '',
         units: unitsByProduct.get(String(product.id)) || [{ id: `base-${product.id}`, name: 'قطعة', multiplier: 1, barcode: product.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
@@ -211,8 +238,8 @@ export class CatalogProductService {
           String(row.color || ''),
           String(row.size || ''),
           ...unitValues,
-        ].join(' ').toLowerCase();
-        return haystack.includes(q);
+        ].join(' ');
+        return normalizeArabicSearch(haystack).includes(q);
       });
     }
 
@@ -294,35 +321,42 @@ export class CatalogProductService {
     const fashionVariants: NormalizedFashionVariant[] = Array.from(new Map(
       (payload.fashionVariants || [])
         .map((entry) => ({
-          color: String(entry.color || '').trim(),
-          size: String(entry.size || '').trim(),
+          color: normalizeArabicInput(entry.color),
+          size: normalizeArabicInput(entry.size),
           barcode: String(entry.barcode || '').trim(),
           stock: Math.max(0, Number(entry.stock || 0)),
         }))
-        .filter((entry) => entry.color && entry.size)
-        .map((entry) => [`${entry.color.toLowerCase()}::${entry.size.toLowerCase()}`, entry]),
+        .filter((entry) => entry.color || entry.size)
+        .map((entry) => [`${normalizeArabicSearch(entry.color)}::${normalizeArabicSearch(entry.size)}`, entry]),
     ).values());
 
     return {
-      name: String(payload.name || '').trim(),
+      name: normalizeArabicInput(payload.name),
       barcode: String(payload.barcode || '').trim(),
       itemKind: payload.itemKind === 'fashion' ? 'fashion' : 'standard',
       styleCode: String(payload.styleCode || '').trim(),
-      color: String(payload.color || '').trim(),
-      size: String(payload.size || '').trim(),
+      color: normalizeArabicInput(payload.color),
+      size: normalizeArabicInput(payload.size),
       categoryId: payload.categoryId ? Number(payload.categoryId) : null,
       supplierId: payload.supplierId ? Number(payload.supplierId) : null,
       costPrice: Number(payload.costPrice || 0),
       retailPrice: Number(payload.retailPrice || 0),
       wholesalePrice: Number(payload.wholesalePrice || 0),
       minStock: Number(payload.minStock || 0),
-      notes: String(payload.notes || '').trim(),
+      notes: normalizeArabicInput(payload.notes),
       units: normalizedUnits,
       offers,
       customerPrices,
       fashionVariants,
       ...(payload.stock !== undefined && payload.stock !== null ? { stock: Number(payload.stock || 0) } : {}),
     };
+  }
+
+  private buildVariantLabel(variant: Pick<NormalizedFashionVariant, 'color' | 'size'>): string {
+    const color = String(variant.color || '').trim();
+    const size = String(variant.size || '').trim();
+    if (color && size) return `${color} / ${size}`;
+    return color || size;
   }
 
   private async ensureProductIdentityAvailable(payload: NormalizedUpsertProduct, productId?: number): Promise<void> {
@@ -394,23 +428,27 @@ export class CatalogProductService {
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
 
-    const drafts = normalized.itemKind === 'fashion' && normalized.fashionVariants.length
-      ? normalized.fashionVariants.map((variant) => ({
-          ...normalized,
-          name: `${normalized.name} - ${variant.color} / ${variant.size}`,
-          barcode: variant.barcode || '',
-          color: variant.color,
-          size: variant.size,
-          stock: variant.stock,
-          fashionVariants: [],
-        }))
+    const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
+    const drafts = shouldExpandVariants
+      ? normalized.fashionVariants.map((variant) => {
+          const label = this.buildVariantLabel(variant);
+          return {
+            ...normalized,
+            name: label ? `${normalized.name} - ${label}` : normalized.name,
+            barcode: variant.barcode || '',
+            color: variant.color,
+            size: variant.size,
+            stock: variant.stock,
+            fashionVariants: [],
+          };
+        })
       : [normalized];
 
     const duplicateDraftNames = new Set<string>();
     const duplicateDraftBarcodes = new Set<string>();
     for (const draft of drafts) {
       const nameKey = draft.name.toLowerCase();
-      if (duplicateDraftNames.has(nameKey)) throw new AppError('Duplicate clothing variants are not allowed', 'PRODUCT_EXISTS', 400);
+      if (duplicateDraftNames.has(nameKey)) throw new AppError('Duplicate grouped variants are not allowed', 'PRODUCT_EXISTS', 400);
       duplicateDraftNames.add(nameKey);
       if (draft.barcode) {
         const barcodeKey = draft.barcode.toLowerCase();
@@ -452,7 +490,9 @@ export class CatalogProductService {
       }
     });
 
-    const auditLabel = drafts.length > 1 ? `تم إضافة موديل ملابس ${normalized.name} بعدد ${drafts.length} variants بواسطة ${actor.username}` : `تم إضافة الصنف ${normalized.name} بواسطة ${actor.username}`;
+    const auditLabel = drafts.length > 1
+      ? `تم إضافة مجموعة أصناف ${normalized.name} بعدد ${drafts.length} عناصر فرعية بواسطة ${actor.username}`
+      : `تم إضافة الصنف ${normalized.name} بواسطة ${actor.username}`;
     await this.audit.log('إضافة صنف', auditLabel, actor.userId);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }

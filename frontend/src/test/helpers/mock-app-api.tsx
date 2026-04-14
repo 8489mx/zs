@@ -86,6 +86,7 @@ function apiPayload(pathname: string) {
   if (pathname === '/api/settings') return { settings };
   if (pathname === '/api/branches') return { branches };
   if (pathname === '/api/locations') return { locations };
+  if (pathname === '/api/settings/locations') return { locations };
   if (pathname === '/api/products') return pageEnvelope('products', products, { totalProducts: 1, lowStockCount: 0, outOfStockCount: 0, inventoryCost: 100, inventorySaleValue: 200, activeOffersCount: 0, customerPriceCount: 0 });
   if (pathname === '/api/categories') return { categories: [{ id: 'cat-1', name: 'مشروبات' }] };
   if (pathname === '/api/customers') return pageEnvelope('customers', customers, { totalCustomers: 2, totalBalance: 150, totalCredit: 150, vipCount: 1 });

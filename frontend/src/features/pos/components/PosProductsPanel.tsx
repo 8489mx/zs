@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import { memo, type Ref } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
@@ -22,7 +22,16 @@ interface PosProductsPanelProps {
   searchInputRef?: Ref<HTMLInputElement>;
 }
 
-export function PosProductsPanel({
+function renderProductMeta(product: Product) {
+  if (product.itemKind === 'fashion') {
+    const fashionLabel = [product.color, product.size].filter(Boolean).join(' • ');
+    const styleLabel = product.styleCode ? `موديل ${product.styleCode}` : '';
+    return [fashionLabel, styleLabel].filter(Boolean).join(' — ') || 'Variant ملابس';
+  }
+  return product.barcode || product.units?.map((unit) => unit.name).join(' / ') || 'قطعة';
+}
+
+function PosProductsPanelComponent({
   search,
   onSearchChange,
   onSearchSubmitFirstResult,
@@ -47,7 +56,7 @@ export function PosProductsPanel({
       <div className="pos-products-static">
         {contextBadges.length ? (
           <div className="badge-row pos-context-chip-row pos-context-chip-row-compact">
-            {contextBadges.map((badge) => <span key={badge.key} className="cashier-chip">{badge.label}</span>)}
+            {contextBadges.slice(0, 3).map((badge) => <span key={badge.key} className="cashier-chip">{badge.label}</span>)}
           </div>
         ) : null}
 
@@ -98,14 +107,19 @@ export function PosProductsPanel({
         </div>
 
         {recentProducts.length ? (
-          <div className="list-stack pos-surface-panel pos-recent-panel pos-recent-panel-compact">
-            <strong>آخر استخدام</strong>
-            <div className="badge-row pos-recent-buttons-row">
-              {recentProducts.map((product) => (
-                <Button key={product.id} type="button" variant="secondary" onClick={() => onAddProduct(product)}>{product.name}</Button>
-              ))}
+          <details className="pos-inline-details-card">
+            <summary>
+              <span>آخر استخدام</span>
+              <span className="muted small">{recentProducts.length} صنف</span>
+            </summary>
+            <div className="list-stack pos-surface-panel pos-recent-panel pos-recent-panel-compact">
+              <div className="badge-row pos-recent-buttons-row">
+                {recentProducts.map((product) => (
+                  <Button key={product.id} type="button" variant="secondary" onClick={() => onAddProduct(product)}>{product.name}</Button>
+                ))}
+              </div>
             </div>
-          </div>
+          </details>
         ) : null}
       </div>
 
@@ -121,9 +135,7 @@ export function PosProductsPanel({
                   <strong>{product.name}</strong>
                   <span className={isLowStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span>
                 </div>
-                <div className="muted small">{product.barcode || 'بدون باركود'}</div>
-                <div className="muted small">{product.units?.map((unit) => unit.name).join(' / ') || 'قطعة'}</div>
-                {product.itemKind === 'fashion' ? <div className="muted small">{[product.styleCode, product.color, product.size].filter(Boolean).join(' • ') || 'Variant ملابس'}</div> : null}
+                <div className="muted small pos-product-card-meta">{renderProductMeta(product)}</div>
                 <div className="pick-meta-row pos-pick-meta-row">
                   <span>{formatCurrency(Number(price || 0))}</span>
                   <span className="small muted">انقر للإضافة</span>
@@ -136,3 +148,15 @@ export function PosProductsPanel({
     </Card>
   );
 }
+
+function arePropsEqual(prev: PosProductsPanelProps, next: PosProductsPanelProps) {
+  return prev.search === next.search
+    && prev.priceType === next.priceType
+    && prev.products === next.products
+    && prev.recentProducts === next.recentProducts
+    && prev.contextBadges === next.contextBadges
+    && prev.productFilter === next.productFilter
+    && prev.scannerMessage === next.scannerMessage;
+}
+
+export const PosProductsPanel = memo(PosProductsPanelComponent, arePropsEqual);
