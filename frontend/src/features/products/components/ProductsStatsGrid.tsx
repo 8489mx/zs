@@ -17,22 +17,19 @@ const gridStyle: CSSProperties = {
 };
 
 const cardStyle: CSSProperties = {
-  minHeight: 74,
-  padding: '10px 14px',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
+  padding: '10px 12px',
+  borderRadius: 14,
 };
 
 const labelStyle: CSSProperties = {
   fontSize: '11px',
-  lineHeight: 1.25,
+  lineHeight: 1.3,
 };
 
 const valueStyle: CSSProperties = {
-  marginTop: 4,
-  fontSize: 'clamp(16px, 1.15vw, 21px)',
-  lineHeight: 1.05,
+  marginTop: 6,
+  fontSize: '14px',
+  lineHeight: 1.35,
   whiteSpace: 'nowrap',
   overflow: 'hidden',
   textOverflow: 'ellipsis',

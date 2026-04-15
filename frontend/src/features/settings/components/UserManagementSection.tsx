@@ -1,4 +1,5 @@
 // regression marker: startNewUser('admin')
+import { useRef } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -12,9 +13,11 @@ import {
   UserManagementListPanel,
 } from '@/features/settings/components/UserManagementPanels';
 import { useUserManagementController } from '@/features/settings/hooks/useUserManagementController';
+import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
 
 export function UserManagementSection({ branches, setupMode = false, setupStepKey = null, onSetupAdvance }: { branches: Branch[]; setupMode?: boolean; setupStepKey?: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null; onSetupAdvance?: () => void }) {
   const controller = useUserManagementController({ setupMode, setupStepKey, onSetupAdvance });
+  const userEditorSectionRef = useRef<HTMLDivElement | null>(null);
   const {
     currentUserRole,
     usersQuery,
@@ -56,6 +59,8 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
     copyPermissions,
     runBulkAction,
   } = controller;
+
+  useScrollIntoViewOnChange(selectedUserKey, userEditorSectionRef, { enabled: Boolean(selectedUserKey) });
 
   return (
     <>
@@ -102,7 +107,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               onBulkAction={setBulkAction}
               setupMode={setupMode}
             />
-            <UserManagementEditorPanel
+            <div ref={userEditorSectionRef}><UserManagementEditorPanel
               branches={branches}
               draft={draft}
               currentUserRole={currentUserRole}
@@ -124,7 +129,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               onSave={() => void saveCurrentDraft()}
               setupMode={setupMode}
               setupStepKey={setupStepKey}
-            />
+            /></div>
           </div>
         </QueryFeedback>
       </Card>

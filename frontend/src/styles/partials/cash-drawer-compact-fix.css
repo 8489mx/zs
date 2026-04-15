@@ -34,22 +34,22 @@
 .cash-drawer-page .stats-grid.compact-grid .stat-card,
 .cash-drawer-page .sales-guidance-card {
   min-height: 0 !important;
-  padding: 8px 10px !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04) !important;
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04) !important;
 }
 
 .cash-drawer-page .stats-grid.compact-grid .stat-card span,
 .cash-drawer-page .sales-guidance-card span {
-  font-size: 10px !important;
-  line-height: 1.2 !important;
+  font-size: 11px !important;
+  line-height: 1.3 !important;
 }
 
 .cash-drawer-page .stats-grid.compact-grid .stat-card strong,
 .cash-drawer-page .sales-guidance-card strong {
-  margin-top: 4px !important;
-  font-size: 12px !important;
-  line-height: 1.2 !important;
+  margin-top: 6px !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
 }
 
 .cash-drawer-page .cash-drawer-shifts-card,

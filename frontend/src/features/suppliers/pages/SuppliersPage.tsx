@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
@@ -8,9 +9,13 @@ import { SupplierForm } from '@/features/suppliers/components/SupplierForm';
 import { SupplierEditorCard } from '@/features/suppliers/components/SupplierEditorCard';
 import { SuppliersRegisterCard } from '@/features/suppliers/pages/suppliers-page/SuppliersRegisterCard';
 import { useSuppliersPageController } from '@/features/suppliers/pages/suppliers-page/useSuppliersPageController';
+import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
 
 export function SuppliersPage() {
   const controller = useSuppliersPageController();
+  const editSupplierSectionRef = useRef<HTMLDivElement | null>(null);
+
+  useScrollIntoViewOnChange(controller.selectedSupplier?.id || '', editSupplierSectionRef, { enabled: Boolean(controller.selectedSupplier) });
   const stats = [
     { key: 'suppliers', label: 'عدد الموردين', value: controller.summary?.totalSuppliers || 0 },
     { key: 'balance', label: 'إجمالي الأرصدة', value: formatCurrency(controller.totalBalance) },
@@ -26,9 +31,9 @@ export function SuppliersPage() {
 
       <SuppliersRegisterCard {...controller} />
 
-      <div className="two-column-grid panel-grid">
-        <Card title={controller.selectedSupplier ? `تعديل: ${controller.selectedSupplier.name}` : 'تعديل مورد'} description="اختر موردًا من السجل لتعديل بياناته أو حذفه من نفس المكان." actions={<span className="nav-pill">تعديل وحذف</span>}><SupplierEditorCard supplier={controller.selectedSupplier || undefined} onSaved={() => controller.setSelectedSupplier(null)} />{controller.selectedSupplier ? <div className="actions section-actions"><Button variant="danger" onClick={() => controller.setSupplierToDelete(controller.selectedSupplier)} disabled={!controller.canDelete}>حذف المورد</Button></div> : null}</Card>
+      <div className="two-column-grid panel-grid suppliers-editor-grid">
         <Card title="إضافة مورد" description="أضف موردًا جديدًا ثم اختره من السجل لمراجعة بياناته أو بدء التعامل معه فورًا." actions={<span className="nav-pill">إضافة</span>}><SupplierForm /></Card>
+        <div ref={editSupplierSectionRef}><Card title={controller.selectedSupplier ? `تعديل: ${controller.selectedSupplier.name}` : 'تعديل مورد'} description="اختر موردًا من السجل لتعديل بياناته أو حذفه من نفس المكان." actions={<span className="nav-pill">تعديل وحذف</span>}><SupplierEditorCard supplier={controller.selectedSupplier || undefined} onSaved={() => controller.setSelectedSupplier(null)} />{controller.selectedSupplier ? <div className="actions section-actions"><Button variant="danger" onClick={() => controller.setSupplierToDelete(controller.selectedSupplier)} disabled={!controller.canDelete}>حذف المورد</Button></div> : null}</Card></div>
       </div>
 
       <ActionConfirmDialog open={Boolean(controller.supplierToDelete)} title="تأكيد حذف المورد" description={controller.supplierToDelete ? `سيتم حذف المورد ${controller.supplierToDelete.name}. إذا كان المورد مستخدمًا داخل أصناف فعالة فسيمنع الخادم الحذف، وسيظهر السبب مباشرة.` : ''} confirmLabel="نعم، حذف المورد" isBusy={controller.deleteMutation.isPending} onCancel={() => controller.setSupplierToDelete(null)} onConfirm={async () => { if (!controller.supplierToDelete) return; await controller.deleteMutation.mutateAsync(controller.supplierToDelete.id); controller.setSelectedIds((current: string[]) => current.filter((id) => id !== String(controller.supplierToDelete?.id))); }} />

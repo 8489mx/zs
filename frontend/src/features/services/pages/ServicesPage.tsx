@@ -1,6 +1,6 @@
 // legacy marker: عدد الخدمات المطابقة: ${totalItems}
 // legacy marker: servicesApi.listAll({ search, filter: viewFilter })
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/shared/ui/card';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
@@ -17,6 +17,7 @@ import { ServiceFormCard } from '@/features/services/components/ServiceFormCard'
 import { useDeleteServiceMutation } from '@/features/services/hooks/useServiceMutations';
 import { useServicesPage } from '@/features/services/hooks/useServicesPage';
 import { useServicesPageActions } from '@/features/services/hooks/useServicesPageActions';
+import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
 
 function printServiceReceipt(service: ServiceRecord) {
   printHtmlDocument(`إيصال خدمة ${service.name}`, `
@@ -42,6 +43,7 @@ export function ServicesPage() {
   const [pageSize, setPageSize] = useState(20);
   const [selectedService, setSelectedService] = useState<ServiceRecord | null>(null);
   const [serviceToDelete, setServiceToDelete] = useState<ServiceRecord | null>(null);
+  const serviceFormSectionRef = useRef<HTMLDivElement | null>(null);
   const query = useServicesPage({ page, pageSize, search, filter: viewFilter });
   const deleteMutation = useDeleteServiceMutation(() => {
     setSelectedService(null);
@@ -49,6 +51,8 @@ export function ServicesPage() {
   });
 
   const { exportServices, printServices } = useServicesPageActions({ search, filter: viewFilter });
+
+  useScrollIntoViewOnChange(selectedService?.id || '', serviceFormSectionRef, { enabled: Boolean(selectedService) });
 
   const rows = useMemo(() => query.data?.services || [], [query.data?.services]);
   const summary = query.data?.summary;
@@ -144,9 +148,9 @@ export function ServicesPage() {
       </Card>
 
       <div className="two-column-grid services-workspace-grid">
-        <Card title={selectedService ? `تعديل: ${selectedService.name}` : 'إضافة خدمة'} actions={<span className="nav-pill">النموذج</span>} description="الإضافة والتعديل يشتركان في نفس النموذج لضمان ثبات السلوك وتقليل تكرار المنطق.">
+        <div ref={serviceFormSectionRef}><Card title={selectedService ? `تعديل: ${selectedService.name}` : 'إضافة خدمة'} actions={<span className="nav-pill">النموذج</span>} description="الإضافة والتعديل يشتركان في نفس النموذج لضمان ثبات السلوك وتقليل تكرار المنطق.">
           <ServiceFormCard service={selectedService || undefined} onSaved={() => setSelectedService(null)} />
-        </Card>
+        </Card></div>
         <Card
           title="مؤشرات سريعة"
           actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة السجل</Button></div>}
