@@ -18,25 +18,34 @@ export function useBootstrapAuth() {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    activationApi
-      .status()
-      .then(async (status) => {
+    const resetTo = async (gate: 'activation' | 'setup' | 'login', status?: Awaited<ReturnType<typeof activationApi.status>>) => {
+      await clearQueryClientData(queryClient);
+      clearSession();
+      setAppGate(gate, status);
+    };
+
+    Promise.allSettled([activationApi.status(), authApi.me()])
+      .then(async ([statusResult, meResult]) => {
+        if (statusResult.status === 'rejected') {
+          console.error('activation_status_failed', statusResult.reason);
+          await resetTo('login');
+          return;
+        }
+
+        const status = statusResult.value;
+
         if (status.activationRequired && !status.activated) {
-          await clearQueryClientData(queryClient);
-          clearSession();
-          setAppGate('activation', status);
+          await resetTo('activation', status);
           return;
         }
 
         if (status.setupRequired) {
-          await clearQueryClientData(queryClient);
-          clearSession();
-          setAppGate('setup', status);
+          await resetTo('setup', status);
           return;
         }
 
-        try {
-          const response = await authApi.me();
+        if (meResult.status === 'fulfilled') {
+          const response = meResult.value;
           setSession({
             user: {
               ...response.user,
@@ -47,20 +56,18 @@ export function useBootstrapAuth() {
             theme: response.settings.theme || DEFAULT_THEME,
           });
           setAppGate('ready', status);
-        } catch (error) {
-          if (!(error instanceof ApiError) || error.status !== 401) {
-            console.error('bootstrap_auth_failed', error);
-          }
-          await clearQueryClientData(queryClient);
-          clearSession();
-          setAppGate('login', status);
+          return;
         }
+
+        const error = meResult.reason;
+        if (!(error instanceof ApiError) || error.status !== 401) {
+          console.error('bootstrap_auth_failed', error);
+        }
+        await resetTo('login', status);
       })
       .catch(async (error) => {
-        console.error('activation_status_failed', error);
-        await clearQueryClientData(queryClient);
-        clearSession();
-        setAppGate('login');
+        console.error('bootstrap_auth_failed', error);
+        await resetTo('login');
       });
   }, [clearSession, queryClient, setAppGate, setSession]);
 }

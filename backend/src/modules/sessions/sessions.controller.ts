@@ -93,12 +93,7 @@ export class SessionsController {
 
     return {
       ok: true,
-      user: {
-        id: result.auth.userId,
-        username: result.auth.username,
-        role: result.auth.role,
-        permissions: result.auth.permissions,
-      },
+      ...(await this.sessionService.buildLoginPayload(result.auth)),
       expiresAt: result.expiresAt.toISOString(),
     };
   }

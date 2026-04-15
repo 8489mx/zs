@@ -15,6 +15,7 @@ import { auditRouteModule } from '@/features/audit/routes';
 import { treasuryRouteModule } from '@/features/treasury/routes';
 import { servicesRouteModule } from '@/features/services/routes';
 import { settingsRouteModule } from '@/features/settings/routes';
+import { pricingCenterRouteModule } from '@/features/pricing-center/routes';
 
 export const featureRouteModules: FeatureRouteModule[] = [
   dashboardRouteModule,
@@ -32,6 +33,7 @@ export const featureRouteModules: FeatureRouteModule[] = [
   auditRouteModule,
   treasuryRouteModule,
   servicesRouteModule,
+  pricingCenterRouteModule,
   settingsRouteModule,
 ];
 

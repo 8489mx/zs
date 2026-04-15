@@ -6,6 +6,40 @@ import { buildQueryString } from '@/lib/query-string';
 type PurchaseEnvelope = { purchase: Purchase };
 type PurchaseMutationEnvelope = { ok?: boolean; purchase: Purchase };
 
+export interface PurchaseRepricingInsightRow {
+  productId: number;
+  name: string;
+  itemKind: 'standard' | 'fashion';
+  styleCode: string;
+  previousCost: number;
+  newCost: number;
+  costChangePercent: number;
+  retailPrice: number;
+  wholesalePrice: number;
+  recommendedRetailPrice: number;
+  recommendedWholesalePrice: number;
+  recommendedRetailDelta: number;
+  recommendedWholesaleDelta: number;
+}
+
+export interface PurchaseRepricingInsights {
+  purchaseId: number;
+  supplierId: number;
+  supplierName: string;
+  affectedCount: number;
+  increasedCount: number;
+  decreasedCount: number;
+  unchangedCount: number;
+  productIds: number[];
+  rows: PurchaseRepricingInsightRow[];
+}
+
+export interface PurchaseMutationResult {
+  ok?: boolean;
+  purchase: Purchase;
+  repricingInsights?: PurchaseRepricingInsights | null;
+}
+
 export interface PurchasesListSummary {
   totalItems: number;
   totalAmount: number;
@@ -70,7 +104,15 @@ export const purchasesApi = {
   products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products'), 'products'),
   suppliers: async () => unwrapArray<Supplier>(await http<Supplier[] | { suppliers: Supplier[] }>('/api/suppliers'), 'suppliers'),
   getById: async (purchaseId: string) => unwrapEntity<Purchase>(await http<Purchase | PurchaseEnvelope>(`/api/purchases/${purchaseId}`), 'purchase'),
-  create: async (payload: unknown) => unwrapEntity<Purchase>(await http<Purchase | PurchaseMutationEnvelope>('/api/purchases', { method: 'POST', body: JSON.stringify(payload) }), 'purchase'),
+  create: async (payload: unknown) => {
+    const response = await http<Purchase | PurchaseMutationResult>('/api/purchases', { method: 'POST', body: JSON.stringify(payload) });
+    if (response && typeof response === 'object' && 'purchase' in response) return response as PurchaseMutationResult;
+    return { purchase: response as Purchase, repricingInsights: null } satisfies PurchaseMutationResult;
+  },
   cancel: async (purchaseId: string, reason: string, managerPin: string) => unwrapEntity<Purchase>(await http<Purchase | PurchaseMutationEnvelope>(`/api/purchases/${purchaseId}/cancel`, { method: 'POST', body: JSON.stringify({ reason, managerPin }) }), 'purchase'),
-  update: async (purchaseId: string, payload: unknown) => unwrapEntity<Purchase>(await http<Purchase | PurchaseMutationEnvelope>(`/api/purchases/${purchaseId}`, { method: 'PUT', body: JSON.stringify(payload) }), 'purchase')
+  update: async (purchaseId: string, payload: unknown) => {
+    const response = await http<Purchase | PurchaseMutationResult>(`/api/purchases/${purchaseId}`, { method: 'PUT', body: JSON.stringify(payload) });
+    if (response && typeof response === 'object' && 'purchase' in response) return response as PurchaseMutationResult;
+    return { purchase: response as Purchase, repricingInsights: null } satisfies PurchaseMutationResult;
+  }
 };

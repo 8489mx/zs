@@ -26,7 +26,7 @@ export function useCustomersQuery() {
 }
 
 export function useSuppliersQuery() {
-  return useQuery({ queryKey: queryKeys.suppliers, queryFn: suppliersApi.list });
+  return useQuery({ queryKey: queryKeys.suppliers, queryFn: suppliersApi.list, staleTime: referenceStaleTime });
 }
 
 export function useCategoriesQuery() {

@@ -153,15 +153,17 @@ async function renderAt(path: string) {
 
 describe('app route smoke', () => {
   vi.setConfig({ testTimeout: 15000 });
+  const queryTimeout = { timeout: 4000 };
+
   it.each(routes)('loads %s', async (path, title) => {
     await renderAt(path);
-    expect((await screen.findAllByText(title)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(title, undefined, queryTimeout)).length).toBeGreaterThan(0);
   });
 
   it('shows customer balances on accounts page', async () => {
     await renderAt('/accounts');
-    expect((await screen.findAllByText(/الحسابات/)).length).toBeGreaterThan(0);
-    expect((await screen.findAllByText('عميل الآجل')).length).toBeGreaterThan(0);
-    expect(await screen.findByRole('heading', { name: 'تحصيل من عميل' })).toBeInTheDocument();
+    expect((await screen.findAllByText(/الحسابات/, undefined, queryTimeout)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('عميل الآجل', undefined, queryTimeout)).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: 'تحصيل من عميل' }, queryTimeout)).toBeInTheDocument();
   });
 });

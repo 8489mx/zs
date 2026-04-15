@@ -71,6 +71,17 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
       return;
     }
 
+    const existingUser = await this.db
+      .selectFrom('users')
+      .select('id')
+      .limit(1)
+      .executeTakeFirst();
+
+    if (existingUser) {
+      this.logger.log('Bootstrap admin seeding is skipped because the system is already initialized');
+      return;
+    }
+
     const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
     const allowInProduction = this.configService.get<boolean>('ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION') === true;
     const bootstrapSuperAdminUsername = (this.configService.get<string>('DEFAULT_ADMIN_USERNAME') || '').trim();
@@ -107,7 +118,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     });
 
     this.logger.warn(
-      `Bootstrap administrator '${bootstrapSuperAdminUsername}' is enabled. Disable seeding after first login.`,
+      `Bootstrap administrator '${bootstrapSuperAdminUsername}' was seeded for first-run setup.`,
     );
   }
 }

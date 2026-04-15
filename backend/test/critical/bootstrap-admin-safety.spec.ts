@@ -11,7 +11,11 @@ class FakeConfigService {
 }
 
 class FakeDb {
-  constructor(private readonly user: any, private readonly settings: Array<{ key: string; value: string }> = []) {}
+  constructor(
+    private readonly user: any,
+    private readonly settings: Array<{ key: string; value: string }> = [],
+    private readonly userBranches: Array<{ user_id: number; branch_id: number | string }> = [],
+  ) {}
   selectFrom(table: string) {
     if (table === 'users') {
       return {
@@ -25,11 +29,22 @@ class FakeDb {
         select: () => ({ execute: async () => this.settings }),
       };
     }
+    if (table === 'user_branches') {
+      return {
+        select: () => ({
+          where: (_column: string, _op: string, value: number) => ({
+            execute: async () => this.userBranches.filter((row) => row.user_id === Number(value)),
+          }),
+        }),
+      };
+    }
     throw new Error(`Unsupported table: ${table}`);
   }
 }
 
 class FakeBootstrapDb {
+  constructor(private readonly hasUsers = false) {}
+
   insertInto() {
     return {
       values: () => ({
@@ -42,6 +57,7 @@ class FakeBootstrapDb {
     return {
       select: () => ({
         where: () => ({ limit: () => ({ executeTakeFirst: async () => undefined }) }),
+        limit: () => ({ executeTakeFirst: async () => (this.hasUsers ? { id: 1 } : undefined) }),
       }),
     };
   }
@@ -126,6 +142,17 @@ async function runBootstrapGuardrails(): Promise<void> {
   );
 
   await service.onApplicationBootstrap();
+
+  const alreadyInitialized = new BootstrapAdminService(
+    new FakeBootstrapDb(true) as any,
+    new FakeConfigService({
+      ENABLE_BOOTSTRAP_ADMIN: true,
+      NODE_ENV: 'development',
+      ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: false,
+    }) as any,
+  );
+
+  await alreadyInitialized.onApplicationBootstrap();
 }
 
 Promise.all([runMePayloadSafety(), runBootstrapGuardrails()]).then(() => {

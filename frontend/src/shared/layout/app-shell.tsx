@@ -44,6 +44,7 @@ const iconToneMap: Record<string, IconTone> = {
   audit: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#15803d', glow: 'rgba(34, 197, 94, 0.2)' },
   treasury: { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#047857', glow: 'rgba(16, 185, 129, 0.22)' },
   services: { bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', border: '#c4b5fd', fg: '#6d28d9', glow: 'rgba(124, 58, 237, 0.22)' },
+  'pricing-center': { bg: 'linear-gradient(135deg, #fef9c3, #fde68a)', border: '#facc15', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.24)' },
   settings: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
 };
 
@@ -63,6 +64,7 @@ const iconMap: Record<string, ReactNode> = {
   audit: <SideIcon><path d="M12 3 5.5 6v6c0 4.4 2.7 7 6.5 8.8 3.8-1.8 6.5-4.4 6.5-8.8V6L12 3Z" /><path d="m9.2 11.8 2 2 3.8-4" /></SideIcon>,
   treasury: <SideIcon><rect x="3.8" y="6" width="16.4" height="11.8" rx="2.3" /><circle cx="12" cy="11.9" r="2.3" /><path d="M7.5 10h.01" /><path d="M16.5 13.8h.01" /></SideIcon>,
   services: <SideIcon><path d="M14.5 6.5a3.4 3.4 0 1 0-4.8 4.8l-5.2 5.2 2.3 2.3 5.2-5.2a3.4 3.4 0 0 0 4.8-4.8Z" /><path d="m13 8 3 3" /></SideIcon>,
+  'pricing-center': <SideIcon><path d="M4.5 18.5h15" /><path d="M7.5 18.5V9.5" /><path d="M12 18.5V5.5" /><path d="M16.5 18.5v-7" /><path d="M5 11.5h14" /></SideIcon>,
   settings: <SideIcon><circle cx="12" cy="12" r="3.2" /><path d="M19.2 14.4a1.7 1.7 0 0 0 .3 1.8l.05.06a2 2 0 1 1-2.82 2.82l-.06-.05a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-.98 1.55V20.4a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-.98-1.56 1.7 1.7 0 0 0-1.8.31l-.06.05a2 2 0 1 1-2.82-2.82l.05-.06a1.7 1.7 0 0 0 .31-1.8 1.7 1.7 0 0 0-1.55-.98H3.6a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-.98 1.7 1.7 0 0 0-.31-1.8l-.05-.06a2 2 0 1 1 2.82-2.82l.06.05a1.7 1.7 0 0 0 1.8.31 1.7 1.7 0 0 0 .98-1.55V3.6a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 .98 1.56 1.7 1.7 0 0 0 1.8-.31l.06-.05a2 2 0 1 1 2.82 2.82l-.05.06a1.7 1.7 0 0 0-.31 1.8 1.7 1.7 0 0 0 1.55.98h.09a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56.98Z" /></SideIcon>,
 };
 
@@ -92,7 +94,7 @@ function buildWarmupQueries(pathname: string): WarmupQueryDefinition[] {
     });
   }
 
-  if (pathname.startsWith('/products') || pathname.startsWith('/inventory')) {
+  if (pathname.startsWith('/products') || pathname.startsWith('/inventory') || pathname.startsWith('/pricing-center')) {
     queries.push(
       {
         key: 'products-categories',
@@ -214,6 +216,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'audit',
       'inventory',
       'products',
+      'pricing-center',
       'customers',
       'suppliers',
       'reports',

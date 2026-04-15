@@ -39,6 +39,11 @@ type ProductOfferReadRow = {
   min_qty?: string | number | null;
 };
 
+type ProductCountRow = {
+  product_id: number;
+  count: string | number | bigint;
+};
+
 @Injectable()
 export class CatalogProductService {
   private productOfferColumnCapabilitiesPromise?: Promise<ProductOfferColumnCapabilities>;
@@ -88,19 +93,25 @@ export class CatalogProductService {
     const requestedLocationId = Number(query.locationId || 0);
     const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
 
-    const products = (await this.db
-      .selectFrom('products')
-      .select(['id', 'name', 'barcode', 'item_kind', 'style_code', 'color', 'size', 'category_id', 'supplier_id', 'cost_price', 'retail_price', 'wholesale_price', 'stock_qty', 'min_stock_qty', 'notes'])
-      .where('is_active', '=', true)
-      .orderBy('id', 'desc')
-      .execute()) as ProductRow[];
+    const [products, categories, suppliers] = await Promise.all([
+      this.db
+        .selectFrom('products')
+        .select(['id', 'name', 'barcode', 'item_kind', 'style_code', 'color', 'size', 'category_id', 'supplier_id', 'cost_price', 'retail_price', 'wholesale_price', 'stock_qty', 'min_stock_qty', 'notes'])
+        .where('is_active', '=', true)
+        .orderBy('id', 'desc')
+        .execute() as Promise<ProductRow[]>,
+      this.db.selectFrom('product_categories').select(['id', 'name']).where('is_active', '=', true).execute(),
+      this.db.selectFrom('suppliers').select(['id', 'name']).where('is_active', '=', true).execute(),
+    ]);
+
+    const productIds = products.map((product) => Number(product.id));
 
     const scopedStockByProduct = new Map<string, number>();
-    if (scopedLocation && products.length) {
+    if (scopedLocation && productIds.length) {
       const stockRows = await this.db
         .selectFrom('product_location_stock as pls')
         .select(['pls.product_id', 'pls.location_id', 'pls.qty'])
-        .where('pls.product_id', 'in', products.map((product) => Number(product.id)))
+        .where('pls.product_id', 'in', productIds)
         .where((eb) => eb.or([eb('pls.location_id', '=', scopedLocation.id), eb('pls.location_id', 'is', null)]))
         .execute();
 
@@ -118,37 +129,119 @@ export class CatalogProductService {
       }
     }
 
-    const units = await this.db
-      .selectFrom('product_units')
-      .select(['id', 'product_id', 'name', 'multiplier', 'barcode', 'is_base_unit', 'is_sale_unit_default', 'is_purchase_unit_default'])
-      .orderBy('product_id', 'asc')
-      .orderBy('is_base_unit', 'desc')
-      .orderBy('id', 'asc')
-      .execute();
+    const [unitSearchRows, offerCountRows, customerPriceCountRows] = await Promise.all([
+      q && productIds.length
+        ? this.db
+            .selectFrom('product_units')
+            .select(['product_id', 'name', 'barcode'])
+            .where('product_id', 'in', productIds)
+            .orderBy('product_id', 'asc')
+            .execute()
+        : Promise.resolve([]),
+      productIds.length
+        ? this.db
+            .selectFrom('product_offers')
+            .select(['product_id', (eb) => eb.fn.countAll<number>().as('count')])
+            .where('is_active', '=', true)
+            .where('product_id', 'in', productIds)
+            .groupBy('product_id')
+            .execute() as Promise<ProductCountRow[]>
+        : Promise.resolve([]),
+      productIds.length
+        ? this.db
+            .selectFrom('product_customer_prices')
+            .select(['product_id', (eb) => eb.fn.countAll<number>().as('count')])
+            .where('product_id', 'in', productIds)
+            .groupBy('product_id')
+            .execute() as Promise<ProductCountRow[]>
+        : Promise.resolve([]),
+    ]);
 
-    const offers = offerCapabilities.hasMinQty
-      ? ((await this.db
-          .selectFrom('product_offers')
-          .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
-          .where('is_active', '=', true)
-          .orderBy('id', 'desc')
-          .execute()) as ProductOfferReadRow[])
-      : ((await this.db
-          .selectFrom('product_offers')
-          .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date'])
-          .where('is_active', '=', true)
-          .orderBy('id', 'desc')
-          .execute()) as ProductOfferReadRow[]);
-
-    const customerPrices = await this.db
-      .selectFrom('product_customer_prices')
-      .select(['id', 'product_id', 'customer_id', 'price'])
-      .orderBy('id', 'desc')
-      .execute();
-    const categories = await this.db.selectFrom('product_categories').select(['id', 'name']).where('is_active', '=', true).execute();
-    const suppliers = await this.db.selectFrom('suppliers').select(['id', 'name']).where('is_active', '=', true).execute();
     const categoriesById = Object.fromEntries(categories.map((entry) => [String(entry.id), String(entry.name || '')]));
     const suppliersById = Object.fromEntries(suppliers.map((entry) => [String(entry.id), String(entry.name || '')]));
+
+    const unitSearchValuesByProduct = new Map<string, string[]>();
+    for (const unit of unitSearchRows) {
+      const key = String(unit.product_id);
+      if (!unitSearchValuesByProduct.has(key)) unitSearchValuesByProduct.set(key, []);
+      unitSearchValuesByProduct.get(key)!.push(String(unit.name || ''), String(unit.barcode || ''));
+    }
+
+    const offerCountByProduct = new Map<string, number>();
+    for (const row of offerCountRows) offerCountByProduct.set(String(row.product_id), Number(row.count || 0));
+
+    const customerPriceCountByProduct = new Map<string, number>();
+    for (const row of customerPriceCountRows) customerPriceCountByProduct.set(String(row.product_id), Number(row.count || 0));
+
+    const filteredBaseRows = products.filter((product) => {
+      const key = String(product.id);
+      const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(product.stock_qty || 0);
+      const minStock = Number(product.min_stock_qty || 0);
+      const offerCount = Number(offerCountByProduct.get(key) || 0);
+      const customerPriceCount = Number(customerPriceCountByProduct.get(key) || 0);
+
+      if (view !== 'all') {
+        if (view === 'low' && !(stock <= minStock)) return false;
+        if (view === 'out' && !(stock <= 0)) return false;
+        if (view === 'offers' && offerCount <= 0) return false;
+        if (view === 'special' && customerPriceCount <= 0) return false;
+      }
+
+      if (!q) return true;
+      const haystack = [
+        String(product.name || ''),
+        String(product.barcode || ''),
+        categoriesById[String(product.category_id || '')] || '',
+        suppliersById[String(product.supplier_id || '')] || '',
+        String(product.notes || ''),
+        String(product.style_code || ''),
+        String(product.color || ''),
+        String(product.size || ''),
+        ...(unitSearchValuesByProduct.get(key) || []),
+      ].join(' ');
+      return normalizeArabicSearch(haystack).includes(q);
+    });
+
+    const total = filteredBaseRows.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * pageSize;
+    const pagedBaseRows = filteredBaseRows.slice(start, start + pageSize);
+    const pagedIds = pagedBaseRows.map((row) => Number(row.id));
+
+    const [units, offers, customerPrices] = pagedIds.length
+      ? await Promise.all([
+          this.db
+            .selectFrom('product_units')
+            .select(['id', 'product_id', 'name', 'multiplier', 'barcode', 'is_base_unit', 'is_sale_unit_default', 'is_purchase_unit_default'])
+            .where('product_id', 'in', pagedIds)
+            .orderBy('product_id', 'asc')
+            .orderBy('is_base_unit', 'desc')
+            .orderBy('id', 'asc')
+            .execute(),
+          offerCapabilities.hasMinQty
+            ? this.db
+                .selectFrom('product_offers')
+                .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
+                .where('is_active', '=', true)
+                .where('product_id', 'in', pagedIds)
+                .orderBy('id', 'desc')
+                .execute() as Promise<ProductOfferReadRow[]>
+            : this.db
+                .selectFrom('product_offers')
+                .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date'])
+                .where('is_active', '=', true)
+                .where('product_id', 'in', pagedIds)
+                .orderBy('id', 'desc')
+                .execute() as Promise<ProductOfferReadRow[]>,
+          this.db
+            .selectFrom('product_customer_prices')
+            .select(['id', 'product_id', 'customer_id', 'price'])
+            .where('product_id', 'in', pagedIds)
+            .orderBy('id', 'desc')
+            .execute(),
+        ])
+      : [[], [], []];
 
     const unitsByProduct = new Map<string, Record<string, unknown>[]>();
     for (const unit of units) {
@@ -186,7 +279,7 @@ export class CatalogProductService {
       pricesByProduct.get(key)!.push({ id: String(cp.id), customerId: String(cp.customer_id), price: Number(cp.price || 0) });
     }
 
-    let rows = products.map((product) => {
+    const pagedRows = pagedBaseRows.map((product) => {
       const mapped: Record<string, unknown> = {
         id: String(product.id),
         name: product.name || '',
@@ -211,59 +304,38 @@ export class CatalogProductService {
       return mapped;
     });
 
-    if (view !== 'all') {
-      rows = rows.filter((row) => {
-        const stock = Number(row.stock || 0);
-        const minStock = Number(row.minStock || 0);
-        if (view === 'low') return stock <= minStock;
-        if (view === 'out') return stock <= 0;
-        if (view === 'offers') return Array.isArray(row.offers) && row.offers.length > 0;
-        if (view === 'special') return Array.isArray(row.customerPrices) && row.customerPrices.length > 0;
-        return true;
-      });
-    }
-
-    if (q) {
-      rows = rows.filter((row) => {
-        const unitValues = Array.isArray(row.units)
-          ? row.units.flatMap((unit) => [String((unit as Record<string, unknown>).name || ''), String((unit as Record<string, unknown>).barcode || '')])
-          : [];
-        const haystack = [
-          String(row.name || ''),
-          String(row.barcode || ''),
-          categoriesById[String(row.categoryId || '')] || '',
-          suppliersById[String(row.supplierId || '')] || '',
-          String(row.notes || ''),
-          String(row.styleCode || ''),
-          String(row.color || ''),
-          String(row.size || ''),
-          ...unitValues,
-        ].join(' ');
-        return normalizeArabicSearch(haystack).includes(q);
-      });
-    }
-
-    const total = rows.length;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    const safePage = Math.min(page, totalPages);
-    const start = (safePage - 1) * pageSize;
-    const pagedRows = rows.slice(start, start + pageSize);
-
     return {
       products: pagedRows,
       pagination: { page: safePage, pageSize, totalItems: total, totalPages },
       summary: {
         totalProducts: total,
-        lowStockCount: rows.filter((row) => Number(row.stock || 0) <= Number(row.minStock || 0)).length,
-        outOfStockCount: rows.filter((row) => Number(row.stock || 0) <= 0).length,
-        inventoryCost: canViewCost ? rows.reduce((sum, row) => sum + (Number(row.stock || 0) * Number(row.costPrice || 0)), 0) : null,
-        inventorySaleValue: rows.reduce((sum, row) => sum + (Number(row.stock || 0) * Number(row.retailPrice || 0)), 0),
-        activeOffersCount: rows.reduce((sum, row) => sum + Number((row.offers as unknown[] | undefined)?.length || 0), 0),
-        customerPriceCount: rows.reduce((sum, row) => sum + Number((row.customerPrices as unknown[] | undefined)?.length || 0), 0),
+        lowStockCount: filteredBaseRows.filter((row) => {
+          const key = String(row.id);
+          const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(row.stock_qty || 0);
+          return stock <= Number(row.min_stock_qty || 0);
+        }).length,
+        outOfStockCount: filteredBaseRows.filter((row) => {
+          const key = String(row.id);
+          const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(row.stock_qty || 0);
+          return stock <= 0;
+        }).length,
+        inventoryCost: canViewCost
+          ? filteredBaseRows.reduce((sum, row) => {
+              const key = String(row.id);
+              const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(row.stock_qty || 0);
+              return sum + (stock * Number(row.cost_price || 0));
+            }, 0)
+          : null,
+        inventorySaleValue: filteredBaseRows.reduce((sum, row) => {
+          const key = String(row.id);
+          const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(row.stock_qty || 0);
+          return sum + (stock * Number(row.retail_price || 0));
+        }, 0),
+        activeOffersCount: filteredBaseRows.reduce((sum, row) => sum + Number(offerCountByProduct.get(String(row.id)) || 0), 0),
+        customerPriceCount: filteredBaseRows.reduce((sum, row) => sum + Number(customerPriceCountByProduct.get(String(row.id)) || 0), 0),
       },
     };
   }
-
   private normalizeProductPayload(payload: UpsertProductDto): NormalizedUpsertProduct {
     const units = payload.units?.length
       ? payload.units

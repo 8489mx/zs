@@ -66,5 +66,7 @@ export const queryKeys = {
   auditLogsPage: (paramsKey: string) => ['audit-logs', 'page', paramsKey] as const,
   cashierShifts: ['cashier-shifts'] as const,
   cashierShiftsPage: (paramsKey: string) => ['cashier-shifts', 'page', paramsKey] as const,
-  systemHealth: ['system', 'health'] as const
+  systemHealth: ['system', 'health'] as const,
+  pricingRuns: ['pricing', 'runs'] as const,
+  pricingRules: ['pricing', 'rules'] as const
 };

@@ -34,6 +34,8 @@ const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/treasury': 'treasury',
   services: 'services',
   '/services': 'services',
+  'pricing-center': 'pricingCenterView',
+  '/pricing-center': 'pricingCenterView',
   settings: ['settings', 'canManageSettings'],
   '/settings': ['settings', 'canManageSettings'],
 };

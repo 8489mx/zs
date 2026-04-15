@@ -64,14 +64,12 @@ export function TransferMonitorCard({
 }: TransferMonitorCardProps) {
   const detailPanelRef = useRef<HTMLDivElement | null>(null);
 
-  const selectedTransferId = selectedTransfer?.id;
-
   useEffect(() => {
-    if (!selectedTransferId) return;
+    if (!selectedTransfer) return;
     window.requestAnimationFrame(() => {
       detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
     });
-  }, [selectedTransferId]);
+  }, [selectedTransfer]);
 
   return (
     <Card title="تحويلات مخزون قائمة" description="عرض table-first مع لوحة تفاصيل جانبية حتى تستطيع مراجعة البنود والجهات والحالة بسرعة قبل الاستلام أو الإلغاء." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onExportTransfers} disabled={!visibleTransfers.length}>تصدير CSV</Button><span className="nav-pill">{pendingTransfersCount} قيد الاستلام من {transferTotalItems}</span></div>}>

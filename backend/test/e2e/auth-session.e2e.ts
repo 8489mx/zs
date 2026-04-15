@@ -7,10 +7,14 @@ async function main() {
   const login = await client.login();
   assert.equal(login.ok, true);
   assert.ok(login.user?.id, 'login response must include user id');
+  assert.equal(typeof login.user?.displayName, 'string', 'login response must include displayName');
+  assert.ok(Array.isArray(login.user?.branchIds), 'login response must include branchIds');
 
   const me = await client.get('/api/auth/me');
   assert.ok(me.user?.id, 'me response must include user');
   assert.ok(Array.isArray(me.user?.permissions), 'me response must include permissions');
+  assert.equal(typeof me.user?.displayName, 'string', 'me response must include displayName');
+  assert.ok(Array.isArray(me.user?.branchIds), 'me response must include branchIds');
 
   const sessions = await client.get('/api/auth/sessions');
   assert.ok(Array.isArray(sessions.sessions), 'sessions response must include sessions array');

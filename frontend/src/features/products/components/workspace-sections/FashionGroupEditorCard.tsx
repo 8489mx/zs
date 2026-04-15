@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -10,164 +9,15 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import { productsApi } from '@/features/products/api/products.api';
-import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
+import { normalizeArabicInput } from '@/lib/arabic-normalization';
 import type { Category, Product, Supplier } from '@/types/domain';
+import { buildPayload, deriveBaseName, duplicateSummary, rowsFingerprint, sortVariants, toCommonDraft, toVariantRows, variantLabel, type CommonDraft, type VariantDraft } from '@/features/products/components/workspace-sections/FashionGroupEditorCard.helpers';
 
 interface FashionGroupEditorCardProps {
   product: Product;
   categories: Category[];
   suppliers: Supplier[];
   onSaved?: (product: Product) => void;
-}
-
-type CommonDraft = {
-  name: string;
-  styleCode: string;
-  itemKind: 'standard' | 'fashion';
-  costPrice: number;
-  retailPrice: number;
-  wholesalePrice: number;
-  minStock: number;
-  categoryId: string;
-  supplierId: string;
-  notes: string;
-};
-
-type VariantDraft = {
-  id?: string;
-  color: string;
-  size: string;
-  barcode: string;
-  useCustomPricing: boolean;
-  pricingEditorOpen: boolean;
-  costPrice: number;
-  retailPrice: number;
-  wholesalePrice: number;
-};
-
-function toCommonDraft(product: Product): CommonDraft {
-  return {
-    name: product.name || '',
-    styleCode: product.styleCode || '',
-    itemKind: product.itemKind === 'fashion' ? 'fashion' : 'standard',
-    costPrice: Number(product.costPrice || 0),
-    retailPrice: Number(product.retailPrice || 0),
-    wholesalePrice: Number(product.wholesalePrice || 0),
-    minStock: Number(product.minStock || 0),
-    categoryId: product.categoryId || '',
-    supplierId: product.supplierId || '',
-    notes: product.notes || '',
-  };
-}
-
-function variantLabel(row: Pick<VariantDraft, 'color' | 'size'>) {
-  const primary = normalizeArabicInput(String(row.color || ''));
-  const secondary = normalizeArabicInput(String(row.size || ''));
-  if (primary && secondary) return `${primary} / ${secondary}`;
-  return primary || secondary;
-}
-
-function sortVariants(rows: VariantDraft[]) {
-  return [...rows].sort((a, b) => variantLabel(a).localeCompare(variantLabel(b), 'ar'));
-}
-
-function toVariantRows(products: Product[]) {
-  const baseline = products[0];
-  const baselineCost = Number(baseline?.costPrice || 0);
-  const baselineRetail = Number(baseline?.retailPrice || 0);
-  const baselineWholesale = Number(baseline?.wholesalePrice || 0);
-  return sortVariants(products.map((entry) => {
-    const costPrice = Number(entry.costPrice || 0);
-    const retailPrice = Number(entry.retailPrice || 0);
-    const wholesalePrice = Number(entry.wholesalePrice || 0);
-    const useCustomPricing = costPrice !== baselineCost || retailPrice !== baselineRetail || wholesalePrice !== baselineWholesale;
-    return {
-      id: String(entry.id),
-      color: entry.color || '',
-      size: entry.size || '',
-      barcode: entry.barcode || '',
-      useCustomPricing,
-      pricingEditorOpen: false,
-      costPrice,
-      retailPrice,
-      wholesalePrice,
-    };
-  }));
-}
-
-function rowsFingerprint(rows: VariantDraft[]) {
-  return JSON.stringify(sortVariants(rows).map((row) => ({
-    id: row.id || '',
-    color: row.color.trim(),
-    size: row.size.trim(),
-    barcode: row.barcode.trim(),
-    useCustomPricing: Boolean(row.useCustomPricing),
-    costPrice: Number(row.costPrice || 0),
-    retailPrice: Number(row.retailPrice || 0),
-    wholesalePrice: Number(row.wholesalePrice || 0),
-  })));
-}
-
-function duplicateSummary(rows: VariantDraft[]) {
-  const comboCounts = new Map<string, number>();
-  const barcodeCounts = new Map<string, number>();
-  let duplicateCombos = 0;
-  let duplicateBarcodes = 0;
-  for (const row of rows) {
-    const combo = `${normalizeArabicSearchKey(String(row.color || ''))}::${normalizeArabicSearchKey(String(row.size || ''))}`;
-    if (combo !== '::') {
-      const nextCombo = Number(comboCounts.get(combo) || 0) + 1;
-      comboCounts.set(combo, nextCombo);
-      if (nextCombo === 2) duplicateCombos += 1;
-    }
-    const barcode = String(row.barcode || '').trim().toLowerCase();
-    if (barcode) {
-      const nextBarcode = Number(barcodeCounts.get(barcode) || 0) + 1;
-      barcodeCounts.set(barcode, nextBarcode);
-      if (nextBarcode === 2) duplicateBarcodes += 1;
-    }
-  }
-  return { duplicateCombos, duplicateBarcodes };
-}
-
-function buildPayload(common: CommonDraft, row: VariantDraft, source?: Product) {
-  const label = variantLabel(row);
-  return {
-    name: label ? `${common.name.trim()} - ${label}` : common.name.trim(),
-    barcode: row.barcode.trim(),
-    itemKind: common.itemKind,
-    styleCode: common.styleCode.trim(),
-    color: row.color.trim(),
-    size: row.size.trim(),
-    costPrice: Number((row.useCustomPricing ? row.costPrice : common.costPrice) || 0),
-    retailPrice: Number((row.useCustomPricing ? row.retailPrice : common.retailPrice) || 0),
-    wholesalePrice: Number((row.useCustomPricing ? row.wholesalePrice : common.wholesalePrice) || 0),
-    minStock: Number(common.minStock || 0),
-    categoryId: common.categoryId || '',
-    supplierId: common.supplierId || '',
-    notes: common.notes || '',
-    units: [{ name: 'قطعة', multiplier: 1, barcode: row.barcode.trim(), isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
-    offers: (source?.offers || []).map((offer) => ({
-      type: offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
-      value: Number(offer.value || 0),
-      minQty: Math.max(1, Number(offer.minQty || 1)),
-      from: offer.from || null,
-      to: offer.to || null,
-    })),
-    customerPrices: (source?.customerPrices || []).map((entry) => ({
-      customerId: Number(entry.customerId || 0),
-      price: Number(entry.price || 0),
-    })).filter((entry) => entry.customerId > 0 && entry.price >= 0),
-    fashionVariants: [],
-  };
-}
-
-function deriveBaseName(entry: Product) {
-  const label = variantLabel({ color: entry.color || '', size: entry.size || '' });
-  const rawName = String(entry.name || '').trim();
-  if (!label) return rawName;
-  const suffix = ` - ${label}`;
-  return rawName.endsWith(suffix) ? rawName.slice(0, -suffix.length).trim() : rawName;
 }
 
 export function FashionGroupEditorCard({ product, categories, suppliers, onSaved }: FashionGroupEditorCardProps) {

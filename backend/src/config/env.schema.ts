@@ -42,6 +42,8 @@ const envSchema = z.object({
 export type AppEnv = z.infer<typeof envSchema>;
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {
+  const hasExplicitCsrfSecret = typeof config.SESSION_CSRF_SECRET === 'string' && config.SESSION_CSRF_SECRET.trim().length >= 16;
+
   const raw = {
     ...config,
     ENABLE_BOOTSTRAP_ADMIN: config.ENABLE_BOOTSTRAP_ADMIN ?? 'false',
@@ -62,5 +64,19 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
   };
 
-  return envSchema.parse(raw);
+  const parsed = envSchema.parse(raw);
+
+  if (parsed.NODE_ENV === 'production' && !hasExplicitCsrfSecret) {
+    throw new Error('SESSION_CSRF_SECRET must be explicitly configured in production');
+  }
+
+  if (parsed.NODE_ENV === 'production' && parsed.ALLOW_SESSION_ID_HEADER) {
+    throw new Error('ALLOW_SESSION_ID_HEADER must remain disabled in production');
+  }
+
+  if (parsed.SESSION_COOKIE_SAME_SITE === 'none' && !parsed.SESSION_COOKIE_SECURE) {
+    throw new Error('SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAME_SITE is none');
+  }
+
+  return parsed;
 }

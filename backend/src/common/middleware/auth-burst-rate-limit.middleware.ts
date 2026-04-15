@@ -15,12 +15,12 @@ export class AuthBurstRateLimitMiddleware implements NestMiddleware {
     private readonly rateLimitService: InMemoryRateLimitService,
   ) {}
 
-  use(req: RequestWithAuth, res: Response, next: NextFunction): void {
+  async use(req: RequestWithAuth, res: Response, next: NextFunction): Promise<void> {
     const limit = this.configService.get<number>('AUTH_BURST_RATE_LIMIT_MAX') ?? 60;
     const windowSeconds = this.configService.get<number>('AUTH_BURST_RATE_LIMIT_WINDOW_SECONDS') ?? 60;
     const ip = normalizeIp(req);
     const path = String(req.path || req.originalUrl || 'auth').split('?')[0];
-    const result = this.rateLimitService.hit(`auth:burst:${ip}:${path}`, limit, windowSeconds);
+    const result = await this.rateLimitService.hit(`auth:burst:${ip}:${path}`, limit, windowSeconds);
 
     res.setHeader('X-Auth-RateLimit-Limit', String(result.limit));
     res.setHeader('X-Auth-RateLimit-Remaining', String(result.remaining));

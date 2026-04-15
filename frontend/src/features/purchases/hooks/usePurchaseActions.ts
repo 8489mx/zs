@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidatePurchasesDomain } from '@/app/query-invalidation';
-import { purchasesApi } from '@/features/purchases/api/purchases.api';
+import { purchasesApi, type PurchaseMutationResult } from '@/features/purchases/api/purchases.api';
 import { buildPurchaseUpdatePayload } from '@/features/purchases/contracts';
 import type { Purchase } from '@/types/domain';
 
-export function usePurchaseActions() {
+export function usePurchaseActions(onUpdateSuccess?: (result: PurchaseMutationResult) => void) {
   const queryClient = useQueryClient();
 
   const cancelMutation = useMutation({
@@ -16,8 +16,9 @@ export function usePurchaseActions() {
 
   const updateMutation = useMutation({
     mutationFn: ({ purchase, payload }: { purchase: Purchase; payload: Parameters<typeof buildPurchaseUpdatePayload>[1] }) => purchasesApi.update(purchase.id, buildPurchaseUpdatePayload(purchase, payload)),
-    onSuccess: async (_, variables) => {
+    onSuccess: async (result, variables) => {
       await invalidatePurchasesDomain(queryClient, { purchaseId: variables.purchase.id });
+      onUpdateSuccess?.(result);
     }
   });
 

@@ -20,6 +20,7 @@ import { ReturnsModule } from './modules/returns/returns.module';
 import { TreasuryModule } from './modules/treasury/treasury.module';
 import { ServicesModule } from './modules/services/services.module';
 import { ActivationModule } from './modules/activation/activation.module';
+import { PricingModule } from './modules/pricing/pricing.module';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { LoginRateLimitMiddleware } from './common/middleware/login-rate-limit.middleware';
 import { AuthBurstRateLimitMiddleware } from './common/middleware/auth-burst-rate-limit.middleware';
@@ -48,6 +49,7 @@ import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit
     TreasuryModule,
     ServicesModule,
     ActivationModule,
+    PricingModule,
   ],
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })

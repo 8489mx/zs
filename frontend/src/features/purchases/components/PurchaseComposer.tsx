@@ -11,6 +11,7 @@ import { usePurchaseComposerController } from '@/features/purchases/components/p
 import { PurchaseLineComposer } from '@/features/purchases/components/purchase-composer/PurchaseLineComposer';
 import { PurchaseItemsList } from '@/features/purchases/components/purchase-composer/PurchaseItemsList';
 import { PurchaseTotals } from '@/features/purchases/components/purchase-composer/PurchaseTotals';
+import { PurchaseRepricingDialog } from '@/features/purchases/components/PurchaseRepricingDialog';
 
 interface PurchaseComposerProps {
   products: Product[];
@@ -25,7 +26,7 @@ interface PurchaseComposerProps {
 
 export function PurchaseComposer({ products, suppliers, branches, locations, settings, isCatalogLoading, isCatalogError, catalogError }: PurchaseComposerProps) {
   const controller = usePurchaseComposerController({ products, branches, locations, settings });
-  const { headerForm, items, lineDraft, mutation, hasDraftChanges, totals, actions } = controller;
+  const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, actions } = controller;
 
   return (
     <Card title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>} className="purchase-composer-card">
@@ -106,6 +107,12 @@ export function PurchaseComposer({ products, suppliers, branches, locations, set
           </div>
         </form>
       </QueryFeedback>
+
+      <PurchaseRepricingDialog
+        open={Boolean(repricingInsights)}
+        insights={repricingInsights}
+        onClose={() => actions.setRepricingInsights(null)}
+      />
     </Card>
   );
 }

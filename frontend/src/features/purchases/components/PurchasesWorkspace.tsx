@@ -7,6 +7,7 @@ import { PurchaseEditDialog } from '@/features/purchases/components/PurchaseEdit
 import { QuickSupplierCard } from '@/features/purchases/components/QuickSupplierCard';
 import { PurchasesKpiSection, TopSuppliersCard } from '@/features/purchases/components/purchases-workspace/PurchasesOverviewSection';
 import { PurchasesRegisterCard } from '@/features/purchases/components/purchases-workspace/PurchasesRegisterCard';
+import { PurchaseRepricingDialog } from '@/features/purchases/components/PurchaseRepricingDialog';
 import { usePurchasesWorkspaceController } from '@/features/purchases/components/purchases-workspace/usePurchasesWorkspaceController';
 import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';
 
@@ -70,6 +71,8 @@ export function PurchasesWorkspace() {
           controller.setPurchaseToEdit(null);
         }}
       />
+
+      <PurchaseRepricingDialog open={Boolean(controller.repricingInsights)} insights={controller.repricingInsights} onClose={() => controller.setRepricingInsights(null)} />
 
       <ActionConfirmDialog open={Boolean(controller.purchaseToCancel)} title="تأكيد إلغاء فاتورة الشراء" description={controller.cancelDescription} confirmLabel="نعم، إلغاء الفاتورة" confirmationKeyword="إلغاء" confirmationLabel="اكتب كلمة إلغاء للتأكيد" confirmationHint="استخدم هذا الإجراء فقط بعد التحقق من عدم وجود حركة لاحقة تعتمد على الفاتورة." managerPinRequired managerPinHint="هذه العملية تحتاج اعتماد المدير المسجل في الإعدادات." reasonRequired reasonLabel="سبب إلغاء فاتورة الشراء" reasonHint="اكتب سببًا واضحًا حتى يبقى محفوظًا في السجل ويرجع له المدير لاحقًا." reasonPlaceholder="مثال: تم إدخال الفاتورة مرتين أو إلغاء الاستلام" isBusy={controller.cancelMutation.isPending} onCancel={() => controller.setPurchaseToCancel(null)} onConfirm={async ({ managerPin, reason }) => {
         if (!controller.purchaseToCancel) return;

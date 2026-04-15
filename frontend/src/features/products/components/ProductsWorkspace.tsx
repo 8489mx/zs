@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -13,8 +13,6 @@ import {
 } from '@/features/products/components/ProductsWorkspaceSections';
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
-import { useMutation } from '@tanstack/react-query';
-import { inventoryApi } from '@/features/inventory/api/inventory.api';
 
 const LazyProductOfferDialog = lazy(() => import('@/features/products/components/ProductOfferDialog').then((module) => ({ default: module.ProductOfferDialog })));
 const LazyProductBarcodeDialog = lazy(() => import('@/features/products/components/ProductBarcodeDialog').then((module) => ({ default: module.ProductBarcodeDialog })));
@@ -37,38 +35,6 @@ export function ProductsWorkspace() {
   const editProductRef = useRef<HTMLDivElement | null>(null);
   const toolsRef = useRef<HTMLDivElement | null>(null);
   const hasProducts = controller.metrics.total > 0;
-
-  const [bulkResetTarget, setBulkResetTarget] = useState<typeof controller.productToDelete | null>(null);
-  const deleteFamily = useMemo(() => {
-    const target = controller.productToDelete;
-    if (!target) return [];
-    const styleCode = String(target.styleCode || '').trim();
-    if (styleCode) {
-      const grouped = controller.visibleProducts.filter((product) => String(product.styleCode || '').trim() === styleCode);
-      if (grouped.length) return grouped;
-    }
-    return [target];
-  }, [controller.productToDelete, controller.visibleProducts]);
-  const familyStockRows = useMemo(() => deleteFamily.filter((product) => Math.abs(Number(product.stock || 0)) > 0.0001), [deleteFamily]);
-  const bulkResetMutation = useMutation({
-    mutationFn: async ({ managerPin, reason }: { managerPin: string; reason: string }) => {
-      for (const product of familyStockRows) {
-        await inventoryApi.createAdjustment({
-          productId: String(product.id),
-          actionType: 'adjust',
-          qty: 0,
-          reason: 'inventory_count',
-          note: `${reason} | تصفير قبل حذف الصنف الرئيسي ${controller.productToDelete?.name || product.name}`,
-          managerPin,
-        });
-      }
-    },
-    onSuccess: async () => {
-      await invalidateCatalogDomain(controller.queryClient, { includeProducts: true });
-      setBulkResetTarget(null);
-      controller.setProductToDelete(null);
-    },
-  });
 
   useEffect(() => {
     if (!controller.selectedProduct) return;
@@ -259,21 +225,7 @@ export function ProductsWorkspace() {
       <ActionConfirmDialog
         open={Boolean(controller.productToDelete)}
         title="تأكيد حذف الصنف"
-        description={controller.productToDelete ? (
-          <div className="page-stack">
-            <span>سيتم حذف الصنف {controller.productToDelete.name}. لو كنت تريد تعديل الكمية فقط فاستخدم تبويب المخزون بدل حذف master data.</span>
-            {familyStockRows.length ? (
-              <div className="page-stack">
-                <span className="muted small">على هذا الصنف {familyStockRows.length} صنف فرعي عليه مخزون حالي. بدل ما تفضيهم واحد واحد، صفّر مخزونهم دفعة واحدة ثم ارجع للحذف.</span>
-                <div className="actions compact-actions">
-                  <Button type="button" variant="secondary" onClick={() => setBulkResetTarget(controller.productToDelete)}>
-                    تصفير مخزون كل الفرعيات أولًا
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : ''}
+        description={controller.productToDelete ? `سيتم حذف الصنف ${controller.productToDelete.name}. لو كنت تريد تعديل الكمية فقط فاستخدم تبويب المخزون بدل حذف master data.` : ''}
         confirmLabel="نعم، حذف الصنف"
         isBusy={controller.deleteMutation.isPending}
         onCancel={() => controller.setProductToDelete(null)}
@@ -298,25 +250,6 @@ export function ProductsWorkspace() {
           await controller.bulkDeleteMutation.mutateAsync(controller.selectedIds);
         }}
       />
-
-      <ActionConfirmDialog
-        open={Boolean(bulkResetTarget)}
-        title="تصفير مخزون الصنف الرئيسي وفرعياته"
-        description={bulkResetTarget ? `سيتم تصفير مخزون ${familyStockRows.length} صنف دفعة واحدة تحت ${bulkResetTarget.name} لتقدر تحذفه أو تؤرشفه بعد كده.` : ''}
-        confirmLabel="نعم، صفّر المخزون"
-        confirmVariant="danger"
-        managerPinRequired
-        reasonRequired
-        reasonLabel="سبب التصفير"
-        reasonPlaceholder="مثال: تجهيز لحذف الصنف الرئيسي أو أرشفته"
-        minReasonLength={4}
-        isBusy={bulkResetMutation.isPending}
-        onCancel={() => setBulkResetTarget(null)}
-        onConfirm={async ({ managerPin, reason }) => {
-          await bulkResetMutation.mutateAsync({ managerPin, reason });
-        }}
-      />
-
     </div>
   );
 }
