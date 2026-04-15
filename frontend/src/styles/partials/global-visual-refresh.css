@@ -215,7 +215,7 @@ th {
 }
 
 .page-header-title {
-  font-size: clamp(23px, 1.55vw, 28px);
+  font-size: clamp(26px, 1.8vw, 31px);
   letter-spacing: -0.02em;
 }
 
@@ -259,113 +259,18 @@ th {
   font-weight: 800;
 }
 
-.toolbar-description {
-  max-width: 72ch;
-}
+@media (max-width: 1180px) {
+  .sidebar-fixed {
+    width: 232px;
+  }
 
-.toolbar-heading-actions {
-  gap: 10px;
-}
-
-.toolbar-meta-row {
-  padding: 10px 12px;
-  border-radius: 14px;
-  border-color: var(--panel-border);
-}
-
-.toolbar-grid {
-  grid-template-columns: minmax(260px, 0.95fr) minmax(340px, 1.05fr);
-  gap: 14px;
-  align-items: end;
-}
-
-.toolbar-extra {
-  gap: 12px;
-}
-
-.products-workspace-page .page-header,
-.reports-workspace .page-header,
-.settings-page-shell .page-header,
-.inventory-workspace .page-header,
-.accounts-workspace .page-header,
-.treasury-workspace .page-header,
-.sales-workspace .page-header,
-.purchases-workspace .page-header,
-.returns-workspace .page-header,
-.dashboard-premium-shell .page-header {
-  padding-block: 21px;
-}
-
-.products-workspace-page .page-header-actions,
-.sales-workspace .page-header-actions,
-.purchases-workspace .page-header-actions,
-.returns-workspace .page-header-actions,
-.accounts-workspace .page-header-actions,
-.treasury-workspace .page-header-actions,
-.reports-workspace .page-header-actions {
-  align-items: flex-start;
-}
-
-.products-workspace-page .page-header-actions .actions,
-.sales-workspace .page-header-actions .actions,
-.purchases-workspace .page-header-actions .actions,
-.returns-workspace .page-header-actions .actions,
-.accounts-workspace .page-header-actions .actions,
-.treasury-workspace .page-header-actions .actions,
-.reports-workspace .page-header-actions .actions {
-  justify-content: flex-end;
-}
-
-.settings-page-shell .settings-primary-card,
-.settings-page-shell .settings-reference-card,
-.settings-page-shell .settings-admin-card,
-.settings-page-shell .settings-users-card,
-.settings-page-shell .settings-import-card,
-.settings-page-shell .settings-backup-card,
-.products-workspace-page .workspace-panel,
-.inventory-workspace .workspace-panel,
-.accounts-workspace .workspace-panel,
-.treasury-workspace .workspace-panel,
-.sales-workspace .workspace-panel,
-.purchases-workspace .workspace-panel,
-.returns-workspace .workspace-panel,
-.customers-page .workspace-panel,
-.suppliers-page .workspace-panel,
-.services-page .workspace-panel {
-  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.045);
-}
-
-.products-workspace-page .workspace-grid-balanced,
-.inventory-workspace .inventory-master-detail,
-.reports-workspace .reports-unified-grid,
-.reports-workspace .reports-spotlight-grid,
-.reports-workspace .reports-visual-grid,
-.accounts-workspace .page-grid,
-.treasury-workspace .page-grid,
-.sales-workspace .sales-main-grid,
-.purchases-workspace .page-grid,
-.returns-workspace .returns-main-grid {
-  gap: 18px;
-}
-
-.login-card,
-.loading-card {
-  padding: 30px;
-  border-radius: 30px;
-}
-
-.login-header {
-  gap: 12px;
-  margin-bottom: 22px;
-}
-
-@media (max-width: 1200px) {
-  .toolbar-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .content-wrap {
+    width: calc(100vw - 232px);
+    max-width: calc(100vw - 232px);
   }
 }
 
-@media (max-width: 920px) {
+@media (max-width: 960px) {
   .content-wrap {
     width: 100%;
     max-width: 100%;
@@ -431,39 +336,209 @@ th {
   }
 }
 
-/* Customer header baseline: apply its approved size globally across page headers */
-.page-header {
-  padding-block: 14px !important;
+/* Unified page header: dashboard size baseline applied globally */
+.page-header,
+.dashboard-premium-shell .page-header,
+.page-shell > .page-header,
+.page-stack > .page-header {
+  padding: 10px 14px !important;
+  min-height: 58px !important;
+  border-radius: 18px !important;
+  align-items: center !important;
+  gap: 12px !important;
 }
 
-.page-header .page-header-title {
+.page-header-copy,
+.dashboard-premium-shell .page-header .page-header-copy {
+  gap: 3px !important;
+  max-width: 100% !important;
+}
+
+.page-header .page-header-title,
+.dashboard-premium-shell .page-header .page-header-title {
   font-size: clamp(17px, 1.15vw, 22px) !important;
   line-height: 1.1 !important;
+  margin: 0 !important;
+}
+
+.page-header .page-header-description,
+.dashboard-premium-shell .page-header .page-header-description {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  margin-top: 0 !important;
+  max-width: 74ch !important;
+}
+
+.page-header .page-header-actions,
+.dashboard-premium-shell .page-header .page-header-actions {
+  align-items: center !important;
 }
 
 .page-header .page-header-actions .btn,
-.page-header .page-header-actions .button {
-  min-height: 36px !important;
-  padding: 0 12px !important;
-  font-size: 13px !important;
+.page-header .page-header-actions .button,
+.dashboard-premium-shell .page-header .page-header-actions .btn,
+.dashboard-premium-shell .page-header .page-header-actions .button {
+  min-height: 34px !important;
+  padding: 7px 11px !important;
+  font-size: 12px !important;
   border-radius: 12px !important;
 }
 
-.cash-drawer-page .page-header {
-  padding: 20px 22px !important;
-  border-radius: 24px !important;
-  min-height: unset !important;
+/* Global baseline for quick summary cards directly under page headers */
+.page-shell > .stats-grid.compact-grid,
+.page-shell > .workspace-stats-grid,
+.page-shell > .compact-spotlight-grid,
+.page-shell > .inventory-overview-grid,
+.page-shell > .inventory-spotlight-grid,
+.page-shell > .settings-overview-grid,
+.dashboard-premium-shell > .compact-spotlight-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
 }
 
-.cash-drawer-page .page-header .page-header-title {
-  font-size: clamp(17px, 1.18vw, 22px) !important;
-  letter-spacing: -0.02em !important;
-  line-height: 1.12 !important;
+.page-shell > .stats-grid.compact-grid > .stat-card,
+.page-shell > .workspace-stats-grid > .stat-card,
+.page-shell > .inventory-overview-grid > .stat-card,
+.page-shell > .settings-overview-grid > .stat-card,
+.page-shell > .compact-spotlight-grid > .sales-guidance-card,
+.dashboard-premium-shell > .compact-spotlight-grid > .sales-guidance-card,
+.page-shell > .inventory-spotlight-grid > .inventory-spotlight-card {
+  min-height: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
-.cash-drawer-page .page-header-description {
-  display: block !important;
-  font-size: 14px !important;
-  line-height: 1.72 !important;
-  max-width: 74ch !important;
+.page-shell > .stats-grid.compact-grid > .stat-card span,
+.page-shell > .workspace-stats-grid > .stat-card span,
+.page-shell > .inventory-overview-grid > .stat-card span,
+.page-shell > .settings-overview-grid > .stat-card span,
+.page-shell > .compact-spotlight-grid > .sales-guidance-card span,
+.dashboard-premium-shell > .compact-spotlight-grid > .sales-guidance-card span,
+.page-shell > .inventory-spotlight-grid > .inventory-spotlight-card span {
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.page-shell > .stats-grid.compact-grid > .stat-card strong,
+.page-shell > .workspace-stats-grid > .stat-card strong,
+.page-shell > .inventory-overview-grid > .stat-card strong,
+.page-shell > .settings-overview-grid > .stat-card strong,
+.page-shell > .compact-spotlight-grid > .sales-guidance-card strong,
+.dashboard-premium-shell > .compact-spotlight-grid > .sales-guidance-card strong,
+.page-shell > .inventory-spotlight-grid > .inventory-spotlight-card strong {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+/* Purchases KPI row */
+.purchases-workspace .purchases-kpi-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.purchases-workspace .purchases-kpi-grid .stat-card {
+  min-width: 0;
+  padding: 10px 10px;
+}
+
+.purchases-workspace .purchases-kpi-grid .stat-card span {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.purchases-workspace .purchases-kpi-grid .stat-card strong {
+  font-size: clamp(13px, 0.95vw, 15px);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Treasury page layout */
+.treasury-workspace .treasury-primary-grid {
+  align-items: stretch;
+}
+
+.treasury-workspace .treasury-transactions-card {
+  height: 100%;
+}
+
+/* Services page layout */
+.services-page .services-workspace-grid {
+  align-items: stretch;
+}
+
+.services-page .services-workspace-grid > .card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.services-page .services-workspace-grid > .card > .section-title {
+  flex: 0 0 auto;
+}
+
+.services-page .services-workspace-grid .services-insights-list {
+  flex: 1 1 auto;
+  align-content: start;
+}
+
+/* Purchases side card height */
+.purchases-workspace .purchases-primary-grid {
+  align-items: stretch;
+}
+
+.purchases-workspace .purchases-side-stack {
+  height: 100%;
+}
+
+.purchases-workspace .purchases-insight-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.purchases-workspace .purchases-insight-card .list-stack {
+  flex: 1 1 auto;
+  align-content: start;
+}
+
+@media (max-width: 1280px) {
+  .purchases-workspace .purchases-kpi-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1200px) {
+  .page-shell > .stats-grid.compact-grid,
+  .page-shell > .workspace-stats-grid,
+  .page-shell > .compact-spotlight-grid,
+  .page-shell > .inventory-overview-grid,
+  .page-shell > .inventory-spotlight-grid,
+  .page-shell > .settings-overview-grid,
+  .dashboard-premium-shell > .compact-spotlight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .purchases-workspace .purchases-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .page-shell > .stats-grid.compact-grid,
+  .page-shell > .workspace-stats-grid,
+  .page-shell > .compact-spotlight-grid,
+  .page-shell > .inventory-overview-grid,
+  .page-shell > .inventory-spotlight-grid,
+  .page-shell > .settings-overview-grid,
+  .dashboard-premium-shell > .compact-spotlight-grid {
+    grid-template-columns: 1fr;
+  }
 }

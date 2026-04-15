@@ -34,7 +34,7 @@ export function TreasuryTransactionsCard({ search, onSearchChange, txnFilter, on
   setTxnPageSize: (pageSize: number) => void;
 }) {
   return (
-    <Card title="حركات الخزينة" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onReset}>إعادة الضبط</Button><Button variant="secondary" onClick={onExport} disabled={!transactionPagination?.totalItems || isExporting}>{isExporting ? 'جارٍ التصدير...' : 'تصدير النتائج'}</Button><Button variant="secondary" onClick={onPrint} disabled={!transactionPagination?.totalItems || isExporting}>طباعة النتائج</Button></div>}>
+    <Card className="treasury-transactions-card" title="حركات الخزينة" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onReset}>إعادة الضبط</Button><Button variant="secondary" onClick={onExport} disabled={!transactionPagination?.totalItems || isExporting}>{isExporting ? 'جارٍ التصدير...' : 'تصدير النتائج'}</Button><Button variant="secondary" onClick={onPrint} disabled={!transactionPagination?.totalItems || isExporting}>طباعة النتائج</Button></div>}>
       <SearchToolbar search={search} onSearchChange={onSearchChange} searchPlaceholder="ابحث بالنوع أو البيان أو المرجع أو المنفذ" />
       <FilterChipGroup value={txnFilter} options={treasuryFilterOptions} onChange={onTxnFilterChange} />
       <QueryFeedback isLoading={transactionsQuery.isLoading} isError={transactionsQuery.isError} error={transactionsQuery.error} isEmpty={!transactionPagination?.totalItems} loadingText="جاري تحميل الخزينة..." errorTitle="تعذر تحميل حركات الخزينة" emptyTitle="لا توجد حركات خزينة حاليًا" emptyHint="ستظهر هنا الحركات المالية بعد التسجيل أو تغيير الفلاتر.">
