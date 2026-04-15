@@ -6,34 +6,7 @@ import { Database } from '../../../database/database.types';
 import { createPasswordRecord } from '../utils/password-hasher';
 import { assertStrongPassword } from '../utils/password-policy';
 
-const SUPER_ADMIN_PERMISSIONS = [
-  'dashboard',
-  'products',
-  'sales',
-  'purchases',
-  'inventory',
-  'suppliers',
-  'customers',
-  'accounts',
-  'returns',
-  'reports',
-  'audit',
-  'treasury',
-  'services',
-  'settings',
-  'cashDrawer',
-  'canPrint',
-  'canDiscount',
-  'canEditPrice',
-  'canViewProfit',
-  'canDelete',
-  'canEditInvoices',
-  'canAdjustInventory',
-  'canManageSettings',
-  'canManageUsers',
-  'canEditUsers',
-  'canManageBackups',
-];
+import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
 
 @Injectable()
 export class BootstrapAdminService implements OnApplicationBootstrap {
@@ -85,9 +58,27 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap(): Promise<void> {
+    const activationEnforced = this.configService.get<boolean>('ACTIVATION_ENFORCED') === true;
+    const licenseMode = this.configService.get<string>('LICENSE_MODE') || 'desktop';
+    if (licenseMode !== 'server' && activationEnforced) {
+      this.logger.log('Bootstrap admin seeding is disabled while desktop activation is enforced');
+      return;
+    }
+
     const enableBootstrapAdmin = this.configService.get<boolean>('ENABLE_BOOTSTRAP_ADMIN') === true;
     if (!enableBootstrapAdmin) {
       this.logger.log('Bootstrap admin seeding is disabled for this environment');
+      return;
+    }
+
+    const existingUser = await this.db
+      .selectFrom('users')
+      .select('id')
+      .limit(1)
+      .executeTakeFirst();
+
+    if (existingUser) {
+      this.logger.log('Bootstrap admin seeding is skipped because the system is already initialized');
       return;
     }
 
@@ -127,7 +118,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     });
 
     this.logger.warn(
-      `Bootstrap administrator '${bootstrapSuperAdminUsername}' is enabled. Disable seeding after first login.`,
+      `Bootstrap administrator '${bootstrapSuperAdminUsername}' was seeded for first-run setup.`,
     );
   }
 }

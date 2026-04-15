@@ -40,13 +40,19 @@ class ProductUnitDto {
 }
 
 class ProductOfferDto {
-  @IsIn(['percent', 'fixed'])
-  type!: 'percent' | 'fixed';
+  @IsIn(['percent', 'fixed', 'price'])
+  type!: 'percent' | 'fixed' | 'price';
 
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
   value!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  minQty?: number;
 
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
@@ -69,6 +75,24 @@ class ProductCustomerPriceDto {
   price!: number;
 }
 
+class ProductFashionVariantDto {
+  @IsString()
+  color!: string;
+
+  @IsString()
+  size!: string;
+
+  @IsOptional()
+  @IsString()
+  barcode?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  stock?: number;
+}
+
 export class UpsertProductDto {
   @IsString()
   name!: string;
@@ -76,6 +100,22 @@ export class UpsertProductDto {
   @IsOptional()
   @IsString()
   barcode?: string;
+
+  @IsOptional()
+  @IsIn(['standard', 'fashion'])
+  itemKind?: 'standard' | 'fashion';
+
+  @IsOptional()
+  @IsString()
+  styleCode?: string;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  @IsString()
+  size?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -138,6 +178,13 @@ export class UpsertProductDto {
   @IsNumber()
   @Min(0)
   stock?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(400)
+  @ValidateNested({ each: true })
+  @Type(() => ProductFashionVariantDto)
+  fashionVariants?: ProductFashionVariantDto[];
 }
 
 export type NormalizedProductUnit = {
@@ -150,8 +197,9 @@ export type NormalizedProductUnit = {
 };
 
 export type NormalizedProductOffer = {
-  type: 'percent' | 'fixed';
+  type: 'percent' | 'fixed' | 'price';
   value: number;
+  minQty: number;
   from: string | null;
   to: string | null;
 };
@@ -161,9 +209,20 @@ export type NormalizedProductCustomerPrice = {
   price: number;
 };
 
+export type NormalizedFashionVariant = {
+  color: string;
+  size: string;
+  barcode: string;
+  stock: number;
+};
+
 export type NormalizedUpsertProduct = {
   name: string;
   barcode: string;
+  itemKind: 'standard' | 'fashion';
+  styleCode: string;
+  color: string;
+  size: string;
   categoryId: number | null;
   supplierId: number | null;
   costPrice: number;
@@ -174,5 +233,6 @@ export type NormalizedUpsertProduct = {
   units: NormalizedProductUnit[];
   offers: NormalizedProductOffer[];
   customerPrices: NormalizedProductCustomerPrice[];
+  fashionVariants: NormalizedFashionVariant[];
   stock?: number;
 };

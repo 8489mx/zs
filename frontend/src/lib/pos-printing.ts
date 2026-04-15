@@ -1,15 +1,33 @@
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
-import { formatCurrency } from '@/lib/format';
 import type { PosItem } from '@/features/pos/types/pos.types';
-import type { Sale } from '@/types/domain';
+import type { Sale, AppSettings } from '@/types/domain';
+import { buildReceiptDocument, getInvoiceStyles } from '@/lib/pos-printing/template';
+import {
+  defaultInvoiceFooter,
+  formatDateTime,
+  getPrintOption,
+  paymentLabel,
+  type PosPrintPageSize,
+} from '@/lib/pos-printing/shared';
 
-function paymentLabel(value?: string) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'cash') return 'نقدي';
-  if (normalized === 'card') return 'بطاقة';
-  if (normalized === 'credit') return 'آجل';
-  if (normalized === 'mixed') return 'مختلط';
-  return value || 'نقدي';
+interface PrintReceiptOptions {
+  pageSize?: PosPrintPageSize;
+  settings?: Partial<AppSettings> | null;
+}
+
+function openReceiptDocument(
+  title: string,
+  documentHtml: string,
+  compact: boolean,
+  options: PrintReceiptOptions,
+  subtitle = '',
+) {
+  printHtmlDocument(title, documentHtml, {
+    subtitle,
+    footerHtml: getPrintOption(options.settings, 'printShowFooter', true) ? escapeHtml(defaultInvoiceFooter(options.settings)) : '',
+    pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4',
+    extraStyles: getInvoiceStyles(compact),
+  });
 }
 
 export function printPosDraftPreview(options: {
@@ -24,67 +42,75 @@ export function printPosDraftPreview(options: {
   taxAmount: number;
   total: number;
   note?: string;
-  pageSize?: 'a4' | 'receipt';
+  pageSize?: PosPrintPageSize;
+  settings?: Partial<AppSettings> | null;
 }) {
-  const rows = (options.items || []).map((item) => `
-    <tr>
-      <td>${escapeHtml(item.name || '—')}</td>
-      <td>${escapeHtml(item.unitName || 'قطعة')}</td>
-      <td>${Number(item.qty || 0)}</td>
-      <td>${formatCurrency(Number(item.price || 0))}</td>
-      <td>${formatCurrency(Number(item.qty || 0) * Number(item.price || 0))}</td>
-    </tr>
-  `).join('');
-  printHtmlDocument(options.title || (options.pageSize === 'receipt' ? 'معاينة إيصال البيع' : 'معاينة فاتورة الكاشير'), `
-    <div class="summary-grid">
-      <div class="summary-box"><strong>العميل</strong>${escapeHtml(options.customerName || 'عميل نقدي')}</div>
-      <div class="summary-box"><strong>نقطة التشغيل</strong>${escapeHtml(options.branchName || 'المتجر الرئيسي')} / ${escapeHtml(options.locationName || 'المخزن الأساسي')}</div>
-      <div class="summary-box"><strong>الدفع</strong>${escapeHtml(paymentLabel(options.paymentLabel))}</div>
-    </div>
-    <table>
-      <thead><tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5">لا توجد أصناف</td></tr>'}</tbody>
-    </table>
-    <div class="totals">
-      <div>الإجمالي قبل الضريبة: ${formatCurrency(Number(options.subtotal || 0))}</div>
-      <div>الخصم: ${formatCurrency(Number(options.discount || 0))}</div>
-      <div>الضريبة: ${formatCurrency(Number(options.taxAmount || 0))}</div>
-      <div><strong>الإجمالي النهائي: ${formatCurrency(Number(options.total || 0))}</strong></div>
-      <div>عدد البنود: ${Number(options.items?.length || 0)}</div>
-      <div>ملاحظة: ${escapeHtml(options.note || '—')}</div>
-    </div>
-  `, { subtitle: '', pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4' });
+  const document = buildReceiptDocument({
+    pageSize: options.pageSize,
+    settings: options.settings,
+    documentLabel: options.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة بيع',
+    documentNumber: 'مسودة',
+    dateText: formatDateTime(),
+    customerName: options.customerName || 'عميل نقدي',
+    paymentText: paymentLabel(options.paymentLabel),
+    branchName: options.branchName || 'المتجر الرئيسي',
+    locationName: options.locationName || 'المخزن الأساسي',
+    note: options.note,
+    items: (options.items || []).map((item) => ({
+      name: item.name,
+      unitName: item.unitName,
+      qty: Number(item.qty || 0),
+      price: Number(item.price || 0),
+      total: Number(item.qty || 0) * Number(item.price || 0),
+    })),
+    subtotal: Number(options.subtotal || 0),
+    discount: Number(options.discount || 0),
+    taxAmount: Number(options.taxAmount || 0),
+    total: Number(options.total || 0),
+    paidAmount: Number(options.total || 0),
+  });
+
+  openReceiptDocument(
+    options.title || (options.pageSize === 'receipt' ? 'معاينة إيصال البيع' : 'معاينة فاتورة الكاشير'),
+    document.html,
+    document.compact,
+    { pageSize: options.pageSize === 'receipt' ? 'receipt' : 'a4', settings: options.settings || null },
+    options.pageSize === 'receipt' ? '' : 'معاينة جاهزة للطباعة',
+  );
 }
 
-export function printPostedSaleReceipt(sale: Sale, options: { pageSize?: 'a4' | 'receipt' } = {}) {
-  const body = (sale.items || []).map((item) => `
-    <tr>
-      <td>${escapeHtml(item.name || '—')}</td>
-      <td>${escapeHtml(item.unitName || 'قطعة')}</td>
-      <td>${Number(item.qty || 0)}</td>
-      <td>${formatCurrency(Number(item.price || 0))}</td>
-      <td>${formatCurrency(Number(item.total || 0))}</td>
-    </tr>
-  `).join('');
-  printHtmlDocument(`${options.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة'} ${sale.docNo || sale.id}`, `
-    <div class="summary-grid">
-      <div class="summary-box"><strong>العميل</strong>${escapeHtml(sale.customerName || 'عميل نقدي')}</div>
-      <div class="summary-box"><strong>التاريخ</strong>${escapeHtml(sale.date || '—')}</div>
-      <div class="summary-box"><strong>نقطة التشغيل</strong>${escapeHtml(sale.branchName || 'المتجر الرئيسي')} / ${escapeHtml(sale.locationName || 'المخزن الأساسي')}</div>
-      <div class="summary-box"><strong>الدفع</strong>${escapeHtml(paymentLabel(sale.paymentChannel || sale.paymentType))}</div>
-    </div>
-    <table>
-      <thead><tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
-      <tbody>${body || '<tr><td colspan="5">لا توجد أصناف</td></tr>'}</tbody>
-    </table>
-    <div class="totals">
-      <div>الإجمالي قبل الضريبة: ${formatCurrency(Number(sale.subTotal || 0))}</div>
-      <div>الخصم: ${formatCurrency(Number(sale.discount || 0))}</div>
-      <div>الضريبة: ${formatCurrency(Number(sale.taxAmount || 0))}</div>
-      <div><strong>الإجمالي النهائي: ${formatCurrency(Number(sale.total || 0))}</strong></div>
-      <div>المدفوع: ${formatCurrency(Number(sale.paidAmount || 0))}</div>
-      <div>المتبقي: ${formatCurrency(Math.max(0, Number(sale.total || 0) - Number(sale.paidAmount || 0)))}</div>
-      <div>ملاحظات: ${escapeHtml(sale.note || '—')}</div>
-    </div>
-  `, { subtitle: '', pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4' });
+function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
+  return buildReceiptDocument({
+    pageSize: options.pageSize,
+    settings: options.settings,
+    documentLabel: options.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة بيع',
+    documentNumber: sale.docNo || sale.id,
+    dateText: formatDateTime(sale.date),
+    customerName: sale.customerName || 'عميل نقدي',
+    paymentText: paymentLabel(sale.paymentChannel || sale.paymentType),
+    cashierName: sale.createdBy || '—',
+    branchName: sale.branchName || 'المتجر الرئيسي',
+    locationName: sale.locationName || 'المخزن الأساسي',
+    note: sale.note || '',
+    items: (sale.items || []).map((item) => ({
+      name: item.name,
+      unitName: item.unitName,
+      qty: Number(item.qty || 0),
+      price: Number(item.price || 0),
+      total: Number(item.total || 0),
+    })),
+    subtotal: Number(sale.subTotal || 0),
+    discount: Number(sale.discount || 0),
+    taxAmount: Number(sale.taxAmount || 0),
+    total: Number(sale.total || 0),
+    paidAmount: Number(sale.paidAmount || 0),
+    payments: sale.payments,
+  });
 }
+
+export function printPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions = {}) {
+  const document = buildPostedSaleDocument(sale, options);
+  openReceiptDocument(`${options.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة'} ${sale.docNo || sale.id}`, document.html, document.compact, options);
+}
+
+export { exportPostedSalePdf } from '@/lib/pos-printing/pdf';

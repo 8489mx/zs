@@ -11,6 +11,7 @@ import { usePurchaseComposerController } from '@/features/purchases/components/p
 import { PurchaseLineComposer } from '@/features/purchases/components/purchase-composer/PurchaseLineComposer';
 import { PurchaseItemsList } from '@/features/purchases/components/purchase-composer/PurchaseItemsList';
 import { PurchaseTotals } from '@/features/purchases/components/purchase-composer/PurchaseTotals';
+import { PurchaseRepricingDialog } from '@/features/purchases/components/PurchaseRepricingDialog';
 
 interface PurchaseComposerProps {
   products: Product[];
@@ -25,10 +26,10 @@ interface PurchaseComposerProps {
 
 export function PurchaseComposer({ products, suppliers, branches, locations, settings, isCatalogLoading, isCatalogError, catalogError }: PurchaseComposerProps) {
   const controller = usePurchaseComposerController({ products, branches, locations, settings });
-  const { headerForm, items, lineDraft, mutation, hasDraftChanges, totals, actions } = controller;
+  const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, actions } = controller;
 
   return (
-    <Card title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>}>
+    <Card title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>} className="purchase-composer-card">
       <QueryFeedback
         isLoading={isCatalogLoading}
         isError={isCatalogError}
@@ -39,7 +40,7 @@ export function PurchaseComposer({ products, suppliers, branches, locations, set
         emptyTitle="لا يمكن إنشاء فاتورة شراء الآن"
         emptyHint="تأكد من وجود مورد واحد وصنف واحد على الأقل قبل إنشاء الفاتورة."
       >
-        <form className="form-grid" onSubmit={headerForm.handleSubmit((values) => mutation.mutate({ values, items, taxRate: totals.taxRate, pricesIncludeTax: totals.pricesIncludeTax }))}>
+        <form className="form-grid purchase-composer-form" onSubmit={headerForm.handleSubmit((values) => mutation.mutate({ values, items, taxRate: totals.taxRate, pricesIncludeTax: totals.pricesIncludeTax }))}>
           <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة" hint="احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد." />
           <Field label="المورد" error={headerForm.formState.errors.supplierId?.message}>
             <select {...headerForm.register('supplierId')} disabled={mutation.isPending}>
@@ -106,6 +107,12 @@ export function PurchaseComposer({ products, suppliers, branches, locations, set
           </div>
         </form>
       </QueryFeedback>
+
+      <PurchaseRepricingDialog
+        open={Boolean(repricingInsights)}
+        insights={repricingInsights}
+        onClose={() => actions.setRepricingInsights(null)}
+      />
     </Card>
   );
 }

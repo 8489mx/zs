@@ -17,5 +17,21 @@ export interface AppSettings {
   logoData?: string;
   currentBranchId?: string;
   currentLocationId?: string;
+  printShowLogo?: boolean;
+  printShowPhone?: boolean;
+  printShowAddress?: boolean;
+  printShowTaxNumber?: boolean;
+  printShowCustomer?: boolean;
+  printShowCashier?: boolean;
+  printShowBranch?: boolean;
+  printShowLocation?: boolean;
+  printShowTax?: boolean;
+  printShowPaymentMethod?: boolean;
+  printShowItemSummary?: boolean;
+  printShowPaymentBreakdown?: boolean;
+  printShowFooter?: boolean;
+  printCompactReceipt?: boolean;
+  clothingModuleEnabled?: boolean;
+  defaultProductKind?: 'standard' | 'fashion' | string;
   theme?: string;
 }

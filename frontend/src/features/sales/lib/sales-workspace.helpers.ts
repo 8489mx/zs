@@ -1,6 +1,6 @@
-import { escapeHtml, printHtmlDocument } from '@/lib/browser';
-import { formatCurrency, formatDate } from '@/lib/format';
-import type { Sale } from '@/types/domain';
+import { printPostedSaleReceipt } from '@/lib/pos-printing';
+import { formatCurrency } from '@/lib/format';
+import type { AppSettings, Sale } from '@/types/domain';
 
 export type SalesViewFilter = 'all' | 'cash' | 'credit' | 'cancelled';
 
@@ -25,30 +25,12 @@ export function getSalePaymentLabel(sale?: Sale | null) {
   return 'نقدي';
 }
 
-export function printSaleDocument(sale: Sale) {
-  const itemsRows = (sale.items || []).map((item) => `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.unitName || '—')}</td><td>${item.qty}</td><td>${formatCurrency(item.price)}</td><td>${formatCurrency(item.total)}</td></tr>`).join('');
-  printHtmlDocument(`فاتورة بيع ${sale.docNo || sale.id}`, `
-    <div class="meta-grid">
-      <div class="meta-box"><strong>العميل</strong><span>${escapeHtml(sale.customerName || 'عميل نقدي')}</span></div>
-      <div class="meta-box"><strong>التاريخ</strong><span>${escapeHtml(formatDate(sale.date))}</span></div>
-      <div class="meta-box"><strong>الحالة</strong><span>${escapeHtml(sale.status === 'cancelled' ? 'ملغاة' : 'مثبتة')}</span></div>
-      <div class="meta-box"><strong>الدفع</strong><span>${escapeHtml(getSalePaymentLabel(sale))}</span></div>
-    </div>
-    <table>
-      <thead><tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
-      <tbody>${itemsRows}</tbody>
-    </table>
-    <div class="totals">
-      <div><strong>الإجمالي:</strong> ${formatCurrency(sale.total)}</div>
-      <div><strong>المدفوع:</strong> ${formatCurrency(sale.paidAmount || sale.total)}</div>
-      <div><strong>المتبقي:</strong> ${formatCurrency(Math.max(0, Number(sale.total || 0) - Number(sale.paidAmount || sale.total || 0)))}</div>
-      <div><strong>نوع الدفع:</strong> ${escapeHtml(getSalePaymentLabel(sale))}</div>
-      <div><strong>ملاحظات:</strong> ${escapeHtml(sale.note || '—')}</div>
-    </div>
-  `, {
-    subtitle: 'نسخة موحدة لطباعة فاتورة البيع',
-    pageSize: 'A4',
-  });
+export function printSaleDocument(
+  sale: Sale,
+  settings?: Partial<AppSettings> | null,
+  pageSize: 'a4' | 'receipt' = 'receipt',
+) {
+  printPostedSaleReceipt(sale, { pageSize, settings });
 }
 
 export function getSalesNextStep(params: {

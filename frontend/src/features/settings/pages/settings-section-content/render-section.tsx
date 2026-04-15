@@ -1,4 +1,3 @@
-import { QueryCard } from '@/shared/components/query-card';
 import { UserManagementSection } from '@/features/settings/components/UserManagementSection';
 import {
   SettingsOverviewStats,
@@ -37,11 +36,14 @@ export interface SharedSettingsSectionProps {
   canManageSettings: boolean;
   canManageBackups: boolean;
   backupBusy: boolean;
+  backupSelectedFileName: string;
   backupMessage: string;
+  backupMessageKind: 'success' | 'error';
   backupResult: unknown;
   restoreSnapshotId: string;
   handleBackupDownload: () => Promise<void>;
-  handleSnapshotDownload: (snapshot: BackupSnapshotRecord) => Promise<void>;
+  handleBackupFile: (file: File, mode: 'verify' | 'restore') => Promise<void>;
+  handleSnapshotDownload: (snapshot: BackupSnapshotRecord) => void;
   onRequestRestoreFile: (file: File) => void;
   onRequestRestoreSnapshot: (snapshot: BackupSnapshotRecord) => void;
   onUpdateBranch: (branchId: string, values: { name: string; code: string }) => Promise<void>;
@@ -68,11 +70,7 @@ export interface SharedSettingsSectionProps {
 
 export function renderOverviewSection({ branches, locations, snapshots, settings }: SharedSettingsSectionProps) {
   return (
-    <QueryCard
-      title="ملخص المتجر"
-      description="راجع الإعدادات الأساسية وبيانات المتجر والحفظ الوقائي قبل الدخول إلى التفاصيل الإدارية."
-      actions={<span className="nav-pill">نظرة عامة</span>}
-    >
+    <div className="page-stack settings-overview-section">
       <SettingsOverviewStats
         branchesCount={branches.length}
         locationsCount={locations.length}
@@ -81,7 +79,7 @@ export function renderOverviewSection({ branches, locations, snapshots, settings
         isUatReady={false}
         isSupportReady={false}
       />
-    </QueryCard>
+    </div>
   );
 }
 
@@ -141,11 +139,13 @@ export function renderBackupSection(props: SharedSettingsSectionProps) {
       autoBackupEnabled={props.settings?.autoBackup !== 'off'}
       canManageBackups={props.canManageBackups}
       backupBusy={props.backupBusy}
+      backupSelectedFileName={props.backupSelectedFileName}
       backupMessage={props.backupMessage}
+      backupMessageKind={props.backupMessageKind}
       backupResult={props.backupResult}
       restoreSnapshotId={props.restoreSnapshotId}
       handleBackupDownload={props.handleBackupDownload}
-      handleBackupFile={() => Promise.resolve()}
+      handleBackupFile={props.handleBackupFile}
       handleSnapshotDownload={props.handleSnapshotDownload}
       onRequestRestoreFile={props.onRequestRestoreFile}
       onRequestRestoreSnapshot={props.onRequestRestoreSnapshot}

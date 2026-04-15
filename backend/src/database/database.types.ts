@@ -109,6 +109,10 @@ export interface ProductTable {
   barcode: string | null;
   category_id: number | null;
   supplier_id: number | null;
+  item_kind: ColumnType<'standard' | 'fashion', 'standard' | 'fashion' | undefined, 'standard' | 'fashion' | undefined>;
+  style_code: string | null;
+  color: string | null;
+  size: string | null;
   cost_price: number;
   retail_price: number;
   wholesale_price: number;
@@ -136,8 +140,9 @@ export interface ProductUnitTable {
 export interface ProductOfferTable {
   id: Generated<number>;
   product_id: number;
-  offer_type: 'percent' | 'fixed';
+  offer_type: 'percent' | 'fixed' | 'price';
   value: number;
+  min_qty: ColumnType<number, number | undefined, number>;
   start_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   is_active: boolean;
@@ -154,6 +159,40 @@ export interface ProductCustomerPriceTable {
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
+
+
+export interface ProductPricingProfileTable {
+  id: Generated<number>;
+  product_id: number;
+  pricing_group_key: string | null;
+  pricing_mode: 'standard' | 'inherit' | 'manual';
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface PricingRuleTable {
+  id: Generated<number>;
+  name: string;
+  supplier_id: number | null;
+  category_id: number | null;
+  item_kind: 'standard' | 'fashion' | null;
+  style_code: string | null;
+  operation_type: 'percent_increase' | 'percent_decrease' | 'fixed_increase' | 'fixed_decrease' | 'set_price' | 'margin_from_cost';
+  operation_value: number;
+  targets_json: string;
+  rounding_mode: 'none' | 'nearest' | 'ending';
+  rounding_nearest_step: number | null;
+  rounding_ending: number | null;
+  options_json: string;
+  notes: string;
+  is_active: boolean;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
 
 export interface ProductLocationStockTable {
   id: Generated<number>;
@@ -414,6 +453,33 @@ export interface CustomerLedgerTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+
+export interface PriceChangeRunTable {
+  id: Generated<number>;
+  filters_json: string;
+  operation_json: string;
+  options_json: string;
+  summary_json: string;
+  affected_count: number;
+  status: string;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  undone_at: ColumnType<Date | null, string | undefined, string | undefined>;
+  undone_by: number | null;
+}
+
+export interface PriceChangeItemTable {
+  id: Generated<number>;
+  run_id: number;
+  product_id: number;
+  old_retail_price: number;
+  new_retail_price: number;
+  old_wholesale_price: number;
+  new_wholesale_price: number;
+  has_active_offer: boolean;
+  has_customer_price: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
 export interface PurchaseTable {
   id: Generated<number>;
   doc_no: string | null;
@@ -494,6 +560,8 @@ export interface Database {
   product_units: ProductUnitTable;
   product_offers: ProductOfferTable;
   product_customer_prices: ProductCustomerPriceTable;
+  product_pricing_profiles: ProductPricingProfileTable;
+  pricing_rules: PricingRuleTable;
   product_location_stock: ProductLocationStockTable;
   stock_movements: StockMovementTable;
   stock_transfers: StockTransferTable;
@@ -517,4 +585,6 @@ export interface Database {
   purchase_items: PurchaseItemTable;
   supplier_payments: SupplierPaymentTable;
   supplier_ledger: SupplierLedgerTable;
+  price_change_runs: PriceChangeRunTable;
+  price_change_items: PriceChangeItemTable;
 }

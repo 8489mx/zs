@@ -5,6 +5,7 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import type { AppSettings, Branch, Location, Product } from '@/types/domain';
 import { buildPurchaseDraftItem, upsertPurchaseDraftItem, type PurchaseDraftItem } from '@/features/purchases/contracts';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
+import type { PurchaseRepricingInsights } from '@/features/purchases/api/purchases.api';
 import { purchaseHeaderSchema, purchaseLineSchema, type PurchaseHeaderInput, type PurchaseHeaderOutput } from '@/features/purchases/schemas/purchase.schema';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
@@ -35,12 +36,14 @@ export function usePurchaseComposerController({ products, branches, locations, s
   const [lineQty, setLineQty] = useState(1);
   const [lineCost, setLineCost] = useState(0);
   const [lineError, setLineError] = useState('');
+  const [repricingInsights, setRepricingInsights] = useState<PurchaseRepricingInsights | null>(null);
 
   const hasDraftChanges = headerForm.formState.isDirty || items.length > 0 || Boolean(lineProductId) || lineQty !== 1 || lineCost !== 0;
-  const mutation = useCreatePurchaseMutation(() => {
+  const mutation = useCreatePurchaseMutation((result) => {
     headerForm.reset(buildDefaultHeaderValues(branches, locations));
     setItems([]);
     resetLineDraft(setLineProductId, setLineQty, setLineCost, setLineError);
+    setRepricingInsights(result.repricingInsights || null);
   });
   const canNavigateAway = useUnsavedChangesGuard(hasDraftChanges && !mutation.isPending);
 
@@ -104,6 +107,7 @@ export function usePurchaseComposerController({ products, branches, locations, s
     items,
     lineDraft: { lineProductId, lineQty, lineCost, lineError },
     mutation,
+    repricingInsights,
     hasDraftChanges,
     totals: { subTotal, discount, taxRate, pricesIncludeTax, taxAmount, total },
     actions: {
@@ -113,6 +117,7 @@ export function usePurchaseComposerController({ products, branches, locations, s
       handleAddItem,
       handleRemoveItem,
       handleReset,
+      setRepricingInsights,
     },
   };
 }

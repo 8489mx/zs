@@ -10,7 +10,7 @@ cleanup() {
 trap cleanup EXIT
 
 docker compose up -d postgres backend
-"$ROOT_DIR/scripts/wait-for-http.sh" http://127.0.0.1:3001/health/ready 120 2
+bash "$ROOT_DIR/scripts/wait-for-http.sh" http://127.0.0.1:3001/health/ready 120 2
 E2E_BASE_URL="${E2E_BASE_URL:-http://127.0.0.1:3001}" \
 E2E_USERNAME="${E2E_USERNAME:-owner}" \
 E2E_PASSWORD="${E2E_PASSWORD:-OwnerBootstrap2026!}" \

@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import { memo, type Ref } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
@@ -9,6 +9,7 @@ import type { PosPriceType } from '@/features/pos/types/pos.types';
 interface PosProductsPanelProps {
   search: string;
   onSearchChange: (value: string) => void;
+  onSearchSubmitFirstResult: () => boolean;
   priceType: PosPriceType;
   onPriceTypeChange: (value: PosPriceType) => void;
   products: Product[];
@@ -17,17 +18,23 @@ interface PosProductsPanelProps {
   onAddProduct: (product: Product) => void;
   productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent';
   onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent') => void;
-  quickAddCode: string;
-  onQuickAddCodeChange: (value: string) => void;
-  onQuickAddCodeSubmit: (value?: string) => boolean;
   scannerMessage: string;
   searchInputRef?: Ref<HTMLInputElement>;
-  quickAddInputRef?: Ref<HTMLInputElement>;
 }
 
-export function PosProductsPanel({
+function renderProductMeta(product: Product) {
+  if (product.itemKind === 'fashion') {
+    const fashionLabel = [product.color, product.size].filter(Boolean).join(' • ');
+    const styleLabel = product.styleCode ? `موديل ${product.styleCode}` : '';
+    return [fashionLabel, styleLabel].filter(Boolean).join(' — ') || 'Variant ملابس';
+  }
+  return product.barcode || product.units?.map((unit) => unit.name).join(' / ') || 'قطعة';
+}
+
+function PosProductsPanelComponent({
   search,
   onSearchChange,
+  onSearchSubmitFirstResult,
   priceType,
   onPriceTypeChange,
   products,
@@ -36,39 +43,43 @@ export function PosProductsPanel({
   onAddProduct,
   productFilter,
   onProductFilterChange,
-  quickAddCode,
-  onQuickAddCodeChange,
-  onQuickAddCodeSubmit,
   scannerMessage,
   searchInputRef,
-  quickAddInputRef,
 }: PosProductsPanelProps) {
   return (
     <Card
-      title="اختيار الأصناف"
+      title="1. اختيار الأصناف"
+      description="ابحث بالاسم أو اضرب الباركود من نفس الخانة، ثم أضف الصنف مباشرة إلى السلة."
       actions={<span className="nav-pill">{products.length} صنف</span>}
       className="workspace-panel pos-products-card pos-products-card-compact"
     >
       <div className="pos-products-static">
         {contextBadges.length ? (
           <div className="badge-row pos-context-chip-row pos-context-chip-row-compact">
-            {contextBadges.map((badge) => <span key={badge.key} className="cashier-chip">{badge.label}</span>)}
+            {contextBadges.slice(0, 3).map((badge) => <span key={badge.key} className="cashier-chip">{badge.label}</span>)}
           </div>
         ) : null}
 
         <div className="pos-toolbar-shell pos-toolbar-shell-compact">
           <div className="pos-products-toolbar-stack">
-            <div className="pos-products-top-row">
-              <Field label="بحث سريع">
+            <div className="pos-products-top-row pos-products-top-row-unified">
+              <div className="pos-products-unified-search-field"><Field label="ابحث بالاسم أو اضرب الباركود">
                 <input
                   ref={searchInputRef}
+                  autoFocus
                   value={search}
                   onChange={(event) => onSearchChange(event.target.value)}
-                  placeholder="ابحث بالاسم أو الباركود"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      onSearchSubmitFirstResult();
+                    }
+                  }}
+                  placeholder="اكتب اسم الصنف أو اضرب الباركود هنا"
                 />
-              </Field>
+              </Field></div>
 
-              <Field label="السعر">
+              <Field label="نوع السعر">
                 <select value={priceType} onChange={(event) => onPriceTypeChange(event.target.value === 'wholesale' ? 'wholesale' : 'retail')}>
                   <option value="retail">قطاعي</option>
                   <option value="wholesale">جملة</option>
@@ -81,28 +92,6 @@ export function PosProductsPanel({
                   تفريغ
                 </Button>
               </div>
-            </div>
-
-            <div className="pos-products-barcode-row">
-              <Field label="باركود سريع">
-                <div className="inline-create-row pos-quick-add-row pos-quick-add-row-wide">
-                  <input
-                    ref={quickAddInputRef}
-                    value={quickAddCode}
-                    onChange={(event) => onQuickAddCodeChange(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        onQuickAddCodeSubmit();
-                      }
-                    }}
-                    placeholder="امسح أو اكتب الكود"
-                  />
-                  <Button type="button" variant="secondary" onClick={() => onQuickAddCodeSubmit()} disabled={!quickAddCode.trim()}>
-                    إضافة
-                  </Button>
-                </div>
-              </Field>
             </div>
           </div>
         </div>
@@ -118,14 +107,19 @@ export function PosProductsPanel({
         </div>
 
         {recentProducts.length ? (
-          <div className="list-stack pos-surface-panel pos-recent-panel pos-recent-panel-compact">
-            <strong>آخر استخدام</strong>
-            <div className="badge-row pos-recent-buttons-row">
-              {recentProducts.map((product) => (
-                <Button key={product.id} type="button" variant="secondary" onClick={() => onAddProduct(product)}>{product.name}</Button>
-              ))}
+          <details className="pos-inline-details-card">
+            <summary>
+              <span>آخر استخدام</span>
+              <span className="muted small">{recentProducts.length} صنف</span>
+            </summary>
+            <div className="list-stack pos-surface-panel pos-recent-panel pos-recent-panel-compact">
+              <div className="badge-row pos-recent-buttons-row">
+                {recentProducts.map((product) => (
+                  <Button key={product.id} type="button" variant="secondary" onClick={() => onAddProduct(product)}>{product.name}</Button>
+                ))}
+              </div>
             </div>
-          </div>
+          </details>
         ) : null}
       </div>
 
@@ -141,8 +135,7 @@ export function PosProductsPanel({
                   <strong>{product.name}</strong>
                   <span className={isLowStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span>
                 </div>
-                <div className="muted small">{product.barcode || 'بدون باركود'}</div>
-                <div className="muted small">{product.units?.map((unit) => unit.name).join(' / ') || 'قطعة'}</div>
+                <div className="muted small pos-product-card-meta">{renderProductMeta(product)}</div>
                 <div className="pick-meta-row pos-pick-meta-row">
                   <span>{formatCurrency(Number(price || 0))}</span>
                   <span className="small muted">انقر للإضافة</span>
@@ -155,3 +148,15 @@ export function PosProductsPanel({
     </Card>
   );
 }
+
+function arePropsEqual(prev: PosProductsPanelProps, next: PosProductsPanelProps) {
+  return prev.search === next.search
+    && prev.priceType === next.priceType
+    && prev.products === next.products
+    && prev.recentProducts === next.recentProducts
+    && prev.contextBadges === next.contextBadges
+    && prev.productFilter === next.productFilter
+    && prev.scannerMessage === next.scannerMessage;
+}
+
+export const PosProductsPanel = memo(PosProductsPanelComponent, arePropsEqual);

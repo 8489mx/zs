@@ -3,28 +3,20 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 export default defineConfig({
     plugins: [react()],
-    resolve: {
-        alias: {
-            '@': path.resolve(__dirname, './src')
-        }
-    },
-    server: {
-        port: 5173,
-        proxy: {
-            '/api': {
-                target: process.env.VITE_DEV_BACKEND_URL || 'http://localhost:3001',
-                changeOrigin: true
-            }
-        }
-    },
+    resolve: { alias: { '@': path.resolve(__dirname, './src') } },
+    server: { port: 5173, proxy: { '/api': { target: process.env.VITE_DEV_BACKEND_URL || 'http://localhost:3001', changeOrigin: true } } },
     build: {
         outDir: 'dist',
         emptyOutDir: true,
         rollupOptions: {
             output: {
                 manualChunks: function (id) {
-                    if (!id.includes('node_modules'))
-                        return undefined;
+                    if (id.includes('jspdf'))
+                        return 'vendor-jspdf';
+                    if (id.includes('html2canvas'))
+                        return 'vendor-html2canvas';
+                    if (id.includes('/react/') || id.includes('/react-dom/'))
+                        return 'vendor-react';
                     if (id.includes('react-router'))
                         return 'vendor-router';
                     if (id.includes('@tanstack/react-query'))
@@ -33,12 +25,10 @@ export default defineConfig({
                         return 'vendor-forms';
                     if (id.includes('zustand'))
                         return 'vendor-state';
-                    if (id.includes('/react/') || id.includes('/react-dom/'))
-                        return 'vendor-react';
-                    return 'vendor';
+                    return undefined;
                 },
-                chunkFileNames: 'assets/chunks/[name]-[hash].js'
-            }
-        }
-    }
+                chunkFileNames: 'assets/chunks/[name]-[hash].js',
+            },
+        },
+    },
 });

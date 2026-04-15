@@ -1,54 +1,108 @@
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
-import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { ProductForm } from '@/features/products/components/ProductForm';
 import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsGrid';
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';
 import {
   QuickCatalogCard,
-  BarcodeToolsCard,
   ProductEditorCard,
-  ProductOffersCard,
 } from '@/features/products/components/ProductsWorkspaceSections';
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 
-const productsWorkspaceRegressionLabels = ['باركود', 'وحدات'];
+const LazyProductOfferDialog = lazy(() => import('@/features/products/components/ProductOfferDialog').then((module) => ({ default: module.ProductOfferDialog })));
+const LazyProductBarcodeDialog = lazy(() => import('@/features/products/components/ProductBarcodeDialog').then((module) => ({ default: module.ProductBarcodeDialog })));
+const LazyBarcodePrintDialog = lazy(() => import('@/features/products/components/BarcodePrintDialog').then((module) => ({ default: module.BarcodePrintDialog })));
 
+const productsWorkspaceRegressionLabels = ['باركود', 'وحدات'];
 void productsWorkspaceRegressionLabels;
+
+function scrollToRef(target: HTMLDivElement | null) {
+  if (!target || typeof target.scrollIntoView !== 'function') return;
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 export function ProductsWorkspace() {
   const controller = useProductsWorkspaceController();
-  const focusCards = [
-    { key: 'first', label: 'افتح أولًا', value: 'البحث وسجل الأصناف' },
-    { key: 'now', label: 'الإجراء الأساسي', value: controller.selectedProduct ? `تعديل ${controller.selectedProduct.name}` : 'اختر صنفًا أو أضف جديدًا' },
-    { key: 'stock', label: 'راقب', value: `${controller.metrics.lowStockCount} منخفض المخزون` },
-    { key: 'after', label: 'بعده', value: 'الباركود والعروض' },
-  ];
+  const settingsQuery = useSettingsQuery();
+  const clothingEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+  const defaultProductKind = clothingEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
+  const addProductRef = useRef<HTMLDivElement | null>(null);
+  const editProductRef = useRef<HTMLDivElement | null>(null);
+  const toolsRef = useRef<HTMLDivElement | null>(null);
+  const hasProducts = controller.metrics.total > 0;
+
+  useEffect(() => {
+    if (!controller.selectedProduct) return;
+    scrollToRef(editProductRef.current);
+  }, [controller.selectedProduct]);
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell products-workspace-page">
       <PageHeader
         title="الأصناف"
-        description="اعرض سجل الأصناف أولًا ثم انتقل للإضافة أو التعديل أو إدارة العروض حسب الصنف المحدد."
+        description={clothingEnabled ? 'العروض والباركود والملصقات صارت مباشرة داخل سطر الصنف نفسه، مع دعم خصائص الملابس من نفس شاشة الأصناف.' : 'العروض والباركود والملصقات صارت مباشرة داخل سطر الصنف نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية.'}
         badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} صنف</span>}
-        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button><Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير CSV</Button><Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button></div>}
+        actions={(
+          <div className="actions compact-actions page-header-actions">
+            <Button
+              onClick={() => {
+                controller.setSelectedProduct(null);
+                scrollToRef(addProductRef.current);
+              }}
+            >
+              {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (controller.selectedProduct) {
+                  scrollToRef(editProductRef.current);
+                  return;
+                }
+                scrollToRef(addProductRef.current);
+              }}
+            >
+              {controller.selectedProduct ? 'الانتقال للتعديل' : 'الانتقال للإضافة'}
+            </Button>
+            <Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button>
+            <Button variant="secondary" onClick={() => scrollToRef(toolsRef.current)}>القسم والمورد</Button>
+            <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير CSV</Button>
+            <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
+          </div>
+        )}
       />
 
-      <ProductsStatsGrid
-        total={controller.metrics.total}
-        lowStockCount={controller.metrics.lowStockCount}
-        outOfStockCount={controller.metrics.outOfStockCount}
-        visibleCount={controller.visibleProducts.length}
-        inventoryCost={controller.inventoryCost}
-        inventorySaleValue={controller.inventorySaleValue}
-        activeOffersCount={controller.activeOffersCount}
-        customerPriceCount={controller.customerPriceCount}
-      />
+      {!hasProducts ? (
+        <Card title="ابدأ بإضافة أول صنف" actions={<span className="nav-pill">خطوة البداية</span>} className="workspace-panel">
+          <div className="page-stack">
+            <div className="muted">
+              لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للمحل، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
+            </div>
+            <div className="actions compact-actions">
+              <Button onClick={() => scrollToRef(addProductRef.current)}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
+              <Button variant="secondary" onClick={() => scrollToRef(toolsRef.current)}>إضافة قسم أو مورد</Button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
 
-      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في شاشة الأصناف" />
+      <div className="products-header-stats">
+        <ProductsStatsGrid
+          total={controller.metrics.total}
+          lowStockCount={controller.metrics.lowStockCount}
+          outOfStockCount={controller.metrics.outOfStockCount}
+          visibleCount={controller.visibleProducts.length}
+          inventoryCost={controller.inventoryCost}
+          inventorySaleValue={controller.inventorySaleValue}
+          activeOffersCount={controller.activeOffersCount}
+          customerPriceCount={controller.customerPriceCount}
+        />
+      </div>
 
       <ProductsTableCard
         search={controller.search}
@@ -63,6 +117,9 @@ export function ProductsWorkspace() {
         selectedProduct={controller.selectedProduct}
         onSelectProduct={controller.setSelectedProduct}
         onDeleteProduct={controller.setProductToDelete}
+        onOpenOfferDialog={controller.openOfferDialog}
+        onOpenBarcodeDialog={controller.openBarcodeDialog}
+        onOpenPrintDialog={controller.openPrintDialog}
         canDelete={controller.canDelete}
         canPrint={controller.canPrint}
         onExportCsv={controller.exportProductsCsv}
@@ -78,39 +135,92 @@ export function ProductsWorkspace() {
         totalItems={controller.summary?.totalProducts || controller.visibleProducts.length}
         onPageChange={controller.setPage}
         onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
+        clothingEnabled={clothingEnabled}
       />
 
       <div className="two-column-grid workspace-grid-balanced">
-        <Card title={controller.selectedProduct ? `تعديل: ${controller.selectedProduct.name}` : 'تعديل صنف'} actions={<div className="actions compact-actions"><span className="nav-pill">تعديل وحذف</span><Button variant="secondary" onClick={() => void controller.copySelectedProductSummary()} disabled={!controller.selectedProduct}>نسخ الملخص</Button><Button variant="secondary" onClick={() => controller.setSelectedProduct(null)} disabled={!controller.selectedProduct}>إلغاء التحديد</Button></div>} className="workspace-panel">
-          <ProductEditorCard
-            product={controller.selectedProduct || undefined}
-            categories={controller.categoriesQuery.data || []}
-            suppliers={controller.suppliersQuery.data || []}
-            customers={(controller.customersQuery.data || []).map((customer) => ({ id: String(customer.id), name: customer.name }))}
-            onSaved={(product) => controller.setSelectedProduct(product)}
-          />
-          {controller.selectedProduct ? (
-            <div className="actions" style={{ marginTop: 12 }}>
-              <Button variant="danger" onClick={() => controller.setProductToDelete(controller.selectedProduct)} disabled={!controller.canDelete}>حذف الصنف</Button>
+        <div ref={addProductRef}>
+          <Card title={defaultProductKind === 'fashion' ? 'إضافة موديل جديد' : 'إضافة صنف جديد'} actions={<span className="nav-pill">الإجراء الأساسي</span>} className="workspace-panel">
+            <div className="muted" style={{ marginBottom: 12 }}>
+              {clothingEnabled ? 'إضافة الصنف أو الموديل تتم من نفس النموذج حسب النوع الافتراضي الموجود في الإعدادات، وبعدها تنفّذ العرض أو الباركود أو الملصقات من زراره المباشر داخل السجل.' : 'أضف الصنف أولًا، ثم نفّذ العرض أو الباركود أو الملصقات من زراره المباشر داخل السجل.'}
             </div>
-          ) : null}
-        </Card>
-        <Card title="إضافة صنف جديد" actions={<span className="nav-pill">إضافة</span>} className="workspace-panel">
-          <ProductForm
-            categories={controller.categoriesQuery.data || []}
-            suppliers={controller.suppliersQuery.data || []}
-            onCategoryCreated={async () => { await invalidateCatalogDomain(controller.queryClient, { includeCategories: true }); }}
-            onSupplierCreated={async () => { await invalidateCatalogDomain(controller.queryClient, { includeSuppliers: true }); }}
-          />
-        </Card>
+            <ProductForm
+              categories={controller.categoriesQuery.data || []}
+              suppliers={controller.suppliersQuery.data || []}
+              onCategoryCreated={async () => { await invalidateCatalogDomain(controller.queryClient, { includeCategories: true }); }}
+              onSupplierCreated={async () => { await invalidateCatalogDomain(controller.queryClient, { includeSuppliers: true }); }}
+            />
+          </Card>
+        </div>
+
+        <div ref={editProductRef}>
+          <Card
+            title={controller.selectedProduct ? `تعديل: ${controller.selectedProduct.name}` : 'التعديل بعد اختيار الصنف'}
+            actions={(
+              <div className="actions compact-actions">
+                <span className="nav-pill">{controller.selectedProduct ? 'التعديل النشط' : 'اختر من السجل'}</span>
+                <Button variant="secondary" onClick={() => void controller.copySelectedProductSummary()} disabled={!controller.selectedProduct}>نسخ الملخص</Button>
+                <Button variant="secondary" onClick={() => controller.setSelectedProduct(null)} disabled={!controller.selectedProduct}>إلغاء التحديد</Button>
+              </div>
+            )}
+            className="workspace-panel"
+          >
+            {!controller.selectedProduct ? (
+              <div className="page-stack">
+                <div className="muted">اختر صنفًا من الجدول أولًا، وستجد أزرار العروض والباركود والملصقات مباشرة داخل نفس السطر وقت الحاجة.</div>
+                <div className="actions compact-actions">
+                  <Button variant="secondary" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>الرجوع للسجل</Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <ProductEditorCard
+                  product={controller.selectedProduct}
+                  categories={controller.categoriesQuery.data || []}
+                  suppliers={controller.suppliersQuery.data || []}
+                  customers={(controller.customersQuery.data || []).map((customer) => ({ id: String(customer.id), name: customer.name }))}
+                  onSaved={(product) => controller.applyProductPatch(product)}
+                />
+                <div className="actions" style={{ marginTop: 12 }}>
+                  <Button variant="danger" onClick={() => controller.setProductToDelete(controller.selectedProduct!)} disabled={!controller.canDelete}>حذف الصنف</Button>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
       </div>
 
-      <div className="two-column-grid workspace-grid-balanced">
+      <div ref={toolsRef}>
         <QuickCatalogCard canManageSuppliers={controller.canManageSuppliers} />
-        <BarcodeToolsCard products={controller.visibleProducts} product={controller.selectedProduct || undefined} onUpdated={(product) => controller.setSelectedProduct(product)} />
       </div>
 
-      <ProductOffersCard products={controller.visibleProducts} product={controller.selectedProduct || undefined} onUpdated={(product) => controller.setSelectedProduct(product)} />
+      {(controller.offerDialogProduct || controller.barcodeDialogProduct || controller.printDialogState) ? (
+        <Suspense fallback={<div className="loading-card">جاري تحميل الأدوات الإضافية...</div>}>
+          <LazyProductOfferDialog
+            open={Boolean(controller.offerDialogProduct)}
+            product={controller.offerDialogProduct}
+            onClose={() => controller.setOfferDialogProduct(null)}
+            onSaved={(product) => controller.applyProductPatch(product)}
+          />
+
+          <LazyProductBarcodeDialog
+            open={Boolean(controller.barcodeDialogProduct)}
+            product={controller.barcodeDialogProduct}
+            products={controller.visibleProducts}
+            mode={controller.barcodeDialogMode}
+            onClose={() => controller.setBarcodeDialogProduct(null)}
+            onSaved={(product) => controller.applyProductPatch(product)}
+            onOpenPrint={(product, unit) => controller.openPrintDialog(product, unit)}
+          />
+
+          <LazyBarcodePrintDialog
+            open={Boolean(controller.printDialogState)}
+            product={controller.printDialogState?.product || null}
+            unit={controller.printDialogState?.unit}
+            onClose={() => controller.setPrintDialogState(null)}
+          />
+        </Suspense>
+      ) : null}
 
       <ActionConfirmDialog
         open={Boolean(controller.productToDelete)}

@@ -1,0 +1,28 @@
+.pos-workspace .pos-post-sale-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.pos-workspace .pos-post-sale-actions-row {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.pos-workspace .pos-post-sale-hint {
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .pos-workspace .pos-post-sale-actions-row {
+    align-items: stretch;
+  }
+
+  .pos-workspace .pos-post-sale-actions-row > * {
+    width: 100%;
+  }
+
+  .pos-workspace .pos-post-sale-hint {
+    white-space: normal;
+  }
+}

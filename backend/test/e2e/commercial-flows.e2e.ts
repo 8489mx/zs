@@ -129,7 +129,7 @@ async function main() {
   assert.ok(inventoryReport.summary, 'inventory report must include summary');
 
   const summary = await client.get('/api/reports/summary');
-  assert.ok(summary.summary, 'summary report must include summary');
+  assert.ok(summary.sales && summary.purchases && summary.commercial, 'summary report must include financial sections');
 
   const dashboard = await client.get('/api/dashboard/overview');
   assert.ok(dashboard.summary, 'dashboard must include summary');

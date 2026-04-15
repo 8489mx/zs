@@ -5,8 +5,8 @@ import type { PosCartPanelProps } from './posCartPanel.types';
 export function PosCartFooter(props: Pick<PosCartPanelProps,
   'totals' | 'paymentType' | 'amountDue' | 'submitMessage' | 'isError' | 'canShowLastSaleActions' | 'lastSaleDocNo' |
   'canSubmitSale' | 'canSubmitHint' | 'cart' | 'heldDrafts' | 'isPending' |
-  'onPrintPreview' | 'onHoldDraft' | 'onResetDraft' | 'onSubmit' | 'onReprintLastSale' | 'onCopyLastSaleSummary' |
-  'onExportHeldDrafts' | 'onClearHeldDrafts' | 'onRecallDraft' | 'onDeleteDraft'
+  'onPrintPreview' | 'onHoldDraft' | 'onResetDraft' | 'onSubmit' | 'onReprintLastSale' | 'onPrintReceiptNow' | 'onPrintA4Now' | 'onExportPdfNow' |
+  'onExportHeldDrafts' | 'onClearHeldDrafts' | 'onRecallDraft' | 'onDeleteDraft' | 'selectedLineKey'
 >) {
   return (
     <>
@@ -21,16 +21,25 @@ export function PosCartFooter(props: Pick<PosCartPanelProps,
         <div className={props.isError ? 'error-box pos-compact-message' : 'success-box pos-compact-message'}>
           <div>{props.submitMessage}</div>
           {!props.isError && props.canShowLastSaleActions ? (
-            <div className="actions compact-actions" style={{ marginTop: 8 }}>
-              <Button type="button" variant="secondary" onClick={props.onReprintLastSale}>طباعة الفاتورة الآن</Button>
-              <Button type="button" variant="secondary" onClick={props.onCopyLastSaleSummary}>نسخ الملخص</Button>
-              {props.lastSaleDocNo ? <span className="status-badge">{props.lastSaleDocNo}</span> : null}
+            <div className="pos-post-sale-actions" style={{ marginTop: 8 }}>
+              <div className="actions compact-actions pos-post-sale-actions-row">
+                <Button type="button" variant="secondary" onClick={props.onPrintReceiptNow}>طباعة ريسيت (F9)</Button>
+                <span className="muted small pos-post-sale-hint">F9 يبيع نقدي كامل، وبعد الحفظ: F9 ريسيت وF12 A4. والسطر المحدد: + و- وDelete وF2.</span>
+                <Button type="button" variant="secondary" onClick={props.onPrintA4Now}>طباعة A4 (F12)</Button>
+                <Button type="button" variant="secondary" onClick={props.onExportPdfNow}>تصدير PDF</Button>
+                {props.lastSaleDocNo ? <span className="status-badge">{props.lastSaleDocNo}</span> : null}
+              </div>
+              <div className="actions compact-actions" style={{ marginTop: 6 }}>
+                <Button type="button" variant="secondary" onClick={props.onReprintLastSale}>إعادة طباعة آخر فاتورة بالإعداد الافتراضي</Button>
+              </div>
             </div>
           ) : null}
         </div>
       ) : null}
 
       {!props.canSubmitSale && props.canSubmitHint ? <div className="warning-box pos-compact-message">{props.canSubmitHint}</div> : null}
+
+      {props.selectedLineKey ? <div className="muted small pos-cart-shortcut-hint">اختصارات السطر المحدد: + زيادة · - تقليل · Delete حذف · F2 تعديل الكمية</div> : null}
 
       <div className="actions pos-primary-actions pos-primary-actions-sticky section-actions-clean">
         <Button variant="secondary" onClick={props.onPrintPreview} disabled={!props.cart.length}>معاينة</Button>

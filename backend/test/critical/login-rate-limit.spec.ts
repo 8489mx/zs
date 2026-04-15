@@ -3,6 +3,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { LoginRateLimitMiddleware } from '../../src/common/middleware/login-rate-limit.middleware';
 import { AuthBurstRateLimitMiddleware } from '../../src/common/middleware/auth-burst-rate-limit.middleware';
 import { InMemoryRateLimitService } from '../../src/common/security/in-memory-rate-limit.service';
+import { validateEnv } from '../../src/config/env.schema';
 
 class FakeConfigService {
   constructor(private readonly values: Record<string, unknown>) {}
@@ -21,10 +22,10 @@ function createResponse() {
   } as any;
 }
 
-function expectTooManyRequests(fn: () => void): void {
+async function expectTooManyRequests(fn: () => Promise<void>): Promise<void> {
   let thrown: unknown;
   try {
-    fn();
+    await fn();
   } catch (error) {
     thrown = error;
   }
@@ -32,7 +33,7 @@ function expectTooManyRequests(fn: () => void): void {
   assert.equal((thrown as HttpException).getStatus(), HttpStatus.TOO_MANY_REQUESTS);
 }
 
-function runLoginLimit(): void {
+async function runLoginLimit(): Promise<void> {
   const service = new InMemoryRateLimitService();
   const middleware = new LoginRateLimitMiddleware(
     new FakeConfigService({ LOGIN_RATE_LIMIT_MAX: 2, LOGIN_RATE_LIMIT_WINDOW_SECONDS: 60 }) as any,
@@ -40,14 +41,14 @@ function runLoginLimit(): void {
   );
 
   const next = () => undefined;
-  middleware.use({ ip: '127.0.0.1', body: { username: 'admin' } } as any, createResponse(), next);
-  middleware.use({ ip: '127.0.0.1', body: { username: 'admin' } } as any, createResponse(), next);
-  expectTooManyRequests(() => {
-    middleware.use({ ip: '127.0.0.1', body: { username: 'admin' } } as any, createResponse(), next);
+  await middleware.use({ ip: '127.0.0.1', body: { username: 'admin' } } as any, createResponse(), next);
+  await middleware.use({ ip: '127.0.0.1', body: { username: 'admin' } } as any, createResponse(), next);
+  await expectTooManyRequests(async () => {
+    await middleware.use({ ip: '127.0.0.1', body: { username: 'admin' } } as any, createResponse(), next);
   });
 }
 
-function runBurstLimit(): void {
+async function runBurstLimit(): Promise<void> {
   const service = new InMemoryRateLimitService();
   const middleware = new AuthBurstRateLimitMiddleware(
     new FakeConfigService({ AUTH_BURST_RATE_LIMIT_MAX: 1, AUTH_BURST_RATE_LIMIT_WINDOW_SECONDS: 60 }) as any,
@@ -55,12 +56,46 @@ function runBurstLimit(): void {
   );
 
   const next = () => undefined;
-  middleware.use({ ip: '127.0.0.1', path: '/api/auth/change-password' } as any, createResponse(), next);
-  expectTooManyRequests(() => {
-    middleware.use({ ip: '127.0.0.1', path: '/api/auth/change-password' } as any, createResponse(), next);
+  await middleware.use({ ip: '127.0.0.1', path: '/api/auth/change-password' } as any, createResponse(), next);
+  await expectTooManyRequests(async () => {
+    await middleware.use({ ip: '127.0.0.1', path: '/api/auth/change-password' } as any, createResponse(), next);
   });
 }
 
-runLoginLimit();
-runBurstLimit();
-console.log('login-rate-limit.spec: ok');
+function runEnvGuards(): void {
+  const base = {
+    NODE_ENV: 'production',
+    DATABASE_HOST: 'localhost',
+    DATABASE_PORT: '5432',
+    DATABASE_NAME: 'app',
+    DATABASE_USER: 'user',
+    DATABASE_PASSWORD: 'password',
+  };
+
+  assert.throws(() => validateEnv(base), /SESSION_CSRF_SECRET must be explicitly configured in production/);
+  assert.throws(
+    () => validateEnv({ ...base, SESSION_CSRF_SECRET: '1234567890123456', ALLOW_SESSION_ID_HEADER: 'true' }),
+    /ALLOW_SESSION_ID_HEADER must remain disabled in production/,
+  );
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      SESSION_CSRF_SECRET: '1234567890123456',
+      SESSION_COOKIE_SECURE: 'false',
+      SESSION_COOKIE_SAME_SITE: 'none',
+    }),
+    /SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAME_SITE is none/,
+  );
+}
+
+async function main(): Promise<void> {
+  await runLoginLimit();
+  await runBurstLimit();
+  runEnvGuards();
+  console.log('login-rate-limit.spec: ok');
+}
+
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exit(1);
+});

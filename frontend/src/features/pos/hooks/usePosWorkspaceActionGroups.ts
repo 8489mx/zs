@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { PaymentType, PaymentChannel, HeldPosDraft } from '@/features/pos/hooks/usePosWorkspace';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
-import type { Customer, Product, Sale } from '@/types/domain';
+import type { Customer, Product, Sale, AppSettings } from '@/types/domain';
 import type { CreatePosSaleInput } from '@/features/pos/contracts';
 import { createPosWorkspaceAsyncActions } from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceAsyncActions';
 import { createPosWorkspaceBaseActions } from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions';
@@ -10,6 +10,8 @@ import { createPosWorkspaceReceiptActions } from '@/features/pos/hooks/pos-works
 export interface PosWorkspaceActionParams {
   cart: PosItem[];
   setCart: Dispatch<SetStateAction<PosItem[]>>;
+  selectedLineKey: string;
+  setSelectedLineKey: Dispatch<SetStateAction<string>>;
   customerId: string;
   setCustomerId: Dispatch<SetStateAction<string>>;
   discount: number;
@@ -44,13 +46,16 @@ export interface PosWorkspaceActionParams {
   setLastAddedLineKey: Dispatch<SetStateAction<string>>;
   setRecentProductIds: Dispatch<SetStateAction<string[]>>;
   setLastSale: Dispatch<SetStateAction<Sale | null>>;
+  postSaleSaleKey: string;
+  setPostSaleSaleKey: Dispatch<SetStateAction<string>>;
+  requestBarcodeFocus: () => void;
   lastSale: Sale | null;
   products: Product[];
   branches: Array<{ id: string | number }>;
   locations: Array<{ id: string | number }>;
   currentBranch: { id: string | number } | null;
   currentLocation: { id: string | number } | null;
-  settings?: { paperSize?: string } | null;
+  settings?: Partial<AppSettings> | null;
   totals: { discountValue: number; taxRate: number; pricesIncludeTax: boolean; total: number };
   paidAmount: number;
   hasOperationalSetup: boolean;

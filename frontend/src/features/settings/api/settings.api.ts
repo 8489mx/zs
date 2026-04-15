@@ -1,4 +1,6 @@
 import { http, resolveRequestUrl } from '@/lib/http';
+
+const BACKUP_RESTORE_TIMEOUT_MS = 120_000;
 import { unwrapArray, unwrapByKey, type PaginationMeta } from '@/lib/api/contracts';
 import type { AppSettings, Branch, Location } from '@/types/domain';
 import { buildQueryString } from '@/lib/query-string';
@@ -69,14 +71,14 @@ function sanitizeUserPayload(payload: ManagedUserRecord) {
 export const settingsApi = {
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
-  locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations'), 'locations'),
+  locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/settings/locations'), 'locations'),
   update: (payload: unknown) => http<AppSettings>('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }),
   createBranch: (payload: unknown) => http<{ ok: boolean; branchId: string; branches: Branch[] }>('/api/branches', { method: 'POST', body: JSON.stringify(payload) }),
   updateBranch: (branchId: string, payload: unknown) => http<{ ok: boolean; branchId: string; branches: Branch[] }>(`/api/branches/${branchId}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteBranch: (branchId: string) => http<{ ok: boolean; removedBranchId: string; branches: Branch[] }>(`/api/branches/${branchId}`, { method: 'DELETE' }),
-  createLocation: (payload: unknown) => http<{ ok: boolean; locationId: string; locations: Location[] }>('/api/locations', { method: 'POST', body: JSON.stringify(payload) }),
-  updateLocation: (locationId: string, payload: unknown) => http<{ ok: boolean; locationId: string; locations: Location[] }>(`/api/locations/${locationId}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteLocation: (locationId: string) => http<{ ok: boolean; removedLocationId: string; locations: Location[] }>(`/api/locations/${locationId}`, { method: 'DELETE' }),
+  createLocation: (payload: unknown) => http<{ ok: boolean; locationId: string; locations: Location[] }>('/api/settings/locations', { method: 'POST', body: JSON.stringify(payload) }),
+  updateLocation: (locationId: string, payload: unknown) => http<{ ok: boolean; locationId: string; locations: Location[] }>(`/api/settings/locations/${locationId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteLocation: (locationId: string) => http<{ ok: boolean; removedLocationId: string; locations: Location[] }>(`/api/settings/locations/${locationId}`, { method: 'DELETE' }),
   diagnostics: () => http<Record<string, unknown>>('/api/admin/diagnostics'),
   maintenanceReport: () => http<Record<string, unknown>>('/api/admin/maintenance-report'),
   launchReadiness: () => http<Record<string, unknown>>('/api/admin/launch-readiness'),
@@ -88,7 +90,7 @@ export const settingsApi = {
   reconcileCustomers: () => http<Record<string, unknown>>('/api/admin/maintenance/reconcile-customers', { method: 'POST' }),
   reconcileSuppliers: () => http<Record<string, unknown>>('/api/admin/maintenance/reconcile-suppliers', { method: 'POST' }),
   verifyBackup: (payload: unknown) => http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', body: JSON.stringify(payload) }),
-  restoreBackup: (payload: unknown, dryRun = false) => http<Record<string, unknown>>(`/api/backup/restore${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: JSON.stringify(payload) }),
+  restoreBackup: (payload: unknown, dryRun = false) => http<Record<string, unknown>>(`/api/backup/restore${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: JSON.stringify(payload), timeoutMs: BACKUP_RESTORE_TIMEOUT_MS }),
   importProducts: (rows: unknown) => http<Record<string, unknown>>('/api/import/products', { method: 'POST', body: JSON.stringify({ rows }) }),
   importCustomers: (rows: unknown) => http<Record<string, unknown>>('/api/import/customers', { method: 'POST', body: JSON.stringify({ rows }) }),
   importSuppliers: (rows: unknown) => http<Record<string, unknown>>('/api/import/suppliers', { method: 'POST', body: JSON.stringify({ rows }) }),

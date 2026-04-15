@@ -10,8 +10,9 @@ export interface ProductUnit {
 
 export interface ProductOffer {
   id?: string;
-  type: 'percent' | 'fixed';
+  type: 'percent' | 'fixed' | 'price';
   value: number;
+  minQty?: number;
   from?: string | null;
   to?: string | null;
   start_date?: string | null;
@@ -38,6 +39,10 @@ export interface Product {
   units: ProductUnit[];
   offers?: ProductOffer[];
   customerPrices?: ProductCustomerPrice[];
+  itemKind?: 'standard' | 'fashion';
+  styleCode?: string;
+  color?: string;
+  size?: string;
   status?: string;
   statusLabel?: string;
 }

@@ -5,25 +5,29 @@ import { PurchaseComposer } from '@/features/purchases/components/PurchaseCompos
 import { PurchaseDetailCard } from '@/features/purchases/components/PurchaseDetailCard';
 import { PurchaseEditDialog } from '@/features/purchases/components/PurchaseEditDialog';
 import { QuickSupplierCard } from '@/features/purchases/components/QuickSupplierCard';
-import { PurchasesOverviewSection } from '@/features/purchases/components/purchases-workspace/PurchasesOverviewSection';
+import { PurchasesKpiSection, TopSuppliersCard } from '@/features/purchases/components/purchases-workspace/PurchasesOverviewSection';
 import { PurchasesRegisterCard } from '@/features/purchases/components/purchases-workspace/PurchasesRegisterCard';
+import { PurchaseRepricingDialog } from '@/features/purchases/components/PurchaseRepricingDialog';
 import { usePurchasesWorkspaceController } from '@/features/purchases/components/purchases-workspace/usePurchasesWorkspaceController';
 import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';
 
 export function PurchasesWorkspace() {
   const controller = usePurchasesWorkspaceController();
-  const selectedPurchase = controller.purchaseDetailQuery.data ?? null;
+  const selectedPurchase = controller.selectedPurchase;
   const canEditSelectedPurchase = Boolean(controller.canEditInvoices && selectedPurchase && selectedPurchase.status !== 'cancelled');
 
   return (
     <div className="page-stack page-shell purchases-workspace">
       <PageHeader
         title="المشتريات"
+        description="ابدأ بإنشاء فاتورة الشراء مباشرة، ثم راجع السجل والتفاصيل من نفس الصفحة."
         badge={<span className="nav-pill">{controller.totalItems} فاتورة</span>}
         actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetPurchasesView}>إعادة الضبط</Button><Button variant="secondary" onClick={() => void controller.copyPurchasesSummary()} disabled={!controller.totalItems}>نسخ الملخص</Button><Button variant="secondary" onClick={() => void controller.exportPurchasesCsv()} disabled={!controller.totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.printPurchasesRegister()} disabled={!controller.totalItems || !controller.canPrint}>طباعة السجل</Button></div>}
       />
 
-      <div className="two-column-grid workspace-grid-balanced purchases-composer-grid">
+      <PurchasesKpiSection totalItems={controller.totalItems} summary={controller.summary || null} />
+
+      <div className="two-column-grid workspace-grid-balanced purchases-primary-grid">
         <PurchaseComposer
           products={controller.purchaseCatalog.productsQuery.data || []}
           suppliers={controller.purchaseCatalog.suppliersQuery.data || []}
@@ -34,25 +38,21 @@ export function PurchasesWorkspace() {
           isCatalogError={controller.purchaseCatalog.isError}
           catalogError={controller.purchaseCatalog.error}
         />
-        <QuickSupplierCard canManageSuppliers={controller.canManageSuppliers} />
-      </div>
 
-      <PurchasesOverviewSection
-        purchaseGuidanceCards={controller.purchaseGuidanceCards}
-        totalItems={controller.totalItems}
-        summary={controller.summary || null}
-        activeFilterLabel={controller.activeFilterLabel}
-        scopeRows={controller.scopeRows}
-        topSuppliers={controller.topSuppliers}
-        exportTopSuppliersCsv={controller.exportTopSuppliersCsv}
-        printTopSuppliers={controller.printTopSuppliers}
-      />
+        <div className="page-stack purchases-side-stack">
+          <QuickSupplierCard canManageSuppliers={controller.canManageSuppliers} />
+          <TopSuppliersCard
+            topSuppliers={controller.topSuppliers}
+            exportTopSuppliersCsv={controller.exportTopSuppliersCsv}
+            printTopSuppliers={controller.printTopSuppliers}
+          />
+        </div>
+      </div>
 
       <PurchasesRegisterCard {...controller} selectedPurchase={selectedPurchase} summary={controller.summary || null} />
 
       <PurchaseDetailCard
         purchase={selectedPurchase || undefined}
-        isLoading={controller.purchaseDetailQuery.isLoading}
         onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase) : undefined}
         onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
         onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
@@ -71,6 +71,8 @@ export function PurchasesWorkspace() {
           controller.setPurchaseToEdit(null);
         }}
       />
+
+      <PurchaseRepricingDialog open={Boolean(controller.repricingInsights)} insights={controller.repricingInsights} onClose={() => controller.setRepricingInsights(null)} />
 
       <ActionConfirmDialog open={Boolean(controller.purchaseToCancel)} title="تأكيد إلغاء فاتورة الشراء" description={controller.cancelDescription} confirmLabel="نعم، إلغاء الفاتورة" confirmationKeyword="إلغاء" confirmationLabel="اكتب كلمة إلغاء للتأكيد" confirmationHint="استخدم هذا الإجراء فقط بعد التحقق من عدم وجود حركة لاحقة تعتمد على الفاتورة." managerPinRequired managerPinHint="هذه العملية تحتاج اعتماد المدير المسجل في الإعدادات." reasonRequired reasonLabel="سبب إلغاء فاتورة الشراء" reasonHint="اكتب سببًا واضحًا حتى يبقى محفوظًا في السجل ويرجع له المدير لاحقًا." reasonPlaceholder="مثال: تم إدخال الفاتورة مرتين أو إلغاء الاستلام" isBusy={controller.cancelMutation.isPending} onCancel={() => controller.setPurchaseToCancel(null)} onConfirm={async ({ managerPin, reason }) => {
         if (!controller.purchaseToCancel) return;

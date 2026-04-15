@@ -1,0 +1,124 @@
+
+.pos-workspace .pos-payment-preset-field {
+  grid-column: span 2;
+}
+
+.pos-workspace .pos-payment-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.pos-workspace .pos-payment-preset-row .btn,
+.pos-workspace .pos-payment-preset-row .button {
+  min-width: 108px;
+}
+
+.pos-workspace .pos-payment-preset-hint {
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.pos-workspace .pos-cart-row-selected {
+  border-color: color-mix(in srgb, var(--accent, #2563eb) 38%, white);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 20%, transparent);
+  background: color-mix(in srgb, var(--accent, #2563eb) 7%, white);
+}
+
+.pos-workspace .pos-cart-badges-inline {
+  gap: 6px;
+}
+
+.pos-workspace .pos-cart-selected-badge {
+  color: var(--accent, #2563eb);
+}
+
+.pos-workspace .pos-cart-shortcut-hint {
+  margin: 4px 0 10px;
+}
+
+@media (max-width: 1100px) {
+  .pos-workspace .pos-payment-preset-field {
+    grid-column: span 1;
+  }
+}
+
+
+.pos-workspace .pos-products-top-row-unified {
+  grid-template-columns: minmax(0, 1.6fr) 110px 84px;
+}
+
+.pos-workspace .pos-products-unified-search-field input {
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.pos-workspace .pos-checkout-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.pos-workspace .pos-payment-grid-tight {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pos-workspace .pos-payment-preset-field-tight {
+  grid-column: span 4;
+}
+
+.pos-workspace .pos-payment-preset-row-tight {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pos-workspace .pos-payment-preset-row-tight .btn,
+.pos-workspace .pos-payment-preset-row-tight .button {
+  min-width: 0;
+  width: 100%;
+  min-height: 34px;
+  padding-inline: 8px;
+  font-size: 12px;
+}
+
+.pos-workspace .pos-payment-fill-field-inline {
+  align-self: end;
+}
+
+.pos-workspace .pos-payment-fill-field-inline > span {
+  visibility: hidden;
+}
+
+.pos-workspace .pos-payment-fill-field-inline .btn,
+.pos-workspace .pos-payment-fill-field-inline .button {
+  width: 100%;
+  min-height: 36px;
+}
+
+@media (max-width: 900px) {
+  .pos-workspace .pos-products-top-row-unified,
+  .pos-workspace .pos-payment-grid-tight {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pos-workspace .pos-payment-preset-field-tight {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .pos-workspace .pos-products-top-row-unified,
+  .pos-workspace .pos-payment-grid-tight,
+  .pos-workspace .pos-payment-preset-row-tight {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-workspace .pos-payment-preset-field-tight {
+    grid-column: span 1;
+  }
+}

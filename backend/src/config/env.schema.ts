@@ -20,6 +20,9 @@ const envSchema = z.object({
   DATABASE_SSL: booleanString,
   DATABASE_LOGGING: booleanString,
   ENABLE_BOOTSTRAP_ADMIN: booleanString,
+  LICENSE_MODE: z.enum(['desktop', 'server']).default('desktop'),
+  ACTIVATION_ENFORCED: booleanString,
+  ACTIVATION_PUBLIC_KEY: z.string().default(''),
   ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: booleanString,
   DEFAULT_ADMIN_USERNAME: z.string().trim().default(''),
   DEFAULT_ADMIN_PASSWORD: z.string().default(''),
@@ -39,9 +42,14 @@ const envSchema = z.object({
 export type AppEnv = z.infer<typeof envSchema>;
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {
+  const hasExplicitCsrfSecret = typeof config.SESSION_CSRF_SECRET === 'string' && config.SESSION_CSRF_SECRET.trim().length >= 16;
+
   const raw = {
     ...config,
     ENABLE_BOOTSTRAP_ADMIN: config.ENABLE_BOOTSTRAP_ADMIN ?? 'false',
+    LICENSE_MODE: config.LICENSE_MODE ?? 'desktop',
+    ACTIVATION_ENFORCED: config.ACTIVATION_ENFORCED ?? 'false',
+    ACTIVATION_PUBLIC_KEY: config.ACTIVATION_PUBLIC_KEY ?? '',
     ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: config.ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION ?? 'false',
     SESSION_COOKIE_SECURE:
       config.SESSION_COOKIE_SECURE
@@ -56,5 +64,19 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
   };
 
-  return envSchema.parse(raw);
+  const parsed = envSchema.parse(raw);
+
+  if (parsed.NODE_ENV === 'production' && !hasExplicitCsrfSecret) {
+    throw new Error('SESSION_CSRF_SECRET must be explicitly configured in production');
+  }
+
+  if (parsed.NODE_ENV === 'production' && parsed.ALLOW_SESSION_ID_HEADER) {
+    throw new Error('ALLOW_SESSION_ID_HEADER must remain disabled in production');
+  }
+
+  if (parsed.SESSION_COOKIE_SAME_SITE === 'none' && !parsed.SESSION_COOKIE_SECURE) {
+    throw new Error('SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAME_SITE is none');
+  }
+
+  return parsed;
 }

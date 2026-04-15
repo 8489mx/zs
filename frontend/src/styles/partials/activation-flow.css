@@ -1,0 +1,10 @@
+.auth-screen-shell { padding: 24px; }
+.activation-card { width: min(760px, 100%); }
+.activation-machine-box { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px dashed #c7d2fe; border-radius: 18px; background: #f8fbff; }
+.activation-machine-id { margin-top: 6px; font-size: 1rem; letter-spacing: 0.08em; }
+.setup-screen-shell .activation-card { width: min(920px, 100%); }
+.inline-actions { display: flex; gap: 10px; align-items: center; }
+.inline-actions-end { justify-content: flex-end; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace; }
+.grid.two-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) { .grid.two-columns { grid-template-columns: 1fr; } .activation-machine-box { flex-direction: column; align-items: stretch; } }

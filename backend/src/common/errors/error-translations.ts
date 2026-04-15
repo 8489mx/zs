@@ -1,6 +1,8 @@
 const ERROR_CODE_MESSAGES: Record<string, string> = {
   INTERNAL_ERROR: 'حدث خطأ داخلي في الخادم.',
   VALIDATION_ERROR: 'البيانات المرسلة غير صحيحة.',
+  DAMAGE_NOTE_REQUIRED: 'لازم تكتب سبب في خانة الملاحظات.',
+  LOCATION_BRANCH_MISMATCH: 'الموقع المختار لا يتبع الفرع المحدد.',
   FORBIDDEN: 'غير مسموح بتنفيذ هذه العملية.',
   UNAUTHORIZED: 'غير مصرح لك بالوصول.',
   CUSTOMER_EXISTS: 'يوجد عميل بنفس الاسم بالفعل.',
@@ -26,6 +28,7 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   PRODUCT_HAS_HISTORY: 'لا يمكن حذف الصنف لأن له حركات أو تاريخًا سابقًا.',
   STOCK_UPDATE_FORBIDDEN: 'لا يمكن تعديل المخزون من شاشة بيانات الصنف. استخدم شاشة المخزون أو التسوية.',
   PRICE_CHANGE_FORBIDDEN: 'تعديل الأسعار يتطلب صلاحية تعديل الأسعار.',
+  DISCOUNT_CHANGE_FORBIDDEN: 'تعديل الخصم يتطلب صلاحية تعديل الخصم.',
   CUSTOMER_PRICE_INVALID: 'سعر العميل غير صحيح.',
   CASHIER_SHIFT_NOT_FOUND: 'الوردية غير موجودة.',
   SHIFT_NOT_FOUND: 'الوردية غير موجودة.',
@@ -94,6 +97,7 @@ function translateKnownEnglishMessage(message: string): string | null {
     'Product already exists': 'يوجد صنف بنفس الاسم أو الباركود بالفعل.',
     'Stock cannot be edited from product master data. Use inventory adjustment.': 'لا يمكن تعديل المخزون من شاشة بيانات الصنف. استخدم شاشة المخزون أو التسوية.',
     'Price changes require canEditPrice permission': 'تعديل الأسعار يتطلب صلاحية تعديل الأسعار.',
+    'Discount changes require canDiscount permission': 'تعديل الخصم يتطلب صلاحية تعديل الخصم.',
     'Could not open cashier shift': 'تعذر فتح الوردية.',
   };
 
@@ -133,13 +137,24 @@ function firstString(value: unknown): string | null {
 }
 
 export function translateErrorMessageFromCode(code?: string | null, fallbackMessage?: unknown, statusCode?: number): string {
+  const fallback = firstString(fallbackMessage);
+
+  if (code === 'VALIDATION_ERROR') {
+    if (fallback && fallback !== ERROR_CODE_MESSAGES.VALIDATION_ERROR) {
+      if (looksArabic(fallback)) return fallback;
+      const translated = translateKnownEnglishMessage(fallback);
+      if (translated && translated !== ERROR_CODE_MESSAGES.VALIDATION_ERROR) return translated;
+      return fallback;
+    }
+    return ERROR_CODE_MESSAGES.VALIDATION_ERROR;
+  }
+
   if (code) {
     if (ERROR_CODE_MESSAGES[code]) return ERROR_CODE_MESSAGES[code];
     const pattern = translateByCodePattern(code);
     if (pattern) return pattern;
   }
 
-  const fallback = firstString(fallbackMessage);
   if (fallback) {
     if (looksArabic(fallback)) return fallback;
     const translated = translateKnownEnglishMessage(fallback);

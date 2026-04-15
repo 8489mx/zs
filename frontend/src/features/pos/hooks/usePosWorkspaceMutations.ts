@@ -8,7 +8,7 @@ import type { HeldPosDraft } from '@/features/pos/hooks/usePosWorkspace';
 
 export function usePosWorkspaceMutations({ queryClient, storedHeld }: { queryClient: QueryClient; storedHeld: HeldPosDraft[] }) {
   const heldDraftsQuery = useQuery({
-    queryKey: ['pos-held-drafts'],
+    queryKey: queryKeys.posHeldDrafts,
     queryFn: () => posApi.listHeldDrafts(),
     initialData: storedHeld,
     staleTime: 5_000,
@@ -28,19 +28,19 @@ export function usePosWorkspaceMutations({ queryClient, storedHeld }: { queryCli
   const saveHeldDraftMutation = useMutation({
     mutationFn: (payload: unknown) => posApi.saveHeldDraft(payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['pos-held-drafts'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.posHeldDrafts });
     },
   });
   const deleteHeldDraftMutation = useMutation({
     mutationFn: (draftId: string) => posApi.deleteHeldDraft(draftId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['pos-held-drafts'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.posHeldDrafts });
     },
   });
   const clearHeldDraftsMutation = useMutation({
     mutationFn: () => posApi.clearHeldDrafts(),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['pos-held-drafts'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.posHeldDrafts });
     },
   });
 

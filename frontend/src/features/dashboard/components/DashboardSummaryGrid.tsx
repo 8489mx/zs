@@ -11,6 +11,10 @@ interface DashboardSummaryGridProps {
   returnsTotal: number;
   smartAlerts: DashboardAlert[];
   topToday: DashboardTopItem[];
+  productsCount: number;
+  inventorySaleValue: number;
+  customerDebt: number;
+  supplierDebt: number;
 }
 
 export function DashboardSummaryGrid({
@@ -20,12 +24,16 @@ export function DashboardSummaryGrid({
   returnsTotal,
   smartAlerts,
   topToday,
+  productsCount,
+  inventorySaleValue,
+  customerDebt,
+  supplierDebt,
 }: DashboardSummaryGridProps) {
   const alerts = smartAlerts.length ? smartAlerts : [{ cls: 'alert-info', title: 'الوضع مستقر', text: 'لا توجد تنبيهات حرجة حاليًا' }];
 
   return (
-    <section className="dashboard-content-grid">
-      <Card title="ملخص سريع" className="dashboard-premium-card dashboard-card-compact">
+    <section className="dashboard-content-grid dashboard-content-grid-summary-merged">
+      <Card title="ملخص اليوم" className="dashboard-premium-card dashboard-card-compact">
         <div className="metric-list">
           <div className="metric-row"><span>فواتير البيع اليوم</span><strong>{todaySalesCount}</strong></div>
           <div className="metric-row"><span>فواتير الشراء اليوم</span><strong>{todayPurchasesCount}</strong></div>
@@ -61,6 +69,15 @@ export function DashboardSummaryGrid({
         ) : (
           <EmptyState title="لا توجد حركة بيع اليوم" hint="ستظهر هنا أعلى الأصناف مبيعًا بمجرد تسجيل مبيعات اليوم." className="dashboard-empty-state" />
         )}
+      </Card>
+
+      <Card title="المخزون والذمم" className="dashboard-premium-card dashboard-card-compact">
+        <div className="metric-list">
+          <div className="metric-row"><span>عدد الأصناف</span><strong>{productsCount}</strong></div>
+          <div className="metric-row"><span>قيمة المخزون بالبيع</span><strong>{formatCurrency(inventorySaleValue)}</strong></div>
+          <div className="metric-row"><span>ديون العملاء</span><strong>{formatCurrency(customerDebt)}</strong></div>
+          <div className="metric-row"><span>ديون الموردين</span><strong>{formatCurrency(supplierDebt)}</strong></div>
+        </div>
       </Card>
     </section>
   );

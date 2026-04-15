@@ -13,18 +13,26 @@ interface PosWorkspaceActions {
   handleAddProduct: (product: Product) => void;
   handleQuickAddCodeSubmit: (rawCode?: string) => boolean;
   handleQuickCustomerSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  handleSubmit: () => Promise<void>;
+  handleSubmit: (options?: { fastCash?: boolean }) => Promise<void>;
   exportHeldDrafts: () => void;
   holdDraft: () => Promise<void>;
   recallDraft: (draftId: string) => Promise<void>;
   deleteDraft: (draftId: string) => Promise<void>;
   clearHeldDrafts: () => Promise<void>;
   reprintLastSale: () => void;
-  copyLastSaleSummary: () => Promise<void>;
+  printReceiptNow: () => void;
+  printA4Now: () => void;
+  exportPdfNow: () => void;
   setQty: (lineKey: string, qty: number) => void;
   removeItem: (lineKey: string) => void;
   fillPaidAmount: () => void;
   setPriceType: (nextPriceType: PosPriceType) => void;
+  setPaymentPreset: (preset: 'cash' | 'card' | 'credit') => void;
+  selectCartLine: (lineKey: string) => void;
+  changeSelectedQty: (delta: number) => boolean;
+  editSelectedQty: () => boolean;
+  removeSelectedItem: () => boolean;
+  selectAdjacentCartLine: (direction: 'next' | 'prev') => boolean;
   heldDraftSummaries: Array<{ id: string; label: string; total: number; itemsCount: number }>;
 }
 
@@ -42,6 +50,12 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     removeItem: base.removeItem,
     fillPaidAmount: base.fillPaidAmount,
     setPriceType: base.applyPriceType,
+    setPaymentPreset: base.setPaymentPreset,
+    selectCartLine: base.selectCartLine,
+    changeSelectedQty: base.changeSelectedQty,
+    editSelectedQty: base.editSelectedQty,
+    removeSelectedItem: base.removeSelectedItem,
+    selectAdjacentCartLine: base.selectAdjacentCartLine,
     handleQuickCustomerSubmit: asyncActions.handleQuickCustomerSubmit,
     handleSubmit: asyncActions.handleSubmit,
     holdDraft: asyncActions.holdDraft,
@@ -49,7 +63,9 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     deleteDraft: asyncActions.deleteDraft,
     clearHeldDrafts: asyncActions.clearHeldDrafts,
     reprintLastSale: receiptActions.reprintLastSale,
-    copyLastSaleSummary: receiptActions.copyLastSaleSummary,
+    printReceiptNow: receiptActions.printReceiptNow,
+    printA4Now: receiptActions.printA4Now,
+    exportPdfNow: receiptActions.exportPdfNow,
     heldDraftSummaries: receiptActions.heldDraftSummaries,
   };
 }

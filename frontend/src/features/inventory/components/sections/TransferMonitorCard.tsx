@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -61,6 +62,15 @@ export function TransferMonitorCard({
   onReceiveSelectedTransfers,
   onCancelSelectedTransfers,
 }: TransferMonitorCardProps) {
+  const detailPanelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedTransfer) return;
+    window.requestAnimationFrame(() => {
+      detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+    });
+  }, [selectedTransfer]);
+
   return (
     <Card title="تحويلات مخزون قائمة" description="عرض table-first مع لوحة تفاصيل جانبية حتى تستطيع مراجعة البنود والجهات والحالة بسرعة قبل الاستلام أو الإلغاء." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onExportTransfers} disabled={!visibleTransfers.length}>تصدير CSV</Button><span className="nav-pill">{pendingTransfersCount} قيد الاستلام من {transferTotalItems}</span></div>}>
       <QueryFeedback
@@ -158,7 +168,7 @@ export function TransferMonitorCard({
               ]}
             />
           </div>
-          <div className="detail-panel">
+          <div ref={detailPanelRef} className="detail-panel">
             {selectedTransfer ? (
               <div className="section-stack">
                 <div className="detail-panel-header">

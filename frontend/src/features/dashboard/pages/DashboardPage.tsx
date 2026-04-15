@@ -6,7 +6,6 @@ import { CompactFirstRunSetupPrompt } from '@/shared/system/compact-first-run-se
 import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { DashboardHeroSection } from '@/features/dashboard/components/DashboardHeroSection';
-import { DashboardMetricsSection } from '@/features/dashboard/components/DashboardMetricsSection';
 import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardSummaryGrid';
 import { DashboardOperationalGrid } from '@/features/dashboard/components/DashboardOperationalGrid';
 import { DashboardRelationshipGrid } from '@/features/dashboard/components/DashboardRelationshipGrid';
@@ -84,12 +83,7 @@ export function DashboardPage() {
         returnsTotal={Number(summary.returns.total || 0)}
         smartAlerts={smartAlerts}
         topToday={topToday}
-      />
-
-      <DashboardMetricsSection
         productsCount={Number(stats.productsCount || 0)}
-        todayPurchasesAmount={Number(stats.todayPurchasesAmount || 0)}
-        inventoryCost={Number(stats.inventoryCost || 0)}
         inventorySaleValue={Number(stats.inventorySaleValue || 0)}
         customerDebt={Number(stats.customerDebt || 0)}
         supplierDebt={Number(stats.supplierDebt || 0)}
@@ -112,10 +106,6 @@ export function DashboardPage() {
       <DashboardTrendsGrid
         salesTrend={salesTrend}
         purchasesTrend={purchasesTrend}
-        customersCount={Number(stats.customersCount || 0)}
-        suppliersCount={Number(stats.suppliersCount || 0)}
-        expensesTotal={Number(summary.expenses.total || 0)}
-        returnsCount={Number(summary.returns.count || 0)}
       />
     </div>
   );

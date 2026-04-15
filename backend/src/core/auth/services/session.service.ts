@@ -208,6 +208,84 @@ export class SessionService {
     return Number(result.numDeletedRows ?? 0);
   }
 
+
+  private async getSessionUserProfile(auth: AuthContext): Promise<{
+    id: number;
+    username: string;
+    role: string;
+    permissions: string[];
+    displayName: string;
+    branchIds: string[];
+    defaultBranchId: string;
+    mustChangePassword: boolean;
+    passwordHash: string;
+    passwordSalt: string;
+  }> {
+    const user = await this.db
+      .selectFrom('users')
+      .select([
+        'id',
+        'username',
+        'role',
+        'permissions_json',
+        'display_name',
+        'default_branch_id',
+        'must_change_password',
+        'password_hash',
+        'password_salt',
+      ])
+      .where('id', '=', auth.userId)
+      .executeTakeFirst();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const branchRows = await this.db
+      .selectFrom('user_branches')
+      .select(['branch_id'])
+      .where('user_id', '=', auth.userId)
+      .execute();
+
+    const branchIds = branchRows
+      .map((row) => String(row.branch_id || '').trim())
+      .filter(Boolean);
+
+    const defaultBranchId = user.default_branch_id ? String(user.default_branch_id) : '';
+    if (defaultBranchId && !branchIds.includes(defaultBranchId)) {
+      branchIds.push(defaultBranchId);
+    }
+
+    return {
+      id: Number(user.id),
+      username: String(user.username || auth.username),
+      role: String(user.role || auth.role),
+      permissions: safeJsonArray(user.permissions_json) || auth.permissions,
+      displayName: String(user.display_name || user.username || auth.username),
+      branchIds,
+      defaultBranchId,
+      mustChangePassword: Boolean(user.must_change_password),
+      passwordHash: String(user.password_hash || ''),
+      passwordSalt: String(user.password_salt || ''),
+    };
+  }
+
+  async buildLoginPayload(auth: AuthContext): Promise<Record<string, unknown>> {
+    const profile = await this.getSessionUserProfile(auth);
+    return {
+      user: {
+        id: profile.id,
+        username: profile.username,
+        role: profile.role,
+        permissions: profile.permissions,
+        displayName: profile.displayName,
+        branchIds: profile.branchIds,
+        defaultBranchId: profile.defaultBranchId,
+      },
+      mustChangePassword: profile.mustChangePassword,
+    };
+  }
+
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
     const user = await this.db
       .selectFrom('users')
@@ -242,15 +320,7 @@ export class SessionService {
   }
 
   async buildMePayload(auth: AuthContext): Promise<Record<string, unknown>> {
-    const user = await this.db
-      .selectFrom('users')
-      .select(['id', 'must_change_password', 'password_hash', 'password_salt', 'role', 'username'])
-      .where('id', '=', auth.userId)
-      .executeTakeFirst();
-
-    if (!user) {
-      throw new Error('User not found');
-    }
+    const profile = await this.getSessionUserProfile(auth);
 
     const settingsRows = await this.db
       .selectFrom('settings')
@@ -261,25 +331,28 @@ export class SessionService {
 
     const defaultUsername = (this.configService.get<string>('DEFAULT_ADMIN_USERNAME') || 'admin').trim();
     const defaultPassword = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD') || 'ChangeMe123!';
-    const defaultPasswordCheck = await verifyPassword(defaultPassword, user.password_hash, user.password_salt);
+    const defaultPasswordCheck = await verifyPassword(defaultPassword, profile.passwordHash, profile.passwordSalt);
     const usingDefaultAdminPassword =
-      user.role === 'super_admin'
-      && user.username.toLowerCase() === defaultUsername.toLowerCase()
+      profile.role === 'super_admin'
+      && profile.username.toLowerCase() === defaultUsername.toLowerCase()
       && defaultPasswordCheck.valid;
 
     return {
       user: {
-        id: auth.userId,
-        username: auth.username,
-        role: auth.role,
-        permissions: auth.permissions,
+        id: profile.id,
+        username: profile.username,
+        role: profile.role,
+        permissions: profile.permissions,
+        displayName: profile.displayName,
+        branchIds: profile.branchIds,
+        defaultBranchId: profile.defaultBranchId,
       },
       settings: {
         storeName: settingsMap.get('storeName') || 'Z Systems',
         theme: settingsMap.get('theme') || 'light',
       },
       security: {
-        mustChangePassword: Boolean(user.must_change_password),
+        mustChangePassword: profile.mustChangePassword,
         usingDefaultAdminPassword,
       },
     };

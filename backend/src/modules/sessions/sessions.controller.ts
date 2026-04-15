@@ -20,6 +20,7 @@ import { AuditService } from '../../core/audit/audit.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { createCsrfToken, CSRF_COOKIE_NAME } from '../../core/auth/utils/csrf-token';
+import { ActivationService } from '../activation/activation.service';
 
 @Controller('api/auth')
 export class SessionsController {
@@ -27,6 +28,7 @@ export class SessionsController {
     private readonly sessionService: SessionService,
     private readonly auditService: AuditService,
     private readonly configService: ConfigService,
+    private readonly activationService: ActivationService,
   ) {}
 
   private cookieOptions(expiresAt?: Date) {
@@ -67,6 +69,8 @@ export class SessionsController {
     @Req() req: RequestWithAuth,
     @Res({ passthrough: true }) res: Response,
   ): Promise<Record<string, unknown>> {
+    await this.activationService.assertLoginAllowed();
+
     const username = String(payload?.username || '').trim();
     const password = String(payload?.password || '');
 
@@ -89,12 +93,7 @@ export class SessionsController {
 
     return {
       ok: true,
-      user: {
-        id: result.auth.userId,
-        username: result.auth.username,
-        role: result.auth.role,
-        permissions: result.auth.permissions,
-      },
+      ...(await this.sessionService.buildLoginPayload(result.auth)),
       expiresAt: result.expiresAt.toISOString(),
     };
   }

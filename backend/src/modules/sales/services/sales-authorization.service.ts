@@ -10,6 +10,11 @@ type DbOrTx = Kysely<Database> | Transaction<Database>;
 export class SalesAuthorizationService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
+
+  hasPermission(auth: AuthContext, permission: string): boolean {
+    return auth.role === 'super_admin' || auth.permissions.includes(permission);
+  }
+
   assertCanViewSales(auth: AuthContext): void {
     if (auth.role === 'super_admin') return;
     if (auth.permissions.includes('sales') || auth.permissions.includes('reports')) return;

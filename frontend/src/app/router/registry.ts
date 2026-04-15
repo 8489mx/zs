@@ -1,20 +1,21 @@
 import type { FeatureRouteModule } from '@/app/router/types';
-import { dashboardRouteModule } from '@/features/dashboard';
-import { productsRouteModule } from '@/features/products';
-import { salesRouteModule } from '@/features/sales';
-import { posRouteModule } from '@/features/pos';
-import { cashDrawerRouteModule } from '@/features/cash-drawer';
-import { purchasesRouteModule } from '@/features/purchases';
-import { inventoryRouteModule } from '@/features/inventory';
-import { suppliersRouteModule } from '@/features/suppliers';
-import { customersRouteModule } from '@/features/customers';
-import { accountsRouteModule } from '@/features/accounts';
-import { returnsRouteModule } from '@/features/returns';
-import { reportsRouteModule } from '@/features/reports';
-import { auditRouteModule } from '@/features/audit';
-import { treasuryRouteModule } from '@/features/treasury';
-import { servicesRouteModule } from '@/features/services';
-import { settingsRouteModule } from '@/features/settings';
+import { dashboardRouteModule } from '@/features/dashboard/routes';
+import { productsRouteModule } from '@/features/products/routes';
+import { salesRouteModule } from '@/features/sales/routes';
+import { posRouteModule } from '@/features/pos/routes';
+import { cashDrawerRouteModule } from '@/features/cash-drawer/routes';
+import { purchasesRouteModule } from '@/features/purchases/routes';
+import { inventoryRouteModule } from '@/features/inventory/routes';
+import { suppliersRouteModule } from '@/features/suppliers/routes';
+import { customersRouteModule } from '@/features/customers/routes';
+import { accountsRouteModule } from '@/features/accounts/routes';
+import { returnsRouteModule } from '@/features/returns/routes';
+import { reportsRouteModule } from '@/features/reports/routes';
+import { auditRouteModule } from '@/features/audit/routes';
+import { treasuryRouteModule } from '@/features/treasury/routes';
+import { servicesRouteModule } from '@/features/services/routes';
+import { settingsRouteModule } from '@/features/settings/routes';
+import { pricingCenterRouteModule } from '@/features/pricing-center/routes';
 
 export const featureRouteModules: FeatureRouteModule[] = [
   dashboardRouteModule,
@@ -32,7 +33,8 @@ export const featureRouteModules: FeatureRouteModule[] = [
   auditRouteModule,
   treasuryRouteModule,
   servicesRouteModule,
-  settingsRouteModule
+  pricingCenterRouteModule,
+  settingsRouteModule,
 ];
 
 export const appRoutes = featureRouteModules.flatMap((module) => module.routes);

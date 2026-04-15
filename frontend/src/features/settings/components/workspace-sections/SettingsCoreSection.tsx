@@ -18,7 +18,7 @@ export function SettingsCoreSection({ settings, branches, locations, settingsQue
   return (
     <div className="two-column-grid settings-main-grid">
       <QueryCard
-        title="إعدادات المحل الأساسية"
+        title="بيانات المتجر"
         actions={<span className="nav-pill">الإعدادات العامة</span>}
         className="settings-primary-card"
         isLoading={settingsQuery.isLoading}
@@ -33,7 +33,7 @@ export function SettingsCoreSection({ settings, branches, locations, settingsQue
       </QueryCard>
 
       <QueryCard
-        title={SINGLE_STORE_MODE ? 'بيانات المتجر والمخزن الأساسي' : 'الفرع الرئيسي والمخزن الأساسي'}
+        title={SINGLE_STORE_MODE ? 'المتجر والمخزن الأساسي' : 'الفرع والمخزن الأساسي'}
         actions={<span className="nav-pill">{SINGLE_STORE_LABEL}</span>}
         className="settings-primary-card"
         isLoading={branchesQuery.isLoading}

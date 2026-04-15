@@ -4,7 +4,7 @@ interface PaginationControlsProps {
   page: number;
   totalPages: number;
   pageSize: number;
-  pageSizeOptions: number[];
+  pageSizeOptions?: number[];
   totalItems: number;
   rangeStart: number;
   rangeEnd: number;
@@ -17,7 +17,7 @@ export function PaginationControls({
   page,
   totalPages,
   pageSize,
-  pageSizeOptions,
+  pageSizeOptions = [10, 20, 50, 100],
   totalItems,
   rangeStart,
   rangeEnd,

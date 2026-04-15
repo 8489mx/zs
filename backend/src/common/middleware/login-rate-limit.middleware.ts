@@ -19,7 +19,7 @@ export class LoginRateLimitMiddleware implements NestMiddleware {
     private readonly rateLimitService: InMemoryRateLimitService,
   ) {}
 
-  use(req: RequestWithAuth, res: Response, next: NextFunction): void {
+  async use(req: RequestWithAuth, res: Response, next: NextFunction): Promise<void> {
     const limit = this.configService.get<number>('LOGIN_RATE_LIMIT_MAX') ?? 10;
     const windowSeconds = this.configService.get<number>('LOGIN_RATE_LIMIT_WINDOW_SECONDS') ?? 600;
     const username = normalizeUsername((req.body as Record<string, unknown> | undefined)?.username);
@@ -31,9 +31,9 @@ export class LoginRateLimitMiddleware implements NestMiddleware {
       keys.push(`auth:login:pair:${ip}:${username}`);
     }
 
-    let strictest = this.rateLimitService.hit(keys[0], limit, windowSeconds);
+    let strictest = await this.rateLimitService.hit(keys[0], limit, windowSeconds);
     for (const key of keys.slice(1)) {
-      const result = this.rateLimitService.hit(key, limit, windowSeconds);
+      const result = await this.rateLimitService.hit(key, limit, windowSeconds);
       if (!result.allowed || result.remaining < strictest.remaining) {
         strictest = result;
       }

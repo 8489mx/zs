@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
-import { QueryCard } from '@/shared/components/query-card';
-import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { SettingsSectionTabs } from '@/features/settings/pages/SettingsSectionTabs';
 import { SettingsSetupFlowCard } from '@/shared/system/settings-setup-flow-card';
 import type { SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
@@ -29,6 +27,7 @@ export function SettingsPageShell({
   children,
 }: SettingsPageShellProps) {
   const setupSection = currentSection as SetupSectionKey | 'overview' | 'backup';
+  void cards;
 
   return (
     <div className="page-stack page-shell settings-page-shell">
@@ -37,16 +36,10 @@ export function SettingsPageShell({
       {setupMode ? <SettingsSetupFlowCard currentSection={setupSection} /> : null}
 
       {!setupMode ? (
-        <QueryCard
-          title="أقسام الإعدادات"
-          description="اختر القسم المطلوب أولًا ثم نفّذ الإجراء داخل نفس الصفحة بدون تنقل زائد."
-          actions={<span className="nav-pill">{badgeLabel}</span>}
-        >
+        <div className="settings-tabs-shell">
           <SettingsSectionTabs currentSection={currentSection} currentUserRole={currentUserRole} />
-        </QueryCard>
+        </div>
       ) : null}
-
-      <SpotlightCardStrip cards={cards} ariaLabel="إرشاد سريع لشاشة الإعدادات" />
 
       {children}
     </div>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -13,10 +13,12 @@ import { SalesSidePanel } from '@/features/sales/components/SalesSidePanel';
 import { SaleEditDialog } from '@/features/sales/components/SaleEditDialog';
 import {
   getSaleCancelDescription,
+  getSalesNextStep,
   getSalesViewFilterLabel,
   printSaleDocument,
 } from '@/features/sales/lib/sales-workspace.helpers';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Sale } from '@/types/domain';
 
 export function SalesWorkspace() {
@@ -30,6 +32,7 @@ export function SalesWorkspace() {
 
   const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter });
   const { saleDetailQuery, cancelMutation, updateMutation } = useSaleActions(selectedSaleId);
+  const settingsQuery = useSettingsQuery();
 
   const hasSellableProducts = availableProducts.length > 0;
   const canPrint = useHasAnyPermission('canPrint');
@@ -40,12 +43,18 @@ export function SalesWorkspace() {
   const topCustomers = summary?.topCustomers || [];
   const rangeStart = pagination?.rangeStart || 0;
   const rangeEnd = pagination?.rangeEnd || 0;
+  const printSettings = settingsQuery.data || null;
 
   useEffect(() => {
     setPage(1);
   }, [search, viewFilter]);
 
   const cancelDescription = getSaleCancelDescription(saleToCancel);
+  const totalSales = summary?.totalSales || 0;
+  const salesNextStep = useMemo(() => getSalesNextStep({ selectedSale, canEditInvoices, totalItems }), [selectedSale, canEditInvoices, totalItems]);
+  const headerDescription = selectedSale
+    ? `الفاتورة ${selectedSale.docNo || selectedSale.id} محددة الآن. ${salesNextStep}`
+    : 'ابدأ بتصفية السجل أو البحث عن الفاتورة المطلوبة، ثم راجع التفاصيل والإجراءات من نفس الشاشة.';
 
   const {
     exportSalesCsv,
@@ -76,7 +85,7 @@ export function SalesWorkspace() {
 
   return (
     <div className="page-stack page-shell sales-workspace">
-      <SalesWorkspaceHeader totalItems={totalItems} onCopySummary={copySalesSummary} />
+      <SalesWorkspaceHeader totalItems={totalItems} description={headerDescription} onCopySummary={copySalesSummary} />
 
       {!hasSellableProducts ? (
         <Card title="جاهزية البيع" actions={<span className="nav-pill">التحقق قبل البيع</span>} className="workspace-panel">
@@ -87,7 +96,6 @@ export function SalesWorkspace() {
           </div>
         </Card>
       ) : null}
-
       <div className="sales-main-grid">
         <SalesRegisterCard
           search={search}
@@ -96,7 +104,7 @@ export function SalesWorkspace() {
           totalItems={totalItems}
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
-          totalSales={summary?.totalSales || 0}
+          totalSales={totalSales}
           selectedSale={selectedSale}
           selectedSaleId={selectedSaleId}
           rows={rows}
@@ -116,7 +124,7 @@ export function SalesWorkspace() {
           onCancelSale={setSaleToCancel}
           onExportCsv={exportSalesCsv}
           onPrintRegister={printSalesRegister}
-          onPrintSale={printSaleDocument}
+          onPrintSale={(sale) => printSaleDocument(sale, printSettings, 'receipt')}
           onPageChange={setPage}
           onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
         />
@@ -129,7 +137,7 @@ export function SalesWorkspace() {
           isLoading={saleDetailQuery.isLoading}
           onExportTopCustomers={exportTopCustomersCsv}
           onPrintTopCustomers={printTopCustomers}
-          onPrintSale={() => selectedSale ? printSaleDocument(selectedSale) : undefined}
+          onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, 'receipt') : undefined}
           onEditSale={() => selectedSale ? setSaleToEdit(selectedSale) : undefined}
           onCancelSale={() => selectedSale ? setSaleToCancel(selectedSale) : undefined}
         />

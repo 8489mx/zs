@@ -12,7 +12,7 @@ function shouldRetry(failureCount: number, error: unknown) {
   return failureCount < 1;
 }
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,

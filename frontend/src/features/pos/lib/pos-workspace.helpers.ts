@@ -14,7 +14,7 @@ export function normalizePaymentChannel(paymentType: PaymentType, cashAmount: nu
 export function paymentLabel(paymentType: PaymentType, paymentChannel: string) {
   if (paymentType === 'credit') return 'آجل';
   if (paymentChannel === 'mixed') return 'مختلط';
-  if (paymentChannel === 'card') return 'بطاقة';
+  if (paymentChannel === 'card') return 'فيزا';
   return 'نقدي';
 }
 

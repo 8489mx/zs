@@ -15,13 +15,13 @@
     "compose:up": "docker compose up --build -d",
     "compose:down": "docker compose down",
     "compose:logs": "docker compose logs -f --tail=200",
-    "compose:e2e": "docker compose up -d postgres backend && ./scripts/wait-for-http.sh http://127.0.0.1:3001/health 90 2 && npm --prefix backend run test:e2e",
+    "compose:e2e": "docker compose up -d postgres backend && bash ./scripts/wait-for-http.sh http://127.0.0.1:3001/health 90 2 && npm --prefix backend run test:e2e",
     "dev:backend": "npm --prefix backend run start:dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "qa:release": "npm run qa && npm run compose:e2e && npm run package:clean",
-    "e2e:self": "./scripts/run-backend-e2e-local.sh",
-    "package:clean": "./scripts/package-clean-release.sh",
-    "qa:sale-ready": "./scripts/certify-sale-ready.sh",
+    "e2e:self": "bash ./scripts/run-backend-e2e-local.sh",
+    "package:clean": "bash ./scripts/package-clean-release.sh",
+    "qa:sale-ready": "bash ./scripts/certify-sale-ready.sh",
     "qa:toolchain": "node ./scripts/check-toolchain-alignment.cjs"
   },
   "engines": {

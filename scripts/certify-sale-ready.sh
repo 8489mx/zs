@@ -12,8 +12,8 @@ trap cleanup EXIT
 npm run qa
 
 docker compose up -d postgres backend frontend
-"$ROOT_DIR/scripts/wait-for-http.sh" http://127.0.0.1:3001/health/ready 120 2
-"$ROOT_DIR/scripts/wait-for-http.sh" http://127.0.0.1:5173 120 2
+bash "$ROOT_DIR/scripts/wait-for-http.sh" http://127.0.0.1:3001/health/ready 120 2
+bash "$ROOT_DIR/scripts/wait-for-http.sh" http://127.0.0.1:5173 120 2
 curl -fsS http://127.0.0.1:3001/health >/dev/null
 curl -fsS http://127.0.0.1:3001/health/ready >/dev/null
 curl -fsS http://127.0.0.1:5173 >/dev/null

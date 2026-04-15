@@ -33,11 +33,13 @@ export function useAccountsWorkspaceController() {
     customersQuery,
     suppliersQuery,
     customerBalancesQuery,
+    supplierBalancesQuery,
     customerLedgerQuery,
     supplierLedgerQuery,
     customers,
     suppliers,
     customerBalanceOptions,
+    supplierBalanceOptions,
     customerEntries,
     supplierEntries,
     customerLedgerSummary,
@@ -63,14 +65,31 @@ export function useAccountsWorkspaceController() {
     }));
   }, [customers, balanceMap]);
 
+  const supplierBalanceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    (supplierBalanceOptions as BalanceCarrier[]).forEach((supplier) => {
+      map.set(String(supplier.id || ''), Number(supplier.balance || 0));
+    });
+    return map;
+  }, [supplierBalanceOptions]);
+
+  const mergedSupplierLedgerOptions = useMemo(() => {
+    return (suppliers as BalanceCarrier[]).map((supplier) => ({
+      ...supplier,
+      balance: supplierBalanceMap.has(String(supplier.id || ''))
+        ? Number(supplierBalanceMap.get(String(supplier.id || '')) || 0)
+        : Number(supplier.balance || 0),
+    }));
+  }, [suppliers, supplierBalanceMap]);
+
   const collectableCustomers = useMemo(
     () => mergedCustomerLedgerOptions.filter((customer) => Number((customer as BalanceCarrier).balance || 0) > 0),
     [mergedCustomerLedgerOptions]
   );
 
   const payableSuppliers = useMemo(
-    () => (suppliers as BalanceCarrier[]).filter((supplier) => Number(supplier.balance || 0) > 0),
-    [suppliers]
+    () => mergedSupplierLedgerOptions.filter((supplier) => Number((supplier as BalanceCarrier).balance || 0) > 0),
+    [mergedSupplierLedgerOptions]
   );
 
   const totalCustomerBalance = useMemo(
@@ -78,8 +97,8 @@ export function useAccountsWorkspaceController() {
     [mergedCustomerLedgerOptions]
   );
   const totalSupplierBalance = useMemo(
-    () => (suppliers as BalanceCarrier[]).reduce((sum, supplier) => sum + Number(supplier.balance || 0), 0),
-    [suppliers]
+    () => mergedSupplierLedgerOptions.reduce((sum, supplier) => sum + Number((supplier as BalanceCarrier).balance || 0), 0),
+    [mergedSupplierLedgerOptions]
   );
 
   const selectedCustomer = useMemo(
@@ -87,8 +106,8 @@ export function useAccountsWorkspaceController() {
     [mergedCustomerLedgerOptions, selectedCustomerId]
   );
   const selectedSupplier = useMemo(
-    () => (suppliers as BalanceCarrier[]).find((supplier) => String(supplier.id || '') === selectedSupplierId) || null,
-    [suppliers, selectedSupplierId]
+    () => mergedSupplierLedgerOptions.find((supplier) => String((supplier as BalanceCarrier).id || '') === selectedSupplierId) || null,
+    [mergedSupplierLedgerOptions, selectedSupplierId]
   );
 
   const accountsNextStep = useMemo(() => {
@@ -153,7 +172,7 @@ export function useAccountsWorkspaceController() {
     mutationFn: (payload: unknown) => catalogApi.createSupplier(payload),
     onSuccess: async () => {
       await Promise.all([
-        invalidateCatalogDomain(queryClient, { includeSuppliers: true }),
+        invalidateCatalogDomain(queryClient, { includeSuppliers: true, includeSupplierBalances: true }),
         invalidateAccountsDomain(queryClient)
       ]);
     }
@@ -210,8 +229,8 @@ export function useAccountsWorkspaceController() {
   };
 
   const selectTopSupplier = () => {
-    const topSupplier = [...(suppliers as BalanceCarrier[])].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0))[0];
-    setSelectedSupplierId(String(topSupplier?.id || ''));
+    const topSupplier = [...mergedSupplierLedgerOptions].sort((a, b) => Number((b as BalanceCarrier).balance || 0) - Number((a as BalanceCarrier).balance || 0))[0];
+    setSelectedSupplierId(String((topSupplier as BalanceCarrier | undefined)?.id || ''));
   };
 
   return {
@@ -219,6 +238,7 @@ export function useAccountsWorkspaceController() {
     customersQuery,
     suppliersQuery,
     customerBalancesQuery,
+    supplierBalancesQuery,
     customerLedgerQuery,
     supplierLedgerQuery,
     customers,
@@ -226,6 +246,7 @@ export function useAccountsWorkspaceController() {
     collectableCustomers,
     payableSuppliers,
     customerBalanceOptions: mergedCustomerLedgerOptions,
+    supplierBalanceOptions: mergedSupplierLedgerOptions,
     customerEntries,
     supplierEntries,
     customerLedgerSummary,

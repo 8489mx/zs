@@ -9,6 +9,8 @@ function hashPassword(password: string, salt: string): string {
 type UserRow = {
   id: number;
   username: string;
+  display_name?: string;
+  default_branch_id?: number | null;
   password_hash: string;
   password_salt: string;
   role: string;
@@ -31,6 +33,7 @@ type SessionRow = {
 };
 
 type SettingRow = { key: string; value: string };
+type UserBranchRow = { user_id: number; branch_id: number };
 
 class FakeConfigService {
   constructor(private readonly values: Record<string, unknown>) {}
@@ -44,11 +47,13 @@ class FakeDb {
     public users: UserRow[],
     public sessions: SessionRow[] = [],
     public settings: SettingRow[] = [],
+    public userBranches: UserBranchRow[] = [],
   ) {}
 
   selectFrom(table: string) {
     if (table === 'users') return new UsersSelectBuilder(this);
     if (table === 'settings') return new SettingsSelectBuilder(this);
+    if (table === 'user_branches') return new UserBranchesSelectBuilder(this);
     throw new Error(`Unsupported select table: ${table}`);
   }
 
@@ -89,6 +94,19 @@ class SettingsSelectBuilder {
   constructor(private readonly db: FakeDb) {}
   select(_cols: string[]) { return this; }
   async execute() { return this.db.settings; }
+}
+
+class UserBranchesSelectBuilder {
+  private userId?: number;
+  constructor(private readonly db: FakeDb) {}
+  select(_cols: string[]) { return this; }
+  where(column: string, _op: string, value: number) {
+    if (column === 'user_id') this.userId = Number(value);
+    return this;
+  }
+  async execute() {
+    return this.db.userBranches.filter((row) => this.userId == null || row.user_id === this.userId);
+  }
 }
 
 class SessionsInsertBuilder {
@@ -153,6 +171,8 @@ async function run(): Promise<void> {
       password_hash: hashPassword(password, salt),
       password_salt: salt,
       role: 'super_admin',
+      display_name: 'Admin Root',
+      default_branch_id: 7,
       permissions_json: JSON.stringify(['sales', 'reports']),
       is_active: true,
       locked_until: null,
@@ -160,7 +180,7 @@ async function run(): Promise<void> {
       must_change_password: true,
       last_login_at: null,
     },
-  ], [], [{ key: 'storeName', value: 'Z Systems' }]);
+  ], [], [{ key: 'storeName', value: 'Z Systems' }], [{ user_id: 1, branch_id: 7 }, { user_id: 1, branch_id: 9 }]);
 
   const service = new SessionService(db as any, new FakeConfigService({ LOGIN_MAX_ATTEMPTS: 3, LOGIN_LOCKOUT_MINUTES: 15 }) as any);
 
@@ -188,7 +208,16 @@ async function run(): Promise<void> {
   assert.notEqual(db.users[0].password_salt, oldSalt);
   assert.ok(db.users[0].password_hash.startsWith('$2'));
 
+  const loginPayload = await service.buildLoginPayload(valid!.auth);
+  assert.equal((loginPayload.user as any).displayName, 'Admin Root');
+  assert.deepEqual((loginPayload.user as any).branchIds, ['7', '9']);
+  assert.equal((loginPayload.user as any).defaultBranchId, '7');
+  assert.equal((loginPayload.mustChangePassword as any), true);
+
   const me = await service.buildMePayload(valid!.auth);
+  assert.equal((me.user as any).displayName, 'Admin Root');
+  assert.deepEqual((me.user as any).branchIds, ['7', '9']);
+  assert.equal((me.user as any).defaultBranchId, '7');
   assert.equal((me.security as any).mustChangePassword, true);
 
   await assert.rejects(async () => {

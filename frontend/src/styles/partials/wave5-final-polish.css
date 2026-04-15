@@ -1,0 +1,78 @@
+/* Wave 5 polish: cash drawer + audit */
+
+.cash-drawer-page {
+  gap: 10px;
+}
+
+.cash-drawer-page .page-header {
+  padding-bottom: 10px;
+}
+
+.cash-drawer-page .cash-drawer-forms-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.cash-drawer-page .cash-drawer-shifts-card .section-title,
+.cash-drawer-page .cash-drawer-form-card .section-title {
+  margin-bottom: 10px;
+}
+
+.cash-drawer-page .filter-chip-row {
+  margin-bottom: 10px;
+}
+
+.audit-page {
+  gap: 12px;
+}
+
+.audit-page .page-header {
+  padding-bottom: 10px;
+}
+
+.audit-page .page-header .page-header-description {
+  max-width: 520px;
+}
+
+.audit-page .card {
+  padding-top: 14px;
+}
+
+.audit-page .audit-stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+
+.audit-page .audit-stats-grid .stat-card {
+  padding: 12px 14px;
+  border-radius: 16px;
+  min-height: 0;
+}
+
+.audit-page .audit-stats-grid .stat-card span {
+  font-size: 11px;
+}
+
+.audit-page .audit-stats-grid .stat-card strong {
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.audit-page .toolbar-stack {
+  gap: 10px;
+}
+
+@media (max-width: 1180px) {
+  .cash-drawer-page .cash-drawer-forms-grid,
+  .audit-page .audit-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .cash-drawer-page .cash-drawer-forms-grid,
+  .audit-page .audit-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

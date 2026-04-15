@@ -1,7 +1,6 @@
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
-import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
@@ -20,11 +19,10 @@ export function SuppliersPage() {
   ] as const;
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell suppliers-page">
       <PageHeader title="الموردون" description="ابدأ بسجل الموردين والبحث ثم انتقل للتعديل أو الإضافة حسب المورد الذي تعمل عليه." badge={<span className="nav-pill">{controller.summary?.totalSuppliers || 0} مورد</span>} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetSuppliersView}>إعادة الضبط</Button><Button variant="secondary" onClick={controller.exportSuppliersCsv} disabled={!controller.summary?.totalSuppliers}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.copySuppliersSummary()} disabled={!controller.summary?.totalSuppliers}>نسخ الملخص</Button><Button variant="secondary" onClick={controller.printSuppliersRegister} disabled={!controller.summary?.totalSuppliers || !controller.canPrint}>طباعة السجل</Button></div>} />
       <StatsGrid items={stats} />
 
-      <SpotlightCardStrip cards={controller.supplierGuidanceCards} ariaLabel="إرشاد سريع لشاشة الموردين" />
 
       <SuppliersRegisterCard {...controller} />
 

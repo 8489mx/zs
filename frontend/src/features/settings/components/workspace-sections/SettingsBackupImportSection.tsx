@@ -9,7 +9,9 @@ interface SettingsBackupImportSectionProps {
   autoBackupEnabled: boolean;
   canManageBackups: boolean;
   backupBusy: boolean;
+  backupSelectedFileName: string;
   backupMessage: string;
+  backupMessageKind: 'success' | 'error';
   backupResult: unknown;
   restoreSnapshotId: string;
   handleBackupDownload: () => void;
@@ -28,12 +30,43 @@ interface SettingsBackupImportSectionProps {
   downloadTemplate: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => void;
 }
 
+function formatSummaryPairs(result: unknown): Array<{ label: string; value: string }> {
+  if (!result || typeof result !== 'object') return [];
+  const payload = result as Record<string, unknown>;
+  const summary = payload.summary && typeof payload.summary === 'object' ? (payload.summary as Record<string, unknown>) : null;
+  if (!summary) return [];
+
+  const preferredKeys: Array<[string, string]> = [
+    ['version', 'الإصدار'],
+    ['exportedAt', 'تاريخ التصدير'],
+    ['source', 'المصدر'],
+    ['tablesPresent', 'الجداول الموجودة'],
+    ['restoredTables', 'الجداول المستعادة'],
+    ['product_location_stock', 'أرصدة المواقع'],
+    ['products', 'الأصناف'],
+    ['customers', 'العملاء'],
+    ['suppliers', 'الموردون'],
+    ['sales', 'المبيعات'],
+    ['purchases', 'المشتريات'],
+  ];
+
+  const rows: Array<{ label: string; value: string }> = [];
+  for (const [key, label] of preferredKeys) {
+    const directValue = key in payload ? payload[key] : summary[key];
+    if (directValue === undefined || directValue === null || directValue === '') continue;
+    rows.push({ label, value: String(directValue) });
+  }
+  return rows;
+}
+
 export function SettingsBackupImportSection({
   snapshots,
   autoBackupEnabled,
   canManageBackups,
   backupBusy,
+  backupSelectedFileName,
   backupMessage,
+  backupMessageKind,
   backupResult,
   restoreSnapshotId,
   handleBackupDownload,
@@ -51,18 +84,20 @@ export function SettingsBackupImportSection({
   importOpeningStock,
   downloadTemplate
 }: SettingsBackupImportSectionProps) {
+  const summaryPairs = formatSummaryPairs(backupResult);
+
   return (
     <div className="two-column-grid">
-      <QueryCard className="settings-admin-card" title="نسخ احتياطي واستعادة" actions={<span className="nav-pill">النسخ الاحتياطي</span>}>
+      <QueryCard className="settings-admin-card settings-backup-card" title="النسخ الاحتياطية" actions={<span className="nav-pill">النسخ الاحتياطي</span>}>
         <div className="actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
           <Button onClick={handleBackupDownload} disabled={backupBusy || !canManageBackups}>تنزيل نسخة احتياطية الآن</Button>
         </div>
         <div className="form-grid two-col-form">
           <Field label="تحقق من ملف نسخة احتياطية">
-            <input type="file" accept="application/json,.json" disabled={!canManageBackups} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBackupFile(file, 'verify'); e.currentTarget.value = ''; }} />
+            <input type="file" accept="application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBackupFile(file, 'verify'); e.currentTarget.value = ''; }} />
           </Field>
           <Field label="استعادة من ملف نسخة احتياطية">
-            <input type="file" accept="application/json,.json" disabled={!canManageBackups} onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }} />
+            <input type="file" accept="application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }} />
           </Field>
         </div>
         <hr className="divider" />
@@ -76,11 +111,24 @@ export function SettingsBackupImportSection({
           <SnapshotList snapshots={snapshots} onDownload={handleSnapshotDownload} onRestore={canManageBackups ? onRequestRestoreSnapshot : () => undefined} restoringId={restoreSnapshotId} />
         </div>
         <div className="muted small" style={{ marginTop: 12 }}>الاستعادة تستبدل البيانات الحالية.</div>
-        {backupMessage ? <div className="success-box" style={{ marginTop: 12 }}>{backupMessage}</div> : null}
-        {backupResult ? <div className="muted small" style={{ marginTop: 8 }}>تم تحديث نتيجة التحقق أو الاستعادة.</div> : null}
+        {backupSelectedFileName ? <div className="muted small" style={{ marginTop: 8 }}>آخر ملف تم اختياره: {backupSelectedFileName}</div> : null}
+        {backupMessage ? <div className={backupMessageKind === 'error' ? 'error-box' : 'success-box'} style={{ marginTop: 12 }}>{backupMessage}</div> : null}
+        {summaryPairs.length ? (
+          <div className="surface-card" style={{ marginTop: 12, padding: 12 }}>
+            <strong>نتيجة آخر فحص / استعادة</strong>
+            <div className="form-grid two-col-form" style={{ marginTop: 10 }}>
+              {summaryPairs.map((item) => (
+                <div key={item.label} className="list-row" style={{ justifyContent: 'space-between', gap: 12 }}>
+                  <span className="muted small">{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </QueryCard>
 
-      <QueryCard className="settings-admin-card" title="استيراد البيانات" actions={<span className="nav-pill">ملفات CSV</span>}>
+      <QueryCard className="settings-admin-card settings-import-card" title="استيراد CSV" actions={<span className="nav-pill">ملفات CSV</span>}>
         <div className="two-column-grid">
           {!canManageBackups ? <div className="muted small" style={{ gridColumn: '1 / -1' }}>إدارة النسخ الاحتياطية والاستيراد غير متاحة لهذا الحساب.</div> : null}
           <ImportWorkbench

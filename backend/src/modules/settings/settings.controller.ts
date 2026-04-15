@@ -52,18 +52,19 @@ export class SettingsController {
     return this.settingsService.deleteBranch(id, req.authContext!);
   }
 
-  @Get('locations')
-  listLocations(): Promise<Record<string, unknown>> {
+  @Get('settings/locations')
+  listLocations(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    this.assertSettingsPermission(req);
     return this.settingsService.listLocations();
   }
 
-  @Post('locations')
+  @Post('settings/locations')
   createLocation(@Body() payload: LocationPayloadDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
     return this.settingsService.createLocation(payload, req.authContext!);
   }
 
-  @Put('locations/:id')
+  @Put('settings/locations/:id')
   updateLocation(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: LocationPayloadDto,
@@ -73,7 +74,7 @@ export class SettingsController {
     return this.settingsService.updateLocation(id, payload, req.authContext!);
   }
 
-  @Delete('locations/:id')
+  @Delete('settings/locations/:id')
   deleteLocation(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
     return this.settingsService.deleteLocation(id, req.authContext!);

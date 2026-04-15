@@ -7,6 +7,8 @@ import { customersApi } from '@/features/customers/api/customers.api';
 import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
 import { settingsApi } from '@/features/settings/api/settings.api';
 
+const referenceStaleTime = 60_000;
+
 export function useProductsQuery() {
   return useQuery({ queryKey: queryKeys.products, queryFn: productsApi.list });
 }
@@ -24,21 +26,21 @@ export function useCustomersQuery() {
 }
 
 export function useSuppliersQuery() {
-  return useQuery({ queryKey: queryKeys.suppliers, queryFn: suppliersApi.list });
+  return useQuery({ queryKey: queryKeys.suppliers, queryFn: suppliersApi.list, staleTime: referenceStaleTime });
 }
 
 export function useCategoriesQuery() {
-  return useQuery({ queryKey: queryKeys.categories, queryFn: productsApi.categories });
+  return useQuery({ queryKey: queryKeys.productsCategories, queryFn: productsApi.categories, staleTime: referenceStaleTime });
 }
 
 export function useSettingsQuery() {
-  return useQuery({ queryKey: queryKeys.settings, queryFn: settingsApi.settings });
+  return useQuery({ queryKey: queryKeys.settings, queryFn: settingsApi.settings, staleTime: referenceStaleTime });
 }
 
 export function useBranchesQuery() {
-  return useQuery({ queryKey: queryKeys.branches, queryFn: settingsApi.branches });
+  return useQuery({ queryKey: queryKeys.branches, queryFn: settingsApi.branches, staleTime: referenceStaleTime });
 }
 
 export function useLocationsQuery() {
-  return useQuery({ queryKey: queryKeys.locations, queryFn: settingsApi.locations });
+  return useQuery({ queryKey: queryKeys.settingsLocations, queryFn: settingsApi.locations, staleTime: referenceStaleTime });
 }

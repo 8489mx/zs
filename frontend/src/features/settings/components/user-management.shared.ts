@@ -2,10 +2,10 @@ import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','audit','treasury','services','settings','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','cashDrawer'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','audit','treasury','services','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','cashDrawer'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','treasury','settings','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageSettings'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageSettings'
 ];
 export const DEFAULT_CASHIER_PERMS = ['dashboard', 'sales', 'customers', 'cashDrawer'];
 
@@ -21,6 +21,8 @@ export const PERMISSION_LABELS: Record<string, string> = {
   suppliers: 'الموردون',
   accounts: 'الحسابات',
   reports: 'التقارير',
+  pricingCenterView: 'عرض مركز التسعير',
+  pricingCenterManage: 'إدارة مركز التسعير',
   canPrint: 'الطباعة',
   canDiscount: 'تعديل الخصم',
   canEditPrice: 'تعديل السعر',
@@ -43,8 +45,8 @@ export function getPermissionLabel(permission: string) {
 }
 
 export const USER_PERMISSION_GROUPS = [
-  { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'reports'] },
-  { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory'] },
+  { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'reports', 'pricingCenterView'] },
+  { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory', 'pricingCenterManage'] },
   { title: 'إدارة النظام', items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups'] },
   { title: 'بيانات حساسة', items: ['canViewProfit', 'audit', 'treasury', 'services', 'canDelete'] }
 ] as const;
@@ -52,7 +54,7 @@ export const USER_PERMISSION_GROUPS = [
 export const USER_ROLE_TEMPLATES = {
   cashier: { label: 'كاشير', role: 'cashier', permissions: ['dashboard', 'sales', 'customers', 'cashDrawer'] },
   owner: { label: 'مالك / مدير', role: 'admin', permissions: [...DEFAULT_OPERATOR_PERMS] },
-  inventory: { label: 'مسؤول مخزون', role: 'admin', permissions: ['dashboard','products','inventory','purchases','suppliers','reports','canPrint','canAdjustInventory'] },
+  inventory: { label: 'مسؤول مخزون', role: 'admin', permissions: ['dashboard','products','inventory','purchases','suppliers','reports','pricingCenterView','pricingCenterManage','canPrint','canAdjustInventory'] },
   accountant: { label: 'محاسب', role: 'admin', permissions: ['dashboard','accounts','reports','customers','suppliers','treasury','canPrint','canViewProfit'] }
 } as const;
 

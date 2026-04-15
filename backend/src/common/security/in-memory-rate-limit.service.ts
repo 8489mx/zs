@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { sql, type Kysely } from 'kysely';
+import { KYSELY_DB } from '../../database/database.constants';
+import type { Database } from '../../database/database.types';
 
 type Bucket = {
   count: number;
@@ -16,8 +19,38 @@ export type RateLimitResult = {
 @Injectable()
 export class InMemoryRateLimitService {
   private readonly buckets = new Map<string, Bucket>();
+  private ensureTablePromise: Promise<void> | null = null;
+  private lastPruneAt = 0;
 
-  hit(key: string, limit: number, windowSeconds: number): RateLimitResult {
+  constructor(@Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>) {}
+
+  async hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
+    if (!this.db) {
+      return this.hitInMemory(key, limit, windowSeconds);
+    }
+
+    try {
+      await this.ensurePersistentStore();
+      return await this.hitInDatabase(key, limit, windowSeconds);
+    } catch {
+      return this.hitInMemory(key, limit, windowSeconds);
+    }
+  }
+
+  async reset(key: string): Promise<void> {
+    this.buckets.delete(key);
+
+    if (!this.db) return;
+
+    try {
+      await this.ensurePersistentStore();
+      await sql`DELETE FROM auth_rate_limits WHERE key = ${key}`.execute(this.db);
+    } catch {
+      // fall back to memory-only reset when the persistent store is unavailable
+    }
+  }
+
+  private hitInMemory(key: string, limit: number, windowSeconds: number): RateLimitResult {
     const safeLimit = Math.max(1, Number(limit) || 1);
     const safeWindowMs = Math.max(1, Number(windowSeconds) || 1) * 1000;
     const now = Date.now();
@@ -27,7 +60,7 @@ export class InMemoryRateLimitService {
       const resetAt = now + safeWindowMs;
       const bucket: Bucket = { count: 1, resetAt };
       this.buckets.set(key, bucket);
-      this.prune(now);
+      this.pruneMemory(now);
       return {
         allowed: true,
         remaining: Math.max(0, safeLimit - 1),
@@ -38,21 +71,82 @@ export class InMemoryRateLimitService {
     }
 
     existing.count += 1;
-    const allowed = existing.count <= safeLimit;
+    return this.toResult(existing.count, existing.resetAt, safeLimit, now);
+  }
+
+  private async hitInDatabase(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
+    const safeLimit = Math.max(1, Number(limit) || 1);
+    const safeWindowMs = Math.max(1, Number(windowSeconds) || 1) * 1000;
+    const now = Date.now();
+    const resetAt = now + safeWindowMs;
+
+    const result = await sql<{ count: number; reset_at_ms: number }>`
+      INSERT INTO auth_rate_limits (key, count, reset_at, created_at, updated_at)
+      VALUES (${key}, 1, to_timestamp(${resetAt} / 1000.0), now(), now())
+      ON CONFLICT (key) DO UPDATE
+      SET
+        count = CASE
+          WHEN auth_rate_limits.reset_at <= now() THEN 1
+          ELSE auth_rate_limits.count + 1
+        END,
+        reset_at = CASE
+          WHEN auth_rate_limits.reset_at <= now() THEN to_timestamp(${resetAt} / 1000.0)
+          ELSE auth_rate_limits.reset_at
+        END,
+        updated_at = now()
+      RETURNING count, (extract(epoch from reset_at) * 1000)::bigint AS reset_at_ms
+    `.execute(this.db!);
+
+    const row = result.rows[0];
+    await this.prunePersistentStore(now);
+
+    if (!row) {
+      return this.hitInMemory(key, safeLimit, windowSeconds);
+    }
+
+    return this.toResult(Number(row.count || 0), Number(row.reset_at_ms || resetAt), safeLimit, now);
+  }
+
+  private toResult(count: number, resetAt: number, limit: number, now: number): RateLimitResult {
+    const allowed = count <= limit;
     return {
       allowed,
-      remaining: Math.max(0, safeLimit - existing.count),
-      retryAfterSeconds: allowed ? 0 : Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
-      limit: safeLimit,
-      resetAt: existing.resetAt,
+      remaining: Math.max(0, limit - count),
+      retryAfterSeconds: allowed ? 0 : Math.max(1, Math.ceil((resetAt - now) / 1000)),
+      limit,
+      resetAt,
     };
   }
 
-  reset(key: string): void {
-    this.buckets.delete(key);
+  private async ensurePersistentStore(): Promise<void> {
+    if (!this.db) return;
+    if (!this.ensureTablePromise) {
+      this.ensureTablePromise = sql`
+        CREATE TABLE IF NOT EXISTS auth_rate_limits (
+          key text PRIMARY KEY,
+          count integer NOT NULL,
+          reset_at timestamptz NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          updated_at timestamptz NOT NULL DEFAULT now()
+        )
+      `.execute(this.db).then(() => undefined);
+    }
+
+    await this.ensureTablePromise;
   }
 
-  private prune(now: number): void {
+  private async prunePersistentStore(now: number): Promise<void> {
+    if (!this.db) return;
+    if (now - this.lastPruneAt < 60_000) return;
+    this.lastPruneAt = now;
+
+    await sql`
+      DELETE FROM auth_rate_limits
+      WHERE reset_at < now() - interval '1 hour'
+    `.execute(this.db);
+  }
+
+  private pruneMemory(now: number): void {
     if (this.buckets.size < 2000) return;
     for (const [key, bucket] of this.buckets.entries()) {
       if (bucket.resetAt <= now) {

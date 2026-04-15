@@ -5,11 +5,21 @@ function roundCurrency(value: number): number {
   return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 }
 
+export type SaleProductOfferRow = {
+  offer_type?: 'percent' | 'fixed' | 'price' | string | null;
+  value?: number | string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  min_qty?: number | string | null;
+};
+
 export type SaleProductRow = {
   id?: number | string | null;
   name?: string | null;
   stock_qty?: number | string | null;
   cost_price?: number | string | null;
+  retail_price?: number | string | null;
+  wholesale_price?: number | string | null;
 };
 
 export type PreparedSaleItem = {
@@ -58,6 +68,33 @@ export function buildPreparedSaleItem(
 
 export function calculateCollectibleTotal(total: number, storeCreditUsed: number): number {
   return roundCurrency(Math.max(0, Number(total || 0) - Number(storeCreditUsed || 0)));
+}
+
+function isOfferActive(offer: SaleProductOfferRow, todayIso: string): boolean {
+  const from = String(offer.start_date || '').slice(0, 10);
+  const to = String(offer.end_date || '').slice(0, 10);
+  return (!from || from <= todayIso) && (!to || to >= todayIso);
+}
+
+export function calculateAllowedSaleUnitPrice(params: {
+  retailPrice?: number | string | null;
+  wholesalePrice?: number | string | null;
+  priceType: 'retail' | 'wholesale';
+  offers?: SaleProductOfferRow[];
+  todayIso?: string;
+}): number {
+  let price = Number(params.priceType === 'wholesale' ? params.wholesalePrice || params.retailPrice || 0 : params.retailPrice || 0);
+  const todayIso = String(params.todayIso || new Date().toISOString().slice(0, 10));
+  const activeOffer = (params.offers || []).find((offer) => isOfferActive(offer, todayIso)) || null;
+
+  if (activeOffer) {
+    const offerValue = Number(activeOffer.value || 0);
+    if (activeOffer.offer_type === 'percent') price = Math.max(0, price - ((price * offerValue) / 100));
+    if (activeOffer.offer_type === 'fixed') price = Math.max(0, price - offerValue);
+    if (activeOffer.offer_type === 'price') price = Math.max(0, offerValue);
+  }
+
+  return roundCurrency(price);
 }
 
 export function resolveSalePayments(

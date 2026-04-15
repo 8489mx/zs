@@ -15,6 +15,43 @@ import { buildHistoricCostMap, buildNormalizedPurchaseItem, buildPurchaseReferen
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { PurchasesQueryService } from './purchases-query.service';
 
+type PurchaseRepricingCandidate = {
+  productId: number;
+  name: string;
+  itemKind: 'standard' | 'fashion';
+  styleCode: string;
+  previousCost: number;
+  newCost: number;
+  retailPrice: number;
+  wholesalePrice: number;
+};
+
+type PurchaseRepricingInsights = {
+  purchaseId: number;
+  supplierId: number;
+  supplierName: string;
+  affectedCount: number;
+  increasedCount: number;
+  decreasedCount: number;
+  unchangedCount: number;
+  productIds: number[];
+  rows: Array<{
+    productId: number;
+    name: string;
+    itemKind: 'standard' | 'fashion';
+    styleCode: string;
+    previousCost: number;
+    newCost: number;
+    costChangePercent: number;
+    retailPrice: number;
+    wholesalePrice: number;
+    recommendedRetailPrice: number;
+    recommendedWholesalePrice: number;
+    recommendedRetailDelta: number;
+    recommendedWholesaleDelta: number;
+  }>;
+};
+
 @Injectable()
 export class PurchasesWriteService {
   constructor(
@@ -29,8 +66,76 @@ export class PurchasesWriteService {
     return auth.role === 'super_admin' || auth.permissions.includes(permission);
   }
 
+  private roundCurrency(value: number): number {
+    return Number(Number(value || 0).toFixed(2));
+  }
+
+  private buildRecommendedSellPrice(currentSellPrice: number, previousCost: number, newCost: number): number {
+    const safeCurrentSell = Number(currentSellPrice || 0);
+    const safePreviousCost = Number(previousCost || 0);
+    const safeNewCost = Number(newCost || 0);
+    if (safeCurrentSell <= 0) return 0;
+    if (safePreviousCost > 0 && safeNewCost > 0) {
+      return this.roundCurrency((safeCurrentSell / safePreviousCost) * safeNewCost);
+    }
+    if (safeNewCost > 0) {
+      const absoluteMarkup = Math.max(0, safeCurrentSell - Math.max(0, safePreviousCost));
+      return this.roundCurrency(safeNewCost + absoluteMarkup);
+    }
+    return this.roundCurrency(safeCurrentSell);
+  }
+
+  private buildPurchaseRepricingInsights(
+    purchaseId: number,
+    supplier: { id: number; name: string },
+    candidates: PurchaseRepricingCandidate[],
+  ): PurchaseRepricingInsights | null {
+    const rows = candidates
+      .filter((candidate) => Math.abs(Number(candidate.newCost || 0) - Number(candidate.previousCost || 0)) > 0.0001)
+      .map((candidate) => {
+        const previousCost = Number(candidate.previousCost || 0);
+        const newCost = Number(candidate.newCost || 0);
+        const retailPrice = Number(candidate.retailPrice || 0);
+        const wholesalePrice = Number(candidate.wholesalePrice || 0);
+        const recommendedRetailPrice = this.buildRecommendedSellPrice(retailPrice, previousCost, newCost);
+        const recommendedWholesalePrice = this.buildRecommendedSellPrice(wholesalePrice, previousCost, newCost);
+        const costChangePercent = previousCost > 0
+          ? this.roundCurrency(((newCost - previousCost) / previousCost) * 100)
+          : (newCost > 0 ? 100 : 0);
+        return {
+          productId: Number(candidate.productId),
+          name: candidate.name,
+          itemKind: candidate.itemKind,
+          styleCode: candidate.styleCode,
+          previousCost: this.roundCurrency(previousCost),
+          newCost: this.roundCurrency(newCost),
+          costChangePercent,
+          retailPrice: this.roundCurrency(retailPrice),
+          wholesalePrice: this.roundCurrency(wholesalePrice),
+          recommendedRetailPrice,
+          recommendedWholesalePrice,
+          recommendedRetailDelta: this.roundCurrency(recommendedRetailPrice - retailPrice),
+          recommendedWholesaleDelta: this.roundCurrency(recommendedWholesalePrice - wholesalePrice),
+        };
+      });
+
+    if (!rows.length) return null;
+
+    return {
+      purchaseId,
+      supplierId: Number(supplier.id),
+      supplierName: supplier.name,
+      affectedCount: rows.length,
+      increasedCount: rows.filter((row) => row.newCost > row.previousCost).length,
+      decreasedCount: rows.filter((row) => row.newCost < row.previousCost).length,
+      unchangedCount: Math.max(0, candidates.length - rows.length),
+      productIds: rows.map((row) => row.productId),
+      rows,
+    };
+  }
+
   async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const purchaseId = await this.tx.runInTransaction(this.db, async (trx) => {
+    const created = await this.tx.runInTransaction(this.db, async (trx) => {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where('is_active', '=', true).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
 
@@ -39,10 +144,21 @@ export class PurchasesWriteService {
       ensureUniqueFlowItems(items, 'PURCHASE_DUPLICATE_PRODUCT', 'Purchase must not contain duplicate product rows with the same unit');
 
       const normalizedItems = [];
+      const repricingCandidates: PurchaseRepricingCandidate[] = [];
       for (const item of items) {
-        const product = await trx.selectFrom('products').select(['id', 'name']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         normalizedItems.push(buildNormalizedPurchaseItem(item, product));
+        repricingCandidates.push({
+          productId: Number(product.id),
+          name: String(product.name || ''),
+          itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
+          styleCode: String(product.style_code || ''),
+          previousCost: Number(product.cost_price || 0),
+          newCost: Number(item.cost || 0),
+          retailPrice: Number(product.retail_price || 0),
+          wholesalePrice: Number(product.wholesale_price || 0),
+        });
       }
 
       const subtotal = calculatePurchaseSubtotal(normalizedItems);
@@ -121,17 +237,20 @@ export class PurchasesWriteService {
         await this.financeService.addTreasuryTransaction(trx, 'purchase', -total, `فاتورة شراء PUR-${id}`, 'purchase', id, auth, branchId, locationId);
       }
 
-      return id;
+      return {
+        purchaseId: id,
+        repricingInsights: this.buildPurchaseRepricingInsights(id, { id: Number(supplier.id), name: String(supplier.name || '') }, repricingCandidates),
+      };
     });
 
-    await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${purchaseId} بواسطة ${auth.username}`, auth.userId);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
+    await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${created.purchaseId} بواسطة ${auth.username}`, auth.userId);
+    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === created.purchaseId) || null;
     const purchases = await this.queryService.listPurchases({}, auth);
-    return { ok: true, purchase, purchases: purchases.purchases };
+    return { ok: true, purchase, purchases: purchases.purchases, repricingInsights: created.repricingInsights };
   }
 
   async updatePurchase(purchaseId: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    await this.tx.runInTransaction(this.db, async (trx) => {
+    const updated = await this.tx.runInTransaction(this.db, async (trx) => {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be edited', 'PURCHASE_CANCELLED', 400);
@@ -189,8 +308,9 @@ export class PurchasesWriteService {
       const { branchId, locationId } = normalizePurchaseScope(payload);
 
       let subtotal = 0;
+      const repricingCandidates: PurchaseRepricingCandidate[] = [];
       for (const item of payload.items || []) {
-        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const incomingCost = Number(item.cost || 0);
         const originalCost = oldByProduct.has(Number(item.productId)) ? Number(oldByProduct.get(Number(item.productId)) || 0) : incomingCost;
@@ -198,6 +318,16 @@ export class PurchasesWriteService {
           throw new AppError(`Cost edit is not allowed for ${product.name}`, 'COST_EDIT_NOT_ALLOWED', 403);
         }
         const normalizedItem = buildNormalizedPurchaseItem({ ...item, cost: incomingCost }, product);
+        repricingCandidates.push({
+          productId: Number(product.id),
+          name: String(product.name || ''),
+          itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
+          styleCode: String(product.style_code || ''),
+          previousCost: Number(product.cost_price || 0),
+          newCost: incomingCost,
+          retailPrice: Number(product.retail_price || 0),
+          wholesalePrice: Number(product.wholesale_price || 0),
+        });
         subtotal += normalizedItem.total;
 
         await trx.insertInto('purchase_items').values({
@@ -263,11 +393,15 @@ export class PurchasesWriteService {
         location_id: locationId,
         updated_at: sql`NOW()`,
       }).where('id', '=', purchaseId).execute();
+
+      return {
+        repricingInsights: this.buildPurchaseRepricingInsights(purchaseId, { id: Number(supplier.id), name: String(supplier.name || '') }, repricingCandidates),
+      };
     });
 
     await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth.userId);
     const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
-    return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases };
+    return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases, repricingInsights: updated.repricingInsights };
   }
 
   async cancelPurchase(purchaseId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {

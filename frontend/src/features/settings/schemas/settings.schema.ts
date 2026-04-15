@@ -24,7 +24,23 @@ export const settingsFormSchema = z.object({
   accentColor: accentColorSchema,
   logoData: z.string().optional(),
   currentBranchId: z.string().optional(),
-  currentLocationId: z.string().optional()
+  currentLocationId: z.string().optional(),
+  clothingModuleEnabled: z.boolean().default(false),
+  defaultProductKind: z.enum(['standard', 'fashion']).default('standard'),
+  printShowLogo: z.boolean().default(true),
+  printShowPhone: z.boolean().default(true),
+  printShowAddress: z.boolean().default(true),
+  printShowTaxNumber: z.boolean().default(false),
+  printShowCustomer: z.boolean().default(true),
+  printShowCashier: z.boolean().default(true),
+  printShowBranch: z.boolean().default(true),
+  printShowLocation: z.boolean().default(true),
+  printShowTax: z.boolean().default(true),
+  printShowPaymentMethod: z.boolean().default(true),
+  printShowItemSummary: z.boolean().default(true),
+  printShowPaymentBreakdown: z.boolean().default(true),
+  printShowFooter: z.boolean().default(true),
+  printCompactReceipt: z.boolean().default(true),
 });
 
 export const branchFormSchema = z.object({
