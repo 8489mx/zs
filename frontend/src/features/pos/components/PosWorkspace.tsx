@@ -13,9 +13,8 @@ import {
   getSelectedCustomerName,
   printCurrentPosDraft,
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
-import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
+import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
-import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 
 export function PosWorkspace() {
   const pos = usePosWorkspace();

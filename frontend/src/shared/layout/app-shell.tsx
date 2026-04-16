@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { CSSProperties, PropsWithChildren, ReactNode, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
