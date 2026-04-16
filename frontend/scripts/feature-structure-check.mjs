@@ -16,6 +16,8 @@ const expectedSlices = {
   accounts: ['index.ts', 'routes.tsx', 'pages', 'hooks', 'components', 'api', 'schemas'],
   reports: ['index.ts', 'routes.tsx', 'pages', 'hooks'],
   settings: ['index.ts', 'routes.tsx', 'pages', 'hooks', 'components', 'api', 'schemas'],
+  'pricing-center': ['index.ts', 'routes.tsx', 'pages', 'hooks', 'components', 'api', 'lib'],
+  activation: ['index.ts', 'routes.tsx', 'pages', 'hooks', 'api'],
   auth: ['index.ts', 'pages'],
   'not-found': ['index.ts', 'pages']
 };

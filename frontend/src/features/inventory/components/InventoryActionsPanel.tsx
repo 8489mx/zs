@@ -7,6 +7,8 @@ import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
+import { DraftStateNotice } from '@/shared/components/draft-state-notice';
+import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import type { Branch, Location, Product } from '@/types/domain';
 import { useDamagedStockMutation, useInventoryAdjustmentMutation } from '@/features/inventory/hooks/useInventoryMutations';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
@@ -29,21 +31,62 @@ interface InventoryActionsPanelProps {
   canManageInventory?: boolean;
 }
 
+const ADJUSTMENT_DEFAULTS: InventoryAdjustmentInput = {
+  productId: '',
+  actionType: 'adjust',
+  qty: 0,
+  reason: 'inventory_count',
+  note: '',
+  managerPin: ''
+};
+
+function buildDamagedDefaults(locations: Location[]): DamagedStockInput {
+  return {
+    productId: '',
+    qty: 1,
+    reason: 'damage',
+    note: '',
+    branchId: '',
+    locationId: SINGLE_STORE_MODE ? (locations[0]?.id || '') : '',
+    managerPin: ''
+  };
+}
+
+function hasAdjustmentDraft(values: InventoryAdjustmentInput): boolean {
+  return Boolean(values.productId)
+    || values.actionType !== ADJUSTMENT_DEFAULTS.actionType
+    || Number(values.qty || 0) !== Number(ADJUSTMENT_DEFAULTS.qty)
+    || String(values.reason || '') !== ADJUSTMENT_DEFAULTS.reason
+    || Boolean(String(values.note || '').trim())
+    || Boolean(String(values.managerPin || '').trim());
+}
+
+function hasDamagedDraft(values: DamagedStockInput, locations: Location[]): boolean {
+  const defaults = buildDamagedDefaults(locations);
+  return Boolean(values.productId)
+    || Number(values.qty || 0) !== Number(defaults.qty)
+    || String(values.reason || '') !== defaults.reason
+    || Boolean(String(values.note || '').trim())
+    || String(values.branchId || '') !== String(defaults.branchId || '')
+    || String(values.locationId || '') !== String(defaults.locationId || '')
+    || Boolean(String(values.managerPin || '').trim());
+}
+
 export function InventoryActionsPanel({ products, branches, locations, isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
   const adjustmentDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const damagedDisclosureRef = useRef<HTMLDetailsElement | null>(null);
 
   const adjustmentForm = useForm<InventoryAdjustmentInput, undefined, InventoryAdjustmentOutput>({
     resolver: zodResolver(inventoryAdjustmentSchema),
-    defaultValues: { productId: '', actionType: 'adjust', qty: 0, reason: 'inventory_count', note: '', managerPin: '' }
+    defaultValues: ADJUSTMENT_DEFAULTS
   });
   const damagedForm = useForm<DamagedStockInput, undefined, DamagedStockOutput>({
     resolver: zodResolver(damagedStockSchema),
-    defaultValues: { productId: '', qty: 1, reason: 'damage', note: '', branchId: '', locationId: '', managerPin: '' }
+    defaultValues: buildDamagedDefaults(locations)
   });
 
-  const adjustmentMutation = useInventoryAdjustmentMutation(() => adjustmentForm.reset({ productId: '', actionType: 'adjust', qty: 0, reason: 'inventory_count', note: '', managerPin: '' }));
-  const damagedMutation = useDamagedStockMutation(() => damagedForm.reset({ productId: '', qty: 1, reason: 'damage', note: '', branchId: '', locationId: SINGLE_STORE_MODE ? (locations[0]?.id || '') : '', managerPin: '' }));
+  const adjustmentMutation = useInventoryAdjustmentMutation(() => adjustmentForm.reset(ADJUSTMENT_DEFAULTS));
+  const damagedMutation = useDamagedStockMutation(() => damagedForm.reset(buildDamagedDefaults(locations)));
 
   useEffect(() => {
     if (!SINGLE_STORE_MODE) return;
@@ -51,6 +94,13 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
       damagedForm.setValue('locationId', locations[0].id);
     }
   }, [damagedForm, locations]);
+
+  const adjustmentValues = adjustmentForm.watch();
+  const damagedValues = damagedForm.watch();
+  const adjustmentDraft = hasAdjustmentDraft(adjustmentValues);
+  const damagedDraft = hasDamagedDraft(damagedValues, locations);
+  const hasAnyDraft = (adjustmentDraft || damagedDraft) && !adjustmentMutation.isPending && !damagedMutation.isPending;
+  const canDiscardDrafts = useUnsavedChangesGuard(hasAnyDraft, 'لديك تغييرات غير محفوظة داخل إجراءات المخزون. هل تريد المتابعة وفقدان هذه التغييرات؟');
 
   const damagedProductId = damagedForm.watch('productId');
   const damagedQty = Number(damagedForm.watch('qty') || 0);
@@ -65,6 +115,18 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
     window.requestAnimationFrame(() => {
       details.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
     });
+  }
+
+  function resetAdjustmentForm() {
+    if (adjustmentDraft && !canDiscardDrafts()) return;
+    adjustmentForm.reset(ADJUSTMENT_DEFAULTS);
+    adjustmentMutation.reset();
+  }
+
+  function resetDamagedForm() {
+    if (damagedDraft && !canDiscardDrafts()) return;
+    damagedForm.reset(buildDamagedDefaults(locations));
+    damagedMutation.reset();
   }
 
   return (
@@ -83,6 +145,11 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
         description="استخدمها فقط عند الحاجة: تسوية رصيد، أو تسجيل تالف مباشر، بدل وضعها في مقدمة الصفحة."
         actions={<span className="nav-pill">إجراءات المخزون</span>}
       >
+        <DraftStateNotice
+          visible={hasAnyDraft}
+          title="يوجد إدخال غير محفوظ داخل إجراءات المخزون"
+          hint="احفظ الحركة أو أعد ضبطها قبل مغادرة الصفحة أو التنقل إلى جزء آخر حتى لا تضيع البيانات المدخلة."
+        />
         <div className="inventory-actions-disclosure-stack">
           <details
             ref={adjustmentDisclosureRef}
@@ -119,7 +186,7 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
               <MutationFeedback isError={adjustmentMutation.isError} isSuccess={adjustmentMutation.isSuccess} error={adjustmentMutation.error} errorFallback="تعذر تنفيذ حركة المخزون" successText="تم حفظ حركة المخزون وتحديث الرصيد بنجاح." />
               <div className="actions">
                 <SubmitButton type="submit" disabled={adjustmentMutation.isPending || !canManageInventory} idleText="حفظ حركة المخزون" pendingText="جارٍ الحفظ..." />
-                <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending || !canManageInventory} onClick={() => { adjustmentForm.reset(); adjustmentMutation.reset(); }}>تفريغ</Button>
+                <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending || !canManageInventory} onClick={resetAdjustmentForm}>تفريغ</Button>
               </div>
             </form>
           </details>
@@ -173,7 +240,7 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
               <MutationFeedback isError={damagedMutation.isError} isSuccess={damagedMutation.isSuccess} error={damagedMutation.error} errorFallback="تعذر تسجيل التالف" successText="تم تسجيل التالف وتحديث المخزون بنجاح." />
               <div className="actions">
                 <SubmitButton type="submit" variant="danger" disabled={damagedMutation.isPending || !canManageInventory} idleText="تسجيل التالف" pendingText="جارٍ التسجيل..." />
-                <Button type="button" variant="secondary" disabled={damagedMutation.isPending || !canManageInventory} onClick={() => { damagedForm.reset(); damagedMutation.reset(); }}>تفريغ</Button>
+                <Button type="button" variant="secondary" disabled={damagedMutation.isPending || !canManageInventory} onClick={resetDamagedForm}>تفريغ</Button>
               </div>
             </form>
           </details>

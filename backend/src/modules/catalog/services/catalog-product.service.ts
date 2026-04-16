@@ -44,6 +44,30 @@ type ProductCountRow = {
   count: string | number | bigint;
 };
 
+type ProductUnitSearchRow = {
+  product_id: number;
+  name: string | null;
+  barcode: string | null;
+};
+
+type ProductUnitReadRow = {
+  id: number;
+  product_id: number;
+  name: string;
+  multiplier: string | number;
+  barcode: string | null;
+  is_base_unit: boolean;
+  is_sale_unit_default: boolean;
+  is_purchase_unit_default: boolean;
+};
+
+type CustomerPriceReadRow = {
+  id: number;
+  product_id: number;
+  customer_id: number;
+  price: string | number;
+};
+
 @Injectable()
 export class CatalogProductService {
   private productOfferColumnCapabilitiesPromise?: Promise<ProductOfferColumnCapabilities>;
@@ -84,13 +108,9 @@ export class CatalogProductService {
   }
 
   async listProducts(query: Record<string, unknown>, actor?: AuthContext): Promise<Record<string, unknown>> {
-    const page = Math.max(1, Number(query.page || 1));
-    const pageSize = Math.min(100, Math.max(5, Number(query.pageSize || 20)));
-    const q = normalizeArabicSearch(query.q);
-    const view = String(query.view || 'all');
+    const { page, pageSize, q, view, requestedLocationId } = this.parseListProductsQuery(query);
     const canViewCost = this.hasPermission(actor, 'canViewCost');
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
-    const requestedLocationId = Number(query.locationId || 0);
     const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
 
     const [products, categories, suppliers] = await Promise.all([
@@ -105,30 +125,84 @@ export class CatalogProductService {
     ]);
 
     const productIds = products.map((product) => Number(product.id));
+    const scopedStockByProduct = await this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, products);
+    const listContext = await this.buildListProductsContext(productIds, q, categories, suppliers);
+    const filteredBaseRows = this.filterListProducts(products, { q, view, scopedLocationId: scopedLocation?.id || null, scopedStockByProduct, ...listContext });
 
+    const total = filteredBaseRows.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * pageSize;
+    const pagedBaseRows = filteredBaseRows.slice(start, start + pageSize);
+    const pagedIds = pagedBaseRows.map((row) => Number(row.id));
+
+    const relations = await this.fetchListProductRelations(pagedIds, offerCapabilities.hasMinQty);
+    const pagedRows = this.mapListProducts(pagedBaseRows, {
+      canViewCost,
+      scopedLocationId: scopedLocation?.id || null,
+      scopedStockByProduct,
+      unitsByProduct: relations.unitsByProduct,
+      offersByProduct: relations.offersByProduct,
+      pricesByProduct: relations.pricesByProduct,
+    });
+
+    return {
+      products: pagedRows,
+      pagination: { page: safePage, pageSize, totalItems: total, totalPages },
+      summary: this.buildListSummary(filteredBaseRows, {
+        canViewCost,
+        scopedLocationId: scopedLocation?.id || null,
+        scopedStockByProduct,
+        offerCountByProduct: listContext.offerCountByProduct,
+        customerPriceCountByProduct: listContext.customerPriceCountByProduct,
+      }),
+    };
+  }
+
+  private parseListProductsQuery(query: Record<string, unknown>) {
+    return {
+      page: Math.max(1, Number(query.page || 1)),
+      pageSize: Math.min(100, Math.max(5, Number(query.pageSize || 20))),
+      q: normalizeArabicSearch(query.q),
+      view: String(query.view || 'all'),
+      requestedLocationId: Number(query.locationId || 0),
+    };
+  }
+
+  private async resolveScopedStockByProduct(productIds: number[], scopedLocationId: number | null, products: ProductRow[]): Promise<Map<string, number>> {
     const scopedStockByProduct = new Map<string, number>();
-    if (scopedLocation && productIds.length) {
-      const stockRows = await this.db
-        .selectFrom('product_location_stock as pls')
-        .select(['pls.product_id', 'pls.location_id', 'pls.qty'])
-        .where('pls.product_id', 'in', productIds)
-        .where((eb) => eb.or([eb('pls.location_id', '=', scopedLocation.id), eb('pls.location_id', 'is', null)]))
-        .execute();
+    if (!scopedLocationId || !productIds.length) return scopedStockByProduct;
 
-      const locationQtyByProduct = new Map<string, number>();
-      const unassignedQtyByProduct = new Map<string, number>();
-      for (const row of stockRows) {
-        const key = String(row.product_id);
-        const qty = Number(row.qty || 0);
-        if (row.location_id == null) unassignedQtyByProduct.set(key, qty);
-        if (Number(row.location_id || 0) === scopedLocation.id) locationQtyByProduct.set(key, qty);
-      }
-      for (const product of products) {
-        const key = String(product.id);
-        scopedStockByProduct.set(key, Number((Number(locationQtyByProduct.get(key) || 0) + Number(unassignedQtyByProduct.get(key) || 0)).toFixed(3)));
-      }
+    const stockRows = await this.db
+      .selectFrom('product_location_stock as pls')
+      .select(['pls.product_id', 'pls.location_id', 'pls.qty'])
+      .where('pls.product_id', 'in', productIds)
+      .where((eb) => eb.or([eb('pls.location_id', '=', scopedLocationId), eb('pls.location_id', 'is', null)]))
+      .execute();
+
+    const locationQtyByProduct = new Map<string, number>();
+    const unassignedQtyByProduct = new Map<string, number>();
+    for (const row of stockRows) {
+      const key = String(row.product_id);
+      const qty = Number(row.qty || 0);
+      if (row.location_id == null) unassignedQtyByProduct.set(key, qty);
+      if (Number(row.location_id || 0) === scopedLocationId) locationQtyByProduct.set(key, qty);
     }
 
+    for (const product of products) {
+      const key = String(product.id);
+      scopedStockByProduct.set(key, Number((Number(locationQtyByProduct.get(key) || 0) + Number(unassignedQtyByProduct.get(key) || 0)).toFixed(3)));
+    }
+
+    return scopedStockByProduct;
+  }
+
+  private async buildListProductsContext(
+    productIds: number[],
+    q: string,
+    categories: Array<{ id: number; name: string }>,
+    suppliers: Array<{ id: number; name: string }>,
+  ) {
     const [unitSearchRows, offerCountRows, customerPriceCountRows] = await Promise.all([
       q && productIds.length
         ? this.db
@@ -136,7 +210,7 @@ export class CatalogProductService {
             .select(['product_id', 'name', 'barcode'])
             .where('product_id', 'in', productIds)
             .orderBy('product_id', 'asc')
-            .execute()
+            .execute() as Promise<ProductUnitSearchRow[]>
         : Promise.resolve([]),
       productIds.length
         ? this.db
@@ -159,7 +233,6 @@ export class CatalogProductService {
 
     const categoriesById = Object.fromEntries(categories.map((entry) => [String(entry.id), String(entry.name || '')]));
     const suppliersById = Object.fromEntries(suppliers.map((entry) => [String(entry.id), String(entry.name || '')]));
-
     const unitSearchValuesByProduct = new Map<string, string[]>();
     for (const unit of unitSearchRows) {
       const key = String(unit.product_id);
@@ -173,42 +246,60 @@ export class CatalogProductService {
     const customerPriceCountByProduct = new Map<string, number>();
     for (const row of customerPriceCountRows) customerPriceCountByProduct.set(String(row.product_id), Number(row.count || 0));
 
-    const filteredBaseRows = products.filter((product) => {
-      const key = String(product.id);
-      const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(product.stock_qty || 0);
-      const minStock = Number(product.min_stock_qty || 0);
-      const offerCount = Number(offerCountByProduct.get(key) || 0);
-      const customerPriceCount = Number(customerPriceCountByProduct.get(key) || 0);
+    return {
+      categoriesById,
+      suppliersById,
+      unitSearchValuesByProduct,
+      offerCountByProduct,
+      customerPriceCountByProduct,
+    };
+  }
 
-      if (view !== 'all') {
-        if (view === 'low' && !(stock <= minStock)) return false;
-        if (view === 'out' && !(stock <= 0)) return false;
-        if (view === 'offers' && offerCount <= 0) return false;
-        if (view === 'special' && customerPriceCount <= 0) return false;
+  private filterListProducts(
+    products: ProductRow[],
+    context: {
+      q: string;
+      view: string;
+      scopedLocationId: number | null;
+      scopedStockByProduct: Map<string, number>;
+      categoriesById: Record<string, string>;
+      suppliersById: Record<string, string>;
+      unitSearchValuesByProduct: Map<string, string[]>;
+      offerCountByProduct: Map<string, number>;
+      customerPriceCountByProduct: Map<string, number>;
+    },
+  ): ProductRow[] {
+    return products.filter((product) => {
+      const key = String(product.id);
+      const stock = this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct);
+      const minStock = Number(product.min_stock_qty || 0);
+      const offerCount = Number(context.offerCountByProduct.get(key) || 0);
+      const customerPriceCount = Number(context.customerPriceCountByProduct.get(key) || 0);
+
+      if (context.view !== 'all') {
+        if (context.view === 'low' && !(stock <= minStock)) return false;
+        if (context.view === 'out' && !(stock <= 0)) return false;
+        if (context.view === 'offers' && offerCount <= 0) return false;
+        if (context.view === 'special' && customerPriceCount <= 0) return false;
       }
 
-      if (!q) return true;
+      if (!context.q) return true;
       const haystack = [
         String(product.name || ''),
         String(product.barcode || ''),
-        categoriesById[String(product.category_id || '')] || '',
-        suppliersById[String(product.supplier_id || '')] || '',
+        context.categoriesById[String(product.category_id || '')] || '',
+        context.suppliersById[String(product.supplier_id || '')] || '',
         String(product.notes || ''),
         String(product.style_code || ''),
         String(product.color || ''),
         String(product.size || ''),
-        ...(unitSearchValuesByProduct.get(key) || []),
+        ...(context.unitSearchValuesByProduct.get(key) || []),
       ].join(' ');
-      return normalizeArabicSearch(haystack).includes(q);
+      return normalizeArabicSearch(haystack).includes(context.q);
     });
+  }
 
-    const total = filteredBaseRows.length;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    const safePage = Math.min(page, totalPages);
-    const start = (safePage - 1) * pageSize;
-    const pagedBaseRows = filteredBaseRows.slice(start, start + pageSize);
-    const pagedIds = pagedBaseRows.map((row) => Number(row.id));
-
+  private async fetchListProductRelations(pagedIds: number[], hasMinQty: boolean) {
     const [units, offers, customerPrices] = pagedIds.length
       ? await Promise.all([
           this.db
@@ -218,8 +309,8 @@ export class CatalogProductService {
             .orderBy('product_id', 'asc')
             .orderBy('is_base_unit', 'desc')
             .orderBy('id', 'asc')
-            .execute(),
-          offerCapabilities.hasMinQty
+            .execute() as Promise<ProductUnitReadRow[]>,
+          hasMinQty
             ? this.db
                 .selectFrom('product_offers')
                 .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
@@ -239,7 +330,7 @@ export class CatalogProductService {
             .select(['id', 'product_id', 'customer_id', 'price'])
             .where('product_id', 'in', pagedIds)
             .orderBy('id', 'desc')
-            .execute(),
+            .execute() as Promise<CustomerPriceReadRow[]>,
         ])
       : [[], [], []];
 
@@ -279,7 +370,21 @@ export class CatalogProductService {
       pricesByProduct.get(key)!.push({ id: String(cp.id), customerId: String(cp.customer_id), price: Number(cp.price || 0) });
     }
 
-    const pagedRows = pagedBaseRows.map((product) => {
+    return { unitsByProduct, offersByProduct, pricesByProduct };
+  }
+
+  private mapListProducts(
+    pagedBaseRows: ProductRow[],
+    context: {
+      canViewCost: boolean;
+      scopedLocationId: number | null;
+      scopedStockByProduct: Map<string, number>;
+      unitsByProduct: Map<string, Record<string, unknown>[]>;
+      offersByProduct: Map<string, Record<string, unknown>[]>;
+      pricesByProduct: Map<string, Record<string, unknown>[]>;
+    },
+  ): Record<string, unknown>[] {
+    return pagedBaseRows.map((product) => {
       const mapped: Record<string, unknown> = {
         id: String(product.id),
         name: product.name || '',
@@ -293,48 +398,44 @@ export class CatalogProductService {
         costPrice: Number(product.cost_price || 0),
         retailPrice: Number(product.retail_price || 0),
         wholesalePrice: Number(product.wholesale_price || 0),
-        stock: scopedLocation ? Number(scopedStockByProduct.get(String(product.id)) || 0) : Number(product.stock_qty || 0),
+        stock: this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct),
         minStock: Number(product.min_stock_qty || 0),
         notes: product.notes || '',
-        units: unitsByProduct.get(String(product.id)) || [{ id: `base-${product.id}`, name: 'قطعة', multiplier: 1, barcode: product.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
-        offers: offersByProduct.get(String(product.id)) || [],
-        customerPrices: pricesByProduct.get(String(product.id)) || [],
+        units: context.unitsByProduct.get(String(product.id)) || [{ id: `base-${product.id}`, name: 'قطعة', multiplier: 1, barcode: product.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
+        offers: context.offersByProduct.get(String(product.id)) || [],
+        customerPrices: context.pricesByProduct.get(String(product.id)) || [],
       };
-      if (!canViewCost) delete mapped.costPrice;
+      if (!context.canViewCost) delete mapped.costPrice;
       return mapped;
     });
+  }
 
+  private buildListSummary(
+    filteredBaseRows: ProductRow[],
+    context: {
+      canViewCost: boolean;
+      scopedLocationId: number | null;
+      scopedStockByProduct: Map<string, number>;
+      offerCountByProduct: Map<string, number>;
+      customerPriceCountByProduct: Map<string, number>;
+    },
+  ) {
     return {
-      products: pagedRows,
-      pagination: { page: safePage, pageSize, totalItems: total, totalPages },
-      summary: {
-        totalProducts: total,
-        lowStockCount: filteredBaseRows.filter((row) => {
-          const key = String(row.id);
-          const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(row.stock_qty || 0);
-          return stock <= Number(row.min_stock_qty || 0);
-        }).length,
-        outOfStockCount: filteredBaseRows.filter((row) => {
-          const key = String(row.id);
-          const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(row.stock_qty || 0);
-          return stock <= 0;
-        }).length,
-        inventoryCost: canViewCost
-          ? filteredBaseRows.reduce((sum, row) => {
-              const key = String(row.id);
-              const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(row.stock_qty || 0);
-              return sum + (stock * Number(row.cost_price || 0));
-            }, 0)
-          : null,
-        inventorySaleValue: filteredBaseRows.reduce((sum, row) => {
-          const key = String(row.id);
-          const stock = scopedLocation ? Number(scopedStockByProduct.get(key) || 0) : Number(row.stock_qty || 0);
-          return sum + (stock * Number(row.retail_price || 0));
-        }, 0),
-        activeOffersCount: filteredBaseRows.reduce((sum, row) => sum + Number(offerCountByProduct.get(String(row.id)) || 0), 0),
-        customerPriceCount: filteredBaseRows.reduce((sum, row) => sum + Number(customerPriceCountByProduct.get(String(row.id)) || 0), 0),
-      },
+      totalProducts: filteredBaseRows.length,
+      lowStockCount: filteredBaseRows.filter((row) => this.getListProductStock(row, context.scopedLocationId, context.scopedStockByProduct) <= Number(row.min_stock_qty || 0)).length,
+      outOfStockCount: filteredBaseRows.filter((row) => this.getListProductStock(row, context.scopedLocationId, context.scopedStockByProduct) <= 0).length,
+      inventoryCost: context.canViewCost
+        ? filteredBaseRows.reduce((sum, row) => sum + (this.getListProductStock(row, context.scopedLocationId, context.scopedStockByProduct) * Number(row.cost_price || 0)), 0)
+        : null,
+      inventorySaleValue: filteredBaseRows.reduce((sum, row) => sum + (this.getListProductStock(row, context.scopedLocationId, context.scopedStockByProduct) * Number(row.retail_price || 0)), 0),
+      activeOffersCount: filteredBaseRows.reduce((sum, row) => sum + Number(context.offerCountByProduct.get(String(row.id)) || 0), 0),
+      customerPriceCount: filteredBaseRows.reduce((sum, row) => sum + Number(context.customerPriceCountByProduct.get(String(row.id)) || 0), 0),
     };
+  }
+
+  private getListProductStock(product: ProductRow, scopedLocationId: number | null, scopedStockByProduct: Map<string, number>) {
+    if (!scopedLocationId) return Number(product.stock_qty || 0);
+    return Number(scopedStockByProduct.get(String(product.id)) || 0);
   }
   private normalizeProductPayload(payload: UpsertProductDto): NormalizedUpsertProduct {
     const units = payload.units?.length

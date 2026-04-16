@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
+import { QueryCard } from '@/shared/components/query-card';
 import { SettingsSectionTabs } from '@/features/settings/pages/SettingsSectionTabs';
 import { SettingsSetupFlowCard } from '@/shared/system/settings-setup-flow-card';
 import type { SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
@@ -27,7 +28,6 @@ export function SettingsPageShell({
   children,
 }: SettingsPageShellProps) {
   const setupSection = currentSection as SetupSectionKey | 'overview' | 'backup';
-  void cards;
 
   return (
     <div className="page-stack page-shell settings-page-shell">
@@ -39,6 +39,19 @@ export function SettingsPageShell({
         <div className="settings-tabs-shell">
           <SettingsSectionTabs currentSection={currentSection} currentUserRole={currentUserRole} />
         </div>
+      ) : null}
+
+      {cards.length ? (
+        <QueryCard title="ملخص سريع لهذا القسم" description="قبل التعديل، راجع النقاط التالية لتعرف الخطوة التالية وما الذي يحتاج انتباهك.">
+          <div className="stack gap-sm">
+            {cards.map((card) => (
+              <div key={card.key} className="stat-card">
+                <span>{card.label}</span>
+                <strong>{card.value}</strong>
+              </div>
+            ))}
+          </div>
+        </QueryCard>
       ) : null}
 
       {children}

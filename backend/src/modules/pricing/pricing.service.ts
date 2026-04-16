@@ -111,6 +111,8 @@ export class PricingService {
       throw new AppError('لا توجد تغييرات قابلة للتطبيق بعد المعاينة.', 'PRICING_NO_EFFECTIVE_CHANGES', 400);
     }
 
+    const preview = this.paginatePreviewRows(fullPreview.rows, payload.paging, fullPreview.summary);
+
     const runId = await this.db.transaction().execute(async (trx) => {
       const insertedRun = await trx
         .insertInto('price_change_runs')
@@ -156,7 +158,6 @@ export class PricingService {
       return runIdValue;
     });
 
-    const preview = await this.buildPreview(payload, { paginate: true });
     await this.audit.log('موجة تسعير', `تم تنفيذ موجة تسعير رقم #${runId} على ${changedRows.length} صنف بواسطة ${actor.username}`, actor.userId);
     return { ok: true, runId, preview };
   }
@@ -602,19 +603,69 @@ export class PricingService {
   ): Promise<{ rows: PricingPreviewRow[]; paging: { page: number; pageSize: number; totalItems: number; totalPages: number }; summary: Record<string, unknown> }> {
     const filters = payload.filters || {};
     const paging = this.normalizePaging(payload.paging);
-    const previewOptions = {
+    const previewOptions = this.normalizePreviewOptions(payload);
+    const targets = this.normalizePreviewTargets(payload);
+
+    const normalizedSearch = normalizeArabicSearch(filters.q);
+    const baseMatched = await this.fetchBaseMatchedProducts(filters, normalizedSearch);
+    const expandedRows = await this.expandPreviewProducts(baseMatched, filters, previewOptions);
+    const productIds = expandedRows.map((row) => Number(row.id));
+    if (!productIds.length) {
+      return this.createEmptyPreviewResult(paging.pageSize);
+    }
+
+    const profileMap = await this.fetchProfileMap(productIds);
+    const { activeOfferProductIds, customerPriceProductIds } = await this.fetchPreviewFlags(productIds);
+    const allRows = this.buildPreviewRows({
+      rows: expandedRows,
+      payload,
+      targets,
+      previewOptions,
+      profileMap,
+      activeOfferProductIds,
+      customerPriceProductIds,
+    });
+    const summary = this.buildPreviewSummary(allRows);
+
+    if (!options.paginate) {
+      return {
+        rows: allRows,
+        paging: { page: 1, pageSize: allRows.length || paging.pageSize, totalItems: allRows.length, totalPages: 1 },
+        summary,
+      };
+    }
+
+    const paginated = this.paginatePreviewRows(allRows, paging, summary);
+    return {
+      rows: paginated.rows,
+      paging: paginated.paging,
+      summary,
+    };
+  }
+
+  private normalizePreviewOptions(payload: PricingPreviewPayload) {
+    return {
       applyToWholeStyleCode: Boolean(payload.options?.applyToWholeStyleCode),
       applyToPricingGroup: Boolean(payload.options?.applyToPricingGroup),
       skipActiveOffers: Boolean(payload.options?.skipActiveOffers),
       skipCustomerPrices: Boolean(payload.options?.skipCustomerPrices),
       skipManualExceptions: Boolean(payload.options?.skipManualExceptions),
     };
-    const targets = Array.from(new Set((payload.targets || []).filter((entry) => entry === 'retail' || entry === 'wholesale')));
-    if (!targets.length) throw new AppError('يجب اختيار سعر واحد على الأقل للتعديل.', 'PRICING_TARGET_REQUIRED', 400);
+  }
 
-    const normalizedSearch = normalizeArabicSearch(filters.q);
-    const baseMatched = await this.fetchBaseMatchedProducts(filters, normalizedSearch);
+  private normalizePreviewTargets(payload: PricingPreviewPayload): Array<'retail' | 'wholesale'> {
+    const targets = Array.from(new Set((payload.targets || []).filter((entry): entry is 'retail' | 'wholesale' => entry === 'retail' || entry === 'wholesale')));
+    if (!targets.length) {
+      throw new AppError('يجب اختيار سعر واحد على الأقل للتعديل.', 'PRICING_TARGET_REQUIRED', 400);
+    }
+    return targets;
+  }
 
+  private async expandPreviewProducts(
+    baseMatched: ProductSourceRow[],
+    filters: PricingPreviewPayload['filters'],
+    previewOptions: ReturnType<PricingService['normalizePreviewOptions']>,
+  ): Promise<ProductSourceRow[]> {
     let expandedRows = [...baseMatched];
     let profileMap = await this.fetchProfileMap(expandedRows.map((row) => Number(row.id)));
 
@@ -647,86 +698,135 @@ export class PricingService {
       }
     }
 
-    const productIds = expandedRows.map((row) => Number(row.id));
-    if (!productIds.length) {
-      return {
-        rows: [],
-        paging: { page: 1, pageSize: paging.pageSize, totalItems: 0, totalPages: 1 },
-        summary: {
-          matchedCount: 0,
-          affectedCount: 0,
-          skippedOfferCount: 0,
-          skippedCustomerPriceCount: 0,
-          skippedManualExceptionCount: 0,
-          inheritedProfileCount: 0,
-          belowCostCount: 0,
-          inventoryValueBefore: 0,
-          inventoryValueAfter: 0,
-          stockMarginBefore: 0,
-          stockMarginAfter: 0,
-        },
-      };
-    }
+    return expandedRows;
+  }
 
-    profileMap = await this.fetchProfileMap(productIds);
+  private createEmptyPreviewResult(pageSize: number) {
+    return {
+      rows: [],
+      paging: { page: 1, pageSize, totalItems: 0, totalPages: 1 },
+      summary: {
+        matchedCount: 0,
+        affectedCount: 0,
+        skippedOfferCount: 0,
+        skippedCustomerPriceCount: 0,
+        skippedManualExceptionCount: 0,
+        inheritedProfileCount: 0,
+        belowCostCount: 0,
+        inventoryValueBefore: 0,
+        inventoryValueAfter: 0,
+        stockMarginBefore: 0,
+        stockMarginAfter: 0,
+      },
+    };
+  }
 
+  private async fetchPreviewFlags(productIds: number[]) {
     const [offers, customerPrices] = await Promise.all([
       this.db.selectFrom('product_offers').select(['product_id', 'is_active', 'start_date', 'end_date']).where('product_id', 'in', productIds).execute() as Promise<OfferRow[]>,
       this.db.selectFrom('product_customer_prices').select(['product_id']).where('product_id', 'in', productIds).execute() as Promise<CustomerPriceRow[]>,
     ]);
 
-    const activeOfferProductIds = new Set(offers.filter((offer) => this.isOfferActive(offer)).map((offer) => Number(offer.product_id)));
-    const customerPriceProductIds = new Set(customerPrices.map((row) => Number(row.product_id)));
+    return {
+      activeOfferProductIds: new Set(offers.filter((offer) => this.isOfferActive(offer)).map((offer) => Number(offer.product_id))),
+      customerPriceProductIds: new Set(customerPrices.map((row) => Number(row.product_id))),
+    };
+  }
 
-    const allRows = expandedRows.map((row) => {
-      const profile = profileMap.get(Number(row.id));
-      const pricingMode = profile?.pricing_mode || 'standard';
-      const pricingGroupKey = this.normalizeGroupKey(profile?.pricing_group_key || '') || '';
-      const hasActiveOffer = activeOfferProductIds.has(Number(row.id));
-      const hasCustomerPrice = customerPriceProductIds.has(Number(row.id));
-      const retailBefore = Number(row.retail_price || 0);
-      const wholesaleBefore = Number(row.wholesale_price || 0);
-      const retailAfter = targets.includes('retail') ? this.computeNextPrice(retailBefore, Number(row.cost_price || 0), payload) : retailBefore;
-      const wholesaleAfter = targets.includes('wholesale') ? this.computeNextPrice(wholesaleBefore, Number(row.cost_price || 0), payload) : wholesaleBefore;
-      const skipReasons: string[] = [];
-      if (previewOptions.skipActiveOffers && hasActiveOffer) skipReasons.push('offer');
-      if (previewOptions.skipCustomerPrices && hasCustomerPrice) skipReasons.push('customer_price');
-      if (previewOptions.skipManualExceptions && pricingMode === 'manual') skipReasons.push('manual_exception');
-      const skipped = skipReasons.length > 0;
-      const changed = Math.abs(retailAfter - retailBefore) > 0.0001 || Math.abs(wholesaleAfter - wholesaleBefore) > 0.0001;
-      const belowCostAfter = (targets.includes('retail') && retailAfter + 0.0001 < Number(row.cost_price || 0))
-        || (targets.includes('wholesale') && wholesaleAfter + 0.0001 < Number(row.cost_price || 0));
+  private buildPreviewRows(params: {
+    rows: ProductSourceRow[];
+    payload: PricingPreviewPayload;
+    targets: Array<'retail' | 'wholesale'>;
+    previewOptions: ReturnType<PricingService['normalizePreviewOptions']>;
+    profileMap: Map<number, PricingProfileRow>;
+    activeOfferProductIds: Set<number>;
+    customerPriceProductIds: Set<number>;
+  }): PricingPreviewRow[] {
+    const { rows, payload, targets, previewOptions, profileMap, activeOfferProductIds, customerPriceProductIds } = params;
 
-      return {
-        productId: Number(row.id),
-        name: String(row.name || ''),
-        barcode: String(row.barcode || ''),
-        itemKind: row.item_kind === 'fashion' ? 'fashion' : 'standard',
-        styleCode: String(row.style_code || ''),
-        pricingMode,
-        pricingGroupKey,
-        stockQty: Number(row.stock_qty || 0),
-        costPrice: Number(row.cost_price || 0),
-        retailPriceBefore: retailBefore,
-        retailPriceAfter: retailAfter,
-        wholesalePriceBefore: wholesaleBefore,
-        wholesalePriceAfter: wholesaleAfter,
-        hasActiveOffer,
-        hasCustomerPrice,
-        skipped,
-        skipReasons,
-        changed,
-        belowCostAfter,
-      } satisfies PricingPreviewRow;
-    })
+    return rows
+      .map((row) => this.buildPreviewRow({
+        row,
+        payload,
+        targets,
+        previewOptions,
+        profileMap,
+        activeOfferProductIds,
+        customerPriceProductIds,
+      }))
       .sort((a, b) => {
         if (a.skipped !== b.skipped) return Number(a.skipped) - Number(b.skipped);
         if (a.changed !== b.changed) return Number(b.changed) - Number(a.changed);
         return a.name.localeCompare(b.name, 'ar');
       });
+  }
 
+  private buildPreviewRow(params: {
+    row: ProductSourceRow;
+    payload: PricingPreviewPayload;
+    targets: Array<'retail' | 'wholesale'>;
+    previewOptions: ReturnType<PricingService['normalizePreviewOptions']>;
+    profileMap: Map<number, PricingProfileRow>;
+    activeOfferProductIds: Set<number>;
+    customerPriceProductIds: Set<number>;
+  }): PricingPreviewRow {
+    const { row, payload, targets, previewOptions, profileMap, activeOfferProductIds, customerPriceProductIds } = params;
+    const profile = profileMap.get(Number(row.id));
+    const pricingMode = profile?.pricing_mode || 'standard';
+    const pricingGroupKey = this.normalizeGroupKey(profile?.pricing_group_key || '') || '';
+    const hasActiveOffer = activeOfferProductIds.has(Number(row.id));
+    const hasCustomerPrice = customerPriceProductIds.has(Number(row.id));
+    const retailBefore = Number(row.retail_price || 0);
+    const wholesaleBefore = Number(row.wholesale_price || 0);
+    const costPrice = Number(row.cost_price || 0);
+    const retailAfter = targets.includes('retail') ? this.computeNextPrice(retailBefore, costPrice, payload) : retailBefore;
+    const wholesaleAfter = targets.includes('wholesale') ? this.computeNextPrice(wholesaleBefore, costPrice, payload) : wholesaleBefore;
+    const skipReasons = this.buildPreviewSkipReasons({ previewOptions, hasActiveOffer, hasCustomerPrice, pricingMode });
+    const skipped = skipReasons.length > 0;
+    const changed = Math.abs(retailAfter - retailBefore) > 0.0001 || Math.abs(wholesaleAfter - wholesaleBefore) > 0.0001;
+    const belowCostAfter = (targets.includes('retail') && retailAfter + 0.0001 < costPrice)
+      || (targets.includes('wholesale') && wholesaleAfter + 0.0001 < costPrice);
+
+    return {
+      productId: Number(row.id),
+      name: String(row.name || ''),
+      barcode: String(row.barcode || ''),
+      itemKind: row.item_kind === 'fashion' ? 'fashion' : 'standard',
+      styleCode: String(row.style_code || ''),
+      pricingMode,
+      pricingGroupKey,
+      stockQty: Number(row.stock_qty || 0),
+      costPrice,
+      retailPriceBefore: retailBefore,
+      retailPriceAfter: retailAfter,
+      wholesalePriceBefore: wholesaleBefore,
+      wholesalePriceAfter: wholesaleAfter,
+      hasActiveOffer,
+      hasCustomerPrice,
+      skipped,
+      skipReasons,
+      changed,
+      belowCostAfter,
+    } satisfies PricingPreviewRow;
+  }
+
+  private buildPreviewSkipReasons(params: {
+    previewOptions: ReturnType<PricingService['normalizePreviewOptions']>;
+    hasActiveOffer: boolean;
+    hasCustomerPrice: boolean;
+    pricingMode: 'standard' | 'inherit' | 'manual';
+  }): string[] {
+    const { previewOptions, hasActiveOffer, hasCustomerPrice, pricingMode } = params;
+    const skipReasons: string[] = [];
+    if (previewOptions.skipActiveOffers && hasActiveOffer) skipReasons.push('offer');
+    if (previewOptions.skipCustomerPrices && hasCustomerPrice) skipReasons.push('customer_price');
+    if (previewOptions.skipManualExceptions && pricingMode === 'manual') skipReasons.push('manual_exception');
+    return skipReasons;
+  }
+
+  private buildPreviewSummary(allRows: PricingPreviewRow[]) {
     const effectiveRows = allRows.filter((row) => !row.skipped && row.changed);
-    const summary = {
+    return {
       matchedCount: allRows.length,
       affectedCount: effectiveRows.length,
       skippedOfferCount: allRows.filter((row) => row.skipReasons.includes('offer')).length,
@@ -739,23 +839,20 @@ export class PricingService {
       stockMarginBefore: Number(effectiveRows.reduce((sum, row) => sum + (row.stockQty * (row.retailPriceBefore - row.costPrice)), 0).toFixed(2)),
       stockMarginAfter: Number(effectiveRows.reduce((sum, row) => sum + (row.stockQty * (row.retailPriceAfter - row.costPrice)), 0).toFixed(2)),
     };
+  }
 
-    if (!options.paginate) {
-      return {
-        rows: allRows,
-        paging: { page: 1, pageSize: allRows.length || paging.pageSize, totalItems: allRows.length, totalPages: 1 },
-        summary,
-      };
-    }
-
-    const totalItems = allRows.length;
+  private paginatePreviewRows(
+    rows: PricingPreviewRow[],
+    pagingInput: PricingPreviewPayload['paging'] | { page?: number; pageSize?: number } | undefined,
+    summary: Record<string, unknown>,
+  ): { rows: PricingPreviewRow[]; paging: { page: number; pageSize: number; totalItems: number; totalPages: number }; summary: Record<string, unknown> } {
+    const paging = this.normalizePaging(pagingInput);
+    const totalItems = rows.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / paging.pageSize));
     const page = Math.min(paging.page, totalPages);
     const start = (page - 1) * paging.pageSize;
-    const rows = allRows.slice(start, start + paging.pageSize);
-
     return {
-      rows,
+      rows: rows.slice(start, start + paging.pageSize),
       paging: { page, pageSize: paging.pageSize, totalItems, totalPages },
       summary,
     };

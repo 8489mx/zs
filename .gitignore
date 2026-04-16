@@ -22,3 +22,9 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# additional generated artifacts
+**/*.tsbuildinfo
+**/coverage/
+**/test-results/
+*.zip
