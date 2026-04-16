@@ -10,6 +10,7 @@ import {
   PosWorkspaceStartupIssues,
 } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import {
+  getPostSalePrintMode,
   getSelectedCustomerName,
   printCurrentPosDraft,
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
@@ -27,6 +28,7 @@ export function PosWorkspace() {
   const selectedCustomerName = useMemo(() => getSelectedCustomerName(pos), [pos]);
 
   const paymentModeLabel = useMemo(() => paymentLabel(pos.paymentType, pos.paymentChannel), [pos.paymentChannel, pos.paymentType]);
+  const postSalePrintMode = useMemo(() => getPostSalePrintMode(pos.settingsQuery.data || null), [pos.settingsQuery.data]);
 
   const printCurrentDraft = useCallback(() => {
     printCurrentPosDraft(pos, selectedCustomerName);
@@ -157,13 +159,17 @@ export function PosWorkspace() {
       } else if (event.key === 'F9') {
         event.preventDefault();
         if (pos.canShowLastSaleActions) {
-          pos.printReceiptNow();
+          if (postSalePrintMode === 'receipt') {
+            pos.printReceiptNow();
+          } else {
+            pos.printA4Now();
+          }
         } else {
           void pos.handleSubmit({ fastCash: true });
         }
       } else if (event.key === 'F12') {
         event.preventDefault();
-        if (pos.canShowLastSaleActions) pos.printA4Now();
+        if (pos.canShowLastSaleActions && postSalePrintMode === 'a4') pos.printA4Now();
       } else if (event.key === 'Escape' && pos.cart.length) {
         event.preventDefault();
         pos.resetPosDraft();
@@ -171,7 +177,7 @@ export function PosWorkspace() {
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [focusBarcodeEntry, pos, printCurrentDraft]);
+  }, [focusBarcodeEntry, pos, postSalePrintMode, printCurrentDraft]);
 
   return (
     <div className="page-stack page-shell pos-workspace pos-premium-shell">
@@ -223,6 +229,7 @@ export function PosWorkspace() {
             submitMessage={pos.submitMessage}
             lastSaleDocNo={pos.lastSale?.docNo || pos.lastSale?.id || ''}
             canShowLastSaleActions={pos.canShowLastSaleActions}
+            postSalePrintMode={postSalePrintMode}
             quickCustomerName={pos.quickCustomerName}
             quickCustomerPhone={pos.quickCustomerPhone}
             isQuickCustomerPending={pos.quickCustomerMutation.isPending}

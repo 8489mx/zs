@@ -1,13 +1,16 @@
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { getPostSalePrintHint } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 export function PosCartFooter(props: Pick<PosCartPanelProps,
-  'totals' | 'paymentType' | 'amountDue' | 'submitMessage' | 'isError' | 'canShowLastSaleActions' | 'lastSaleDocNo' |
+  'totals' | 'paymentType' | 'amountDue' | 'submitMessage' | 'isError' | 'canShowLastSaleActions' | 'postSalePrintMode' | 'lastSaleDocNo' |
   'canSubmitSale' | 'canSubmitHint' | 'cart' | 'heldDrafts' | 'isPending' |
   'onPrintPreview' | 'onHoldDraft' | 'onResetDraft' | 'onSubmit' | 'onReprintLastSale' | 'onPrintReceiptNow' | 'onPrintA4Now' | 'onExportPdfNow' |
   'onExportHeldDrafts' | 'onClearHeldDrafts' | 'onRecallDraft' | 'onDeleteDraft' | 'selectedLineKey'
 >) {
+  const postSalePrintMode = props.postSalePrintMode || 'a4';
+
   return (
     <>
       <div className="metric-list pos-totals-list pos-totals-list-premium">
@@ -22,7 +25,7 @@ export function PosCartFooter(props: Pick<PosCartPanelProps,
           <div>{props.submitMessage}</div>
           {!props.isError && props.canShowLastSaleActions ? (
             <div className="pos-post-sale-inline-note">
-              <span className="muted small pos-post-sale-hint">بعد الحفظ: F9 ريسيت / طباعة ريسيت، F12 لطباعة A4، ويمكنك بدء عميل جديد مباشرة.</span>
+              <span className="muted small pos-post-sale-hint">{getPostSalePrintHint(postSalePrintMode)}</span>
               {props.lastSaleDocNo ? <span className="status-badge">{props.lastSaleDocNo}</span> : null}
             </div>
           ) : null}
@@ -41,8 +44,11 @@ export function PosCartFooter(props: Pick<PosCartPanelProps,
             <span className="muted small">اطبع مباشرة أو ابدأ عملية جديدة. اختصارات الكيبورد ما زالت فعالة.</span>
           </div>
           <div className="actions compact-actions pos-post-sale-bar-actions">
-            <Button variant="secondary" onClick={props.onPrintReceiptNow}>ريسيت (F9)</Button>
-            <Button variant="secondary" onClick={props.onPrintA4Now}>A4 (F12)</Button>
+            {postSalePrintMode === 'receipt' ? (
+              <Button variant="secondary" onClick={props.onPrintReceiptNow}>ريسيت (F9)</Button>
+            ) : (
+              <Button variant="secondary" onClick={props.onPrintA4Now}>A4 (F9)</Button>
+            )}
             <Button variant="secondary" onClick={props.onExportPdfNow}>PDF</Button>
             <Button variant="secondary" onClick={props.onReprintLastSale}>إعادة الطباعة</Button>
             <Button variant="success" onClick={props.onResetDraft}>عميل جديد</Button>

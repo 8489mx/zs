@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import type { Branch, Customer, Location } from '@/types/domain';
 import type { PosItem } from '@/features/pos/types/pos.types';
+import type { PosPostSalePrintMode } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
 export type PaymentType = 'cash' | 'credit';
 export type PaymentChannel = 'cash' | 'card' | 'credit' | 'mixed';
@@ -30,6 +31,7 @@ export interface PosCartPanelProps {
   submitMessage: string;
   lastSaleDocNo?: string;
   canShowLastSaleActions?: boolean;
+  postSalePrintMode?: PosPostSalePrintMode;
   quickCustomerName: string;
   quickCustomerPhone: string;
   isQuickCustomerPending: boolean;

@@ -59,6 +59,7 @@ function arePropsEqual(prev: PosCartPanelProps, next: PosCartPanelProps) {
     && prev.submitMessage === next.submitMessage
     && prev.lastSaleDocNo === next.lastSaleDocNo
     && prev.canShowLastSaleActions === next.canShowLastSaleActions
+    && prev.postSalePrintMode === next.postSalePrintMode
     && prev.quickCustomerName === next.quickCustomerName
     && prev.quickCustomerPhone === next.quickCustomerPhone
     && prev.isQuickCustomerPending === next.isQuickCustomerPending

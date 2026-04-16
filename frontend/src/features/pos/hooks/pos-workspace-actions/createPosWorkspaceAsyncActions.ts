@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import type { Sale } from '@/types/domain';
+import { getPostSalePrintHint, getPostSalePrintMode } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 import type { createPosWorkspaceBaseActions } from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions';
 
@@ -115,7 +116,8 @@ export function createPosWorkspaceAsyncActions(
       const createdSaleKey = getSaleKey(createdSale as Sale);
       base.resetPosDraft();
       params.setPostSaleSaleKey(createdSaleKey);
-      params.setSubmitMessage(`تم حفظ فاتورة البيع بنجاح${(createdSale as Sale)?.docNo ? `: ${(createdSale as Sale).docNo}` : ''}. اضغط F9 مرة ثانية لطباعة الريسيت أو ابدأ عميلًا جديدًا مباشرة.`);
+      const postSalePrintMode = getPostSalePrintMode(params.settings || null);
+      params.setSubmitMessage(`تم حفظ فاتورة البيع بنجاح${(createdSale as Sale)?.docNo ? `: ${(createdSale as Sale).docNo}` : ''}. ${getPostSalePrintHint(postSalePrintMode)}`);
       params.requestBarcodeFocus();
     } catch (error) {
       params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر حفظ الفاتورة');
