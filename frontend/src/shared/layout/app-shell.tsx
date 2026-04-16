@@ -1,4 +1,4 @@
-import { CSSProperties, PropsWithChildren, ReactNode, useEffect, useMemo } from 'react';
+import { CSSProperties, PropsWithChildren, ReactNode, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -12,6 +12,12 @@ import { canAccessNavigationItem } from '@/app/router/access';
 import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
+import {
+  POS_SHELL_VISIBILITY_KEY,
+  POS_TOGGLE_CHROME_EVENT,
+  POS_TOGGLE_FULLSCREEN_EVENT,
+  readPosShellPreference,
+} from '@/features/pos/lib/pos-shell';
 
 function SideIcon({ children }: { children: ReactNode }) {
   return (
@@ -201,6 +207,9 @@ export function AppShell({ children }: PropsWithChildren) {
     const trimmed = String(storeName || '').trim();
     return trimmed || DEFAULT_STORE_NAME;
   }, [storeName]);
+  const isPosRoute = location.pathname.startsWith('/pos');
+  const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
+
   const visibleNavigationItems = useMemo(() => {
     const hiddenKeys = new Set<string>([]);
     const preferredOrder = [
@@ -278,6 +287,75 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [location.pathname, queryClient]);
 
   useEffect(() => {
+    if (!isPosRoute) {
+      setIsPosChromeHidden(false);
+      return;
+    }
+
+    setIsPosChromeHidden(readPosShellPreference());
+  }, [isPosRoute]);
+
+  useEffect(() => {
+    if (!isPosRoute || typeof window === 'undefined') return;
+    window.localStorage.setItem(POS_SHELL_VISIBILITY_KEY, isPosChromeHidden ? 'hidden' : 'shown');
+  }, [isPosChromeHidden, isPosRoute]);
+
+  useEffect(() => {
+    if (!isPosRoute || typeof window === 'undefined') return undefined;
+
+    const toggleChrome = () => setIsPosChromeHidden((current: boolean) => !current);
+
+    const toggleFullscreen = async () => {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen?.();
+          setIsPosChromeHidden(true);
+          return;
+        }
+
+        await document.exitFullscreen?.();
+        setIsPosChromeHidden(false);
+      } catch {
+        // ignore fullscreen errors triggered by browser policies
+      }
+    };
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === 'F10') {
+        event.preventDefault();
+        toggleChrome();
+        return;
+      }
+
+      if (event.key === 'F11') {
+        event.preventDefault();
+        void toggleFullscreen();
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      if (document.fullscreenElement) {
+        setIsPosChromeHidden(true);
+        return;
+      }
+
+      setIsPosChromeHidden(readPosShellPreference());
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome);
+    window.addEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome);
+      window.removeEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [isPosRoute]);
+
+  useEffect(() => {
     const resetScroll = () => {
       const contentWrap = document.querySelector('.content-wrap') as HTMLElement | null;
       const pageStack = document.querySelector('.content-wrap .page-stack') as HTMLElement | null;
@@ -311,7 +389,8 @@ export function AppShell({ children }: PropsWithChildren) {
   const cleanWorkspaceName = workspaceName.replace(/^\s*["'”“]+|["'”“]+\s*$/g, '').trim() || workspaceName;
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
+      {!isPosRoute || !isPosChromeHidden ? (
       <aside className="sidebar-fixed">
         <div className="brand">
           <div className="brand-copy">
@@ -353,12 +432,13 @@ export function AppShell({ children }: PropsWithChildren) {
           <Button variant="danger" onClick={handleLogout} className="full-width">تسجيل الخروج</Button>
         </div>
       </aside>
-      <div className="content-wrap">
+      ) : null}
+      <div className={`content-wrap ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
         <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
           <BootstrapAdminBanner />
           <SystemStatusBanner />
         </div>
-        <main className="page-stack">{children}</main>
+        <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
       </div>
       <PasswordRotationGate />
     </div>

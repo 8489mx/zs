@@ -31,14 +31,6 @@ interface PosProductsPanelProps {
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
 
-const shelfLabels: Record<PosGroupShelf, string> = {
-  all: 'الكل',
-  choices: 'بها اختيارات',
-  direct: 'مباشرة',
-  favorites: 'المفضلة',
-  recent: 'آخر استخدام',
-};
-
 function readFavoriteKeys() {
   if (typeof window === 'undefined') return [] as string[];
   try {
@@ -234,6 +226,11 @@ function PosProductsPanelComponent({
   );
   const selectedGroup = visibleGroups[selectedIndex] || null;
   const openGroup = groupedProducts.find((group) => group.key === openGroupKey) || null;
+  const searchQuery = search.trim();
+  const searchStatusMessage = scannerMessage
+    || (searchQuery
+      ? `جاهز للإضافة الآن${selectedGroup ? `: ${selectedGroup.title}` : ''}. اضغط Enter لإرسال أول نتيجة.`
+      : 'المؤشر جاهز للمسح الآن. اضرب الباركود أو اكتب الاسم ثم اضغط Enter.');
 
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem(favoritesStorageKey, JSON.stringify(favoriteKeys));
@@ -364,28 +361,58 @@ function PosProductsPanelComponent({
           </div>
         ) : null}
 
+        <div className="pos-scan-hero">
+          <div className="pos-scan-hero-copy">
+            <span className="pos-scan-kicker">barcode first</span>
+            <strong>وضع الباركود السريع</strong>
+            <span className={`pos-scan-hero-status ${scannerMessage ? 'is-success' : ''}`.trim()}>{searchStatusMessage}</span>
+          </div>
+          <div className="actions compact-actions pos-scan-hero-actions">
+            <Button type="button" variant="secondary" onClick={() => focusSearchInput(searchInputRef)}>تركيز البحث (F3)</Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => {
+                onSearchSubmitFirstResult();
+                focusSearchInput(searchInputRef);
+              }}
+              disabled={!searchQuery}
+            >
+              إضافة أول نتيجة (Enter)
+            </Button>
+          </div>
+        </div>
+
         <div className="pos-toolbar-shell pos-toolbar-shell-compact">
           <div className="pos-products-toolbar-stack">
             <div className="pos-products-top-row pos-products-top-row-unified">
               <div className="pos-products-unified-search-field">
-                <Field label="ابحث بالاسم أو اضرب الباركود">
+                <Field label="امسح الباركود أو اكتب الاسم">
                   <input
                     ref={searchInputRef}
                     autoFocus
                     value={search}
                     onChange={(event) => onSearchChange(event.target.value)}
                     onKeyDown={handleSearchKeyDown}
-                    placeholder="اكتب اسم الصنف أو اضرب الباركود هنا"
+                    placeholder="اضرب الباركود هنا أو اكتب الاسم ثم Enter"
                   />
                 </Field>
+                <div className="muted small pos-search-helper-row">
+                  <span>Enter يضيف أول نتيجة</span>
+                  <span>•</span>
+                  <span>F3 يرجع التركيز للبحث</span>
+                  <span>•</span>
+                  <span>{visibleGroups.length} مجموعة متاحة</span>
+                </div>
               </div>
 
-              <Field label="نوع السعر">
-                <select value={priceType} onChange={(event) => onPriceTypeChange(event.target.value === 'wholesale' ? 'wholesale' : 'retail')}>
-                  <option value="retail">قطاعي</option>
-                  <option value="wholesale">جملة</option>
-                </select>
-              </Field>
+              <div className="field pos-price-toggle-field">
+                <span>نوع السعر</span>
+                <div className="pos-price-toggle-buttons">
+                  <Button type="button" variant={priceType === 'retail' ? 'primary' : 'secondary'} onClick={() => onPriceTypeChange('retail')}>قطاعي</Button>
+                  <Button type="button" variant={priceType === 'wholesale' ? 'primary' : 'secondary'} onClick={() => onPriceTypeChange('wholesale')}>جملة</Button>
+                </div>
+              </div>
 
               <div className="field pos-products-reset-field">
                 <span>إجراء</span>
@@ -398,6 +425,7 @@ function PosProductsPanelComponent({
                     setShelf('all');
                     setOpenGroupKey(null);
                     setSelectedIndex(0);
+                    focusSearchInput(searchInputRef);
                   }}
                 >
                   تفريغ
@@ -407,8 +435,6 @@ function PosProductsPanelComponent({
 
           </div>
         </div>
-
-        {scannerMessage ? <div className="success-box pos-compact-message">{scannerMessage}</div> : null}
 
         <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single">
           <Button

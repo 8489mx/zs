@@ -195,6 +195,14 @@ th {
   padding: 14px var(--content-gutter) 18px;
 }
 
+.app-layout.app-layout-pos-focus .content-wrap.content-wrap-pos-focus {
+  width: 100%;
+  max-width: 100%;
+  flex-basis: 100%;
+  padding: 12px 16px 96px;
+  scrollbar-gutter: auto;
+}
+
 .content-wrap > .page-stack {
   width: 100%;
 }
@@ -267,6 +275,11 @@ th {
   .content-wrap {
     width: calc(100vw - 232px);
     max-width: calc(100vw - 232px);
+  }
+
+  .app-layout.app-layout-pos-focus .content-wrap.content-wrap-pos-focus {
+    width: 100%;
+    max-width: 100%;
   }
 }
 

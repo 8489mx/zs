@@ -1874,3 +1874,46 @@
     gap: 4px;
   }
 }
+
+.pos-workspace .page-header .page-header-actions .actions.pos-header-actions-row--focus {
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.pos-workspace .page-header .page-header-actions .actions.pos-header-actions-row--focus .toolbar-meta-pill {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.app-layout--pos-focus .pos-workspace.pos-premium-shell {
+  gap: 8px;
+}
+
+.app-layout--pos-focus .pos-workspace .page-header {
+  padding: 14px 16px;
+}
+
+.app-layout--pos-focus .pos-grid-premium {
+  grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.4fr);
+  gap: 14px;
+}
+
+.app-layout--pos-focus .pos-workspace .workspace-panel {
+  min-height: calc(100vh - 182px);
+}
+
+.app-layout--pos-focus .pos-workspace .pos-checkout-card {
+  top: 10px;
+}
+
+@media (max-width: 1200px) {
+  .app-layout--pos-focus .pos-grid-premium {
+    grid-template-columns: 1fr;
+  }
+
+  .app-layout--pos-focus .pos-workspace .workspace-panel {
+    min-height: auto;
+  }
+}

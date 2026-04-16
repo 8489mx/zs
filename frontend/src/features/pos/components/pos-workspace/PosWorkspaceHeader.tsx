@@ -4,6 +4,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 
 function buildDescription(pos: PosWorkspaceState) {
   if (!pos.hasOperationalSetup) return 'أكمل تعريف المتجر ونقطة التشغيل أولًا، ثم ارجع للكاشير لإتمام البيع من نفس الشاشة.';
@@ -30,6 +31,8 @@ function PosWorkspaceHeaderComponent({ pos }: { pos: PosWorkspaceState }) {
           {!pos.ownOpenShift ? (
             <Link to="/cash-drawer"><Button>فتح وردية</Button></Link>
           ) : null}
+          <Button variant="secondary" onClick={dispatchPosChromeToggle}>القائمة F10</Button>
+          <Button variant="secondary" onClick={dispatchPosFullscreenToggle}>ملء الشاشة F11</Button>
           <Button variant="secondary" onClick={() => { pos.setSearch(''); pos.setProductFilter('all'); }}>تصفير البحث</Button>
           <Button variant="secondary" onClick={pos.resetPosDraft}>تفريغ السلة</Button>
         </div>

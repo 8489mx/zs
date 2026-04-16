@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
 import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
+import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWorkspaceDock';
 import {
   PosWorkspaceQuickShortcuts,
   PosWorkspaceStartupIssues,
@@ -14,6 +15,7 @@ import {
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
+import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 
 export function PosWorkspace() {
   const pos = usePosWorkspace();
@@ -24,6 +26,8 @@ export function PosWorkspace() {
   const catalogsError = pos.productsQuery.error || pos.customersQuery.error || pos.branchesQuery.error || pos.locationsQuery.error || pos.settingsQuery.error;
 
   const selectedCustomerName = useMemo(() => getSelectedCustomerName(pos), [pos]);
+
+  const paymentModeLabel = useMemo(() => paymentLabel(pos.paymentType, pos.paymentChannel), [pos.paymentChannel, pos.paymentType]);
 
   const printCurrentDraft = useCallback(() => {
     printCurrentPosDraft(pos, selectedCustomerName);
@@ -270,6 +274,28 @@ export function PosWorkspace() {
             onSubmit={() => void pos.handleSubmit()}
           />
         </div>
+
+        <PosWorkspaceDock
+          selectedCustomerName={selectedCustomerName}
+          paymentModeLabel={paymentModeLabel}
+          cartCount={pos.cart.length}
+          total={pos.totals.total}
+          amountDue={pos.paymentType === 'credit' ? pos.totals.total : pos.amountDue}
+          canSubmitSale={pos.canSubmitSale}
+          canSubmitHint={pos.canSubmitHint}
+          isPending={pos.createSale.isPending}
+          onFocusSearch={() => {
+            focusBarcodeEntry();
+          }}
+          onPrintPreview={printCurrentDraft}
+          onResetDraft={pos.resetPosDraft}
+          onHoldDraft={() => {
+            void pos.holdDraft();
+          }}
+          onSubmit={() => {
+            void pos.handleSubmit();
+          }}
+        />
       </QueryFeedback>
     </div>
   );
