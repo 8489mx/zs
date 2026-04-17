@@ -1,55 +1,39 @@
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { getPostSalePrintHint } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 export function PosCartFooter(props: Pick<PosCartPanelProps,
-  'totals' | 'paymentType' | 'amountDue' | 'submitMessage' | 'isError' | 'canShowLastSaleActions' | 'postSalePrintMode' | 'lastSaleDocNo' |
-  'canSubmitSale' | 'canSubmitHint' | 'cart' | 'heldDrafts' | 'isPending' |
-  'onPrintPreview' | 'onHoldDraft' | 'onResetDraft' | 'onSubmit' | 'onReprintLastSale' | 'onPrintReceiptNow' | 'onPrintA4Now' | 'onExportPdfNow' |
-  'onExportHeldDrafts' | 'onClearHeldDrafts' | 'onRecallDraft' | 'onDeleteDraft' | 'selectedLineKey'
+  'paymentType' | 'submitMessage' | 'isError' | 'canShowLastSaleActions' | 'lastSaleDocNo' | 'preferredPrintPageSize' |
+  'canSubmitSale' | 'cart' | 'heldDrafts' | 'isPending' |
+  'onPrintPreview' | 'onHoldDraft' | 'onResetDraft' | 'onSubmit' | 'onReprintLastSale' | 'onPrintReceiptNow' | 'onPrintA4Now' |
+  'onExportHeldDrafts' | 'onClearHeldDrafts' | 'onRecallDraft' | 'onDeleteDraft'
 >) {
-  const postSalePrintMode = props.postSalePrintMode || 'a4';
+  const shouldShowReceiptAction = props.preferredPrintPageSize === 'receipt';
+  const shouldShowA4Action = props.preferredPrintPageSize !== 'receipt';
 
   return (
     <>
-      <div className="metric-list pos-totals-list pos-totals-list-premium">
-        <div className="metric-row"><span>الإجمالي قبل الضريبة</span><strong>{formatCurrency(props.totals.subTotal)}</strong></div>
-        <div className="metric-row"><span>الضريبة</span><strong>{formatCurrency(props.totals.taxAmount)}</strong></div>
-        <div className="metric-row"><span>الإجمالي النهائي</span><strong>{formatCurrency(props.totals.total)}</strong></div>
-        <div className="metric-row"><span>{props.paymentType === 'credit' ? 'المتبقي على العميل' : 'المتبقي الآن'}</span><strong>{formatCurrency(props.paymentType === 'credit' ? props.totals.total : props.amountDue)}</strong></div>
-      </div>
-
       {props.submitMessage ? (
         <div className={props.isError ? 'error-box pos-compact-message' : 'success-box pos-compact-message'}>
           <div>{props.submitMessage}</div>
-          {!props.isError && props.canShowLastSaleActions ? (
+          {!props.isError && props.canShowLastSaleActions && props.lastSaleDocNo ? (
             <div className="pos-post-sale-inline-note">
-              <span className="muted small pos-post-sale-hint">{getPostSalePrintHint(postSalePrintMode)}</span>
-              {props.lastSaleDocNo ? <span className="status-badge">{props.lastSaleDocNo}</span> : null}
+              <span className="status-badge">{props.lastSaleDocNo}</span>
             </div>
           ) : null}
         </div>
       ) : null}
 
-      {!props.canSubmitSale && props.canSubmitHint ? <div className="warning-box pos-compact-message">{props.canSubmitHint}</div> : null}
-
-      {props.selectedLineKey ? <div className="muted small pos-cart-shortcut-hint">اختصارات السطر المحدد: + زيادة · - تقليل · Delete حذف · F2 تعديل الكمية</div> : null}
-
       {props.canShowLastSaleActions ? (
         <div className="actions pos-primary-actions pos-primary-actions-sticky section-actions-clean pos-post-sale-bar">
           <div className="pos-post-sale-bar-copy">
-            <span className="pos-post-sale-bar-kicker">تمت العملية بنجاح</span>
-            <strong>{props.lastSaleDocNo ? `فاتورة ${props.lastSaleDocNo}` : 'آخر فاتورة جاهزة للطباعة'}</strong>
-            <span className="muted small">اطبع مباشرة أو ابدأ عملية جديدة. اختصارات الكيبورد ما زالت فعالة.</span>
+            <span className="pos-post-sale-bar-kicker">تم الحفظ بنجاح</span>
+            <strong>{props.lastSaleDocNo ? `فاتورة ${props.lastSaleDocNo}` : 'آخر فاتورة جاهزة الآن'}</strong>
+            <span className="muted small">اطبع أو ابدأ عميلًا جديدًا مباشرة.</span>
           </div>
           <div className="actions compact-actions pos-post-sale-bar-actions">
-            {postSalePrintMode === 'receipt' ? (
-              <Button variant="secondary" onClick={props.onPrintReceiptNow}>ريسيت (F9)</Button>
-            ) : (
-              <Button variant="secondary" onClick={props.onPrintA4Now}>A4 (F9)</Button>
-            )}
-            <Button variant="secondary" onClick={props.onExportPdfNow}>PDF</Button>
+            {shouldShowReceiptAction ? <Button variant="secondary" onClick={props.onPrintReceiptNow}>ريسيت (F9)</Button> : null}
+            {shouldShowA4Action ? <Button variant="secondary" onClick={props.onPrintA4Now}>A4 (F12)</Button> : null}
             <Button variant="secondary" onClick={props.onReprintLastSale}>إعادة الطباعة</Button>
             <Button variant="success" onClick={props.onResetDraft}>عميل جديد</Button>
           </div>

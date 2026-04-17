@@ -22,11 +22,9 @@ interface PosProductsPanelProps {
   onPriceTypeChange: (value: PosPriceType) => void;
   products: Product[];
   recentProducts: Product[];
-  contextBadges: Array<{ key: string; label: string }>;
   onAddProduct: (product: Product) => void;
   productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent';
   onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent') => void;
-  scannerMessage: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
 }
 
@@ -196,11 +194,9 @@ function PosProductsPanelComponent({
   onPriceTypeChange,
   products,
   recentProducts,
-  contextBadges,
   onAddProduct,
   productFilter,
   onProductFilterChange,
-  scannerMessage,
   searchInputRef,
 }: PosProductsPanelProps) {
   const [shelf, setShelf] = useState<PosGroupShelf>('all');
@@ -227,11 +223,6 @@ function PosProductsPanelComponent({
   );
   const selectedGroup = visibleGroups[selectedIndex] || null;
   const openGroup = groupedProducts.find((group) => group.key === openGroupKey) || null;
-  const searchQuery = search.trim();
-  const searchStatusMessage = scannerMessage
-    || (searchQuery
-      ? `جاهز للإضافة الآن${selectedGroup ? `: ${selectedGroup.title}` : ''}. اضغط Enter لإرسال أول نتيجة.`
-      : 'المؤشر جاهز للمسح الآن. اضرب الباركود أو اكتب الاسم ثم اضغط Enter.');
 
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem(favoritesStorageKey, JSON.stringify(favoriteKeys));
@@ -356,33 +347,6 @@ function PosProductsPanelComponent({
       className="workspace-panel pos-products-card pos-products-card-compact pos-products-card-density-compact"
     >
       <div className="pos-products-static">
-        {contextBadges.length ? (
-          <div className="badge-row pos-context-chip-row pos-context-chip-row-compact">
-            {contextBadges.slice(0, 4).map((badge) => <span key={badge.key} className="cashier-chip">{badge.label}</span>)}
-          </div>
-        ) : null}
-
-        <div className="pos-scan-hero">
-          <div className="pos-scan-hero-copy">
-            <span className="pos-scan-kicker">barcode first</span>
-            <strong>وضع الباركود السريع</strong>
-            <span className={`pos-scan-hero-status ${scannerMessage ? 'is-success' : ''}`.trim()}>{searchStatusMessage}</span>
-          </div>
-          <div className="actions compact-actions pos-scan-hero-actions">
-            <Button type="button" variant="secondary" onClick={() => focusSearchInput(searchInputRef)}>تركيز البحث (F3)</Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => {
-                onSearchSubmitFirstResult();
-                focusSearchInput(searchInputRef);
-              }}
-              disabled={!searchQuery}
-            >
-              إضافة أول نتيجة (Enter)
-            </Button>
-          </div>
-        </div>
 
         <div className="pos-toolbar-shell pos-toolbar-shell-compact">
           <div className="pos-products-toolbar-stack">
@@ -398,13 +362,6 @@ function PosProductsPanelComponent({
                     placeholder="اضرب الباركود هنا أو اكتب الاسم ثم Enter"
                   />
                 </Field>
-                <div className="muted small pos-search-helper-row">
-                  <span>Enter يضيف أول نتيجة</span>
-                  <span>•</span>
-                  <span>F3 يرجع التركيز للبحث</span>
-                  <span>•</span>
-                  <span>{visibleGroups.length} مجموعة متاحة</span>
-                </div>
               </div>
 
               <div className="field pos-price-toggle-field">
@@ -560,9 +517,7 @@ function arePropsEqual(prev: PosProductsPanelProps, next: PosProductsPanelProps)
     && prev.priceType === next.priceType
     && prev.products === next.products
     && prev.recentProducts === next.recentProducts
-    && prev.contextBadges === next.contextBadges
-    && prev.productFilter === next.productFilter
-    && prev.scannerMessage === next.scannerMessage;
+    && prev.productFilter === next.productFilter;
 }
 
 export const PosProductsPanel = memo(PosProductsPanelComponent, arePropsEqual);

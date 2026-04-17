@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
-import type { Sale } from '@/types/domain';
+import type { Customer, Sale } from '@/types/domain';
 import { getPostSalePrintHint, getPostSalePrintMode } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import { catalogApi } from '@/lib/api/catalog';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 import type { createPosWorkspaceBaseActions } from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions';
 
@@ -13,6 +14,24 @@ interface SubmitOptions {
   fastCash?: boolean;
 }
 
+function extractCustomerId(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') return '';
+  const candidate = payload as {
+    id?: string | number;
+    customer?: { id?: string | number } | null;
+    data?: { id?: string | number; customer?: { id?: string | number } | null } | null;
+  };
+  const id = candidate.id ?? candidate.customer?.id ?? candidate.data?.id ?? candidate.data?.customer?.id ?? '';
+  return id === '' || id == null ? '' : String(id);
+}
+
+function matchesCreatedCustomer(customer: Customer, name: string, phone: string) {
+  const customerName = String(customer.name || '').trim();
+  const customerPhone = String(customer.phone || '').trim();
+  if (phone) return customerName === name && customerPhone === phone;
+  return customerName === name;
+}
+
 export function createPosWorkspaceAsyncActions(
   params: PosWorkspaceActionParams,
   base: ReturnType<typeof createPosWorkspaceBaseActions>,
@@ -20,21 +39,32 @@ export function createPosWorkspaceAsyncActions(
   async function handleQuickCustomerSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = params.quickCustomerName.trim();
+    const phone = params.quickCustomerPhone.trim();
     if (!name) return;
     try {
       const created = await params.quickCustomerMutation.mutateAsync({
         name,
-        phone: params.quickCustomerPhone.trim(),
+        phone,
         address: '',
         balance: 0,
         type: 'cash',
         creditLimit: 0,
       });
+
+      let createdCustomerId = extractCustomerId(created);
+      if (!createdCustomerId) {
+        const refreshedCustomers = await catalogApi.listCustomers();
+        const matchedCustomer = [...refreshedCustomers].reverse().find((customer) => matchesCreatedCustomer(customer, name, phone));
+        createdCustomerId = matchedCustomer ? String(matchedCustomer.id) : '';
+      }
+
       params.setQuickCustomerName('');
       params.setQuickCustomerPhone('');
-      params.setCustomerId(String((created as { id?: string | number } | null)?.id || ''));
+      if (createdCustomerId) params.setCustomerId(createdCustomerId);
       params.setPostSaleSaleKey('');
-      params.setSubmitMessage('تم إضافة العميل وتحديده داخل فاتورة الكاشير');
+      params.setSubmitMessage(createdCustomerId
+        ? 'تم إضافة العميل وتحديده داخل فاتورة الكاشير'
+        : 'تم إضافة العميل لكن تعذر تحديده تلقائيًا');
       params.requestBarcodeFocus();
     } catch (error) {
       params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر إضافة العميل');

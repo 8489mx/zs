@@ -4,6 +4,7 @@ export interface PosItem {
   lineKey: string;
   productId: string;
   name: string;
+  itemCode?: string;
   unitId: string;
   unitName: string;
   unitMultiplier: number;

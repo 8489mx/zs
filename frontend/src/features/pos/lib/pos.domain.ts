@@ -30,6 +30,10 @@ function getActiveOffer(product: Product & { offers?: Array<{ type?: string; val
   }) || null;
 }
 
+function getProductItemCode(product: Product, unit?: ProductUnit) {
+  return String(product.styleCode || unit?.barcode || product.barcode || product.id || '').trim();
+}
+
 export function getProductPrice(product: Product, priceType: PosPriceType) {
   let price = Number(priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
   const offer = getActiveOffer(product as Product & { offers?: Array<{ type?: string; value?: number; from?: string; to?: string }> });
@@ -73,6 +77,7 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     lineKey,
     productId: product.id,
     name: product.name,
+    itemCode: getProductItemCode(product, unit),
     unitId: unit.id,
     unitName: unit.name,
     unitMultiplier: Math.max(Number(unit.multiplier || 1), 1),
@@ -115,6 +120,7 @@ export function syncPosCartStock(cart: PosItem[], products: Product[]) {
       ...item,
       unitId: String(unit.id || item.unitId || ''),
       unitName: unit.name || item.unitName,
+      itemCode: getProductItemCode(product, unit) || item.itemCode,
       unitMultiplier: Math.max(Number(unit.multiplier || 1), 1),
       stockLimit,
       currentStock: Number(product.stock || 0),

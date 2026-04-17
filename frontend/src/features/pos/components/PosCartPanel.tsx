@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import { Card } from '@/shared/ui/card';
-import { PosCartSummary } from '@/features/pos/components/pos-cart-panel/PosCartSummary';
 import { PosCartMetaForm } from '@/features/pos/components/pos-cart-panel/PosCartMetaForm';
 import { PosCartPaymentSection } from '@/features/pos/components/pos-cart-panel/PosCartPaymentSection';
 import { PosCartItemsList } from '@/features/pos/components/pos-cart-panel/PosCartItemsList';
@@ -16,12 +15,9 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
   return (
     <Card
       title="2. مراجعة السلة والدفع"
-      description="راجع العميل، طريقة السداد، والإجمالي النهائي قبل تأكيد الفاتورة أو تعليقها."
-      actions={<span className="nav-pill">{props.cart.length} عناصر</span>}
       className="workspace-panel pos-checkout-card pos-checkout-card-compact"
     >
       <div className="pos-checkout-static">
-        <PosCartSummary {...props} />
         <PosCartMetaForm {...props} />
         <PosCartPaymentSection {...props} />
 
@@ -33,9 +29,11 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
         ) : null}
       </div>
 
-      <div className="pos-checkout-body">
-        <PosCartItemsList {...props} />
-        <PosCartFooter {...props} />
+      <div className="pos-checkout-scroll">
+        <div className="pos-checkout-body">
+          <PosCartItemsList {...props} />
+          <PosCartFooter {...props} />
+        </div>
       </div>
     </Card>
   );
@@ -59,7 +57,6 @@ function arePropsEqual(prev: PosCartPanelProps, next: PosCartPanelProps) {
     && prev.submitMessage === next.submitMessage
     && prev.lastSaleDocNo === next.lastSaleDocNo
     && prev.canShowLastSaleActions === next.canShowLastSaleActions
-    && prev.postSalePrintMode === next.postSalePrintMode
     && prev.quickCustomerName === next.quickCustomerName
     && prev.quickCustomerPhone === next.quickCustomerPhone
     && prev.isQuickCustomerPending === next.isQuickCustomerPending

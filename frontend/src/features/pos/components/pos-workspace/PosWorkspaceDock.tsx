@@ -6,7 +6,10 @@ interface PosWorkspaceDockProps {
   paymentModeLabel: string;
   cartCount: number;
   total: number;
+  paidAmount: number;
+  changeAmount: number;
   amountDue: number;
+  isCredit: boolean;
   canSubmitSale: boolean;
   canSubmitHint: string;
   isPending: boolean;
@@ -22,7 +25,10 @@ export function PosWorkspaceDock({
   paymentModeLabel,
   cartCount,
   total,
+  paidAmount,
+  changeAmount,
   amountDue,
+  isCredit,
   canSubmitSale,
   canSubmitHint,
   isPending,
@@ -35,13 +41,15 @@ export function PosWorkspaceDock({
   const summaryItems = [
     { key: 'customer', label: 'العميل', value: selectedCustomerName || 'عميل نقدي' },
     { key: 'items', label: 'العناصر', value: String(cartCount) },
-    { key: 'total', label: 'الإجمالي', value: formatCurrency(total) },
     { key: 'payment', label: 'الدفع', value: paymentModeLabel },
+    { key: 'total', label: 'المطلوب دفعه', value: formatCurrency(total) },
+    { key: 'paid', label: 'المدفوع', value: formatCurrency(isCredit ? 0 : paidAmount) },
+    { key: 'change', label: isCredit ? 'المتبقي على العميل' : 'الباقي للعميل', value: formatCurrency(isCredit ? amountDue : changeAmount) },
   ];
 
   return (
     <section className="pos-workspace-dock" aria-label="شريط الكاشير السريع">
-      <div className="pos-workspace-dock-summary">
+      <div className="pos-workspace-dock-summary pos-workspace-dock-summary-extended">
         {summaryItems.map((item) => (
           <div key={item.key} className="pos-workspace-dock-chip">
             <span>{item.label}</span>
@@ -51,11 +59,8 @@ export function PosWorkspaceDock({
       </div>
 
       <div className="pos-workspace-dock-main">
-        <div className="pos-workspace-dock-copy">
-          <div className="pos-workspace-dock-total">المطلوب الآن: <strong>{formatCurrency(amountDue)}</strong></div>
-          <div className={`pos-workspace-dock-hint ${canSubmitSale ? 'is-ready' : 'is-warning'}`.trim()}>
-            {canSubmitSale ? 'جاهز للإتمام الآن.' : (canSubmitHint || 'أكمل البيانات المطلوبة قبل إتمام البيع.')}
-          </div>
+        <div className={`pos-workspace-dock-hint ${canSubmitSale ? 'is-ready' : 'is-warning'}`.trim()}>
+          {canSubmitSale ? 'جاهز للإتمام الآن.' : (canSubmitHint || 'أكمل البيانات المطلوبة قبل إتمام البيع.')}
         </div>
 
         <div className="pos-workspace-dock-actions">
