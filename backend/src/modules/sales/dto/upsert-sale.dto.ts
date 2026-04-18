@@ -83,6 +83,10 @@ export class UpsertSaleDto {
   @IsString()
   note?: string;
 
+  @IsOptional()
+  @IsString()
+  managerPin?: string;
+
   @Type(() => Number)
   @IsOptional()
   @IsNumber()
@@ -117,6 +121,7 @@ export type NormalizedSalePayload = {
   pricesIncludeTax: boolean;
   storeCreditUsed: number;
   note: string;
+  managerPin: string;
   branchId: number | null;
   locationId: number | null;
   items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale' }>;

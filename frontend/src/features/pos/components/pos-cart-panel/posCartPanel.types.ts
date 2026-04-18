@@ -41,6 +41,8 @@ export interface PosCartPanelProps {
   amountDue: number;
   hasOpenShift: boolean;
   canApplyDiscount: boolean;
+  discountApprovalGranted?: boolean;
+  isDiscountAuthorizationPending?: boolean;
   hasDiscountPermissionViolation?: boolean;
   hasPricePermissionViolation?: boolean;
   canSubmitSale: boolean;
@@ -59,6 +61,7 @@ export interface PosCartPanelProps {
   onCashAmountChange: (value: number) => void;
   onCardAmountChange: (value: number) => void;
   onDiscountChange: (value: number) => void;
+  onRequestDiscountAuthorization: () => void;
   onNoteChange: (value: string) => void;
   onQtyChange: (lineKey: string, qty: number) => void;
   onRemoveItem: (lineKey: string) => void;

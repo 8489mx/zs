@@ -32,7 +32,7 @@ export function CashDrawerPage() {
       <CashDrawerStatsGrid
         totalItems={controller.summary.totalItems}
         openShiftCount={controller.openShiftCount}
-        openShiftDocNo={controller.openShift?.docNo}
+        openShiftLabel={controller.openShift?.openedByName || controller.openShift?.docNo}
         totalVariance={controller.totalVariance}
       />
 

@@ -8,14 +8,12 @@ export type PosWorkspaceState = ReturnType<typeof usePosWorkspace>;
 export type PosPostSalePrintMode = 'receipt' | 'a4';
 
 export const POS_SHORTCUTS = [
-  { key: 'F2', label: 'تركيز البحث' },
+  { key: 'F2', label: 'إتمام البيع / الطباعة بعد الحفظ' },
   { key: 'F3', label: 'قارئ الباركود' },
   { key: 'F4', label: 'تعليق الفاتورة' },
   { key: 'F6', label: 'إعادة طباعة آخر فاتورة' },
+  { key: 'F7', label: 'تعديل كمية السطر المحدد' },
   { key: 'F8', label: 'معاينة الطباعة' },
-  { key: 'F9', label: 'إتمام البيع / الطباعة بعد الحفظ' },
-  { key: 'F10', label: 'إظهار / إخفاء القائمة' },
-  { key: 'F11', label: 'ملء الشاشة' },
   { key: 'F12', label: 'طباعة A4 عند تفعيلها' },
   { key: 'Esc', label: 'تفريغ السلة' },
 ] as const;
@@ -34,8 +32,8 @@ export function getPostSalePrintLabel(mode: PosPostSalePrintMode) {
 
 export function getPostSalePrintHint(mode: PosPostSalePrintMode) {
   return mode === 'receipt'
-    ? 'بعد الحفظ: F9 لطباعة الريسيت أو ابدأ عميلًا جديدًا مباشرة.'
-    : 'بعد الحفظ: F9 لطباعة A4 أو ابدأ عميلًا جديدًا مباشرة.';
+    ? 'بعد الحفظ: F2 لطباعة الريسيت أو ابدأ عميلًا جديدًا مباشرة.'
+    : 'بعد الحفظ: F2 لطباعة A4 أو ابدأ عميلًا جديدًا مباشرة.';
 }
 
 export function getStartupIssues(pos: PosWorkspaceState) {
@@ -50,7 +48,7 @@ export function getWorkflowSteps(pos: PosWorkspaceState) {
   return [
     { key: 'pick', title: '1. اختر الأصناف', hint: pos.cart.length ? `${pos.cart.length} عنصر داخل السلة` : 'ابدأ بالبحث أو الباركود' },
     { key: 'review', title: '2. راجع الدفع', hint: pos.paymentType === 'credit' ? 'تحقق من العميل والمديونية' : `المتبقي الآن ${pos.amountDue > 0 ? 'غير مكتمل' : 'مكتمل'}` },
-    { key: 'submit', title: '3. أكد الفاتورة', hint: pos.canShowLastSaleActions ? getPostSalePrintHint(getPostSalePrintMode(pos.settingsQuery.data || null)) : pos.canSubmitSale ? 'جاهزة للإتمام بـ F9' : pos.canSubmitHint || 'أكمل المطلوب أولًا' },
+    { key: 'submit', title: '3. أكد الفاتورة', hint: pos.canShowLastSaleActions ? getPostSalePrintHint(getPostSalePrintMode(pos.settingsQuery.data || null)) : pos.canSubmitSale ? 'جاهزة للإتمام بـ F2' : pos.canSubmitHint || 'أكمل المطلوب أولًا' },
   ];
 }
 

@@ -16,6 +16,10 @@ export interface PosWorkspaceActionParams {
   setCustomerId: Dispatch<SetStateAction<string>>;
   discount: number;
   setDiscount: Dispatch<SetStateAction<number>>;
+  discountApprovalGranted: boolean;
+  setDiscountApprovalGranted: Dispatch<SetStateAction<boolean>>;
+  discountApprovalSecret: string;
+  setDiscountApprovalSecret: Dispatch<SetStateAction<string>>;
   cashAmount: number;
   setCashAmount: Dispatch<SetStateAction<number>>;
   cardAmount: number;
@@ -71,6 +75,7 @@ export interface PosWorkspaceActionParams {
   saveHeldDraftMutation: { mutateAsync: (payload: unknown) => Promise<unknown> };
   deleteHeldDraftMutation: { mutateAsync: (draftId: string) => Promise<unknown> };
   clearHeldDraftsMutation: { mutateAsync: () => Promise<unknown> };
+  discountAuthorizationMutation: { mutateAsync: (secret: string) => Promise<unknown>; isPending?: boolean };
 }
 
 export { createPosWorkspaceBaseActions, createPosWorkspaceAsyncActions, createPosWorkspaceReceiptActions };

@@ -78,6 +78,17 @@ export class CatalogProductService {
     return actor?.role === 'super_admin' || Boolean(actor?.permissions?.includes(permission));
   }
 
+  private normalizeDateOnly(value: unknown): string {
+    if (!value) return '';
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+    const text = String(value).trim();
+    if (!text) return '';
+    const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoMatch) return isoMatch[1];
+    const parsed = new Date(text);
+    return Number.isNaN(parsed.getTime()) ? text : parsed.toISOString().slice(0, 10);
+  }
+
   private async getProductOfferColumnCapabilities(): Promise<ProductOfferColumnCapabilities> {
     if (!this.productOfferColumnCapabilitiesPromise) {
       this.productOfferColumnCapabilitiesPromise = sql<{ column_name: string }>`
@@ -358,8 +369,8 @@ export class CatalogProductService {
         type: offer.offer_type === 'price' ? 'price' : offer.offer_type === 'fixed' ? 'fixed' : 'percent',
         value: Number(offer.value || 0),
         minQty: Math.max(1, Number(offer.min_qty || 1)),
-        from: offer.start_date ? String(offer.start_date) : '',
-        to: offer.end_date ? String(offer.end_date) : '',
+        from: this.normalizeDateOnly(offer.start_date),
+        to: this.normalizeDateOnly(offer.end_date),
       });
     }
 

@@ -40,7 +40,10 @@ function getSaleKey(sale: { docNo?: string | number; id?: string | number } | nu
 
 export function usePosWorkspace() {
   const state = usePosWorkspaceState();
-  const paidAmount = state.paymentType === 'credit' ? 0 : Number((Number(state.cashAmount || 0) + Number(state.cardAmount || 0)).toFixed(2));
+  const paidAmount = state.paymentType === 'credit'
+    ? 0
+    : Number((Number(state.cashAmount || 0) + Number(state.cardAmount || 0)).toFixed(2));
+
   const { saleProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search, state.locationId);
   const createSale = usePosSaleMutation();
   const queryClient = useQueryClient();
@@ -97,6 +100,7 @@ export function usePosWorkspace() {
     productFilter: state.productFilter,
     cart: state.cart,
     discount: state.discount,
+    discountApprovalGranted: state.discountApprovalGranted,
     paidAmount,
     paymentType: state.paymentType,
     paymentChannel: state.paymentChannel,
@@ -115,6 +119,10 @@ export function usePosWorkspace() {
     setCustomerId: state.setCustomerId,
     discount: state.discount,
     setDiscount: state.setDiscount,
+    discountApprovalGranted: state.discountApprovalGranted,
+    setDiscountApprovalGranted: state.setDiscountApprovalGranted,
+    discountApprovalSecret: state.discountApprovalSecret,
+    setDiscountApprovalSecret: state.setDiscountApprovalSecret,
     cashAmount: state.cashAmount,
     setCashAmount: state.setCashAmount,
     cardAmount: state.cardAmount,
@@ -170,6 +178,7 @@ export function usePosWorkspace() {
     saveHeldDraftMutation: mutations.saveHeldDraftMutation,
     deleteHeldDraftMutation: mutations.deleteHeldDraftMutation,
     clearHeldDraftsMutation: mutations.clearHeldDraftsMutation,
+    discountAuthorizationMutation: mutations.discountAuthorizationMutation,
   });
 
   async function refetchCatalogs() {
@@ -190,6 +199,10 @@ export function usePosWorkspace() {
     setCustomerId: state.setCustomerId,
     discount: state.discount,
     setDiscount: state.setDiscount,
+    discountApprovalGranted: state.discountApprovalGranted,
+    setDiscountApprovalGranted: state.setDiscountApprovalGranted,
+    discountApprovalSecret: state.discountApprovalSecret,
+    setDiscountApprovalSecret: state.setDiscountApprovalSecret,
     paidAmount,
     cashAmount: state.cashAmount,
     setCashAmount: state.setCashAmount,
@@ -213,7 +226,13 @@ export function usePosWorkspace() {
     productFilter: state.productFilter,
     setProductFilter: state.setProductFilter,
     submitMessage: state.submitMessage,
-    canShowLastSaleActions: Boolean(state.postSaleSaleKey && state.lastSale && getSaleKey(state.lastSale) === state.postSaleSaleKey && state.submitMessage && !createSale.isError),
+    canShowLastSaleActions: Boolean(
+      state.postSaleSaleKey
+      && state.lastSale
+      && getSaleKey(state.lastSale) === state.postSaleSaleKey
+      && state.submitMessage
+      && !createSale.isError
+    ),
     setSubmitMessage: state.setSubmitMessage,
     heldDrafts,
     recentProductIds: state.recentProductIds,
@@ -236,6 +255,7 @@ export function usePosWorkspace() {
     saleProducts,
     createSale,
     quickCustomerMutation: mutations.quickCustomerMutation,
+    discountAuthorizationMutation: mutations.discountAuthorizationMutation,
     refetchCatalogs,
     ...derived,
     ...actions,

@@ -139,6 +139,7 @@ export function createPosWorkspaceAsyncActions(
         taxRate: params.totals.taxRate,
         pricesIncludeTax: params.totals.pricesIncludeTax,
         expectedTotal: Number(params.totals.total || 0),
+        managerPin: params.discountApprovalSecret || undefined,
         branchId: params.branchId || (params.currentBranch?.id != null ? String(params.currentBranch.id) : null),
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
       });
@@ -173,6 +174,7 @@ export function createPosWorkspaceAsyncActions(
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
         cashAmount: params.cashAmount,
         cardAmount: params.cardAmount,
+        managerPin: params.discountApprovalSecret || undefined,
         items: params.cart,
       });
       base.resetPosDraft();
@@ -197,6 +199,8 @@ export function createPosWorkspaceAsyncActions(
     params.setNote(draft.note);
     params.setSearch(draft.search);
     params.setPriceType(draft.priceType);
+    params.setDiscountApprovalGranted(false);
+    params.setDiscountApprovalSecret('');
     params.setBranchId(draft.branchId);
     params.setLocationId(draft.locationId);
     await params.deleteHeldDraftMutation.mutateAsync(draftId);

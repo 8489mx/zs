@@ -149,6 +149,7 @@ export function ActionConfirmDialog({
                   setManagerPin(event.target.value);
                   if (submitError) setSubmitError('');
                 }}
+                type="password"
                 placeholder="أدخل الرمز"
                 inputMode="numeric"
                 autoFocus={managerPinRequired && !requiresKeyword}

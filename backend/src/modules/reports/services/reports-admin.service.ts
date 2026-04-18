@@ -8,6 +8,7 @@ import { ReportRangeQueryDto } from '../dto/report-query.dto';
 import { AuditLogRow, buildAuditPayload, buildTreasuryPayload, TreasurySummaryRow, TreasuryTransactionRow } from '../helpers/reports-ops.helper';
 import { applyAuditSearch, applySignedAmountFilter, applyTreasurySearch } from '../helpers/reports-query-pipeline.helper';
 import { buildReportListState } from '../helpers/reports-query.helper';
+import { getBusinessDayBounds } from '../helpers/reports-range.helper';
 
 @Injectable()
 export class ReportsAdminService {
@@ -101,6 +102,8 @@ export class ReportsAdminService {
     }
 
     const { fromDate, toDate, searchPattern, page, pageSize, offset } = buildReportListState(query, 50, { defaultFilter: '' });
+    const selectedUserId = Number(query.userId || 0);
+    const todayBounds = getBusinessDayBounds(new Date());
 
     let countQuery = this.db
       .selectFrom('audit_logs as a')
@@ -121,15 +124,32 @@ export class ReportsAdminService {
       .where('a.created_at', '>=', fromDate!)
       .where('a.created_at', '<=', toDate!);
 
+    let todayCountQuery = this.db
+      .selectFrom('audit_logs as a')
+      .leftJoin('users as u', 'u.id', 'a.created_by')
+      .where('a.created_at', '>=', todayBounds.start)
+      .where('a.created_at', '<=', todayBounds.end);
+
     countQuery = applyAuditSearch(countQuery, searchPattern);
     rowsQuery = applyAuditSearch(rowsQuery, searchPattern);
     distinctUsersQuery = applyAuditSearch(distinctUsersQuery, searchPattern);
+    todayCountQuery = applyAuditSearch(todayCountQuery, searchPattern);
+
+    if (selectedUserId > 0) {
+      countQuery = countQuery.where('a.created_by', '=', selectedUserId);
+      rowsQuery = rowsQuery.where('a.created_by', '=', selectedUserId);
+      distinctUsersQuery = distinctUsersQuery.where('a.created_by', '=', selectedUserId);
+      todayCountQuery = todayCountQuery.where('a.created_by', '=', selectedUserId);
+    }
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
     const rows = await rowsQuery.orderBy('a.id desc').limit(pageSize).offset(offset).execute();
     const distinctUsersRow = await distinctUsersQuery
       .select(sql<number>`count(distinct coalesce(u.username, 'guest'))`.as('count'))
+      .executeTakeFirst();
+    const todayCountRow = await todayCountQuery
+      .select(sql<number>`count(*)`.as('count'))
       .executeTakeFirst();
 
     return buildAuditPayload({
@@ -138,6 +158,7 @@ export class ReportsAdminService {
       pageSize,
       totalItems,
       distinctUsers: Number((distinctUsersRow as { count?: number | string | null } | undefined)?.count || 0),
+      todayCount: Number((todayCountRow as { count?: number | string | null } | undefined)?.count || 0),
     });
   }
 }

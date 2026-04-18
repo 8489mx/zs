@@ -61,7 +61,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           <Field label="الوردية المفتوحة">
             <select {...props.movementForm.register('shiftId')} disabled={props.movementMutation.isPending}>
               <option value="">اختر وردية</option>
-              {props.openOptions.map((shift) => <option key={shift.id} value={shift.id}>{shift.docNo || shift.id}</option>)}
+              {props.openOptions.map((shift) => <option key={shift.id} value={shift.id}>{shift.openedByName || 'وردية'}{shift.docNo ? ` — ${shift.docNo}` : ''}</option>)}
             </select>
           </Field>
           <Field label="النوع">
@@ -82,7 +82,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           <Field label="الوردية المفتوحة">
             <select {...props.closeForm.register('shiftId')} disabled={props.closeMutation.isPending}>
               <option value="">اختر وردية</option>
-              {props.openOptions.map((shift) => <option key={shift.id} value={shift.id}>{shift.docNo || shift.id}</option>)}
+              {props.openOptions.map((shift) => <option key={shift.id} value={shift.id}>{shift.openedByName || 'وردية'}{shift.docNo ? ` — ${shift.docNo}` : ''}</option>)}
             </select>
           </Field>
           <Field label="المبلغ المتوقع"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>

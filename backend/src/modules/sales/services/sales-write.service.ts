@@ -28,10 +28,15 @@ export class SalesWriteService {
     private readonly query: SalesQueryService,
   ) {}
 
-  private assertDiscountChangeAllowed(auth: AuthContext, discount: number): void {
+  private async assertDiscountChangeAllowed(
+    trx: Kysely<Database> | Transaction<Database>,
+    auth: AuthContext,
+    discount: number,
+    managerPin?: string | null,
+  ): Promise<void> {
     if (Math.abs(Number(discount || 0)) <= 0.0001) return;
     if (this.authz.hasPermission(auth, 'canDiscount')) return;
-    throw new AppError('Discount changes require canDiscount permission', 'DISCOUNT_CHANGE_FORBIDDEN', 403);
+    await this.authz.authorizeDiscountOverride(String(managerPin || '').trim(), trx);
   }
 
   private assertUnitPriceChangeAllowed(auth: AuthContext, providedPrice: number, allowedPrice: number): void {
@@ -53,6 +58,11 @@ export class SalesWriteService {
       ]))
       .orderBy('id', 'desc')
       .execute();
+  }
+
+  async authorizeDiscountOverride(secret: string, _auth: AuthContext): Promise<Record<string, unknown>> {
+    const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), this.db);
+    return { ok: true, authorized: true, mode: result.mode, authorizedByName: result.authorizedByName };
   }
 
   async createSale(payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -81,6 +91,7 @@ export class SalesWriteService {
           wholesalePrice: product.wholesale_price,
           priceType: item.priceType,
           offers: activeOffers,
+          qty: item.qty,
         });
         this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
 
@@ -92,7 +103,7 @@ export class SalesWriteService {
         preparedItems.push(preparedItem);
       }
 
-      this.assertDiscountChangeAllowed(auth, normalized.discount);
+      await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, normalized.managerPin);
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
@@ -306,7 +317,7 @@ export class SalesWriteService {
         .filter((entry) => entry.productId > 0 && entry.qty > 0);
 
       if (!items.length) throw new AppError('Held draft must include at least one item', 'HELD_DRAFT_ITEMS_REQUIRED', 400);
-      this.assertDiscountChangeAllowed(auth, Number(payload.discount || 0));
+      await this.assertDiscountChangeAllowed(trx, auth, Number(payload.discount || 0), payload.managerPin);
 
       for (const item of items) {
         const product = await trx.selectFrom('products').select(['id', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
@@ -317,6 +328,7 @@ export class SalesWriteService {
           wholesalePrice: product.wholesale_price,
           priceType: item.priceType,
           offers: activeOffers,
+          qty: item.qty,
         });
         this.assertUnitPriceChangeAllowed(auth, item.unitPrice, allowedUnitPrice);
       }

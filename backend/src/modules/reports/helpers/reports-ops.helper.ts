@@ -77,6 +77,8 @@ export function mapAuditLogs(rows: AuditLogRow[]) {
     details: row.details || '',
     user: row.username || '',
     date: row.created_at || '',
+    createdAt: row.created_at || '',
+    created_at: row.created_at || '',
     createdByName: row.username || '',
   }));
 }
@@ -87,14 +89,16 @@ export function buildAuditPayload(args: {
   pageSize: number;
   totalItems: number;
   distinctUsers: number;
+  todayCount?: number;
 }) {
-  const { rows, page, pageSize, totalItems, distinctUsers } = args;
+  const { rows, page, pageSize, totalItems, distinctUsers, todayCount = 0 } = args;
   return {
     auditLogs: mapAuditLogs(rows),
     pagination: buildPagination(page, pageSize, totalItems),
     summary: {
       totalItems,
       distinctUsers,
+      todayCount,
     },
   };
 }

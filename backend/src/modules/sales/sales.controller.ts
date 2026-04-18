@@ -28,6 +28,12 @@ export class SalesController {
     return this.salesService.createSale(payload, req.authContext!);
   }
 
+  @Post('sales/discount-authorization')
+  @RequirePermissions('sales')
+  authorizeDiscountOverride(@Body() body: { secret?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.salesService.authorizeDiscountOverride(String(body?.secret || ''), req.authContext!);
+  }
+
   @Post('sales/:id/cancel')
   @RequirePermissions('canEditInvoices')
   cancelSale(

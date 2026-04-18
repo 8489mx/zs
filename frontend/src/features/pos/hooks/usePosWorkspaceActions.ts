@@ -13,6 +13,7 @@ interface PosWorkspaceActions {
   handleAddProduct: (product: Product) => void;
   handleQuickAddCodeSubmit: (rawCode?: string) => boolean;
   handleQuickCustomerSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  approveDiscountOverride: (password: string) => Promise<unknown>;
   handleSubmit: (options?: { fastCash?: boolean }) => Promise<void>;
   exportHeldDrafts: () => void;
   holdDraft: () => Promise<void>;
@@ -42,7 +43,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
   const receiptActions = createPosWorkspaceReceiptActions(params);
 
   return {
-    resetPosDraft: base.resetPosDraft,
+    resetPosDraft: () => base.resetPosDraft(),
     handleAddProduct: base.handleAddProduct,
     handleQuickAddCodeSubmit: base.handleQuickAddCodeSubmit,
     exportHeldDrafts: base.exportHeldDrafts,
@@ -57,6 +58,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     removeSelectedItem: base.removeSelectedItem,
     selectAdjacentCartLine: base.selectAdjacentCartLine,
     handleQuickCustomerSubmit: asyncActions.handleQuickCustomerSubmit,
+    approveDiscountOverride: asyncActions.approveDiscountOverride,
     handleSubmit: asyncActions.handleSubmit,
     holdDraft: asyncActions.holdDraft,
     recallDraft: asyncActions.recallDraft,

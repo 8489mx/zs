@@ -37,7 +37,7 @@ export function PosWorkspaceHero({
             ))}
           </div>
           <div className={`surface-note pos-next-step-note ${canSubmitSale ? 'is-ready' : ''}`.trim()}>
-            {canSubmitSale ? 'جاهز للإغلاق الآن. راجع السلة ثم اضغط F9.' : `الخطوة التالية: ${nextStepLabel}`}
+            {canSubmitSale ? 'جاهز للإغلاق الآن. راجع السلة ثم اضغط F2.' : `الخطوة التالية: ${nextStepLabel}`}
           </div>
         </div>
       </Card>

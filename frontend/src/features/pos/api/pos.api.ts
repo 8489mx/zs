@@ -22,6 +22,7 @@ export const posApi = {
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations'), 'locations'),
+  authorizeDiscountOverride: async (secret: string) => http('/api/sales/discount-authorization', { method: 'POST', body: JSON.stringify({ secret }) }),
   createSale: async (payload: unknown, legacyPayload?: unknown, minimalPayload?: unknown) => {
     try {
       return await postSale(payload);

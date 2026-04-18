@@ -15,7 +15,21 @@ function buildDescription(pos: PosWorkspaceState) {
   return `راجع السلة الحالية. ${pos.canSubmitHint || 'أكمل المطلوب أولًا قبل تأكيد الفاتورة.'}`;
 }
 
-function PosWorkspaceHeaderComponent({ pos }: { pos: PosWorkspaceState }) {
+function getShiftHeaderLabel(pos: PosWorkspaceState) {
+  if (!pos.ownOpenShift) return 'لا توجد وردية';
+  const openedByName = String(pos.ownOpenShift.openedByName || '').trim();
+  const docNo = String(pos.ownOpenShift.docNo || '').trim();
+  if (openedByName && docNo) return `الوردية ${openedByName} — ${docNo}`;
+  return `الوردية ${openedByName || docNo || 'مفتوحة'}`;
+}
+
+interface PosWorkspaceHeaderProps {
+  pos: PosWorkspaceState;
+  onFocusSearch: () => void;
+  onPrintDraft: () => void;
+}
+
+function PosWorkspaceHeaderComponent({ pos, onFocusSearch, onPrintDraft }: PosWorkspaceHeaderProps) {
   const paymentMode = paymentLabel(pos.paymentType, pos.paymentChannel);
 
   return (
@@ -23,25 +37,26 @@ function PosWorkspaceHeaderComponent({ pos }: { pos: PosWorkspaceState }) {
       title="الكاشير"
       description={buildDescription(pos)}
       badge={<span className="nav-pill">نقطة البيع</span>}
-      className="page-header--dense pos-page-header"
+      className="page-header--dense pos-page-header pos-page-header-streamlined"
       actions={(
-        <div className="actions compact-actions pos-header-actions-row">
-          <span className="toolbar-meta-pill">{pos.ownOpenShift ? `الوردية ${pos.ownOpenShift.docNo || 'مفتوحة'}` : 'لا توجد وردية'}</span>
+        <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single">
+          <span className="toolbar-meta-pill">{getShiftHeaderLabel(pos)}</span>
           <span className="toolbar-meta-pill">الدفع {paymentMode}</span>
-          {!pos.ownOpenShift ? (
-            <Link to="/cash-drawer"><Button>فتح وردية</Button></Link>
-          ) : null}
-          <Button variant="secondary" onClick={dispatchPosChromeToggle}>القائمة F10</Button>
-          <Button variant="secondary" onClick={dispatchPosFullscreenToggle}>ملء الشاشة F11</Button>
-          <Button variant="secondary" onClick={() => { pos.setSearch(''); pos.setProductFilter('all'); }}>تصفير البحث</Button>
-          <Button variant="secondary" onClick={pos.resetPosDraft}>تفريغ السلة</Button>
+
+          <Button type="button" variant="secondary" onClick={() => { if (pos.selectedLineKey) pos.editSelectedQty(); else onFocusSearch(); }}>تعديل الكمية</Button>
+          <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
+          <Button type="button" variant="secondary" onClick={() => { void pos.holdDraft(); }} disabled={!pos.cart.length}>تعليق F4</Button>
+          <Button type="button" variant="secondary" onClick={onPrintDraft} disabled={!pos.cart.length}>طباعة F8</Button>
+          <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
+          <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
+          <Link to="/cash-drawer"><Button type="button" variant={pos.ownOpenShift ? 'secondary' : 'primary'}>{pos.ownOpenShift ? 'الوردية' : 'فتح وردية'}</Button></Link>
         </div>
       )}
     />
   );
 }
 
-function areEqual(prev: { pos: PosWorkspaceState }, next: { pos: PosWorkspaceState }) {
+function areEqual(prev: PosWorkspaceHeaderProps, next: PosWorkspaceHeaderProps) {
   return prev.pos.paymentType === next.pos.paymentType
     && prev.pos.paymentChannel === next.pos.paymentChannel
     && prev.pos.ownOpenShift === next.pos.ownOpenShift
@@ -50,7 +65,9 @@ function areEqual(prev: { pos: PosWorkspaceState }, next: { pos: PosWorkspaceSta
     && prev.pos.requiresCashierShift === next.pos.requiresCashierShift
     && prev.pos.cart === next.pos.cart
     && prev.pos.canSubmitSale === next.pos.canSubmitSale
-    && prev.pos.canSubmitHint === next.pos.canSubmitHint;
+    && prev.pos.canSubmitHint === next.pos.canSubmitHint
+    && prev.onFocusSearch === next.onFocusSearch
+    && prev.onPrintDraft === next.onPrintDraft;
 }
 
 export const PosWorkspaceHeader = memo(PosWorkspaceHeaderComponent, areEqual);

@@ -25,6 +25,8 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.setSelectedLineKey('');
     params.setCustomerId('');
     params.setDiscount(0);
+    params.setDiscountApprovalGranted(false);
+    params.setDiscountApprovalSecret('');
     params.setCashAmount(0);
     params.setCardAmount(0);
     params.setPaymentType('cash');
@@ -111,7 +113,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       return product ? {
         ...item,
         priceType: nextPriceType,
-        price: getProductPrice(product, nextPriceType),
+        price: getProductPrice(product, nextPriceType, item.qty),
         lineKey: `${item.productId}::${item.unitId || item.unitName}::${nextPriceType}`,
       } : item;
     }));
@@ -122,7 +124,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
 
   function setQty(lineKey: string, qty: number) {
     params.setSelectedLineKey(lineKey);
-    params.setCart((current) => updatePosItemQty(current, lineKey, qty));
+    params.setCart((current) => updatePosItemQty(current, lineKey, qty, params.products || []));
     params.setPostSaleSaleKey('');
   }
 

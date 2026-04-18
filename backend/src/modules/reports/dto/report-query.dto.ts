@@ -43,4 +43,10 @@ export class ReportRangeQueryDto {
   @IsOptional()
   @IsString()
   filter?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  userId?: number;
 }

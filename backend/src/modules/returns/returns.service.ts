@@ -35,6 +35,22 @@ export class ReturnsService {
     private readonly audit: AuditService,
   ) {}
 
+  private async findOwnOpenShift(trx: Kysely<Database>, auth: AuthContext): Promise<{ id: number; docNo: string } | null> {
+    const shift = await trx
+      .selectFrom('cashier_shifts')
+      .select(['id'])
+      .where('opened_by', '=', auth.userId)
+      .where('status', '=', 'open')
+      .orderBy('id desc')
+      .executeTakeFirst();
+
+    if (!shift?.id) return null;
+    return {
+      id: Number(shift.id),
+      docNo: `SHIFT-${shift.id}` ,
+    };
+  }
+
   private async addTreasuryTransaction(
     trx: Kysely<Database>,
     txnType: string,
@@ -45,12 +61,13 @@ export class ReturnsService {
     branchId: number | null,
     locationId: number | null,
   ): Promise<void> {
+    const currentShift = amount < 0 ? await this.findOwnOpenShift(trx, auth) : null;
     await trx.insertInto('treasury_transactions').values({
       txn_type: txnType,
       amount,
-      note,
-      reference_type: 'return_document',
-      reference_id: returnDocumentId,
+      note: currentShift ? `${note} · على ${currentShift.docNo}` : note,
+      reference_type: currentShift ? 'cashier_shift' : 'return_document',
+      reference_id: currentShift ? currentShift.id : returnDocumentId,
       return_document_id: returnDocumentId,
       branch_id: branchId,
       location_id: locationId,

@@ -1,7 +1,9 @@
 // legacy marker: النطاق المعروض الآن
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/card';
 import { DataTable } from '@/shared/ui/data-table';
+import { Field } from '@/shared/ui/field';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { FilterChipGroup } from '@/shared/components/filter-chip-group';
@@ -11,6 +13,7 @@ import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatDate } from '@/lib/format';
 import { useAuditLogs } from '@/features/audit/hooks/useAuditLogs';
 import { useAuditPageActions } from '@/features/audit/hooks/useAuditPageActions';
+import { settingsApi } from '@/features/settings/api/settings.api';
 import type { AuditLog } from '@/types/domain';
 
 const auditFilterOptions = [
@@ -21,21 +24,29 @@ const auditFilterOptions = [
 
 export function AuditPage() {
   const [search, setSearch] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'today' | 'withDetails'>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
-  const query = useAuditLogs({ page, pageSize, search, mode: filterMode });
+  const usersQuery = useQuery({ queryKey: ['audit-users-filter'], queryFn: () => settingsApi.users() });
+  const query = useAuditLogs({ page, pageSize, search, mode: filterMode, userId: selectedUserId });
   const rows = query.data?.rows || [];
   const pagination = query.data?.pagination;
   const summary = query.data?.summary || { distinctUsers: 0, todayCount: 0 };
 
   useEffect(() => {
     setPage(1);
-  }, [search, filterMode]);
+  }, [search, filterMode, selectedUserId]);
 
   const totalRows = pagination?.totalItems || 0;
   const rangeStart = pagination?.rangeStart || 0;
   const rangeEnd = pagination?.rangeEnd || 0;
+  const userOptions = useMemo(() => (usersQuery.data || []).map((user) => ({
+    id: String(user.id || ''),
+    label: String(user.name || user.username || 'مستخدم'),
+    role: String(user.role || ''),
+  })), [usersQuery.data]);
+  const selectedUserLabel = userOptions.find((entry) => entry.id === selectedUserId)?.label || '';
   const stats = [
     { key: 'total', label: 'إجمالي السجلات المطابقة', value: totalRows },
     { key: 'users', label: 'عدد المنفذين', value: summary.distinctUsers },
@@ -46,6 +57,7 @@ export function AuditPage() {
   const { copyFeedback, isExporting, copyAuditSummary, exportAuditRows, printAuditRows } = useAuditPageActions({
     search,
     mode: filterMode,
+    userId: selectedUserId,
     totalRows,
     summary,
     rangeStart,
@@ -54,6 +66,7 @@ export function AuditPage() {
 
   const resetAuditView = () => {
     setSearch('');
+    setSelectedUserId('');
     setFilterMode('all');
     setPage(1);
   };
@@ -74,23 +87,31 @@ export function AuditPage() {
         }
       >
         <FilterChipGroup value={filterMode} options={auditFilterOptions} onChange={setFilterMode} />
-        <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالإجراء أو التفاصيل أو المنفذ" />
+        <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالإجراء أو التفاصيل أو المنفذ">
+          <Field label="الموظف">
+            <select value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)}>
+              <option value="">كل الموظفين</option>
+              {userOptions.map((user) => <option key={user.id} value={user.id}>{user.label}{user.role ? ` — ${user.role}` : ''}</option>)}
+            </select>
+          </Field>
+        </SearchToolbar>
         <StatsGrid items={stats} />
         <QueryFeedback
-          isLoading={query.isLoading}
-          isError={query.isError}
-          error={query.error}
+          isLoading={query.isLoading || usersQuery.isLoading}
+          isError={query.isError || usersQuery.isError}
+          error={query.error || usersQuery.error}
           isEmpty={!totalRows}
           loadingText="جاري تحميل السجل..."
           errorTitle="تعذر تحميل سجل النشاط"
           emptyTitle="لا توجد سجلات نشاط حاليًا"
           emptyHint="ستظهر العمليات هنا بمجرد وجود أنشطة أو بعد توسيع الفلاتر."
         >
+          {selectedUserLabel ? <div className="muted small">عرض نشاط الموظف: <strong>{selectedUserLabel}</strong></div> : null}
           <DataTable rows={rows} columns={[
             { key: 'action', header: 'الإجراء', cell: (row) => row.action },
             { key: 'details', header: 'التفاصيل', cell: (row: AuditLog) => row.detailsSummary || row.details || '—' },
             { key: 'user', header: 'المنفذ', cell: (row) => row.createdByName || '—' },
-            { key: 'date', header: 'التاريخ', cell: (row) => formatDate(row.createdAt) }
+            { key: 'date', header: 'التاريخ والوقت', cell: (row) => formatDate(row.createdAt || row.created_at || '') }
           ]} />
           <PaginationControls
             page={pagination?.page || 1}

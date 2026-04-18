@@ -83,7 +83,7 @@ export function useCashDrawerPageController() {
   const closeCountedCash = Number(closeForm.watch('countedCash') || 0);
   const closeVariancePreview = Number((closeCountedCash - closeExpectedCash).toFixed(2));
   const closeNoteValue = String(closeForm.watch('note') || '').trim();
-  const openShift = summary.openShiftDocNo ? { docNo: summary.openShiftDocNo } : openOptions[0];
+  const openShift = openOptions[0] || (summary.openShiftDocNo ? { docNo: summary.openShiftDocNo } : null);
   const openShiftCount = summary.openShiftCount;
   const totalVariance = Number(summary.totalVariance || 0);
   const { exportShiftRows, printShiftRows } = useCashDrawerPageActions({ search, shiftFilter, totalItems: summary.totalItems, openShiftCount, totalVariance });
@@ -100,7 +100,7 @@ export function useCashDrawerPageController() {
       'ملخص الورديات والدرج النقدي',
       `عدد الورديات المطابقة: ${summary.totalItems}`,
       `الورديات المفتوحة: ${openShiftCount}`,
-      `الوردية النشطة: ${openShift?.docNo || 'لا يوجد'}`,
+      `الوردية النشطة: ${openShift?.openedByName || openShift?.docNo || 'لا يوجد'}`,
       `إجمالي الفروقات: ${formatCurrency(totalVariance)}`
     ];
     try {

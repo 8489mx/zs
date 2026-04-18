@@ -139,11 +139,15 @@ export function getPagination(query: ReportRangeQueryDto, defaultSize = 25): { p
 export function buildPagination(page: number, pageSize: number, totalItems: number): Record<string, number> {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, totalPages);
+  const rangeStart = totalItems ? ((safePage - 1) * pageSize) + 1 : 0;
+  const rangeEnd = totalItems ? Math.min(totalItems, rangeStart + pageSize - 1) : 0;
   return {
     page: safePage,
     pageSize,
     totalItems,
     totalPages,
+    rangeStart,
+    rangeEnd,
   };
 }
 

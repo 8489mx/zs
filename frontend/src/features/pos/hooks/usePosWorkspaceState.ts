@@ -32,6 +32,8 @@ export function usePosWorkspaceState() {
   const [lastAddedLineKey, setLastAddedLineKey] = useState('');
   const [postSaleSaleKey, setPostSaleSaleKey] = useState('');
   const [barcodeFocusTick, setBarcodeFocusTick] = useState(0);
+  const [discountApprovalGranted, setDiscountApprovalGranted] = useState(false);
+  const [discountApprovalSecret, setDiscountApprovalSecret] = useState('');
 
   return {
     persistedState,
@@ -82,6 +84,10 @@ export function usePosWorkspaceState() {
     postSaleSaleKey,
     setPostSaleSaleKey,
     barcodeFocusTick,
+    discountApprovalGranted,
+    setDiscountApprovalGranted,
+    discountApprovalSecret,
+    setDiscountApprovalSecret,
     requestBarcodeFocus: () => setBarcodeFocusTick((current) => current + 1),
   };
 }

@@ -44,6 +44,10 @@ export function usePosWorkspaceMutations({ queryClient, storedHeld }: { queryCli
     },
   });
 
+  const discountAuthorizationMutation = useMutation({
+    mutationFn: (secret: string) => posApi.authorizeDiscountOverride(secret),
+  });
+
   return {
     heldDraftsQuery,
     openShiftsQuery,
@@ -51,5 +55,6 @@ export function usePosWorkspaceMutations({ queryClient, storedHeld }: { queryCli
     saveHeldDraftMutation,
     deleteHeldDraftMutation,
     clearHeldDraftsMutation,
+    discountAuthorizationMutation,
   };
 }

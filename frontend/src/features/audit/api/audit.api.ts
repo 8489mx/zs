@@ -13,6 +13,7 @@ export interface AuditLogsQueryParams {
   pageSize?: number;
   search?: string;
   mode?: 'all' | 'today' | 'withDetails';
+  userId?: string;
 }
 
 interface AuditLogsResponse {
@@ -35,6 +36,7 @@ export const auditApi = {
       ...(params.pageSize ? { pageSize: params.pageSize } : {}),
       ...(params.search ? { search: params.search } : {}),
       ...(normalizeAuditFilter(params.mode) ? { filter: normalizeAuditFilter(params.mode) } : {}),
+      ...(params.userId ? { userId: params.userId } : {}),
     };
 
     const response = await http<AuditLogsResponse>(`/api/audit-logs${buildQueryString(query)}`);

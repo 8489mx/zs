@@ -14,17 +14,18 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
 
   return (
     <Card
-      title="2. مراجعة السلة والدفع"
       className="workspace-panel pos-checkout-card pos-checkout-card-compact"
     >
       <div className="pos-checkout-static">
-        <PosCartMetaForm {...props} />
-        <PosCartPaymentSection {...props} />
+        <div className="pos-checkout-top-strip">
+          <PosCartMetaForm {...props} />
+          <PosCartPaymentSection {...props} />
+        </div>
 
         {alertMessages.length ? (
-          <div className="warning-box pos-alert-stack pos-compact-message" style={{ marginBottom: 10 }}>
+          <div className="pos-inline-alert-bar" role="status" aria-live="polite">
             <strong>راجع قبل الإتمام:</strong>
-            <ul>{alertMessages.map((message) => <li key={message}>{message}</li>)}</ul>
+            <span>{alertMessages.join(' · ')}</span>
           </div>
         ) : null}
       </div>
@@ -68,6 +69,8 @@ function arePropsEqual(prev: PosCartPanelProps, next: PosCartPanelProps) {
     && prev.amountDue === next.amountDue
     && prev.hasOpenShift === next.hasOpenShift
     && prev.canApplyDiscount === next.canApplyDiscount
+    && prev.discountApprovalGranted === next.discountApprovalGranted
+    && prev.isDiscountAuthorizationPending === next.isDiscountAuthorizationPending
     && prev.hasDiscountPermissionViolation === next.hasDiscountPermissionViolation
     && prev.hasPricePermissionViolation === next.hasPricePermissionViolation
     && prev.canSubmitSale === next.canSubmitSale

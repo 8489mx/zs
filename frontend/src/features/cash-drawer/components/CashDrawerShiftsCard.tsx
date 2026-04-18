@@ -48,7 +48,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
         <Button variant={props.shiftFilter === 'variance' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('variance')}>بفروقات</Button>
         <Button variant={props.shiftFilter === 'today' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('today')}>اليوم</Button>
       </div>
-      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث برقم الوردية أو المخزن أو المنفذ' : 'ابحث برقم الوردية أو الفرع أو الموقع أو المنفذ'}>
+      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث باسم الكاشير أو رقم المرجع أو المخزن' : 'ابحث باسم الكاشير أو رقم المرجع أو الفرع أو الموقع'}>
         <Button variant="secondary" onClick={props.onReset}>إعادة الضبط</Button>
       </SearchToolbar>
       <QueryFeedback
@@ -73,7 +73,16 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
             itemLabel: 'وردية'
           }}
           columns={[
-            { key: 'docNo', header: 'رقم الوردية', cell: (row: CashierShift) => row.docNo || row.id },
+            {
+              key: 'shiftName',
+              header: 'الوردية',
+              cell: (row: CashierShift) => (
+                <div className="page-stack" style={{ gap: 4 }}>
+                  <strong>{row.openedByName || row.docNo || row.id || '—'}</strong>
+                  <span className="muted small">المرجع الداخلي: {row.docNo || row.id || '—'}</span>
+                </div>
+              ),
+            },
             { key: 'status', header: 'الحالة', cell: (row: CashierShift) => row.status === 'open' ? 'مفتوحة' : 'مغلقة' },
             ...(!SINGLE_STORE_MODE ? [{ key: 'branch', header: 'الفرع', cell: (row: CashierShift) => row.branchName || '—' }] : []),
             { key: 'location', header: SINGLE_STORE_MODE ? 'المخزن' : 'الموقع', cell: (row: CashierShift) => row.locationName || '—' },

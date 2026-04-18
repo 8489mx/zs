@@ -7,13 +7,14 @@ import type { AuditLog } from '@/types/domain';
 interface Params {
   search: string;
   mode: 'all' | 'today' | 'withDetails';
+  userId?: string;
   totalRows: number;
   summary: { distinctUsers: number; todayCount: number };
   rangeStart: number;
   rangeEnd: number;
 }
 
-export function useAuditPageActions({ search, mode, totalRows, summary, rangeStart, rangeEnd }: Params) {
+export function useAuditPageActions({ search, mode, userId = '', totalRows, summary, rangeStart, rangeEnd }: Params) {
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -38,11 +39,11 @@ export function useAuditPageActions({ search, mode, totalRows, summary, rangeSta
     if (!totalRows) return;
     setIsExporting(true);
     try {
-      const payload = await auditApi.listAll({ search, mode });
+      const payload = await auditApi.listAll({ search, mode, userId });
       downloadCsvFile(
         'audit-log-results.csv',
         ['action', 'details', 'createdBy', 'date'],
-        payload.rows.map((row: AuditLog) => [row.action || '', row.detailsSummary || row.details || '', row.createdByName || '', row.createdAt || ''])
+        payload.rows.map((row: AuditLog) => [row.action || '', row.detailsSummary || row.details || '', row.createdByName || '', row.createdAt || row.created_at || ''])
       );
       setCopyFeedback({ kind: 'success', text: 'تم تجهيز تصدير كامل للسجلات المطابقة.' });
     } catch {
@@ -50,13 +51,13 @@ export function useAuditPageActions({ search, mode, totalRows, summary, rangeSta
     } finally {
       setIsExporting(false);
     }
-  }, [mode, search, totalRows]);
+  }, [mode, search, totalRows, userId]);
 
   const printAuditRows = useCallback(async () => {
     if (!totalRows) return;
     setIsExporting(true);
     try {
-      const payload = await auditApi.listAll({ search, mode });
+      const payload = await auditApi.listAll({ search, mode, userId });
       printHtmlDocument(
         'سجل النشاط',
         `
@@ -69,7 +70,7 @@ export function useAuditPageActions({ search, mode, totalRows, summary, rangeSta
               (row) =>
                 `<tr><td>${escapeHtml(row.action || '—')}</td><td>${escapeHtml(row.detailsSummary || row.details || '—')}</td><td>${escapeHtml(
                   row.createdByName || '—'
-                )}</td><td>${escapeHtml(formatDate(row.createdAt))}</td></tr>`
+                )}</td><td>${escapeHtml(formatDate(row.createdAt || row.created_at || ''))}</td></tr>`
             )
             .join('')}</tbody>
         </table>
@@ -80,7 +81,7 @@ export function useAuditPageActions({ search, mode, totalRows, summary, rangeSta
     } finally {
       setIsExporting(false);
     }
-  }, [mode, search, summary.distinctUsers, summary.todayCount, totalRows]);
+  }, [mode, search, summary.distinctUsers, summary.todayCount, totalRows, userId]);
 
   return { copyFeedback, isExporting, copyAuditSummary, exportAuditRows, printAuditRows };
 }

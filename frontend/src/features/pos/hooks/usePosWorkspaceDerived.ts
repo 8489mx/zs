@@ -13,7 +13,7 @@ interface PosWorkspaceDerivedParams {
   customers: Array<{ id: string | number; name: string }>;
   branches: Array<{ id: string | number; name: string }>;
   locations: Array<{ id: string | number; name: string }>;
-  openShiftRows: Array<{ id: string | number; docNo?: string; openedById?: string | number }>;
+  openShiftRows: Array<{ id: string | number; docNo?: string; openedById?: string | number; openedByName?: string }>;
   authUserId?: string | number | null;
   authPermissions?: string[];
   settings?: { taxRate?: number | string; taxMode?: string } | null;
@@ -22,6 +22,7 @@ interface PosWorkspaceDerivedParams {
   productFilter: PosProductFilter;
   cart: PosItem[];
   discount: number;
+  discountApprovalGranted?: boolean;
   paidAmount: number;
   paymentType: PaymentType;
   paymentChannel: PaymentChannel;
@@ -53,6 +54,14 @@ function getCanSubmitHint(params: {
   if ((params as typeof params & { hasPricePermissionViolation?: boolean }).hasPricePermissionViolation) return 'لا تملك صلاحية تعديل السعر.';
   if (params.hasUnderpaidSale) return 'أكمل المدفوع أو حوّل العملية إلى آجل.';
   return '';
+}
+
+function getShiftDisplayLabel(shift: { docNo?: string; openedByName?: string } | null | undefined) {
+  if (!shift) return 'غير مفتوحة';
+  const openedByName = String(shift.openedByName || '').trim();
+  const docNo = String(shift.docNo || '').trim();
+  if (openedByName && docNo) return `${openedByName} — ${docNo}`;
+  return openedByName || docNo || 'مفتوحة';
 }
 
 export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
@@ -96,7 +105,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const currentLocation = params.locations.find((location) => String(location.id) === String(params.locationId)) || params.locations[0] || null;
   const ownOpenShift = params.openShiftRows.find((shift) => String(shift.openedById || '') === String(params.authUserId || '')) || null;
   const authPermissions = params.authPermissions || [];
-  const canApplyDiscount = authPermissions.includes('canDiscount') || authPermissions.includes('*');
+  const canApplyDiscount = authPermissions.includes('canDiscount') || authPermissions.includes('*') || Boolean(params.discountApprovalGranted);
   const canEditPrice = authPermissions.includes('canEditPrice') || authPermissions.includes('*');
   const hasOperationalSetup = Boolean(params.branches.length > 0 && params.locations.length > 0);
   const hasCatalogReady = Boolean(params.products.length > 0);
@@ -108,7 +117,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const hasPricePermissionViolation = !canEditPrice && params.cart.some((item) => {
     const product = params.products.find((entry) => String(entry.id) === String(item.productId));
     if (!product) return false;
-    return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType) || 0)) > 0.0001;
+    return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType, item.qty) || 0)) > 0.0001;
   });
 
   const canSubmitSale = Boolean(
@@ -136,10 +145,12 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     hasUnderpaidSale,
   } as Parameters<typeof getCanSubmitHint>[0]);
 
+  const openShiftLabel = getShiftDisplayLabel(ownOpenShift);
+
   const contextBadges = [
     ...(SINGLE_STORE_MODE ? [] : [{ key: 'branch', label: `الفرع: ${currentBranch?.name || 'الافتراضي'}` }]),
     { key: 'location', label: `${SINGLE_STORE_MODE ? 'نقطة التشغيل' : 'الموقع'}: ${currentLocation?.name || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'الافتراضي')}` },
-    { key: 'shift', label: ownOpenShift ? `الوردية: ${ownOpenShift.docNo || 'مفتوحة'}` : 'الوردية: غير مفتوحة' },
+    { key: 'shift', label: `الوردية: ${openShiftLabel}` },
     { key: 'payment', label: `الدفع: ${paymentLabel(params.paymentType, params.paymentChannel)}` },
     { key: 'held', label: `المعلقات: ${params.heldDrafts.length}` },
     { key: 'products', label: `المعروض: ${filteredSaleProducts.length}` },
@@ -148,7 +159,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const shortSummary = [
     { key: 'total', label: 'المطلوب دفعه', value: formatCurrency(totals.total) },
     { key: 'items', label: 'عدد الأصناف', value: String(params.cart.length) },
-    { key: 'shift', label: 'الوردية', value: ownOpenShift ? (ownOpenShift.docNo || 'مفتوحة') : 'غير مفتوحة' },
+    { key: 'shift', label: 'الوردية', value: openShiftLabel },
     { key: 'change', label: params.paymentType === 'credit' ? 'المتبقي على العميل' : 'الباقي للعميل', value: formatCurrency(params.paymentType === 'credit' ? totals.total : changeAmount) },
   ];
 

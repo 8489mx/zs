@@ -71,6 +71,10 @@ export class HeldSaleDto {
 
   @IsOptional()
   @IsString()
+  managerPin?: string;
+
+  @IsOptional()
+  @IsString()
   search?: string;
 
   @IsOptional()

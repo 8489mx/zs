@@ -24,6 +24,10 @@ export class SalesService {
     return this.write.createSale(payload, auth);
   }
 
+  async authorizeDiscountOverride(secret: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.write.authorizeDiscountOverride(secret, auth);
+  }
+
   async cancelSale(saleId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.write.cancelSale(saleId, reason, auth);
   }

@@ -88,7 +88,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
 
   return (
     <>
-      <div ref={pickerRef}>
+      <div ref={pickerRef} className={`pos-customer-meta-panel ${pickerMode !== 'closed' ? 'is-expanded' : ''}`.trim()}>
         <div className="pos-customer-inline-bar">
           <div className={`pos-customer-inline-shell ${pickerMode === 'search' ? 'is-open' : ''}`.trim()}>
             {pickerMode === 'search' ? (
@@ -143,7 +143,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
           </div>
 
           <Button type="button" variant="secondary" className="pos-customer-create-toggle" onClick={toggleCreateInline}>
-            إضافة عميل جديد
+            إضافة عميل
           </Button>
         </div>
 

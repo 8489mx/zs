@@ -20,6 +20,7 @@ export interface CreatePosSaleInput {
   taxRate: number;
   pricesIncludeTax: boolean;
   expectedTotal: number;
+  managerPin?: string;
   branchId?: string | null;
   locationId?: string | null;
 }
@@ -71,6 +72,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
       })),
     storeCreditUsed: 0,
     taxRate: normalizeMoney(Number(input.taxRate || 0)),
+    ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
     pricesIncludeTax: Boolean(input.pricesIncludeTax),
     branchId: input.branchId || null,
     locationId: input.locationId || null,
@@ -94,6 +96,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     discount: normalizeMoney(Number(input.discount || 0)),
     note: String(input.note || '').trim(),
     taxRate: normalizeMoney(Number(input.taxRate || 0)),
+    ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
     pricesIncludeTax: Boolean(input.pricesIncludeTax),
     branchId: input.branchId || null,
     locationId: input.locationId || null,
@@ -115,6 +118,7 @@ export function buildMinimalPosSalePayload(input: CreatePosSaleInput) {
   return {
     customerId: input.customerId || null,
     paymentType: input.paymentType,
+    ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
     items: normalizedItems.map((item) => ({
       productId: item.productId,
       qty: item.qty,

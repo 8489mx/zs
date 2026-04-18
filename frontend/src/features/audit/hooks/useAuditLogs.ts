@@ -8,6 +8,7 @@ function makeParamsKey(params: AuditLogsQueryParams) {
     pageSize: params.pageSize || 50,
     search: params.search || '',
     mode: params.mode || 'all',
+    userId: params.userId || '',
   });
 }
 

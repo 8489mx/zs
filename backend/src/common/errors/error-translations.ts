@@ -38,6 +38,8 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   SHIFT_FORBIDDEN: 'غير مسموح لك بتنفيذ هذه العملية على هذه الوردية.',
   SHIFT_OPEN_FAILED: 'تعذر فتح الوردية.',
   MANAGER_PIN_INVALID: 'رمز اعتماد المدير غير صحيح.',
+  MANAGER_PASSWORD_INVALID: 'كلمة مرور المدير غير صحيحة.',
+  MANAGER_PASSWORD_REQUIRED: 'كلمة مرور المدير مطلوبة.',
   AMOUNT_INVALID: 'المبلغ يجب أن يكون أكبر من صفر.',
   COUNTED_CASH_INVALID: 'المبلغ المعدود غير صحيح.',
   NOTE_TOO_SHORT: 'اكتب سببًا أو ملاحظة واضحة لا تقل عن 8 أحرف.',

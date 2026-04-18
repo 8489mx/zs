@@ -8,8 +8,8 @@ function roundCurrency(value: number): number {
 export type SaleProductOfferRow = {
   offer_type?: 'percent' | 'fixed' | 'price' | string | null;
   value?: number | string | null;
-  start_date?: string | null;
-  end_date?: string | null;
+  start_date?: string | Date | null;
+  end_date?: string | Date | null;
   min_qty?: number | string | null;
 };
 
@@ -70,10 +70,53 @@ export function calculateCollectibleTotal(total: number, storeCreditUsed: number
   return roundCurrency(Math.max(0, Number(total || 0) - Number(storeCreditUsed || 0)));
 }
 
+function normalizeDateOnly(value: unknown): string {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+  }
+  const text = String(value).trim();
+  if (!text) return '';
+  const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoMatch) return isoMatch[1];
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+  return '';
+}
+
 function isOfferActive(offer: SaleProductOfferRow, todayIso: string): boolean {
-  const from = String(offer.start_date || '').slice(0, 10);
-  const to = String(offer.end_date || '').slice(0, 10);
+  const from = normalizeDateOnly(offer.start_date);
+  const to = normalizeDateOnly(offer.end_date);
   return (!from || from <= todayIso) && (!to || to >= todayIso);
+}
+
+function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferRow): number {
+  const offerValue = Number(offer.value || 0);
+  if (!(offerValue > 0) && offer.offer_type !== 'price') return roundCurrency(basePrice);
+  if (offer.offer_type === 'percent') return roundCurrency(Math.max(0, basePrice - ((basePrice * offerValue) / 100)));
+  if (offer.offer_type === 'fixed') return roundCurrency(Math.max(0, basePrice - offerValue));
+  if (offer.offer_type === 'price') return roundCurrency(Math.max(0, offerValue));
+  return roundCurrency(basePrice);
+}
+
+function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso: string, qty: number, basePrice: number): SaleProductOfferRow | null {
+  const normalizedQty = Math.max(1, Number(qty || 1));
+  const applicableOffers = offers.filter((offer) => isOfferActive(offer, todayIso) && normalizedQty >= Math.max(1, Number(offer.min_qty || 1)));
+  if (!applicableOffers.length) return null;
+
+  return [...applicableOffers].sort((left, right) => {
+    const leftMinQty = Math.max(1, Number(left.min_qty || 1));
+    const rightMinQty = Math.max(1, Number(right.min_qty || 1));
+    if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
+
+    const leftPrice = calculateOfferAdjustedPrice(basePrice, left);
+    const rightPrice = calculateOfferAdjustedPrice(basePrice, right);
+    if (leftPrice !== rightPrice) return leftPrice - rightPrice;
+
+    return Number(right.value || 0) - Number(left.value || 0);
+  })[0] || null;
 }
 
 export function calculateAllowedSaleUnitPrice(params: {
@@ -81,20 +124,18 @@ export function calculateAllowedSaleUnitPrice(params: {
   wholesalePrice?: number | string | null;
   priceType: 'retail' | 'wholesale';
   offers?: SaleProductOfferRow[];
+  qty?: number;
   todayIso?: string;
 }): number {
-  let price = Number(params.priceType === 'wholesale' ? params.wholesalePrice || params.retailPrice || 0 : params.retailPrice || 0);
-  const todayIso = String(params.todayIso || new Date().toISOString().slice(0, 10));
-  const activeOffer = (params.offers || []).find((offer) => isOfferActive(offer, todayIso)) || null;
+  const basePrice = Number(params.priceType === 'wholesale' ? params.wholesalePrice || params.retailPrice || 0 : params.retailPrice || 0);
+  const todayIso = normalizeDateOnly(params.todayIso) || new Date().toISOString().slice(0, 10);
+  const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, Number(params.qty || 1), basePrice);
 
-  if (activeOffer) {
-    const offerValue = Number(activeOffer.value || 0);
-    if (activeOffer.offer_type === 'percent') price = Math.max(0, price - ((price * offerValue) / 100));
-    if (activeOffer.offer_type === 'fixed') price = Math.max(0, price - offerValue);
-    if (activeOffer.offer_type === 'price') price = Math.max(0, offerValue);
+  if (!activeOffer) {
+    return roundCurrency(basePrice);
   }
 
-  return roundCurrency(price);
+  return calculateOfferAdjustedPrice(basePrice, activeOffer);
 }
 
 export function resolveSalePayments(

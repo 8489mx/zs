@@ -24,6 +24,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     pricesIncludeTax: Boolean(payload.pricesIncludeTax),
     storeCreditUsed: Number(payload.storeCreditUsed || 0),
     note: String(payload.note || '').trim(),
+    managerPin: String(payload.managerPin || '').trim(),
     branchId: payload.branchId ? Number(payload.branchId) : null,
     locationId: payload.locationId ? Number(payload.locationId) : null,
     payments,
