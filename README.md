@@ -31,6 +31,66 @@ npm run compose:up
 npm run compose:down
 ```
 
+## تشغيل Production بنقطة دخول واحدة (Gateway)
+هذا الوضع يجهّز المشروع للبيع/الاستضافة بحيث الواجهة والخلفية يشتغلوا من نفس الـ IP/Domain.
+
+تشغيل:
+```bash
+npm run compose:prod:up
+```
+
+مراجعة ملف الـ compose النهائي:
+```bash
+npm run compose:prod:config
+```
+
+السجلات:
+```bash
+npm run compose:prod:logs
+```
+
+إيقاف:
+```bash
+npm run compose:prod:down
+```
+
+## نسخة Offline جاهزة للتثبيت عند العميل
+1) جهّز ملف البيئة:
+```bash
+cp .env.offline.example .env.offline
+```
+
+2) تثبيت وتشغيل أول مرة:
+```bash
+npm run offline:install
+```
+
+3) أوامر الإدارة اليومية:
+```bash
+npm run offline:start
+npm run offline:stop
+npm run offline:backup
+npm run offline:restore -- ./backups/your-backup.sql
+npm run offline:upgrade -- ./backups
+npm run offline:rollback -- ./backups/pre-upgrade-YYYYMMDD-HHMMSS.sql
+```
+
+4) فحص تكوين compose:
+```bash
+npm run compose:offline:config
+```
+
+## تجهيز حزمة إصدار للبيع (Offline Package)
+إنشاء حزمة إصدار:
+```bash
+npm run release:bundle -- 1.0.0
+```
+
+التحقق من سلامة الملفات بعد النقل:
+```bash
+npm run release:verify -- ./release/zs-offline-1.0.0
+```
+
 ## التشغيل المحلي بدون Docker
 ### 1) قاعدة البيانات
 أنشئ PostgreSQL ثم انسخ القيم من `backend/.env.example` إلى `backend/.env`.

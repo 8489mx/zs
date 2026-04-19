@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Kysely, sql } from 'kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { ReportRangeQueryDto } from './dto/report-query.dto';
-import { buildPagination, filterScope, getBusinessTimezone, parseRange } from './helpers/reports-range.helper';
+import { buildPagination, filterScope, getBusinessTimezone, parseRange, setBusinessTimezoneResolver } from './helpers/reports-range.helper';
 import { buildReportSummaryPayload } from './helpers/reports-summary.helper';
 import { buildDashboardComputedState, buildDashboardOverviewPayload, buildDashboardScope } from './helpers/reports-dashboard.helper';
 import { buildCustomerBalancesPayload, buildCustomerLedgerPayload, buildSupplierBalancesPayload, buildSupplierLedgerPayload, LedgerSummaryRow, PartnerLedgerEntryRow } from './helpers/reports-ledger.helper';
@@ -22,9 +23,11 @@ export class ReportsService {
 
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly configService?: ConfigService,
     reportsAdminService?: ReportsAdminService,
   ) {
     this.reportsAdminService = reportsAdminService ?? new ReportsAdminService(this.db as never);
+    setBusinessTimezoneResolver(() => this.configService?.get<string>('BUSINESS_TIMEZONE') ?? 'UTC');
   }
 
   async reportSummary(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
