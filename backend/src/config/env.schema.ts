@@ -18,6 +18,8 @@ const envSchema = z.object({
   DATABASE_PASSWORD: z.string().min(1),
   DATABASE_SCHEMA: z.string().min(1).default('public'),
   DATABASE_SSL: booleanString,
+  DATABASE_SSL_REJECT_UNAUTHORIZED: booleanString,
+  DATABASE_SSL_CA_CERT: z.string().default(''),
   DATABASE_LOGGING: booleanString,
   ENABLE_BOOTSTRAP_ADMIN: booleanString,
   LICENSE_MODE: z.enum(['desktop', 'server']).default('desktop'),
@@ -62,6 +64,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
       ?? `${String(config.DATABASE_PASSWORD ?? 'local-dev-csrf-secret')}:csrf:v1`,
     ALLOW_SESSION_ID_HEADER: config.ALLOW_SESSION_ID_HEADER ?? 'false',
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
+    DATABASE_SSL_REJECT_UNAUTHORIZED: config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'true',
+    DATABASE_SSL_CA_CERT: config.DATABASE_SSL_CA_CERT ?? '',
   };
 
   const parsed = envSchema.parse(raw);

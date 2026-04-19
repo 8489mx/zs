@@ -1,4 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { sql, type Kysely } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import type { Database } from '../../database/database.types';
@@ -21,11 +22,21 @@ export class InMemoryRateLimitService {
   private readonly buckets = new Map<string, Bucket>();
   private ensureTablePromise: Promise<void> | null = null;
   private lastPruneAt = 0;
+  private readonly failClosedWithoutPersistentStore: boolean;
 
-  constructor(@Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>) {}
+  constructor(
+    @Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>,
+    @Optional() private readonly configService?: ConfigService,
+  ) {
+    const nodeEnv = this.configService?.get<string>('NODE_ENV') || process.env.NODE_ENV || 'development';
+    this.failClosedWithoutPersistentStore = nodeEnv === 'production';
+  }
 
   async hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
     if (!this.db) {
+      if (this.failClosedWithoutPersistentStore) {
+        throw new Error('Persistent rate limit store is required in production');
+      }
       return this.hitInMemory(key, limit, windowSeconds);
     }
 
@@ -33,6 +44,9 @@ export class InMemoryRateLimitService {
       await this.ensurePersistentStore();
       return await this.hitInDatabase(key, limit, windowSeconds);
     } catch {
+      if (this.failClosedWithoutPersistentStore) {
+        throw new Error('Rate limit persistent store is unavailable in production');
+      }
       return this.hitInMemory(key, limit, windowSeconds);
     }
   }

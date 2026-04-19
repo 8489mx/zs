@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import { KYSELY_DB } from './database.constants';
 import { Database } from './database.types';
 import { TransactionHelper } from './helpers/transaction.helper';
+import { resolvePgSslConfig } from './ssl.util';
 
 @Global()
 @Module({
@@ -14,6 +15,8 @@ import { TransactionHelper } from './helpers/transaction.helper';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const ssl = configService.get<boolean>('database.ssl', false);
+        const sslRejectUnauthorized = configService.get<boolean>('database.sslRejectUnauthorized', true);
+        const sslCaCert = configService.get<string>('database.sslCaCert', '');
 
         const pool = new Pool({
           host: configService.getOrThrow<string>('database.host'),
@@ -21,7 +24,11 @@ import { TransactionHelper } from './helpers/transaction.helper';
           user: configService.getOrThrow<string>('database.user'),
           password: configService.getOrThrow<string>('database.password'),
           database: configService.getOrThrow<string>('database.name'),
-          ssl: ssl ? { rejectUnauthorized: false } : false,
+          ssl: resolvePgSslConfig({
+            enabled: ssl,
+            rejectUnauthorized: sslRejectUnauthorized,
+            caCert: sslCaCert,
+          }),
           application_name: 'backend-new',
         });
 

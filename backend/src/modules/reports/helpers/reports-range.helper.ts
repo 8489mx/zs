@@ -21,6 +21,8 @@ type ZonedDateParts = {
   second: number;
 };
 
+let businessTimezoneResolver: () => string = () => 'UTC';
+
 function pad2(value: number): string {
   return String(value).padStart(2, '0');
 }
@@ -37,7 +39,11 @@ function normalizeTimezone(value: string | null | undefined): string {
 }
 
 export function getBusinessTimezone(): string {
-  return normalizeTimezone(process.env.BUSINESS_TIMEZONE || process.env.APP_TIMEZONE || 'UTC');
+  return normalizeTimezone(businessTimezoneResolver());
+}
+
+export function setBusinessTimezoneResolver(resolver: () => string): void {
+  businessTimezoneResolver = resolver;
 }
 
 function getFormatter(timezone: string): Intl.DateTimeFormat {

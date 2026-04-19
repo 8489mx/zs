@@ -62,6 +62,18 @@ async function runBurstLimit(): Promise<void> {
   });
 }
 
+async function runProductionRateLimitStoreGuard(): Promise<void> {
+  const service = new InMemoryRateLimitService(
+    undefined,
+    new FakeConfigService({ NODE_ENV: 'production' }) as any,
+  );
+
+  await assert.rejects(
+    async () => service.hit('auth:login:ip:127.0.0.1', 5, 60),
+    /Persistent rate limit store is required in production/,
+  );
+}
+
 function runEnvGuards(): void {
   const base = {
     NODE_ENV: 'production',
@@ -91,6 +103,7 @@ function runEnvGuards(): void {
 async function main(): Promise<void> {
   await runLoginLimit();
   await runBurstLimit();
+  await runProductionRateLimitStoreGuard();
   runEnvGuards();
   console.log('login-rate-limit.spec: ok');
 }
