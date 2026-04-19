@@ -67,22 +67,38 @@ function getShiftDisplayLabel(shift: { docNo?: string; openedByName?: string } |
 export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const productList = useMemo(() => (Array.isArray(params.products) ? params.products : []), [params.products]);
   const saleProductList = useMemo(() => (Array.isArray(params.saleProducts) ? params.saleProducts : []), [params.saleProducts]);
+  const branchList = useMemo(() => (Array.isArray(params.branches) ? params.branches : []), [params.branches]);
+  const locationList = useMemo(() => (Array.isArray(params.locations) ? params.locations : []), [params.locations]);
+  const openShiftList = useMemo(() => (Array.isArray(params.openShiftRows) ? params.openShiftRows : []), [params.openShiftRows]);
+  const customerList = useMemo(() => (Array.isArray(params.customers) ? params.customers : []), [params.customers]);
+  const authPermissionSet = useMemo(() => new Set(params.authPermissions || []), [params.authPermissions]);
+  const recentProductIdSet = useMemo(() => new Set(params.recentProductIds), [params.recentProductIds]);
+  const productById = useMemo(() => new Map(productList.map((product) => [String(product.id), product])), [productList]);
+  const customerById = useMemo(() => new Map(customerList.map((customer) => [String(customer.id), customer.name])), [customerList]);
+  const branchById = useMemo(() => new Map(branchList.map((branch) => [String(branch.id), branch])), [branchList]);
+  const locationById = useMemo(() => new Map(locationList.map((location) => [String(location.id), location])), [locationList]);
+  const openShiftByUserId = useMemo(
+    () => new Map(openShiftList.map((shift) => [String(shift.openedById || ''), shift])),
+    [openShiftList],
+  );
+  const defaultPriceByProductId = useMemo(
+    () => new Map(productList.map((product) => [String(product.id), Number(getProductPrice(product, 'retail', 1) || 0)])),
+    [productList],
+  );
 
   const recentProducts = useMemo(() => {
-    const map = new Map(productList.map((product) => [product.id, product]));
-    return params.recentProductIds.map((id) => map.get(id)).filter(Boolean) as Product[];
-  }, [productList, params.recentProductIds]);
+    return params.recentProductIds.map((id) => productById.get(String(id))).filter(Boolean) as Product[];
+  }, [params.recentProductIds, productById]);
 
   const filteredSaleProducts = useMemo(() => {
-    const recentSet = new Set(params.recentProductIds);
     return saleProductList.filter((product) => {
       if (params.productFilter === 'offers' && !(product.offers || []).length) return false;
       if (params.productFilter === 'priced' && !(product.customerPrices || []).length) return false;
       if (params.productFilter === 'low' && !(Number(product.stock || 0) <= Number(product.minStock || 0))) return false;
-      if (params.productFilter === 'recent' && !recentSet.has(product.id)) return false;
+      if (params.productFilter === 'recent' && !recentProductIdSet.has(product.id)) return false;
       return true;
     });
-  }, [params.productFilter, params.recentProductIds, saleProductList]);
+  }, [params.productFilter, recentProductIdSet, saleProductList]);
 
   const totals = useMemo(() => {
     const subTotal = params.cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
@@ -102,15 +118,23 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     return { subTotal, discountValue, taxRate, taxAmount, total, pricesIncludeTax };
   }, [params.cart, params.discount, params.settings]);
 
-  const changeAmount = Math.max(0, Number(params.paidAmount || 0) - totals.total);
-  const amountDue = Math.max(0, Number(totals.total || 0) - Number(params.paidAmount || 0));
-  const currentBranch = params.branches.find((branch) => String(branch.id) === String(params.branchId)) || params.branches[0] || null;
-  const currentLocation = params.locations.find((location) => String(location.id) === String(params.locationId)) || params.locations[0] || null;
-  const ownOpenShift = params.openShiftRows.find((shift) => String(shift.openedById || '') === String(params.authUserId || '')) || null;
-  const authPermissions = params.authPermissions || [];
-  const canApplyDiscount = authPermissions.includes('canDiscount') || authPermissions.includes('*') || Boolean(params.discountApprovalGranted);
-  const canEditPrice = authPermissions.includes('canEditPrice') || authPermissions.includes('*');
-  const hasOperationalSetup = Boolean(params.branches.length > 0 && params.locations.length > 0);
+  const changeAmount = useMemo(() => Math.max(0, Number(params.paidAmount || 0) - totals.total), [params.paidAmount, totals.total]);
+  const amountDue = useMemo(() => Math.max(0, Number(totals.total || 0) - Number(params.paidAmount || 0)), [params.paidAmount, totals.total]);
+  const currentBranch = useMemo(
+    () => branchById.get(String(params.branchId)) || branchList[0] || null,
+    [branchById, branchList, params.branchId],
+  );
+  const currentLocation = useMemo(
+    () => locationById.get(String(params.locationId)) || locationList[0] || null,
+    [locationById, locationList, params.locationId],
+  );
+  const ownOpenShift = useMemo(
+    () => openShiftByUserId.get(String(params.authUserId || '')) || null,
+    [openShiftByUserId, params.authUserId],
+  );
+  const canApplyDiscount = authPermissionSet.has('canDiscount') || authPermissionSet.has('*') || Boolean(params.discountApprovalGranted);
+  const canEditPrice = authPermissionSet.has('canEditPrice') || authPermissionSet.has('*');
+  const hasOperationalSetup = Boolean(branchList.length > 0 && locationList.length > 0);
   const hasCatalogReady = Boolean(productList.length > 0);
   const requiresCashierShift = params.paymentType !== 'credit';
   const hasZeroPriceLine = params.cart.some((item) => Number(item.price || 0) <= 0);
@@ -118,7 +142,13 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const hasUnderpaidSale = params.paymentType !== 'credit' && Number(params.paidAmount || 0) < Number(totals.total || 0);
   const hasDiscountPermissionViolation = !canApplyDiscount && Math.abs(Number(params.discount || 0)) > 0.0001;
   const hasPricePermissionViolation = !canEditPrice && params.cart.some((item) => {
-    const product = productList.find((entry) => String(entry.id) === String(item.productId));
+    const baselinePrice = item.priceType === 'retail' && Number(item.qty || 0) === 1
+      ? defaultPriceByProductId.get(String(item.productId))
+      : undefined;
+    if (typeof baselinePrice === 'number') {
+      return Math.abs(Number(item.price || 0) - baselinePrice) > 0.0001;
+    }
+    const product = productById.get(String(item.productId));
     if (!product) return false;
     return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType, item.qty) || 0)) > 0.0001;
   });
@@ -150,23 +180,23 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
 
   const openShiftLabel = getShiftDisplayLabel(ownOpenShift);
 
-  const contextBadges = [
+  const contextBadges = useMemo(() => [
     ...(SINGLE_STORE_MODE ? [] : [{ key: 'branch', label: `الفرع: ${currentBranch?.name || 'الافتراضي'}` }]),
     { key: 'location', label: `${SINGLE_STORE_MODE ? 'نقطة التشغيل' : 'المخزن'}: ${currentLocation?.name || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'الافتراضي')}` },
     { key: 'shift', label: `الوردية: ${openShiftLabel}` },
     { key: 'payment', label: `الدفع: ${paymentLabel(params.paymentType, params.paymentChannel)}` },
     { key: 'held', label: `المعلقات: ${params.heldDrafts.length}` },
     { key: 'products', label: `المعروض: ${filteredSaleProducts.length}` },
-  ];
+  ], [currentBranch?.name, currentLocation?.name, filteredSaleProducts.length, openShiftLabel, params.heldDrafts.length, params.paymentChannel, params.paymentType]);
 
-  const shortSummary = [
+  const shortSummary = useMemo(() => [
     { key: 'total', label: 'المطلوب دفعه', value: formatCurrency(totals.total) },
     { key: 'items', label: 'عدد الأصناف', value: String(params.cart.length) },
     { key: 'shift', label: 'الوردية', value: openShiftLabel },
     { key: 'change', label: params.paymentType === 'credit' ? 'المتبقي على العميل' : 'الباقي للعميل', value: formatCurrency(params.paymentType === 'credit' ? totals.total : changeAmount) },
-  ];
+  ], [changeAmount, openShiftLabel, params.cart.length, params.paymentType, totals.total]);
 
-  const selectedCustomerName = params.customers.find((customer) => String(customer.id) === String(params.customerId))?.name || 'عميل نقدي';
+  const selectedCustomerName = customerById.get(String(params.customerId)) || 'عميل نقدي';
   const hasRecentProducts = recentProducts.length > 0;
   const selectedPriceType = (params.cart[0]?.priceType || null) as PosPriceType | null;
 

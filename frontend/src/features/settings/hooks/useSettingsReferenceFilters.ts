@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import type { Branch, Location } from '@/types/domain';
 
 export function useSettingsReferenceFilters(branches: Branch[], locations: Location[]) {
@@ -6,26 +6,46 @@ export function useSettingsReferenceFilters(branches: Branch[], locations: Locat
   const [locationSearch, setLocationSearch] = useState('');
   const [branchFilter, setBranchFilter] = useState<'all' | 'with-code' | 'without-code'>('all');
   const [locationFilter, setLocationFilter] = useState<'all' | 'with-branch' | 'without-branch'>('all');
+  const deferredBranchSearch = useDeferredValue(branchSearch);
+  const deferredLocationSearch = useDeferredValue(locationSearch);
+  const branchSearchIndex = useMemo(
+    () => branches.map((branch) => [branch, [branch.name, branch.code].filter(Boolean).join(' ').toLowerCase()] as const),
+    [branches],
+  );
+  const locationSearchIndex = useMemo(
+    () => locations.map((location) => [location, [location.name, location.code, location.branchName].filter(Boolean).join(' ').toLowerCase()] as const),
+    [locations],
+  );
 
   const filteredBranches = useMemo(() => {
-    const search = branchSearch.trim().toLowerCase();
-    return branches.filter((branch) => {
+    const search = deferredBranchSearch.trim().toLowerCase();
+    return branchSearchIndex.filter(([branch, searchableText]) => {
       if (branchFilter === 'with-code' && !branch.code) return false;
       if (branchFilter === 'without-code' && branch.code) return false;
       if (!search) return true;
-      return [branch.name, branch.code].filter(Boolean).join(' ').toLowerCase().includes(search);
-    });
-  }, [branches, branchFilter, branchSearch]);
+      return searchableText.includes(search);
+    }).map(([branch]) => branch);
+  }, [branchFilter, branchSearchIndex, deferredBranchSearch]);
 
   const filteredLocations = useMemo(() => {
-    const search = locationSearch.trim().toLowerCase();
-    return locations.filter((location) => {
+    const search = deferredLocationSearch.trim().toLowerCase();
+    return locationSearchIndex.filter(([location, searchableText]) => {
       if (locationFilter === 'with-branch' && !location.branchName) return false;
       if (locationFilter === 'without-branch' && location.branchName) return false;
       if (!search) return true;
-      return [location.name, location.code, location.branchName].filter(Boolean).join(' ').toLowerCase().includes(search);
-    });
-  }, [locationFilter, locationSearch, locations]);
+      return searchableText.includes(search);
+    }).map(([location]) => location);
+  }, [deferredLocationSearch, locationFilter, locationSearchIndex]);
+
+  const resetBranchFilters = useCallback(() => {
+    setBranchSearch('');
+    setBranchFilter('all');
+  }, []);
+
+  const resetLocationFilters = useCallback(() => {
+    setLocationSearch('');
+    setLocationFilter('all');
+  }, []);
 
   return {
     branchSearch,
@@ -38,13 +58,7 @@ export function useSettingsReferenceFilters(branches: Branch[], locations: Locat
     setLocationSearch,
     setBranchFilter,
     setLocationFilter,
-    resetBranchFilters: () => {
-      setBranchSearch('');
-      setBranchFilter('all');
-    },
-    resetLocationFilters: () => {
-      setLocationSearch('');
-      setLocationFilter('all');
-    },
+    resetBranchFilters,
+    resetLocationFilters,
   };
 }

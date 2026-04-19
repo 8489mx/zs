@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
@@ -68,16 +68,20 @@ export function useProductsWorkspaceController() {
   const supplierNames = useMemo(() => Object.fromEntries((suppliersQuery.data || []).map((supplier) => [supplier.id, supplier.name])), [suppliersQuery.data]);
   const visibleProducts = useMemo(() => productsQuery.data?.products || [], [productsQuery.data?.products]);
   const summary = productsQuery.data?.summary;
-  const metrics = {
+  const selectedIdsSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const metrics = useMemo(() => ({
     total: Number(summary?.totalProducts || 0),
     lowStockCount: Number(summary?.lowStockCount || 0),
     outOfStockCount: Number(summary?.outOfStockCount || 0),
-  };
-  const inventoryCost = Number(summary?.inventoryCost || 0);
-  const inventorySaleValue = Number(summary?.inventorySaleValue || 0);
-  const activeOffersCount = Number(summary?.activeOffersCount || 0);
-  const customerPriceCount = Number(summary?.customerPriceCount || 0);
-  const selectedProducts = visibleProducts.filter((product) => selectedIds.includes(String(product.id)));
+  }), [summary?.lowStockCount, summary?.outOfStockCount, summary?.totalProducts]);
+  const inventoryCost = useMemo(() => Number(summary?.inventoryCost || 0), [summary?.inventoryCost]);
+  const inventorySaleValue = useMemo(() => Number(summary?.inventorySaleValue || 0), [summary?.inventorySaleValue]);
+  const activeOffersCount = useMemo(() => Number(summary?.activeOffersCount || 0), [summary?.activeOffersCount]);
+  const customerPriceCount = useMemo(() => Number(summary?.customerPriceCount || 0), [summary?.customerPriceCount]);
+  const selectedProducts = useMemo(
+    () => visibleProducts.filter((product) => selectedIdsSet.has(String(product.id))),
+    [selectedIdsSet, visibleProducts],
+  );
 
   useEffect(() => {
     if (selectedProduct) {
@@ -90,15 +94,15 @@ export function useProductsWorkspaceController() {
     }
   }, [visibleProducts, selectedProduct]);
 
-  const resetProductsView = () => {
+  const resetProductsView = useCallback(() => {
     setSearch('');
     setViewFilter('all');
     setSelectedProduct(null);
     setSelectedIds([]);
     setPage(1);
-  };
+  }, []);
 
-  const exportProductsCsv = () => {
+  const exportProductsCsv = useCallback(() => {
     downloadCsvFile('products-register.csv', ['name', 'itemKind', 'styleCode', 'color', 'size', 'barcode', 'category', 'supplier', 'costPrice', 'retailPrice', 'wholesalePrice', 'stock', 'minStock', 'units', 'offers', 'customerPrices', 'notes'], visibleProducts.map((product) => [
       product.name,
       product.itemKind || 'standard',
@@ -118,9 +122,9 @@ export function useProductsWorkspaceController() {
       (product.customerPrices || []).map((entry) => `${entry.customerId}:${entry.price}`).join(' | '),
       product.notes || ''
     ]));
-  };
+  }, [categoryNames, supplierNames, visibleProducts]);
 
-  const copySelectedProductSummary = async () => {
+  const copySelectedProductSummary = useCallback(async () => {
     if (!selectedProduct) return;
     const summaryText = [
       `الصنف: ${selectedProduct.name}`,
@@ -144,9 +148,9 @@ export function useProductsWorkspaceController() {
     try {
       await navigator.clipboard?.writeText(summaryText);
     } catch {}
-  };
+  }, [categoryNames, selectedProduct, supplierNames]);
 
-  const printProductsList = () => {
+  const printProductsList = useCallback(() => {
     const html = `
       <html dir="rtl" lang="ar">
         <head>
@@ -178,30 +182,30 @@ export function useProductsWorkspaceController() {
         </body>
       </html>`;
     printHtmlDocument('قائمة الأصناف', html);
-  };
+  }, [categoryNames, supplierNames, visibleProducts]);
 
-  const openOfferDialog = (product: Product) => {
+  const openOfferDialog = useCallback((product: Product) => {
     setSelectedProduct(product);
     setOfferDialogProduct(product);
-  };
+  }, []);
 
-  const openBarcodeDialog = (product: Product, mode: 'scan' | 'generate' = 'scan') => {
+  const openBarcodeDialog = useCallback((product: Product, mode: 'scan' | 'generate' = 'scan') => {
     setSelectedProduct(product);
     setBarcodeDialogProduct(product);
     setBarcodeDialogMode(mode);
-  };
+  }, []);
 
-  const openPrintDialog = (product: Product, unit?: ProductUnit | null) => {
+  const openPrintDialog = useCallback((product: Product, unit?: ProductUnit | null) => {
     setSelectedProduct(product);
     setPrintDialogState({ product, unit });
-  };
+  }, []);
 
-  const applyProductPatch = (product: Product) => {
+  const applyProductPatch = useCallback((product: Product) => {
     setSelectedProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
     setOfferDialogProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
     setBarcodeDialogProduct((current) => (current && String(current.id) === String(product.id) ? product : current));
     setPrintDialogState((current) => (current && String(current.product.id) === String(product.id) ? { ...current, product } : current));
-  };
+  }, []);
 
   return {
     search,
