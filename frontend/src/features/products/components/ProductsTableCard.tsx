@@ -242,6 +242,10 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       <td>
                         <div className="actions products-row-actions">
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(group.representative)}>تعديل الأساسي</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(group.representative)}>عرض</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'scan')}>إضافة باركود</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'generate')}>توليد باركود</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(group.representative)} disabled={!props.canPrint}>ملصقات</Button>
                         </div>
                       </td>
                     </tr>

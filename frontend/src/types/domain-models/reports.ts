@@ -50,6 +50,8 @@ export interface CustomerLedgerEntry {
   debit?: number;
   credit?: number;
   balance_after?: number;
+  reference_type?: string;
+  reference_id?: string;
 }
 
 export interface SupplierLedgerEntry {
@@ -61,6 +63,8 @@ export interface SupplierLedgerEntry {
   debit?: number;
   credit?: number;
   balance_after?: number;
+  reference_type?: string;
+  reference_id?: string;
 }
 
 export interface LedgerSummary {

@@ -59,6 +59,19 @@ export class ReportsController {
     return this.reportsService.treasuryTransactions(query);
   }
 
+
+  @Get('reports/employees')
+  @RequirePermissions('reports')
+  employeeSummary(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.employeeSummary(query, req.authContext!);
+  }
+
+  @Get('reports/employees/:id/details')
+  @RequirePermissions('reports')
+  employeeDetails(@Param('id', ParseIntPipe) id: number, @Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.employeeDetails(id, query, req.authContext!);
+  }
+
   @Get('audit-logs')
   @RequirePermissions('audit')
   auditLogs(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

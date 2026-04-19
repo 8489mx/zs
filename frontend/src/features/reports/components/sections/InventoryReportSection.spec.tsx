@@ -32,7 +32,17 @@ describe('InventoryReportSection', () => {
               healthy: 0,
               trackedLocations: 2,
               locationHighlights: [
-                { locationId: '10', locationName: 'المخزن الرئيسي', branchId: '1', branchName: 'الفرع الأول', totalQty: 5, trackedProducts: 2, attentionItems: 1, lowStockItems: 1, outOfStockItems: 0 },
+                {
+                  locationId: '10',
+                  locationName: 'المخزن الرئيسي',
+                  branchId: '1',
+                  branchName: 'الفرع الأول',
+                  totalQty: 5,
+                  trackedProducts: 2,
+                  attentionItems: 1,
+                  lowStockItems: 1,
+                  outOfStockItems: 0,
+                },
               ],
             },
             pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1, rangeStart: 1, rangeEnd: 1 },
@@ -46,10 +56,11 @@ describe('InventoryReportSection', () => {
         onInventoryFilterChange={vi.fn()}
         onInventoryPageChange={vi.fn()}
         onInventoryPageSizeChange={vi.fn()}
+        onInventoryFiltersReset={vi.fn()}
       />,
     );
 
-    expect(screen.getByText('أكثر المواقع احتياجًا للمتابعة')).toBeInTheDocument();
+    expect(screen.getByText('أكثر المخازن احتياجًا للمتابعة')).toBeInTheDocument();
     expect(screen.getAllByText('المخزن الرئيسي')[0]).toBeInTheDocument();
     expect(screen.getByText(/المخزن الخلفي/)).toBeInTheDocument();
   });

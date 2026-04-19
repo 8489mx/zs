@@ -190,7 +190,7 @@ describe('app ui coverage', () => {
     expect(await screen.findByRole('link', { name: 'بيانات المتجر' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 3, name: 'بيانات المتجر' })).toBeInTheDocument();
     expect(await screen.findByText('الإعدادات العامة')).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'المتجر والمخزن الأساسي' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 3, name: 'الفرع والمخزن الأساسي' })).toBeInTheDocument();
 
     cleanup();
     installGlobalAppFetchMock();
@@ -224,9 +224,9 @@ describe('app ui coverage', () => {
         locationActionBusy={false}
       />,
     );
-    expect(await screen.findByRole('link', { name: 'المخزن والمواقع' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'المتجر الرئيسي' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'المخزن الأساسي' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'المخازن' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 3, name: 'الفروع' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 3, name: 'المواقع' })).toBeInTheDocument();
 
     cleanup();
     installGlobalAppFetchMock();
@@ -304,7 +304,8 @@ describe('app ui coverage', () => {
     await user.click(await screen.findByRole('button', { name: 'فتح تفاصيل اختبارية' }));
     expect(await screen.findByRole('button', { name: 'طباعة الفاتورة' })).toBeInTheDocument();
     expect((await screen.findAllByText('مورد رئيسي')).length).toBeGreaterThan(0);
-    expect((await screen.findAllByText('المخزن الرئيسي')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText((content) => content.includes('المخزن الرئيسي'))).length
+).toBeGreaterThan(0);
   });
 
   it('shows selected return details after choosing a return row', async () => {

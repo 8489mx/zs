@@ -1,15 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
-import type { AppSettings, Branch, Location, Product } from '@/types/domain';
+import type { AppSettings, Branch, Category, Location, Product, Supplier } from '@/types/domain';
 import { buildPurchaseDraftItem, upsertPurchaseDraftItem, type PurchaseDraftItem } from '@/features/purchases/contracts';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
 import type { PurchaseRepricingInsights } from '@/features/purchases/api/purchases.api';
 import { purchaseHeaderSchema, purchaseLineSchema, type PurchaseHeaderInput, type PurchaseHeaderOutput } from '@/features/purchases/schemas/purchase.schema';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
+import { sharedProductsApi } from '@/shared/api/products';
+import { invalidateCatalogDomain } from '@/app/query-invalidation';
+import { queryKeys } from '@/app/query-keys';
+import type { PurchaseQuickCreateDraft } from '@/features/purchases/components/purchase-composer/PurchaseQuickCreateDialog';
 
 const DEFAULT_HEADER_VALUES: PurchaseHeaderInput = { supplierId: '', paymentType: 'cash', discount: 0, branchId: '', locationId: '', note: '' };
+const DEFAULT_QUICK_CREATE_DRAFT: PurchaseQuickCreateDraft = {
+  name: '',
+  barcode: '',
+  categoryId: '',
+  supplierId: '',
+  unitName: 'قطعة',
+  costPrice: 0,
+  retailPrice: 0,
+  wholesalePrice: 0,
+  minStock: 0,
+};
 
 function buildDefaultHeaderValues(branches: Branch[], locations: Location[]): PurchaseHeaderInput {
   return {
@@ -19,14 +35,96 @@ function buildDefaultHeaderValues(branches: Branch[], locations: Location[]): Pu
   };
 }
 
-function resetLineDraft(setLineProductId: (value: string) => void, setLineQty: (value: number) => void, setLineCost: (value: number) => void, setLineError: (value: string) => void) {
+function resetLineDraft(
+  setLineProductId: (value: string) => void,
+  setLineQty: (value: number) => void,
+  setLineCost: (value: number) => void,
+  setLineError: (value: string) => void,
+  setProductSearch: (value: string) => void,
+) {
   setLineProductId('');
   setLineQty(1);
   setLineCost(0);
   setLineError('');
+  setProductSearch('');
 }
 
-export function usePurchaseComposerController({ products, branches, locations, settings }: { products: Product[]; branches: Branch[]; locations: Location[]; settings?: AppSettings }) {
+function createProductPayload(draft: PurchaseQuickCreateDraft) {
+  const categoryId = draft.categoryId ? Number(draft.categoryId) : undefined;
+  const supplierId = draft.supplierId ? Number(draft.supplierId) : undefined;
+  const unitName = draft.unitName.trim() || 'قطعة';
+  return {
+    name: draft.name.trim(),
+    barcode: draft.barcode.trim(),
+    itemKind: 'standard',
+    costPrice: Number(draft.costPrice || 0),
+    retailPrice: Number(draft.retailPrice || 0),
+    wholesalePrice: Number(draft.wholesalePrice || draft.retailPrice || 0),
+    minStock: Number(draft.minStock || 0),
+    ...(categoryId ? { categoryId } : {}),
+    ...(supplierId ? { supplierId } : {}),
+    notes: '',
+    units: [{
+      name: unitName,
+      multiplier: 1,
+      barcode: draft.barcode.trim(),
+      isBaseUnit: true,
+      isSaleUnit: true,
+      isPurchaseUnit: true,
+    }],
+    offers: [],
+    customerPrices: [],
+    fashionVariants: [],
+  };
+}
+
+function buildProductSearchLabel(product: Product) {
+  return product.barcode ? `${product.name} — ${product.barcode}` : product.name;
+}
+
+function isProductMatch(product: Product, normalizedSearch: string) {
+  const haystack = [
+    product.name,
+    product.barcode,
+    product.styleCode,
+    ...(product.units || []).flatMap((unit) => [unit.name, unit.barcode]),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return haystack.includes(normalizedSearch);
+}
+
+function isExactProductMatch(product: Product, normalizedSearch: string) {
+  const exactCandidates = [
+    product.name,
+    product.barcode,
+    product.styleCode,
+    ...(product.units || []).flatMap((unit) => [unit.name, unit.barcode]),
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase());
+
+  return exactCandidates.includes(normalizedSearch);
+}
+
+export function usePurchaseComposerController({
+  products,
+  suppliers,
+  categories,
+  branches,
+  locations,
+  settings,
+}: {
+  products: Product[];
+  suppliers: Supplier[];
+  categories: Category[];
+  branches: Branch[];
+  locations: Location[];
+  settings?: AppSettings;
+}) {
+  const queryClient = useQueryClient();
   const headerForm = useForm<PurchaseHeaderInput, undefined, PurchaseHeaderOutput>({
     resolver: zodResolver(purchaseHeaderSchema),
     defaultValues: buildDefaultHeaderValues(branches, locations),
@@ -36,16 +134,42 @@ export function usePurchaseComposerController({ products, branches, locations, s
   const [lineQty, setLineQty] = useState(1);
   const [lineCost, setLineCost] = useState(0);
   const [lineError, setLineError] = useState('');
+  const [productSearch, setProductSearch] = useState('');
   const [repricingInsights, setRepricingInsights] = useState<PurchaseRepricingInsights | null>(null);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickCreateDraft, setQuickCreateDraft] = useState<PurchaseQuickCreateDraft>(DEFAULT_QUICK_CREATE_DRAFT);
 
   const hasDraftChanges = headerForm.formState.isDirty || items.length > 0 || Boolean(lineProductId) || lineQty !== 1 || lineCost !== 0;
   const mutation = useCreatePurchaseMutation((result) => {
     headerForm.reset(buildDefaultHeaderValues(branches, locations));
     setItems([]);
-    resetLineDraft(setLineProductId, setLineQty, setLineCost, setLineError);
+    resetLineDraft(setLineProductId, setLineQty, setLineCost, setLineError, setProductSearch);
     setRepricingInsights(result.repricingInsights || null);
   });
   const canNavigateAway = useUnsavedChangesGuard(hasDraftChanges && !mutation.isPending);
+
+  const quickCreateMutation = useMutation({
+    mutationFn: async (draft: PurchaseQuickCreateDraft) => sharedProductsApi.create(createProductPayload(draft)),
+    onSuccess: async (_, draft) => {
+      await invalidateCatalogDomain(queryClient, { includeProducts: true, includeCategories: true, includeSuppliers: true });
+      const refreshedProducts = await queryClient.fetchQuery({ queryKey: queryKeys.products, queryFn: sharedProductsApi.list });
+      const createdProduct = refreshedProducts.find((product) => (
+        product.name.trim().toLowerCase() === draft.name.trim().toLowerCase()
+        && String(product.barcode || '').trim().toLowerCase() === draft.barcode.trim().toLowerCase()
+      )) || refreshedProducts.find((product) => product.name.trim().toLowerCase() === draft.name.trim().toLowerCase()) || null;
+      if (createdProduct) {
+        setLineProductId(String(createdProduct.id));
+        setLineCost(Number(createdProduct.costPrice || draft.costPrice || 0));
+        setProductSearch(buildProductSearchLabel(createdProduct));
+      }
+      setQuickCreateOpen(false);
+      setQuickCreateDraft({
+        ...DEFAULT_QUICK_CREATE_DRAFT,
+        supplierId: headerForm.getValues('supplierId') || '',
+      });
+      setLineError('');
+    },
+  });
 
   useEffect(() => {
     if (!SINGLE_STORE_MODE) return;
@@ -68,56 +192,133 @@ export function usePurchaseComposerController({ products, branches, locations, s
     return pricesIncludeTax ? Number(taxable.toFixed(2)) : Number((taxable + taxAmount).toFixed(2));
   }, [discount, pricesIncludeTax, subTotal, taxAmount]);
 
-  function handleProductChange(productId: string) {
-    setLineProductId(productId);
-    const product = products.find((entry) => entry.id === productId);
-    if (product) {
-      setLineCost(Number(product.costPrice || 0));
-      setLineError('');
-    }
-  }
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = productSearch.trim().toLowerCase();
+    if (!normalizedSearch) return products.slice(0, 10);
+    return products.filter((product) => isProductMatch(product, normalizedSearch)).slice(0, 10);
+  }, [productSearch, products]);
 
-  function handleAddItem() {
+  const selectedProduct = useMemo(
+    () => products.find((entry) => String(entry.id) === String(lineProductId)) || null,
+    [lineProductId, products],
+  );
+
+  const selectProduct = useCallback((product: Product) => {
+    setLineProductId(String(product.id));
+    setLineCost(Number(product.costPrice || 0));
+    setProductSearch(buildProductSearchLabel(product));
+    setLineError('');
+  }, []);
+
+  const handleProductSearchChange = useCallback((value: string) => {
+    setProductSearch(value);
+    setLineError('');
+    const normalizedSearch = value.trim().toLowerCase();
+    if (!normalizedSearch) {
+      setLineProductId('');
+      return;
+    }
+
+    const exactMatches = products.filter((product) => isExactProductMatch(product, normalizedSearch));
+    if (exactMatches.length === 1) {
+      selectProduct(exactMatches[0]);
+      return;
+    }
+
+    setLineProductId((current) => {
+      const currentProduct = products.find((entry) => String(entry.id) === String(current));
+      if (!currentProduct) return '';
+      return buildProductSearchLabel(currentProduct).toLowerCase() === normalizedSearch ? current : '';
+    });
+  }, [products, selectProduct]);
+
+  const handleProductSelect = useCallback((productId: string) => {
+    const product = products.find((entry) => String(entry.id) === String(productId));
+    if (product) selectProduct(product);
+  }, [products, selectProduct]);
+
+  const handleAddItem = useCallback(() => {
+    if (!String(lineProductId || '').trim()) {
+      setLineError('اختر صنف من القائمة أو أضف صنف جديد');
+      return;
+    }
+
     try {
       const parsed = purchaseLineSchema.parse({ productId: lineProductId, qty: lineQty, cost: lineCost });
-      const product = products.find((entry) => entry.id === parsed.productId);
+      const product = products.find((entry) => String(entry.id) === String(parsed.productId));
       if (!product) throw new Error('الصنف المختار غير موجود');
       setItems((current) => upsertPurchaseDraftItem(current, buildPurchaseDraftItem(product, parsed.qty, parsed.cost)));
-      resetLineDraft(setLineProductId, setLineQty, setLineCost, setLineError);
+      resetLineDraft(setLineProductId, setLineQty, setLineCost, setLineError, setProductSearch);
       mutation.reset();
     } catch (error) {
       setLineError(error instanceof Error ? error.message : 'تعذر إضافة الصنف إلى الفاتورة');
     }
-  }
+  }, [lineCost, lineProductId, lineQty, mutation, products]);
 
-  function handleRemoveItem(productId: string, unitName: string) {
+  const handleRemoveItem = useCallback((productId: string, unitName: string) => {
     setItems((current) => current.filter((entry) => !(entry.productId === productId && entry.unitName === unitName)));
-  }
+  }, []);
 
-  function handleReset(force = false) {
+  const handleReset = useCallback((force = false) => {
     if (!force && hasDraftChanges && !canNavigateAway()) return;
     headerForm.reset(buildDefaultHeaderValues(branches, locations));
     setItems([]);
-    resetLineDraft(setLineProductId, setLineQty, setLineCost, setLineError);
+    resetLineDraft(setLineProductId, setLineQty, setLineCost, setLineError, setProductSearch);
     mutation.reset();
-  }
+  }, [branches, canNavigateAway, hasDraftChanges, headerForm, locations, mutation]);
+
+  const openQuickCreateDialog = useCallback(() => {
+    setQuickCreateDraft((current) => ({
+      ...current,
+      supplierId: current.supplierId || headerForm.getValues('supplierId') || '',
+    }));
+    setQuickCreateOpen(true);
+  }, [headerForm]);
+
+  const closeQuickCreateDialog = useCallback(() => {
+    setQuickCreateOpen(false);
+  }, []);
+
+  const handleQuickCreateSubmit = useCallback(async () => {
+    await quickCreateMutation.mutateAsync(quickCreateDraft);
+  }, [quickCreateDraft, quickCreateMutation]);
 
   return {
     headerForm,
     items,
-    lineDraft: { lineProductId, lineQty, lineCost, lineError },
+    lineDraft: {
+      lineProductId,
+      lineQty,
+      lineCost,
+      lineError,
+      productSearch,
+      filteredProducts,
+      selectedProductName: selectedProduct ? buildProductSearchLabel(selectedProduct) : '',
+    },
     mutation,
     repricingInsights,
     hasDraftChanges,
     totals: { subTotal, discount, taxRate, pricesIncludeTax, taxAmount, total },
+    quickCreate: {
+      open: quickCreateOpen,
+      draft: quickCreateDraft,
+      mutation: quickCreateMutation,
+      categories,
+      suppliers,
+    },
     actions: {
       setLineQty,
       setLineCost,
-      handleProductChange,
+      handleProductSearchChange,
+      handleProductSelect,
       handleAddItem,
       handleRemoveItem,
       handleReset,
       setRepricingInsights,
+      openQuickCreateDialog,
+      closeQuickCreateDialog,
+      setQuickCreateDraft,
+      handleQuickCreateSubmit,
     },
   };
 }

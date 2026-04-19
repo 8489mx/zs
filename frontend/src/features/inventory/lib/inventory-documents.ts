@@ -37,7 +37,7 @@ export function printStockCountDocument(session: StockCountSession) {
   const items = session.items || [];
   const totalVariance = items.reduce((sum, item) => sum + Number(item.varianceQty || 0), 0);
   printHtmlDocument(`جلسة جرد ${session.docNo || session.id}`, `
-    <div class="meta">الموقع: ${escapeHtml(session.locationName || '—')} · الحالة: ${escapeHtml(session.status || '—')} · التاريخ: ${escapeHtml(formatDate(session.createdAt || ''))}</div>
+    <div class="meta">المخزن: ${escapeHtml(session.locationName || '—')} · الحالة: ${escapeHtml(session.status || '—')} · التاريخ: ${escapeHtml(formatDate(session.createdAt || ''))}</div>
     <table>
       <thead><tr><th>الصنف</th><th>المتوقع</th><th>المعدود</th><th>الفرق</th><th>السبب</th></tr></thead>
       <tbody>${items.map((item) => `<tr><td>${escapeHtml(item.productName || '—')}</td><td>${escapeHtml(String(item.expectedQty || 0))}</td><td>${escapeHtml(String(item.countedQty || 0))}</td><td>${escapeHtml(String(item.varianceQty || 0))}</td><td>${escapeHtml(item.reason || '—')}</td></tr>`).join('')}</tbody>
@@ -104,7 +104,7 @@ export function printCountSessions(stockCountSessions: StockCountSession[]) {
   printHtmlDocument('جلسات الجرد', `
     <h1>جلسات الجرد</h1>
     <table>
-      <thead><tr><th>رقم المستند</th><th>الموقع</th><th>الحالة</th><th>التاريخ</th><th>عدد البنود</th><th>ملاحظة</th></tr></thead>
+      <thead><tr><th>رقم المستند</th><th>المخزن</th><th>الحالة</th><th>التاريخ</th><th>عدد البنود</th><th>ملاحظة</th></tr></thead>
       <tbody>${stockCountSessions.map((session) => `<tr><td>${escapeHtml(session.docNo || '—')}</td><td>${escapeHtml(session.locationName || '—')}</td><td>${escapeHtml(session.status || '—')}</td><td>${escapeHtml(formatDate(session.createdAt || ''))}</td><td>${escapeHtml(String((session.items || []).length))}</td><td>${escapeHtml(session.note || '—')}</td></tr>`).join('')}</tbody>
     </table>
   `);

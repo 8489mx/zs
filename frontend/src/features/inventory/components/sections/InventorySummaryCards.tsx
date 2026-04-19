@@ -48,7 +48,9 @@ export function InventoryStatusCard({
   isLoading,
   isError,
   error,
-  includeSensitivePricing = true
+  includeSensitivePricing = true,
+  selectedProductId = '',
+  onProductSelect,
 }: {
   statusFilter: InventoryStatusFilter;
   onStatusFilterChange: (value: InventoryStatusFilter) => void;
@@ -60,16 +62,18 @@ export function InventoryStatusCard({
   isError: boolean;
   error?: unknown;
   includeSensitivePricing?: boolean;
+  selectedProductId?: string;
+  onProductSelect?: (product: Product) => void;
 }) {
   return (
-    <Card title="متابعة حالة الأصناف" description="ابدأ هنا: فلتر سريع ثم راجع الجدول وحدد الصنف المحتاج متابعة." actions={<span className="nav-pill">حالة الأصناف</span>}>
+    <Card title="متابعة حالة الأصناف" description="ابدأ هنا: فلتر سريع ثم راجع الجدول واضغط على الصنف المطلوب لفتح تسوية سريعة مباشرة." actions={<span className="nav-pill">حالة الأصناف</span>}>
       <div className="filter-chip-row">
         <Button type="button" variant={statusFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('all')}>الكل</Button>
         <Button type="button" variant={statusFilter === 'healthy' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('healthy')}>سليم</Button>
         <Button type="button" variant={statusFilter === 'low' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('low')}>منخفض</Button>
         <Button type="button" variant={statusFilter === 'out' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('out')}>نافد</Button>
       </div>
-      <SearchToolbar search={search} onSearchChange={onSearchChange} searchPlaceholder="ابحث باسم الصنف أو الباركود">
+      <SearchToolbar search={search} onSearchChange={onSearchChange} searchPlaceholder="ابحث باسم الصنف أو الباركود أو كود المجموعة">
         <InventoryStatusFilterField value={statusFilter} onChange={onStatusFilterChange} />
         <div className="actions compact-actions align-end-inline">
           <Button type="button" variant="secondary" onClick={onReset}>إلغاء الفلاتر</Button>
@@ -84,7 +88,7 @@ export function InventoryStatusCard({
         emptyTitle="لا توجد أصناف مطابقة"
         emptyHint="جرّب تغيير البحث أو الفلتر الحالي، أو أضف أصنافًا جديدة من صفحة المنتجات."
       >
-        <InventoryTable rows={rows.slice(0, 60)} includeSensitivePricing={includeSensitivePricing} />
+        <InventoryTable rows={rows.slice(0, 60)} includeSensitivePricing={includeSensitivePricing} selectedProductId={selectedProductId} onProductSelect={onProductSelect} />
       </QueryFeedback>
     </Card>
   );

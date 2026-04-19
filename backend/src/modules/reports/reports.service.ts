@@ -504,6 +504,14 @@ export class ReportsService {
     return this.reportsAdminService.treasuryTransactions(query);
   }
 
+  async employeeSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.reportsAdminService.employeeSummary(query, auth);
+  }
+
+  async employeeDetails(userId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.reportsAdminService.employeeDetails(userId, query, auth);
+  }
+
   async auditLogs(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.reportsAdminService.auditLogs(query, auth);
   }

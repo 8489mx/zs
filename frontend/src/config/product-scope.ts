@@ -1,2 +1,2 @@
-export const SINGLE_STORE_MODE = true;
-export const SINGLE_STORE_LABEL = 'متجر واحد';
+export const SINGLE_STORE_MODE = false;
+export const SINGLE_STORE_LABEL = 'المخازن';

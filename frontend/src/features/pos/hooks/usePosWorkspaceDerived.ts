@@ -65,21 +65,24 @@ function getShiftDisplayLabel(shift: { docNo?: string; openedByName?: string } |
 }
 
 export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
+  const productList = useMemo(() => (Array.isArray(params.products) ? params.products : []), [params.products]);
+  const saleProductList = useMemo(() => (Array.isArray(params.saleProducts) ? params.saleProducts : []), [params.saleProducts]);
+
   const recentProducts = useMemo(() => {
-    const map = new Map(params.products.map((product) => [product.id, product]));
+    const map = new Map(productList.map((product) => [product.id, product]));
     return params.recentProductIds.map((id) => map.get(id)).filter(Boolean) as Product[];
-  }, [params.products, params.recentProductIds]);
+  }, [productList, params.recentProductIds]);
 
   const filteredSaleProducts = useMemo(() => {
     const recentSet = new Set(params.recentProductIds);
-    return params.saleProducts.filter((product) => {
+    return saleProductList.filter((product) => {
       if (params.productFilter === 'offers' && !(product.offers || []).length) return false;
       if (params.productFilter === 'priced' && !(product.customerPrices || []).length) return false;
       if (params.productFilter === 'low' && !(Number(product.stock || 0) <= Number(product.minStock || 0))) return false;
       if (params.productFilter === 'recent' && !recentSet.has(product.id)) return false;
       return true;
     });
-  }, [params.productFilter, params.recentProductIds, params.saleProducts]);
+  }, [params.productFilter, params.recentProductIds, saleProductList]);
 
   const totals = useMemo(() => {
     const subTotal = params.cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
@@ -108,14 +111,14 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const canApplyDiscount = authPermissions.includes('canDiscount') || authPermissions.includes('*') || Boolean(params.discountApprovalGranted);
   const canEditPrice = authPermissions.includes('canEditPrice') || authPermissions.includes('*');
   const hasOperationalSetup = Boolean(params.branches.length > 0 && params.locations.length > 0);
-  const hasCatalogReady = Boolean(params.products.length > 0);
+  const hasCatalogReady = Boolean(productList.length > 0);
   const requiresCashierShift = params.paymentType !== 'credit';
   const hasZeroPriceLine = params.cart.some((item) => Number(item.price || 0) <= 0);
   const hasCreditWithoutCustomer = params.paymentType === 'credit' && !params.customerId;
   const hasUnderpaidSale = params.paymentType !== 'credit' && Number(params.paidAmount || 0) < Number(totals.total || 0);
   const hasDiscountPermissionViolation = !canApplyDiscount && Math.abs(Number(params.discount || 0)) > 0.0001;
   const hasPricePermissionViolation = !canEditPrice && params.cart.some((item) => {
-    const product = params.products.find((entry) => String(entry.id) === String(item.productId));
+    const product = productList.find((entry) => String(entry.id) === String(item.productId));
     if (!product) return false;
     return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType, item.qty) || 0)) > 0.0001;
   });
@@ -149,7 +152,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
 
   const contextBadges = [
     ...(SINGLE_STORE_MODE ? [] : [{ key: 'branch', label: `الفرع: ${currentBranch?.name || 'الافتراضي'}` }]),
-    { key: 'location', label: `${SINGLE_STORE_MODE ? 'نقطة التشغيل' : 'الموقع'}: ${currentLocation?.name || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'الافتراضي')}` },
+    { key: 'location', label: `${SINGLE_STORE_MODE ? 'نقطة التشغيل' : 'المخزن'}: ${currentLocation?.name || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'الافتراضي')}` },
     { key: 'shift', label: `الوردية: ${openShiftLabel}` },
     { key: 'payment', label: `الدفع: ${paymentLabel(params.paymentType, params.paymentChannel)}` },
     { key: 'held', label: `المعلقات: ${params.heldDrafts.length}` },

@@ -7,7 +7,7 @@ export type InventoryStatusFilter = 'all' | StockStatus;
 export function filterInventoryRows(rows: Product[], search: string, statusFilter: InventoryStatusFilter) {
   const q = search.trim().toLowerCase();
   return rows.filter((product) => {
-    const matchesSearch = !q || [product.name, product.barcode].some((value) => String(value || '').toLowerCase().includes(q));
+    const matchesSearch = !q || [product.name, product.barcode, product.styleCode, product.color, product.size].some((value) => String(value || '').toLowerCase().includes(q));
     if (!matchesSearch) return false;
     const status = resolveProductStatus(product);
     return statusFilter === 'all' ? true : status === statusFilter;

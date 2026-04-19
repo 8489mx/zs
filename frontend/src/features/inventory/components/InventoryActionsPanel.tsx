@@ -23,6 +23,8 @@ import {
 
 interface InventoryActionsPanelProps {
   products: Product[];
+  selectedProduct?: Product | null;
+  selectedProductToken?: number;
   branches: Branch[];
   locations: Location[];
   isCatalogLoading: boolean;
@@ -72,9 +74,10 @@ function hasDamagedDraft(values: DamagedStockInput, locations: Location[]): bool
     || Boolean(String(values.managerPin || '').trim());
 }
 
-export function InventoryActionsPanel({ products, branches, locations, isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
+export function InventoryActionsPanel({ products, selectedProduct = null, selectedProductToken = 0, branches, locations, isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
   const adjustmentDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const damagedDisclosureRef = useRef<HTMLDetailsElement | null>(null);
+  const locationList = useMemo(() => (Array.isArray(locations) ? locations : []), [locations]);
 
   const adjustmentForm = useForm<InventoryAdjustmentInput, undefined, InventoryAdjustmentOutput>({
     resolver: zodResolver(inventoryAdjustmentSchema),
@@ -82,23 +85,38 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
   });
   const damagedForm = useForm<DamagedStockInput, undefined, DamagedStockOutput>({
     resolver: zodResolver(damagedStockSchema),
-    defaultValues: buildDamagedDefaults(locations)
+    defaultValues: buildDamagedDefaults(locationList)
   });
 
   const adjustmentMutation = useInventoryAdjustmentMutation(() => adjustmentForm.reset(ADJUSTMENT_DEFAULTS));
-  const damagedMutation = useDamagedStockMutation(() => damagedForm.reset(buildDamagedDefaults(locations)));
+  const damagedMutation = useDamagedStockMutation(() => damagedForm.reset(buildDamagedDefaults(locationList)));
 
   useEffect(() => {
     if (!SINGLE_STORE_MODE) return;
-    if (!damagedForm.getValues('locationId') && locations[0]?.id) {
-      damagedForm.setValue('locationId', locations[0].id);
+    if (!damagedForm.getValues('locationId') && locationList[0]?.id) {
+      damagedForm.setValue('locationId', locationList[0].id);
     }
-  }, [damagedForm, locations]);
+  }, [damagedForm, locationList]);
 
+
+  useEffect(() => {
+    if (!selectedProduct || !selectedProductToken) return;
+    const recommendedActionType = Number(selectedProduct.stock || 0) <= Number(selectedProduct.minStock || 0) ? 'add' : 'adjust';
+    adjustmentForm.reset({
+      ...ADJUSTMENT_DEFAULTS,
+      productId: String(selectedProduct.id || ''),
+      actionType: recommendedActionType,
+      qty: recommendedActionType === 'adjust' ? Number(selectedProduct.stock || 0) : 1,
+      reason: recommendedActionType === 'add' ? 'restock' : 'inventory_count',
+    });
+    adjustmentMutation.reset();
+    if (adjustmentDisclosureRef.current && !adjustmentDisclosureRef.current.open) adjustmentDisclosureRef.current.open = true;
+    scrollDisclosureToView(adjustmentDisclosureRef.current);
+  }, [selectedProduct, selectedProductToken, adjustmentForm, adjustmentMutation]);
   const adjustmentValues = adjustmentForm.watch();
   const damagedValues = damagedForm.watch();
   const adjustmentDraft = hasAdjustmentDraft(adjustmentValues);
-  const damagedDraft = hasDamagedDraft(damagedValues, locations);
+  const damagedDraft = hasDamagedDraft(damagedValues, locationList);
   const hasAnyDraft = (adjustmentDraft || damagedDraft) && !adjustmentMutation.isPending && !damagedMutation.isPending;
   const canDiscardDrafts = useUnsavedChangesGuard(hasAnyDraft, 'لديك تغييرات غير محفوظة داخل إجراءات المخزون. هل تريد المتابعة وفقدان هذه التغييرات؟');
 
@@ -106,8 +124,8 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
   const damagedQty = Number(damagedForm.watch('qty') || 0);
   const selectedDamagedProduct = useMemo(() => products.find((product) => String(product.id) === String(damagedProductId)), [products, damagedProductId]);
   const selectedLocationName = SINGLE_STORE_MODE
-    ? (locations[0]?.name || '—')
-    : (locations.find((location) => String(location.id) === String(damagedForm.getValues('locationId')))?.name || '—');
+    ? (locationList[0]?.name || '—')
+    : (locationList.find((location) => String(location.id) === String(damagedForm.getValues('locationId')))?.name || '—');
   const remainingAfterDamage = Math.max(0, Number(selectedDamagedProduct?.stock || 0) - damagedQty);
 
   function scrollDisclosureToView(details: HTMLDetailsElement | null) {
@@ -125,7 +143,7 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
 
   function resetDamagedForm() {
     if (damagedDraft && !canDiscardDrafts()) return;
-    damagedForm.reset(buildDamagedDefaults(locations));
+    damagedForm.reset(buildDamagedDefaults(locationList));
     damagedMutation.reset();
   }
 
@@ -170,6 +188,7 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
                   <option value="">اختر الصنف</option>
                   {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
                 </select>
+                {selectedProduct ? <div className="muted small">تم تجهيز الصنف المحدد من جدول المتابعة لعمل تسوية أو إضافة/خصم سريع مباشرة.</div> : null}
               </Field>
               <Field label="نوع الحركة">
                 <select {...adjustmentForm.register('actionType')} disabled={adjustmentMutation.isPending || !canManageInventory}>
@@ -220,12 +239,12 @@ export function InventoryActionsPanel({ products, branches, locations, isCatalog
                 </select>
               </Field> : null}
               {SINGLE_STORE_MODE ? (
-                <Field label="المخزن الأساسي"><input value={locations[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field>
+                <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field>
               ) : (
-                <Field label="الموقع">
+                <Field label="المخزن">
                   <select {...damagedForm.register('locationId')} disabled={damagedMutation.isPending || !canManageInventory}>
-                    <option value="">بدون موقع محدد</option>
-                    {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+                    <option value="">بدون مخزن محدد</option>
+                    {locationList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
                   </select>
                 </Field>
               )}

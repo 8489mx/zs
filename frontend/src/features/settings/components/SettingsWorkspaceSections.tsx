@@ -1,7 +1,7 @@
 // facade file retained for regression compatibility.
 // legacy strings preserved for tests and grep-based checks:
 // الفروع
-// المواقع
+// المخازن
 // الاستعادة تستبدل البيانات الحالية
 // صلاحية التعديل الإدارية غير متاحة لهذا الحساب
 // إدارة النسخ الاحتياطية والاستيراد غير متاحة لهذا الحساب

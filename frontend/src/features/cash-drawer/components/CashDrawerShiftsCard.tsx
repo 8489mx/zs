@@ -48,7 +48,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
         <Button variant={props.shiftFilter === 'variance' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('variance')}>بفروقات</Button>
         <Button variant={props.shiftFilter === 'today' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('today')}>اليوم</Button>
       </div>
-      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث باسم الكاشير أو رقم المرجع أو المخزن' : 'ابحث باسم الكاشير أو رقم المرجع أو الفرع أو الموقع'}>
+      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث باسم الكاشير أو رقم المرجع أو المخزن' : 'ابحث باسم الكاشير أو رقم المرجع أو الفرع أو المخزن'}>
         <Button variant="secondary" onClick={props.onReset}>إعادة الضبط</Button>
       </SearchToolbar>
       <QueryFeedback
@@ -85,7 +85,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
             },
             { key: 'status', header: 'الحالة', cell: (row: CashierShift) => row.status === 'open' ? 'مفتوحة' : 'مغلقة' },
             ...(!SINGLE_STORE_MODE ? [{ key: 'branch', header: 'الفرع', cell: (row: CashierShift) => row.branchName || '—' }] : []),
-            { key: 'location', header: SINGLE_STORE_MODE ? 'المخزن' : 'الموقع', cell: (row: CashierShift) => row.locationName || '—' },
+            { key: 'location', header: SINGLE_STORE_MODE ? 'المخزن' : 'المخزن', cell: (row: CashierShift) => row.locationName || '—' },
             { key: 'opening', header: 'رصيد الفتح', cell: (row: CashierShift) => formatCurrency(row.openingCash) },
             { key: 'expected', header: 'المتوقع', cell: (row: CashierShift) => formatCurrency(row.expectedCash) },
             { key: 'counted', header: 'المعدود', cell: (row: CashierShift) => formatCurrency(row.countedCash || 0) },

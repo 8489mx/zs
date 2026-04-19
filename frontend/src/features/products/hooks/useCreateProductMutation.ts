@@ -5,6 +5,7 @@ import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-nor
 import type { ProductUnit } from '@/types/domain';
 import type { ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
+import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
 
 export type ProductFormValues = ProductFormOutput & {
   units?: ProductUnit[];
@@ -67,7 +68,7 @@ function buildProductPayload(values: ProductFormValues) {
     name: normalizeArabicInput(values.name),
     barcode: groupedEntryEnabled ? '' : (values.barcode || ''),
     itemKind,
-    styleCode: groupedEntryEnabled ? (values.styleCode || '') : (values.styleCode || ''),
+    styleCode: groupedEntryEnabled ? normalizeNumericStyleCode(values.styleCode || '') : (values.styleCode || ''),
     color: groupedEntryEnabled ? '' : normalizeArabicInput(values.color || ''),
     size: groupedEntryEnabled ? '' : normalizeArabicInput(values.size || ''),
     costPrice: Number(values.costPrice || 0),

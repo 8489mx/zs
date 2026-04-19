@@ -37,8 +37,8 @@ export function usePosWorkspaceEffects({
   setSelectedLineKey,
   branches,
   locations,
-  discountApprovalPin,
-  setDiscountApprovalPin,
+  discountApprovalSecret,
+  setDiscountApprovalSecret,
 }: {
   cart: PosItem[];
   customerId: string;
@@ -69,8 +69,8 @@ export function usePosWorkspaceEffects({
   setSelectedLineKey: (value: string) => void;
   branches: Array<{ id: string | number }>;
   locations: Array<{ id: string | number }>;
-  discountApprovalPin: string;
-  setDiscountApprovalPin: (value: string) => void;
+  discountApprovalSecret: string;
+  setDiscountApprovalSecret: (value: string) => void;
 }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -118,7 +118,7 @@ export function usePosWorkspaceEffects({
   useEffect(() => {
     if (!cart.length) {
       if (selectedLineKey) setSelectedLineKey('');
-      if (discountApprovalPin) setDiscountApprovalPin('');
+      if (discountApprovalSecret) setDiscountApprovalSecret('');
       return;
     }
     if (selectedLineKey && cart.some((item) => item.lineKey === selectedLineKey)) return;
@@ -126,7 +126,7 @@ export function usePosWorkspaceEffects({
     if (preferredLineKey && preferredLineKey !== selectedLineKey) {
       setSelectedLineKey(preferredLineKey);
     }
-  }, [cart, discountApprovalPin, lastAddedLineKey, selectedLineKey, setDiscountApprovalPin, setSelectedLineKey]);
+  }, [cart, discountApprovalSecret, lastAddedLineKey, selectedLineKey, setDiscountApprovalSecret, setSelectedLineKey]);
 
   useEffect(() => {
     if (!lastAddedLineKey || typeof window === 'undefined') return;

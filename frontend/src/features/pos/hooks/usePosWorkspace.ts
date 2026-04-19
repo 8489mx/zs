@@ -83,6 +83,8 @@ export function usePosWorkspace() {
     setSelectedLineKey: state.setSelectedLineKey,
     branches: branchesQuery.data || [],
     locations: locationsQuery.data || [],
+    discountApprovalSecret: state.discountApprovalSecret,
+    setDiscountApprovalSecret: state.setDiscountApprovalSecret,
   });
 
   const derived = usePosWorkspaceDerived({

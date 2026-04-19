@@ -27,16 +27,18 @@ const EXPENSE_PRESETS = [
 
 const CUSTOM_EXPENSE_VALUE = '__custom__';
 
-export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches, locations, availableLocations, expenseValidationErrors, expenseMutation, onReset }: {
+export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches, warehouses, locations, availableLocations, expenseValidationErrors, expenseMutation, onReset }: {
   expenseForm: ExpenseFormState;
   setExpenseForm: React.Dispatch<React.SetStateAction<ExpenseFormState>>;
   branches: Array<{ id: string; name: string }>;
-  locations: Location[];
+  warehouses?: Location[];
+  locations?: Location[];
   availableLocations: Location[];
   expenseValidationErrors: string[];
   expenseMutation: { isError: boolean; isSuccess: boolean; error: unknown; isPending: boolean; mutate: (values: ExpenseFormState) => void };
   onReset: () => void;
 }) {
+  const warehouseList = warehouses || locations || [];
   const selectedExpensePreset = EXPENSE_PRESETS.includes(expenseForm.title) ? expenseForm.title : (expenseForm.title ? CUSTOM_EXPENSE_VALUE : '');
 
   return (
@@ -86,7 +88,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
               onChange={(e) => {
                 const nextBranchId = e.target.value;
                 setExpenseForm((current) => {
-                  const currentLocation = locations.find((location) => location.id === current.locationId);
+                  const currentLocation = warehouseList.find((location) => location.id === current.locationId);
                   const shouldClearLocation = Boolean(currentLocation && nextBranchId && currentLocation.branchId && String(currentLocation.branchId) !== String(nextBranchId));
                   return {
                     ...current,
@@ -106,15 +108,15 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
 
         {SINGLE_STORE_MODE ? (
           <Field label="المخزن الحالي">
-            <input value={locations[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly />
+            <input value={warehouseList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly />
           </Field>
         ) : (
-          <Field label="الموقع">
+          <Field label="المخزن">
             <select
               value={expenseForm.locationId}
               onChange={(e) => setExpenseForm((current) => ({ ...current, locationId: e.target.value }))}
             >
-              <option value="">بدون موقع</option>
+              <option value="">بدون مخزن</option>
               {availableLocations.map((location) => (
                 <option key={location.id} value={location.id}>{location.name}</option>
               ))}

@@ -1,5 +1,5 @@
 import type { Customer, ReportSummary } from '@/types/domain';
-import type { ReportInventoryRow } from '@/features/reports/api/reports.api';
+import type { EmployeeReportRow, EmployeeReportsSummary, ReportInventoryRow } from '@/features/reports/api/reports.api';
 import type { ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
 
 export type PagedQuery<TSummary, TRow> = {
@@ -52,4 +52,19 @@ export type ReportsSectionContentProps = {
   onBalancesFilterChange: (value: 'all' | 'high-balance' | 'over-limit') => void;
   onBalancesPageChange: (page: number) => void;
   onBalancesPageSizeChange: (pageSize: number) => void;
+
+  employeesQuery: PagedQuery<EmployeeReportsSummary, EmployeeReportRow>;
+  employeeSearch: string;
+  onEmployeeSearchChange: (value: string) => void;
+  selectedEmployeeId: string;
+  onSelectedEmployeeIdChange: (value: string) => void;
+  employeeRole: 'all' | 'super_admin' | 'admin' | 'cashier';
+  onEmployeeRoleChange: (value: 'all' | 'super_admin' | 'admin' | 'cashier') => void;
+  employeeActivityType: 'all' | 'sales' | 'returns' | 'purchases' | 'expenses' | 'shifts' | 'audit';
+  onEmployeeActivityTypeChange: (value: 'all' | 'sales' | 'returns' | 'purchases' | 'expenses' | 'shifts' | 'audit') => void;
+  onEmployeesPageChange: (page: number) => void;
+  onEmployeesPageSizeChange: (pageSize: number) => void;
+  onEmployeesFiltersReset: () => void;
+  onInventoryFiltersReset: () => void;
+  onBalancesFiltersReset: () => void;
 };

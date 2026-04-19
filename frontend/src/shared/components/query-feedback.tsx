@@ -14,6 +14,8 @@ interface QueryFeedbackProps {
   errorAction?: ReactNode;
   emptyTitle?: string;
   emptyHint?: string;
+  emptyAction?: ReactNode;
+  preserveChildrenOnEmpty?: boolean;
   children?: ReactNode;
 }
 
@@ -28,6 +30,8 @@ export function QueryFeedback({
   errorAction,
   emptyTitle = 'لا توجد بيانات',
   emptyHint,
+  emptyAction,
+  preserveChildrenOnEmpty,
   children
 }: QueryFeedbackProps) {
   if (isLoading) {
@@ -39,7 +43,14 @@ export function QueryFeedback({
   }
 
   if (isEmpty) {
-    return <EmptyState title={emptyTitle} hint={emptyHint} />;
+    if (preserveChildrenOnEmpty) {
+      return <>
+        {children}
+        <EmptyState title={emptyTitle} hint={emptyHint} action={emptyAction} />
+      </>;
+    }
+
+    return <EmptyState title={emptyTitle} hint={emptyHint} action={emptyAction} />;
   }
 
   return <>{children}</>;

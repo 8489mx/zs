@@ -14,7 +14,7 @@ function makeVariantKey(color: string, size: string) {
 export function splitFashionTokens(value: string | undefined) {
   const seen = new Set<string>();
   const tokens: string[] = [];
-  for (const rawEntry of String(value || '').split(/[\n،,|/]+/g)) {
+  for (const rawEntry of String(value || '').split(/(?:\s*[\n،,|\/.\-]\s*)+/g)) {
     const entry = normalizeArabicInput(rawEntry);
     if (!entry) continue;
     const key = normalizeArabicSearchKey(entry);

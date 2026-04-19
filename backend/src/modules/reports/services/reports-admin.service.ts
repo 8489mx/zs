@@ -8,7 +8,7 @@ import { ReportRangeQueryDto } from '../dto/report-query.dto';
 import { AuditLogRow, buildAuditPayload, buildTreasuryPayload, TreasurySummaryRow, TreasuryTransactionRow } from '../helpers/reports-ops.helper';
 import { applyAuditSearch, applySignedAmountFilter, applyTreasurySearch } from '../helpers/reports-query-pipeline.helper';
 import { buildReportListState } from '../helpers/reports-query.helper';
-import { getBusinessDayBounds } from '../helpers/reports-range.helper';
+import { buildPagination, getBusinessDayBounds } from '../helpers/reports-range.helper';
 
 @Injectable()
 export class ReportsAdminService {
@@ -161,4 +161,363 @@ export class ReportsAdminService {
       todayCount: Number((todayCountRow as { count?: number | string | null } | undefined)?.count || 0),
     });
   }
+
+
+  async employeeSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    if (!auth.permissions.includes('reports') && auth.role !== 'super_admin') {
+      throw new AppError('Missing required permissions', 'FORBIDDEN', 403);
+    }
+
+    const { fromDate, toDate, searchPattern, page, pageSize, offset } = buildReportListState(query, 20, { defaultFilter: '' });
+    const selectedUserId = Number(query.userId || 0);
+    const roleFilter = String(query.role || '').trim().toLowerCase();
+    const activityType = String(query.activityType || 'all').trim().toLowerCase();
+
+    const searchClause = searchPattern
+      ? sql` and (
+          lower(coalesce(u.display_name, '')) like ${searchPattern}
+          or lower(coalesce(u.username, '')) like ${searchPattern}
+          or lower(coalesce(u.role, '')) like ${searchPattern}
+        )`
+      : sql``;
+    const selectedUserClause = selectedUserId > 0 ? sql` and u.id = ${selectedUserId}` : sql``;
+    const roleClause = roleFilter ? sql` and lower(u.role) = ${roleFilter}` : sql``;
+
+    let activityClause = sql``;
+    switch (activityType) {
+      case 'sales':
+        activityClause = sql` and sales_count > 0`;
+        break;
+      case 'returns':
+        activityClause = sql` and returns_count > 0`;
+        break;
+      case 'purchases':
+        activityClause = sql` and purchases_count > 0`;
+        break;
+      case 'expenses':
+        activityClause = sql` and expenses_count > 0`;
+        break;
+      case 'shifts':
+        activityClause = sql` and shifts_count > 0`;
+        break;
+      case 'audit':
+        activityClause = sql` and audit_count > 0`;
+        break;
+      default:
+        activityClause = sql``;
+        break;
+    }
+
+    const baseMetricsCte = sql`
+      with sales_agg as (
+        select created_by as user_id,
+               count(*)::int as sales_count,
+               coalesce(sum(total), 0)::numeric as sales_total,
+               max(created_at) as last_sales_at
+        from sales
+        where created_at >= ${fromDate!}
+          and created_at <= ${toDate!}
+          and created_by is not null
+          and status = 'posted'
+        group by created_by
+      ),
+      purchases_agg as (
+        select created_by as user_id,
+               count(*)::int as purchases_count,
+               coalesce(sum(total), 0)::numeric as purchases_total,
+               max(created_at) as last_purchases_at
+        from purchases
+        where created_at >= ${fromDate!}
+          and created_at <= ${toDate!}
+          and created_by is not null
+          and status = 'posted'
+        group by created_by
+      ),
+      returns_agg as (
+        select created_by as user_id,
+               count(*)::int as returns_count,
+               coalesce(sum(total), 0)::numeric as returns_total,
+               max(created_at) as last_returns_at
+        from return_documents
+        where created_at >= ${fromDate!}
+          and created_at <= ${toDate!}
+          and created_by is not null
+        group by created_by
+      ),
+      expenses_agg as (
+        select created_by as user_id,
+               count(*)::int as expenses_count,
+               coalesce(sum(amount), 0)::numeric as expenses_total,
+               max(expense_date) as last_expenses_at
+        from expenses
+        where expense_date >= ${fromDate!}
+          and expense_date <= ${toDate!}
+          and created_by is not null
+        group by created_by
+      ),
+      audit_agg as (
+        select created_by as user_id,
+               count(*)::int as audit_count,
+               max(created_at) as last_audit_at
+        from audit_logs
+        where created_at >= ${fromDate!}
+          and created_at <= ${toDate!}
+          and created_by is not null
+        group by created_by
+      ),
+      shifts_agg as (
+        select opened_by as user_id,
+               count(*)::int as shifts_count,
+               sum(case when status = 'open' then 1 else 0 end)::int as open_shifts,
+               max(created_at) as last_shift_at
+        from cashier_shifts
+        where created_at >= ${fromDate!}
+          and created_at <= ${toDate!}
+        group by opened_by
+      ),
+      employee_metrics as (
+        select
+          u.id,
+          u.username,
+          u.display_name,
+          u.role,
+          u.is_active,
+          coalesce(sa.sales_count, 0) as sales_count,
+          coalesce(sa.sales_total, 0) as sales_total,
+          coalesce(pa.purchases_count, 0) as purchases_count,
+          coalesce(pa.purchases_total, 0) as purchases_total,
+          coalesce(ra.returns_count, 0) as returns_count,
+          coalesce(ra.returns_total, 0) as returns_total,
+          coalesce(ea.expenses_count, 0) as expenses_count,
+          coalesce(ea.expenses_total, 0) as expenses_total,
+          coalesce(aa.audit_count, 0) as audit_count,
+          coalesce(sha.shifts_count, 0) as shifts_count,
+          coalesce(sha.open_shifts, 0) as open_shifts,
+          greatest(
+            coalesce(sa.last_sales_at, to_timestamp(0)),
+            coalesce(pa.last_purchases_at, to_timestamp(0)),
+            coalesce(ra.last_returns_at, to_timestamp(0)),
+            coalesce(ea.last_expenses_at, to_timestamp(0)),
+            coalesce(aa.last_audit_at, to_timestamp(0)),
+            coalesce(sha.last_shift_at, to_timestamp(0)),
+            coalesce(u.last_login_at, to_timestamp(0)),
+            coalesce(u.created_at, to_timestamp(0))
+          ) as last_activity_at
+        from users u
+        left join sales_agg sa on sa.user_id = u.id
+        left join purchases_agg pa on pa.user_id = u.id
+        left join returns_agg ra on ra.user_id = u.id
+        left join expenses_agg ea on ea.user_id = u.id
+        left join audit_agg aa on aa.user_id = u.id
+        left join shifts_agg sha on sha.user_id = u.id
+        where 1 = 1
+          ${searchClause}
+          ${selectedUserClause}
+          ${roleClause}
+      )
+    `;
+
+    const rowsResult = await sql<any>`
+      ${baseMetricsCte}
+      select *
+      from employee_metrics
+      where 1 = 1
+        ${activityClause}
+      order by last_activity_at desc, display_name asc, username asc
+      limit ${pageSize}
+      offset ${offset}
+    `.execute(this.db);
+
+    const summaryResult = await sql<any>`
+      ${baseMetricsCte}
+      select
+        count(*)::int as total_users,
+        sum(case when is_active then 1 else 0 end)::int as active_users,
+        sum(case when (sales_count + purchases_count + returns_count + expenses_count + audit_count + shifts_count) > 0 then 1 else 0 end)::int as users_with_activity,
+        coalesce(sum(sales_total), 0)::numeric as total_sales,
+        coalesce(sum(purchases_total), 0)::numeric as total_purchases,
+        coalesce(sum(returns_total), 0)::numeric as total_returns,
+        coalesce(sum(expenses_total), 0)::numeric as total_expenses,
+        coalesce(sum(audit_count), 0)::int as total_audit_events,
+        coalesce(sum(shifts_count), 0)::int as total_shifts
+      from employee_metrics
+      where 1 = 1
+        ${activityClause}
+    `.execute(this.db);
+
+    const countRow = summaryResult.rows?.[0] || {};
+    const totalItems = Number(countRow.total_users || 0);
+    const rows = (rowsResult.rows || []).map((row: any) => ({
+      id: String(row.id || ''),
+      name: row.display_name || row.username || 'مستخدم',
+      username: row.username || '',
+      role: row.role || 'cashier',
+      isActive: row.is_active !== false,
+      salesCount: Number(row.sales_count || 0),
+      salesTotal: Number(row.sales_total || 0),
+      purchasesCount: Number(row.purchases_count || 0),
+      purchasesTotal: Number(row.purchases_total || 0),
+      returnsCount: Number(row.returns_count || 0),
+      returnsTotal: Number(row.returns_total || 0),
+      expensesCount: Number(row.expenses_count || 0),
+      expensesTotal: Number(row.expenses_total || 0),
+      auditCount: Number(row.audit_count || 0),
+      shiftsCount: Number(row.shifts_count || 0),
+      openShifts: Number(row.open_shifts || 0),
+      lastActivityAt: row.last_activity_at || null,
+    }));
+
+    return {
+      rows,
+      summary: {
+        totalUsers: Number(countRow.total_users || 0),
+        activeUsers: Number(countRow.active_users || 0),
+        usersWithActivity: Number(countRow.users_with_activity || 0),
+        totalSales: Number(countRow.total_sales || 0),
+        totalPurchases: Number(countRow.total_purchases || 0),
+        totalReturns: Number(countRow.total_returns || 0),
+        totalExpenses: Number(countRow.total_expenses || 0),
+        totalAuditEvents: Number(countRow.total_audit_events || 0),
+        totalShifts: Number(countRow.total_shifts || 0),
+      },
+      pagination: buildPagination(page, pageSize, totalItems),
+    };
+  }
+
+  async employeeDetails(userId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    if (!auth.permissions.includes('reports') && auth.role !== 'super_admin') {
+      throw new AppError('Missing required permissions', 'FORBIDDEN', 403);
+    }
+
+    if (!(userId > 0)) {
+      throw new AppError('Invalid user', 'INVALID_USER_ID', 400);
+    }
+
+    const summaryPayload = await this.employeeSummary({ ...query, userId, page: 1, pageSize: 1 }, auth) as {
+      rows?: Array<Record<string, unknown>>;
+      summary?: Record<string, unknown>;
+    };
+    const employee = Array.isArray(summaryPayload.rows) ? summaryPayload.rows[0] : null;
+    if (!employee) {
+      throw new AppError('User not found', 'USER_NOT_FOUND', 404);
+    }
+
+    const { fromDate, toDate } = buildReportListState(query, 20, { defaultFilter: '' });
+    const limit = Math.min(100, Math.max(1, Number(query.limit || 25)));
+    const activityType = String(query.activityType || 'all').trim().toLowerCase();
+
+    let activityClause = sql``;
+    if (activityType && activityType !== 'all') {
+      activityClause = sql` and activity_type = ${activityType}`;
+    }
+
+    const activitiesResult = await sql<any>`
+      with activities as (
+        select
+          'sale'::text as activity_type,
+          concat('فاتورة بيع ', coalesce(s.doc_no, concat('#', s.id::text))) as title,
+          nullif(s.note, '') as details,
+          s.total::numeric as amount,
+          s.created_at,
+          coalesce(s.doc_no, concat('#', s.id::text)) as reference_label
+        from sales s
+        where s.created_by = ${userId}
+          and s.status = 'posted'
+          and s.created_at >= ${fromDate!}
+          and s.created_at <= ${toDate!}
+
+        union all
+
+        select
+          'purchase'::text as activity_type,
+          concat('فاتورة شراء ', coalesce(p.doc_no, concat('#', p.id::text))) as title,
+          nullif(p.note, '') as details,
+          p.total::numeric as amount,
+          p.created_at,
+          coalesce(p.doc_no, concat('#', p.id::text)) as reference_label
+        from purchases p
+        where p.created_by = ${userId}
+          and p.status = 'posted'
+          and p.created_at >= ${fromDate!}
+          and p.created_at <= ${toDate!}
+
+        union all
+
+        select
+          'returns'::text as activity_type,
+          concat('مرتجع ', coalesce(r.doc_no, concat('#', r.id::text))) as title,
+          nullif(r.note, '') as details,
+          r.total::numeric as amount,
+          r.created_at,
+          coalesce(r.doc_no, concat('#', r.id::text)) as reference_label
+        from return_documents r
+        where r.created_by = ${userId}
+          and r.created_at >= ${fromDate!}
+          and r.created_at <= ${toDate!}
+
+        union all
+
+        select
+          'expenses'::text as activity_type,
+          concat('مصروف ', e.title) as title,
+          nullif(e.note, '') as details,
+          e.amount::numeric as amount,
+          e.expense_date as created_at,
+          concat('#', e.id::text) as reference_label
+        from expenses e
+        where e.created_by = ${userId}
+          and e.expense_date >= ${fromDate!}
+          and e.expense_date <= ${toDate!}
+
+        union all
+
+        select
+          'shifts'::text as activity_type,
+          concat('فتح وردية ', coalesce(cs.doc_no, concat('#', cs.id::text))) as title,
+          nullif(cs.opening_note, '') as details,
+          cs.opening_cash::numeric as amount,
+          cs.created_at,
+          coalesce(cs.doc_no, concat('#', cs.id::text)) as reference_label
+        from cashier_shifts cs
+        where cs.opened_by = ${userId}
+          and cs.created_at >= ${fromDate!}
+          and cs.created_at <= ${toDate!}
+
+        union all
+
+        select
+          'audit'::text as activity_type,
+          a.action as title,
+          nullif(a.details, '') as details,
+          null::numeric as amount,
+          a.created_at,
+          concat('#', a.id::text) as reference_label
+        from audit_logs a
+        where a.created_by = ${userId}
+          and a.created_at >= ${fromDate!}
+          and a.created_at <= ${toDate!}
+      )
+      select *
+      from activities
+      where 1 = 1
+        ${activityClause}
+      order by created_at desc, reference_label desc
+      limit ${limit}
+    `.execute(this.db);
+
+    return {
+      employee,
+      summary: summaryPayload.summary || {},
+      activities: (activitiesResult.rows || []).map((row: any, index: number) => ({
+        id: `${row.activity_type || 'activity'}-${index}`,
+        activityType: row.activity_type || 'audit',
+        title: row.title || '',
+        details: row.details || '',
+        amount: row.amount == null ? null : Number(row.amount || 0),
+        createdAt: row.created_at || '',
+        referenceLabel: row.reference_label || '',
+      })),
+    };
+  }
+
 }

@@ -174,13 +174,13 @@ export function TransferMonitorCard({
                 <div className="detail-panel-header">
                   <div>
                     <h3 className="detail-panel-title">{selectedTransfer.docNo || selectedTransfer.id}</h3>
-                    <div className="detail-panel-subtitle">لوحة تفصيل المستند: البنود، المواقع، الأثر الزمني، والإجراءات المتاحة حسب الحالة.</div>
+                    <div className="detail-panel-subtitle">لوحة تفصيل المستند: البنود، المخازن، الأثر الزمني، والإجراءات المتاحة حسب الحالة.</div>
                   </div>
                   <span className="nav-pill">{selectedTransfer.status || '—'}</span>
                 </div>
                 <div className="detail-grid">
-                  <div className="detail-item"><div className="detail-label">من موقع</div><div className="detail-value">{selectedTransfer.fromLocationName || '—'}</div></div>
-                  <div className="detail-item"><div className="detail-label">إلى موقع</div><div className="detail-value">{selectedTransfer.toLocationName || '—'}</div></div>
+                  <div className="detail-item"><div className="detail-label">من مخزن</div><div className="detail-value">{selectedTransfer.fromLocationName || '—'}</div></div>
+                  <div className="detail-item"><div className="detail-label">إلى مخزن</div><div className="detail-value">{selectedTransfer.toLocationName || '—'}</div></div>
                   <div className="detail-item"><div className="detail-label">عدد البنود</div><div className="detail-value">{selectedTransferTotals.itemsCount}</div></div>
                   <div className="detail-item"><div className="detail-label">إجمالي الكميات</div><div className="detail-value">{selectedTransferTotals.totalQty}</div></div>
                   <div className="detail-item"><div className="detail-label">أنشأه</div><div className="detail-value">{selectedTransfer.createdBy || '—'}</div></div>

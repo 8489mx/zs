@@ -27,8 +27,8 @@ export function validateExpenseForm(form: ExpenseFormState, allLocations: Locati
   if (!form.date || Number.isNaN(new Date(form.date).getTime())) errors.push('أدخل تاريخًا صالحًا للمصروف.');
   if (form.locationId) {
     const location = allLocations.find((row) => row.id === form.locationId);
-    if (!location) errors.push('الموقع المختار غير صالح.');
-    else if (form.branchId && location.branchId && String(location.branchId) !== String(form.branchId)) errors.push('الموقع المختار لا يتبع الفرع المحدد.');
+    if (!location) errors.push('المخزن المختار غير صالح.');
+    else if (form.branchId && location.branchId && String(location.branchId) !== String(form.branchId)) errors.push('المخزن المختار لا يتبع الفرع المحدد.');
   }
   return errors;
 }

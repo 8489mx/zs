@@ -20,7 +20,7 @@ function printTransactionsRegister(rows: TreasuryTransaction[]) {
     <h1>سجل حركات الخزينة</h1>
     <div class="meta">عدد الحركات المطابقة: ${rows.length}</div>
     <table>
-      <thead><tr><th>النوع</th><th>المبلغ</th><th>البيان</th><th>المرجع</th><th>${SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/الموقع'}</th><th>التاريخ</th></tr></thead>
+      <thead><tr><th>النوع</th><th>المبلغ</th><th>البيان</th><th>المرجع</th><th>${SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/المخزن'}</th><th>التاريخ</th></tr></thead>
       <tbody>${body || '<tr><td colspan="6">لا توجد حركات</td></tr>'}</tbody>
     </table>
   `);
@@ -41,7 +41,7 @@ function printExpensesRegister(rows: ExpenseRecord[]) {
     <h1>سجل المصروفات</h1>
     <div class="meta">عدد المصروفات المطابقة: ${rows.length}</div>
     <table>
-      <thead><tr><th>المصروف</th><th>المبلغ</th><th>الملاحظات</th><th>${SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/الموقع'}</th><th>المنفذ</th><th>التاريخ</th></tr></thead>
+      <thead><tr><th>المصروف</th><th>المبلغ</th><th>الملاحظات</th><th>${SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/المخزن'}</th><th>المنفذ</th><th>التاريخ</th></tr></thead>
       <tbody>${body || '<tr><td colspan="6">لا توجد مصروفات</td></tr>'}</tbody>
     </table>
   `);

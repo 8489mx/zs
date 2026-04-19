@@ -49,7 +49,7 @@ export const branchFormSchema = z.object({
 });
 
 export const locationFormSchema = z.object({
-  name: z.string().min(2, 'اسم الموقع مطلوب'),
+  name: z.string().min(2, 'اسم المخزن مطلوب'),
   code: z.string().optional(),
   branchId: z.string().optional()
 });

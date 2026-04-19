@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { InventoryWorkspaceHeader } from '@/features/inventory/components/InventoryWorkspaceHeader';
 import { InventorySectionTabs } from '@/features/inventory/pages/InventorySectionTabs';
 import { InventoryMovementCard, InventoryOverviewStats, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, StockTransferComposerCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
@@ -5,9 +6,11 @@ import { InventoryTransferActionDialog, InventoryPostSessionDialog } from '@/fea
 import { InventoryActionsPanel } from '@/features/inventory/components/InventoryActionsPanel';
 import { useInventoryWorkspaceController } from '@/features/inventory/hooks/useInventoryWorkspaceController';
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
+import type { Product } from '@/types/domain';
 
 export function InventoryWorkspace({ currentSection }: { currentSection: InventorySectionKey }) {
   const inventory = useInventoryWorkspaceController(currentSection);
+  const [selectedInventoryProduct, setSelectedInventoryProduct] = useState<{ product: Product; token: number } | null>(null);
 
   return (
     <div className="page-stack page-shell inventory-workspace">
@@ -55,6 +58,8 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             isError={inventory.productsQuery.isError}
             error={inventory.productsQuery.error}
             includeSensitivePricing={inventory.canViewSensitivePricing}
+            selectedProductId={selectedInventoryProduct?.product.id || ''}
+            onProductSelect={(product) => setSelectedInventoryProduct({ product, token: Date.now() })}
           />
 
           <InventoryActionsPanel
@@ -65,6 +70,8 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             isCatalogError={inventory.actionCatalog.isError}
             catalogError={inventory.actionCatalog.error}
             canManageInventory={inventory.canAdjustInventory}
+            selectedProduct={selectedInventoryProduct?.product || null}
+            selectedProductToken={selectedInventoryProduct?.token || 0}
           />
         </div>
       ) : null}

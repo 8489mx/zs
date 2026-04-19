@@ -28,7 +28,7 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
           { key: 'title', header: 'المصروف', cell: (row: ExpenseRecord) => row.title },
           { key: 'amount', header: 'المبلغ', cell: (row: ExpenseRecord) => formatCurrency(row.amount) },
           { key: 'note', header: 'ملاحظات', cell: (row: ExpenseRecord) => row.note || '—' },
-          { key: 'scope', header: SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/الموقع', cell: (row: ExpenseRecord) => formatScopeLabel(row) },
+          { key: 'scope', header: SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/المخزن', cell: (row: ExpenseRecord) => formatScopeLabel(row) },
           { key: 'user', header: 'المنفذ', cell: (row: ExpenseRecord) => row.createdBy || '—' },
           { key: 'date', header: 'التاريخ', cell: (row: ExpenseRecord) => formatDate(row.date) }
         ]} />

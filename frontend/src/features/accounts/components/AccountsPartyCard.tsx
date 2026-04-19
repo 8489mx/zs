@@ -60,6 +60,7 @@ export function AccountsPartyCard({
       loadingText={loadingText}
       emptyTitle={emptyTitle}
       emptyHint={emptyHint}
+      preserveChildrenOnEmpty
     >
       <form className="inline-create-panel" onSubmit={onQuickSubmit}>
         <div className="inline-create-grid">

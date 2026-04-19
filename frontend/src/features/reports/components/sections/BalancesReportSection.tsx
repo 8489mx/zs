@@ -16,8 +16,9 @@ export function BalancesReportSection({
   balancesFilter,
   onBalancesFilterChange,
   onBalancesPageChange,
-  onBalancesPageSizeChange
-}: Pick<ReportsSectionContentProps, 'balancesQuery' | 'exportCustomerBalances' | 'printCustomerBalances' | 'balancesSearch' | 'onBalancesSearchChange' | 'balancesFilter' | 'onBalancesFilterChange' | 'onBalancesPageChange' | 'onBalancesPageSizeChange'>) {
+  onBalancesPageSizeChange,
+  onBalancesFiltersReset
+}: Pick<ReportsSectionContentProps, 'balancesQuery' | 'exportCustomerBalances' | 'printCustomerBalances' | 'balancesSearch' | 'onBalancesSearchChange' | 'balancesFilter' | 'onBalancesFilterChange' | 'onBalancesPageChange' | 'onBalancesPageSizeChange' | 'onBalancesFiltersReset'>) {
   const rows = balancesQuery.data?.rows || [];
   const pagination = balancesQuery.data?.pagination;
   const summary = balancesQuery.data?.summary;
@@ -36,6 +37,8 @@ export function BalancesReportSection({
       loadingText="جاري تحميل ذمم العملاء..."
       emptyTitle="لا توجد ذمم عملاء حاليًا"
       emptyHint="سيظهر هنا العملاء الأعلى رصيدًا بمجرد وجود حركة مالية."
+      preserveChildrenOnEmpty
+      emptyAction={<Button variant="secondary" onClick={onBalancesFiltersReset}>إعادة الضبط</Button>}
     >
       <div className="reports-spotlight-grid section-spotlight-grid compact-spotlight-grid">
         <ReportMetricCard label="عدد العملاء" value={summary?.totalItems || 0} helper="ضمن النطاق الحالي" tone="primary" progress={relativePercent(summary?.totalItems || 0, values)} />
@@ -46,6 +49,7 @@ export function BalancesReportSection({
       <div className="toolbar-grid compact-toolbar-grid">
         <Field label="بحث"><input value={balancesSearch} onChange={(event) => onBalancesSearchChange(event.target.value)} placeholder="اسم العميل / الهاتف" /></Field>
         <Field label="الفلتر"><select value={balancesFilter} onChange={(event) => onBalancesFilterChange(event.target.value as 'all' | 'high-balance' | 'over-limit')}><option value="all">الكل</option><option value="high-balance">رصيد مرتفع</option><option value="over-limit">فوق الحد الائتماني</option></select></Field>
+        <div className="actions compact-actions" style={{ alignItems: 'end' }}><Button variant="secondary" onClick={onBalancesFiltersReset}>إعادة الضبط</Button></div>
       </div>
       <DataTable
         ariaLabel="ذمم العملاء"

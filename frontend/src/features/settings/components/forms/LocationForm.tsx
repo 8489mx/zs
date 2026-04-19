@@ -23,20 +23,20 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
 
   return (
     <form className="form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(({ ...values, branchId: SINGLE_STORE_MODE ? (values.branchId || branches[0]?.id || '') : values.branchId }) as LocationFormValues))}>
-      <Field label={SINGLE_STORE_MODE ? 'اسم المخزن الأساسي' : 'اسم الموقع'} error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} /></Field>
-      <Field label={SINGLE_STORE_MODE ? 'كود المخزن' : 'كود الموقع'}><input {...form.register('code')} disabled={mutation.isPending || !canManageSettings} /></Field>
+      <Field label={SINGLE_STORE_MODE ? 'اسم المخزن الأساسي' : 'اسم المخزن'} error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} /></Field>
+      <Field label={SINGLE_STORE_MODE ? 'كود المخزن' : 'كود المخزن'}><input {...form.register('code')} disabled={mutation.isPending || !canManageSettings} /></Field>
       {!SINGLE_STORE_MODE ? <Field label="الفرع المرتبط">
         <select {...form.register('branchId')} disabled={mutation.isPending || !canManageSettings}>
           <option value="">بدون ربط</option>
           {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
         </select>
       </Field> : null}
-      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title={SINGLE_STORE_MODE ? 'بيانات المخزن الأساسي غير محفوظة' : 'بيانات الموقع الجديدة غير محفوظة'} hint={SINGLE_STORE_MODE ? 'احفظ بيانات المخزن الأساسي قبل مغادرة هذه الشاشة.' : 'احفظ الموقع أو أعد ضبط الحقول قبل مغادرة هذا النموذج.'} />
+      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title={SINGLE_STORE_MODE ? 'بيانات المخزن الأساسي غير محفوظة' : 'بيانات المخزن الجديدة غير محفوظة'} hint={SINGLE_STORE_MODE ? 'احفظ بيانات المخزن الأساسي قبل مغادرة هذه الشاشة.' : 'احفظ المخزن أو أعد ضبط الحقول قبل مغادرة هذا النموذج.'} />
       <div className="actions compact-actions sticky-form-actions">
         <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset({ name: '', code: '', branchId: SINGLE_STORE_MODE ? (branches[0]?.id || '') : '' }); }} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ</button>
       </div>
-      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback={SINGLE_STORE_MODE ? 'تعذر حفظ بيانات المخزن الأساسي' : 'تعذر إضافة الموقع'} successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات المخزن الأساسي بنجاح.' : 'تمت إضافة الموقع بنجاح.'} />
-      <SubmitButton type="submit" variant="secondary" disabled={mutation.isPending || !canManageSettings} idleText={SINGLE_STORE_MODE ? 'حفظ بيانات المخزن الأساسي' : 'إضافة موقع'} pendingText="جارٍ الإضافة..." />
+      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback={SINGLE_STORE_MODE ? 'تعذر حفظ بيانات المخزن الأساسي' : 'تعذر إضافة المخزن'} successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات المخزن الأساسي بنجاح.' : 'تمت إضافة المخزن بنجاح.'} />
+      <SubmitButton type="submit" variant="secondary" disabled={mutation.isPending || !canManageSettings} idleText={SINGLE_STORE_MODE ? 'حفظ بيانات المخزن الأساسي' : 'إضافة مخزن'} pendingText="جارٍ الإضافة..." />
     </form>
   );
 }

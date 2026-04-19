@@ -43,7 +43,7 @@ export function TreasuryTransactionsCard({ search, onSearchChange, txnFilter, on
           { key: 'amount', header: 'المبلغ', cell: (row: TreasuryTransactionRow) => formatCurrency(Number(row.amount || 0)) },
           { key: 'note', header: 'البيان', cell: (row: TreasuryTransactionRow) => row.note || '—' },
           { key: 'ref', header: 'المرجع', cell: (row: TreasuryTransactionRow) => row.referenceType || '—' },
-          { key: 'scope', header: SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/الموقع', cell: (row: TreasuryTransactionRow) => formatScopeLabel(row) },
+          { key: 'scope', header: SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/المخزن', cell: (row: TreasuryTransactionRow) => formatScopeLabel(row) },
           { key: 'user', header: 'المنفذ', cell: (row: TreasuryTransactionRow) => row.createdByName || '—' },
           { key: 'date', header: 'التاريخ', cell: (row: TreasuryTransactionRow) => formatDate(row.createdAt || row.date) }
         ]} />

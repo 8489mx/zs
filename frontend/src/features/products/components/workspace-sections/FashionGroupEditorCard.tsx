@@ -9,6 +9,7 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import { productsApi } from '@/features/products/api/products.api';
+import { getNextSequentialStyleCode, getStyleCodeSequenceStart } from '@/features/products/lib/style-code.utils';
 import { normalizeArabicInput } from '@/lib/arabic-normalization';
 import type { Category, Product, Supplier } from '@/types/domain';
 import { buildPayload, deriveBaseName, duplicateSummary, rowsFingerprint, sortVariants, toCommonDraft, toVariantRows, variantLabel, type CommonDraft, type VariantDraft } from '@/features/products/components/workspace-sections/FashionGroupEditorCard.helpers';
@@ -21,6 +22,7 @@ interface FashionGroupEditorCardProps {
 }
 
 export function FashionGroupEditorCard({ product, categories, suppliers, onSaved }: FashionGroupEditorCardProps) {
+  const allProductsQuery = useQuery({ queryKey: queryKeys.products, queryFn: productsApi.list, staleTime: 30_000 });
   const queryClient = useQueryClient();
   const styleCode = String(product.styleCode || '').trim();
   const groupQuery = useQuery({
@@ -111,6 +113,11 @@ export function FashionGroupEditorCard({ product, categories, suppliers, onSaved
     },
   });
 
+
+  function handleGenerateStyleCode() {
+    const sourceProducts = allProductsQuery.data || [];
+    setCommonDraft((current) => ({ ...current, styleCode: getNextSequentialStyleCode(sourceProducts, getStyleCodeSequenceStart()) }));
+  }
   function updateRow(index: number, patch: Partial<VariantDraft>) {
     setVariantRows((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
   }
@@ -191,7 +198,13 @@ export function FashionGroupEditorCard({ product, categories, suppliers, onSaved
 
       <div className="form-grid">
         <Field label="اسم الصنف الأساسي"><input value={commonDraft.name} onChange={(event) => setCommonDraft((current) => ({ ...current, name: normalizeArabicInput(event.target.value) }))} disabled={mutation.isPending} /></Field>
-        <Field label={isFashion ? 'كود الموديل' : 'كود المجموعة / الصنف الرئيسي'}><input value={commonDraft.styleCode} onChange={(event) => setCommonDraft((current) => ({ ...current, styleCode: event.target.value }))} disabled={mutation.isPending} placeholder={isFashion ? 'مثال: TS-2401' : 'مثال: DEO-X'} /></Field>
+        <Field label={isFashion ? 'كود الموديل' : 'كود المجموعة / الصنف الرئيسي'}>
+          <div className="muted small">التوليد يبدأ من {getStyleCodeSequenceStart()} ثم يزيد تلقائيًا.</div>
+          <div className="inline-create-row">
+            <input value={commonDraft.styleCode} onChange={(event) => setCommonDraft((current) => ({ ...current, styleCode: event.target.value }))} disabled={mutation.isPending} placeholder="مثال: 101" />
+            <Button type="button" variant="secondary" onClick={handleGenerateStyleCode} disabled={mutation.isPending}>توليد كود</Button>
+          </div>
+        </Field>
         <Field label="سعر الشراء"><input type="number" step="0.01" value={commonDraft.costPrice} onChange={(event) => setCommonDraft((current) => ({ ...current, costPrice: Number(event.target.value || 0) }))} disabled={mutation.isPending} /></Field>
         <Field label="سعر القطاعي"><input type="number" step="0.01" value={commonDraft.retailPrice} onChange={(event) => setCommonDraft((current) => ({ ...current, retailPrice: Number(event.target.value || 0) }))} disabled={mutation.isPending} /></Field>
         <Field label="سعر الجملة"><input type="number" step="0.01" value={commonDraft.wholesalePrice} onChange={(event) => setCommonDraft((current) => ({ ...current, wholesalePrice: Number(event.target.value || 0) }))} disabled={mutation.isPending} /></Field>

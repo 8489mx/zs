@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
+import { AppError } from '../../../common/errors/app-error';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -43,6 +44,14 @@ export class PurchasesQueryService {
       pagination: paged.pagination,
       summary: summarizePurchases(filtered),
     };
+  }
+
+  async getPurchaseById(id: number, _auth: AuthContext): Promise<Record<string, unknown>> {
+    const rows = await this.fetchMappedPurchases();
+    const purchase = rows.find((entry) => Number(entry.id || 0) === id) || null;
+
+    if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
+    return { purchase };
   }
 
   async listSupplierPayments(_auth: AuthContext): Promise<Record<string, unknown>> {

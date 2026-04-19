@@ -54,17 +54,19 @@ function serializeVariantRows(rows: FashionVariantDraft[]) {
 
 const LazyFashionVariantsBuilder = lazy(() => import('@/features/products/components/FashionVariantsBuilder').then((module) => ({ default: module.FashionVariantsBuilder })));
 
-function makeStyleCodeSuggestion(name: string) {
-  const cleaned = String(name || '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9\s-]/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 3)
-    .join('-');
-  const suffix = String(Date.now()).slice(-4);
-  return cleaned ? `${cleaned}-${suffix}` : `GRP-${suffix}`;
+async function generateNextStyleCode() {
+  const payload = await productsApi.listAll();
+  const usedCodes = new Set(
+    (payload.products || [])
+      .map((product) => String(product.styleCode || '').trim())
+      .filter((value) => /^\d+$/.test(value))
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value >= 101),
+  );
+
+  let nextCode = 101;
+  while (usedCodes.has(nextCode)) nextCode += 1;
+  return String(nextCode);
 }
 
 export function ProductForm({ categories, suppliers, onCategoryCreated, onSupplierCreated }: ProductFormProps) {
@@ -79,6 +81,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
   const [inlineCategoryName, setInlineCategoryName] = useState('');
   const [inlineSupplierName, setInlineSupplierName] = useState('');
   const [inlineSupplierPhone, setInlineSupplierPhone] = useState('');
+  const [isGeneratingStyleCode, setIsGeneratingStyleCode] = useState(false);
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
     defaultValues: getDefaultValues(defaultItemKind)
@@ -209,8 +212,15 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
     setInlineSupplierPhone('');
   }
 
-  function handleGenerateStyleCode() {
-    form.setValue('styleCode', makeStyleCodeSuggestion(watchedName), { shouldDirty: true, shouldValidate: true });
+  async function handleGenerateStyleCode() {
+    if (isGeneratingStyleCode) return;
+    setIsGeneratingStyleCode(true);
+    try {
+      const nextCode = await generateNextStyleCode();
+      form.setValue('styleCode', nextCode, { shouldDirty: true, shouldValidate: true });
+    } finally {
+      setIsGeneratingStyleCode(false);
+    }
   }
 
   const builderMode = watchedItemKind === 'fashion' ? 'fashion' : 'standard';
@@ -251,14 +261,14 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
         {usesVariantBuilder ? (
           <Field label={watchedItemKind === 'fashion' ? 'كود الموديل' : 'كود المجموعة / الصنف الرئيسي'}>
             <div className="inline-create-row">
-              <input {...form.register('styleCode')} disabled={mutation.isPending} placeholder={watchedItemKind === 'fashion' ? 'مثال: TS-2401' : 'مثال: DEO-X'} />
-              <button type="button" className="btn btn-secondary" onClick={handleGenerateStyleCode} disabled={mutation.isPending}>توليد كود</button>
+              <input {...form.register('styleCode')} disabled={mutation.isPending || isGeneratingStyleCode} inputMode="numeric" placeholder="101" />
+              <button type="button" className="btn btn-secondary" onClick={() => { void handleGenerateStyleCode(); }} disabled={mutation.isPending || isGeneratingStyleCode}>{isGeneratingStyleCode ? 'جارٍ التوليد...' : 'توليد كود'}</button>
             </div>
           </Field>
         ) : (
           <>
             <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
-            {clothingModuleEnabled ? <Field label="كود المجموعة / الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+            {clothingModuleEnabled ? <Field label="كود المجموعة / الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} inputMode="numeric" placeholder="اختياري" /></Field> : null}
             {clothingModuleEnabled ? <Field label="الخاصية الأولى"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
             {clothingModuleEnabled ? <Field label="الخاصية الثانية"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
           </>

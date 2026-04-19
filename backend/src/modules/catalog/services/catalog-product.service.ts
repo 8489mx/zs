@@ -543,6 +543,38 @@ export class CatalogProductService {
     return color || size;
   }
 
+  private normalizeArabicDigits(value: string): string {
+    const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
+    return String(value || '').replace(/[٠-٩]/g, (digit) => String(arabicDigits.indexOf(digit)));
+  }
+
+  private coerceNewStyleCode(rawValue: string): string {
+    const trimmed = String(rawValue || '').trim();
+    if (!trimmed) return '';
+    const normalized = this.normalizeArabicDigits(trimmed);
+    if (!/^\d+$/.test(normalized)) {
+      throw new AppError('كود المجموعة / الصنف الرئيسي يجب أن يكون أرقامًا فقط', 'STYLE_CODE_INVALID', 400);
+    }
+    return normalized;
+  }
+
+  private async ensureStyleCodeAvailable(styleCode: string, excludeProductIds: number[] = []): Promise<void> {
+    const normalized = String(styleCode || '').trim();
+    if (!normalized) return;
+    let query = this.db
+      .selectFrom('products')
+      .select(['id'])
+      .where('is_active', '=', true)
+      .where('style_code', '=', normalized);
+    if (excludeProductIds.length) {
+      query = query.where('id', 'not in', excludeProductIds);
+    }
+    const existing = await query.executeTakeFirst();
+    if (existing) {
+      throw new AppError('هذا الكود مستخدم بالفعل في صنف سابق', 'STYLE_CODE_EXISTS', 400);
+    }
+  }
+
   private async ensureProductIdentityAvailable(payload: NormalizedUpsertProduct, productId?: number): Promise<void> {
     if (payload.name) {
       let query = this.db.selectFrom('products').select('id').where(sql`LOWER(name)`, '=', payload.name.toLowerCase()).where('is_active', '=', true);
@@ -610,6 +642,8 @@ export class CatalogProductService {
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
+    normalized.styleCode = this.coerceNewStyleCode(normalized.styleCode);
+    await this.ensureStyleCodeAvailable(normalized.styleCode);
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
 
     const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
@@ -686,6 +720,27 @@ export class CatalogProductService {
     if (!existing) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
+
+    const existingStyleCode = String(existing.style_code || '').trim();
+    const requestedStyleCode = String(normalized.styleCode || '').trim();
+    const styleCodeChanged = requestedStyleCode !== existingStyleCode;
+    if (styleCodeChanged) {
+      normalized.styleCode = this.coerceNewStyleCode(requestedStyleCode);
+      const existingGroupCount = existingStyleCode
+        ? Number((await this.db
+            .selectFrom('products')
+            .select((eb) => eb.fn.countAll<number>().as('count'))
+            .where('is_active', '=', true)
+            .where('style_code', '=', existingStyleCode)
+            .executeTakeFirst())?.count || 0)
+        : 0;
+      if (existingGroupCount <= 1) {
+        await this.ensureStyleCodeAvailable(normalized.styleCode, [id]);
+      }
+    } else {
+      normalized.styleCode = existingStyleCode;
+    }
+
     await this.ensureProductIdentityAvailable(normalized, id);
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
 

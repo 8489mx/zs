@@ -31,6 +31,7 @@ export function PurchasesWorkspace() {
         <PurchaseComposer
           products={controller.purchaseCatalog.productsQuery.data || []}
           suppliers={controller.purchaseCatalog.suppliersQuery.data || []}
+          categories={controller.purchaseCatalog.categoriesQuery.data || []}
           branches={controller.purchaseCatalog.branchesQuery.data || []}
           locations={controller.purchaseCatalog.locationsQuery.data || []}
           settings={controller.purchaseCatalog.settingsQuery.data}

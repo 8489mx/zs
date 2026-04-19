@@ -97,7 +97,7 @@ export function createInventoryWorkspaceSectionActions({
     if (!selectedSession) return;
     await copyLines([
       `جلسة الجرد: ${selectedSession.docNo || selectedSession.id}`,
-      `الموقع: ${selectedSession.locationName || '—'}`,
+      `المخزن: ${selectedSession.locationName || '—'}`,
       `الحالة: ${selectedSession.status || '—'}`,
       `عدد البنود: ${selectedSessionTotals.itemsCount}`,
       `الإجمالي المتوقع: ${selectedSessionTotals.expectedQty}`,

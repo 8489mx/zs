@@ -95,7 +95,7 @@ export function StockMovementRegister() {
     printHtmlDocument('سجل حركات المخزون', `
       <h1>سجل حركات المخزون</h1>
       <table>
-        <thead><tr><th>الصنف</th><th>النوع</th><th>الكمية</th><th>قبل</th><th>بعد</th><th>السبب</th><th>${SINGLE_STORE_MODE ? 'المخزن' : 'الموقع'}</th><th>التاريخ</th></tr></thead>
+        <thead><tr><th>الصنف</th><th>النوع</th><th>الكمية</th><th>قبل</th><th>بعد</th><th>السبب</th><th>${SINGLE_STORE_MODE ? 'المخزن' : 'المخزن'}</th><th>التاريخ</th></tr></thead>
         <tbody>${allRows.map((movement) => `<tr><td>${escapeHtml(movement.productName || '—')}</td><td>${escapeHtml(getMovementLabel(movement.type))}</td><td>${escapeHtml(String(movement.qty || 0))}</td><td>${escapeHtml(String(movement.beforeQty || 0))}</td><td>${escapeHtml(String(movement.afterQty || 0))}</td><td>${escapeHtml(movement.reason || movement.note || '—')}</td><td>${escapeHtml(movement.locationName || movement.branchName || '—')}</td><td>${escapeHtml(formatDate(movement.date || ''))}</td></tr>`).join('')}</tbody>
       </table>
     `);
@@ -108,7 +108,7 @@ export function StockMovementRegister() {
         <div className="stat-card compact-stat-card"><span>إجمالي الزيادات</span><strong>{totals.positive.toFixed(3)}</strong></div>
         <div className="stat-card compact-stat-card"><span>إجمالي الخصومات</span><strong>{totals.negative.toFixed(3)}</strong></div>
       </div>
-      <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث بالصنف أو السبب أو المخزن' : 'ابحث بالصنف أو السبب أو الموقع'}>
+      <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث بالصنف أو السبب أو المخزن' : 'ابحث بالصنف أو السبب أو المخزن'}>
         <label className="field">
           <span>نوع الحركة</span>
           <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
@@ -154,7 +154,7 @@ export function StockMovementRegister() {
               cell: (movement) => (
                 <div>
                   <strong>{movement.productName || 'صنف غير معروف'}</strong>
-                  <div className="muted small">{movement.locationName || movement.branchName || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'بدون موقع')} · {movement.createdBy || 'مستخدم غير محدد'}</div>
+                  <div className="muted small">{movement.locationName || movement.branchName || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'بدون مخزن')} · {movement.createdBy || 'مستخدم غير محدد'}</div>
                 </div>
               )
             },

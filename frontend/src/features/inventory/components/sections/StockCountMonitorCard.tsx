@@ -191,7 +191,7 @@ export function StockCountMonitorCard({
                   <span className="nav-pill">{selectedSession.status || '—'}</span>
                 </div>
                 <div className="detail-grid">
-                  <div className="detail-item"><div className="detail-label">الموقع</div><div className="detail-value">{selectedSession.locationName || '—'}</div></div>
+                  <div className="detail-item"><div className="detail-label">المخزن</div><div className="detail-value">{selectedSession.locationName || '—'}</div></div>
                   <div className="detail-item"><div className="detail-label">الفرع</div><div className="detail-value">{selectedSession.branchName || '—'}</div></div>
                   <div className="detail-item"><div className="detail-label">عدد البنود</div><div className="detail-value">{selectedSessionTotals.itemsCount}</div></div>
                   <div className="detail-item"><div className="detail-label">إجمالي المتوقع</div><div className="detail-value">{selectedSessionTotals.expectedQty}</div></div>

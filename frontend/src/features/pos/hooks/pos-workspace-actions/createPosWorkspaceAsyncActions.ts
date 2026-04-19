@@ -156,6 +156,16 @@ export function createPosWorkspaceAsyncActions(
     }
   }
 
+
+  async function approveDiscountOverride(password: string) {
+    const normalized = String(password || '').trim();
+    const result = await params.discountAuthorizationMutation.mutateAsync(normalized);
+    params.setDiscountApprovalGranted(true);
+    params.setDiscountApprovalSecret(normalized);
+    params.setSubmitMessage('تم اعتماد الخصم لهذه الفاتورة الحالية');
+    return result;
+  }
+
   async function holdDraft() {
     if (!params.cart.length) {
       params.setSubmitMessage('لا يمكن تعليق فاتورة فارغة');
@@ -211,6 +221,7 @@ export function createPosWorkspaceAsyncActions(
 
   return {
     handleQuickCustomerSubmit,
+    approveDiscountOverride,
     handleSubmit,
     holdDraft,
     recallDraft,

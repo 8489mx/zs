@@ -59,15 +59,15 @@ export function LocationRowActions({ location, branches, isEditing, onStartEdit,
     return (
       <div className="list-row settings-reference-row editing-row">
         <div className="form-grid" style={{ flex: 1 }}>
-          <Field label={SINGLE_STORE_MODE ? 'اسم المخزن' : 'اسم الموقع'}><input value={location.name} onChange={(event) => onChange('name', event.target.value)} disabled={isBusy} /></Field>
-          <Field label={SINGLE_STORE_MODE ? 'كود المخزن' : 'كود الموقع'}><input value={location.code || ''} onChange={(event) => onChange('code', event.target.value)} disabled={isBusy} /></Field>
+          <Field label={SINGLE_STORE_MODE ? 'اسم المخزن' : 'اسم المخزن'}><input value={location.name} onChange={(event) => onChange('name', event.target.value)} disabled={isBusy} /></Field>
+          <Field label={SINGLE_STORE_MODE ? 'كود المخزن' : 'كود المخزن'}><input value={location.code || ''} onChange={(event) => onChange('code', event.target.value)} disabled={isBusy} /></Field>
           {!SINGLE_STORE_MODE ? <Field label="الفرع المرتبط"><select value={location.branchId || ''} onChange={(event) => onChange('branchId', event.target.value)} disabled={isBusy}><option value="">بدون ربط</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></Field> : null}
         </div>
         <div className="actions compact-actions">
           <Button variant="primary" onClick={onSave} disabled={isBusy || !location.name.trim()}>{isBusy ? 'جارٍ الحفظ...' : 'حفظ'}</Button>
           <Button variant="secondary" onClick={onCancelEdit} disabled={isBusy}>إلغاء</Button>
         </div>
-        <MutationFeedback isError={Boolean(mutationError)} isSuccess={false} error={mutationError} errorFallback="تعذر تحديث الموقع" />
+        <MutationFeedback isError={Boolean(mutationError)} isSuccess={false} error={mutationError} errorFallback="تعذر تحديث المخزن" />
       </div>
     );
   }

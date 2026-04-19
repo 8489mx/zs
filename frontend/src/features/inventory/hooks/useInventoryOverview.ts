@@ -10,7 +10,7 @@ export function useInventoryOverview(search: string, statusFilter: 'all' | Stock
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (productsQuery.data || []).filter((product) => {
-      const matchesSearch = !q || [product.name, product.barcode].some((value) => String(value || '').toLowerCase().includes(q));
+      const matchesSearch = !q || [product.name, product.barcode, product.styleCode, product.color, product.size].some((value) => String(value || '').toLowerCase().includes(q));
       if (!matchesSearch) return false;
       const status = resolveProductStatus(product);
       if (statusFilter === 'all') return true;

@@ -15,6 +15,12 @@ export function useReportsWorkspaceState() {
   const [balancesPageSize, setBalancesPageSize] = useState(10);
   const [balancesSearch, setBalancesSearch] = useState('');
   const [balancesFilter, setBalancesFilter] = useState<'all' | 'high-balance' | 'over-limit'>('all');
+  const [employeesPage, setEmployeesPage] = useState(1);
+  const [employeesPageSize, setEmployeesPageSize] = useState(10);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [employeeRole, setEmployeeRole] = useState<'all' | 'super_admin' | 'admin' | 'cashier'>('all');
+  const [employeeActivityType, setEmployeeActivityType] = useState<'all' | 'sales' | 'returns' | 'purchases' | 'expenses' | 'shifts' | 'audit'>('all');
 
   const applyPresetRange = (range: { from: string; to: string }) => {
     setFrom(range.from);
@@ -22,6 +28,7 @@ export function useReportsWorkspaceState() {
     setSubmittedRange(range);
     setInventoryPage(1);
     setBalancesPage(1);
+    setEmployeesPage(1);
   };
 
   const resetRange = () => applyPresetRange(defaultRange);
@@ -39,6 +46,12 @@ export function useReportsWorkspaceState() {
     balancesPageSize,
     balancesSearch,
     balancesFilter,
+    employeesPage,
+    employeesPageSize,
+    employeeSearch,
+    selectedEmployeeId,
+    employeeRole,
+    employeeActivityType,
     setFrom,
     setTo,
     setSubmittedRange,
@@ -50,6 +63,12 @@ export function useReportsWorkspaceState() {
     setBalancesPageSize,
     setBalancesSearch,
     setBalancesFilter,
+    setEmployeesPage,
+    setEmployeesPageSize,
+    setEmployeeSearch,
+    setSelectedEmployeeId,
+    setEmployeeRole,
+    setEmployeeActivityType,
     applyPresetDays: (days: number) => applyPresetRange(buildRange(days)),
     applyTodayPreset: () => applyPresetRange(buildTodayRange()),
     applyPresetRange,

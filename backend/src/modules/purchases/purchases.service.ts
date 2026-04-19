@@ -16,16 +16,20 @@ export class PurchasesService {
     return this.queryService.listPurchases(query, auth);
   }
 
+  getPurchaseById(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.queryService.getPurchaseById(id, auth);
+  }
+
   createPurchase(payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.writeService.createPurchase(payload, auth);
   }
 
-  updatePurchase(purchaseId: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.writeService.updatePurchase(purchaseId, payload, auth);
+  updatePurchase(id: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.writeService.updatePurchase(id, payload, auth);
   }
 
-  cancelPurchase(purchaseId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.writeService.cancelPurchase(purchaseId, reason, auth);
+  cancelPurchase(id: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.writeService.cancelPurchase(id, reason, auth);
   }
 
   listSupplierPayments(auth: AuthContext): Promise<Record<string, unknown>> {

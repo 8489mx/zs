@@ -18,6 +18,12 @@ export class PurchasesController {
     return this.purchasesService.listPurchases(query, req.authContext!);
   }
 
+  @Get('purchases/:id')
+  @RequirePermissions('purchases')
+  getPurchase(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.purchasesService.getPurchaseById(id, req.authContext!);
+  }
+
   @Post('purchases')
   @RequirePermissions('purchases')
   createPurchase(@Body() payload: UpsertPurchaseDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

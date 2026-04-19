@@ -262,7 +262,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <label style={printCheckboxStyle}><input type="checkbox" {...form.register('printShowCustomer')} disabled={mutation.isPending || !canManageSettings} />إظهار العميل</label>
               <label style={printCheckboxStyle}><input type="checkbox" {...form.register('printShowCashier')} disabled={mutation.isPending || !canManageSettings} />إظهار الكاشير</label>
               <label style={printCheckboxStyle}><input type="checkbox" {...form.register('printShowBranch')} disabled={mutation.isPending || !canManageSettings} />إظهار الفرع</label>
-              <label style={printCheckboxStyle}><input type="checkbox" {...form.register('printShowLocation')} disabled={mutation.isPending || !canManageSettings} />إظهار الموقع</label>
+              <label style={printCheckboxStyle}><input type="checkbox" {...form.register('printShowLocation')} disabled={mutation.isPending || !canManageSettings} />إظهار المخزن</label>
               <label style={printCheckboxStyle}><input type="checkbox" {...form.register('printShowTax')} disabled={mutation.isPending || !canManageSettings} />إظهار الضريبة</label>
               <label style={printCheckboxStyle}><input type="checkbox" {...form.register('printShowPaymentMethod')} disabled={mutation.isPending || !canManageSettings} />إظهار طريقة الدفع</label>
               <label style={printCheckboxStyle}><input type="checkbox" {...form.register('printShowItemSummary')} disabled={mutation.isPending || !canManageSettings} />إظهار عدد البنود والقطع</label>

@@ -108,6 +108,7 @@ export function useReportsWorkspaceMetrics({ currentSection, submittedRange, rep
       inventory: 'ابدأ بالأصناف الحرجة ثم صدّر القائمة إذا احتجت متابعة تشغيلية.',
       balances: 'راجع العملاء الأعلى رصيدًا ثم اطبع أو صدّر الذمم للمراجعة.',
       treasury: 'ركّز على صافي الخزينة والربح التشغيلي قبل اتخاذ أي قرار صرف.',
+      employees: 'ابدأ بفلترة الموظف ثم راجع تفاصيل نشاطه وملخصاته قبل اتخاذ أي إجراء إداري.',
     };
     const attentionBySection: Record<ReportsSectionKey, string> = {
       overview: report ? formatCurrency(report.commercial.netOperatingProfit || 0) : formatCurrency(0),
@@ -116,6 +117,7 @@ export function useReportsWorkspaceMetrics({ currentSection, submittedRange, rep
       inventory: `${inventoryQuery.data?.summary?.lowStock || 0} صنف منخفض`,
       balances: `${balancesQuery.data?.summary?.overLimit || 0} فوق الحد`,
       treasury: formatCurrency(report?.treasury.net || 0),
+      employees: 'راجع سجل الموظفين بالتفصيل',
     };
     return [
       { key: 'section', label: 'القسم الحالي', value: sectionMeta.label },

@@ -157,12 +157,12 @@ export function SettingsReferenceSection({
 
       <ActionConfirmDialog
         open={Boolean(deleteConfirm)}
-        title={deleteConfirm?.kind === 'branch' ? 'تأكيد حذف الفرع' : 'تأكيد حذف الموقع'}
-        description={deleteConfirm ? (deleteConfirm.kind === 'branch' ? <>سيتم حذف الفرع <strong>{deleteConfirm.name}</strong>. تابع فقط إذا لم يكن مستخدمًا في الربط التشغيلي أو الإعدادات الحالية.</> : <>سيتم حذف الموقع <strong>{deleteConfirm.name}</strong>. تأكد من عدم استخدامه في التحويلات أو الجرد أو الحركات الحالية.</>) : ''}
-        confirmLabel={deleteConfirm?.kind === 'branch' ? 'حذف الفرع' : 'حذف الموقع'}
+        title={deleteConfirm?.kind === 'branch' ? 'تأكيد حذف الفرع' : 'تأكيد حذف المخزن'}
+        description={deleteConfirm ? (deleteConfirm.kind === 'branch' ? <>سيتم حذف الفرع <strong>{deleteConfirm.name}</strong>. تابع فقط إذا لم يكن مستخدمًا في الربط التشغيلي أو الإعدادات الحالية.</> : <>سيتم حذف المخزن <strong>{deleteConfirm.name}</strong>. تأكد من عدم استخدامه في التحويلات أو الجرد أو الحركات الحالية.</>) : ''}
+        confirmLabel={deleteConfirm?.kind === 'branch' ? 'حذف الفرع' : 'حذف المخزن'}
         confirmVariant="danger"
         confirmationKeyword={deleteConfirm?.name || ''}
-        confirmationLabel={deleteConfirm?.kind === 'branch' ? 'اكتب اسم الفرع للتأكيد' : 'اكتب اسم الموقع للتأكيد'}
+        confirmationLabel={deleteConfirm?.kind === 'branch' ? 'اكتب اسم الفرع للتأكيد' : 'اكتب اسم المخزن للتأكيد'}
         confirmationHint="هذا الإجراء يحذف السجل المرجعي الحالي فقط إذا لم يكن مرتبطًا ببيانات تشغيلية أو إعدادات نشطة."
         isBusy={branchActionBusy || locationActionBusy}
         onCancel={() => setDeleteConfirm(null)}

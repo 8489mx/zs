@@ -38,6 +38,7 @@ export function AccountsLedgerCard({
       loadingText={loadingText}
       emptyTitle={emptyTitle}
       emptyHint={emptyHint}
+      preserveChildrenOnEmpty
     >
       {children}
     </QueryCard>

@@ -27,7 +27,7 @@ interface SettingsGuidanceInput {
 export function getSettingsSectionDescription(section: string) {
   if (section === 'overview') return 'راجع الملخص وافتح القسم الذي تريد تعديله.';
   if (section === 'core') return 'عدّل بيانات المتجر ثم احفظ.';
-  if (section === 'reference') return 'نظّم الفروع والمواقع من نفس الصفحة.';
+  if (section === 'reference') return 'نظّم الفروع والمخازن من نفس الصفحة.';
   if (section === 'users') return 'أدر المستخدمين والصلاحيات من مكان واحد.';
   return 'خذ نسخة احتياطية أو استورد البيانات من نفس الشاشة.';
 }
@@ -40,17 +40,17 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
       : input.section === 'core'
         ? 'عدّل بيانات المتجر ثم اضغط حفظ قبل الانتقال.'
         : input.section === 'reference'
-          ? 'ابحث عن الفرع أو الموقع المطلوب ثم عدّل أو احذف من نفس الجدول.'
+          ? 'ابحث عن الفرع أو المخزن المطلوب ثم عدّل أو احذف من نفس الجدول.'
           : input.section === 'users'
             ? 'راجع الحسابات والصلاحيات ثم حدّث المستخدم المطلوب.'
             : 'خذ نسخة أولًا، ثم نفّذ الاستيراد أو الاستعادة بعد التأكد.';
 
   const focusValue = input.section === 'overview'
-    ? `${input.branchesCount} فرع / ${input.locationsCount} موقع`
+    ? `${input.branchesCount} فرع / ${input.locationsCount} مخزن`
     : input.section === 'core'
       ? (input.storeName || 'بيانات المتجر الأساسية')
       : input.section === 'reference'
-        ? `${input.filteredBranchesCount} فرع ظاهر / ${input.filteredLocationsCount} موقع ظاهر`
+        ? `${input.filteredBranchesCount} فرع ظاهر / ${input.filteredLocationsCount} مخزن ظاهر`
         : input.section === 'users'
           ? (input.currentUserRole === 'super_admin' ? 'إدارة المستخدمين متاحة' : 'هذه الشاشة مخصصة للمشرف العام')
           : `${input.snapshotsCount} نسخة تلقائية متاحة`;
@@ -60,7 +60,7 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
     : input.section === 'users'
       ? 'استخدم أقل صلاحية ممكنة لكل حساب.'
       : input.section === 'reference'
-        ? 'احرص أن يكون كل موقع مرتبطًا بفرع واضح.'
+        ? 'احرص أن يكون كل مخزن مرتبطًا بفرع واضح.'
         : 'غيّر ما تحتاجه فقط ثم احفظ.';
 
   return [

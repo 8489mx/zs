@@ -5,17 +5,19 @@ import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
-import type { Product, Supplier, Branch, Location, AppSettings } from '@/types/domain';
+import type { Product, Supplier, Branch, Location, AppSettings, Category } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { usePurchaseComposerController } from '@/features/purchases/components/purchase-composer/usePurchaseComposerController';
 import { PurchaseLineComposer } from '@/features/purchases/components/purchase-composer/PurchaseLineComposer';
 import { PurchaseItemsList } from '@/features/purchases/components/purchase-composer/PurchaseItemsList';
 import { PurchaseTotals } from '@/features/purchases/components/purchase-composer/PurchaseTotals';
 import { PurchaseRepricingDialog } from '@/features/purchases/components/PurchaseRepricingDialog';
+import { PurchaseQuickCreateDialog } from '@/features/purchases/components/purchase-composer/PurchaseQuickCreateDialog';
 
 interface PurchaseComposerProps {
   products: Product[];
   suppliers: Supplier[];
+  categories: Category[];
   branches: Branch[];
   locations: Location[];
   settings?: AppSettings;
@@ -24,9 +26,9 @@ interface PurchaseComposerProps {
   catalogError?: unknown;
 }
 
-export function PurchaseComposer({ products, suppliers, branches, locations, settings, isCatalogLoading, isCatalogError, catalogError }: PurchaseComposerProps) {
-  const controller = usePurchaseComposerController({ products, branches, locations, settings });
-  const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, actions } = controller;
+export function PurchaseComposer({ products, suppliers, categories, branches, locations, settings, isCatalogLoading, isCatalogError, catalogError }: PurchaseComposerProps) {
+  const controller = usePurchaseComposerController({ products, suppliers, categories, branches, locations, settings });
+  const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, quickCreate, actions } = controller;
 
   return (
     <Card title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>} className="purchase-composer-card">
@@ -80,16 +82,20 @@ export function PurchaseComposer({ products, suppliers, branches, locations, set
           <div className="divider" style={{ gridColumn: '1 / -1' }} />
 
           <PurchaseLineComposer
-            products={products}
+            products={lineDraft.filteredProducts}
             lineProductId={lineDraft.lineProductId}
             lineQty={lineDraft.lineQty}
             lineCost={lineDraft.lineCost}
             lineError={lineDraft.lineError}
+            productSearch={lineDraft.productSearch}
+            selectedProductName={lineDraft.selectedProductName}
             isPending={mutation.isPending}
-            onProductChange={actions.handleProductChange}
+            onProductSearchChange={actions.handleProductSearchChange}
+            onProductSelect={actions.handleProductSelect}
             onQtyChange={actions.setLineQty}
             onCostChange={actions.setLineCost}
             onAddItem={actions.handleAddItem}
+            onOpenQuickCreate={actions.openQuickCreateDialog}
           />
           <PurchaseItemsList items={items} isPending={mutation.isPending} onRemoveItem={actions.handleRemoveItem} />
           <PurchaseTotals subTotal={totals.subTotal} discount={totals.discount} taxAmount={totals.taxAmount} total={totals.total} />
@@ -112,6 +118,20 @@ export function PurchaseComposer({ products, suppliers, branches, locations, set
         open={Boolean(repricingInsights)}
         insights={repricingInsights}
         onClose={() => actions.setRepricingInsights(null)}
+      />
+
+      <PurchaseQuickCreateDialog
+        open={quickCreate.open}
+        draft={quickCreate.draft}
+        categories={quickCreate.categories}
+        suppliers={quickCreate.suppliers}
+        isPending={quickCreate.mutation.isPending}
+        error={quickCreate.mutation.error}
+        onClose={actions.closeQuickCreateDialog}
+        onDraftChange={actions.setQuickCreateDraft}
+        onSubmit={() => {
+          void actions.handleQuickCreateSubmit();
+        }}
       />
     </Card>
   );

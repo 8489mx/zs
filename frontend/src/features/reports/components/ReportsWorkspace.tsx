@@ -47,6 +47,7 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         reportQuery={controller.reportQuery}
         inventoryQuery={controller.inventoryQuery}
         balancesQuery={controller.balancesQuery}
+        employeesQuery={controller.employeesQuery}
         executiveRows={controller.executiveRows}
         operatingSignalRows={controller.operatingSignalRows}
         topProducts={controller.topProducts}
@@ -67,12 +68,25 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         onInventoryFilterChange={controller.onInventoryFilterChange}
         onInventoryPageChange={controller.onInventoryPageChange}
         onInventoryPageSizeChange={controller.onInventoryPageSizeChange}
+        onInventoryFiltersReset={controller.onInventoryFiltersReset}
         balancesSearch={controller.balancesSearch}
         onBalancesSearchChange={controller.onBalancesSearchChange}
         balancesFilter={controller.balancesFilter}
         onBalancesFilterChange={controller.onBalancesFilterChange}
         onBalancesPageChange={controller.onBalancesPageChange}
         onBalancesPageSizeChange={controller.onBalancesPageSizeChange}
+        onBalancesFiltersReset={controller.onBalancesFiltersReset}
+        employeeSearch={controller.employeeSearch}
+        onEmployeeSearchChange={controller.onEmployeeSearchChange}
+        selectedEmployeeId={controller.selectedEmployeeId}
+        onSelectedEmployeeIdChange={controller.onSelectedEmployeeIdChange}
+        employeeRole={controller.employeeRole}
+        onEmployeeRoleChange={controller.onEmployeeRoleChange}
+        employeeActivityType={controller.employeeActivityType}
+        onEmployeeActivityTypeChange={controller.onEmployeeActivityTypeChange}
+        onEmployeesPageChange={controller.onEmployeesPageChange}
+        onEmployeesPageSizeChange={controller.onEmployeesPageSizeChange}
+        onEmployeesFiltersReset={controller.onEmployeesFiltersReset}
       />
     </div>
   );

@@ -38,6 +38,7 @@ function normalizeLedgerEntries(entries: unknown): Array<Record<string, unknown>
       balance_after: Number(row.balance_after ?? row.balanceAfter ?? 0),
       reference_type: String(row.reference_type ?? row.referenceType ?? ''),
       reference_id: String(row.reference_id ?? row.referenceId ?? ''),
+      doc_no: String(row.doc_no ?? row.docNo ?? ''),
     };
   });
 }

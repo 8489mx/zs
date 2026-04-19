@@ -46,6 +46,7 @@ export function UserManagementListPanel({
   onPageChange,
   onPageSizeChange,
   onBulkAction,
+  onOpenDetails,
   setupMode = false
 }: {
   managedUsers: ManagedUserRecord[];
@@ -68,6 +69,7 @@ export function UserManagementListPanel({
   onPageSizeChange: (pageSize: number) => void;
   totalItems: number;
   onBulkAction: (action: UserBulkAction) => void;
+  onOpenDetails: (user: ManagedUserRecord) => void;
   setupMode?: boolean;
 }) {
   return (
@@ -145,6 +147,7 @@ export function UserManagementListPanel({
             cell: (user) => (
               <div className="actions compact-actions">
                 <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onLoadUser(user); }}>فتح</Button>
+                <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onOpenDetails(user); }}>تفاصيل</Button>
                 <span className="nav-pill">{user.mustChangePassword ? 'تغيير مطلوب' : 'مستقر'}</span>
               </div>
             )

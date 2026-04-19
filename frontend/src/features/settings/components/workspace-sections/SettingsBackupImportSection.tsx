@@ -42,7 +42,7 @@ function formatSummaryPairs(result: unknown): Array<{ label: string; value: stri
     ['source', 'المصدر'],
     ['tablesPresent', 'الجداول الموجودة'],
     ['restoredTables', 'الجداول المستعادة'],
-    ['product_location_stock', 'أرصدة المواقع'],
+    ['product_location_stock', 'أرصدة المخازن'],
     ['products', 'الأصناف'],
     ['customers', 'العملاء'],
     ['suppliers', 'الموردون'],

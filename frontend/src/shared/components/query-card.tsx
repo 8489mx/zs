@@ -14,6 +14,8 @@ interface QueryCardProps {
   errorTitle?: string;
   emptyTitle?: string;
   emptyHint?: string;
+  emptyAction?: ReactNode;
+  preserveChildrenOnEmpty?: boolean;
   children?: ReactNode;
   className?: string;
 }
@@ -30,6 +32,8 @@ export function QueryCard({
   errorTitle,
   emptyTitle,
   emptyHint,
+  emptyAction,
+  preserveChildrenOnEmpty,
   children,
   className
 }: QueryCardProps) {
@@ -44,6 +48,8 @@ export function QueryCard({
         errorTitle={errorTitle}
         emptyTitle={emptyTitle}
         emptyHint={emptyHint}
+        emptyAction={emptyAction}
+        preserveChildrenOnEmpty={preserveChildrenOnEmpty}
       >
         {children}
       </QueryFeedback>

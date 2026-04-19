@@ -9,7 +9,8 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
 interface StockTransferComposerCardProps {
   products: Product[];
-  locations: Location[];
+  warehouses?: Location[];
+  locations?: Location[];
   form: { fromLocationId: string; toLocationId: string; note: string; productId: string; qty: string };
   items: StockTransferItem[];
   isPending: boolean;
@@ -24,6 +25,7 @@ interface StockTransferComposerCardProps {
 
 export function StockTransferComposerCard({
   products,
+  warehouses,
   locations,
   form,
   items,
@@ -36,19 +38,20 @@ export function StockTransferComposerCard({
   onRemoveItem,
   onSubmit
 }: StockTransferComposerCardProps) {
+  const warehouseList = warehouses || locations || [];
   return (
-    <Card title="تحويل مخزون بين المواقع" description="تجميع العناصر أولًا ثم اعتماد التحويل مع إبقاء المراجعة السريعة للعناصر قبل الإرسال." actions={<span className="nav-pill">التحويلات</span>}>
+    <Card title="تحويل مخزون بين المخازن" description="تجميع العناصر أولًا ثم اعتماد التحويل مع إبقاء المراجعة السريعة للعناصر قبل الإرسال." actions={<span className="nav-pill">التحويلات</span>}>
       <div className="form-grid">
-        <Field label="من موقع">
+        <Field label="من مخزن">
           <select value={form.fromLocationId} onChange={(e) => onFormChange({ fromLocationId: e.target.value })}>
             <option value="">اختر المصدر</option>
-            {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+            {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
           </select>
         </Field>
-        <Field label="إلى موقع">
+        <Field label="إلى مخزن">
           <select value={form.toLocationId} onChange={(e) => onFormChange({ toLocationId: e.target.value })}>
             <option value="">اختر الوجهة</option>
-            {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+            {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
           </select>
         </Field>
         <Field label="الصنف">
@@ -90,7 +93,8 @@ export function StockTransferComposerCard({
 interface StockCountComposerCardProps {
   products: Product[];
   branches: Branch[];
-  locations: Location[];
+  warehouses?: Location[];
+  locations?: Location[];
   form: { branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string };
   items: StockCountItem[];
   isPending: boolean;
@@ -106,6 +110,7 @@ interface StockCountComposerCardProps {
 export function StockCountComposerCard({
   products,
   branches,
+  warehouses,
   locations,
   form,
   items,
@@ -118,6 +123,7 @@ export function StockCountComposerCard({
   onRemoveItem,
   onSubmit
 }: StockCountComposerCardProps) {
+  const warehouseList = warehouses || locations || [];
   const selectedProduct = products.find((product) => String(product.id) === String(form.productId));
   const expectedQtyValue = Number(selectedProduct?.stock || 0);
   const countedQtyValue = Number(form.countedQty || 0);
@@ -135,10 +141,10 @@ export function StockCountComposerCard({
             {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
           </select>
         </Field> : null}
-        <Field label={SINGLE_STORE_MODE ? 'المخزن' : 'الموقع'}>
+        <Field label={SINGLE_STORE_MODE ? 'المخزن' : 'المخزن'}>
           <select value={form.locationId} onChange={(e) => onFormChange({ locationId: e.target.value })}>
-            <option value="">اختر الموقع</option>
-            {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+            <option value="">اختر المخزن</option>
+            {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
           </select>
         </Field>
         <Field label="الصنف">

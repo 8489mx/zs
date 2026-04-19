@@ -24,6 +24,8 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   PRODUCT_EXISTS: 'يوجد صنف بنفس الاسم أو الباركود بالفعل.',
   PRODUCT_NOT_FOUND: 'الصنف غير موجود.',
   PRODUCT_NAME_REQUIRED: 'اسم الصنف مطلوب.',
+  STYLE_CODE_EXISTS: 'هذا الكود مستخدم بالفعل في صنف سابق.',
+  STYLE_CODE_INVALID: 'كود المجموعة / الصنف الرئيسي يجب أن يكون أرقامًا فقط.',
   PRODUCT_HAS_STOCK: 'لا يمكن حذف الصنف لأن عليه مخزونًا حاليًا.',
   PRODUCT_HAS_HISTORY: 'لا يمكن حذف الصنف لأن له حركات أو تاريخًا سابقًا.',
   STOCK_UPDATE_FORBIDDEN: 'لا يمكن تعديل المخزون من شاشة بيانات الصنف. استخدم شاشة المخزون أو التسوية.',

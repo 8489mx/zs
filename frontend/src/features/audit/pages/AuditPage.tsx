@@ -13,7 +13,7 @@ import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatDate } from '@/lib/format';
 import { useAuditLogs } from '@/features/audit/hooks/useAuditLogs';
 import { useAuditPageActions } from '@/features/audit/hooks/useAuditPageActions';
-import { settingsApi } from '@/features/settings/api/settings.api';
+import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { AuditLog } from '@/types/domain';
 
 const auditFilterOptions = [
@@ -28,7 +28,7 @@ export function AuditPage() {
   const [filterMode, setFilterMode] = useState<'all' | 'today' | 'withDetails'>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
-  const usersQuery = useQuery({ queryKey: ['audit-users-filter'], queryFn: () => settingsApi.users() });
+  const usersQuery = useQuery({ queryKey: ['audit-users-filter'], queryFn: userDirectoryApi.users });
   const query = useAuditLogs({ page, pageSize, search, mode: filterMode, userId: selectedUserId });
   const rows = query.data?.rows || [];
   const pagination = query.data?.pagination;

@@ -307,7 +307,7 @@ export function buildReceiptDocument(options: {
     ...(showPaymentMethod ? [{ label: 'طريقة الدفع', value: options.paymentText || 'نقدي' }] : []),
     ...(showCashier ? [{ label: 'الكاشير', value: options.cashierName || '—' }] : []),
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),
-    ...(showLocation ? [{ label: 'الموقع', value: options.locationName || 'المخزن الأساسي' }] : []),
+    ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
   ];
 

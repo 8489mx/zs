@@ -33,6 +33,8 @@ interface CashDrawerFormsPanelProps {
 }
 
 export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
+  const locationList = Array.isArray(props.locations) ? props.locations : [];
+
   return (
     <div className="three-column-grid panel-grid cash-drawer-forms-grid">
       <Card title="فتح وردية جديدة" actions={<span className="nav-pill">فتح الوردية</span>} className="cash-drawer-form-card">
@@ -44,10 +46,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               {props.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
             </select>
           </Field> : null}
-          {SINGLE_STORE_MODE ? <Field label="المخزن الأساسي"><input value={props.locations[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field> : <Field label="الموقع">
+          {SINGLE_STORE_MODE ? <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field> : <Field label="المخزن">
             <select {...props.openForm.register('locationId')} disabled={props.openMutation.isPending}>
-              <option value="">بدون موقع</option>
-              {props.locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+              <option value="">بدون مخزن</option>
+              {locationList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
             </select>
           </Field>}
           <Field label="ملاحظة الافتتاح"><textarea rows={2} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>

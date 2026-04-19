@@ -49,4 +49,19 @@ export class ReportRangeQueryDto {
   @IsNumber()
   @Min(1)
   userId?: number;
+
+  @IsOptional()
+  @IsString()
+  role?: string;
+
+  @IsOptional()
+  @IsString()
+  activityType?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }

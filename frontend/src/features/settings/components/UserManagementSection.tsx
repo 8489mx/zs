@@ -1,5 +1,6 @@
 // regression marker: startNewUser('admin')
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -14,9 +15,20 @@ import {
 } from '@/features/settings/components/UserManagementPanels';
 import { useUserManagementController } from '@/features/settings/hooks/useUserManagementController';
 import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { DataTable } from '@/shared/ui/data-table';
+import { ReportMetricCard } from '@/shared/components/report-metric-card';
+import { employeeReportsApi } from '@/shared/api/employee-reports';
+import { formatCurrency, formatDate } from '@/lib/format';
 
 export function UserManagementSection({ branches, setupMode = false, setupStepKey = null, onSetupAdvance }: { branches: Branch[]; setupMode?: boolean; setupStepKey?: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null; onSetupAdvance?: () => void }) {
   const controller = useUserManagementController({ setupMode, setupStepKey, onSetupAdvance });
+  const [detailsUserId, setDetailsUserId] = useState('');
+  const detailsQuery = useQuery({
+    queryKey: ['settings-user-details', detailsUserId],
+    queryFn: () => employeeReportsApi.employeeDetails(detailsUserId, { limit: 25 }),
+    enabled: Boolean(detailsUserId),
+  });
   const userEditorSectionRef = useRef<HTMLDivElement | null>(null);
   const {
     currentUserRole,
@@ -105,6 +117,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               onPageChange={setPage}
               onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
               onBulkAction={setBulkAction}
+              onOpenDetails={(user) => setDetailsUserId(String(user.id || ''))}
               setupMode={setupMode}
             />
             <div ref={userEditorSectionRef}><UserManagementEditorPanel
@@ -141,6 +154,40 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         onCancel={() => setDeleteDialogOpen(false)}
         onConfirm={() => void deleteSelectedUser()}
       />
+
+      <DialogShell open={Boolean(detailsUserId)} onClose={() => setDetailsUserId('')} width="min(980px, 100%)" ariaLabel="تفاصيل المستخدم">
+        <div className="page-stack">
+          <div className="actions" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ margin: 0 }}>تفاصيل المستخدم</h3>
+              <div className="muted small">{detailsQuery.data?.employee ? `${detailsQuery.data.employee.name} · ${detailsQuery.data.employee.username}` : 'جاري التحميل...'}</div>
+            </div>
+            <Button variant="secondary" onClick={() => setDetailsUserId('')}>إغلاق</Button>
+          </div>
+          {detailsQuery.isLoading ? <div className="muted small">جاري تحميل التفاصيل...</div> : null}
+          {detailsQuery.isError ? <div className="warning-box">تعذر تحميل تفاصيل المستخدم.</div> : null}
+          {detailsQuery.data?.employee ? <>
+            <div className="reports-spotlight-grid section-spotlight-grid compact-spotlight-grid">
+              <ReportMetricCard label="المبيعات" value={detailsQuery.data.employee.salesTotal || 0} helper={`${detailsQuery.data.employee.salesCount || 0} فاتورة`} tone="primary" formatter={formatCurrency} progress={0} />
+              <ReportMetricCard label="المشتريات" value={detailsQuery.data.employee.purchasesTotal || 0} helper={`${detailsQuery.data.employee.purchasesCount || 0} فاتورة`} tone="warning" formatter={formatCurrency} progress={0} />
+              <ReportMetricCard label="المرتجعات" value={detailsQuery.data.employee.returnsTotal || 0} helper={`${detailsQuery.data.employee.returnsCount || 0} مستند`} tone="danger" formatter={formatCurrency} progress={0} />
+              <ReportMetricCard label="السجل" value={detailsQuery.data.employee.auditCount || 0} helper="أحداث رقابية" tone="success" progress={0} />
+            </div>
+            <DataTable
+              ariaLabel="نشاط المستخدم"
+              rows={detailsQuery.data.activities || []}
+              columns={[
+                { key: 'title', header: 'العنوان', cell: (row) => row.title },
+                { key: 'details', header: 'التفاصيل', cell: (row) => row.details || '—' },
+                { key: 'amount', header: 'القيمة', cell: (row) => row.amount == null ? '—' : formatCurrency(row.amount || 0) },
+                { key: 'date', header: 'التاريخ والوقت', cell: (row) => formatDate(row.createdAt) },
+                { key: 'ref', header: 'المرجع', cell: (row) => row.referenceLabel || '—' },
+              ]}
+              empty={<div className="muted small">لا توجد حركات للمستخدم في النطاق الحالي.</div>}
+            />
+          </> : null}
+        </div>
+      </DialogShell>
 
       <UserBulkActionDialog
         open={Boolean(bulkAction)}

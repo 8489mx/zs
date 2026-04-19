@@ -29,7 +29,7 @@ export function getSelectedSessionTotals(selectedSession: StockCountSession | nu
 
 export function getInventorySectionDescription(currentSection: InventorySectionKey) {
   if (currentSection === 'overview') return 'راقب حالة الأصناف، ثم نفذ التسويات أو التالف من نفس الصفحة بدون دوران.';
-  if (currentSection === 'transfers') return 'تابع التحويلات بين المواقع: أنشئ، راقب، ثم استلم أو ألغِ من نفس المسار.';
+  if (currentSection === 'transfers') return 'تابع التحويلات بين المخازن: أنشئ، راقب، ثم استلم أو ألغِ من نفس المسار.';
   if (currentSection === 'counts') return 'أنشئ جلسات الجرد وراجع الفروقات واعتمد النشر من شاشة واحدة.';
   if (currentSection === 'damaged') return 'راجع سجل التالف واطبع أو صدر السجلات التي تحتاج متابعة.';
   return 'سجل واحد لكل حركات المخزون حتى تعرف ماذا تغير ومتى.';
