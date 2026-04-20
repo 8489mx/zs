@@ -30,6 +30,7 @@
     "offline:restore": "bash ./scripts/offline/restore.sh",
     "offline:upgrade": "bash ./scripts/offline/upgrade.sh",
     "offline:rollback": "bash ./scripts/offline/rollback.sh",
+    "audit:offline-independence": "bash ./scripts/audit/check-offline-independence.sh",
     "release:bundle": "bash ./scripts/release/create-release-bundle.sh",
     "release:verify": "bash ./scripts/release/verify-release-bundle.sh",
     "installer:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./installer/windows/build-installer.ps1",

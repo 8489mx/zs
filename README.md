@@ -111,6 +111,15 @@ npm run release:bundle -- 1.0.0
 npm run release:verify -- ./release/zs-offline-1.0.0
 ```
 
+### Offline independence audit (Step 5)
+```bash
+npm run audit:offline-independence
+```
+
+راجع أيضًا:
+- `OFFLINE_SUPABASE_INDEPENDENCE_CHECKLIST.md`
+- `OFFLINE_ONLINE_SMOKE_CHECKLIST.md`
+
 ## التشغيل المحلي بدون Docker
 ### 1) قاعدة البيانات
 أنشئ PostgreSQL ثم انسخ القيم من `backend/.env.example` إلى `backend/.env`.

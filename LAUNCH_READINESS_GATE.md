@@ -12,6 +12,9 @@
 3. إنشاء حزمة الإصدار والتحقق:
    - `npm run release:bundle -- <version>`
    - `npm run release:verify -- ./release/zs-offline-<version>`
+4. تحقق الاستقلالية وsmoke:
+   - `npm run audit:offline-independence`
+   - تنفيذ `OFFLINE_ONLINE_SMOKE_CHECKLIST.md`
 
 ## تعريف جاهزية الإطلاق
 - لا توجد أخطاء حرجة في backend tests.
