@@ -9,6 +9,7 @@
 # environment files
 **/.env
 !**/.env.example
+hosted-staging.env
 
 # logs
 *.log
