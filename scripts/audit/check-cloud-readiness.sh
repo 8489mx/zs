@@ -34,4 +34,19 @@ if ! rg -n '^TENANT_ID=' .env.saas.example >/dev/null || ! rg -n '^ACCOUNT_ID=' 
   exit 1
 fi
 
+if ! rg -n '^DATABASE_SSL=true$' .env.saas.example >/dev/null; then
+  echo "[audit] FAIL: .env.saas.example must set DATABASE_SSL=true."
+  exit 1
+fi
+
+if ! rg -n '^DATABASE_SSL_REJECT_UNAUTHORIZED=true$' .env.saas.example >/dev/null; then
+  echo "[audit] FAIL: .env.saas.example must set DATABASE_SSL_REJECT_UNAUTHORIZED=true."
+  exit 1
+fi
+
+if rg -n '^CORS_ORIGINS=.*(localhost|127\.0\.0\.1|\*)' .env.saas.example >/dev/null; then
+  echo "[audit] FAIL: .env.saas.example CORS_ORIGINS contains insecure localhost/127.0.0.1/* values."
+  exit 1
+fi
+
 echo "[audit] PASS: cloud readiness checks passed."

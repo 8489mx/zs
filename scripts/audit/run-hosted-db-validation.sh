@@ -38,6 +38,16 @@ if [[ "$TENANT_ID" == "default" || "$ACCOUNT_ID" == "default" || "$TENANT_ID" ==
   exit 1
 fi
 
+if [[ "${DATABASE_SSL:-true}" != "true" || "${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}" != "true" ]]; then
+  echo "[audit] FAIL: DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must both be true for hosted validation."
+  exit 1
+fi
+
+if [[ "${CORS_ORIGINS:-}" =~ localhost|127\.0\.0\.1|\* ]]; then
+  echo "[audit] FAIL: CORS_ORIGINS contains localhost/127.0.0.1/* and is not valid for hosted validation."
+  exit 1
+fi
+
 run_check() {
   local name="$1"
   shift
