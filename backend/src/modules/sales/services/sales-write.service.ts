@@ -247,27 +247,54 @@ export class SalesWriteService {
       const id = Number(saleInsert.id);
       await trx.updateTable('sales').set({ doc_no: `S-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).execute();
 
-      for (const payment of payments) {
-        await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount }).execute();
+      if (payments.length) {
+        await trx
+          .insertInto('sale_payments')
+          .values(
+            payments.map((payment) => ({
+              sale_id: id,
+              payment_channel: payment.paymentChannel,
+              amount: payment.amount,
+            })),
+          )
+          .execute();
       }
 
-      for (const item of preparedItems) {
+      if (preparedItems.length) {
         await trx
           .insertInto('sale_items')
-          .values({
-            sale_id: id,
-            product_id: item.productId,
-            product_name: item.productName,
-            qty: item.qty,
-            unit_price: item.unitPrice,
-            line_total: item.lineTotal,
-            unit_name: item.unitName,
-            unit_multiplier: item.unitMultiplier,
-            cost_price: item.costPrice,
-            price_type: item.priceType as 'retail' | 'wholesale',
-          })
+          .values(
+            preparedItems.map((item) => ({
+              sale_id: id,
+              product_id: item.productId,
+              product_name: item.productName,
+              qty: item.qty,
+              unit_price: item.unitPrice,
+              line_total: item.lineTotal,
+              unit_name: item.unitName,
+              unit_multiplier: item.unitMultiplier,
+              cost_price: item.costPrice,
+              price_type: item.priceType as 'retail' | 'wholesale',
+            })),
+          )
           .execute();
+      }
 
+      const stockMovementRows: Array<{
+        product_id: number;
+        movement_type: 'sale';
+        qty: number;
+        before_qty: number;
+        after_qty: number;
+        reason: 'sale';
+        note: string;
+        reference_type: 'sale';
+        reference_id: number;
+        branch_id: number | null;
+        location_id: number | null;
+        created_by: number;
+      }> = [];
+      for (const item of preparedItems) {
         const stockChange = await applyStockDelta(trx, {
           productId: item.productId,
           delta: -item.requiredQty,
@@ -276,23 +303,24 @@ export class SalesWriteService {
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: `Insufficient stock for ${item.productName}`,
         });
-        await trx
-          .insertInto('stock_movements')
-          .values({
-            product_id: item.productId,
-            movement_type: 'sale',
-            qty: -item.requiredQty,
-            before_qty: stockChange.scopeBefore,
-            after_qty: stockChange.scopeAfter,
-            reason: 'sale',
-            note: `Sale S-${id}`,
-            reference_type: 'sale',
-            reference_id: id,
-            branch_id: normalized.branchId,
-            location_id: normalized.locationId,
-            created_by: auth.userId,
-          })
-          .execute();
+        stockMovementRows.push({
+          product_id: item.productId,
+          movement_type: 'sale',
+          qty: -item.requiredQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'sale',
+          note: `Sale S-${id}`,
+          reference_type: 'sale',
+          reference_id: id,
+          branch_id: normalized.branchId,
+          location_id: normalized.locationId,
+          created_by: auth.userId,
+        });
+      }
+
+      if (stockMovementRows.length) {
+        await trx.insertInto('stock_movements').values(stockMovementRows).execute();
       }
 
       if (normalized.storeCreditUsed > 0 && customer) {
