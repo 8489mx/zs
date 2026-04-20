@@ -66,3 +66,12 @@ npm run offline:upgrade -- ./backups
 ```bash
 npm run offline:rollback -- ./backups/pre-upgrade-YYYYMMDD-HHMMSS.sql
 ```
+
+## 8) توثيق dry-run قبل الإطلاق
+أنشئ نموذج signoff:
+```bash
+npm run audit:offline-signoff
+```
+
+املأ النموذج الناتج باستخدام نتائج التشغيل الفعلية:
+- `OFFLINE_OPERATIONAL_DRY_RUN_SIGNOFF.md`

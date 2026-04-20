@@ -15,9 +15,13 @@
 4. تحقق الاستقلالية وsmoke:
    - `npm run audit:offline-independence`
    - تنفيذ `OFFLINE_ONLINE_SMOKE_CHECKLIST.md`
+5. اعتماد dry-run تشغيلي كامل:
+   - `npm run audit:offline-signoff`
+   - تعبئة وتوقيع ملف `OFFLINE_OPERATIONAL_DRY_RUN_SIGNOFF.md` (أو النسخة المولدة منه)
 
 ## تعريف جاهزية الإطلاق
 - لا توجد أخطاء حرجة في backend tests.
 - النسخة offline تعمل من نقطة دخول واحدة.
 - backup/restore/upgrade/rollback مجرّبين فعليًا.
 - حزمة الإصدار موقعة checksum وقابلة للتحقق.
+- نموذج dry-run التشغيلي موقع ومعتمد.

@@ -116,9 +116,15 @@ npm run release:verify -- ./release/zs-offline-1.0.0
 npm run audit:offline-independence
 ```
 
+### Offline operational dry-run signoff (Step 6)
+```bash
+npm run audit:offline-signoff
+```
+
 راجع أيضًا:
 - `OFFLINE_SUPABASE_INDEPENDENCE_CHECKLIST.md`
 - `OFFLINE_ONLINE_SMOKE_CHECKLIST.md`
+- `OFFLINE_OPERATIONAL_DRY_RUN_SIGNOFF.md`
 
 ## التشغيل المحلي بدون Docker
 ### 1) قاعدة البيانات
