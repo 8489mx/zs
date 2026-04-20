@@ -45,7 +45,10 @@ class FakeDb {
     ],
   }) as never);
 
-  const result = await service.auditLogs({ page: 1, pageSize: 50, search: 'sale' }, { role: 'admin', permissions: ['audit'] } as never);
+  const result = await service.auditLogs(
+    { page: 1, pageSize: 50, search: 'sale' },
+    { role: 'admin', permissions: ['audit'], tenantId: 'tenant-a', accountId: 'account-a' } as never,
+  );
   const logs = (result.auditLogs as any[]) || [];
   const pagination = result.pagination as any;
   const summary = result.summary as any;
@@ -54,6 +57,7 @@ class FakeDb {
   assert.equal(logs[0].id, '20');
   assert.equal(pagination.totalItems, 2);
   assert.equal(summary.distinctUsers, 2);
+  assert.deepEqual(result.scope, { tenantId: 'tenant-a', accountId: 'account-a' });
 
   console.log('reports-audit-logs-pagination.spec: ok');
 })().catch((error) => {

@@ -1,4 +1,4 @@
-import { Selectable, sql } from 'kysely';
+import { Selectable, sql } from '../../../database/kysely';
 import { CustomerTable, SupplierTable } from '../../../database/database.types';
 
 type CustomerRow = Selectable<CustomerTable>;

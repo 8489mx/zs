@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql, type Transaction } from 'kysely';
+import { Kysely, sql, type Transaction } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
@@ -230,7 +230,7 @@ export class SalesWriteService {
       return id;
     });
 
-    await this.audit.log('إنشاء فاتورة بيع', `تم إنشاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('إنشاء فاتورة بيع', `تم إنشاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth);
     const sale = await this.query.getSaleById(saleId, auth);
     const sales = await this.query.listSales({}, auth);
     return { ok: true, sale: sale.sale, sales: sales.sales };
@@ -298,7 +298,7 @@ export class SalesWriteService {
         .execute();
     });
 
-    await this.audit.log('إلغاء فاتورة بيع', `تم إلغاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('إلغاء فاتورة بيع', `تم إلغاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth);
     return { ok: true, sales: (await this.query.listSales({}, auth)).sales };
   }
 
@@ -379,19 +379,19 @@ export class SalesWriteService {
       return id;
     });
 
-    await this.audit.log('حفظ فاتورة معلقة', `تم حفظ فاتورة معلقة #${heldSaleId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('حفظ فاتورة معلقة', `تم حفظ فاتورة معلقة #${heldSaleId} بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 
   async deleteHeldSale(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.db.deleteFrom('held_sales').where('id', '=', id).execute();
-    await this.audit.log('حذف فاتورة معلقة', `تم حذف فاتورة معلقة #${id} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('حذف فاتورة معلقة', `تم حذف فاتورة معلقة #${id} بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 
   async clearHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
     await this.db.deleteFrom('held_sales').execute();
-    await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: [] };
   }
 }

@@ -14,6 +14,13 @@
 - PostgreSQL 16 عند التشغيل المحلي بدون Docker
 - ملف `.nvmrc` مضاف لضبط نفس النسخة محليًا (`nvm use`)
 
+## Mode Contract (نفس الكودbase)
+- `APP_MODE=LOCAL_PILOT` لنسخة العميل الحالية (pilot محلي).
+- `APP_MODE=SELF_CONTAINED` لنسخة installer عند الحاجة.
+- `APP_MODE=CLOUD_SAAS` لنسخة الاستضافة (hosted PostgreSQL).
+- التبديل بين الأوضاع يتم من خلال `.env` فقط (مع دعم legacy alias: `offline`/`online`).
+- التفاصيل الكاملة في: `MODE_CONTRACT.md`.
+
 ## التشغيل السريع بالحاويات
 ```bash
 npm run compose:up
@@ -30,6 +37,156 @@ npm run compose:up
 ```bash
 npm run compose:down
 ```
+
+## تشغيل Production بنقطة دخول واحدة (Gateway)
+هذا الوضع يجهّز المشروع للبيع/الاستضافة بحيث الواجهة والخلفية يشتغلوا من نفس الـ IP/Domain.
+
+تشغيل:
+```bash
+npm run compose:prod:up
+```
+
+مراجعة ملف الـ compose النهائي:
+```bash
+npm run compose:prod:config
+```
+
+السجلات:
+```bash
+npm run compose:prod:logs
+```
+
+إيقاف:
+```bash
+npm run compose:prod:down
+```
+
+
+## تشغيل SaaS بدون Postgres محلي (Hosted DB)
+1) جهّز ملف البيئة:
+```bash
+cp .env.saas.example .env.saas
+```
+
+2) راجع/اختبر compose:
+```bash
+npm run compose:saas:config
+```
+
+3) تشغيل:
+```bash
+npm run compose:saas:up
+```
+
+4) إيقاف:
+```bash
+npm run compose:saas:down
+```
+
+## نسخة Offline جاهزة للتثبيت عند العميل
+1) جهّز ملف البيئة:
+```bash
+cp .env.offline.example .env.offline
+```
+
+2) تثبيت وتشغيل أول مرة:
+```bash
+npm run offline:install
+```
+
+3) أوامر الإدارة اليومية:
+```bash
+npm run offline:start
+npm run offline:stop
+npm run offline:backup
+npm run offline:restore -- ./backups/your-backup.sql
+npm run offline:upgrade -- ./backups
+npm run offline:rollback -- ./backups/pre-upgrade-YYYYMMDD-HHMMSS.sql
+```
+
+4) فحص تكوين compose:
+```bash
+npm run compose:offline:config
+```
+
+### تشغيل ويندوز بدون ترمنال (Step 3)
+- Start: `windows\\Start-ZS.bat`
+- Stop: `windows\\Stop-ZS.bat`
+- logs: `%ProgramData%\\ZS\\logs`
+
+> ملاحظة: launcher يعمل مع `APP_MODE=SELF_CONTAINED` (ويدعم legacy `offline` للتوافق).
+
+### Installer لويندوز (Step 4)
+- ملف Inno Setup: `installer/windows/zs-offline.iss`
+- بناء installer (على ويندوز مع Inno Setup 6):
+  - `installer\\windows\\build-installer.bat`
+- الناتج المتوقع في مجلد `release/` باسم قريب من:
+  - `zs-offline-installer.exe`
+
+## تجهيز حزمة إصدار للبيع (Offline Package)
+إنشاء حزمة إصدار:
+```bash
+npm run release:bundle -- 1.0.0
+```
+
+التحقق من سلامة الملفات بعد النقل:
+```bash
+npm run release:verify -- ./release/zs-offline-1.0.0
+```
+
+### Offline independence audit (Step 5)
+```bash
+npm run audit:offline-independence
+```
+
+### Mode coupling audit (SaaS-first boundary check)
+```bash
+npm run audit:mode-coupling
+```
+
+### DB parity audit (offline/prod backend contract)
+```bash
+npm run audit:db-parity
+```
+
+### Data-access seam audit (R1 non-regression gate)
+```bash
+npm run audit:data-access-seams
+```
+
+### Cloud readiness audit (hosted DB + SaaS compose guard)
+```bash
+npm run audit:cloud-readiness
+```
+
+### Migration parity audit (startup + SSL wiring across modes)
+```bash
+npm run audit:migration-parity
+```
+
+### Hosted DB CI-like validation (staging gate)
+```bash
+APP_MODE=CLOUD_SAAS DATABASE_HOST=db.example.com DATABASE_NAME=zsdb DATABASE_USER=zs DATABASE_PASSWORD=strong-secret npm run audit:hosted-db-validation
+# local/CI بدون وصول DB حقيقي:
+SKIP_DB_CONNECT=true APP_MODE=CLOUD_SAAS DATABASE_HOST=db.example.com DATABASE_NAME=zsdb DATABASE_USER=zs DATABASE_PASSWORD=strong-secret npm run audit:hosted-db-validation
+```
+
+### Offline operational dry-run signoff (Step 6)
+```bash
+npm run audit:offline-signoff
+```
+
+### Launch readiness report (Step 7)
+```bash
+npm run audit:launch-report
+```
+
+راجع أيضًا:
+- `OFFLINE_SUPABASE_INDEPENDENCE_CHECKLIST.md`
+- `OFFLINE_ONLINE_SMOKE_CHECKLIST.md`
+- `OFFLINE_OPERATIONAL_DRY_RUN_SIGNOFF.md`
+- `CLOUD_SAAS_OPERATIONAL_CHECKLIST.md`
+- `CLOUD_SAAS_STAGING_SIGNOFF.md`
 
 ## التشغيل المحلي بدون Docker
 ### 1) قاعدة البيانات

@@ -1,9 +1,10 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope, TenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
@@ -18,6 +19,13 @@ export class SettingsAdminService {
     if (!auth) throw new ForbiddenException('Authentication required');
     const canManage = auth.role === 'super_admin' || auth.permissions.includes('settings') || auth.permissions.includes('canManageSettings');
     if (!canManage) throw new ForbiddenException('Missing required permissions');
+  }
+
+  private withScope(payload: Record<string, unknown>, actor: AuthContext): Record<string, unknown> {
+    return {
+      ...payload,
+      scope: requireTenantScope(actor) as TenantScope,
+    };
   }
 
   private async count(table: keyof Database): Promise<number> {
@@ -55,7 +63,8 @@ export class SettingsAdminService {
     };
   }
 
-  async getDiagnostics(): Promise<Record<string, unknown>> {
+  async getDiagnostics(actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
     const [
       users,
       activeUsers,
@@ -122,13 +131,14 @@ export class SettingsAdminService {
         supplierBalance: Number(supplierBalance.toFixed(2)),
         treasuryNet: Number(treasuryNet.toFixed(2)),
       },
+      scope,
     };
   }
 
-  async getMaintenanceReport(): Promise<Record<string, unknown>> {
-    const diagnostics = await this.getDiagnostics();
+  async getMaintenanceReport(actor: AuthContext): Promise<Record<string, unknown>> {
+    const diagnostics = await this.getDiagnostics(actor);
     const handoff = this.handoffFileState();
-    return {
+    return this.withScope({
       summary: {
         expiredSessions: Number((diagnostics.counts as Record<string, unknown>).expiredSessions || 0),
         backupSnapshots: Number((diagnostics.counts as Record<string, unknown>).backupSnapshots || 0),
@@ -137,16 +147,16 @@ export class SettingsAdminService {
         docsCoverage: `${handoff.present}/${handoff.expected}`,
         missingDocs: handoff.missing,
       },
-    };
+    }, actor);
   }
 
-  async getLaunchReadiness(): Promise<Record<string, unknown>> {
-    const diagnostics = await this.getDiagnostics();
+  async getLaunchReadiness(actor: AuthContext): Promise<Record<string, unknown>> {
+    const diagnostics = await this.getDiagnostics(actor);
     const handoff = this.handoffFileState();
     const expiredSessions = Number((diagnostics.counts as Record<string, unknown>).expiredSessions || 0);
     const snapshots = Number((diagnostics.counts as Record<string, unknown>).backupSnapshots || 0);
 
-    return {
+    return this.withScope({
       summary: {
         envTemplateReady: handoff.ready,
         backupSnapshotsAvailable: snapshots > 0 ? 'yes' : 'no',
@@ -155,12 +165,12 @@ export class SettingsAdminService {
         csrfConfigured: process.env.SESSION_CSRF_SECRET ? 'yes' : 'no',
         cookiesSecureFlag: process.env.SESSION_COOKIE_SECURE === 'true' ? 'yes' : 'no',
       },
-    };
+    }, actor);
   }
 
-  async getOperationalReadiness(): Promise<Record<string, unknown>> {
-    const diagnostics = await this.getDiagnostics();
-    return {
+  async getOperationalReadiness(actor: AuthContext): Promise<Record<string, unknown>> {
+    const diagnostics = await this.getDiagnostics(actor);
+    return this.withScope({
       summary: {
         activeUsers: Number((diagnostics.counts as Record<string, unknown>).activeUsers || 0),
         branches: Number((diagnostics.counts as Record<string, unknown>).branches || 0),
@@ -170,11 +180,11 @@ export class SettingsAdminService {
         customerBalance: Number((diagnostics.finance as Record<string, unknown>).customerBalance || 0),
         supplierBalance: Number((diagnostics.finance as Record<string, unknown>).supplierBalance || 0),
       },
-    };
+    }, actor);
   }
 
-  async getUatReadiness(): Promise<Record<string, unknown>> {
-    return {
+  async getUatReadiness(actor: AuthContext): Promise<Record<string, unknown>> {
+    return this.withScope({
       summary: {
         backendBuild: 'run npm run build',
         backendInfraTests: 'run npm run test:infra',
@@ -182,12 +192,12 @@ export class SettingsAdminService {
         backupRestoreDrill: 'verify from settings backup workspace',
         smokeFlow: 'sale + purchase + return + reports sanity',
       },
-    };
+    }, actor);
   }
 
-  async getSupportSnapshot(): Promise<Record<string, unknown>> {
-    const diagnostics = await this.getDiagnostics();
-    return {
+  async getSupportSnapshot(actor: AuthContext): Promise<Record<string, unknown>> {
+    const diagnostics = await this.getDiagnostics(actor);
+    return this.withScope({
       generatedAt: new Date().toISOString(),
       appHost: process.env.APP_HOST || 'unset',
       appPort: process.env.APP_PORT || 'unset',
@@ -199,13 +209,13 @@ export class SettingsAdminService {
       returns: Number((diagnostics.counts as Record<string, unknown>).returns || 0),
       expiredSessions: Number((diagnostics.counts as Record<string, unknown>).expiredSessions || 0),
       backupSnapshots: Number((diagnostics.counts as Record<string, unknown>).backupSnapshots || 0),
-    };
+    }, actor);
   }
 
   async cleanupExpiredSessions(actor: AuthContext): Promise<Record<string, unknown>> {
     const result = await this.db.deleteFrom('sessions').where('expires_at', '<', new Date()).executeTakeFirst();
     const removed = Number(result.numDeletedRows || 0);
-    await this.audit.log('تنظيف الجلسات', `تم حذف ${removed} جلسة منتهية بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تنظيف الجلسات', `تم حذف ${removed} جلسة منتهية بواسطة ${actor.username}`, actor);
     return { ok: true, removed };
   }
 
@@ -227,7 +237,7 @@ export class SettingsAdminService {
       updated += 1;
     }
 
-    await this.audit.log('مطابقة أرصدة العملاء', `تمت مطابقة ${updated} عميل بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('مطابقة أرصدة العملاء', `تمت مطابقة ${updated} عميل بواسطة ${actor.username}`, actor);
     return { ok: true, updated };
   }
 
@@ -249,7 +259,7 @@ export class SettingsAdminService {
       updated += 1;
     }
 
-    await this.audit.log('مطابقة أرصدة الموردين', `تمت مطابقة ${updated} مورد بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('مطابقة أرصدة الموردين', `تمت مطابقة ${updated} مورد بواسطة ${actor.username}`, actor);
     return { ok: true, updated };
   }
 

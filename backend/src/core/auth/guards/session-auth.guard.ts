@@ -36,6 +36,19 @@ function isUnsafeHttpMethod(method: string | undefined): boolean {
   return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase());
 }
 
+function assertTenantScopeHeadersMatchAuth(request: RequestWithAuth, auth: { tenantId?: string; accountId?: string }): void {
+  const headerTenantId = readHeaderValue(request.headers['x-tenant-id']);
+  const headerAccountId = readHeaderValue(request.headers['x-account-id']);
+
+  if (headerTenantId && headerTenantId !== String(auth.tenantId || '').trim()) {
+    throw new ForbiddenException('Tenant scope mismatch');
+  }
+
+  if (headerAccountId && headerAccountId !== String(auth.accountId || '').trim()) {
+    throw new ForbiddenException('Account scope mismatch');
+  }
+}
+
 @Injectable()
 export class SessionAuthGuard implements CanActivate {
   constructor(
@@ -56,6 +69,8 @@ export class SessionAuthGuard implements CanActivate {
     if (!auth) {
       throw new UnauthorizedException('Unauthorized');
     }
+
+    assertTenantScopeHeadersMatchAuth(request, auth);
 
     if (isUnsafeHttpMethod(request.method)) {
       const csrfSecret = this.configService.get<string>('SESSION_CSRF_SECRET') || '';

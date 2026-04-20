@@ -62,14 +62,30 @@ async function runBurstLimit(): Promise<void> {
   });
 }
 
+async function runProductionRateLimitStoreGuard(): Promise<void> {
+  const service = new InMemoryRateLimitService(
+    undefined,
+    new FakeConfigService({ NODE_ENV: 'production' }) as any,
+  );
+
+  await assert.rejects(
+    async () => service.hit('auth:login:ip:127.0.0.1', 5, 60),
+    /Persistent rate limit store is required in production/,
+  );
+}
+
 function runEnvGuards(): void {
   const base = {
     NODE_ENV: 'production',
+    APP_MODE: 'CLOUD_SAAS',
     DATABASE_HOST: 'localhost',
     DATABASE_PORT: '5432',
     DATABASE_NAME: 'app',
     DATABASE_USER: 'user',
     DATABASE_PASSWORD: 'password',
+    DATABASE_SSL: 'true',
+    DATABASE_SSL_REJECT_UNAUTHORIZED: 'true',
+    CORS_ORIGINS: 'https://app.example.com',
   };
 
   assert.throws(() => validateEnv(base), /SESSION_CSRF_SECRET must be explicitly configured in production/);
@@ -86,11 +102,77 @@ function runEnvGuards(): void {
     }),
     /SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAME_SITE is none/,
   );
+
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      APP_MODE: 'SELF_CONTAINED',
+      DATABASE_HOST: 'db.example.com',
+      SESSION_CSRF_SECRET: '1234567890123456',
+    }),
+    /DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED/,
+  );
+
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      DATABASE_SSL: 'false',
+      TENANT_ID: 'tenant-a',
+      ACCOUNT_ID: 'account-a',
+      SESSION_CSRF_SECRET: '1234567890123456',
+    }),
+    /DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must be true for CLOUD_SAAS production mode/,
+  );
+
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      CORS_ORIGINS: 'http://localhost:5173,https://app.example.com',
+      TENANT_ID: 'tenant-a',
+      ACCOUNT_ID: 'account-a',
+      SESSION_CSRF_SECRET: '1234567890123456',
+    }),
+    /CORS_ORIGINS cannot include localhost, 127.0.0.1, or "\*" in CLOUD_SAAS production mode/,
+  );
+
+  assert.doesNotThrow(() => validateEnv({
+    ...base,
+    APP_MODE: 'CLOUD_SAAS',
+    DATABASE_HOST: 'db.example.com',
+    TENANT_ID: 'tenant-a',
+    ACCOUNT_ID: 'account-a',
+    SESSION_CSRF_SECRET: '1234567890123456',
+  }));
+
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      APP_MODE: 'CLOUD_SAAS',
+      DATABASE_HOST: 'db.example.com',
+      TENANT_ID: 'default',
+      ACCOUNT_ID: 'account-a',
+      SESSION_CSRF_SECRET: '1234567890123456',
+    }),
+    /TENANT_ID must be explicitly configured for CLOUD_SAAS production mode/,
+  );
+
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      APP_MODE: 'CLOUD_SAAS',
+      DATABASE_HOST: 'db.example.com',
+      TENANT_ID: 'tenant-a',
+      ACCOUNT_ID: 'replace-me-account-id',
+      SESSION_CSRF_SECRET: '1234567890123456',
+    }),
+    /ACCOUNT_ID must be explicitly configured for CLOUD_SAAS production mode/,
+  );
 }
 
 async function main(): Promise<void> {
   await runLoginLimit();
   await runBurstLimit();
+  await runProductionRateLimitStoreGuard();
   runEnvGuards();
   console.log('login-rate-limit.spec: ok');
 }

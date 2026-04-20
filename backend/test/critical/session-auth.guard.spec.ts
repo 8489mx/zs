@@ -12,6 +12,8 @@ class FakeSessionService {
       username: 'admin',
       role: 'super_admin',
       permissions: ['settings'],
+      tenantId: 'tenant-a',
+      accountId: 'account-a',
     };
   }
 }
@@ -59,6 +61,20 @@ async function run(): Promise<void> {
   const canAccessGet = await guard.canActivate(createContext(safeGetRequest));
   assert.equal(canAccessGet, true);
   assert.equal(safeGetRequest.authContext.username, 'admin');
+
+  await expectThrows(
+    () => guard.canActivate(createContext({
+      method: 'GET',
+      headers: { cookie: 'session_id=session-1', 'x-tenant-id': 'tenant-b' },
+    } as any)),
+    ForbiddenException,
+  );
+
+  const canAccessScopedGet = await guard.canActivate(createContext({
+    method: 'GET',
+    headers: { cookie: 'session_id=session-1', 'x-tenant-id': 'tenant-a', 'x-account-id': 'account-a' },
+  } as any));
+  assert.equal(canAccessScopedGet, true);
 
   const unsafeMissingCsrf: any = {
     method: 'POST',

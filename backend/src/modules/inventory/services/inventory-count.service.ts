@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
@@ -131,7 +131,7 @@ export class InventoryCountService {
       return id;
     });
 
-    await this.audit.log('جلسة جرد مخزون', JSON.stringify({ actorUserId: auth.userId, after: { sessionId, branchId: location.branchId, locationId: location.id, status: 'draft' } }), auth.userId);
+    await this.audit.log('جلسة جرد مخزون', JSON.stringify({ actorUserId: auth.userId, after: { sessionId, branchId: location.branchId, locationId: location.id, status: 'draft' } }), auth);
 
     return {
       ok: true,
@@ -185,7 +185,7 @@ export class InventoryCountService {
       await trx.updateTable('stock_count_sessions').set({ status: 'posted', approved_by: auth.userId, posted_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', sessionId).execute();
     });
 
-    await this.audit.log('اعتماد جلسة جرد', JSON.stringify({ actorUserId: auth.userId, after: { sessionId, status: 'posted' } }), auth.userId);
+    await this.audit.log('اعتماد جلسة جرد', JSON.stringify({ actorUserId: auth.userId, after: { sessionId, status: 'posted' } }), auth);
 
     return {
       ok: true,
@@ -261,7 +261,7 @@ export class InventoryCountService {
         .execute();
     });
 
-    await this.audit.log('تسجيل تالف', JSON.stringify({ actorUserId: auth.userId, productId: payload.productId, qty: payload.qty }), auth.userId);
+    await this.audit.log('تسجيل تالف', JSON.stringify({ actorUserId: auth.userId, productId: payload.productId, qty: payload.qty }), auth);
 
     return {
       ok: true,

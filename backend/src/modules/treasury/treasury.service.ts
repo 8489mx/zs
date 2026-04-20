@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
@@ -16,7 +17,8 @@ export class TreasuryService {
     private readonly audit: AuditService,
   ) {}
 
-  async listExpenses(query: Record<string, unknown>, _auth: AuthContext): Promise<Record<string, unknown>> {
+  async listExpenses(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const result = await sql<{
       id: number;
       title: string;
@@ -77,6 +79,7 @@ export class TreasuryService {
         totalItems: rows.length,
         totalAmount: Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2)),
       },
+      scope,
     };
   }
 
@@ -110,7 +113,7 @@ export class TreasuryService {
       }).execute();
     });
 
-    await this.audit.log('تسجيل مصروف', 'تم تسجيل مصروف بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('تسجيل مصروف', 'تم تسجيل مصروف بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listExpenses({}, auth)) };
   }
 }
