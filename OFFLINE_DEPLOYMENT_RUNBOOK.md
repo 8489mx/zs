@@ -13,6 +13,15 @@ npm run offline:install
 المنظومة تعمل من عنوان واحد:
 - `http://127.0.0.1:8080` (أو حسب `APP_PUBLIC_PORT`).
 
+### مسار Installer لويندوز
+1. على جهاز ويندوز مطوّر: شغّل
+   - `installer\\windows\\build-installer.bat`
+2. سلّم للعميل ملف:
+   - `release\\zs-offline-installer.exe`
+3. بعد التثبيت سيجد العميل اختصارات:
+   - Start ZS Offline
+   - Stop ZS Offline
+
 ## 3) التشغيل والإيقاف
 ```bash
 npm run offline:start

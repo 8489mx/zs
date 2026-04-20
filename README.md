@@ -93,6 +93,13 @@ npm run compose:offline:config
 
 > ملاحظة: launcher يتوقع `APP_MODE=offline` داخل `.env.offline`.
 
+### Installer لويندوز (Step 4)
+- ملف Inno Setup: `installer/windows/zs-offline.iss`
+- بناء installer (على ويندوز مع Inno Setup 6):
+  - `installer\\windows\\build-installer.bat`
+- الناتج المتوقع في مجلد `release/` باسم قريب من:
+  - `zs-offline-installer.exe`
+
 ## تجهيز حزمة إصدار للبيع (Offline Package)
 إنشاء حزمة إصدار:
 ```bash
