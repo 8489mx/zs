@@ -13,18 +13,19 @@ export function usePosSaleMutation() {
       const minimalPayload = buildMinimalPosSalePayload(input);
       return posApi.createSale(payload, legacyPayload, minimalPayload);
     },
-    onSuccess: async (result) => {
-      const saleId = (result && typeof result === 'object' && 'id' in result)
-        ? String((result as { id?: string | number }).id || '')
-        : '';
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.sales }),
-        ...(saleId ? [queryClient.invalidateQueries({ queryKey: queryKeys.saleDetail(saleId) })] : []),
+    onSuccess: async (_result, variables) => {
+      const tasks = [
         queryClient.invalidateQueries({ queryKey: ['products', 'pos'] }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.posCustomers }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }),
-      ]);
+        queryClient.invalidateQueries({ queryKey: queryKeys.sales, refetchType: 'none' }),
+      ];
+
+      const shouldRefreshCustomerData = variables.paymentType === 'credit' && Boolean(String(variables.customerId || '').trim());
+      if (shouldRefreshCustomerData) {
+        tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.posCustomers }));
+        tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }));
+      }
+
+      await Promise.all(tasks);
     }
   });
 }
