@@ -1,4 +1,4 @@
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../errors/app-error';
 import { Database } from '../../database/database.types';
 import { ensureNonNegativeStock } from './financial-integrity';

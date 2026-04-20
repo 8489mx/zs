@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql, Transaction } from 'kysely';
+import { Kysely, sql, Transaction } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 import { KYSELY_DB } from '../../../database/database.constants';

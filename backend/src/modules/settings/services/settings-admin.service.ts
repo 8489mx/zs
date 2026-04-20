@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AuditService } from '../../../core/audit/audit.service';

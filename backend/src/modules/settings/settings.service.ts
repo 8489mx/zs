@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { sql } from 'kysely';
-import { Kysely } from 'kysely';
+import { sql, type Kysely } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
