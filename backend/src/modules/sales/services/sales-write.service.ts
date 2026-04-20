@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Kysely, sql, type Transaction } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
@@ -20,6 +20,8 @@ import { SalesQueryService } from './sales-query.service';
 
 @Injectable()
 export class SalesWriteService {
+  private readonly logger = new Logger(SalesWriteService.name);
+
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
@@ -28,6 +30,10 @@ export class SalesWriteService {
     private readonly finance: SalesFinanceService,
     private readonly query: SalesQueryService,
   ) {}
+
+  private shouldLogCheckoutTimings(): boolean {
+    return String(process.env.CHECKOUT_TIMINGS || '').trim() === '1';
+  }
 
   private async assertDiscountChangeAllowed(
     trx: Kysely<Database> | Transaction<Database>,
@@ -92,10 +98,12 @@ export class SalesWriteService {
   }
 
   async createSale(payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const requestStartedAt = Date.now();
     const normalized = normalizeSalePayload(payload);
     if (!normalized.items.length) throw new AppError('Sale must include at least one item', 'SALE_ITEMS_REQUIRED', 400);
     ensureUniqueFlowItems(normalized.items, 'SALE_DUPLICATE_PRODUCT', 'Sale must not contain duplicate product rows with the same unit');
 
+    const txStartedAt = Date.now();
     const saleId = await this.tx.runInTransaction(this.db, async (trx) => {
       if (normalized.discount < 0) throw new AppError('Discount cannot be negative', 'INVALID_DISCOUNT', 400);
       if (normalized.storeCreditUsed < 0) throw new AppError('Store credit cannot be negative', 'INVALID_STORE_CREDIT', 400);
@@ -255,11 +263,21 @@ export class SalesWriteService {
 
       return id;
     });
+    const transactionDurationMs = Date.now() - txStartedAt;
 
+    const postReadsStartedAt = Date.now();
     await this.audit.log('إنشاء فاتورة بيع', `تم إنشاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth);
     const sale = await this.query.getSaleById(saleId, auth);
-    const sales = await this.query.listSales({}, auth);
-    return { ok: true, sale: sale.sale, sales: sales.sales };
+    const postTransactionReadsDurationMs = Date.now() - postReadsStartedAt;
+    const totalRequestDurationMs = Date.now() - requestStartedAt;
+
+    if (this.shouldLogCheckoutTimings()) {
+      this.logger.log(
+        `[checkout-timing] saleId=${saleId} items=${normalized.items.length} txMs=${transactionDurationMs} postReadsMs=${postTransactionReadsDurationMs} totalMs=${totalRequestDurationMs}`,
+      );
+    }
+
+    return { ok: true, sale: sale.sale };
   }
 
   async cancelSale(saleId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
