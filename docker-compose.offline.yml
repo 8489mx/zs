@@ -22,7 +22,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      APP_MODE: ${APP_MODE:-SELF_CONTAINED}
+      APP_MODE: ${APP_MODE:-offline}
       NODE_ENV: production
       APP_HOST: 0.0.0.0
       APP_PORT: 3001

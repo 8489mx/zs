@@ -15,10 +15,9 @@
 - ملف `.nvmrc` مضاف لضبط نفس النسخة محليًا (`nvm use`)
 
 ## Mode Contract (نفس الكودbase)
-- `APP_MODE=LOCAL_PILOT` لنسخة العميل الحالية (pilot محلي).
-- `APP_MODE=SELF_CONTAINED` لنسخة installer عند الحاجة.
-- `APP_MODE=CLOUD_SAAS` لنسخة الاستضافة (hosted PostgreSQL).
-- التبديل بين الأوضاع يتم من خلال `.env` فقط (مع دعم legacy alias: `offline`/`online`).
+- `APP_MODE=offline` لنسخة العميل المحلية (offline on-prem عبر launcher/installer).
+- `APP_MODE=online` لنسخة الاستضافة (hosted PostgreSQL / SaaS path).
+- التبديل بين الوضعين يتم من خلال `.env` فقط.
 - التفاصيل الكاملة في: `MODE_CONTRACT.md`.
 
 ## التشغيل السريع بالحاويات
@@ -114,7 +113,7 @@ npm run compose:offline:config
 - Stop: `windows\\Stop-ZS.bat`
 - logs: `%ProgramData%\\ZS\\logs`
 
-> ملاحظة: launcher يعمل مع `APP_MODE=SELF_CONTAINED` (ويدعم legacy `offline` للتوافق).
+> ملاحظة: launcher يعمل على الوضع الرسمي `APP_MODE=offline`.
 
 ### Installer لويندوز (Step 4)
 - ملف Inno Setup: `installer/windows/zs-offline.iss`
@@ -166,9 +165,9 @@ npm run audit:migration-parity
 
 ### Hosted DB CI-like validation (staging gate)
 ```bash
-APP_MODE=CLOUD_SAAS DATABASE_HOST=db.example.com DATABASE_NAME=zsdb DATABASE_USER=zs DATABASE_PASSWORD=strong-secret npm run audit:hosted-db-validation
+APP_MODE=online DATABASE_HOST=db.example.com DATABASE_NAME=zsdb DATABASE_USER=zs DATABASE_PASSWORD=strong-secret npm run audit:hosted-db-validation
 # local/CI بدون وصول DB حقيقي:
-SKIP_DB_CONNECT=true APP_MODE=CLOUD_SAAS DATABASE_HOST=db.example.com DATABASE_NAME=zsdb DATABASE_USER=zs DATABASE_PASSWORD=strong-secret npm run audit:hosted-db-validation
+SKIP_DB_CONNECT=true APP_MODE=online DATABASE_HOST=db.example.com DATABASE_NAME=zsdb DATABASE_USER=zs DATABASE_PASSWORD=strong-secret npm run audit:hosted-db-validation
 ```
 
 ### Offline operational dry-run signoff (Step 6)
