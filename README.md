@@ -86,6 +86,13 @@ npm run offline:rollback -- ./backups/pre-upgrade-YYYYMMDD-HHMMSS.sql
 npm run compose:offline:config
 ```
 
+### تشغيل ويندوز بدون ترمنال (Step 3)
+- Start: `windows\\Start-ZS.bat`
+- Stop: `windows\\Stop-ZS.bat`
+- logs: `%ProgramData%\\ZS\\logs`
+
+> ملاحظة: launcher يتوقع `APP_MODE=offline` داخل `.env.offline`.
+
 ## تجهيز حزمة إصدار للبيع (Offline Package)
 إنشاء حزمة إصدار:
 ```bash

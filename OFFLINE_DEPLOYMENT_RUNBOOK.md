@@ -19,6 +19,11 @@ npm run offline:start
 npm run offline:stop
 ```
 
+### على ويندوز بدون ترمنال
+- Start: `windows\\Start-ZS.bat`
+- Stop: `windows\\Stop-ZS.bat`
+- logs: `%ProgramData%\\ZS\\logs`
+
 ## 4) النسخ الاحتياطي والاستعادة
 نسخ احتياطي:
 ```bash
