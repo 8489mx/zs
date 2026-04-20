@@ -67,6 +67,40 @@ export class SalesWriteService {
       .execute();
   }
 
+  private async getCurrentProductOffersMap(
+    trx: Kysely<Database> | Transaction<Database>,
+    productIds: number[],
+  ): Promise<Map<number, Array<{ offer_type: string | null; value: number | string | null; start_date: string | null; end_date: string | null; min_qty: number | string | null }>>> {
+    if (!productIds.length) return new Map();
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const rows = await trx
+      .selectFrom('product_offers')
+      .select(['product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
+      .where('product_id', 'in', productIds)
+      .where('is_active', '=', true)
+      .where((eb) => eb.and([
+        eb.or([eb('start_date', 'is', null), eb('start_date', '<=', todayIso)]),
+        eb.or([eb('end_date', 'is', null), eb('end_date', '>=', todayIso)]),
+      ]))
+      .orderBy('id', 'desc')
+      .execute();
+
+    const byProduct = new Map<number, Array<{ offer_type: string | null; value: number | string | null; start_date: string | null; end_date: string | null; min_qty: number | string | null }>>();
+    for (const row of rows) {
+      const productId = Number(row.product_id || 0);
+      if (!productId) continue;
+      if (!byProduct.has(productId)) byProduct.set(productId, []);
+      byProduct.get(productId)!.push({
+        offer_type: row.offer_type ?? null,
+        value: row.value ?? null,
+        start_date: row.start_date ?? null,
+        end_date: row.end_date ?? null,
+        min_qty: row.min_qty ?? null,
+      });
+    }
+    return byProduct;
+  }
+
   async authorizeDiscountOverride(secret: string, _auth: AuthContext): Promise<Record<string, unknown>> {
     const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), this.db);
     return { ok: true, authorized: true, mode: result.mode, authorizedByName: result.authorizedByName };
@@ -116,10 +150,27 @@ export class SalesWriteService {
 
       let subtotal = 0;
       const preparedItems = [];
+      const itemProductIds = [...new Set(
+        normalized.items
+          .map((item) => Number(item.productId || 0))
+          .filter((productId) => Number.isFinite(productId) && productId > 0),
+      )];
+      const lookupStartedAt = Date.now();
+      const [products, offersByProduct] = await Promise.all([
+        trx
+          .selectFrom('products')
+          .select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price'])
+          .where('id', 'in', itemProductIds)
+          .where('is_active', '=', true)
+          .execute(),
+        this.getCurrentProductOffersMap(trx, itemProductIds),
+      ]);
+      const productById = new Map(products.map((product) => [Number(product.id), product]));
+      const lookupDurationMs = Date.now() - lookupStartedAt;
       for (const item of normalized.items) {
-        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
+        const product = productById.get(Number(item.productId || 0));
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-        const activeOffers = await this.getCurrentProductOffers(trx, item.productId);
+        const activeOffers = offersByProduct.get(Number(item.productId || 0)) || [];
         const allowedUnitPrice = calculateAllowedSaleUnitPrice({
           retailPrice: product.retail_price,
           wholesalePrice: product.wholesale_price,
@@ -196,27 +247,54 @@ export class SalesWriteService {
       const id = Number(saleInsert.id);
       await trx.updateTable('sales').set({ doc_no: `S-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).execute();
 
-      for (const payment of payments) {
-        await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount }).execute();
+      if (payments.length) {
+        await trx
+          .insertInto('sale_payments')
+          .values(
+            payments.map((payment) => ({
+              sale_id: id,
+              payment_channel: payment.paymentChannel,
+              amount: payment.amount,
+            })),
+          )
+          .execute();
       }
 
-      for (const item of preparedItems) {
+      if (preparedItems.length) {
         await trx
           .insertInto('sale_items')
-          .values({
-            sale_id: id,
-            product_id: item.productId,
-            product_name: item.productName,
-            qty: item.qty,
-            unit_price: item.unitPrice,
-            line_total: item.lineTotal,
-            unit_name: item.unitName,
-            unit_multiplier: item.unitMultiplier,
-            cost_price: item.costPrice,
-            price_type: item.priceType as 'retail' | 'wholesale',
-          })
+          .values(
+            preparedItems.map((item) => ({
+              sale_id: id,
+              product_id: item.productId,
+              product_name: item.productName,
+              qty: item.qty,
+              unit_price: item.unitPrice,
+              line_total: item.lineTotal,
+              unit_name: item.unitName,
+              unit_multiplier: item.unitMultiplier,
+              cost_price: item.costPrice,
+              price_type: item.priceType as 'retail' | 'wholesale',
+            })),
+          )
           .execute();
+      }
 
+      const stockMovementRows: Array<{
+        product_id: number;
+        movement_type: 'sale';
+        qty: number;
+        before_qty: number;
+        after_qty: number;
+        reason: 'sale';
+        note: string;
+        reference_type: 'sale';
+        reference_id: number;
+        branch_id: number | null;
+        location_id: number | null;
+        created_by: number;
+      }> = [];
+      for (const item of preparedItems) {
         const stockChange = await applyStockDelta(trx, {
           productId: item.productId,
           delta: -item.requiredQty,
@@ -225,23 +303,24 @@ export class SalesWriteService {
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: `Insufficient stock for ${item.productName}`,
         });
-        await trx
-          .insertInto('stock_movements')
-          .values({
-            product_id: item.productId,
-            movement_type: 'sale',
-            qty: -item.requiredQty,
-            before_qty: stockChange.scopeBefore,
-            after_qty: stockChange.scopeAfter,
-            reason: 'sale',
-            note: `Sale S-${id}`,
-            reference_type: 'sale',
-            reference_id: id,
-            branch_id: normalized.branchId,
-            location_id: normalized.locationId,
-            created_by: auth.userId,
-          })
-          .execute();
+        stockMovementRows.push({
+          product_id: item.productId,
+          movement_type: 'sale',
+          qty: -item.requiredQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'sale',
+          note: `Sale S-${id}`,
+          reference_type: 'sale',
+          reference_id: id,
+          branch_id: normalized.branchId,
+          location_id: normalized.locationId,
+          created_by: auth.userId,
+        });
+      }
+
+      if (stockMovementRows.length) {
+        await trx.insertInto('stock_movements').values(stockMovementRows).execute();
       }
 
       if (normalized.storeCreditUsed > 0 && customer) {
@@ -259,6 +338,12 @@ export class SalesWriteService {
           if (payment.paymentChannel !== 'cash') continue;
           await this.finance.addTreasuryTransaction(trx, payment.amount, `فاتورة بيع S-${id} - نقدي`, id, auth, normalized.branchId, normalized.locationId);
         }
+      }
+
+      if (this.shouldLogCheckoutTimings()) {
+        this.logger.log(
+          `[checkout-timing] lookupMs=${lookupDurationMs} products=${itemProductIds.length}`,
+        );
       }
 
       return id;

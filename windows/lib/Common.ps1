@@ -43,15 +43,32 @@ function Ensure-OfflineEnvFile {
 function Assert-OfflineMode {
   param([Parameter(Mandatory = $true)][string]$EnvFile)
 
-  $modeLine = Select-String -Path $EnvFile -Pattern '^APP_MODE=' -SimpleMatch:$false | Select-Object -First 1
-  if (-not $modeLine) {
+  $value = Get-EnvValue -EnvFile $EnvFile -Key 'APP_MODE'
+  if (-not $value) {
     throw "APP_MODE is missing in $EnvFile. Expected APP_MODE=offline."
   }
-
-  $value = (($modeLine.Line -split '=', 2)[1]).Trim()
   if ($value -ne 'offline') {
     throw "APP_MODE must be offline in $EnvFile. Found: $value"
   }
+}
+
+function Get-EnvValue {
+  param(
+    [Parameter(Mandatory = $true)][string]$EnvFile,
+    [Parameter(Mandatory = $true)][string]$Key
+  )
+
+  $line = Select-String -Path $EnvFile -Pattern ("^\s*{0}\s*=" -f [regex]::Escape($Key)) -SimpleMatch:$false |
+    Select-Object -First 1
+  if (-not $line) {
+    return $null
+  }
+
+  $value = (($line.Line -split '=', 2)[1]).Trim()
+  if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+    return $value.Trim('"')
+  }
+  return $value
 }
 
 function Assert-DockerCli {
@@ -70,7 +87,7 @@ function Start-DockerDesktopIfNeeded {
 
   $paths = @(
     "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe",
-    "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+    "$Env:LocalAppData\Programs\Docker\Docker\Docker Desktop.exe"
   )
 
   $dockerDesktop = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -93,4 +110,15 @@ function Wait-DockerReady {
   }
 
   throw "Docker engine did not become ready within $TimeoutSeconds seconds."
+}
+
+function Get-OfflineAppUrl {
+  param([Parameter(Mandatory = $true)][string]$EnvFile)
+
+  $port = Get-EnvValue -EnvFile $EnvFile -Key 'APP_PUBLIC_PORT'
+  if (-not $port) {
+    $port = '8080'
+  }
+
+  return "http://127.0.0.1:$port"
 }

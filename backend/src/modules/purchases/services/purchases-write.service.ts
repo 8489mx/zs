@@ -244,7 +244,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${created.purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === created.purchaseId) || null;
+    const purchase = (await this.queryService.getPurchaseById(created.purchaseId, auth)).purchase || null;
     const purchases = await this.queryService.listPurchases({}, auth);
     return { ok: true, purchase, purchases: purchases.purchases, repricingInsights: created.repricingInsights };
   }
@@ -400,7 +400,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
+    const purchase = (await this.queryService.getPurchaseById(purchaseId, auth)).purchase || null;
     return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases, repricingInsights: updated.repricingInsights };
   }
 
@@ -457,7 +457,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('إلغاء فاتورة شراء', `تم إلغاء فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
+    const purchase = (await this.queryService.getPurchaseById(purchaseId, auth)).purchase || null;
     return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases };
   }
 

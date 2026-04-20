@@ -3,9 +3,20 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $issFile = Join-Path $PSScriptRoot 'zs-offline.iss'
+$packageJsonFile = Join-Path $repoRoot 'package.json'
 
 if (-not (Test-Path $issFile)) {
   throw "Inno script not found: $issFile"
+}
+
+if (-not (Test-Path $packageJsonFile)) {
+  throw "package.json not found: $packageJsonFile"
+}
+
+$packageJson = Get-Content -Raw -Path $packageJsonFile | ConvertFrom-Json
+$appVersion = [string]$packageJson.version
+if (-not $appVersion) {
+  throw "Failed to read app version from package.json"
 }
 
 $candidates = @(
@@ -20,9 +31,9 @@ if (-not $iscc) {
 
 Push-Location $repoRoot
 try {
-  & $iscc $issFile
+  & $iscc "/DMyAppVersion=$appVersion" $issFile
 } finally {
   Pop-Location
 }
 
-Write-Host "Installer build complete. Check ./release for output."
+Write-Host "Installer build complete for version $appVersion. Check ./release for output."
