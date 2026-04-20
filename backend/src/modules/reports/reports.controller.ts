@@ -13,50 +13,50 @@ export class ReportsController {
 
   @Get('dashboard/overview')
   @RequirePermissions('dashboard')
-  dashboardOverview(@Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsService.dashboardOverview(query);
+  dashboardOverview(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.dashboardOverview(query, req.authContext!);
   }
 
   @Get('reports/summary')
   @RequirePermissions('reports')
-  reportSummary(@Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsService.reportSummary(query);
+  reportSummary(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.reportSummary(query, req.authContext!);
   }
 
   @Get('reports/inventory')
   @RequirePermissions('reports')
-  reportInventory(@Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsService.inventoryReport(query);
+  reportInventory(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.inventoryReport(query, req.authContext!);
   }
 
   @Get('reports/customer-balances')
   @RequirePermissions('reports')
-  customerBalances(@Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsService.customerBalances(query);
+  customerBalances(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.customerBalances(query, req.authContext!);
   }
 
   @Get('reports/supplier-balances')
   @RequirePermissions('reports')
-  supplierBalances(@Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsService.supplierBalances(query);
+  supplierBalances(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.supplierBalances(query, req.authContext!);
   }
 
   @Get('reports/customers/:id/ledger')
   @RequirePermissions('reports')
-  customerLedger(@Param('id', ParseIntPipe) id: number, @Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsService.customerLedger(id, query);
+  customerLedger(@Param('id', ParseIntPipe) id: number, @Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.customerLedger(id, query, req.authContext!);
   }
 
   @Get('reports/suppliers/:id/ledger')
   @RequirePermissions('reports')
-  supplierLedger(@Param('id', ParseIntPipe) id: number, @Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsService.supplierLedger(id, query);
+  supplierLedger(@Param('id', ParseIntPipe) id: number, @Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.supplierLedger(id, query, req.authContext!);
   }
 
   @Get('treasury-transactions')
   @RequirePermissions('treasury')
-  treasury(@Query() query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsService.treasuryTransactions(query);
+  treasury(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.treasuryTransactions(query, req.authContext!);
   }
 
 

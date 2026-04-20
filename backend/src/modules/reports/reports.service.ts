@@ -1,11 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { ConfigService } from '@nestjs/config';
+import { Kysely, sql } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { ReportRangeQueryDto } from './dto/report-query.dto';
-import { buildPagination, filterScope, getBusinessTimezone, parseRange } from './helpers/reports-range.helper';
+import { buildPagination, filterScope, getBusinessTimezone, parseRange, setBusinessTimezoneResolver } from './helpers/reports-range.helper';
 import { buildReportSummaryPayload } from './helpers/reports-summary.helper';
 import { buildDashboardComputedState, buildDashboardOverviewPayload, buildDashboardScope } from './helpers/reports-dashboard.helper';
 import { buildCustomerBalancesPayload, buildCustomerLedgerPayload, buildSupplierBalancesPayload, buildSupplierLedgerPayload, LedgerSummaryRow, PartnerLedgerEntryRow } from './helpers/reports-ledger.helper';
@@ -22,12 +24,21 @@ export class ReportsService {
 
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly configService?: ConfigService,
     reportsAdminService?: ReportsAdminService,
   ) {
     this.reportsAdminService = reportsAdminService ?? new ReportsAdminService(this.db as never);
+    setBusinessTimezoneResolver(() => this.configService?.get<string>('BUSINESS_TIMEZONE') ?? 'UTC');
   }
 
-  async reportSummary(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  private withScope(payload: Record<string, unknown>, auth: AuthContext): Record<string, unknown> {
+    return {
+      ...payload,
+      scope: requireTenantScope(auth),
+    };
+  }
+
+  async reportSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const range = parseRange(query);
     const fromDate = new Date(range.from);
     const toDate = new Date(range.to);
@@ -98,7 +109,7 @@ export class ReportsService {
     const treasuryRows = filterScope(rawTreasuryRows, query);
     const saleItemsRows = filterScope(rawSaleItemsRows, query);
 
-    return {
+    return this.withScope({
       range,
       ...buildReportSummaryPayload({
         salesRows,
@@ -109,10 +120,10 @@ export class ReportsService {
         saleItemsRows,
         topProductsLimit: 10,
       }),
-    };
+    }, auth);
   }
 
-  async dashboardOverview(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  async dashboardOverview(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const range = parseRange(query);
     const businessTimezone = getBusinessTimezone();
     const scope = buildDashboardScope(new Date(), businessTimezone);
@@ -134,7 +145,7 @@ export class ReportsService {
       activeOffersRows,
       rawTopTodayRows,
     ] = await Promise.all([
-      this.reportSummary(query),
+      this.reportSummary(query, auth),
       this.db
         .selectFrom('products')
         .select(['id', 'name', 'category_id', 'supplier_id', 'retail_price', 'stock_qty', 'min_stock_qty', 'cost_price'])
@@ -218,7 +229,7 @@ export class ReportsService {
       todayKey: today.key,
     });
 
-    return buildDashboardOverviewPayload({
+    return this.withScope(buildDashboardOverviewPayload({
       range,
       summary: summary as Record<string, unknown>,
       productsCount: productsRows.length,
@@ -229,10 +240,10 @@ export class ReportsService {
       todayOperations: dashboardState.todayOperations,
       trends: dashboardState.trends,
       activeOffers,
-    });
+    }), auth);
   }
 
-  async inventoryReport(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  async inventoryReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const { search, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 20, { includeRange: false });
 
     let countQuery = this.db
@@ -357,15 +368,15 @@ export class ReportsService {
     const lowStock = Number((lowStockRow as { count?: number | string | null } | undefined)?.count || 0);
     const totalActive = Number((totalActiveRow as { count?: number | string | null } | undefined)?.count || 0);
 
-    return {
+    return this.withScope({
       items,
       pagination,
       summary: buildInventorySummary(totalItems, outOfStock, lowStock, totalActive, trackedLocations),
       locationHighlights,
-    };
+    }, auth);
   }
 
-  async customerBalances(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  async customerBalances(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const customers = await this.db
       .selectFrom('customers')
       .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
@@ -380,11 +391,11 @@ export class ReportsService {
       .execute();
 
     const ledgerTotals = buildCustomerLedgerTotals(ledgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>);
-    return buildCustomerBalancesPayload(customers, ledgerTotals, query as Record<string, unknown>);
+    return this.withScope(buildCustomerBalancesPayload(customers, ledgerTotals, query as Record<string, unknown>), auth);
   }
 
 
-  async customerLedger(customerId: number, query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  async customerLedger(customerId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const customer = await this.db.selectFrom('customers').select(['id', 'name', 'phone', 'balance', 'credit_limit']).where('id', '=', customerId).where('is_active', '=', true).executeTakeFirst();
     if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
 
@@ -423,17 +434,17 @@ export class ReportsService {
       ])
       .executeTakeFirst();
 
-    return buildCustomerLedgerPayload({
+    return this.withScope(buildCustomerLedgerPayload({
       customer,
       rows: rows as PartnerLedgerEntryRow[],
       page,
       pageSize,
       totalItems,
       totalsRow: totalsRow as LedgerSummaryRow | undefined,
-    });
+    }), auth);
   }
 
-  async supplierBalances(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  async supplierBalances(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const suppliers = await this.db
       .selectFrom('suppliers')
       .select(['id', 'name', 'phone', 'balance'])
@@ -448,10 +459,10 @@ export class ReportsService {
       .execute();
 
     const ledgerTotals = buildSupplierLedgerTotals(ledgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>);
-    return buildSupplierBalancesPayload(suppliers, ledgerTotals, query as Record<string, unknown>);
+    return this.withScope(buildSupplierBalancesPayload(suppliers, ledgerTotals, query as Record<string, unknown>), auth);
   }
 
-  async supplierLedger(supplierId: number, query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  async supplierLedger(supplierId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const supplier = await this.db.selectFrom('suppliers').select(['id', 'name', 'phone', 'balance']).where('id', '=', supplierId).where('is_active', '=', true).executeTakeFirst();
     if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
 
@@ -490,29 +501,29 @@ export class ReportsService {
       ])
       .executeTakeFirst();
 
-    return buildSupplierLedgerPayload({
+    return this.withScope(buildSupplierLedgerPayload({
       supplier,
       rows: rows as PartnerLedgerEntryRow[],
       page,
       pageSize,
       totalItems,
       totalsRow: totalsRow as LedgerSummaryRow | undefined,
-    });
+    }), auth);
   }
 
-  async treasuryTransactions(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
-    return this.reportsAdminService.treasuryTransactions(query);
+  async treasuryTransactions(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.withScope(await this.reportsAdminService.treasuryTransactions(query, auth), auth);
   }
 
   async employeeSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.reportsAdminService.employeeSummary(query, auth);
+    return this.withScope(await this.reportsAdminService.employeeSummary(query, auth), auth);
   }
 
   async employeeDetails(userId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.reportsAdminService.employeeDetails(userId, query, auth);
+    return this.withScope(await this.reportsAdminService.employeeDetails(userId, query, auth), auth);
   }
 
   async auditLogs(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.reportsAdminService.auditLogs(query, auth);
+    return this.withScope(await this.reportsAdminService.auditLogs(query, auth), auth);
   }
 }

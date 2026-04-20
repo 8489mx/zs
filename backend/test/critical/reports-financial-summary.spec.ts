@@ -50,7 +50,10 @@ class FakeDb {
     ],
   }) as never);
 
-  const summary = await service.reportSummary({ from: '2026-04-01T00:00:00.000Z', to: '2026-04-30T23:59:59.999Z', branchId: 1, locationId: 1 });
+  const summary = await service.reportSummary(
+    { from: '2026-04-01T00:00:00.000Z', to: '2026-04-30T23:59:59.999Z', branchId: 1, locationId: 1 },
+    { tenantId: 'tenant-a', accountId: 'account-a' } as never,
+  );
 
   assert.equal((summary.sales as any).total, 1500);
   assert.equal((summary.sales as any).netSales, 1420);

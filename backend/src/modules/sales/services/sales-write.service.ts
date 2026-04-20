@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql, type Transaction } from 'kysely';
+import { Kysely, sql, type Transaction } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
@@ -10,6 +10,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { HeldSaleDto } from '../dto/held-sale.dto';
+import { PosAuditEventDto } from '../dto/pos-audit-event.dto';
 import { UpsertSaleDto } from '../dto/upsert-sale.dto';
 import { normalizeSalePayload } from '../helpers/sales-payload.helper';
 import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../helpers/sales-write.helper';
@@ -63,6 +64,31 @@ export class SalesWriteService {
   async authorizeDiscountOverride(secret: string, _auth: AuthContext): Promise<Record<string, unknown>> {
     const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), this.db);
     return { ok: true, authorized: true, mode: result.mode, authorizedByName: result.authorizedByName };
+  }
+
+  async logPosAuditEvent(payload: PosAuditEventDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    if (payload.eventType === 'cart_remove') {
+      const detailsParts = [
+        `تم حذف عنصر من السلة بواسطة ${auth.username}`,
+        payload.productName ? `الصنف: ${payload.productName}` : '',
+        payload.productId ? `#${payload.productId}` : '',
+        payload.qty ? `الكمية: ${payload.qty}` : '',
+        typeof payload.total === 'number' ? `الإجمالي بعد الحذف: ${payload.total}` : '',
+        typeof payload.cartItemsCount === 'number' ? `عدد العناصر: ${payload.cartItemsCount}` : '',
+        payload.note ? `ملاحظة: ${payload.note}` : '',
+      ].filter(Boolean);
+      await this.audit.log('حدث أمني - حذف عنصر من السلة', detailsParts.join(' | '), auth);
+      return { ok: true };
+    }
+
+    const cancelDetailsParts = [
+      `تم إلغاء/حذف فاتورة قبل الإرسال بواسطة ${auth.username}`,
+      typeof payload.total === 'number' ? `الإجمالي: ${payload.total}` : '',
+      typeof payload.cartItemsCount === 'number' ? `عدد العناصر: ${payload.cartItemsCount}` : '',
+      payload.note ? `ملاحظة: ${payload.note}` : '',
+    ].filter(Boolean);
+    await this.audit.log('حدث أمني - إلغاء/حذف فاتورة', cancelDetailsParts.join(' | '), auth);
+    return { ok: true };
   }
 
   async createSale(payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -230,7 +256,7 @@ export class SalesWriteService {
       return id;
     });
 
-    await this.audit.log('إنشاء فاتورة بيع', `تم إنشاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('إنشاء فاتورة بيع', `تم إنشاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth);
     const sale = await this.query.getSaleById(saleId, auth);
     const sales = await this.query.listSales({}, auth);
     return { ok: true, sale: sale.sale, sales: sales.sales };
@@ -298,7 +324,7 @@ export class SalesWriteService {
         .execute();
     });
 
-    await this.audit.log('إلغاء فاتورة بيع', `تم إلغاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('إلغاء فاتورة بيع', `تم إلغاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth);
     return { ok: true, sales: (await this.query.listSales({}, auth)).sales };
   }
 
@@ -379,19 +405,19 @@ export class SalesWriteService {
       return id;
     });
 
-    await this.audit.log('حفظ فاتورة معلقة', `تم حفظ فاتورة معلقة #${heldSaleId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('حفظ فاتورة معلقة', `تم حفظ فاتورة معلقة #${heldSaleId} بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 
   async deleteHeldSale(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.db.deleteFrom('held_sales').where('id', '=', id).execute();
-    await this.audit.log('حذف فاتورة معلقة', `تم حذف فاتورة معلقة #${id} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('حذف فاتورة معلقة', `تم حذف فاتورة معلقة #${id} بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 
   async clearHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
     await this.db.deleteFrom('held_sales').execute();
-    await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: [] };
   }
 }

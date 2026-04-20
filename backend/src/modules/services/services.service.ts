@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -17,7 +18,8 @@ export class ServicesService {
     private readonly audit: AuditService,
   ) {}
 
-  async listServices(query: Record<string, unknown>, _auth: AuthContext): Promise<Record<string, unknown>> {
+  async listServices(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const result = await sql<{
       id: number;
       name: string;
@@ -77,6 +79,7 @@ export class ServicesService {
         latestServiceName: latest?.name || '',
         latestCreatedByName: latest?.createdByName || '',
       },
+      scope,
     };
   }
 
@@ -95,7 +98,7 @@ export class ServicesService {
       `.execute(trx);
     });
 
-    await this.audit.log('إضافة خدمة', 'تمت إضافة خدمة بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('إضافة خدمة', 'تمت إضافة خدمة بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listServices({}, auth)) };
   }
 
@@ -118,7 +121,7 @@ export class ServicesService {
       `.execute(trx);
     });
 
-    await this.audit.log('تعديل خدمة', 'تم تعديل خدمة بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('تعديل خدمة', 'تم تعديل خدمة بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listServices({}, auth)) };
   }
 
@@ -129,7 +132,7 @@ export class ServicesService {
     }
 
     await sql`DELETE FROM services WHERE id = ${id}`.execute(this.db);
-    await this.audit.log('حذف خدمة', 'تم حذف خدمة بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('حذف خدمة', 'تم حذف خدمة بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listServices({}, auth)) };
   }
 }

@@ -1,4 +1,4 @@
-import { sql } from 'kysely';
+import { sql } from '../../../database/kysely';
 
 function applySearch(query: any, searchPattern: string | undefined, fields: string[]) {
   if (!searchPattern) return query;

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -14,7 +15,8 @@ import { buildPagination, getBusinessDayBounds } from '../helpers/reports-range.
 export class ReportsAdminService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
-  async treasuryTransactions(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  async treasuryTransactions(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const { fromDate, toDate, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 25);
 
     let countQuery = this.db
@@ -87,16 +89,20 @@ export class ReportsAdminService {
       ])
       .executeTakeFirst();
 
-    return buildTreasuryPayload({
+    return {
+      ...buildTreasuryPayload({
       rows: rows as TreasuryTransactionRow[],
       page,
       pageSize,
       totalItems,
       summaryRow: summaryRow as TreasurySummaryRow | null,
-    });
+      }),
+      scope,
+    };
   }
 
   async auditLogs(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
     if (!auth.permissions.includes('audit') && auth.role !== 'super_admin') {
       throw new AppError('Missing required permissions', 'FORBIDDEN', 403);
     }
@@ -164,6 +170,7 @@ export class ReportsAdminService {
 
 
   async employeeSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
     if (!auth.permissions.includes('reports') && auth.role !== 'super_admin') {
       throw new AppError('Missing required permissions', 'FORBIDDEN', 403);
     }
@@ -385,6 +392,7 @@ export class ReportsAdminService {
   }
 
   async employeeDetails(userId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
     if (!auth.permissions.includes('reports') && auth.role !== 'super_admin') {
       throw new AppError('Missing required permissions', 'FORBIDDEN', 403);
     }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { HeldSaleDto } from './dto/held-sale.dto';
+import { PosAuditEventDto } from './dto/pos-audit-event.dto';
 import { UpsertSaleDto } from './dto/upsert-sale.dto';
 import { SalesQueryService } from './services/sales-query.service';
 import { SalesWriteService } from './services/sales-write.service';
@@ -46,5 +47,9 @@ export class SalesService {
 
   async clearHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
     return this.write.clearHeldSales(auth);
+  }
+
+  async logPosAuditEvent(payload: PosAuditEventDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.write.logPosAuditEvent(payload, auth);
   }
 }

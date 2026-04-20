@@ -6,6 +6,7 @@ import { Kysely, Migrator, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
 import { Database } from './database.types';
 import { FileMigrationProvider } from './migration-provider';
+import { resolvePgSslConfig, toBoolean } from './ssl.util';
 
 function getMigrationsPath(): string {
   const distPath = join(process.cwd(), 'dist', 'database', 'migrations');
@@ -18,6 +19,10 @@ function getMigrationsPath(): string {
 
 async function run(): Promise<void> {
   const command = process.argv[2] ?? 'up';
+  const sslEnabled = toBoolean(process.env.DATABASE_SSL, false);
+  const sslRejectUnauthorized = toBoolean(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED, true);
+  const sslCaCert = process.env.DATABASE_SSL_CA_CERT ?? '';
+
   const db = new Kysely<Database>({
     dialect: new PostgresDialect({
       pool: new Pool({
@@ -26,7 +31,11 @@ async function run(): Promise<void> {
         user: process.env.DATABASE_USER,
         password: process.env.DATABASE_PASSWORD,
         database: process.env.DATABASE_NAME,
-        ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+        ssl: resolvePgSslConfig({
+          enabled: sslEnabled,
+          rejectUnauthorized: sslRejectUnauthorized,
+          caCert: sslCaCert,
+        }),
       }),
     }),
   });

@@ -82,7 +82,10 @@ class FakeDb {
     ],
   }) as never);
 
-  const result = await service.dashboardOverview({ branchId: 1, locationId: 1 });
+  const result = await service.dashboardOverview(
+    { branchId: 1, locationId: 1 },
+    { tenantId: 'tenant-a', accountId: 'account-a' } as never,
+  );
   const trends = (result.trends as any).sales as Array<{ key: string; value: number }>;
   const todayKey = dateKey(today, businessTimezone);
   const oneDayAgoKey = dateKey(oneDayAgo, businessTimezone);

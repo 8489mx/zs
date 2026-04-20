@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { createHash, createVerify } from 'crypto';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';

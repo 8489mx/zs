@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
 import { Database } from '../database.types';
+import { resolvePgSslConfig, toBoolean } from '../ssl.util';
 
 export function openLegacyDb(): DatabaseSync {
   const configured = process.env.OLD_DB_FILE?.trim();
@@ -17,6 +18,10 @@ export function openLegacyDb(): DatabaseSync {
 }
 
 export function openNewDb(): Kysely<Database> {
+  const sslEnabled = toBoolean(process.env.DATABASE_SSL, false);
+  const sslRejectUnauthorized = toBoolean(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED, true);
+  const sslCaCert = process.env.DATABASE_SSL_CA_CERT ?? '';
+
   return new Kysely<Database>({
     dialect: new PostgresDialect({
       pool: new Pool({
@@ -25,7 +30,11 @@ export function openNewDb(): Kysely<Database> {
         user: process.env.DATABASE_USER,
         password: process.env.DATABASE_PASSWORD,
         database: process.env.DATABASE_NAME,
-        ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+        ssl: resolvePgSslConfig({
+          enabled: sslEnabled,
+          rejectUnauthorized: sslRejectUnauthorized,
+          caCert: sslCaCert,
+        }),
       }),
     }),
   });

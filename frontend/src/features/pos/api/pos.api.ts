@@ -23,6 +23,15 @@ export const posApi = {
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations'), 'locations'),
   authorizeDiscountOverride: async (secret: string) => http('/api/sales/discount-authorization', { method: 'POST', body: JSON.stringify({ secret }) }),
+  logSecurityEvent: async (payload: {
+    eventType: 'cart_remove' | 'draft_cancel';
+    productId?: number;
+    productName?: string;
+    qty?: number;
+    total?: number;
+    cartItemsCount?: number;
+    note?: string;
+  }) => http('/api/sales/pos-audit-event', { method: 'POST', body: JSON.stringify(payload) }),
   createSale: async (payload: unknown, legacyPayload?: unknown, minimalPayload?: unknown) => {
     try {
       return await postSale(payload);

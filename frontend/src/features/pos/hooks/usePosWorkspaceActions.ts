@@ -1,5 +1,8 @@
 import type { FormEvent } from 'react';
+import { removePosItem } from '@/features/pos/lib/pos.domain';
+import { computeDraftTotal } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
+import { posApi } from '@/features/pos/api/pos.api';
 import type { Product } from '@/types/domain';
 import {
   createPosWorkspaceAsyncActions,
@@ -42,13 +45,72 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
   const asyncActions = createPosWorkspaceAsyncActions(params, base);
   const receiptActions = createPosWorkspaceReceiptActions(params);
 
+  function logDraftCancelEvent() {
+    if (!params.cart.length) return;
+    void posApi.logSecurityEvent({
+      eventType: 'draft_cancel',
+      total: Number(computeDraftTotal({
+        cart: params.cart,
+        customerId: params.customerId,
+        discount: params.discount,
+        paidAmount: params.paidAmount,
+        cashAmount: params.cashAmount,
+        cardAmount: params.cardAmount,
+        paymentType: params.paymentType,
+        paymentChannel: params.paymentChannel,
+        note: params.note,
+        search: params.search,
+        priceType: params.priceType,
+        branchId: params.branchId,
+        locationId: params.locationId,
+      }).toFixed(2)),
+      cartItemsCount: params.cart.length,
+      note: 'إلغاء المسودة الحالية من واجهة الكاشير',
+    });
+  }
+
+  function logCartRemoveEvent(lineKey: string) {
+    const removed = params.cart.find((item) => item.lineKey === lineKey);
+    if (!removed) return;
+    const remainingCart = removePosItem(params.cart, lineKey);
+    void posApi.logSecurityEvent({
+      eventType: 'cart_remove',
+      productId: Number(removed.productId || 0) || undefined,
+      productName: removed.name || undefined,
+      qty: Number(removed.qty || 0) || undefined,
+      total: Number(computeDraftTotal({
+        cart: remainingCart,
+        customerId: params.customerId,
+        discount: params.discount,
+        paidAmount: params.paidAmount,
+        cashAmount: params.cashAmount,
+        cardAmount: params.cardAmount,
+        paymentType: params.paymentType,
+        paymentChannel: params.paymentChannel,
+        note: params.note,
+        search: params.search,
+        priceType: params.priceType,
+        branchId: params.branchId,
+        locationId: params.locationId,
+      }).toFixed(2)),
+      cartItemsCount: remainingCart.length,
+      note: 'حذف عنصر من سلة الكاشير',
+    });
+  }
+
   return {
-    resetPosDraft: () => base.resetPosDraft(),
+    resetPosDraft: () => {
+      logDraftCancelEvent();
+      base.resetPosDraft();
+    },
     handleAddProduct: base.handleAddProduct,
     handleQuickAddCodeSubmit: base.handleQuickAddCodeSubmit,
     exportHeldDrafts: base.exportHeldDrafts,
     setQty: base.setQty,
-    removeItem: base.removeItem,
+    removeItem: (lineKey: string) => {
+      logCartRemoveEvent(lineKey);
+      base.removeItem(lineKey);
+    },
     fillPaidAmount: base.fillPaidAmount,
     setPriceType: base.applyPriceType,
     setPaymentPreset: base.setPaymentPreset,

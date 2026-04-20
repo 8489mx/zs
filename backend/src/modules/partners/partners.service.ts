@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../common/errors/app-error';
@@ -159,7 +159,7 @@ export class PartnersService {
       .executeTakeFirstOrThrow();
 
     await this.addCustomerOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor);
-    await this.audit.log('إضافة عميل', `تم إضافة العميل ${name} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('إضافة عميل', `تم إضافة العميل ${name} بواسطة ${actor.username}`, actor);
 
     const listing = await this.listCustomers({});
     return { ok: true, customers: listing.customers };
@@ -204,7 +204,7 @@ export class PartnersService {
       .where('id', '=', id)
       .execute();
 
-    await this.audit.log('تعديل عميل', `تم تحديث العميل #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل عميل', `تم تحديث العميل #${id} بواسطة ${actor.username}`, actor);
     const listing = await this.listCustomers({});
     return { ok: true, customers: listing.customers };
   }
@@ -233,7 +233,7 @@ export class PartnersService {
 
     await this.db.deleteFrom('product_customer_prices').where('customer_id', '=', id).execute();
     await this.db.updateTable('customers').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
-    await this.audit.log('حذف عميل', `تم تعطيل العميل #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف عميل', `تم تعطيل العميل #${id} بواسطة ${actor.username}`, actor);
 
     const listing = await this.listCustomers({});
     return { ok: true, customers: listing.customers };
@@ -311,7 +311,7 @@ export class PartnersService {
       .executeTakeFirstOrThrow();
 
     await this.addSupplierOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor);
-    await this.audit.log('إضافة مورد', `تم إضافة المورد ${name} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('إضافة مورد', `تم إضافة المورد ${name} بواسطة ${actor.username}`, actor);
 
     const listing = await this.listSuppliers({});
     return { ok: true, suppliers: listing.suppliers };
@@ -348,7 +348,7 @@ export class PartnersService {
       .where('id', '=', id)
       .execute();
 
-    await this.audit.log('تعديل مورد', `تم تحديث المورد #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل مورد', `تم تحديث المورد #${id} بواسطة ${actor.username}`, actor);
     const listing = await this.listSuppliers({});
     return { ok: true, suppliers: listing.suppliers };
   }
@@ -375,7 +375,7 @@ export class PartnersService {
     }
 
     await this.db.updateTable('suppliers').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
-    await this.audit.log('حذف مورد', `تم تعطيل المورد #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف مورد', `تم تعطيل المورد #${id} بواسطة ${actor.username}`, actor);
 
     const listing = await this.listSuppliers({});
     return { ok: true, suppliers: listing.suppliers };

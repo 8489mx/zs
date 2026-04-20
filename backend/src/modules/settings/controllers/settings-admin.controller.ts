@@ -10,33 +10,33 @@ export class SettingsAdminController {
   constructor(private readonly adminService: SettingsAdminService) {}
 
   @Get('diagnostics')
-  getDiagnostics(@Req() _req: RequestWithAuth) {
-    return this.adminService.getDiagnostics();
+  getDiagnostics(@Req() req: RequestWithAuth) {
+    return this.adminService.getDiagnostics(req.authContext!);
   }
 
   @Get('maintenance-report')
-  getMaintenanceReport(@Req() _req: RequestWithAuth) {
-    return this.adminService.getMaintenanceReport();
+  getMaintenanceReport(@Req() req: RequestWithAuth) {
+    return this.adminService.getMaintenanceReport(req.authContext!);
   }
 
   @Get('launch-readiness')
-  getLaunchReadiness(@Req() _req: RequestWithAuth) {
-    return this.adminService.getLaunchReadiness();
+  getLaunchReadiness(@Req() req: RequestWithAuth) {
+    return this.adminService.getLaunchReadiness(req.authContext!);
   }
 
   @Get('operational-readiness')
-  getOperationalReadiness(@Req() _req: RequestWithAuth) {
-    return this.adminService.getOperationalReadiness();
+  getOperationalReadiness(@Req() req: RequestWithAuth) {
+    return this.adminService.getOperationalReadiness(req.authContext!);
   }
 
   @Get('support-snapshot')
-  getSupportSnapshot(@Req() _req: RequestWithAuth) {
-    return this.adminService.getSupportSnapshot();
+  getSupportSnapshot(@Req() req: RequestWithAuth) {
+    return this.adminService.getSupportSnapshot(req.authContext!);
   }
 
   @Get('uat-readiness')
-  getUatReadiness(@Req() _req: RequestWithAuth) {
-    return this.adminService.getUatReadiness();
+  getUatReadiness(@Req() req: RequestWithAuth) {
+    return this.adminService.getUatReadiness(req.authContext!);
   }
 
   @Post('maintenance/cleanup-expired-sessions')

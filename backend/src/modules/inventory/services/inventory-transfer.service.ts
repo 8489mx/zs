@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
@@ -180,7 +180,7 @@ export class InventoryTransferService {
       return id;
     });
 
-    await this.audit.log('إنشاء تحويل مخزون', `تم إنشاء تحويل TR-${transferId} من ${from.name} إلى ${to.name}`, auth.userId);
+    await this.audit.log('إنشاء تحويل مخزون', `تم إنشاء تحويل TR-${transferId} من ${from.name} إلى ${to.name}`, auth);
     return { ok: true, transferId: String(transferId), stockTransfers: (await this.listStockTransfers({}, auth)).stockTransfers };
   }
 
@@ -226,7 +226,7 @@ export class InventoryTransferService {
         .execute();
     });
 
-    await this.audit.log('استلام تحويل مخزون', `تم استلام التحويل TR-${transferId}`, auth.userId);
+    await this.audit.log('استلام تحويل مخزون', `تم استلام التحويل TR-${transferId}`, auth);
     return { ok: true, stockTransfers: (await this.listStockTransfers({}, auth)).stockTransfers };
   }
 
@@ -270,7 +270,7 @@ export class InventoryTransferService {
         .execute();
     });
 
-    await this.audit.log('إلغاء تحويل مخزون', `تم إلغاء التحويل TR-${transferId}`, auth.userId);
+    await this.audit.log('إلغاء تحويل مخزون', `تم إلغاء التحويل TR-${transferId}`, auth);
     return { ok: true, stockTransfers: (await this.listStockTransfers({}, auth)).stockTransfers };
   }
 }

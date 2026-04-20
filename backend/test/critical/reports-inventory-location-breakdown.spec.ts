@@ -41,7 +41,10 @@ class FakeDb {
     ],
   }) as never);
 
-  const result = await service.inventoryReport({ filter: 'attention', page: 1, pageSize: 20 });
+  const result = await service.inventoryReport(
+    { filter: 'attention', page: 1, pageSize: 20 },
+    { tenantId: 'tenant-a', accountId: 'account-a' } as never,
+  );
   const items = (result.items as any[]) || [];
   const summary = result.summary as any;
   const highlights = (result.locationHighlights as any[]) || [];

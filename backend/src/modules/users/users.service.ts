@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -122,7 +122,7 @@ export class UsersService {
     await this.replaceUserBranches(Number(result.id), payload.branchIds);
 
     const created = await this.db.selectFrom('users').selectAll().where('id', '=', Number(result.id)).executeTakeFirstOrThrow();
-    await this.audit.log('إضافة مستخدم', `تمت إضافة المستخدم ${created.username} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('إضافة مستخدم', `تمت إضافة المستخدم ${created.username} بواسطة ${actor.username}`, actor);
 
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
     const branchMap = await this.loadBranchMap([Number(result.id)]);
@@ -171,7 +171,7 @@ export class UsersService {
     await sessionCleanup.execute();
 
     const updated = await this.db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
-    await this.audit.log('تعديل مستخدم', `تم تحديث المستخدم ${updated.username} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل مستخدم', `تم تحديث المستخدم ${updated.username} بواسطة ${actor.username}`, actor);
 
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
     const branchMap = await this.loadBranchMap([id]);
@@ -194,7 +194,7 @@ export class UsersService {
       }
     }
 
-    await this.audit.log('تعديل المستخدمين', `تم تحديث ${usersPayload.length} مستخدم/صلاحية بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل المستخدمين', `تم تحديث ${usersPayload.length} مستخدم/صلاحية بواسطة ${actor.username}`, actor);
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
 
     return {
@@ -212,7 +212,7 @@ export class UsersService {
     await sql`delete from user_branches where user_id = ${id}`.execute(this.db);
     await this.db.deleteFrom('sessions').where('user_id', '=', id).execute();
     await this.db.deleteFrom('users').where('id', '=', id).execute();
-    await this.audit.log('حذف مستخدم', `تم حذف المستخدم ${existing.username} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف مستخدم', `تم حذف المستخدم ${existing.username} بواسطة ${actor.username}`, actor);
 
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
     return {
@@ -238,7 +238,7 @@ export class UsersService {
       .execute();
 
     const updated = await this.db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
-    await this.audit.log('فتح مستخدم', `تم فتح المستخدم ${updated.username} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('فتح مستخدم', `تم فتح المستخدم ${updated.username} بواسطة ${actor.username}`, actor);
 
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
     const branchMap = await this.loadBranchMap([id]);

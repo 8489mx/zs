@@ -4,6 +4,7 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { HeldSaleDto } from './dto/held-sale.dto';
+import { PosAuditEventDto } from './dto/pos-audit-event.dto';
 import { UpsertSaleDto } from './dto/upsert-sale.dto';
 import { SalesService } from './sales.service';
 
@@ -32,6 +33,12 @@ export class SalesController {
   @RequirePermissions('sales')
   authorizeDiscountOverride(@Body() body: { secret?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.salesService.authorizeDiscountOverride(String(body?.secret || ''), req.authContext!);
+  }
+
+  @Post('sales/pos-audit-event')
+  @RequirePermissions('sales')
+  logPosAuditEvent(@Body() payload: PosAuditEventDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.salesService.logPosAuditEvent(payload, req.authContext!);
   }
 
   @Post('sales/:id/cancel')
