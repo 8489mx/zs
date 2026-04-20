@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
@@ -243,7 +243,7 @@ export class PurchasesWriteService {
       };
     });
 
-    await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${created.purchaseId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${created.purchaseId} بواسطة ${auth.username}`, auth);
     const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === created.purchaseId) || null;
     const purchases = await this.queryService.listPurchases({}, auth);
     return { ok: true, purchase, purchases: purchases.purchases, repricingInsights: created.repricingInsights };
@@ -399,7 +399,7 @@ export class PurchasesWriteService {
       };
     });
 
-    await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
     const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
     return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases, repricingInsights: updated.repricingInsights };
   }
@@ -456,7 +456,7 @@ export class PurchasesWriteService {
       }).where('id', '=', purchaseId).execute();
     });
 
-    await this.audit.log('إلغاء فاتورة شراء', `تم إلغاء فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('إلغاء فاتورة شراء', `تم إلغاء فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
     const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
     return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases };
   }
@@ -493,7 +493,7 @@ export class PurchasesWriteService {
       return id;
     });
 
-    await this.audit.log('دفع لمورد', `تم تسجيل دفع لمورد PO-${paymentId} بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('دفع لمورد', `تم تسجيل دفع لمورد PO-${paymentId} بواسطة ${auth.username}`, auth);
     return { ok: true, supplierPayments: (await this.queryService.listSupplierPayments(auth)).supplierPayments };
   }
 
@@ -527,7 +527,7 @@ export class PurchasesWriteService {
       await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, `تحصيل من العميل ${customer.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
     });
 
-    await this.audit.log('تحصيل عميل', `تم تسجيل تحصيل عميل بواسطة ${auth.username}`, auth.userId);
+    await this.audit.log('تحصيل عميل', `تم تسجيل تحصيل عميل بواسطة ${auth.username}`, auth);
     return { ok: true };
   }
 }

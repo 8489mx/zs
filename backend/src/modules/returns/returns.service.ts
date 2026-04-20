@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../common/errors/app-error';
@@ -227,7 +227,7 @@ export class ReturnsService {
       return this.createPurchaseReturn(trx, payload, normalizedItems, auth);
     });
     const label = payload.type === 'purchase' ? 'مرتجع شراء' : 'مرتجع بيع';
-    await this.audit.log('إنشاء مرتجع', 'تم إنشاء ' + label + ' بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('إنشاء مرتجع', 'تم إنشاء ' + label + ' بواسطة ' + auth.username, auth);
     return { ok: true, createdIds: returnIds, ...(await this.listReturns({}, auth)) };
   }
 

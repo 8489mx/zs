@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely } from 'kysely';
+import { Kysely } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';

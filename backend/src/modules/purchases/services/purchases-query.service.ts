@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely } from 'kysely';
+import { Kysely } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { filterPurchases, mapPurchaseRows, paginatePurchases, summarizePurchases } from '../helpers/purchases-query.helper';
@@ -34,7 +35,8 @@ export class PurchasesQueryService {
     return mapPurchaseRows(purchases as unknown as Array<Record<string, unknown>>, items as unknown as Array<Record<string, unknown>>);
   }
 
-  async listPurchases(query: Record<string, unknown>, _auth: AuthContext): Promise<Record<string, unknown>> {
+  async listPurchases(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const rows = await this.fetchMappedPurchases();
     const filtered = filterPurchases(rows, query);
     const paged = paginatePurchases(filtered, query);
@@ -43,18 +45,21 @@ export class PurchasesQueryService {
       purchases: paged.rows,
       pagination: paged.pagination,
       summary: summarizePurchases(filtered),
+      scope,
     };
   }
 
-  async getPurchaseById(id: number, _auth: AuthContext): Promise<Record<string, unknown>> {
+  async getPurchaseById(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const rows = await this.fetchMappedPurchases();
     const purchase = rows.find((entry) => Number(entry.id || 0) === id) || null;
 
     if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
-    return { purchase };
+    return { purchase, scope };
   }
 
-  async listSupplierPayments(_auth: AuthContext): Promise<Record<string, unknown>> {
+  async listSupplierPayments(auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const rows = await this.db
       .selectFrom('supplier_payments as sp')
       .leftJoin('branches as b', 'b.id', 'sp.branch_id')
@@ -78,6 +83,7 @@ export class PurchasesQueryService {
         branchName: row.branch_name || '',
         locationName: row.location_name || '',
       })),
+      scope,
     };
   }
 }

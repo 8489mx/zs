@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
@@ -85,7 +85,7 @@ export class InventoryAdjustmentService {
       result = { productId: payload.productId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter };
     });
 
-    await this.audit.log('تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth.userId);
+    await this.audit.log('تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth);
 
     return {
       ok: true,

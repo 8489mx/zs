@@ -1,14 +1,12 @@
 import { strict as assert } from 'node:assert';
-import { buildLastNDays, dateKey, getBusinessDayBounds } from '../../src/modules/reports/helpers/reports-range.helper';
+import { buildLastNDays, dateKey, getBusinessDayBounds, setBusinessTimezoneResolver } from '../../src/modules/reports/helpers/reports-range.helper';
 
 function withTimezone<T>(timezone: string, fn: () => T): T {
-  const previous = process.env.BUSINESS_TIMEZONE;
-  process.env.BUSINESS_TIMEZONE = timezone;
+  setBusinessTimezoneResolver(() => timezone);
   try {
     return fn();
   } finally {
-    if (previous === undefined) delete process.env.BUSINESS_TIMEZONE;
-    else process.env.BUSINESS_TIMEZONE = previous;
+    setBusinessTimezoneResolver(() => 'UTC');
   }
 }
 

@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zsdb}
+      POSTGRES_USER: ${POSTGRES_USER:-zs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-db-password}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zs} -d ${POSTGRES_DB:-zsdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_MODE: ${APP_MODE:-CLOUD_SAAS}
+      NODE_ENV: production
+      APP_HOST: 0.0.0.0
+      APP_PORT: 3001
+      LOG_LEVEL: info
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB:-zsdb}
+      DATABASE_USER: ${POSTGRES_USER:-zs}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-change-me-db-password}
+      DATABASE_SCHEMA: public
+      DATABASE_SSL: ${DATABASE_SSL:-false}
+      DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-true}
+      DATABASE_SSL_CA_CERT: ${DATABASE_SSL_CA_CERT:-}
+      DATABASE_LOGGING: "false"
+      ENABLE_BOOTSTRAP_ADMIN: ${ENABLE_BOOTSTRAP_ADMIN:-false}
+      ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: "false"
+      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+      SESSION_COOKIE_SAME_SITE: ${SESSION_COOKIE_SAME_SITE:-strict}
+      SESSION_CSRF_SECRET: ${SESSION_CSRF_SECRET:-replace-me-with-long-random-secret}
+      ALLOW_SESSION_ID_HEADER: "false"
+      LOGIN_MAX_ATTEMPTS: 5
+      LOGIN_LOCKOUT_MINUTES: 15
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      LOGIN_RATE_LIMIT_MAX: 10
+      LOGIN_RATE_LIMIT_WINDOW_SECONDS: 600
+      AUTH_BURST_RATE_LIMIT_MAX: 60
+      AUTH_BURST_RATE_LIMIT_WINDOW_SECONDS: 60
+      BUSINESS_TIMEZONE: ${BUSINESS_TIMEZONE:-UTC}
+    command: sh -c "npm run migration:run && npm start"
+    expose:
+      - "3001"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    expose:
+      - "80"
+
+  gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    volumes:
+      - ./deploy/nginx/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${APP_PUBLIC_PORT:-80}:80"
+
+volumes:
+  pgdata_prod:

@@ -36,7 +36,7 @@ class FakeDb {
     ],
   }) as never);
 
-  const result = await service.supplierBalances({});
+  const result = await service.supplierBalances({}, { tenantId: 'tenant-a', accountId: 'account-a' } as never);
   const suppliers = (result.suppliers as any[]) || [];
   const summary = result.summary as any;
 

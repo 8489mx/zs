@@ -213,12 +213,16 @@ async function run(): Promise<void> {
   assert.deepEqual((loginPayload.user as any).branchIds, ['7', '9']);
   assert.equal((loginPayload.user as any).defaultBranchId, '7');
   assert.equal((loginPayload.mustChangePassword as any), true);
+  assert.equal((loginPayload.user as any).tenantId, 'default');
+  assert.equal((loginPayload.user as any).accountId, 'default');
 
   const me = await service.buildMePayload(valid!.auth);
   assert.equal((me.user as any).displayName, 'Admin Root');
   assert.deepEqual((me.user as any).branchIds, ['7', '9']);
   assert.equal((me.user as any).defaultBranchId, '7');
   assert.equal((me.security as any).mustChangePassword, true);
+  assert.equal((me.user as any).tenantId, 'default');
+  assert.equal((me.user as any).accountId, 'default');
 
   await assert.rejects(async () => {
     await service.changePassword(1, password, 'short');

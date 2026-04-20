@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
@@ -126,7 +126,7 @@ export class SettingsImportService {
       }
     }
 
-    await this.audit.log('استيراد أصناف', `تم استيراد/تحديث ${inserted + updated} صنف بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('استيراد أصناف', `تم استيراد/تحديث ${inserted + updated} صنف بواسطة ${actor.username}`, actor);
     return { ok: true, inserted, updated, warnings: stockQtyIgnoredOnUpdate > 0 ? [`تم تجاهل stockQty لعدد ${stockQtyIgnoredOnUpdate} من الأصناف الموجودة مسبقًا. استخدم استيراد الرصيد الافتتاحي أو تسويات المخزون بدلًا من ذلك.`] : [] };
   }
 
@@ -162,7 +162,7 @@ export class SettingsImportService {
       }
     }
 
-    await this.audit.log('استيراد عملاء', `تم استيراد/تحديث ${inserted + updated} عميل بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('استيراد عملاء', `تم استيراد/تحديث ${inserted + updated} عميل بواسطة ${actor.username}`, actor);
     return { ok: true, inserted, updated };
   }
 
@@ -194,7 +194,7 @@ export class SettingsImportService {
       }
     }
 
-    await this.audit.log('استيراد موردين', `تم استيراد/تحديث ${inserted + updated} مورد بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('استيراد موردين', `تم استيراد/تحديث ${inserted + updated} مورد بواسطة ${actor.username}`, actor);
     return { ok: true, inserted, updated };
   }
 
@@ -239,7 +239,7 @@ export class SettingsImportService {
       updated += 1;
     }
 
-    await this.audit.log('استيراد مخزون افتتاحي', `تم تحديث ${updated} سجل مخزون بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('استيراد مخزون افتتاحي', `تم تحديث ${updated} سجل مخزون بواسطة ${actor.username}`, actor);
     return { ok: true, updated };
   }
 }

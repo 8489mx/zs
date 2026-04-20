@@ -62,7 +62,10 @@ class FakeDb {
     ],
   }) as never);
 
-  const result = await service.treasuryTransactions({ page: 1, pageSize: 25, search: 'cash', filter: 'all' });
+  const result = await service.treasuryTransactions(
+    { page: 1, pageSize: 25, search: 'cash', filter: 'all' },
+    { role: 'super_admin', permissions: ['treasury'], tenantId: 'tenant-a', accountId: 'account-a' } as never,
+  );
   const treasury = (result.treasury as any[]) || [];
   const summary = result.summary as any;
   const pagination = result.pagination as any;
@@ -73,6 +76,7 @@ class FakeDb {
   assert.equal(summary.cashOut, 50);
   assert.equal(summary.net, 250);
   assert.equal(pagination.totalItems, 2);
+  assert.deepEqual(result.scope, { tenantId: 'tenant-a', accountId: 'account-a' });
 
   console.log('reports-treasury-pagination.spec: ok');
 })().catch((error) => {

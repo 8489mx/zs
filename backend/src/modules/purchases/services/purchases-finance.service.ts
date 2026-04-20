@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Kysely, Transaction, sql } from 'kysely';
+import { Kysely, Transaction, sql } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { Database } from '../../../database/database.types';
 

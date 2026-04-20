@@ -7,6 +7,7 @@ import { Database } from '../../../database/database.types';
 import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { createPasswordRecord, verifyPassword } from '../utils/password-hasher';
 import { assertStrongPassword } from '../utils/password-policy';
+import { resolveTenantContext } from '../utils/tenant-context';
 
 function safeJsonArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -36,6 +37,7 @@ export class SessionService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly configService: ConfigService,
   ) {}
+
 
   private get lockoutConfig() {
     return {
@@ -72,6 +74,7 @@ export class SessionService {
       username: row.username,
       role: row.role,
       permissions: safeJsonArray(row.permissions_json),
+      ...resolveTenantContext(this.configService),
     };
   }
 
@@ -162,6 +165,7 @@ export class SessionService {
         username: user.username,
         role: user.role,
         permissions: safeJsonArray(user.permissions_json),
+        ...resolveTenantContext(this.configService),
       },
     };
   }
@@ -217,6 +221,8 @@ export class SessionService {
     displayName: string;
     branchIds: string[];
     defaultBranchId: string;
+    tenantId: string;
+    accountId: string;
     mustChangePassword: boolean;
     passwordHash: string;
     passwordSalt: string;
@@ -264,6 +270,7 @@ export class SessionService {
       displayName: String(user.display_name || user.username || auth.username),
       branchIds,
       defaultBranchId,
+      ...resolveTenantContext(this.configService, auth),
       mustChangePassword: Boolean(user.must_change_password),
       passwordHash: String(user.password_hash || ''),
       passwordSalt: String(user.password_salt || ''),
@@ -281,6 +288,8 @@ export class SessionService {
         displayName: profile.displayName,
         branchIds: profile.branchIds,
         defaultBranchId: profile.defaultBranchId,
+        tenantId: profile.tenantId,
+        accountId: profile.accountId,
       },
       mustChangePassword: profile.mustChangePassword,
     };
@@ -346,6 +355,8 @@ export class SessionService {
         displayName: profile.displayName,
         branchIds: profile.branchIds,
         defaultBranchId: profile.defaultBranchId,
+        tenantId: profile.tenantId,
+        accountId: profile.accountId,
       },
       settings: {
         storeName: settingsMap.get('storeName') || 'Z Systems',

@@ -4,4 +4,6 @@ export interface AuthContext {
   username: string;
   role: string;
   permissions: string[];
+  tenantId?: string;
+  accountId?: string;
 }

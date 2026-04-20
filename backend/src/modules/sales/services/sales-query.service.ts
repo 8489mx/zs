@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely } from 'kysely';
+import { Kysely } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { mapHeldSalesRows, mapSaleRows, filterSales, paginateRows, summarizeSales } from '../helpers/sales-query.helper';
@@ -88,6 +89,7 @@ export class SalesQueryService {
   }
 
   async listSales(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     this.authz.assertCanViewSales(auth);
 
     const baseSales = await this.fetchSaleBaseRows();
@@ -104,10 +106,12 @@ export class SalesQueryService {
       sales: hydratedSales,
       pagination: paged.pagination,
       summary: summarizeSales(filtered),
+      scope,
     };
   }
 
   async getSaleById(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     this.authz.assertCanViewSales(auth);
 
     const sale = await this.db
@@ -127,10 +131,11 @@ export class SalesQueryService {
     if (!sale) throw new AppError('Sale not found', 'SALE_NOT_FOUND', 404);
 
     const [mappedSale] = await this.hydrateSales([sale as unknown as Record<string, unknown>]);
-    return { sale: mappedSale };
+    return { sale: mappedSale, scope };
   }
 
-  async listHeldSales(_auth: AuthContext): Promise<Record<string, unknown>> {
+  async listHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const rows = await this.db
       .selectFrom('held_sales as hs')
       .leftJoin('customers as c', 'c.id', 'hs.customer_id')
@@ -153,6 +158,7 @@ export class SalesQueryService {
         rows as unknown as Array<Record<string, unknown>>,
         items as unknown as Array<Record<string, unknown>>,
       ),
+      scope,
     };
   }
 }

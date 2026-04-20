@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely } from 'kysely';
+import { type Kysely } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { ReportRangeQueryDto } from '../dto/report-query.dto';
 import { filterScope, parseRange, normalizeProduct, dateKey, buildLastNDays, TrendPoint } from '../helpers/reports-range.helper';
 import { sumMoney, toMoney, buildTrendMap, buildAggregatedBalances } from '../helpers/reports-math.helper';
-import { sql } from 'kysely';
+import { sql } from '../../../database/kysely';
 
 @Injectable()
 export class ReportsSummaryService {
