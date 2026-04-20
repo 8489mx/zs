@@ -6,7 +6,14 @@ const booleanString = z
   .transform((value) => value === 'true');
 
 const envSchema = z.object({
-  APP_MODE: z.enum(['offline', 'online']).default('online'),
+  APP_MODE: z
+    .enum(['LOCAL_PILOT', 'SELF_CONTAINED', 'CLOUD_SAAS', 'offline', 'online'])
+    .default('CLOUD_SAAS')
+    .transform((value) => {
+      if (value === 'offline') return 'LOCAL_PILOT';
+      if (value === 'online') return 'CLOUD_SAAS';
+      return value;
+    }),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_PORT: z.coerce.number().int().positive().default(3001),
   APP_HOST: z.string().min(1).default('0.0.0.0'),
@@ -67,7 +74,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
     DATABASE_SSL_REJECT_UNAUTHORIZED: config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'true',
     DATABASE_SSL_CA_CERT: config.DATABASE_SSL_CA_CERT ?? '',
-    APP_MODE: config.APP_MODE ?? 'online',
+    APP_MODE: config.APP_MODE ?? 'CLOUD_SAAS',
   };
 
   const parsed = envSchema.parse(raw);
@@ -84,8 +91,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     throw new Error('SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAME_SITE is none');
   }
 
-  if (parsed.APP_MODE === 'offline' && parsed.DATABASE_HOST !== 'postgres') {
-    throw new Error('DATABASE_HOST must be "postgres" when APP_MODE=offline');
+  if ((parsed.APP_MODE === 'LOCAL_PILOT' || parsed.APP_MODE === 'SELF_CONTAINED') && parsed.DATABASE_HOST !== 'postgres') {
+    throw new Error('DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED');
   }
 
   return parsed;

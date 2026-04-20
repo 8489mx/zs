@@ -77,7 +77,7 @@ async function runProductionRateLimitStoreGuard(): Promise<void> {
 function runEnvGuards(): void {
   const base = {
     NODE_ENV: 'production',
-    APP_MODE: 'online',
+    APP_MODE: 'CLOUD_SAAS',
     DATABASE_HOST: 'localhost',
     DATABASE_PORT: '5432',
     DATABASE_NAME: 'app',
@@ -103,16 +103,16 @@ function runEnvGuards(): void {
   assert.throws(
     () => validateEnv({
       ...base,
-      APP_MODE: 'offline',
+      APP_MODE: 'SELF_CONTAINED',
       DATABASE_HOST: 'db.example.com',
       SESSION_CSRF_SECRET: '1234567890123456',
     }),
-    /DATABASE_HOST must be "postgres" when APP_MODE=offline/,
+    /DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED/,
   );
 
   assert.doesNotThrow(() => validateEnv({
     ...base,
-    APP_MODE: 'online',
+    APP_MODE: 'CLOUD_SAAS',
     DATABASE_HOST: 'db.example.com',
     SESSION_CSRF_SECRET: '1234567890123456',
   }));

@@ -15,9 +15,10 @@
 - ملف `.nvmrc` مضاف لضبط نفس النسخة محليًا (`nvm use`)
 
 ## Mode Contract (نفس الكودbase)
-- `APP_MODE=offline` لنسخة العميل المحلية (local PostgreSQL).
-- `APP_MODE=online` لنسخة الاستضافة (hosted PostgreSQL).
-- التبديل بين الوضعين يتم من خلال `.env` فقط.
+- `APP_MODE=LOCAL_PILOT` لنسخة العميل الحالية (pilot محلي).
+- `APP_MODE=SELF_CONTAINED` لنسخة installer عند الحاجة.
+- `APP_MODE=CLOUD_SAAS` لنسخة الاستضافة (hosted PostgreSQL).
+- التبديل بين الأوضاع يتم من خلال `.env` فقط (مع دعم legacy alias: `offline`/`online`).
 - التفاصيل الكاملة في: `MODE_CONTRACT.md`.
 
 ## التشغيل السريع بالحاويات
@@ -91,7 +92,7 @@ npm run compose:offline:config
 - Stop: `windows\\Stop-ZS.bat`
 - logs: `%ProgramData%\\ZS\\logs`
 
-> ملاحظة: launcher يتوقع `APP_MODE=offline` داخل `.env.offline`.
+> ملاحظة: launcher يعمل مع `APP_MODE=SELF_CONTAINED` (ويدعم legacy `offline` للتوافق).
 
 ### Installer لويندوز (Step 4)
 - ملف Inno Setup: `installer/windows/zs-offline.iss`
