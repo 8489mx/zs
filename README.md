@@ -14,6 +14,12 @@
 - PostgreSQL 16 عند التشغيل المحلي بدون Docker
 - ملف `.nvmrc` مضاف لضبط نفس النسخة محليًا (`nvm use`)
 
+## Mode Contract (نفس الكودbase)
+- `APP_MODE=offline` لنسخة العميل المحلية (local PostgreSQL).
+- `APP_MODE=online` لنسخة الاستضافة (hosted PostgreSQL).
+- التبديل بين الوضعين يتم من خلال `.env` فقط.
+- التفاصيل الكاملة في: `MODE_CONTRACT.md`.
+
 ## التشغيل السريع بالحاويات
 ```bash
 npm run compose:up
