@@ -32,6 +32,7 @@
     "offline:rollback": "bash ./scripts/offline/rollback.sh",
     "audit:offline-independence": "bash ./scripts/audit/check-offline-independence.sh",
     "audit:offline-signoff": "bash ./scripts/audit/create-offline-signoff.sh",
+    "audit:launch-report": "bash ./scripts/audit/generate-launch-readiness-report.sh",
     "release:bundle": "bash ./scripts/release/create-release-bundle.sh",
     "release:verify": "bash ./scripts/release/verify-release-bundle.sh",
     "installer:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./installer/windows/build-installer.ps1",

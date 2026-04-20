@@ -18,6 +18,8 @@
 5. اعتماد dry-run تشغيلي كامل:
    - `npm run audit:offline-signoff`
    - تعبئة وتوقيع ملف `OFFLINE_OPERATIONAL_DRY_RUN_SIGNOFF.md` (أو النسخة المولدة منه)
+6. توليد تقرير جاهزية نهائي:
+   - `npm run audit:launch-report`
 
 ## تعريف جاهزية الإطلاق
 - لا توجد أخطاء حرجة في backend tests.
@@ -25,3 +27,4 @@
 - backup/restore/upgrade/rollback مجرّبين فعليًا.
 - حزمة الإصدار موقعة checksum وقابلة للتحقق.
 - نموذج dry-run التشغيلي موقع ومعتمد.
+- تقرير Launch Readiness مولد ومرفق مع مخرجات الفحوص.

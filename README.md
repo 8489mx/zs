@@ -121,6 +121,11 @@ npm run audit:offline-independence
 npm run audit:offline-signoff
 ```
 
+### Launch readiness report (Step 7)
+```bash
+npm run audit:launch-report
+```
+
 راجع أيضًا:
 - `OFFLINE_SUPABASE_INDEPENDENCE_CHECKLIST.md`
 - `OFFLINE_ONLINE_SMOKE_CHECKLIST.md`
