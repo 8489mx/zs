@@ -117,7 +117,11 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     selectCartLine: base.selectCartLine,
     changeSelectedQty: base.changeSelectedQty,
     editSelectedQty: base.editSelectedQty,
-    removeSelectedItem: base.removeSelectedItem,
+    removeSelectedItem: () => {
+      if (!params.selectedLineKey) return false;
+      logCartRemoveEvent(params.selectedLineKey);
+      return base.removeSelectedItem();
+    },
     selectAdjacentCartLine: base.selectAdjacentCartLine,
     handleQuickCustomerSubmit: asyncActions.handleQuickCustomerSubmit,
     approveDiscountOverride: asyncActions.approveDiscountOverride,
