@@ -55,6 +55,14 @@ function isPlaceholderTenantValue(value: string): boolean {
   return normalized === 'default' || normalized.startsWith('replace-me');
 }
 
+function hasInsecureCorsOrigin(origins: string): boolean {
+  return origins
+    .split(',')
+    .map((origin) => origin.trim().toLowerCase())
+    .filter((origin) => origin.length > 0)
+    .some((origin) => origin === '*' || origin.includes('localhost') || origin.includes('127.0.0.1'));
+}
+
 export function validateEnv(config: Record<string, unknown>): AppEnv {
   const hasExplicitCsrfSecret = typeof config.SESSION_CSRF_SECRET === 'string' && config.SESSION_CSRF_SECRET.trim().length >= 16;
 
@@ -102,6 +110,14 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   }
 
   if (parsed.APP_MODE === 'CLOUD_SAAS' && parsed.NODE_ENV === 'production') {
+    if (!parsed.DATABASE_SSL || !parsed.DATABASE_SSL_REJECT_UNAUTHORIZED) {
+      throw new Error('DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must be true for CLOUD_SAAS production mode');
+    }
+
+    if (hasInsecureCorsOrigin(parsed.CORS_ORIGINS)) {
+      throw new Error('CORS_ORIGINS cannot include localhost, 127.0.0.1, or "*" in CLOUD_SAAS production mode');
+    }
+
     if (isPlaceholderTenantValue(parsed.TENANT_ID)) {
       throw new Error('TENANT_ID must be explicitly configured for CLOUD_SAAS production mode');
     }

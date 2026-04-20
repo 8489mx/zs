@@ -83,6 +83,9 @@ function runEnvGuards(): void {
     DATABASE_NAME: 'app',
     DATABASE_USER: 'user',
     DATABASE_PASSWORD: 'password',
+    DATABASE_SSL: 'true',
+    DATABASE_SSL_REJECT_UNAUTHORIZED: 'true',
+    CORS_ORIGINS: 'https://app.example.com',
   };
 
   assert.throws(() => validateEnv(base), /SESSION_CSRF_SECRET must be explicitly configured in production/);
@@ -108,6 +111,28 @@ function runEnvGuards(): void {
       SESSION_CSRF_SECRET: '1234567890123456',
     }),
     /DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED/,
+  );
+
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      DATABASE_SSL: 'false',
+      TENANT_ID: 'tenant-a',
+      ACCOUNT_ID: 'account-a',
+      SESSION_CSRF_SECRET: '1234567890123456',
+    }),
+    /DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must be true for CLOUD_SAAS production mode/,
+  );
+
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      CORS_ORIGINS: 'http://localhost:5173,https://app.example.com',
+      TENANT_ID: 'tenant-a',
+      ACCOUNT_ID: 'account-a',
+      SESSION_CSRF_SECRET: '1234567890123456',
+    }),
+    /CORS_ORIGINS cannot include localhost, 127.0.0.1, or "\*" in CLOUD_SAAS production mode/,
   );
 
   assert.doesNotThrow(() => validateEnv({
