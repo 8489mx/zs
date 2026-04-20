@@ -77,6 +77,7 @@ async function runProductionRateLimitStoreGuard(): Promise<void> {
 function runEnvGuards(): void {
   const base = {
     NODE_ENV: 'production',
+    APP_MODE: 'online',
     DATABASE_HOST: 'localhost',
     DATABASE_PORT: '5432',
     DATABASE_NAME: 'app',
@@ -98,6 +99,23 @@ function runEnvGuards(): void {
     }),
     /SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAME_SITE is none/,
   );
+
+  assert.throws(
+    () => validateEnv({
+      ...base,
+      APP_MODE: 'offline',
+      DATABASE_HOST: 'db.example.com',
+      SESSION_CSRF_SECRET: '1234567890123456',
+    }),
+    /DATABASE_HOST must be "postgres" when APP_MODE=offline/,
+  );
+
+  assert.doesNotThrow(() => validateEnv({
+    ...base,
+    APP_MODE: 'online',
+    DATABASE_HOST: 'db.example.com',
+    SESSION_CSRF_SECRET: '1234567890123456',
+  }));
 }
 
 async function main(): Promise<void> {
