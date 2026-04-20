@@ -22,7 +22,7 @@ export class CatalogCategoryService {
     const duplicate = await this.db.selectFrom('product_categories').select('id').where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
     if (duplicate) throw new AppError('Category already exists', 'CATEGORY_EXISTS', 400);
     await this.db.insertInto('product_categories').values({ name, is_active: true }).execute();
-    await this.audit.log('إضافة تصنيف', `تم إضافة تصنيف ${name} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('إضافة تصنيف', `تم إضافة تصنيف ${name} بواسطة ${actor.username}`, actor);
     return { ok: true, ...(await this.listCategories()) };
   }
 
@@ -34,7 +34,7 @@ export class CatalogCategoryService {
     const duplicate = await this.db.selectFrom('product_categories').select('id').where(sql`LOWER(name)`, '=', name.toLowerCase()).where('id', '!=', id).where('is_active', '=', true).executeTakeFirst();
     if (duplicate) throw new AppError('Category already exists', 'CATEGORY_EXISTS', 400);
     await this.db.updateTable('product_categories').set({ name, updated_at: sql`NOW()` }).where('id', '=', id).execute();
-    await this.audit.log('تعديل تصنيف', `تم تحديث تصنيف #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل تصنيف', `تم تحديث تصنيف #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, ...(await this.listCategories()) };
   }
 
@@ -42,7 +42,7 @@ export class CatalogCategoryService {
     const inUse = await this.db.selectFrom('products').select((eb) => eb.fn.countAll<number>().as('count')).where('category_id', '=', id).where('is_active', '=', true).executeTakeFirstOrThrow();
     if (Number(inUse.count || 0) > 0) throw new AppError('Category is used by products', 'CATEGORY_IN_USE', 400);
     await this.db.updateTable('product_categories').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
-    await this.audit.log('حذف تصنيف', `تم حذف تصنيف #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف تصنيف', `تم حذف تصنيف #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, ...(await this.listCategories()) };
   }
 }

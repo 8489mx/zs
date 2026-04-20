@@ -75,7 +75,7 @@ export class SettingsService {
         .execute();
     }
 
-    await this.audit.log('تعديل الإعدادات', `تم تعديل الإعدادات بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل الإعدادات', `تم تعديل الإعدادات بواسطة ${actor.username}`, actor);
     return this.getSettings();
   }
 
@@ -97,7 +97,7 @@ export class SettingsService {
       .returning(['id', 'name', 'code'])
       .executeTakeFirstOrThrow();
 
-    await this.audit.log('إضافة فرع', `تمت إضافة الفرع ${name} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('إضافة فرع', `تمت إضافة الفرع ${name} بواسطة ${actor.username}`, actor);
 
     return {
       ok: true,
@@ -145,7 +145,7 @@ export class SettingsService {
       .returning(['id', 'name', 'code', 'branch_id'])
       .executeTakeFirstOrThrow();
 
-    await this.audit.log('إضافة مخزن', `تمت إضافة المخزن ${name} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('إضافة مخزن', `تمت إضافة المخزن ${name} بواسطة ${actor.username}`, actor);
 
     return {
       ok: true,
@@ -167,7 +167,7 @@ export class SettingsService {
     if (!name) throw new AppError('Branch name is required', 'BRANCH_NAME_REQUIRED', 400);
 
     await this.db.updateTable('branches').set({ name, code }).where('id', '=', id).execute();
-    await this.audit.log('تعديل فرع', `تم تحديث الفرع #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل فرع', `تم تحديث الفرع #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, branchId: String(id), ...(await this.listBranches()) };
   }
 
@@ -181,7 +181,7 @@ export class SettingsService {
     }
 
     await this.db.updateTable('branches').set({ is_active: false }).where('id', '=', id).execute();
-    await this.audit.log('حذف فرع', `تم إلغاء تفعيل الفرع #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف فرع', `تم إلغاء تفعيل الفرع #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, removedBranchId: String(id), ...(await this.listBranches()) };
   }
 
@@ -204,7 +204,7 @@ export class SettingsService {
     }
 
     await this.db.updateTable('stock_locations').set({ name, code, branch_id: branchId }).where('id', '=', id).execute();
-    await this.audit.log('تعديل مخزن', `تم تحديث المخزن #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل مخزن', `تم تحديث المخزن #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, locationId: String(id), ...(await this.listLocations()) };
   }
 
@@ -218,7 +218,7 @@ export class SettingsService {
     }
 
     await this.db.updateTable('stock_locations').set({ is_active: false }).where('id', '=', id).execute();
-    await this.audit.log('حذف مخزن', `تم إلغاء تفعيل المخزن #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف مخزن', `تم إلغاء تفعيل المخزن #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, removedLocationId: String(id), ...(await this.listLocations()) };
   }
 

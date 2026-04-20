@@ -205,7 +205,7 @@ export class SettingsAdminService {
   async cleanupExpiredSessions(actor: AuthContext): Promise<Record<string, unknown>> {
     const result = await this.db.deleteFrom('sessions').where('expires_at', '<', new Date()).executeTakeFirst();
     const removed = Number(result.numDeletedRows || 0);
-    await this.audit.log('تنظيف الجلسات', `تم حذف ${removed} جلسة منتهية بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تنظيف الجلسات', `تم حذف ${removed} جلسة منتهية بواسطة ${actor.username}`, actor);
     return { ok: true, removed };
   }
 
@@ -227,7 +227,7 @@ export class SettingsAdminService {
       updated += 1;
     }
 
-    await this.audit.log('مطابقة أرصدة العملاء', `تمت مطابقة ${updated} عميل بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('مطابقة أرصدة العملاء', `تمت مطابقة ${updated} عميل بواسطة ${actor.username}`, actor);
     return { ok: true, updated };
   }
 
@@ -249,7 +249,7 @@ export class SettingsAdminService {
       updated += 1;
     }
 
-    await this.audit.log('مطابقة أرصدة الموردين', `تمت مطابقة ${updated} مورد بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('مطابقة أرصدة الموردين', `تمت مطابقة ${updated} مورد بواسطة ${actor.username}`, actor);
     return { ok: true, updated };
   }
 

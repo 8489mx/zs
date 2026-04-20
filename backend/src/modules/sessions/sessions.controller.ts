@@ -89,7 +89,7 @@ export class SessionsController {
 
     this.setAuthCookies(res, result.sessionId, result.expiresAt);
 
-    await this.auditService.log('تسجيل دخول', `تم تسجيل دخول المستخدم ${result.auth.username}`, result.auth.userId);
+    await this.auditService.log('تسجيل دخول', `تم تسجيل دخول المستخدم ${result.auth.username}`, result.auth);
 
     return {
       ok: true,
@@ -106,7 +106,7 @@ export class SessionsController {
   ): Promise<Record<string, unknown>> {
     await this.sessionService.logout(req.authContext!.sessionId);
     this.clearAuthCookies(res);
-    await this.auditService.log('تسجيل خروج', `تم تسجيل خروج المستخدم ${req.authContext!.username}`, req.authContext!.userId);
+    await this.auditService.log('تسجيل خروج', `تم تسجيل خروج المستخدم ${req.authContext!.username}`, req.authContext!);
     return { ok: true };
   }
 
@@ -126,7 +126,7 @@ export class SessionsController {
     }
 
     const sessions = await this.sessionService.listSessions(req.authContext!.userId);
-    await this.auditService.log('إنهاء جلسة', `تم إنهاء جلسة للمستخدم ${req.authContext!.username}`, req.authContext!.userId);
+    await this.auditService.log('إنهاء جلسة', `تم إنهاء جلسة للمستخدم ${req.authContext!.username}`, req.authContext!);
     return { ok: true, sessions };
   }
 
@@ -135,7 +135,7 @@ export class SessionsController {
   async revokeOthers(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     const removed = await this.sessionService.revokeOtherSessions(req.authContext!.userId, req.authContext!.sessionId);
     const sessions = await this.sessionService.listSessions(req.authContext!.userId);
-    await this.auditService.log('إنهاء الجلسات الأخرى', `تم إنهاء ${removed} جلسة أخرى`, req.authContext!.userId);
+    await this.auditService.log('إنهاء الجلسات الأخرى', `تم إنهاء ${removed} جلسة أخرى`, req.authContext!);
     return { ok: true, removed, sessions };
   }
 
@@ -144,7 +144,7 @@ export class SessionsController {
   async changePassword(@Body() payload: ChangePasswordDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     await this.sessionService.changePassword(req.authContext!.userId, payload.currentPassword, payload.newPassword);
     const removed = await this.sessionService.revokeOtherSessions(req.authContext!.userId, req.authContext!.sessionId);
-    await this.auditService.log('تغيير كلمة المرور', `تم تغيير كلمة المرور وإنهاء ${removed} جلسة`, req.authContext!.userId);
+    await this.auditService.log('تغيير كلمة المرور', `تم تغيير كلمة المرور وإنهاء ${removed} جلسة`, req.authContext!);
     return { ok: true, removedOtherSessions: removed };
   }
 

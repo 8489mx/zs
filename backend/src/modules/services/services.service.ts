@@ -95,7 +95,7 @@ export class ServicesService {
       `.execute(trx);
     });
 
-    await this.audit.log('إضافة خدمة', 'تمت إضافة خدمة بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('إضافة خدمة', 'تمت إضافة خدمة بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listServices({}, auth)) };
   }
 
@@ -118,7 +118,7 @@ export class ServicesService {
       `.execute(trx);
     });
 
-    await this.audit.log('تعديل خدمة', 'تم تعديل خدمة بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('تعديل خدمة', 'تم تعديل خدمة بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listServices({}, auth)) };
   }
 
@@ -129,7 +129,7 @@ export class ServicesService {
     }
 
     await sql`DELETE FROM services WHERE id = ${id}`.execute(this.db);
-    await this.audit.log('حذف خدمة', 'تم حذف خدمة بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('حذف خدمة', 'تم حذف خدمة بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listServices({}, auth)) };
   }
 }

@@ -158,7 +158,7 @@ export class PricingService {
       return runIdValue;
     });
 
-    await this.audit.log('موجة تسعير', `تم تنفيذ موجة تسعير رقم #${runId} على ${changedRows.length} صنف بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('موجة تسعير', `تم تنفيذ موجة تسعير رقم #${runId} على ${changedRows.length} صنف بواسطة ${actor.username}`, actor);
     return { ok: true, runId, preview };
   }
 
@@ -249,7 +249,7 @@ export class PricingService {
         .execute();
     });
 
-    await this.audit.log('تراجع موجة تسعير', `تم التراجع عن موجة التسعير رقم #${runId} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تراجع موجة تسعير', `تم التراجع عن موجة التسعير رقم #${runId} بواسطة ${actor.username}`, actor);
     return { ok: true, runId };
   }
 
@@ -313,7 +313,7 @@ export class PricingService {
       }
     });
 
-    await this.audit.log('ملفات تسعير', `تم تحديث ملفات التوريث/الاستثناء لعدد ${productIds.length} صنف إلى الوضع ${requestedMode} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('ملفات تسعير', `تم تحديث ملفات التوريث/الاستثناء لعدد ${productIds.length} صنف إلى الوضع ${requestedMode} بواسطة ${actor.username}`, actor);
     return {
       ok: true,
       updatedCount: productIds.length,
@@ -393,7 +393,7 @@ export class PricingService {
     }
 
     const rule = await this.getRuleById(ruleId);
-    await this.audit.log('قواعد التسعير', `تم حفظ قاعدة التسعير ${normalized.name} (#${ruleId}) بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('قواعد التسعير', `تم حفظ قاعدة التسعير ${normalized.name} (#${ruleId}) بواسطة ${actor.username}`, actor);
     return { ok: true, rule };
   }
 

@@ -110,7 +110,7 @@ export class TreasuryService {
       }).execute();
     });
 
-    await this.audit.log('تسجيل مصروف', 'تم تسجيل مصروف بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('تسجيل مصروف', 'تم تسجيل مصروف بواسطة ' + auth.username, auth);
     return { ok: true, ...(await this.listExpenses({}, auth)) };
   }
 }

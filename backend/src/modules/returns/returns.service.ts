@@ -227,7 +227,7 @@ export class ReturnsService {
       return this.createPurchaseReturn(trx, payload, normalizedItems, auth);
     });
     const label = payload.type === 'purchase' ? 'مرتجع شراء' : 'مرتجع بيع';
-    await this.audit.log('إنشاء مرتجع', 'تم إنشاء ' + label + ' بواسطة ' + auth.username, auth.userId);
+    await this.audit.log('إنشاء مرتجع', 'تم إنشاء ' + label + ' بواسطة ' + auth.username, auth);
     return { ok: true, createdIds: returnIds, ...(await this.listReturns({}, auth)) };
   }
 

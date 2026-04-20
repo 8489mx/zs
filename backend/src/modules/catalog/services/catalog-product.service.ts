@@ -711,7 +711,7 @@ export class CatalogProductService {
     const auditLabel = drafts.length > 1
       ? `تم إضافة مجموعة أصناف ${normalized.name} بعدد ${drafts.length} عناصر فرعية بواسطة ${actor.username}`
       : `تم إضافة الصنف ${normalized.name} بواسطة ${actor.username}`;
-    await this.audit.log('إضافة صنف', auditLabel, actor.userId);
+    await this.audit.log('إضافة صنف', auditLabel, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
 
@@ -774,7 +774,7 @@ export class CatalogProductService {
       await this.replaceProductRelations(trx, id, normalized);
     });
 
-    await this.audit.log('تعديل صنف', `تم تحديث الصنف #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('تعديل صنف', `تم تحديث الصنف #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
 
@@ -787,7 +787,7 @@ export class CatalogProductService {
       if (Number(movementCount.count || 0) > 0) throw new AppError('Product has transaction history and cannot be deleted', 'PRODUCT_HAS_HISTORY', 400);
       await trx.updateTable('products').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
     });
-    await this.audit.log('حذف صنف', `تم حذف الصنف #${id} بواسطة ${actor.username}`, actor.userId);
+    await this.audit.log('حذف صنف', `تم حذف الصنف #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
 }

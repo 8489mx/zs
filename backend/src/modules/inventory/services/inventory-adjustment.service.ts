@@ -85,7 +85,7 @@ export class InventoryAdjustmentService {
       result = { productId: payload.productId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter };
     });
 
-    await this.audit.log('تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth.userId);
+    await this.audit.log('تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth);
 
     return {
       ok: true,
