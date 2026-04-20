@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { APP_MODES, isLocalRuntimeMode, mapLegacyAppMode } from './app-mode';
 
 const booleanString = z
   .enum(['true', 'false'])
@@ -7,13 +8,9 @@ const booleanString = z
 
 const envSchema = z.object({
   APP_MODE: z
-    .enum(['LOCAL_PILOT', 'SELF_CONTAINED', 'CLOUD_SAAS', 'offline', 'online'])
+    .enum([...APP_MODES, 'offline', 'online'])
     .default('CLOUD_SAAS')
-    .transform((value) => {
-      if (value === 'offline') return 'LOCAL_PILOT';
-      if (value === 'online') return 'CLOUD_SAAS';
-      return value;
-    }),
+    .transform(mapLegacyAppMode),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_PORT: z.coerce.number().int().positive().default(3001),
   APP_HOST: z.string().min(1).default('0.0.0.0'),
@@ -91,7 +88,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     throw new Error('SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAME_SITE is none');
   }
 
-  if ((parsed.APP_MODE === 'LOCAL_PILOT' || parsed.APP_MODE === 'SELF_CONTAINED') && parsed.DATABASE_HOST !== 'postgres') {
+  if (isLocalRuntimeMode(parsed.APP_MODE) && parsed.DATABASE_HOST !== 'postgres') {
     throw new Error('DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED');
   }
 
