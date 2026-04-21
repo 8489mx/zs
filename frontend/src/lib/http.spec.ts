@@ -47,6 +47,21 @@ describe('http client', () => {
     expect(event.detail).toEqual({ path: '/secure', status: 401 });
   });
 
+
+  it('keeps backend status handling when a json response body is malformed', async () => {
+    const malformed = new Response('اسم المستخدم أو كلمة المرور غير صحيحين', {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(malformed));
+
+    await expect(http('/api/auth/login')).rejects.toMatchObject({
+      status: 401,
+      message: 'اسم المستخدم أو كلمة المرور غير صحيحين',
+    });
+  });
+
   it('maps transport failures to a network api error and emits a network-state event', async () => {
     const listener = vi.fn();
     window.addEventListener(APP_NETWORK_STATE_EVENT, listener as EventListener);

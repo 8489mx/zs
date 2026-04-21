@@ -204,7 +204,16 @@ export async function http<T>(path: string, init?: HttpRequestInit): Promise<T> 
     }
 
     const contentType = response.headers.get('content-type') || '';
-    const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+    const rawPayload = await response.text();
+
+    let payload: unknown = rawPayload;
+    if (contentType.includes('application/json')) {
+      try {
+        payload = rawPayload ? JSON.parse(rawPayload) : null;
+      } catch {
+        payload = rawPayload;
+      }
+    }
 
     if (!response.ok) {
       if (response.status === 401) {
