@@ -45,8 +45,36 @@ const sendFile = (res, filePath) => {
   fs.createReadStream(filePath).pipe(res);
 };
 
+const proxyApiRequest = (req, res, target) => {
+  const proxyReq = http.request(
+    {
+      hostname: '127.0.0.1',
+      port: backendPort,
+      method: req.method,
+      path: `${target.pathname}${target.search}`,
+      headers: req.headers,
+    },
+    (proxyRes) => {
+      res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
+      proxyRes.pipe(res);
+    },
+  );
+
+  proxyReq.on('error', (error) => {
+    res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ message: 'Backend proxy error', detail: error.message }));
+  });
+
+  req.pipe(proxyReq);
+};
+
 const server = http.createServer((req, res) => {
   const target = new URL(req.url || '/', `http://${req.headers.host}`);
+
+  if (target.pathname.startsWith('/api/')) {
+    proxyApiRequest(req, res, target);
+    return;
+  }
 
   if (target.pathname === '/health/ready') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
