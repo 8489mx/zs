@@ -22,3 +22,23 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# additional generated artifacts
+**/*.tsbuildinfo
+**/coverage/
+**/test-results/
+*.zip
+
+# portable runtime artifacts (step 1)
+portable/runtime/postgres/**
+!portable/runtime/postgres/README.md
+portable/runtime/data/**
+!portable/runtime/data/.gitkeep
+portable/runtime/logs/**
+!portable/runtime/logs/.gitkeep
+portable/backups/**
+!portable/backups/.gitkeep
+portable/runtime/run/**
+!portable/runtime/run/.gitkeep
+portable/config/.env.offline
+portable/release/**

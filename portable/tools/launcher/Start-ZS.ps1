@@ -69,28 +69,7 @@ try {
   Wait-PostgresReady -Paths $paths -EnvMap $envMap -TimeoutSeconds 45
 
   $env:PGPASSWORD = $dbPass
-  $psqlOutput = & $psql -h 127.0.0.1 -p $dbPort -U $dbUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$dbName';" 2>&1
-  $psqlExitCode = $LASTEXITCODE
-  $exists = if ($null -ne $psqlOutput) {
-    (($psqlOutput | ForEach-Object { [string]$_ }) -join '').Trim()
-  } else {
-    ''
-  }
-
-  if ($psqlExitCode -ne 0) {
-    $psqlMessage = if ($null -ne $psqlOutput) {
-      (($psqlOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine).Trim()
-    } else {
-      ''
-    }
-
-    if ([string]::IsNullOrWhiteSpace($psqlMessage)) {
-      $psqlMessage = 'No output from psql.'
-    }
-
-    throw "psql database existence check failed with exit code $psqlExitCode. $psqlMessage"
-  }
-
+  $exists = (& $psql -h 127.0.0.1 -p $dbPort -U $dbUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$dbName';").Trim()
   if ($exists -ne '1') {
     Write-LauncherLog -Paths $paths -Name $logName -Message "Creating database '$dbName'."
     & $createdb -h 127.0.0.1 -p $dbPort -U $dbUser $dbName
@@ -114,10 +93,6 @@ try {
     -Paths $paths `
     -Name 'backend'
 
-  if ($null -eq $backendProc) {
-    throw 'Backend process could not be started.'
-  }
-
   $frontendServerScript = Join-Path $paths.LauncherDir 'serve-frontend.mjs'
   if (-not (Test-Path $frontendServerScript)) {
     throw "Frontend server script missing: $frontendServerScript"
@@ -130,10 +105,6 @@ try {
     -Arguments @($frontendServerScript, '--root', $paths.AppFrontendDir, '--port', $frontendPort, '--backend-port', $backendPort) `
     -Paths $paths `
     -Name 'frontend'
-
-  if ($null -eq $frontendProc) {
-    throw 'Frontend process could not be started.'
-  }
 
   Start-Sleep -Seconds 2
 
@@ -151,17 +122,7 @@ try {
   Write-LauncherLog -Paths $paths -Name $logName -Message "ZS portable started. URL: $appUrl"
   Write-Host "ZS portable started successfully at $appUrl"
 } catch {
-  $msg = 'Start-ZS failed with unknown error.'
-
-  if ($null -ne $_) {
-    if ($null -ne $_.Exception -and -not [string]::IsNullOrWhiteSpace([string]$_.Exception.Message)) {
-      $msg = [string]$_.Exception.Message
-    } elseif (-not [string]::IsNullOrWhiteSpace([string]$_)) {
-      $msg = [string]$_
-    }
-  }
-
-  Write-LauncherLog -Paths $paths -Name $logName -Message ("Start failed: " + $msg)
-  Write-Error -Message $msg
+  Write-LauncherLog -Paths $paths -Name $logName -Message ("Start failed: " + $_.Exception.Message)
+  Write-Error $_.Exception.Message
   exit 1
 }
