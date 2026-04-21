@@ -28,7 +28,7 @@
 - `NODE_ENV`
 - `APP_HOST`
 - `APP_PORT`
-- `SESSION_CSRF_SECRET`
+- `SESSION_CSRF_SECRET` (إلزامي صراحة في `production`)
 
 ### قاعدة البيانات (في الوضعين)
 - `DATABASE_HOST`
@@ -56,6 +56,16 @@
 ### قواعد عامة
 - Fail-fast عند نقص/تعارض env مع رسالة واضحة.
 - عدم إضافة guard يعطل hosted mode الصحيح.
+- `ALLOW_SESSION_ID_HEADER=false` في `production`.
+- إذا كان `SESSION_COOKIE_SAME_SITE=none` فيجب أن يكون `SESSION_COOKIE_SECURE=true`.
+
+### Session/CSRF Security Policy
+- **development/test**: مسموح fallback محلي داخلي للـ CSRF secret لتسهيل التشغيل المحلي.
+- **production**: يجب توفير `SESSION_CSRF_SECRET` بشكل صريح، وأي fallback محلي يؤدي إلى fail-fast.
+- ملفات env examples الخاصة بالإنتاج (`.env.production.example`, `.env.saas.example`, `.env.offline.example`, `.env.compose.example`) يجب أن تحتوي قيمة صريحة لـ `SESSION_CSRF_SECRET` مع:
+  - `SESSION_COOKIE_SECURE=true`
+  - `SESSION_COOKIE_SAME_SITE=strict`
+  - `ALLOW_SESSION_ID_HEADER=false`
 
 ---
 
