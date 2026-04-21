@@ -69,23 +69,6 @@ export class ReportsSummaryService {
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', fromDate)
       .where('s.created_at', '<=', toDate);
-    let cogsAggQuery = this.db
-      .selectFrom('sale_items as si')
-      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
-      .select(sql<number>`coalesce(sum(si.qty * si.cost_price), 0)`.as('cogs'))
-      .$castTo<{ cogs: number }>();
-    let topProductsQuery = this.db
-      .selectFrom('sale_items as si')
-      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
-      .select([
-        sql<string>`max(si.product_name)`.as('product_name'),
-        sql<number>`coalesce(sum(si.qty), 0)`.as('qty_total'),
-        sql<number>`coalesce(sum(si.line_total), 0)`.as('revenue_total'),
-      ])
-      .groupBy('si.product_id')
-      .orderBy('revenue_total', 'desc')
-      .limit(10);
-
     if (query.branchId) {
       const branchId = Number(query.branchId);
       salesAggQuery = salesAggQuery.where('s.branch_id', '=', branchId);
@@ -105,12 +88,22 @@ export class ReportsSummaryService {
       treasuryAggQuery = treasuryAggQuery.where('t.location_id', '=', locationId);
       filteredPostedSalesIdsQuery = filteredPostedSalesIdsQuery.where('s.location_id', '=', locationId);
     }
-    cogsAggQuery = this.db
+
+    const cogsPerSaleQuery = this.db
       .selectFrom('sale_items as si')
-      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
-      .select(sql<number>`coalesce(sum(si.qty * si.cost_price), 0)`.as('cogs'))
+      .select([
+        'si.sale_id',
+        sql<number>`coalesce(sum(si.qty * si.cost_price), 0)`.as('sale_cogs'),
+      ])
+      .groupBy('si.sale_id');
+
+    const cogsAggQuery = this.db
+      .selectFrom(cogsPerSaleQuery.as('sc'))
+      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'sc.sale_id')
+      .select(sql<number>`coalesce(sum(sc.sale_cogs), 0)`.as('cogs'))
       .$castTo<{ cogs: number }>();
-    topProductsQuery = this.db
+
+    const topProductsQuery = this.db
       .selectFrom('sale_items as si')
       .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
       .select([
