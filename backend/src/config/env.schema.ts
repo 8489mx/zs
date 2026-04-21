@@ -6,6 +6,8 @@ const booleanString = z
   .default('false')
   .transform((value) => value === 'true');
 
+const LOCAL_DEV_CSRF_SECRET = 'local-dev-csrf-secret-replace-before-production';
+
 const envSchema = z.object({
   APP_MODE: z
     .enum([...APP_MODES, ...Object.keys(LEGACY_APP_MODE_ALIASES)])
@@ -81,7 +83,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
       ?? ((config.NODE_ENV as string | undefined) === 'production' ? 'strict' : 'lax'),
     SESSION_CSRF_SECRET:
       config.SESSION_CSRF_SECRET
-      ?? `${String(config.DATABASE_PASSWORD ?? 'local-dev-csrf-secret')}:csrf:v1`,
+      ?? LOCAL_DEV_CSRF_SECRET,
     ALLOW_SESSION_ID_HEADER: config.ALLOW_SESSION_ID_HEADER ?? 'false',
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
     TENANT_ID: config.TENANT_ID ?? 'default',
@@ -95,6 +97,10 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
 
   if (parsed.NODE_ENV === 'production' && !hasExplicitCsrfSecret) {
     throw new Error('SESSION_CSRF_SECRET must be explicitly configured in production');
+  }
+
+  if (parsed.NODE_ENV === 'production' && parsed.SESSION_CSRF_SECRET === LOCAL_DEV_CSRF_SECRET) {
+    throw new Error('SESSION_CSRF_SECRET must not use the local development fallback in production');
   }
 
   if (parsed.NODE_ENV === 'production' && parsed.ALLOW_SESSION_ID_HEADER) {
