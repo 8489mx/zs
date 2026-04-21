@@ -1,0 +1,1 @@
+C:/zn/portable/runtime/postgres/bin/postgres.exe "-D" "C:/zn/portable/runtime/data" "-p" "8489" "-h" "127.0.0.1"

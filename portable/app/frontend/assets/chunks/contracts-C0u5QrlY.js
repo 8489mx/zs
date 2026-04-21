@@ -1,0 +1,1 @@
+function u(n,t,r){return n&&typeof n=="object"&&t in n?n[t]??r:n??r}function e(n,t){const r=u(n,t,[]);return Array.isArray(r)?r:[]}function i(n,t){const r=u(n,t,null);if(r==null)throw new Error(`Missing expected API entity: ${t}`);return r}export{i as a,u as b,e as u};

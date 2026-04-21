@@ -1,0 +1,1 @@
+import{j as a}from"./vendor-react-DQTAhX50.js";import{B as d}from"../index-39ebdrc9.js";function m({value:e,options:i,onChange:l,className:s="filter-chip-row"}){return a.jsx("div",{className:s,children:i.map(r=>a.jsx(d,{variant:e===r.value?"primary":"secondary",onClick:()=>l(r.value),disabled:r.disabled,children:r.label},r.value))})}export{m as F};

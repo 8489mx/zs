@@ -1,0 +1,1 @@
+function a(e){const s=e||{},n=new URLSearchParams;Object.entries(s).forEach(([c,r])=>{r==null||r===""||r===!1||n.set(c,String(r))});const t=n.toString();return t?`?${t}`:""}function o(e,s="default"){const n=e||{},t=new URLSearchParams;return Object.entries(n).forEach(([c,r])=>{r==null||r===""||r===!1||t.set(c,String(r))}),t.toString()||s}export{a,o as b};

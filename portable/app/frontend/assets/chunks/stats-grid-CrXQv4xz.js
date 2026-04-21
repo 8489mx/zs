@@ -1,0 +1,1 @@
+import{j as s}from"./vendor-react-DQTAhX50.js";function i({items:a,className:t="stats-grid compact-grid"}){return s.jsx("div",{className:t,children:a.map(r=>s.jsxs("div",{className:"stat-card",children:[s.jsx("span",{children:r.label}),s.jsx("strong",{children:r.value})]},r.key))})}export{i as S};
