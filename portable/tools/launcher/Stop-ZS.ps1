@@ -12,13 +12,13 @@ try {
   $dbPort = Get-EnvValue -EnvMap $envMap -Key 'DB_PORT' -Default '5432'
 
   foreach ($name in @('frontend', 'backend')) {
-    $pid = Read-PidFile -Paths $paths -Name $name
-    if ($null -ne $pid) {
+    $trackedProcessId = Read-PidFile -Paths $paths -Name $name
+    if ($null -ne $trackedProcessId) {
       try {
-        Stop-Process -Id $pid -Force -ErrorAction Stop
-        Write-LauncherLog -Paths $paths -Name $logName -Message "Stopped $name process (PID $pid)."
+        Stop-Process -Id $trackedProcessId -Force -ErrorAction Stop
+        Write-LauncherLog -Paths $paths -Name $logName -Message "Stopped $name process (PID $trackedProcessId)."
       } catch {
-        Write-LauncherLog -Paths $paths -Name $logName -Message "$name process already stopped or inaccessible (PID $pid)."
+        Write-LauncherLog -Paths $paths -Name $logName -Message "$name process already stopped or inaccessible (PID $trackedProcessId)."
       }
 
       Remove-PidFile -Paths $paths -Name $name

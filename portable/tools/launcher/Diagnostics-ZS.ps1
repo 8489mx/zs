@@ -26,14 +26,14 @@ try {
   Write-Host ("Frontend: {0}" -f $paths.AppFrontendDir)
 
   foreach ($name in @('backend', 'frontend')) {
-    $pid = Read-PidFile -Paths $paths -Name $name
-    if ($null -eq $pid) {
+    $trackedProcessId = Read-PidFile -Paths $paths -Name $name
+    if ($null -eq $trackedProcessId) {
       Write-Host ("PID {0}: not found" -f $name)
       continue
     }
 
-    $alive = Test-ProcessAlive -Pid $pid
-    Write-Host ("PID {0}: {1} (alive={2})" -f $name, $pid, $alive)
+    $alive = Test-ProcessAlive -ProcessId $trackedProcessId
+    Write-Host ("PID {0}: {1} (alive={2})" -f $name, $trackedProcessId, $alive)
   }
 
   $dbPort = Get-EnvValue -EnvMap $envMap -Key 'DB_PORT' -Default '5432'

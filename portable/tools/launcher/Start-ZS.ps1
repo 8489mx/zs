@@ -108,11 +108,11 @@ try {
 
   Start-Sleep -Seconds 2
 
-  if (-not (Test-ProcessAlive -Pid $backendProc.Id)) {
+  if (-not (Test-ProcessAlive -ProcessId $backendProc.Id)) {
     throw 'Backend process exited immediately after launch.'
   }
 
-  if (-not (Test-ProcessAlive -Pid $frontendProc.Id)) {
+  if (-not (Test-ProcessAlive -ProcessId $frontendProc.Id)) {
     throw 'Frontend process exited immediately after launch.'
   }
 

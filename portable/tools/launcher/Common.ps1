@@ -129,10 +129,10 @@ function Wait-PostgresReady([hashtable]$Paths, [hashtable]$EnvMap, [int]$Timeout
   throw 'PostgreSQL did not become ready within timeout.'
 }
 
-function Write-PidFile([hashtable]$Paths, [string]$Name, [int]$Pid) {
+function Write-PidFile([hashtable]$Paths, [string]$Name, [int]$ProcessId) {
   Ensure-Directory -Path $Paths.RuntimeRunDir
   $pidFile = Join-Path $Paths.RuntimeRunDir ("{0}.pid" -f $Name)
-  Set-Content -Path $pidFile -Value $Pid -Encoding ascii
+  Set-Content -Path $pidFile -Value $ProcessId -Encoding ascii
 }
 
 function Read-PidFile([hashtable]$Paths, [string]$Name) {
@@ -156,9 +156,9 @@ function Remove-PidFile([hashtable]$Paths, [string]$Name) {
   }
 }
 
-function Test-ProcessAlive([int]$Pid) {
+function Test-ProcessAlive([int]$ProcessId) {
   try {
-    $p = Get-Process -Id $Pid -ErrorAction Stop
+    $p = Get-Process -Id $ProcessId -ErrorAction Stop
     return $null -ne $p
   } catch {
     return $false
@@ -180,7 +180,7 @@ function Start-ProcessHiddenTracked {
     -WindowStyle Hidden `
     -PassThru
 
-  Write-PidFile -Paths $Paths -Name $Name -Pid $process.Id
+  Write-PidFile -Paths $Paths -Name $Name -ProcessId $process.Id
   return $process
 }
 

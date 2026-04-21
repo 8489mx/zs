@@ -16,17 +16,51 @@ function getMigrationsPath(): string {
   return join(process.cwd(), 'src', 'database', 'migrations');
 }
 
+function getEnvValue(primaryKey: string, fallbackKey: string, defaultValue?: string): string | undefined {
+  const primary = process.env[primaryKey];
+  if (primary !== undefined && primary !== '') {
+    return primary;
+  }
+
+  const fallback = process.env[fallbackKey];
+  if (fallback !== undefined && fallback !== '') {
+    return fallback;
+  }
+
+  return defaultValue;
+}
+
+function formatErrorDetails(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const details: string[] = [];
+  details.push(`message: ${error.message}`);
+
+  if (error.stack) {
+    details.push(`stack: ${error.stack}`);
+  }
+
+  const cause = (error as Error & { cause?: unknown }).cause;
+  if (cause !== undefined) {
+    details.push(`cause: ${formatErrorDetails(cause)}`);
+  }
+
+  return details.join('\n');
+}
+
 async function run(): Promise<void> {
   const command = process.argv[2] ?? 'up';
   const db = new Kysely<Database>({
     dialect: new PostgresDialect({
       pool: new Pool({
-        host: process.env.DATABASE_HOST,
-        port: Number(process.env.DATABASE_PORT ?? '5432'),
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASSWORD,
-        database: process.env.DATABASE_NAME,
-        ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+        host: getEnvValue('DATABASE_HOST', 'DB_HOST'),
+        port: Number(getEnvValue('DATABASE_PORT', 'DB_PORT', '5432')),
+        user: getEnvValue('DATABASE_USER', 'DB_USER'),
+        password: getEnvValue('DATABASE_PASSWORD', 'DB_PASSWORD'),
+        database: getEnvValue('DATABASE_NAME', 'DB_NAME'),
+        ssl: getEnvValue('DATABASE_SSL', 'DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
       }),
     }),
   });
@@ -55,9 +89,7 @@ async function run(): Promise<void> {
   }
 
   if (result.error) {
-    const message =
-      result.error instanceof Error ? result.error.message : String(result.error);
-    process.stderr.write(`Migration failed: ${message}\n`);
+    process.stderr.write(`Migration failed:\n${formatErrorDetails(result.error)}\n`);
     await db.destroy();
     process.exit(1);
   }
@@ -66,6 +98,6 @@ async function run(): Promise<void> {
 }
 
 run().catch((error: unknown) => {
-  process.stderr.write(`Migration command failed: ${String(error)}\n`);
+  process.stderr.write(`Migration command failed:\n${formatErrorDetails(error)}\n`);
   process.exit(1);
 });
