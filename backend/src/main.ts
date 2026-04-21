@@ -9,6 +9,19 @@ import { ResponseMetadataInterceptor } from './common/interceptors/response-meta
 import { requestValidationPipe } from './common/pipes/request-validation.pipe';
 import { LoggerService } from './core/logging/logger.service';
 
+
+function formatErrorDetails(error: unknown): string {
+  if (error instanceof Error) {
+    return [
+      `Failed to bootstrap application: ${error.message}`,
+      `stack: ${error.stack ?? 'N/A'}`,
+      `cause: ${String(error.cause ?? 'N/A')}`,
+    ].join('\n');
+  }
+
+  return `Failed to bootstrap application: ${typeof error === 'string' ? error : JSON.stringify(error)}`;
+}
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
@@ -52,20 +65,6 @@ async function bootstrap(): Promise<void> {
 
 bootstrap().catch((error: unknown) => {
   const logger = new LoggerService();
-
-  if (error instanceof Error) {
-    const details = [
-      `Failed to bootstrap application: ${error.message}`,
-      `stack: ${error.stack ?? 'N/A'}`,
-      `cause: ${String(error.cause ?? 'N/A')}`,
-    ].join('\n');
-
-    logger.error(details);
-  } else {
-    logger.error(
-      `Failed to bootstrap application: ${typeof error === 'string' ? error : JSON.stringify(error)}`,
-    );
-  }
-
+  logger.error(formatErrorDetails(error));
   process.exit(1);
 });
