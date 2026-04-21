@@ -1,10 +1,10 @@
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
 param(
   [string]$SourceRoot = '..\..',
   [string]$OutputDir = '..\release\portable-bundle'
 )
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $portableRoot = (Resolve-Path (Join-Path $scriptDir '..')).Path
