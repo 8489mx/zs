@@ -2,15 +2,19 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 param(
-  [string]$SourceRoot = '..\..'
-  ,[string]$OutputDir = '..\release\portable-bundle'
+  [string]$SourceRoot = '..\..',
+  [string]$OutputDir = '..\release\portable-bundle'
 )
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $portableRoot = (Resolve-Path (Join-Path $scriptDir '..')).Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir $SourceRoot)).Path
 $outRootResolved = Resolve-Path (Join-Path $scriptDir $OutputDir) -ErrorAction SilentlyContinue
-$outRoot = if ($null -ne $outRootResolved) { $outRootResolved.Path } else { Join-Path $scriptDir $OutputDir }
+if ($null -ne $outRootResolved) {
+  $outRoot = $outRootResolved.Path
+} else {
+  $outRoot = Join-Path $scriptDir $OutputDir
+}
 
 function Ensure-Dir([string]$Path) {
   if (-not (Test-Path $Path)) {
