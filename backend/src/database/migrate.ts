@@ -16,18 +16,34 @@ function getMigrationsPath(): string {
   return join(process.cwd(), 'src', 'database', 'migrations');
 }
 
-function getEnvValue(primaryKey: string, fallbackKey: string, defaultValue?: string): string | undefined {
-  const primary = process.env[primaryKey];
-  if (primary !== undefined && primary !== '') {
-    return primary;
-  }
-
-  const fallback = process.env[fallbackKey];
-  if (fallback !== undefined && fallback !== '') {
-    return fallback;
+function getEnvValue(keys: string[], defaultValue?: string): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value !== undefined && value !== '') {
+      return value;
+    }
   }
 
   return defaultValue;
+}
+
+function getRequiredEnvValue(keys: string[]): string {
+  const value = getEnvValue(keys);
+  if (value === undefined) {
+    throw new Error(`Missing required database environment variable. Checked keys: ${keys.join(', ')}`);
+  }
+
+  return value;
+}
+
+function getRequiredPort(): number {
+  const raw = getRequiredEnvValue(['DATABASE_PORT', 'DB_PORT', 'PGPORT']);
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`Invalid database port value: ${raw}`);
+  }
+
+  return port;
 }
 
 function formatErrorDetails(error: unknown): string {
@@ -55,12 +71,12 @@ async function run(): Promise<void> {
   const db = new Kysely<Database>({
     dialect: new PostgresDialect({
       pool: new Pool({
-        host: getEnvValue('DATABASE_HOST', 'DB_HOST'),
-        port: Number(getEnvValue('DATABASE_PORT', 'DB_PORT', '5432')),
-        user: getEnvValue('DATABASE_USER', 'DB_USER'),
-        password: getEnvValue('DATABASE_PASSWORD', 'DB_PASSWORD'),
-        database: getEnvValue('DATABASE_NAME', 'DB_NAME'),
-        ssl: getEnvValue('DATABASE_SSL', 'DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+        host: getRequiredEnvValue(['DATABASE_HOST', 'DB_HOST']),
+        port: getRequiredPort(),
+        user: getRequiredEnvValue(['DATABASE_USER', 'DB_USER']),
+        password: getRequiredEnvValue(['DATABASE_PASSWORD', 'DB_PASSWORD']),
+        database: getRequiredEnvValue(['DATABASE_NAME', 'DB_NAME']),
+        ssl: getEnvValue(['DATABASE_SSL', 'DB_SSL'], 'false') === 'true' ? { rejectUnauthorized: false } : false,
       }),
     }),
   });

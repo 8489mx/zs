@@ -12,7 +12,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://127.0.0.1:5173'),
   DATABASE_HOST: z.string().min(1),
-  DATABASE_PORT: z.coerce.number().int().positive().default(5432),
+  DATABASE_PORT: z.coerce.number().int().positive(),
   DATABASE_NAME: z.string().min(1),
   DATABASE_USER: z.string().min(1),
   DATABASE_PASSWORD: z.string().min(1),
@@ -46,6 +46,11 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
 
   const raw = {
     ...config,
+    DATABASE_HOST: config.DATABASE_HOST ?? config.DB_HOST,
+    DATABASE_PORT: config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT,
+    DATABASE_NAME: config.DATABASE_NAME ?? config.DB_NAME,
+    DATABASE_USER: config.DATABASE_USER ?? config.DB_USER,
+    DATABASE_PASSWORD: config.DATABASE_PASSWORD ?? config.DB_PASSWORD,
     ENABLE_BOOTSTRAP_ADMIN: config.ENABLE_BOOTSTRAP_ADMIN ?? 'false',
     LICENSE_MODE: config.LICENSE_MODE ?? 'desktop',
     ACTIVATION_ENFORCED: config.ACTIVATION_ENFORCED ?? 'false',
