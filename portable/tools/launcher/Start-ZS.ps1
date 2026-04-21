@@ -6,6 +6,25 @@ $ErrorActionPreference = 'Stop'
 $paths = Get-PathMap
 $logName = 'launcher-start.log'
 
+function Get-ErrorDetails([System.Management.Automation.ErrorRecord]$ErrorRecord) {
+  if ($null -eq $ErrorRecord) {
+    return 'Unknown launcher error.'
+  }
+
+  $details = @()
+  if ($ErrorRecord.Exception -and $ErrorRecord.Exception.Message) {
+    $details += $ErrorRecord.Exception.Message
+  } elseif ($ErrorRecord.ToString()) {
+    $details += $ErrorRecord.ToString()
+  }
+
+  if ($ErrorRecord.ScriptStackTrace) {
+    $details += "ScriptStackTrace: $($ErrorRecord.ScriptStackTrace)"
+  }
+
+  return ($details -join [Environment]::NewLine)
+}
+
 try {
   Ensure-Directory -Path $paths.RuntimeRunDir
   Ensure-Directory -Path $paths.RuntimeDataDir
@@ -122,7 +141,8 @@ try {
   Write-LauncherLog -Paths $paths -Name $logName -Message "ZS portable started. URL: $appUrl"
   Write-Host "ZS portable started successfully at $appUrl"
 } catch {
-  Write-LauncherLog -Paths $paths -Name $logName -Message ("Start failed: " + $_.Exception.Message)
-  Write-Error $_.Exception.Message
+  $errorDetails = Get-ErrorDetails -ErrorRecord $_
+  Write-LauncherLog -Paths $paths -Name $logName -Message ("Start failed: " + $errorDetails)
+  Write-Error $errorDetails
   exit 1
 }
