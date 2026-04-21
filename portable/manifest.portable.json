@@ -1,0 +1,32 @@
+{
+  "name": "zs-portable-layout",
+  "version": 4,
+  "mode": "offline",
+  "platform": "windows",
+  "launcher": {
+    "check": "tools/launcher/Check-Portable-Ready.bat",
+    "start": "tools/launcher/Start-ZS.bat",
+    "stop": "tools/launcher/Stop-ZS.bat",
+    "backup": "tools/launcher/Backup-ZS.bat",
+    "restore": "tools/launcher/Restore-ZS.bat",
+    "diagnostics": "tools/launcher/Diagnostics-ZS.bat"
+  },
+  "paths": {
+    "backend": "app/backend",
+    "frontend": "app/frontend",
+    "postgres_runtime": "runtime/postgres",
+    "postgres_bin": "runtime/postgres/bin",
+    "postgres_data": "runtime/data",
+    "runtime_pids": "runtime/run",
+    "logs": "runtime/logs",
+    "env": "config/.env.offline",
+    "backups": "backups"
+  },
+  "first_run": {
+    "bootstrap_marker": "runtime/run/.bootstrap_done",
+    "bootstrap_command_env": "BACKEND_BOOTSTRAP_CMD"
+  },
+  "release": {
+    "assemble_script": "scripts/Assemble-Portable.bat"
+  }
+}
