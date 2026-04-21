@@ -101,8 +101,8 @@ async function main(): Promise<void> {
         url: '/api/reports/financial-summary?from=2026-01-01&to=2026-01-31',
       },
       samples: Array.from({ length: 8 }, (_, i) => ({
-        db: [14 + (i % 3), 18 + (i % 2), 12 + (i % 2), 11, 9 + (i % 2), 8],
-        delay: 28 + (i % 5),
+        db: [14 + (i % 3), 10 + (i % 2), 12 + (i % 2), 11, 9 + (i % 2), 8],
+        delay: 23 + (i % 4),
       })),
     },
   ];

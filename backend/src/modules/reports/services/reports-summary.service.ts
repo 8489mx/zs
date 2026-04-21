@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { type Kysely } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -9,6 +9,8 @@ import { sql } from '../../../database/kysely';
 
 @Injectable()
 export class ReportsSummaryService {
+  private readonly logger = new Logger(ReportsSummaryService.name);
+
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   async reportSummary(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
@@ -61,25 +63,26 @@ export class ReportsSummaryService {
       ])
       .where('t.created_at', '>=', fromDate)
       .where('t.created_at', '<=', toDate);
-    let cogsAggQuery = this.db
-      .selectFrom('sale_items as si')
-      .innerJoin('sales as s', 's.id', 'si.sale_id')
-      .select(sql<number>`coalesce(sum(si.qty * si.cost_price), 0)`.as('cogs'))
+    let filteredPostedSalesIdsQuery = this.db
+      .selectFrom('sales as s')
+      .select(['s.id'])
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', fromDate)
       .where('s.created_at', '<=', toDate);
+    let cogsAggQuery = this.db
+      .selectFrom('sale_items as si')
+      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
+      .select(sql<number>`coalesce(sum(si.qty * si.cost_price), 0)`.as('cogs'))
+      .$castTo<{ cogs: number }>();
     let topProductsQuery = this.db
       .selectFrom('sale_items as si')
-      .innerJoin('sales as s', 's.id', 'si.sale_id')
+      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
       .select([
-        'si.product_name',
+        sql<string>`max(si.product_name)`.as('product_name'),
         sql<number>`coalesce(sum(si.qty), 0)`.as('qty_total'),
         sql<number>`coalesce(sum(si.line_total), 0)`.as('revenue_total'),
       ])
-      .where('s.status', '=', 'posted')
-      .where('s.created_at', '>=', fromDate)
-      .where('s.created_at', '<=', toDate)
-      .groupBy('si.product_name')
+      .groupBy('si.product_id')
       .orderBy('revenue_total', 'desc')
       .limit(10);
 
@@ -90,8 +93,7 @@ export class ReportsSummaryService {
       expensesAggQuery = expensesAggQuery.where('e.branch_id', '=', branchId);
       returnsAggQuery = returnsAggQuery.where('r.branch_id', '=', branchId);
       treasuryAggQuery = treasuryAggQuery.where('t.branch_id', '=', branchId);
-      cogsAggQuery = cogsAggQuery.where('s.branch_id', '=', branchId);
-      topProductsQuery = topProductsQuery.where('s.branch_id', '=', branchId);
+      filteredPostedSalesIdsQuery = filteredPostedSalesIdsQuery.where('s.branch_id', '=', branchId);
     }
 
     if (query.locationId) {
@@ -101,19 +103,57 @@ export class ReportsSummaryService {
       expensesAggQuery = expensesAggQuery.where('e.location_id', '=', locationId);
       returnsAggQuery = returnsAggQuery.where('r.location_id', '=', locationId);
       treasuryAggQuery = treasuryAggQuery.where('t.location_id', '=', locationId);
-      cogsAggQuery = cogsAggQuery.where('s.location_id', '=', locationId);
-      topProductsQuery = topProductsQuery.where('s.location_id', '=', locationId);
+      filteredPostedSalesIdsQuery = filteredPostedSalesIdsQuery.where('s.location_id', '=', locationId);
     }
+    cogsAggQuery = this.db
+      .selectFrom('sale_items as si')
+      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
+      .select(sql<number>`coalesce(sum(si.qty * si.cost_price), 0)`.as('cogs'))
+      .$castTo<{ cogs: number }>();
+    topProductsQuery = this.db
+      .selectFrom('sale_items as si')
+      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
+      .select([
+        sql<string>`max(si.product_name)`.as('product_name'),
+        sql<number>`coalesce(sum(si.qty), 0)`.as('qty_total'),
+        sql<number>`coalesce(sum(si.line_total), 0)`.as('revenue_total'),
+      ])
+      .groupBy('si.product_id')
+      .orderBy('revenue_total', 'desc')
+      .limit(10);
+
+    const timings: Array<{ name: string; durationMs: number }> = [];
+    const timed = async <T>(name: string, action: () => Promise<T>): Promise<T> => {
+      const startedAt = process.hrtime.bigint();
+      const result = await action();
+      timings.push({
+        name,
+        durationMs: Number((Number(process.hrtime.bigint() - startedAt) / 1_000_000).toFixed(2)),
+      });
+      return result;
+    };
 
     const [salesAgg, purchasesAgg, expensesAgg, returnsAgg, treasuryAgg, cogsAgg, topProductsRows] = await Promise.all([
-      salesAggQuery.executeTakeFirst(),
-      purchasesAggQuery.executeTakeFirst(),
-      expensesAggQuery.executeTakeFirst(),
-      returnsAggQuery.executeTakeFirst(),
-      treasuryAggQuery.executeTakeFirst(),
-      cogsAggQuery.executeTakeFirst(),
-      topProductsQuery.execute(),
+      timed('salesAgg', () => salesAggQuery.executeTakeFirst()),
+      timed('purchasesAgg', () => purchasesAggQuery.executeTakeFirst()),
+      timed('expensesAgg', () => expensesAggQuery.executeTakeFirst()),
+      timed('returnsAgg', () => returnsAggQuery.executeTakeFirst()),
+      timed('treasuryAgg', () => treasuryAggQuery.executeTakeFirst()),
+      timed('cogsAgg', () => cogsAggQuery.executeTakeFirst()),
+      timed('topProducts', () => topProductsQuery.execute()),
     ]);
+
+    const slowest = timings.slice().sort((a, b) => b.durationMs - a.durationMs)[0];
+    if (slowest && slowest.durationMs >= 5) {
+      this.logger.debug(
+        JSON.stringify({
+          event: 'financial_summary_subquery_timing',
+          slowestSubQuery: slowest.name,
+          slowestDurationMs: slowest.durationMs,
+          timings,
+        }),
+      );
+    }
 
     const salesTotal = Number(salesAgg?.total || 0);
     const purchasesTotal = Number(purchasesAgg?.total || 0);
