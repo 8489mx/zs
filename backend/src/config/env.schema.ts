@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { APP_MODES, isLocalRuntimeMode, mapLegacyAppMode } from './app-mode';
+import { APP_MODES, isLocalRuntimeMode, LEGACY_APP_MODE_ALIASES, normalizeAppMode } from './app-mode';
 
 const booleanString = z
   .enum(['true', 'false'])
@@ -8,9 +8,9 @@ const booleanString = z
 
 const envSchema = z.object({
   APP_MODE: z
-    .enum([...APP_MODES, 'offline', 'online'])
-    .default('CLOUD_SAAS')
-    .transform(mapLegacyAppMode),
+    .enum([...APP_MODES, ...Object.keys(LEGACY_APP_MODE_ALIASES)])
+    .default('online')
+    .transform(normalizeAppMode),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_PORT: z.coerce.number().int().positive().default(3001),
   APP_HOST: z.string().min(1).default('0.0.0.0'),
@@ -88,7 +88,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     ACCOUNT_ID: config.ACCOUNT_ID ?? 'default',
     DATABASE_SSL_REJECT_UNAUTHORIZED: config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'true',
     DATABASE_SSL_CA_CERT: config.DATABASE_SSL_CA_CERT ?? '',
-    APP_MODE: config.APP_MODE ?? 'CLOUD_SAAS',
+    APP_MODE: config.APP_MODE ?? 'online',
   };
 
   const parsed = envSchema.parse(raw);
@@ -109,7 +109,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     throw new Error('DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED');
   }
 
-  if (parsed.APP_MODE === 'CLOUD_SAAS' && parsed.NODE_ENV === 'production') {
+  if (parsed.APP_MODE === 'online' && parsed.NODE_ENV === 'production') {
     if (!parsed.DATABASE_SSL || !parsed.DATABASE_SSL_REJECT_UNAUTHORIZED) {
       throw new Error('DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must be true for CLOUD_SAAS production mode');
     }
