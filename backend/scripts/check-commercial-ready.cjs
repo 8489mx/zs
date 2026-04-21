@@ -21,6 +21,7 @@ const checks = [
   'scripts/check-go-live.cjs',
   'scripts/check-permissions-audit.cjs',
   'scripts/check-env-safety.cjs',
+  'scripts/check-windows-sale-readiness.cjs',
   'scripts/verify-readiness.cjs',
   'src/common/utils/location-stock-ledger.ts',
   'src/database/migrations/1710000006000-location-stock-ledger.ts',
@@ -43,7 +44,7 @@ if (missing.length) {
 }
 
 const repoPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-for (const scriptName of ['qa', 'qa:release', 'package:clean', 'qa:sale-ready']) {
+for (const scriptName of ['qa', 'qa:release', 'package:clean', 'qa:sale-ready', 'installer:windows']) {
   if (!repoPkg.scripts || !repoPkg.scripts[scriptName]) {
     console.error(`[check:commercial-ready] missing repo script: ${scriptName}`);
     process.exit(1);

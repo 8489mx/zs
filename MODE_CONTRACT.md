@@ -1,38 +1,36 @@
 # Mode Contract (Single Codebase)
 
 ## الهدف
-توحيد التشغيل على نفس الكودbase عبر متغير بيئة واحد:
-- `APP_MODE=LOCAL_PILOT|SELF_CONTAINED|CLOUD_SAAS`
+تثبيت وضعَي التشغيل الرسميين لنفس الكودbase عبر متغير بيئة واحد:
+- `APP_MODE=offline|online`
 
-لا يوجد fork للمشروع ولا معماريتين منفصلتين.
-
----
-
-## القاعدة العامة
-1. **LOCAL_PILOT**
-   - مخصص لتشغيل نسخة العميل التجريبية محليًا.
-   - قاعدة البيانات PostgreSQL محلية (داخل Docker stack pilot).
-
-2. **SELF_CONTAINED**
-   - نسخة Installer/Launcher على نفس الكودbase.
-   - طبقة packaging إضافية بدون تغيير business logic.
-
-3. **CLOUD_SAAS**
-   - مخصص للاستضافة على VPS/Cloud/Host.
-   - PostgreSQL خارجية/مستضافة.
+لا يوجد fork للمشروع ولا مسار business logic منفصل.
 
 ---
 
-## أقل env مطلوبة
+## الأوضاع الرسمية
+1. **offline**
+   - نسخة العميل المحلية (Windows launcher/installer path).
+   - قاعدة البيانات PostgreSQL محلية داخل `docker-compose.offline.yml`.
+   - لا اعتماد runtime مطلوب على قواعد بيانات خارجية.
+
+2. **online**
+   - نسخة الاستضافة (SaaS/Hosted) على VPS/Cloud.
+   - قاعدة البيانات PostgreSQL خارجية/مستضافة.
+   - نفس backend/frontend ونفس business modules.
+
+---
+
+## Environment Contract (الحد الأدنى)
 
 ### مشتركة
-- `APP_MODE`
+- `APP_MODE` (القيم المسموحة رسميًا: `offline|online`)
 - `NODE_ENV`
 - `APP_HOST`
 - `APP_PORT`
-- `SESSION_CSRF_SECRET`
+- `SESSION_CSRF_SECRET` (إلزامي صراحة في `production`)
 
-### Database (للوضعين)
+### قاعدة البيانات (في الوضعين)
 - `DATABASE_HOST`
 - `DATABASE_PORT`
 - `DATABASE_NAME`
@@ -44,7 +42,34 @@
 
 ---
 
+## Guard Rules (توثيق مرحلي قبل التنفيذ)
+### عند `APP_MODE=offline`
+- `DATABASE_HOST` يجب أن يكون `postgres` داخل مسار compose offline.
+- `DATABASE_SSL=false` افتراضيًا.
+- أي host خارجي لقاعدة البيانات يُعتبر misconfiguration.
+
+### عند `APP_MODE=online`
+- يسمح بـ `DATABASE_HOST` خارجي.
+- يسمح/يتوقع `DATABASE_SSL=true` حسب مزود الاستضافة.
+- يجب التحقق من اكتمال env الإلزامية قبل startup.
+
+### قواعد عامة
+- Fail-fast عند نقص/تعارض env مع رسالة واضحة.
+- عدم إضافة guard يعطل hosted mode الصحيح.
+- `ALLOW_SESSION_ID_HEADER=false` في `production`.
+- إذا كان `SESSION_COOKIE_SAME_SITE=none` فيجب أن يكون `SESSION_COOKIE_SECURE=true`.
+
+### Session/CSRF Security Policy
+- **development/test**: مسموح fallback محلي داخلي للـ CSRF secret لتسهيل التشغيل المحلي.
+- **production**: يجب توفير `SESSION_CSRF_SECRET` بشكل صريح، وأي fallback محلي يؤدي إلى fail-fast.
+- ملفات env examples الخاصة بالإنتاج (`.env.production.example`, `.env.saas.example`, `.env.offline.example`, `.env.compose.example`) يجب أن تحتوي قيمة صريحة لـ `SESSION_CSRF_SECRET` مع:
+  - `SESSION_COOKIE_SECURE=true`
+  - `SESSION_COOKIE_SAME_SITE=strict`
+  - `ALLOW_SESSION_ID_HEADER=false`
+
+---
+
 ## Policy
-- التبديل بين modes يتم عبر `.env` فقط (مع دعم legacy aliases: `offline` -> `LOCAL_PILOT`, `online` -> `CLOUD_SAAS`).
-- scripts الحالية تبقى كما هي (لا كسر).
-- أي guard لاحقًا يجب أن يمنع misconfiguration بدون غلق hosted mode الصحيح.
+- التبديل بين `offline` و`online` يتم عبر `.env` فقط.
+- طبقة Windows launcher/installer هي طبقة تشغيل فقط، وليست معمارية بديلة.
+- `frontend/` و`backend/` يظلان نظيفين وقابلين للإرسال/الضغط بشكل منفصل.

@@ -90,6 +90,10 @@ function runEnvGuards(): void {
 
   assert.throws(() => validateEnv(base), /SESSION_CSRF_SECRET must be explicitly configured in production/);
   assert.throws(
+    () => validateEnv({ ...base, SESSION_CSRF_SECRET: 'local-dev-csrf-secret-replace-before-production' }),
+    /SESSION_CSRF_SECRET must not use the local development fallback in production/,
+  );
+  assert.throws(
     () => validateEnv({ ...base, SESSION_CSRF_SECRET: '1234567890123456', ALLOW_SESSION_ID_HEADER: 'true' }),
     /ALLOW_SESSION_ID_HEADER must remain disabled in production/,
   );
@@ -167,6 +171,14 @@ function runEnvGuards(): void {
     }),
     /ACCOUNT_ID must be explicitly configured for CLOUD_SAAS production mode/,
   );
+
+  const devParsed = validateEnv({
+    ...base,
+    NODE_ENV: 'development',
+    APP_MODE: 'online',
+    DATABASE_HOST: 'db.example.com',
+  });
+  assert.equal(devParsed.SESSION_CSRF_SECRET, 'local-dev-csrf-secret-replace-before-production');
 }
 
 async function main(): Promise<void> {

@@ -25,6 +25,7 @@ import { SecurityHeadersMiddleware } from './common/middleware/security-headers.
 import { LoginRateLimitMiddleware } from './common/middleware/login-rate-limit.middleware';
 import { AuthBurstRateLimitMiddleware } from './common/middleware/auth-burst-rate-limit.middleware';
 import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit.service';
+import { CriticalRequestTimingMiddleware } from './common/middleware/critical-request-timing.middleware';
 
 @Module({
   imports: [
@@ -51,11 +52,29 @@ import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit
     ActivationModule,
     PricingModule,
   ],
-  providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
+  providers: [
+    InMemoryRateLimitService,
+    LoginRateLimitMiddleware,
+    AuthBurstRateLimitMiddleware,
+    CriticalRequestTimingMiddleware,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(SecurityHeadersMiddleware).forRoutes('*');
+
+    consumer
+      .apply(CriticalRequestTimingMiddleware)
+      .forRoutes(
+        { path: 'api/auth/login', method: RequestMethod.POST },
+        { path: 'api/auth/logout', method: RequestMethod.POST },
+        { path: 'api/sales', method: RequestMethod.GET },
+        { path: 'api/sales', method: RequestMethod.POST },
+        { path: 'api/purchases', method: RequestMethod.GET },
+        { path: 'api/purchases', method: RequestMethod.POST },
+        { path: 'api/reports/dashboard', method: RequestMethod.GET },
+        { path: 'api/reports/financial-summary', method: RequestMethod.GET },
+      );
 
     consumer
       .apply(LoginRateLimitMiddleware)

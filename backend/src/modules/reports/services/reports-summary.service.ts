@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { type Kysely } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -9,6 +9,8 @@ import { sql } from '../../../database/kysely';
 
 @Injectable()
 export class ReportsSummaryService {
+  private readonly logger = new Logger(ReportsSummaryService.name);
+
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   async reportSummary(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
@@ -16,106 +18,173 @@ export class ReportsSummaryService {
     const fromDate = new Date(range.from);
     const toDate = new Date(range.to);
 
-    const salesRows = filterScope(await this.db
-      .selectFrom('sales')
-      .select(['id', 'total', 'discount', 'branch_id', 'location_id', 'created_at'])
-      .where('status', '=', 'posted')
-      .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .execute(), query);
-
-    const purchasesRows = filterScope(await this.db
-      .selectFrom('purchases')
-      .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
-      .where('status', '=', 'posted')
-      .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .execute(), query);
-
-    const expensesRows = filterScope(await this.db
-      .selectFrom('expenses')
-      .select(['id', 'amount', 'branch_id', 'location_id', 'expense_date'])
-      .where('expense_date', '>=', fromDate)
-      .where('expense_date', '<=', toDate)
-      .execute(), query);
-
-    const returnsRows = filterScope(await this.db
-      .selectFrom('return_documents')
-      .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_at'])
-      .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .execute(), query);
-
-    const treasuryRows = filterScope(await this.db
-      .selectFrom('treasury_transactions')
-      .select(['amount', 'branch_id', 'location_id', 'created_at'])
-      .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .execute(), query);
-
-    const saleItemsRows = filterScope(await this.db
-      .selectFrom('sale_items as si')
-      .innerJoin('sales as s', 's.id', 'si.sale_id')
+    let salesAggQuery = this.db
+      .selectFrom('sales as s')
       .select([
-        'si.product_id',
-        'si.product_name',
-        'si.qty',
-        'si.line_total',
-        'si.cost_price',
-        's.branch_id',
-        's.location_id',
-        's.created_at',
+        sql<number>`count(*)`.as('count'),
+        sql<number>`coalesce(sum(s.total), 0)`.as('total'),
       ])
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', fromDate)
-      .where('s.created_at', '<=', toDate)
-      .execute(), query);
+      .where('s.created_at', '<=', toDate);
+    let purchasesAggQuery = this.db
+      .selectFrom('purchases as p')
+      .select([
+        sql<number>`count(*)`.as('count'),
+        sql<number>`coalesce(sum(p.total), 0)`.as('total'),
+      ])
+      .where('p.status', '=', 'posted')
+      .where('p.created_at', '>=', fromDate)
+      .where('p.created_at', '<=', toDate);
+    let expensesAggQuery = this.db
+      .selectFrom('expenses as e')
+      .select([
+        sql<number>`count(*)`.as('count'),
+        sql<number>`coalesce(sum(e.amount), 0)`.as('total'),
+      ])
+      .where('e.expense_date', '>=', fromDate)
+      .where('e.expense_date', '<=', toDate);
+    let returnsAggQuery = this.db
+      .selectFrom('return_documents as r')
+      .select([
+        sql<number>`count(*)`.as('count'),
+        sql<number>`coalesce(sum(case when r.return_type = 'sale' then r.total else 0 end), 0)`.as('sales_total'),
+        sql<number>`coalesce(sum(case when r.return_type = 'purchase' then r.total else 0 end), 0)`.as('purchase_total'),
+        sql<number>`coalesce(sum(case when r.return_type = 'sale' then 1 else 0 end), 0)`.as('sales_count'),
+        sql<number>`coalesce(sum(case when r.return_type = 'purchase' then 1 else 0 end), 0)`.as('purchase_count'),
+      ])
+      .where('r.created_at', '>=', fromDate)
+      .where('r.created_at', '<=', toDate);
+    let treasuryAggQuery = this.db
+      .selectFrom('treasury_transactions as t')
+      .select([
+        sql<number>`coalesce(sum(case when t.amount > 0 then t.amount else 0 end), 0)`.as('cash_in'),
+        sql<number>`abs(coalesce(sum(case when t.amount < 0 then t.amount else 0 end), 0))`.as('cash_out'),
+      ])
+      .where('t.created_at', '>=', fromDate)
+      .where('t.created_at', '<=', toDate);
+    let filteredPostedSalesIdsQuery = this.db
+      .selectFrom('sales as s')
+      .select(['s.id'])
+      .where('s.status', '=', 'posted')
+      .where('s.created_at', '>=', fromDate)
+      .where('s.created_at', '<=', toDate);
+    if (query.branchId) {
+      const branchId = Number(query.branchId);
+      salesAggQuery = salesAggQuery.where('s.branch_id', '=', branchId);
+      purchasesAggQuery = purchasesAggQuery.where('p.branch_id', '=', branchId);
+      expensesAggQuery = expensesAggQuery.where('e.branch_id', '=', branchId);
+      returnsAggQuery = returnsAggQuery.where('r.branch_id', '=', branchId);
+      treasuryAggQuery = treasuryAggQuery.where('t.branch_id', '=', branchId);
+      filteredPostedSalesIdsQuery = filteredPostedSalesIdsQuery.where('s.branch_id', '=', branchId);
+    }
 
-    const salesTotal = sumMoney(salesRows, (row) => row.total);
-    const purchasesTotal = sumMoney(purchasesRows, (row) => row.total);
-    const expensesTotal = sumMoney(expensesRows, (row) => row.amount);
-    const salesReturnRows = returnsRows.filter((row) => row.return_type === 'sale');
-    const purchaseReturnRows = returnsRows.filter((row) => row.return_type === 'purchase');
-    const salesReturnsTotal = sumMoney(salesReturnRows, (row) => row.total);
-    const purchaseReturnsTotal = sumMoney(purchaseReturnRows, (row) => row.total);
+    if (query.locationId) {
+      const locationId = Number(query.locationId);
+      salesAggQuery = salesAggQuery.where('s.location_id', '=', locationId);
+      purchasesAggQuery = purchasesAggQuery.where('p.location_id', '=', locationId);
+      expensesAggQuery = expensesAggQuery.where('e.location_id', '=', locationId);
+      returnsAggQuery = returnsAggQuery.where('r.location_id', '=', locationId);
+      treasuryAggQuery = treasuryAggQuery.where('t.location_id', '=', locationId);
+      filteredPostedSalesIdsQuery = filteredPostedSalesIdsQuery.where('s.location_id', '=', locationId);
+    }
+
+    const cogsPerSaleQuery = this.db
+      .selectFrom('sale_items as si')
+      .select([
+        'si.sale_id',
+        sql<number>`coalesce(sum(si.qty * si.cost_price), 0)`.as('sale_cogs'),
+      ])
+      .groupBy('si.sale_id');
+
+    const cogsAggQuery = this.db
+      .selectFrom(cogsPerSaleQuery.as('sc'))
+      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'sc.sale_id')
+      .select(sql<number>`coalesce(sum(sc.sale_cogs), 0)`.as('cogs'))
+      .$castTo<{ cogs: number }>();
+
+    const topProductsQuery = this.db
+      .selectFrom('sale_items as si')
+      .innerJoin(filteredPostedSalesIdsQuery.as('fs'), 'fs.id', 'si.sale_id')
+      .select([
+        sql<string>`max(si.product_name)`.as('product_name'),
+        sql<number>`coalesce(sum(si.qty), 0)`.as('qty_total'),
+        sql<number>`coalesce(sum(si.line_total), 0)`.as('revenue_total'),
+      ])
+      .groupBy('si.product_id')
+      .orderBy('revenue_total', 'desc')
+      .limit(10);
+
+    const timings: Array<{ name: string; durationMs: number }> = [];
+    const timed = async <T>(name: string, action: () => Promise<T>): Promise<T> => {
+      const startedAt = process.hrtime.bigint();
+      const result = await action();
+      timings.push({
+        name,
+        durationMs: Number((Number(process.hrtime.bigint() - startedAt) / 1_000_000).toFixed(2)),
+      });
+      return result;
+    };
+
+    const [salesAgg, purchasesAgg, expensesAgg, returnsAgg, treasuryAgg, cogsAgg, topProductsRows] = await Promise.all([
+      timed('salesAgg', () => salesAggQuery.executeTakeFirst()),
+      timed('purchasesAgg', () => purchasesAggQuery.executeTakeFirst()),
+      timed('expensesAgg', () => expensesAggQuery.executeTakeFirst()),
+      timed('returnsAgg', () => returnsAggQuery.executeTakeFirst()),
+      timed('treasuryAgg', () => treasuryAggQuery.executeTakeFirst()),
+      timed('cogsAgg', () => cogsAggQuery.executeTakeFirst()),
+      timed('topProducts', () => topProductsQuery.execute()),
+    ]);
+
+    const slowest = timings.slice().sort((a, b) => b.durationMs - a.durationMs)[0];
+    if (slowest && slowest.durationMs >= 5) {
+      this.logger.debug(
+        JSON.stringify({
+          event: 'financial_summary_subquery_timing',
+          slowestSubQuery: slowest.name,
+          slowestDurationMs: slowest.durationMs,
+          timings,
+        }),
+      );
+    }
+
+    const salesTotal = Number(salesAgg?.total || 0);
+    const purchasesTotal = Number(purchasesAgg?.total || 0);
+    const expensesTotal = Number(expensesAgg?.total || 0);
+    const salesReturnsTotal = Number(returnsAgg?.sales_total || 0);
+    const purchaseReturnsTotal = Number(returnsAgg?.purchase_total || 0);
     const returnsTotal = toMoney(salesReturnsTotal + purchaseReturnsTotal);
-
-    const cogs = toMoney(saleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0));
+    const cogs = toMoney(Number(cogsAgg?.cogs || 0));
     const netSales = Math.max(0, toMoney(salesTotal - salesReturnsTotal));
     const netPurchases = Math.max(0, toMoney(purchasesTotal - purchaseReturnsTotal));
     const grossProfit = toMoney(netSales - cogs);
     const grossMarginPercent = netSales > 0 ? toMoney((grossProfit / netSales) * 100) : 0;
     const netOperatingProfit = toMoney(grossProfit - expensesTotal);
 
-    const cashIn = sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) > 0), (row) => row.amount);
-    const cashOut = Math.abs(sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) < 0), (row) => row.amount));
-
-    const topProductsMap = new Map<string, { name: string; qty: number; revenue: number; total: number }>();
-    for (const row of saleItemsRows) {
-      const key = String(row.product_name || row.product_id || '');
-      const item = topProductsMap.get(key) || { name: String(row.product_name || ''), qty: 0, revenue: 0, total: 0 };
-      item.qty += Number(row.qty || 0);
-      item.revenue += Number(row.line_total || 0);
-      item.total += Number(row.line_total || 0);
-      topProductsMap.set(key, item);
-    }
+    const cashIn = Number(treasuryAgg?.cash_in || 0);
+    const cashOut = Number(treasuryAgg?.cash_out || 0);
 
     return {
       range,
-      sales: { count: salesRows.length, total: salesTotal, netSales },
-      purchases: { count: purchasesRows.length, total: purchasesTotal, netPurchases },
-      expenses: { count: expensesRows.length, total: expensesTotal },
+      sales: { count: Number(salesAgg?.count || 0), total: salesTotal, netSales },
+      purchases: { count: Number(purchasesAgg?.count || 0), total: purchasesTotal, netPurchases },
+      expenses: { count: Number(expensesAgg?.count || 0), total: expensesTotal },
       returns: {
-        count: returnsRows.length,
+        count: Number(returnsAgg?.count || 0),
         total: returnsTotal,
-        salesCount: salesReturnRows.length,
-        purchasesCount: purchaseReturnRows.length,
+        salesCount: Number(returnsAgg?.sales_count || 0),
+        purchasesCount: Number(returnsAgg?.purchase_count || 0),
         salesTotal: salesReturnsTotal,
         purchasesTotal: purchaseReturnsTotal,
       },
       treasury: { cashIn, cashOut, net: toMoney(cashIn - cashOut) },
       commercial: { cogs, grossProfit, grossMarginPercent, netOperatingProfit, informationalOnlyPurchasesInPeriod: netPurchases },
-      topProducts: [...topProductsMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10),
+      topProducts: topProductsRows.map((row) => ({
+        name: String(row.product_name || ''),
+        qty: Number(row.qty_total || 0),
+        revenue: Number(row.revenue_total || 0),
+        total: Number(row.revenue_total || 0),
+      })),
     };
   }
 

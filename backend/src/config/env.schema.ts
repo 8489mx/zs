@@ -1,16 +1,18 @@
 import { z } from 'zod';
-import { APP_MODES, isLocalRuntimeMode, mapLegacyAppMode } from './app-mode';
+import { APP_MODES, isLocalRuntimeMode, LEGACY_APP_MODE_ALIASES, normalizeAppMode } from './app-mode';
 
 const booleanString = z
   .enum(['true', 'false'])
   .default('false')
   .transform((value) => value === 'true');
 
+const LOCAL_DEV_CSRF_SECRET = 'local-dev-csrf-secret-replace-before-production';
+
 const envSchema = z.object({
   APP_MODE: z
-    .enum([...APP_MODES, 'offline', 'online'])
-    .default('CLOUD_SAAS')
-    .transform(mapLegacyAppMode),
+    .enum([...APP_MODES, ...Object.keys(LEGACY_APP_MODE_ALIASES)])
+    .default('online')
+    .transform(normalizeAppMode),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_PORT: z.coerce.number().int().positive().default(3001),
   APP_HOST: z.string().min(1).default('0.0.0.0'),
@@ -81,20 +83,24 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
       ?? ((config.NODE_ENV as string | undefined) === 'production' ? 'strict' : 'lax'),
     SESSION_CSRF_SECRET:
       config.SESSION_CSRF_SECRET
-      ?? `${String(config.DATABASE_PASSWORD ?? 'local-dev-csrf-secret')}:csrf:v1`,
+      ?? LOCAL_DEV_CSRF_SECRET,
     ALLOW_SESSION_ID_HEADER: config.ALLOW_SESSION_ID_HEADER ?? 'false',
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
     TENANT_ID: config.TENANT_ID ?? 'default',
     ACCOUNT_ID: config.ACCOUNT_ID ?? 'default',
     DATABASE_SSL_REJECT_UNAUTHORIZED: config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'true',
     DATABASE_SSL_CA_CERT: config.DATABASE_SSL_CA_CERT ?? '',
-    APP_MODE: config.APP_MODE ?? 'CLOUD_SAAS',
+    APP_MODE: config.APP_MODE ?? 'online',
   };
 
   const parsed = envSchema.parse(raw);
 
   if (parsed.NODE_ENV === 'production' && !hasExplicitCsrfSecret) {
     throw new Error('SESSION_CSRF_SECRET must be explicitly configured in production');
+  }
+
+  if (parsed.NODE_ENV === 'production' && parsed.SESSION_CSRF_SECRET === LOCAL_DEV_CSRF_SECRET) {
+    throw new Error('SESSION_CSRF_SECRET must not use the local development fallback in production');
   }
 
   if (parsed.NODE_ENV === 'production' && parsed.ALLOW_SESSION_ID_HEADER) {
@@ -109,7 +115,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     throw new Error('DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED');
   }
 
-  if (parsed.APP_MODE === 'CLOUD_SAAS' && parsed.NODE_ENV === 'production') {
+  if (parsed.APP_MODE === 'online' && parsed.NODE_ENV === 'production') {
     if (!parsed.DATABASE_SSL || !parsed.DATABASE_SSL_REJECT_UNAUTHORIZED) {
       throw new Error('DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must be true for CLOUD_SAAS production mode');
     }

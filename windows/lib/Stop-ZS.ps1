@@ -9,6 +9,13 @@ $logFile = 'launcher-stop.log'
 try {
   Write-LauncherLog -FileName $logFile -Message 'Stop launcher initiated.'
   Assert-DockerCli
+  try {
+    Wait-DockerReady -TimeoutSeconds 15
+  } catch {
+    Write-LauncherLog -FileName $logFile -Message 'Docker engine is not ready; treating stack as already stopped.'
+    Write-Host 'Docker engine is not ready. ZS stack is considered stopped.'
+    exit 0
+  }
 
   Push-Location $root
   try {

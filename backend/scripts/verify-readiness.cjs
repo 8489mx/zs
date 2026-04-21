@@ -57,6 +57,7 @@ const requiredBackendScripts = [
   'check:readiness',
   'check:permissions',
   'check:env-safety',
+  'check:windows-sale-ready',
   'check:release-gate',
   'check:go-live',
   'check:commercial-ready',
@@ -78,6 +79,7 @@ const requiredRepoScripts = [
   'e2e:self',
   'package:clean',
   'qa:sale-ready',
+  'installer:windows',
 ];
 
 for (const scriptName of requiredRepoScripts) {
