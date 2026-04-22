@@ -1,1 +1,0 @@
-import{b as e}from"./vendor-query-BYNogPQ1.js";import{q as t}from"../index-39ebdrc9.js";import{settingsApi as r}from"./settings.api-D8mPP9YZ.js";const s=6e4;function o(){return e({queryKey:t.settings,queryFn:r.settings,staleTime:s})}export{o as u};

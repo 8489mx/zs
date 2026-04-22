@@ -1,1 +1,0 @@
-import{h as a}from"../index-39ebdrc9.js";import{u as s,b as t}from"./contracts-C0u5QrlY.js";const r={settings:async()=>t(await a("/api/settings"),"settings",{}),branches:async()=>s(await a("/api/branches"),"branches"),locations:async()=>s(await a("/api/locations"),"locations")};export{r};
