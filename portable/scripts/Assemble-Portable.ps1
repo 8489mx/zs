@@ -46,6 +46,13 @@ try {
   # Copy portable framework (without runtime data).
   Copy-IfExists -Source $portableRoot -Dest $outRoot
 
+
+  $bootstrapMarker = Join-Path $outRoot 'runtime/run/.bootstrap_done'
+  if (Test-Path $bootstrapMarker) {
+    Remove-Item -Path $bootstrapMarker -Force -ErrorAction SilentlyContinue
+    Write-Host "Removed stale bootstrap marker: $bootstrapMarker"
+  }
+
   # Overlay backend/frontend build artifacts from repository if available.
   $backendDist = Join-Path $repoRoot 'backend/dist'
   $backendPkg = Join-Path $repoRoot 'backend/package.json'

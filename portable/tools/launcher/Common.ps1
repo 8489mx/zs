@@ -129,6 +129,27 @@ function Wait-PostgresReady([hashtable]$Paths, [hashtable]$EnvMap, [int]$Timeout
   throw 'PostgreSQL did not become ready within timeout.'
 }
 
+
+function Wait-HttpReady([string]$Url, [int]$TimeoutSeconds = 30) {
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+  while ((Get-Date) -lt $deadline) {
+    try {
+      $response = Invoke-WebRequest -Uri $Url -Method Get -UseBasicParsing -TimeoutSec 5
+      if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
+        return $true
+      }
+    } catch {
+      Start-Sleep -Milliseconds 700
+      continue
+    }
+
+    Start-Sleep -Milliseconds 700
+  }
+
+  return $false
+}
+
 function Write-PidFile([hashtable]$Paths, [string]$Name, [int]$ProcessId) {
   Ensure-Directory -Path $Paths.RuntimeRunDir
   $pidFile = Join-Path $Paths.RuntimeRunDir ("{0}.pid" -f $Name)

@@ -75,7 +75,9 @@ try {
   $psql = Join-Path $paths.PostgresBinDir 'psql.exe'
 
   $pgVersionFile = Join-Path $paths.RuntimeDataDir 'PG_VERSION'
-  if (-not (Test-Path $pgVersionFile)) {
+  $isFreshRuntimeData = -not (Test-Path $pgVersionFile)
+
+  if ($isFreshRuntimeData) {
     Write-LauncherLog -Paths $paths -Name $logName -Message 'Initializing PostgreSQL data directory (first run).'
 
     $passwordFile = Join-Path $paths.RuntimeRunDir 'postgres.pw'
@@ -100,6 +102,7 @@ try {
   Wait-PostgresReady -Paths $paths -EnvMap $envMap -TimeoutSeconds 45
 
   $env:PGPASSWORD = $dbPass
+  $createdDatabase = $false
   $existsRaw = & $psql -h 127.0.0.1 -p $dbPort -U $dbUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$dbName';"
   $existsText = ''
 
@@ -117,9 +120,14 @@ try {
     if ($LASTEXITCODE -ne 0) {
       throw "createdb failed with exit code $LASTEXITCODE"
     }
+
+    $createdDatabase = $true
   }
 
   $bootstrapMarker = Join-Path $paths.RuntimeRunDir '.bootstrap_done'
+  if ($isFreshRuntimeData -or $createdDatabase) {
+    Remove-Item -Path $bootstrapMarker -Force -ErrorAction SilentlyContinue
+  }
   if (-not (Test-Path $bootstrapMarker)) {
     Write-LauncherLog -Paths $paths -Name $logName -Message "Running first-run bootstrap command: $bootstrapCommand"
     Invoke-BootstrapCommand -Command $bootstrapCommand -WorkingDirectory $paths.AppBackendDir
@@ -147,14 +155,22 @@ try {
     -Paths $paths `
     -Name 'frontend'
 
-  Start-Sleep -Seconds 2
+  $backendReady = Wait-HttpReady -Url "http://127.0.0.1:$backendPort/health/live" -TimeoutSeconds 30
+  if (-not $backendReady) {
+    if (-not (Test-ProcessAlive -ProcessId $backendProc.Id)) {
+      throw 'Backend process exited immediately after launch.'
+    }
 
-  if (-not (Test-ProcessAlive -ProcessId $backendProc.Id)) {
-    throw 'Backend process exited immediately after launch.'
+    throw 'Backend process did not become ready within timeout.'
   }
 
-  if (-not (Test-ProcessAlive -ProcessId $frontendProc.Id)) {
-    throw 'Frontend process exited immediately after launch.'
+  $frontendReady = Wait-HttpReady -Url "http://127.0.0.1:$frontendPort/health/ready" -TimeoutSeconds 30
+  if (-not $frontendReady) {
+    if (-not (Test-ProcessAlive -ProcessId $frontendProc.Id)) {
+      throw 'Frontend process exited immediately after launch.'
+    }
+
+    throw 'Frontend process did not become ready within timeout.'
   }
 
   $appUrl = "http://127.0.0.1:$frontendPort"
