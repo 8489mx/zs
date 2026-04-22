@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { APP_MODES, isLocalRuntimeMode, mapLegacyAppMode } from './app-mode';
 
 const booleanString = z
   .enum(['true', 'false'])
@@ -7,24 +6,18 @@ const booleanString = z
   .transform((value) => value === 'true');
 
 const envSchema = z.object({
-  APP_MODE: z
-    .enum([...APP_MODES, 'offline', 'online'])
-    .default('CLOUD_SAAS')
-    .transform(mapLegacyAppMode),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_PORT: z.coerce.number().int().positive().default(3001),
   APP_HOST: z.string().min(1).default('0.0.0.0'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://127.0.0.1:5173'),
   DATABASE_HOST: z.string().min(1),
-  DATABASE_PORT: z.coerce.number().int().positive().default(5432),
+  DATABASE_PORT: z.coerce.number().int().positive(),
   DATABASE_NAME: z.string().min(1),
   DATABASE_USER: z.string().min(1),
   DATABASE_PASSWORD: z.string().min(1),
   DATABASE_SCHEMA: z.string().min(1).default('public'),
   DATABASE_SSL: booleanString,
-  DATABASE_SSL_REJECT_UNAUTHORIZED: booleanString,
-  DATABASE_SSL_CA_CERT: z.string().default(''),
   DATABASE_LOGGING: booleanString,
   ENABLE_BOOTSTRAP_ADMIN: booleanString,
   LICENSE_MODE: z.enum(['desktop', 'server']).default('desktop'),
@@ -44,30 +37,20 @@ const envSchema = z.object({
   AUTH_BURST_RATE_LIMIT_MAX: z.coerce.number().int().min(10).max(5000).default(60),
   AUTH_BURST_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().min(10).max(3600).default(60),
   BUSINESS_TIMEZONE: z.string().default('UTC'),
-  TENANT_ID: z.string().trim().min(1).default('default'),
-  ACCOUNT_ID: z.string().trim().min(1).default('default'),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
-
-function isPlaceholderTenantValue(value: string): boolean {
-  const normalized = value.trim().toLowerCase();
-  return normalized === 'default' || normalized.startsWith('replace-me');
-}
-
-function hasInsecureCorsOrigin(origins: string): boolean {
-  return origins
-    .split(',')
-    .map((origin) => origin.trim().toLowerCase())
-    .filter((origin) => origin.length > 0)
-    .some((origin) => origin === '*' || origin.includes('localhost') || origin.includes('127.0.0.1'));
-}
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {
   const hasExplicitCsrfSecret = typeof config.SESSION_CSRF_SECRET === 'string' && config.SESSION_CSRF_SECRET.trim().length >= 16;
 
   const raw = {
     ...config,
+    DATABASE_HOST: config.DATABASE_HOST ?? config.DB_HOST,
+    DATABASE_PORT: config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT,
+    DATABASE_NAME: config.DATABASE_NAME ?? config.DB_NAME,
+    DATABASE_USER: config.DATABASE_USER ?? config.DB_USER,
+    DATABASE_PASSWORD: config.DATABASE_PASSWORD ?? config.DB_PASSWORD,
     ENABLE_BOOTSTRAP_ADMIN: config.ENABLE_BOOTSTRAP_ADMIN ?? 'false',
     LICENSE_MODE: config.LICENSE_MODE ?? 'desktop',
     ACTIVATION_ENFORCED: config.ACTIVATION_ENFORCED ?? 'false',
@@ -84,11 +67,6 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
       ?? `${String(config.DATABASE_PASSWORD ?? 'local-dev-csrf-secret')}:csrf:v1`,
     ALLOW_SESSION_ID_HEADER: config.ALLOW_SESSION_ID_HEADER ?? 'false',
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
-    TENANT_ID: config.TENANT_ID ?? 'default',
-    ACCOUNT_ID: config.ACCOUNT_ID ?? 'default',
-    DATABASE_SSL_REJECT_UNAUTHORIZED: config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'true',
-    DATABASE_SSL_CA_CERT: config.DATABASE_SSL_CA_CERT ?? '',
-    APP_MODE: config.APP_MODE ?? 'CLOUD_SAAS',
   };
 
   const parsed = envSchema.parse(raw);
@@ -103,28 +81,6 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
 
   if (parsed.SESSION_COOKIE_SAME_SITE === 'none' && !parsed.SESSION_COOKIE_SECURE) {
     throw new Error('SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAME_SITE is none');
-  }
-
-  if (isLocalRuntimeMode(parsed.APP_MODE) && parsed.DATABASE_HOST !== 'postgres') {
-    throw new Error('DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED');
-  }
-
-  if (parsed.APP_MODE === 'CLOUD_SAAS' && parsed.NODE_ENV === 'production') {
-    if (!parsed.DATABASE_SSL || !parsed.DATABASE_SSL_REJECT_UNAUTHORIZED) {
-      throw new Error('DATABASE_SSL and DATABASE_SSL_REJECT_UNAUTHORIZED must be true for CLOUD_SAAS production mode');
-    }
-
-    if (hasInsecureCorsOrigin(parsed.CORS_ORIGINS)) {
-      throw new Error('CORS_ORIGINS cannot include localhost, 127.0.0.1, or "*" in CLOUD_SAAS production mode');
-    }
-
-    if (isPlaceholderTenantValue(parsed.TENANT_ID)) {
-      throw new Error('TENANT_ID must be explicitly configured for CLOUD_SAAS production mode');
-    }
-
-    if (isPlaceholderTenantValue(parsed.ACCOUNT_ID)) {
-      throw new Error('ACCOUNT_ID must be explicitly configured for CLOUD_SAAS production mode');
-    }
   }
 
   return parsed;
