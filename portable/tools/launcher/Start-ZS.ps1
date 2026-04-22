@@ -100,7 +100,17 @@ try {
   Wait-PostgresReady -Paths $paths -EnvMap $envMap -TimeoutSeconds 45
 
   $env:PGPASSWORD = $dbPass
-  $exists = (& $psql -h 127.0.0.1 -p $dbPort -U $dbUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$dbName';").Trim()
+  $existsRaw = & $psql -h 127.0.0.1 -p $dbPort -U $dbUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$dbName';"
+  $existsText = ''
+
+  if ($existsRaw -is [System.Array]) {
+    $existsText = ($existsRaw -join '')
+  } elseif ($null -ne $existsRaw) {
+    $existsText = [string]$existsRaw
+  }
+
+  $exists = if ([string]::IsNullOrWhiteSpace($existsText)) { '0' } else { $existsText }
+
   if ($exists -ne '1') {
     Write-LauncherLog -Paths $paths -Name $logName -Message "Creating database '$dbName'."
     & $createdb -h 127.0.0.1 -p $dbPort -U $dbUser $dbName
