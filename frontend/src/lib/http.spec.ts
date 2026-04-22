@@ -13,8 +13,12 @@ afterEach(() => {
 });
 
 describe('http client', () => {
-  it('normalizes configured api base urls without a trailing slash', () => {
-    expect(normalizeApiBaseUrl('https://api.example.com/')).toBe('https://api.example.com');
+  it('forces same-origin api base outside dev server even if a backend url is configured', () => {
+    expect(normalizeApiBaseUrl('http://localhost:3001/', { port: '8080', protocol: 'http:', hostname: '127.0.0.1' })).toBe('');
+  });
+
+  it('uses explicit backend url in vite dev server mode', () => {
+    expect(normalizeApiBaseUrl('http://localhost:3001/', { port: '5173', protocol: 'http:', hostname: '127.0.0.1' })).toBe('http://localhost:3001');
   });
 
   it('attaches the csrf header for unsafe methods', async () => {
