@@ -133,6 +133,34 @@ describe('LoginPage', () => {
     expect(loginMock).toHaveBeenCalledWith({ username: 'manager', password: 'correct-password' });
   });
 
+
+  it('keeps login successful when /me fails right after login', async () => {
+    loginMock.mockResolvedValueOnce({
+      ok: true,
+      user: {
+        id: 'u-admin',
+        username: 'admin',
+        role: 'admin',
+        permissions: ['dashboard'],
+        displayName: 'Admin',
+        branchIds: ['b-1'],
+        defaultBranchId: 'b-1',
+      },
+      mustChangePassword: false,
+    });
+    meMock.mockRejectedValueOnce(new Error('تعذر الاتصال بالخادم. تحقق من الشبكة ثم أعد المحاولة.'));
+
+    const user = userEvent.setup();
+    renderLogin();
+
+    await user.type(screen.getByLabelText('اسم المستخدم'), 'admin');
+    await user.type(screen.getByLabelText('كلمة المرور'), 'secret');
+    await user.click(screen.getByRole('button', { name: 'تسجيل الدخول' }));
+
+    expect(await screen.findByText('/')).toBeInTheDocument();
+    expect(screen.queryByText('تعذر الاتصال بالخادم. تحقق من الشبكة ثم أعد المحاولة.')).not.toBeInTheDocument();
+  });
+
   it('clears the previous submit error as soon as the user edits the form again', async () => {
     loginMock.mockRejectedValueOnce(new Error('بيانات الدخول غير صحيحة'));
 
