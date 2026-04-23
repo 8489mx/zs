@@ -1,6 +1,6 @@
 {
   "name": "zs-portable-layout",
-  "version": 4,
+  "version": 5,
   "mode": "offline",
   "platform": "windows",
   "launcher": {
@@ -16,6 +16,9 @@
     "frontend": "app/frontend",
     "postgres_runtime": "runtime/postgres",
     "postgres_bin": "runtime/postgres/bin",
+    "node_runtime": "runtime/node",
+    "node_exe": "runtime/node/node.exe",
+    "npm_exe": "runtime/node/npm.cmd",
     "postgres_data": "runtime/data",
     "runtime_pids": "runtime/run",
     "logs": "runtime/logs",

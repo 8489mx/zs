@@ -29,6 +29,71 @@ function Copy-IfExists {
   }
 }
 
+function Copy-DirectoryContents {
+  param(
+    [string]$SourceDir,
+    [string]$DestDir
+  )
+
+  if (-not (Test-Path $SourceDir)) {
+    Write-Host "Missing (skipped): $SourceDir"
+    return
+  }
+
+  Ensure-Dir -Path $DestDir
+  Get-ChildItem -LiteralPath $SourceDir -Force | ForEach-Object {
+    Copy-Item -Path $_.FullName -Destination (Join-Path $DestDir $_.Name) -Recurse -Force
+  }
+
+  Write-Host "Copied contents: $SourceDir -> $DestDir"
+}
+
+function Remove-IfExists {
+  param([string]$Path)
+
+  if (Test-Path $Path) {
+    Remove-Item -Path $Path -Recurse -Force
+    Write-Host "Removed stale path: $Path"
+  }
+}
+
+function Resolve-NodeRuntimeSource {
+  param(
+    [string]$PortableRoot
+  )
+
+  $override = $env:PORTABLE_NODE_RUNTIME_DIR
+  if ($override) {
+    $overrideFull = [System.IO.Path]::GetFullPath($override)
+    if (-not (Test-Path (Join-Path $overrideFull 'node.exe'))) {
+      throw "PORTABLE_NODE_RUNTIME_DIR does not contain node.exe: $overrideFull"
+    }
+    if (-not (Test-Path (Join-Path $overrideFull 'npm.cmd'))) {
+      throw "PORTABLE_NODE_RUNTIME_DIR does not contain npm.cmd: $overrideFull"
+    }
+    return $overrideFull
+  }
+
+  $staged = Join-Path $PortableRoot 'runtime/node'
+  if ((Test-Path (Join-Path $staged 'node.exe')) -and (Test-Path (Join-Path $staged 'npm.cmd'))) {
+    return $staged
+  }
+
+  $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
+  if (-not $nodeCommand) {
+    $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+  }
+
+  if ($nodeCommand) {
+    $nodeInstallDir = Split-Path -Parent $nodeCommand.Source
+    if ((Test-Path (Join-Path $nodeInstallDir 'node.exe')) -and (Test-Path (Join-Path $nodeInstallDir 'npm.cmd'))) {
+      return $nodeInstallDir
+    }
+  }
+
+  throw 'Node runtime source not found. Set PORTABLE_NODE_RUNTIME_DIR or install Node.js on the build machine.'
+}
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $portableRoot = (Resolve-Path (Join-Path $scriptDir '..')).Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir $SourceRoot)).Path
@@ -43,9 +108,15 @@ if ($outFull.StartsWith($portableFull, [System.StringComparison]::OrdinalIgnoreC
 try {
   Ensure-Dir -Path $outRoot
 
-  # Copy portable framework (without runtime data).
-  Copy-IfExists -Source $portableRoot -Dest $outRoot
+  # Copy portable framework contents only.
+  Copy-DirectoryContents -SourceDir $portableRoot -DestDir $outRoot
 
+  # Remove generated/local-only content from previous local runs.
+  Remove-IfExists -Path (Join-Path $outRoot 'app')
+  Remove-IfExists -Path (Join-Path $outRoot 'runtime/data')
+  Remove-IfExists -Path (Join-Path $outRoot 'runtime/logs')
+  Remove-IfExists -Path (Join-Path $outRoot 'runtime/run')
+  Remove-IfExists -Path (Join-Path $outRoot 'config/.env.offline')
 
   $bootstrapMarker = Join-Path $outRoot 'runtime/run/.bootstrap_done'
   if (Test-Path $bootstrapMarker) {
@@ -68,10 +139,21 @@ try {
   Copy-IfExists -Source $backendDist -Dest (Join-Path $outBackendDir 'dist')
   Copy-IfExists -Source $backendPkg -Dest (Join-Path $outBackendDir 'package.json')
   Copy-IfExists -Source $backendModules -Dest (Join-Path $outBackendDir 'node_modules')
-  Copy-IfExists -Source $frontendDist -Dest $outFrontendDir
+  Copy-DirectoryContents -SourceDir $frontendDist -DestDir $outFrontendDir
+
+  # Bundle Node.js runtime for clean target machines without system Node/npm.
+  $nodeRuntimeSource = Resolve-NodeRuntimeSource -PortableRoot $portableRoot
+  $outNodeRuntimeDir = Join-Path $outRoot 'runtime/node'
+  Remove-IfExists -Path $outNodeRuntimeDir
+  Copy-IfExists -Source $nodeRuntimeSource -Dest $outNodeRuntimeDir
+  Write-Host "Bundled Node.js runtime from: $nodeRuntimeSource"
+
+  Ensure-Dir -Path (Join-Path $outRoot 'runtime/data')
+  Ensure-Dir -Path (Join-Path $outRoot 'runtime/logs')
+  Ensure-Dir -Path (Join-Path $outRoot 'runtime/run')
 
   Write-Host "Portable release assembled at: $outRoot"
-  Write-Host 'Next: inject PostgreSQL runtime binaries into runtime/postgres/bin before delivery.'
+  Write-Host 'Ready for clean-VM validation with no system Node.js/npm.'
 } catch {
   Write-Error $_.Exception.Message
   exit 1

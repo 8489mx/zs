@@ -39,6 +39,7 @@ try {
   }
 
   Assert-PostgresRuntime -Paths $paths
+  Assert-BundledNodeRuntime -Paths $paths
   Assert-BackendArtifacts -Paths $paths -EnvMap $envMap
   Assert-FrontendArtifacts -Paths $paths
 
@@ -64,10 +65,10 @@ try {
   $backendPort = Get-EnvValue -EnvMap $envMap -Key 'BACKEND_PORT' -Default '3001'
   $frontendPort = Get-EnvValue -EnvMap $envMap -Key 'FRONTEND_PORT' -Default '8080'
 
-  $nodeExe = Get-EnvValue -EnvMap $envMap -Key 'NODE_EXE' -Default 'node'
-  $npmExe = Get-EnvValue -EnvMap $envMap -Key 'NPM_EXE' -Default 'npm'
+  $nodeExe = Resolve-NodeExe -Paths $paths -EnvMap $envMap
+  $npmExe = Resolve-NpmExe -Paths $paths -EnvMap $envMap
   $backendEntry = Get-EnvValue -EnvMap $envMap -Key 'BACKEND_ENTRY' -Default 'dist/main.js'
-  $bootstrapCommand = Get-EnvValue -EnvMap $envMap -Key 'BACKEND_BOOTSTRAP_CMD' -Default "$npmExe run migration:run"
+  $bootstrapCommand = Resolve-BootstrapCommand -Paths $paths -EnvMap $envMap
 
   $pgCtl = Join-Path $paths.PostgresBinDir 'pg_ctl.exe'
   $initDb = Join-Path $paths.PostgresBinDir 'initdb.exe'
@@ -133,6 +134,9 @@ try {
     Invoke-BootstrapCommand -Command $bootstrapCommand -WorkingDirectory $paths.AppBackendDir
     Set-Content -Path $bootstrapMarker -Value (Get-Date -Format o) -Encoding ascii
   }
+
+  Write-LauncherLog -Paths $paths -Name $logName -Message "Using Node runtime: $nodeExe"
+  Write-LauncherLog -Paths $paths -Name $logName -Message "Using npm runtime: $npmExe"
 
   Write-LauncherLog -Paths $paths -Name $logName -Message 'Starting backend process.'
   $backendProc = Start-ProcessHiddenTracked `

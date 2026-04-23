@@ -7,6 +7,7 @@ function Get-PortableRoot {
 
 function Get-PathMap {
   $root = Get-PortableRoot
+  $nodeRuntimeDir = Join-Path $root 'runtime/node'
   return [ordered]@{
     Root             = $root
     ConfigDir        = Join-Path $root 'config'
@@ -17,6 +18,9 @@ function Get-PathMap {
     RuntimeDataDir   = Join-Path $root 'runtime/data'
     RuntimeLogsDir   = Join-Path $root 'runtime/logs'
     PostgresBinDir   = Join-Path $root 'runtime/postgres/bin'
+    NodeRuntimeDir   = $nodeRuntimeDir
+    BundledNodeExe   = Join-Path $nodeRuntimeDir 'node.exe'
+    BundledNpmExe    = Join-Path $nodeRuntimeDir 'npm.cmd'
     AppBackendDir    = Join-Path $root 'app/backend'
     AppFrontendDir   = Join-Path $root 'app/frontend'
     LauncherDir      = Join-Path $root 'tools/launcher'
@@ -85,6 +89,106 @@ function Write-LauncherLog([hashtable]$Paths, [string]$Name, [string]$Message) {
   $logFile = Join-Path $Paths.RuntimeLogsDir $Name
   $line = "[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Message
   Add-Content -Path $logFile -Value $line
+}
+
+function Resolve-PortableExecutablePath {
+  param(
+    [Parameter(Mandatory = $true)][hashtable]$Paths,
+    [string]$Value,
+    [Parameter(Mandatory = $true)][string]$BundledPath,
+    [string[]]$LegacyCommandNames = @()
+  )
+
+  $candidate = if ([string]::IsNullOrWhiteSpace($Value)) { $BundledPath } else { $Value.Trim() }
+  $looksLikeRelativePath = $candidate.Contains('\') -or $candidate.Contains('/')
+
+  foreach ($legacyName in $LegacyCommandNames) {
+    if ($candidate.Equals($legacyName, [System.StringComparison]::OrdinalIgnoreCase)) {
+      if (Test-Path $BundledPath) {
+        return $BundledPath
+      }
+
+      return $candidate
+    }
+  }
+
+  if ([System.IO.Path]::IsPathRooted($candidate)) {
+    return $candidate
+  }
+
+  if ($looksLikeRelativePath) {
+    return (Join-Path $Paths.Root $candidate)
+  }
+
+  $portableCandidate = Join-Path $Paths.Root $candidate
+  if (Test-Path $portableCandidate) {
+    return $portableCandidate
+  }
+
+  return $candidate
+}
+
+function Resolve-NodeExe([hashtable]$Paths, [hashtable]$EnvMap) {
+  $value = Get-EnvValue -EnvMap $EnvMap -Key 'NODE_EXE' -Default 'runtime\node\node.exe'
+  return Resolve-PortableExecutablePath -Paths $Paths -Value $value -BundledPath $Paths.BundledNodeExe -LegacyCommandNames @('node', 'node.exe')
+}
+
+function Resolve-NpmExe([hashtable]$Paths, [hashtable]$EnvMap) {
+  $value = Get-EnvValue -EnvMap $EnvMap -Key 'NPM_EXE' -Default 'runtime\node\npm.cmd'
+  return Resolve-PortableExecutablePath -Paths $Paths -Value $value -BundledPath $Paths.BundledNpmExe -LegacyCommandNames @('npm', 'npm.cmd')
+}
+
+function Quote-ForCmd([string]$Value) {
+  return ('"{0}"' -f $Value)
+}
+
+function Resolve-BootstrapCommand([hashtable]$Paths, [hashtable]$EnvMap) {
+  $raw = Get-EnvValue -EnvMap $EnvMap -Key 'BACKEND_BOOTSTRAP_CMD' -Default '{NPM_EXE} run migration:run'
+  if ([string]::IsNullOrWhiteSpace($raw)) {
+    return ''
+  }
+
+  $nodeExe = Resolve-NodeExe -Paths $Paths -EnvMap $EnvMap
+  $npmExe = Resolve-NpmExe -Paths $Paths -EnvMap $EnvMap
+
+  $resolved = $raw.Replace('{NODE_EXE}', (Quote-ForCmd $nodeExe)).Replace('{NPM_EXE}', (Quote-ForCmd $npmExe))
+  $trimmed = $resolved.Trim()
+
+  $npmMatch = [System.Text.RegularExpressions.Regex]::Match($trimmed, '^(?i)npm(?:\.cmd)?(?:\s+(.*))?$')
+  if ($npmMatch.Success) {
+    $tail = $npmMatch.Groups[1].Value
+    if ([string]::IsNullOrWhiteSpace($tail)) {
+      return (Quote-ForCmd $npmExe)
+    }
+
+    return ((Quote-ForCmd $npmExe) + ' ' + $tail)
+  }
+
+  $nodeMatch = [System.Text.RegularExpressions.Regex]::Match($trimmed, '^(?i)node(?:\.exe)?(?:\s+(.*))?$')
+  if ($nodeMatch.Success) {
+    $tail = $nodeMatch.Groups[1].Value
+    if ([string]::IsNullOrWhiteSpace($tail)) {
+      return (Quote-ForCmd $nodeExe)
+    }
+
+    return ((Quote-ForCmd $nodeExe) + ' ' + $tail)
+  }
+
+  return $resolved
+}
+
+function Assert-BundledNodeRuntime([hashtable]$Paths) {
+  $required = @(
+    $Paths.BundledNodeExe,
+    $Paths.BundledNpmExe,
+    (Join-Path $Paths.NodeRuntimeDir 'node_modules/npm/bin/npm-cli.js')
+  )
+
+  foreach ($item in $required) {
+    if (-not (Test-Path $item)) {
+      throw "Bundled Node.js runtime file missing: $item"
+    }
+  }
 }
 
 function Assert-PostgresRuntime([hashtable]$Paths) {
