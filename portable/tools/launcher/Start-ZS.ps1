@@ -1,3 +1,7 @@
+param(
+  [switch]$NoBrowser
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -23,6 +27,45 @@ function Get-ErrorDetails([System.Management.Automation.ErrorRecord]$ErrorRecord
   }
 
   return ($details -join [Environment]::NewLine)
+}
+
+function Test-HttpReadyQuick([string]$Url) {
+  try {
+    $response = Invoke-WebRequest -Uri $Url -Method Get -UseBasicParsing -TimeoutSec 2
+    return ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500)
+  } catch {
+    return $false
+  }
+}
+
+function Ensure-StartupShortcut([hashtable]$Paths) {
+  $startupDir = [Environment]::GetFolderPath('Startup')
+  if ([string]::IsNullOrWhiteSpace($startupDir)) {
+    throw 'Could not resolve the current user Startup folder.'
+  }
+
+  Ensure-Directory -Path $startupDir
+
+  $shortcutPath = Join-Path $startupDir 'ZS Portable.lnk'
+  $autostartScript = Join-Path $Paths.LauncherDir 'Start-ZS-Autostart.vbs'
+  if (-not (Test-Path $autostartScript)) {
+    throw "Autostart launcher script missing: $autostartScript"
+  }
+
+  $wscriptExe = Join-Path $env:WINDIR 'System32\wscript.exe'
+  if (-not (Test-Path $wscriptExe)) {
+    $wscriptExe = 'wscript.exe'
+  }
+
+  $shell = New-Object -ComObject WScript.Shell
+  $shortcut = $shell.CreateShortcut($shortcutPath)
+  $shortcut.TargetPath = $wscriptExe
+  $shortcut.Arguments = ('//nologo "{0}"' -f $autostartScript)
+  $shortcut.WorkingDirectory = $Paths.LauncherDir
+  $shortcut.Description = 'Starts ZS Portable automatically at sign-in.'
+  $shortcut.Save()
+
+  return $shortcutPath
 }
 
 try {
@@ -64,6 +107,19 @@ try {
 
   $backendPort = Get-EnvValue -EnvMap $envMap -Key 'BACKEND_PORT' -Default '3001'
   $frontendPort = Get-EnvValue -EnvMap $envMap -Key 'FRONTEND_PORT' -Default '8080'
+  $appUrl = "http://127.0.0.1:$frontendPort"
+  $backendHealthUrl = "http://127.0.0.1:$backendPort/health/live"
+  $frontendHealthUrl = "http://127.0.0.1:$frontendPort/health/ready"
+
+  if ((Test-HttpReadyQuick -Url $backendHealthUrl) -and (Test-HttpReadyQuick -Url $frontendHealthUrl)) {
+    Write-LauncherLog -Paths $paths -Name $logName -Message 'Detected an already running portable instance. Skipping duplicate start.'
+    if (-not $NoBrowser) {
+      Start-Process $appUrl | Out-Null
+    }
+
+    Write-Host "ZS portable is already running at $appUrl"
+    exit 0
+  }
 
   $nodeExe = Resolve-NodeExe -Paths $paths -EnvMap $envMap
   $npmExe = Resolve-NpmExe -Paths $paths -EnvMap $envMap
@@ -159,7 +215,7 @@ try {
     -Paths $paths `
     -Name 'frontend'
 
-  $backendReady = Wait-HttpReady -Url "http://127.0.0.1:$backendPort/health/live" -TimeoutSeconds 30
+  $backendReady = Wait-HttpReady -Url $backendHealthUrl -TimeoutSeconds 30
   if (-not $backendReady) {
     if (-not (Test-ProcessAlive -ProcessId $backendProc.Id)) {
       throw 'Backend process exited immediately after launch.'
@@ -168,7 +224,7 @@ try {
     throw 'Backend process did not become ready within timeout.'
   }
 
-  $frontendReady = Wait-HttpReady -Url "http://127.0.0.1:$frontendPort/health/ready" -TimeoutSeconds 30
+  $frontendReady = Wait-HttpReady -Url $frontendHealthUrl -TimeoutSeconds 30
   if (-not $frontendReady) {
     if (-not (Test-ProcessAlive -ProcessId $frontendProc.Id)) {
       throw 'Frontend process exited immediately after launch.'
@@ -177,8 +233,12 @@ try {
     throw 'Frontend process did not become ready within timeout.'
   }
 
-  $appUrl = "http://127.0.0.1:$frontendPort"
-  Start-Process $appUrl | Out-Null
+  $startupShortcut = Ensure-StartupShortcut -Paths $paths
+  Write-LauncherLog -Paths $paths -Name $logName -Message "Ensured Startup shortcut: $startupShortcut"
+
+  if (-not $NoBrowser) {
+    Start-Process $appUrl | Out-Null
+  }
 
   Write-LauncherLog -Paths $paths -Name $logName -Message "ZS portable started. URL: $appUrl"
   Write-Host "ZS portable started successfully at $appUrl"

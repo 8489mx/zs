@@ -1,4 +1,5 @@
 @echo off
 setlocal
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Start-ZS.ps1"
+wscript.exe //nologo "%~dp0Start-ZS.vbs"
 endlocal
+exit /b 0
