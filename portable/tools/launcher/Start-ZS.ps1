@@ -85,7 +85,7 @@ try {
     Set-Content -Path $passwordFile -Value $dbPass -Encoding ascii
 
     try {
-      & $initDb -D $paths.RuntimeDataDir -U $dbUser -A scram-sha-256 --pwfile=$passwordFile
+      & $initDb -D $paths.RuntimeDataDir -U $dbUser -A scram-sha-256 --pwfile=$passwordFile --encoding=UTF8
       if ($LASTEXITCODE -ne 0) {
         throw "initdb failed with exit code $LASTEXITCODE"
       }
@@ -116,8 +116,8 @@ try {
   $exists = if ([string]::IsNullOrWhiteSpace($existsText)) { '0' } else { $existsText }
 
   if ($exists -ne '1') {
-    Write-LauncherLog -Paths $paths -Name $logName -Message "Creating database '$dbName'."
-    & $createdb -h 127.0.0.1 -p $dbPort -U $dbUser $dbName
+    Write-LauncherLog -Paths $paths -Name $logName -Message "Creating database '$dbName' with UTF8 encoding."
+    & $createdb -h 127.0.0.1 -p $dbPort -U $dbUser -E UTF8 -T template0 $dbName
     if ($LASTEXITCODE -ne 0) {
       throw "createdb failed with exit code $LASTEXITCODE"
     }
