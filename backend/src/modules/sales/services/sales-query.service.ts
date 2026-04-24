@@ -136,22 +136,31 @@ export class SalesQueryService {
 
   async listHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    const canManageHeldSales = this.authz.canManageHeldSales(auth);
+    const ownerUserId = this.authz.heldSaleOwnerUserId(auth);
     const rows = await this.db
       .selectFrom('held_sales as hs')
       .leftJoin('customers as c', 'c.id', 'hs.customer_id')
       .select([
         'hs.id', 'hs.customer_id', 'hs.payment_type', 'hs.payment_channel', 'hs.paid_amount', 'hs.cash_amount', 'hs.card_amount',
-        'hs.discount', 'hs.note', 'hs.search', 'hs.price_type', 'hs.branch_id', 'hs.location_id', 'hs.created_at', 'c.name as customer_name',
+        'hs.discount', 'hs.note', 'hs.search', 'hs.price_type', 'hs.branch_id', 'hs.location_id', 'hs.created_by', 'hs.created_at', 'c.name as customer_name',
       ])
+      .$if(!canManageHeldSales, (qb) => qb.where('hs.created_by', '=', ownerUserId ?? -1))
       .orderBy('hs.id desc')
       .execute();
 
-    const items = await this.db
-      .selectFrom('held_sale_items')
-      .select(['id', 'held_sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'unit_name', 'unit_multiplier', 'price_type'])
-      .orderBy('held_sale_id asc')
-      .orderBy('id asc')
-      .execute();
+    const heldSaleIds = rows
+      .map((row) => Number(row.id || 0))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    const items = heldSaleIds.length
+      ? await this.db
+        .selectFrom('held_sale_items')
+        .select(['id', 'held_sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'unit_name', 'unit_multiplier', 'price_type'])
+        .where('held_sale_id', 'in', heldSaleIds)
+        .orderBy('held_sale_id asc')
+        .orderBy('id asc')
+        .execute()
+      : [];
 
     return {
       heldSales: mapHeldSalesRows(

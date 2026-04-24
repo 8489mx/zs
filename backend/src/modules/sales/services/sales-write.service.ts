@@ -428,14 +428,31 @@ export class SalesWriteService {
   }
 
   async deleteHeldSale(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const heldSale = await this.db
+      .selectFrom('held_sales')
+      .select(['id', 'created_by'])
+      .where('id', '=', id)
+      .executeTakeFirst();
+    if (!heldSale || !this.authz.canAccessHeldSale(auth, heldSale)) {
+      throw new AppError('Held sale not found', 'HELD_SALE_NOT_FOUND', 404);
+    }
+
     await this.db.deleteFrom('held_sales').where('id', '=', id).execute();
     await this.audit.log('حذف فاتورة معلقة', `تم حذف فاتورة معلقة #${id} بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 
   async clearHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
-    await this.db.deleteFrom('held_sales').execute();
-    await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username}`, auth);
-    return { ok: true, heldSales: [] };
+    const canManageHeldSales = this.authz.canManageHeldSales(auth);
+    const ownerUserId = this.authz.heldSaleOwnerUserId(auth);
+    const result = await this.db
+      .deleteFrom('held_sales')
+      .$if(!canManageHeldSales, (qb) => qb.where('created_by', '=', ownerUserId ?? -1))
+      .execute();
+    const deletedCount = Number(result?.[0]?.numDeletedRows ?? NaN);
+    const scopeLabel = canManageHeldSales ? 'privileged broader management' : 'own held sales';
+    const countLabel = Number.isFinite(deletedCount) ? ` | deletedCount=${deletedCount}` : '';
+    await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username} | scope=${scopeLabel}${countLabel}`, auth);
+    return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 }
