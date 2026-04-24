@@ -6,6 +6,7 @@ import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
 import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
 import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWorkspaceDock';
+import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
 import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import {
   getSelectedCustomerName,
@@ -13,12 +14,17 @@ import {
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
+import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
 
 export function PosWorkspace() {
   const pos = usePosWorkspace();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannerSubmitRef = useRef<{ code: string; at: number }>({ code: '', at: 0 });
   const [discountApprovalDialogOpen, setDiscountApprovalDialogOpen] = useState(false);
+  const [clearCartConfirmOpen, setClearCartConfirmOpen] = useState(false);
+  const [lineDeleteConfirmKey, setLineDeleteConfirmKey] = useState('');
+  const [heldDeleteConfirmId, setHeldDeleteConfirmId] = useState('');
+  const [clearHeldConfirmOpen, setClearHeldConfirmOpen] = useState(false);
 
   const catalogsLoading = pos.productsQuery.isLoading || pos.customersQuery.isLoading || pos.branchesQuery.isLoading || pos.locationsQuery.isLoading || pos.settingsQuery.isLoading;
   const catalogsError = pos.productsQuery.error || pos.customersQuery.error || pos.branchesQuery.error || pos.locationsQuery.error || pos.settingsQuery.error;
@@ -26,6 +32,14 @@ export function PosWorkspace() {
   const selectedCustomerName = useMemo(() => getSelectedCustomerName(pos), [pos]);
   const paymentModeLabel = useMemo(() => paymentLabel(pos.paymentType, pos.paymentChannel), [pos.paymentChannel, pos.paymentType]);
   const cartPiecesCount = useMemo(() => pos.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0), [pos.cart]);
+  const lineDeleteConfirmItem = useMemo(
+    () => pos.cart.find((item) => item.lineKey === lineDeleteConfirmKey) || null,
+    [lineDeleteConfirmKey, pos.cart],
+  );
+  const heldDeleteConfirmDraft = useMemo(
+    () => pos.heldDraftSummaries.find((draft) => draft.id === heldDeleteConfirmId) || null,
+    [heldDeleteConfirmId, pos.heldDraftSummaries],
+  );
 
   const printCurrentDraft = useCallback(() => {
     printCurrentPosDraft(pos, selectedCustomerName);
@@ -42,6 +56,33 @@ export function PosWorkspace() {
   const requestDiscountAuthorization = useCallback(() => {
     setDiscountApprovalDialogOpen(true);
   }, []);
+
+  const requestClearCart = useCallback(() => {
+    if (!pos.cart.length) {
+      pos.resetPosDraft();
+      return;
+    }
+    setClearCartConfirmOpen(true);
+  }, [pos]);
+
+  const requestLineDelete = useCallback((lineKey: string) => {
+    if (!lineKey) return;
+    setLineDeleteConfirmKey(lineKey);
+  }, []);
+
+  const requestSelectedLineDelete = useCallback(() => {
+    if (!pos.selectedLineKey) return;
+    setLineDeleteConfirmKey(pos.selectedLineKey);
+  }, [pos.selectedLineKey]);
+
+  const requestHeldDelete = useCallback((draftId: string) => {
+    setHeldDeleteConfirmId(draftId);
+  }, []);
+
+  const requestClearHeldDrafts = useCallback(() => {
+    if (!pos.heldDraftSummaries.length) return;
+    setClearHeldConfirmOpen(true);
+  }, [pos.heldDraftSummaries.length]);
 
   const handleQuickAddSubmit = useCallback((rawCode?: string) => {
     const code = String(rawCode ?? pos.quickAddCode).trim();
@@ -98,71 +139,13 @@ export function PosWorkspace() {
     return focusBarcodeEntry();
   }, [catalogsLoading, focusBarcodeEntry, pos.barcodeFocusTick]);
 
-  useEffect(() => {
-    const listener = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const isTypingTarget = Boolean(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable));
-
-      if (event.key === 'F3') {
-        event.preventDefault();
-        focusBarcodeEntry();
-        return;
-      }
-      if (isTypingTarget && !['F2', 'F4', 'F6', 'F8', 'F12', 'Escape'].includes(event.key)) return;
-      if (!isTypingTarget && pos.selectedLineKey) {
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          pos.selectAdjacentCartLine('next');
-          return;
-        }
-        if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          pos.selectAdjacentCartLine('prev');
-          return;
-        }
-        if (event.key === 'Delete') {
-          event.preventDefault();
-          pos.removeSelectedItem();
-          return;
-        }
-        if (event.key === '+' || event.code === 'NumpadAdd' || event.key === '=') {
-          event.preventDefault();
-          pos.changeSelectedQty(1);
-          return;
-        }
-        if (event.key === '-' || event.code === 'NumpadSubtract') {
-          event.preventDefault();
-          pos.changeSelectedQty(-1);
-          return;
-        }
-      }
-      if (event.key === 'F2') {
-        event.preventDefault();
-        if (pos.canShowLastSaleActions) {
-          pos.printReceiptNow();
-        } else {
-          void pos.handleSubmit({ fastCash: true });
-        }
-      } else if (event.key === 'F4') {
-        event.preventDefault();
-        void pos.holdDraft();
-      } else if (event.key === 'F6') {
-        event.preventDefault();
-        pos.reprintLastSale();
-      } else if (event.key === 'F8') {
-        event.preventDefault();
-        printCurrentDraft();
-      } else if (event.key === 'F12') {
-        event.preventDefault();
-        if (pos.canShowLastSaleActions) pos.printA4Now();
-      } else if (event.key === 'Escape' && pos.cart.length) {
-        event.preventDefault();
-        pos.resetPosDraft();
-      }
-    };
-    window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
-  }, [focusBarcodeEntry, pos, printCurrentDraft]);
+  usePosWorkspaceKeyboardShortcuts({
+    pos,
+    focusBarcodeEntry,
+    printCurrentDraft,
+    onRequestClearCart: requestClearCart,
+    onRequestLineDelete: requestLineDelete,
+  });
 
   return (
     <div className="page-stack page-shell pos-workspace pos-premium-shell">
@@ -247,17 +230,17 @@ export function PosWorkspace() {
               onRequestDiscountAuthorization={requestDiscountAuthorization}
               onNoteChange={pos.setNote}
               onQtyChange={pos.setQty}
-              onRemoveItem={pos.removeItem}
+              onRemoveItem={requestLineDelete}
               onSelectLine={pos.selectCartLine}
               onFillPaidAmount={pos.fillPaidAmount}
               onChangeSelectedQty={pos.changeSelectedQty}
               onEditSelectedQty={pos.editSelectedQty}
-              onRemoveSelectedItem={pos.removeSelectedItem}
+              onRemoveSelectedItem={requestSelectedLineDelete}
               onHoldDraft={pos.holdDraft}
               onRecallDraft={pos.recallDraft}
-              onDeleteDraft={pos.deleteDraft}
-              onClearHeldDrafts={pos.clearHeldDrafts}
-              onResetDraft={pos.resetPosDraft}
+              onDeleteDraft={requestHeldDelete}
+              onClearHeldDrafts={requestClearHeldDrafts}
+              onResetDraft={requestClearCart}
               onPrintPreview={printCurrentDraft}
               onReprintLastSale={pos.reprintLastSale}
               onPrintReceiptNow={pos.printReceiptNow}
@@ -281,7 +264,7 @@ export function PosWorkspace() {
               isPending={pos.createSale.isPending}
               onFocusSearch={focusBarcodeEntry}
               onPrintPreview={printCurrentDraft}
-              onResetDraft={pos.resetPosDraft}
+              onResetDraft={requestClearCart}
               onHoldDraft={() => { void pos.holdDraft(); }}
               onSubmit={() => { void pos.handleSubmit(); }}
             />
@@ -306,6 +289,49 @@ export function PosWorkspace() {
           pos.setDiscountApprovalSecret(managerPin);
           pos.setSubmitMessage('تم اعتماد الخصم لهذه الفاتورة فقط.');
           setDiscountApprovalDialogOpen(false);
+          focusBarcodeEntry();
+        }}
+      />
+
+      <PosWorkspaceConfirmDialogs
+        clearCartConfirmOpen={clearCartConfirmOpen}
+        lineDeleteConfirmItem={lineDeleteConfirmItem}
+        heldDeleteConfirmDraft={heldDeleteConfirmDraft}
+        clearHeldConfirmOpen={clearHeldConfirmOpen}
+        heldDraftsCount={pos.heldDraftSummaries.length}
+        onCancelClearCart={() => {
+          setClearCartConfirmOpen(false);
+          focusBarcodeEntry();
+        }}
+        onConfirmClearCart={() => {
+          pos.resetPosDraft();
+          setClearCartConfirmOpen(false);
+        }}
+        onCancelLineDelete={() => {
+          setLineDeleteConfirmKey('');
+          focusBarcodeEntry();
+        }}
+        onConfirmLineDelete={() => {
+          if (lineDeleteConfirmKey) pos.removeItem(lineDeleteConfirmKey);
+          setLineDeleteConfirmKey('');
+          focusBarcodeEntry();
+        }}
+        onCancelHeldDelete={() => {
+          setHeldDeleteConfirmId('');
+          focusBarcodeEntry();
+        }}
+        onConfirmHeldDelete={async () => {
+          if (heldDeleteConfirmId) await pos.deleteDraft(heldDeleteConfirmId);
+          setHeldDeleteConfirmId('');
+          focusBarcodeEntry();
+        }}
+        onCancelClearHeld={() => {
+          setClearHeldConfirmOpen(false);
+          focusBarcodeEntry();
+        }}
+        onConfirmClearHeld={async () => {
+          await pos.clearHeldDrafts();
+          setClearHeldConfirmOpen(false);
           focusBarcodeEntry();
         }}
       />

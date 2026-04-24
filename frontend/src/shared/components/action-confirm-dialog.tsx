@@ -184,7 +184,12 @@ export function ActionConfirmDialog({
           <Button variant="secondary" onClick={onCancel} disabled={isBusy}>
             {cancelLabel}
           </Button>
-          <Button variant={confirmVariant} onClick={() => void handleConfirm()} disabled={!canSubmit}>
+          <Button
+            variant={confirmVariant}
+            onClick={() => void handleConfirm()}
+            disabled={!canSubmit}
+            data-autofocus={!requiresKeyword && !managerPinRequired && !reasonRequired ? true : undefined}
+          >
             {isBusy ? 'جارٍ التنفيذ...' : confirmLabel}
           </Button>
         </div>
