@@ -12,6 +12,8 @@ import {
   getSelectedCustomerName,
   printCurrentPosDraft,
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import { posApi } from '@/features/pos/api/pos.api';
+import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
@@ -95,6 +97,28 @@ export function PosWorkspace() {
     return submitted;
   }, [pos]);
 
+  const resolveRemoteBarcodeMatch = useCallback((query: string) => {
+    void (async () => {
+      try {
+        const lookupProducts = await posApi.lookupProducts({ barcode: query, locationId: pos.locationId, limit: 5 });
+        const remoteMatch = matchProductByCode(lookupProducts, query);
+        if (remoteMatch.status === 'matched') {
+          const submitted = pos.handleQuickAddCodeSubmit(query, lookupProducts);
+          if (submitted) pos.setSearch('');
+          return;
+        }
+        if (remoteMatch.status === 'ambiguous') {
+          pos.setSubmitMessage('هذا الباركود غير واضح أو مرتبط بأكثر من نتيجة. راجع الصنف أو الوحدة أولًا.');
+        } else {
+          pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
+        }
+      } catch (error) {
+        pos.setSubmitMessage(error instanceof Error ? error.message : 'تعذر البحث عن الصنف.');
+      }
+      focusBarcodeEntry();
+    })();
+  }, [focusBarcodeEntry, pos]);
+
   const submitFirstSearchResult = useCallback(() => {
     const query = pos.search.trim();
     if (!query) {
@@ -115,6 +139,11 @@ export function PosWorkspace() {
       return false;
     }
 
+    if (exactCodeMatch.status === 'not-found' && isLikelyBarcodeQuery(query)) {
+      resolveRemoteBarcodeMatch(query);
+      return true;
+    }
+
     const firstProduct = pos.filteredSaleProducts[0];
     if (!firstProduct) {
       pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
@@ -124,7 +153,7 @@ export function PosWorkspace() {
     pos.handleAddProduct(firstProduct);
     pos.setSearch('');
     return true;
-  }, [focusBarcodeEntry, handleQuickAddSubmit, pos]);
+  }, [focusBarcodeEntry, handleQuickAddSubmit, pos, resolveRemoteBarcodeMatch]);
 
   useEffect(() => {
     if (catalogsLoading) return;

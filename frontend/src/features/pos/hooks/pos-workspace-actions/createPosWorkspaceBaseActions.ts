@@ -12,6 +12,13 @@ function toMoney(value: number) {
 }
 
 export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) {
+  function resolveUnitLineKey(product: Product, unitId?: string) {
+    const unit = product.units?.find((entry) => String(entry.id || '') === String(unitId || ''))
+      || product.units?.find((entry) => entry.isSaleUnit)
+      || product.units?.[0];
+    return `${product.id}::${unit?.id || unit?.name || ''}::${params.priceType}`;
+  }
+
   function registerRecentProduct(productId: string) {
     params.setRecentProductIds((current) => [productId, ...current.filter((id) => id !== productId)].slice(0, 8));
   }
@@ -45,10 +52,10 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.requestBarcodeFocus();
   }
 
-  function handleAddProduct(product: Product) {
+  function handleAddProduct(product: Product, unitId?: string) {
     try {
-      const lineKey = buildSaleLineKey(product, params.priceType);
-      params.setCart((current) => addPosItem(current, product, { priceType: params.priceType }));
+      const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
+      params.setCart((current) => addPosItem(current, product, { priceType: params.priceType, unitId }));
       params.setSelectedLineKey(lineKey);
       params.setLastAddedLineKey(lineKey);
       registerRecentProduct(product.id);
@@ -62,9 +69,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     }
   }
 
-  function handleQuickAddCodeSubmit(rawCode?: string) {
+  function handleQuickAddCodeSubmit(rawCode?: string, productsOverride?: Product[]) {
     const code = String(rawCode ?? params.quickAddCode).trim();
-    const result = matchProductByCode(params.products || [], code);
+    const result = matchProductByCode(productsOverride || params.products || [], code);
     if (result.status === 'empty') {
       params.setScannerMessage('اكتب الباركود أولًا.');
       params.requestBarcodeFocus();
@@ -80,7 +87,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.requestBarcodeFocus();
       return false;
     }
-    handleAddProduct(result.match.product);
+    handleAddProduct(result.match.product, result.match.kind === 'unit' ? result.match.unitId : undefined);
     params.setSearch('');
     params.setQuickAddCode('');
     params.setScannerMessage(result.match.kind === 'unit' && result.match.unitName ? `تمت إضافة ${result.match.product.name} بوحدة ${result.match.unitName}.` : `تمت إضافة ${result.match.product.name} إلى السلة.`);

@@ -32,7 +32,7 @@ export function matchProductByCode(products: Product[], rawCode: string) {
     }
     for (const unit of (product.units || [])) {
       if (String(unit.barcode || '').trim().toLowerCase() === code) {
-        matches.push({ product, unitName: unit.name || null, multiplier: Number(unit.multiplier || 1) || 1, kind: 'unit' as const });
+        matches.push({ product, unitId: unit.id || '', unitName: unit.name || null, multiplier: Number(unit.multiplier || 1) || 1, kind: 'unit' as const });
       }
     }
   }

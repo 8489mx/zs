@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import { getProductPrice } from '@/features/pos/lib/pos.domain';
+import { mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
 import type { PaymentChannel, PaymentType, PosProductFilter } from '@/features/pos/hooks/usePosWorkspace';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product, Sale } from '@/types/domain';
@@ -10,6 +11,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 interface PosWorkspaceDerivedParams {
   saleProducts: Product[];
   products: Product[];
+  search: string;
   customers: Array<{ id: string | number; name: string }>;
   branches: Array<{ id: string | number; name: string }>;
   locations: Array<{ id: string | number; name: string }>;
@@ -90,15 +92,20 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     return params.recentProductIds.map((id) => productById.get(String(id))).filter(Boolean) as Product[];
   }, [params.recentProductIds, productById]);
 
+  const panelSourceProducts = useMemo(
+    () => (params.search.trim() ? saleProductList : mergeLookupProducts(recentProducts, saleProductList)),
+    [params.search, recentProducts, saleProductList],
+  );
+
   const filteredSaleProducts = useMemo(() => {
-    return saleProductList.filter((product) => {
+    return panelSourceProducts.filter((product) => {
       if (params.productFilter === 'offers' && !(product.offers || []).length) return false;
       if (params.productFilter === 'priced' && !(product.customerPrices || []).length) return false;
       if (params.productFilter === 'low' && !(Number(product.stock || 0) <= Number(product.minStock || 0))) return false;
       if (params.productFilter === 'recent' && !recentProductIdSet.has(product.id)) return false;
       return true;
     });
-  }, [params.productFilter, recentProductIdSet, saleProductList]);
+  }, [panelSourceProducts, params.productFilter, recentProductIdSet]);
 
   const totals = useMemo(() => {
     const subTotal = params.cart.reduce((sum, item) => sum + (item.qty * item.price), 0);

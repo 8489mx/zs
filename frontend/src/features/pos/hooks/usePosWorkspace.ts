@@ -44,7 +44,7 @@ export function usePosWorkspace() {
     ? 0
     : Number((Number(state.cashAmount || 0) + Number(state.cardAmount || 0)).toFixed(2));
 
-  const { saleProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search, state.locationId);
+  const { saleProducts, catalogProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search, state.locationId);
   const createSale = usePosSaleMutation();
   const queryClient = useQueryClient();
   const authUser = useAuthStore((entry) => entry.user);
@@ -72,7 +72,7 @@ export function usePosWorkspace() {
     setBranchId: state.setBranchId,
     locationId: state.locationId,
     setLocationId: state.setLocationId,
-    products: productsQuery.data || [],
+    products: catalogProducts,
     setCart: state.setCart,
     setSubmitMessage: state.setSubmitMessage,
     recentProductIds: state.recentProductIds,
@@ -89,7 +89,7 @@ export function usePosWorkspace() {
 
   const derived = usePosWorkspaceDerived({
     saleProducts,
-    products: productsQuery.data || [],
+    products: catalogProducts,
     customers: customersQuery.data || [],
     branches: branchesQuery.data || [],
     locations: locationsQuery.data || [],
@@ -109,6 +109,7 @@ export function usePosWorkspace() {
     customerId: state.customerId,
     branchId: state.branchId,
     locationId: state.locationId,
+    search: state.search,
     lastSale: state.lastSale,
   });
 
@@ -159,7 +160,7 @@ export function usePosWorkspace() {
     setPostSaleSaleKey: state.setPostSaleSaleKey,
     requestBarcodeFocus: state.requestBarcodeFocus,
     lastSale: state.lastSale,
-    products: productsQuery.data || [],
+    products: catalogProducts,
     branches: branchesQuery.data || [],
     locations: locationsQuery.data || [],
     currentBranch: derived.currentBranch,
