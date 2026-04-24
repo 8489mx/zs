@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
@@ -7,6 +8,8 @@ import { useDeleteBranchMutation, useDeleteLocationMutation, useUpdateBranchMuta
 import { useFirstRunSetupFlow } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import { settingsSections, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import { useSettingsReferenceFilters } from '@/features/settings/hooks/useSettingsReferenceFilters';
+import { activationApi } from '@/shared/api/activation';
+import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import {
   type SettingsConfirmAction,
   buildSettingsGuidanceCards,
@@ -16,8 +19,11 @@ import {
 export function useSettingsPageController(section: SettingsSectionKey) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const workspace = useSettingsAdminWorkspace(section as never);
+  const currentUser = useAuthStore((state) => state.user);
   const currentUserRole = useAuthStore((state) => state.user?.role || 'cashier');
+  const setAppGate = useAuthStore((state) => state.setAppGate);
   const canManageSettings = useHasAnyPermission(['settings', 'canManageSettings']);
   const canManageBackups = useHasAnyPermission('canManageBackups');
   const canManageMaintenance = useHasAnyPermission(['settings', 'canManageSettings']);
@@ -41,9 +47,23 @@ export function useSettingsPageController(section: SettingsSectionKey) {
   const activeSetupSection = setupFlow.currentStep?.section;
   const referenceFilters = useSettingsReferenceFilters(workspace.branches, workspace.locations);
 
-  const handleSetupAdvance = () => {
-    const nextTarget = setupFlow.nextStep?.to || '/';
-    navigate(nextTarget, { replace: true });
+  const handleSetupAdvance = async () => {
+    const [latestFlow, status] = await Promise.all([
+      setupFlow.refresh(),
+      activationApi.status().catch(() => null),
+      queryClient.invalidateQueries({ queryKey: ['settings-users', 'page'] }),
+    ]);
+
+    if (status) {
+      setAppGate(status.setupRequired ? 'setup' : 'ready', status);
+    }
+
+    if (latestFlow.currentStep) {
+      navigate(latestFlow.currentStep.to, { replace: true });
+      return;
+    }
+
+    navigate(getPostLoginRoute(currentUser, latestFlow.resolvedStoreName), { replace: true });
   };
 
   const settingsGuidanceCards = useMemo(() => buildSettingsGuidanceCards({
