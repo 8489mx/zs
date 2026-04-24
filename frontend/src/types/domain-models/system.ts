@@ -106,6 +106,7 @@ export interface AppSettings {
   printCompactReceipt?: boolean;
   clothingModuleEnabled?: boolean;
   defaultProductKind?: 'standard' | 'fashion' | string;
+  defaultPosMode?: 'scanner' | 'touch' | string;
   theme?: string;
 }
 

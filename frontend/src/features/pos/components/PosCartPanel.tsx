@@ -14,7 +14,7 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
 
   return (
     <Card
-      className="workspace-panel pos-checkout-card pos-checkout-card-compact"
+      className={`workspace-panel pos-checkout-card pos-checkout-card-compact pos-checkout-card-mode-${props.posMode}`.trim()}
     >
       <div className="pos-checkout-static">
         <div className="pos-checkout-top-strip">
@@ -76,7 +76,8 @@ function arePropsEqual(prev: PosCartPanelProps, next: PosCartPanelProps) {
     && prev.canSubmitSale === next.canSubmitSale
     && prev.canSubmitHint === next.canSubmitHint
     && prev.lastAddedLineKey === next.lastAddedLineKey
-    && prev.selectedLineKey === next.selectedLineKey;
+    && prev.selectedLineKey === next.selectedLineKey
+    && prev.posMode === next.posMode;
 }
 
 export const PosCartPanel = memo(PosCartPanelComponent, arePropsEqual);

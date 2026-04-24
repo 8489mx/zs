@@ -4,6 +4,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 
 function buildDescription(pos: PosWorkspaceState) {
@@ -25,11 +26,13 @@ function getShiftHeaderLabel(pos: PosWorkspaceState) {
 
 interface PosWorkspaceHeaderProps {
   pos: PosWorkspaceState;
+  posMode: PosSaleMode;
+  onModeChange: (mode: PosSaleMode) => void;
   onFocusSearch: () => void;
   onPrintDraft: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, onFocusSearch, onPrintDraft }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onPrintDraft }: PosWorkspaceHeaderProps) {
   const paymentMode = paymentLabel(pos.paymentType, pos.paymentChannel);
 
   return (
@@ -43,6 +46,10 @@ function PosWorkspaceHeaderComponent({ pos, onFocusSearch, onPrintDraft }: PosWo
           <span className="toolbar-meta-pill">{getShiftHeaderLabel(pos)}</span>
           <span className="toolbar-meta-pill">الدفع {paymentMode}</span>
 
+          <div className="pos-mode-toggle" role="group" aria-label="POS mode">
+            <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
+            <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
+          </div>
           <Button type="button" variant="secondary" onClick={() => { if (pos.selectedLineKey) pos.editSelectedQty(); else onFocusSearch(); }}>تعديل الكمية</Button>
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
           <Button type="button" variant="secondary" onClick={() => { void pos.holdDraft(); }} disabled={!pos.cart.length}>تعليق F4</Button>
@@ -66,7 +73,9 @@ function areEqual(prev: PosWorkspaceHeaderProps, next: PosWorkspaceHeaderProps) 
     && prev.pos.cart === next.pos.cart
     && prev.pos.canSubmitSale === next.pos.canSubmitSale
     && prev.pos.canSubmitHint === next.pos.canSubmitHint
+    && prev.posMode === next.posMode
     && prev.onFocusSearch === next.onFocusSearch
+    && prev.onModeChange === next.onModeChange
     && prev.onPrintDraft === next.onPrintDraft;
 }
 

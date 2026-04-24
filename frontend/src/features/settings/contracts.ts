@@ -14,6 +14,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
   const managerPin = cleanText(values.managerPin);
   const clothingModuleEnabled = values.clothingModuleEnabled === true;
   const defaultProductKind = clothingModuleEnabled && values.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
+  const defaultPosMode = values.defaultPosMode === 'touch' ? 'touch' : 'scanner';
 
   const settings = {
     ...(currentSettings || {}),
@@ -36,6 +37,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     currentLocationId: cleanText(values.currentLocationId),
     clothingModuleEnabled,
     defaultProductKind,
+    defaultPosMode,
     printShowLogo: values.printShowLogo !== false,
     printShowPhone: values.printShowPhone !== false,
     printShowAddress: values.printShowAddress !== false,

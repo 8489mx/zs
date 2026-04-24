@@ -13,6 +13,7 @@ import {
 } from '@/features/pos/lib/pos-product-groups';
 import type { Product } from '@/types/domain';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
+import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 
 interface PosProductsPanelProps {
   search: string;
@@ -26,6 +27,7 @@ interface PosProductsPanelProps {
   productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent';
   onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent') => void;
   searchInputRef: RefObject<HTMLInputElement | null>;
+  posMode: PosSaleMode;
 }
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
@@ -198,6 +200,7 @@ function PosProductsPanelComponent({
   productFilter,
   onProductFilterChange,
   searchInputRef,
+  posMode,
 }: PosProductsPanelProps) {
   const [shelf, setShelf] = useState<PosGroupShelf>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -344,7 +347,7 @@ function PosProductsPanelComponent({
     <Card
       title="1. اختيار الأصناف"
       actions={<span className="nav-pill">{visibleGroups.length} مجموعة</span>}
-      className="workspace-panel pos-products-card pos-products-card-compact pos-products-card-density-compact"
+      className={`workspace-panel pos-products-card pos-products-card-compact pos-products-card-density-compact pos-products-card-mode-${posMode}`.trim()}
     >
       <div className="pos-products-static">
 
@@ -517,7 +520,8 @@ function arePropsEqual(prev: PosProductsPanelProps, next: PosProductsPanelProps)
     && prev.priceType === next.priceType
     && prev.products === next.products
     && prev.recentProducts === next.recentProducts
-    && prev.productFilter === next.productFilter;
+    && prev.productFilter === next.productFilter
+    && prev.posMode === next.posMode;
 }
 
 export const PosProductsPanel = memo(PosProductsPanelComponent, arePropsEqual);

@@ -14,6 +14,7 @@ import {
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import { posApi } from '@/features/pos/api/pos.api';
 import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
+import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
@@ -27,6 +28,8 @@ export function PosWorkspace() {
   const [lineDeleteConfirmKey, setLineDeleteConfirmKey] = useState('');
   const [heldDeleteConfirmId, setHeldDeleteConfirmId] = useState('');
   const [clearHeldConfirmOpen, setClearHeldConfirmOpen] = useState(false);
+  const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
+  const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
 
   const catalogsLoading = pos.productsQuery.isLoading || pos.customersQuery.isLoading || pos.branchesQuery.isLoading || pos.locationsQuery.isLoading || pos.settingsQuery.isLoading;
   const catalogsError = pos.productsQuery.error || pos.customersQuery.error || pos.branchesQuery.error || pos.locationsQuery.error || pos.settingsQuery.error;
@@ -177,8 +180,8 @@ export function PosWorkspace() {
   });
 
   return (
-    <div className="page-stack page-shell pos-workspace pos-premium-shell">
-      <PosWorkspaceHeader pos={pos} onFocusSearch={focusBarcodeEntry} onPrintDraft={printCurrentDraft} />
+    <div className={`page-stack page-shell pos-workspace pos-premium-shell pos-sale-mode-${posMode}`.trim()}>
+      <PosWorkspaceHeader pos={pos} posMode={posMode} onModeChange={setPosMode} onFocusSearch={focusBarcodeEntry} onPrintDraft={printCurrentDraft} />
 
       <QueryFeedback
         isLoading={catalogsLoading}
@@ -204,6 +207,7 @@ export function PosWorkspace() {
             onProductFilterChange={pos.setProductFilter}
             onAddProduct={pos.handleAddProduct}
             searchInputRef={searchInputRef}
+            posMode={posMode}
           />
 
           <div className="pos-checkout-column">
@@ -244,6 +248,7 @@ export function PosWorkspace() {
               canSubmitHint={pos.canSubmitHint}
               lastAddedLineKey={pos.lastAddedLineKey}
               selectedLineKey={pos.selectedLineKey}
+              posMode={posMode}
               preferredPrintPageSize={pos.settingsQuery.data?.paperSize === 'receipt' ? 'receipt' : 'a4'}
               onCustomerChange={pos.setCustomerId}
               onQuickCustomerNameChange={pos.setQuickCustomerName}

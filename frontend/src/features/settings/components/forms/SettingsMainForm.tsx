@@ -50,6 +50,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       currentLocationId: '',
       clothingModuleEnabled: false,
       defaultProductKind: 'standard',
+      defaultPosMode: 'scanner',
       printShowLogo: true,
       printShowPhone: true,
       printShowAddress: true,
@@ -103,6 +104,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       currentLocationId: settings.currentLocationId || '',
       clothingModuleEnabled: clothingEnabled,
       defaultProductKind: clothingEnabled && settings.defaultProductKind === 'fashion' ? 'fashion' : 'standard',
+      defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
       printShowLogo: settings.printShowLogo !== false,
       printShowPhone: settings.printShowPhone !== false,
       printShowAddress: settings.printShowAddress !== false,
@@ -158,6 +160,12 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           <select {...form.register('paperSize')} disabled={mutation.isPending || !canManageSettings}>
             <option value="a4">A4</option>
             <option value="receipt">Receipt</option>
+          </select>
+        </Field>
+        <Field label="نمط الكاشير الافتراضي">
+          <select {...form.register('defaultPosMode')} disabled={mutation.isPending || !canManageSettings}>
+            <option value="scanner">سكانر</option>
+            <option value="touch">تاتش</option>
           </select>
         </Field>
         {SINGLE_STORE_MODE ? (
