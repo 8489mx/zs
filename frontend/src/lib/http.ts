@@ -37,15 +37,28 @@ export function normalizeApiBaseUrl(
       }
       : null);
 
-  if (normalized || !runtimeLocation) return normalized;
+  if (!runtimeLocation) return normalized;
 
   const isDevServer = runtimeLocation.port === '5173';
+  const isPortableStaticServer = runtimeLocation.port === '8080';
+  const isLoopbackRuntime = ['127.0.0.1', 'localhost'].includes(runtimeLocation.hostname);
+  const configuredUrl = normalized ? new URL(normalized, `${runtimeLocation.protocol}//${runtimeLocation.hostname}`) : null;
+  const configuredIsLoopbackApi = Boolean(
+    configuredUrl
+    && ['127.0.0.1', 'localhost'].includes(configuredUrl.hostname)
+    && configuredUrl.port === '3001',
+  );
+
+  if (isPortableStaticServer && isLoopbackRuntime && configuredIsLoopbackApi) return '';
+  if (normalized) return normalized;
+
   if (isDevServer) {
     return `${runtimeLocation.protocol}//${runtimeLocation.hostname}:3001`;
   }
 
   return '';
 }
+
 
 const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE);
 

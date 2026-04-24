@@ -86,16 +86,16 @@ try {
   Assert-BackendArtifacts -Paths $paths -EnvMap $envMap
   Assert-FrontendArtifacts -Paths $paths
 
-  if (-not $envMap.ContainsKey('ENABLE_BOOTSTRAP_ADMIN') -or -not $envMap['ENABLE_BOOTSTRAP_ADMIN']) {
-    $envMap['ENABLE_BOOTSTRAP_ADMIN'] = 'true'
+  if (-not $envMap.ContainsKey('ENABLE_BOOTSTRAP_ADMIN')) {
+    $envMap['ENABLE_BOOTSTRAP_ADMIN'] = 'false'
   }
 
-  if (-not $envMap.ContainsKey('DEFAULT_ADMIN_USERNAME') -or -not $envMap['DEFAULT_ADMIN_USERNAME']) {
-    $envMap['DEFAULT_ADMIN_USERNAME'] = 'admin'
+  if (-not $envMap.ContainsKey('DEFAULT_ADMIN_USERNAME')) {
+    $envMap['DEFAULT_ADMIN_USERNAME'] = ''
   }
 
-  if (-not $envMap.ContainsKey('DEFAULT_ADMIN_PASSWORD') -or -not $envMap['DEFAULT_ADMIN_PASSWORD']) {
-    $envMap['DEFAULT_ADMIN_PASSWORD'] = 'ZsPortable@2026!'
+  if (-not $envMap.ContainsKey('DEFAULT_ADMIN_PASSWORD')) {
+    $envMap['DEFAULT_ADMIN_PASSWORD'] = ''
   }
 
   Export-EnvMap -EnvMap $envMap

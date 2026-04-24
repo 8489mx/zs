@@ -17,6 +17,16 @@ describe('http client', () => {
     expect(normalizeApiBaseUrl('https://api.example.com/')).toBe('https://api.example.com');
   });
 
+  it('uses same-origin API proxy for portable static builds even if local dev api base is configured', () => {
+    expect(normalizeApiBaseUrl('http://localhost:3001/', { port: '8080', protocol: 'http:', hostname: '127.0.0.1' })).toBe('');
+    expect(normalizeApiBaseUrl('http://127.0.0.1:3001/', { port: '8080', protocol: 'http:', hostname: 'localhost' })).toBe('');
+  });
+
+  it('keeps the local API base for the Vite dev server', () => {
+    expect(normalizeApiBaseUrl(undefined, { port: '5173', protocol: 'http:', hostname: 'localhost' })).toBe('http://localhost:3001');
+    expect(normalizeApiBaseUrl('http://localhost:3001/', { port: '5173', protocol: 'http:', hostname: 'localhost' })).toBe('http://localhost:3001');
+  });
+
   it('attaches the csrf header for unsafe methods', async () => {
     document.cookie = 'csrf_token=secure-token; path=/';
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
