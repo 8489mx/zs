@@ -5,6 +5,7 @@ import { accountsApi } from '@/features/accounts/api/accounts.api';
 import { formatCurrency } from '@/lib/format';
 import { invalidateAccountsDomain, invalidateCatalogDomain } from '@/app/query-invalidation';
 import { useAccountsRouteState } from '@/features/accounts/hooks/useAccountsRouteState';
+import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 
 type BalanceCarrier = { id?: string | number; name?: string; balance?: number | string };
 
@@ -192,7 +193,7 @@ export function useAccountsWorkspaceController() {
     });
     setQuickCustomerName('');
     setQuickCustomerPhone('');
-    setSelectedCustomerId(String((created as { id?: string | number })?.id || ''));
+    setSelectedCustomerId(extractCreatedEntityId(created));
   }
 
   async function handleQuickSupplierSubmit(event: FormEvent<HTMLFormElement>) {
@@ -208,7 +209,7 @@ export function useAccountsWorkspaceController() {
     });
     setQuickSupplierName('');
     setQuickSupplierPhone('');
-    setSelectedSupplierId(String((created as { id?: string | number })?.id || ''));
+    setSelectedSupplierId(extractCreatedEntityId(created));
   }
 
   async function exportCustomerLedger() {

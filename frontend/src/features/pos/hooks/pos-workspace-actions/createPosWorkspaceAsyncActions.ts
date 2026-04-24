@@ -4,6 +4,7 @@ import { getPostSalePrintHint, getPostSalePrintMode } from '@/features/pos/compo
 import { catalogApi } from '@/lib/api/catalog';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 import type { createPosWorkspaceBaseActions } from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions';
+import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 
 function getSaleKey(sale: Sale | null) {
   if (!sale) return '';
@@ -12,17 +13,6 @@ function getSaleKey(sale: Sale | null) {
 
 interface SubmitOptions {
   fastCash?: boolean;
-}
-
-function extractCustomerId(payload: unknown): string {
-  if (!payload || typeof payload !== 'object') return '';
-  const candidate = payload as {
-    id?: string | number;
-    customer?: { id?: string | number } | null;
-    data?: { id?: string | number; customer?: { id?: string | number } | null } | null;
-  };
-  const id = candidate.id ?? candidate.customer?.id ?? candidate.data?.id ?? candidate.data?.customer?.id ?? '';
-  return id === '' || id == null ? '' : String(id);
 }
 
 function matchesCreatedCustomer(customer: Customer, name: string, phone: string) {
@@ -51,7 +41,7 @@ export function createPosWorkspaceAsyncActions(
         creditLimit: 0,
       });
 
-      let createdCustomerId = extractCustomerId(created);
+      let createdCustomerId = extractCreatedEntityId(created);
       if (!createdCustomerId) {
         const refreshedCustomers = await catalogApi.listCustomers();
         const matchedCustomer = [...refreshedCustomers].reverse().find((customer) => matchesCreatedCustomer(customer, name, phone));

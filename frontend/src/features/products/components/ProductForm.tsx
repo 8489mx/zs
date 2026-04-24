@@ -18,6 +18,7 @@ import { productFormSchema, type ProductFormInput, type ProductFormOutput } from
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
+import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 
 interface ProductFormProps {
   categories: Category[];
@@ -157,7 +158,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
       return productsApi.createCategory({ name }) as Promise<{ id?: string | number; category?: { id?: string | number }; data?: { id?: string | number } }>;
     },
     onSuccess: async (created) => {
-      const nextId = String(created?.id || created?.category?.id || created?.data?.id || '');
+      const nextId = extractCreatedEntityId(created);
       setInlineCategoryName('');
       await invalidateCatalogDomain(queryClient, { includeCategories: true });
       if (nextId) {
@@ -174,7 +175,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
       return productsApi.createSupplier({ name, phone: inlineSupplierPhone.trim(), address: '', balance: 0, notes: '' }) as Promise<{ id?: string | number; supplier?: { id?: string | number }; data?: { id?: string | number } }>;
     },
     onSuccess: async (created) => {
-      const nextId = String(created?.id || created?.supplier?.id || created?.data?.id || '');
+      const nextId = extractCreatedEntityId(created);
       setInlineSupplierName('');
       setInlineSupplierPhone('');
       await invalidateCatalogDomain(queryClient, { includeSuppliers: true });
