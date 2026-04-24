@@ -9,7 +9,7 @@ import { useFirstRunSetupFlow } from '@/features/settings/hooks/useFirstRunSetup
 import { settingsSections, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import { useSettingsReferenceFilters } from '@/features/settings/hooks/useSettingsReferenceFilters';
 import { activationApi } from '@/shared/api/activation';
-import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
+import { getPostLoginRoute } from '@/app/router/post-login-route';
 import {
   type SettingsConfirmAction,
   buildSettingsGuidanceCards,

@@ -98,7 +98,7 @@ vi.mock('@/shared/api/activation', () => ({
   },
 }));
 
-vi.mock('@/features/auth/lib/post-login-route', () => ({
+vi.mock('@/app/router/post-login-route', () => ({
   getPostLoginRoute: getPostLoginRouteMock,
 }));
 

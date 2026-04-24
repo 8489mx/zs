@@ -37,11 +37,11 @@ export function normalizeApiBaseUrl(
       }
       : null);
 
-  if (!runtimeLocation) return normalized;
+  if (normalized || !runtimeLocation) return normalized;
 
   const isDevServer = runtimeLocation.port === '5173';
   if (isDevServer) {
-    return normalized || `${runtimeLocation.protocol}//${runtimeLocation.hostname}:3001`;
+    return `${runtimeLocation.protocol}//${runtimeLocation.hostname}:3001`;
   }
 
   return '';

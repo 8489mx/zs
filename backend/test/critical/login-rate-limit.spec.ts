@@ -110,7 +110,7 @@ function runEnvGuards(): void {
       DATABASE_HOST: 'db.example.com',
       SESSION_CSRF_SECRET: '1234567890123456',
     }),
-    /DATABASE_HOST must be "postgres" when APP_MODE is LOCAL_PILOT or SELF_CONTAINED/,
+    /DATABASE_HOST must be local-only when APP_MODE is LOCAL_PILOT or SELF_CONTAINED/,
   );
 
   assert.throws(
