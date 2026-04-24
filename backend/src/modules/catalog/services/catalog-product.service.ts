@@ -61,6 +61,13 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty'> & {
+  matched_unit_id?: number | null;
+  matched_unit_name?: string | null;
+  matched_unit_multiplier?: string | number | null;
+  matched_unit_barcode?: string | null;
+};
+
 type CustomerPriceReadRow = {
   id: number;
   product_id: number;
@@ -180,7 +187,219 @@ export class CatalogProductService {
     };
   }
 
-  private async resolveScopedStockByProduct(productIds: number[], scopedLocationId: number | null, products: ProductRow[]): Promise<Map<string, number>> {
+  async listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
+    const { q, barcode, limit, requestedLocationId } = this.parsePosProductLookupQuery(query);
+    const scopedLocation = requestedLocationId > 0 ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
+    const productRows = barcode
+      ? await this.findPosProductsByBarcode(barcode, limit)
+      : await this.searchPosProducts(q, limit);
+
+    const uniqueRows = this.uniquePosProductRows(productRows).slice(0, limit);
+    const productIds = uniqueRows.map((product) => Number(product.id));
+    const [unitsByProduct, scopedStockByProduct] = await Promise.all([
+      this.fetchPosProductUnits(productIds),
+      this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, uniqueRows),
+    ]);
+
+    return {
+      products: uniqueRows.map((product) => this.mapPosProduct(product, {
+        scopedLocationId: scopedLocation?.id || null,
+        scopedStockByProduct,
+        unitsByProduct,
+      })),
+      meta: {
+        q,
+        barcode,
+        limit,
+        locationId: scopedLocation?.id ? String(scopedLocation.id) : '',
+      },
+    };
+  }
+
+  private parsePosProductLookupQuery(query: Record<string, unknown>) {
+    const requestedLimit = Number(query.limit || 30);
+    const safeLimit = Number.isFinite(requestedLimit) ? Math.floor(requestedLimit) : 30;
+    return {
+      q: String(query.q || '').trim(),
+      barcode: String(query.barcode || '').trim(),
+      limit: Math.min(50, Math.max(1, safeLimit)),
+      requestedLocationId: Number(query.locationId || 0),
+    };
+  }
+
+  private async findPosProductsByBarcode(barcode: string, limit: number): Promise<PosProductLookupRow[]> {
+    if (!barcode) return [];
+    const productMatches = await this.db
+      .selectFrom('products as p')
+      .select(['p.id', 'p.name', 'p.barcode', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty'])
+      .where('p.is_active', '=', true)
+      .where('p.barcode', '=', barcode)
+      .orderBy('p.id', 'asc')
+      .limit(limit)
+      .execute() as PosProductLookupRow[];
+
+    const seenProductIds = productMatches.map((product) => Number(product.id));
+    const remaining = limit - productMatches.length;
+    if (remaining <= 0) return productMatches;
+
+    let unitQuery = this.db
+      .selectFrom('product_units as pu')
+      .innerJoin('products as p', 'p.id', 'pu.product_id')
+      .select([
+        'p.id',
+        'p.name',
+        'p.barcode',
+        'p.item_kind',
+        'p.style_code',
+        'p.color',
+        'p.size',
+        'p.retail_price',
+        'p.wholesale_price',
+        'p.stock_qty',
+        'p.min_stock_qty',
+        'pu.id as matched_unit_id',
+        'pu.name as matched_unit_name',
+        'pu.multiplier as matched_unit_multiplier',
+        'pu.barcode as matched_unit_barcode',
+      ])
+      .where('p.is_active', '=', true)
+      .where('pu.barcode', '=', barcode);
+
+    if (seenProductIds.length) unitQuery = unitQuery.where('p.id', 'not in', seenProductIds);
+
+    const unitMatches = await unitQuery
+      .orderBy('p.id', 'asc')
+      .limit(remaining)
+      .execute() as PosProductLookupRow[];
+
+    return [...productMatches, ...unitMatches];
+  }
+
+  private async searchPosProducts(q: string, limit: number): Promise<PosProductLookupRow[]> {
+    const normalized = q.trim().toLowerCase();
+    const pattern = `%${normalized}%`;
+    let productQuery = this.db
+      .selectFrom('products as p')
+      .leftJoin('product_units as pu', 'pu.product_id', 'p.id')
+      .select([
+        'p.id',
+        'p.name',
+        'p.barcode',
+        'p.item_kind',
+        'p.style_code',
+        'p.color',
+        'p.size',
+        'p.retail_price',
+        'p.wholesale_price',
+        'p.stock_qty',
+        'p.min_stock_qty',
+      ])
+      .where('p.is_active', '=', true);
+
+    if (normalized) {
+      productQuery = productQuery.where(sql<boolean>`(
+        LOWER(p.name) LIKE ${pattern}
+        OR LOWER(COALESCE(p.barcode, '')) LIKE ${pattern}
+        OR LOWER(COALESCE(p.style_code, '')) LIKE ${pattern}
+        OR LOWER(COALESCE(pu.barcode, '')) LIKE ${pattern}
+        OR LOWER(COALESCE(pu.name, '')) LIKE ${pattern}
+      )`);
+    }
+
+    return productQuery
+      .orderBy('p.name', 'asc')
+      .orderBy('p.id', 'asc')
+      .limit(limit)
+      .execute() as Promise<PosProductLookupRow[]>;
+  }
+
+  private uniquePosProductRows(rows: PosProductLookupRow[]): PosProductLookupRow[] {
+    const seen = new Set<number>();
+    const uniqueRows: PosProductLookupRow[] = [];
+    for (const row of rows) {
+      const id = Number(row.id);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      uniqueRows.push(row);
+    }
+    return uniqueRows;
+  }
+
+  private async fetchPosProductUnits(productIds: number[]): Promise<Map<string, Record<string, unknown>[]>> {
+    if (!productIds.length) return new Map();
+    const unitRows = await this.db
+      .selectFrom('product_units')
+      .select(['id', 'product_id', 'name', 'multiplier', 'barcode', 'is_base_unit', 'is_sale_unit_default', 'is_purchase_unit_default'])
+      .where('product_id', 'in', productIds)
+      .orderBy('product_id', 'asc')
+      .orderBy('is_base_unit', 'desc')
+      .orderBy('id', 'asc')
+      .execute() as ProductUnitReadRow[];
+
+    const unitsByProduct = new Map<string, Record<string, unknown>[]>();
+    for (const unit of unitRows) {
+      const key = String(unit.product_id);
+      if (!unitsByProduct.has(key)) unitsByProduct.set(key, []);
+      unitsByProduct.get(key)!.push({
+        id: String(unit.id),
+        name: unit.name,
+        multiplier: Number(unit.multiplier || 1),
+        barcode: unit.barcode || '',
+        isBaseUnit: Boolean(unit.is_base_unit),
+        isSaleUnit: Boolean(unit.is_sale_unit_default),
+        isPurchaseUnit: Boolean(unit.is_purchase_unit_default),
+      });
+    }
+    return unitsByProduct;
+  }
+
+  private mapPosProduct(
+    product: PosProductLookupRow,
+    context: {
+      scopedLocationId: number | null;
+      scopedStockByProduct: Map<string, number>;
+      unitsByProduct: Map<string, Record<string, unknown>[]>;
+    },
+  ): Record<string, unknown> {
+    const units = context.unitsByProduct.get(String(product.id)) || [
+      {
+        id: `base-${product.id}`,
+        name: 'piece',
+        multiplier: 1,
+        barcode: product.barcode || '',
+        isBaseUnit: true,
+        isSaleUnit: true,
+        isPurchaseUnit: true,
+      },
+    ];
+
+    return {
+      id: String(product.id),
+      name: product.name || '',
+      barcode: product.barcode || '',
+      itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
+      styleCode: product.style_code || '',
+      color: product.color || '',
+      size: product.size || '',
+      retailPrice: Number(product.retail_price || 0),
+      wholesalePrice: Number(product.wholesale_price || 0),
+      stock: this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct),
+      minStock: Number(product.min_stock_qty || 0),
+      locationId: context.scopedLocationId ? String(context.scopedLocationId) : '',
+      matchedUnitId: product.matched_unit_id ? String(product.matched_unit_id) : '',
+      matchedUnit: product.matched_unit_id
+        ? {
+            id: String(product.matched_unit_id),
+            name: product.matched_unit_name || '',
+            multiplier: Number(product.matched_unit_multiplier || 1),
+            barcode: product.matched_unit_barcode || '',
+          }
+        : null,
+      units,
+    };
+  }
+
+  private async resolveScopedStockByProduct(productIds: number[], scopedLocationId: number | null, products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>): Promise<Map<string, number>> {
     const scopedStockByProduct = new Map<string, number>();
     if (!scopedLocationId || !productIds.length) return scopedStockByProduct;
 
@@ -444,7 +663,7 @@ export class CatalogProductService {
     };
   }
 
-  private getListProductStock(product: ProductRow, scopedLocationId: number | null, scopedStockByProduct: Map<string, number>) {
+  private getListProductStock(product: Pick<ProductRow, 'id' | 'stock_qty'>, scopedLocationId: number | null, scopedStockByProduct: Map<string, number>) {
     if (!scopedLocationId) return Number(product.stock_qty || 0);
     return Number(scopedStockByProduct.get(String(product.id)) || 0);
   }

@@ -44,6 +44,12 @@ export class CatalogController {
     return this.catalogService.listProducts(query, req.authContext);
   }
 
+  @Get('catalog/pos-products')
+  @RequirePermissions('sales')
+  listPosProducts(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.catalogService.listPosProducts(query, req.authContext!);
+  }
+
   @Post('products')
   @RequirePermissions('products')
   createProduct(@Body() payload: UpsertProductDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
