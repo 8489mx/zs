@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
-import { getAvailableSaleProducts } from '@/features/pos/lib/pos.domain';
+import { getAvailableSaleProducts, isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import { POS_PRODUCT_CACHE_LIMIT, POS_PRODUCT_LOOKUP_LIMIT, isLikelyBarcodeQuery, mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import type { Product } from '@/types/domain';
@@ -38,7 +38,10 @@ export function usePosCatalog(search: string, locationId: string) {
     setProductCache((current) => mergeLookupProducts(productsQuery.data, current).slice(0, POS_PRODUCT_CACHE_LIMIT));
   }, [productsQuery.data]);
 
-  const saleProducts = useMemo(() => getAvailableSaleProducts(productsQuery.data || [], ''), [productsQuery.data]);
+  const saleProducts = useMemo(
+    () => getAvailableSaleProducts(productsQuery.data || [], '', isNegativeStockSalesAllowed(settingsQuery.data)),
+    [productsQuery.data, settingsQuery.data],
+  );
   const catalogProducts = useMemo(() => mergeLookupProducts(productsQuery.data || [], productCache), [productCache, productsQuery.data]);
 
   return {

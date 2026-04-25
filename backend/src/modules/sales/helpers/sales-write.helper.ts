@@ -40,12 +40,13 @@ export type PreparedSaleItem = {
 export function buildPreparedSaleItem(
   product: SaleProductRow,
   item: NormalizedSalePayload['items'][number],
+  options: { allowNegativeStockSales?: boolean } = {},
 ): PreparedSaleItem {
   const productName = String(product.name || '').trim();
   const requiredQty = Number((Number(item.qty || 0) * Number(item.unitMultiplier || 1)).toFixed(3));
   const beforeQty = Number(product.stock_qty || 0);
 
-  if (beforeQty < requiredQty) {
+  if (!options.allowNegativeStockSales && beforeQty < requiredQty) {
     throw new AppError(`Insufficient stock for ${productName || `#${item.productId}`}`, 'INSUFFICIENT_STOCK', 400);
   }
 

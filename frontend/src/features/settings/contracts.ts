@@ -38,6 +38,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     clothingModuleEnabled,
     defaultProductKind,
     defaultPosMode,
+    allowNegativeStockSales: values.allowNegativeStockSales === true,
+    allowSellingBelowStock: values.allowNegativeStockSales === true,
     printShowLogo: values.printShowLogo !== false,
     printShowPhone: values.printShowPhone !== false,
     printShowAddress: values.printShowAddress !== false,

@@ -107,6 +107,8 @@ export interface AppSettings {
   clothingModuleEnabled?: boolean;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;
+  allowNegativeStockSales?: boolean;
+  allowSellingBelowStock?: boolean;
   theme?: string;
 }
 

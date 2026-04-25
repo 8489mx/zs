@@ -67,6 +67,22 @@ export class SalesWriteService {
       .execute();
   }
 
+  private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>): Promise<boolean> {
+    const rows = await trx
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where('key', 'in', ['allowNegativeStockSales', 'allowSellingBelowStock'])
+      .execute();
+
+    return rows.some((row) => {
+      try {
+        return JSON.parse(String(row.value ?? 'false')) === true;
+      } catch {
+        return String(row.value || '').trim().toLowerCase() === 'true';
+      }
+    });
+  }
+
   async authorizeDiscountOverride(secret: string, _auth: AuthContext): Promise<Record<string, unknown>> {
     const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), this.db);
     return { ok: true, authorized: true, mode: result.mode, authorizedByName: result.authorizedByName };
@@ -113,6 +129,7 @@ export class SalesWriteService {
         : null;
       if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
+      const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx);
 
       let subtotal = 0;
       const preparedItems = [];
@@ -132,7 +149,7 @@ export class SalesWriteService {
         const availableStockQty = normalized.locationId
           ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId })
           : Number(product.stock_qty || 0);
-        const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item);
+        const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item, { allowNegativeStockSales });
         subtotal += preparedItem.lineTotal;
         preparedItems.push(preparedItem);
       }
@@ -224,6 +241,7 @@ export class SalesWriteService {
           locationId: normalized.locationId,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: `Insufficient stock for ${item.productName}`,
+          allowNegative: allowNegativeStockSales,
         });
         await trx
           .insertInto('stock_movements')

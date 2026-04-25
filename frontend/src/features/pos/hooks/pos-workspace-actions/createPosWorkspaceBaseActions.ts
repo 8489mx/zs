@@ -1,6 +1,6 @@
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { downloadCsvFile } from '@/lib/browser';
-import { addPosItem, getProductPrice, removePosItem, updatePosItemQty } from '@/features/pos/lib/pos.domain';
+import { addPosItem, getProductPrice, isNegativeStockSalesAllowed, removePosItem, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
 import { buildSaleLineKey, computeDraftTotal, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import { clearDraftSnapshot } from '@/features/pos/lib/pos.persistence';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
@@ -55,7 +55,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   function handleAddProduct(product: Product, unitId?: string) {
     try {
       const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
-      params.setCart((current) => addPosItem(current, product, { priceType: params.priceType, unitId }));
+      const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
+      const nextCart = addPosItem(params.cart, product, { priceType: params.priceType, unitId, allowNegativeStockSales });
+      params.setCart(nextCart);
       params.setSelectedLineKey(lineKey);
       params.setLastAddedLineKey(lineKey);
       registerRecentProduct(product.id);
@@ -131,7 +133,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
 
   function setQty(lineKey: string, qty: number) {
     params.setSelectedLineKey(lineKey);
-    params.setCart((current) => updatePosItemQty(current, lineKey, qty, params.products || []));
+    params.setCart((current) => updatePosItemQtyWithOptions(current, lineKey, qty, params.products || [], {
+      allowNegativeStockSales: isNegativeStockSalesAllowed(params.settings),
+    }));
     params.setPostSaleSaleKey('');
   }
 

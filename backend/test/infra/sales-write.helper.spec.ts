@@ -42,4 +42,26 @@ assert.throws(
   (error: unknown) => error instanceof AppError && error.code === 'INSUFFICIENT_STOCK',
 );
 
+assert.deepEqual(
+  buildPreparedSaleItem(
+    { id: 3, name: 'Sugar', stock_qty: '1', cost_price: '2' },
+    { productId: 3, qty: 2, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail' },
+    { allowNegativeStockSales: true },
+  ),
+  {
+    productId: 3,
+    productName: 'Sugar',
+    qty: 2,
+    unitPrice: 5,
+    lineTotal: 10,
+    unitName: 'قطعة',
+    unitMultiplier: 1,
+    priceType: 'retail',
+    costPrice: 2,
+    requiredQty: 2,
+    beforeQty: 1,
+    afterQty: -1,
+  },
+);
+
 console.log('sales write helper checks passed');

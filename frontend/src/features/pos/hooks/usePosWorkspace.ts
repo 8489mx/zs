@@ -85,6 +85,7 @@ export function usePosWorkspace() {
     locations: locationsQuery.data || [],
     discountApprovalSecret: state.discountApprovalSecret,
     setDiscountApprovalSecret: state.setDiscountApprovalSecret,
+    settings: settingsQuery.data || null,
   });
 
   const derived = usePosWorkspaceDerived({

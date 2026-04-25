@@ -68,6 +68,12 @@ export function getStockLimit(product: Product, unit: ProductUnit = getSaleUnit(
   return Math.floor(Number(product.stock || 0) / Math.max(Number(unit.multiplier || 1), 1));
 }
 
+const UNBOUNDED_STOCK_LIMIT = Number.MAX_SAFE_INTEGER;
+
+export function isNegativeStockSalesAllowed(settings?: { allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown } | null) {
+  return settings?.allowNegativeStockSales === true || settings?.allowSellingBelowStock === true;
+}
+
 function getProductItemCode(product: Product, unit?: ProductUnit) {
   return String(product.styleCode || unit?.barcode || product.barcode || product.id || '').trim();
 }
@@ -86,11 +92,11 @@ function repriceCartLine(item: PosItem, product: Product, qty: number) {
   };
 }
 
-export function getAvailableSaleProducts(products: Product[], search: string) {
+export function getAvailableSaleProducts(products: Product[], search: string, allowNegativeStockSales = false) {
   const q = search.trim().toLowerCase();
   return products.filter((product) => {
     const stockLimit = getStockLimit(product);
-    if (stockLimit <= 0) return false;
+    if (!allowNegativeStockSales && stockLimit <= 0) return false;
     if (!q) return true;
     const unitMatches = safeUnits(product).some((unit) => [unit.name, unit.barcode].some((value) => String(value || '').toLowerCase().includes(q)));
     return [product.name, product.barcode].some((value) => String(value || '').toLowerCase().includes(q)) || unitMatches;
@@ -100,11 +106,12 @@ export function getAvailableSaleProducts(products: Product[], search: string) {
 interface AddPosItemOptions {
   priceType: PosPriceType;
   unitId?: string;
+  allowNegativeStockSales?: boolean;
 }
 
 export function addPosItem(cart: PosItem[], product: Product, options: AddPosItemOptions) {
   const unit = safeUnits(product).find((entry) => entry.id === options.unitId) || getSaleUnit(product);
-  const stockLimit = getStockLimit(product, unit);
+  const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getStockLimit(product, unit);
   if (stockLimit <= 0) {
     throw new Error('الصنف غير متاح للبيع حاليًا');
   }
@@ -143,11 +150,27 @@ export function updatePosItemQty(cart: PosItem[], lineKey: string, qty: number, 
   });
 }
 
+export function updatePosItemQtyWithOptions(
+  cart: PosItem[],
+  lineKey: string,
+  qty: number,
+  products: Product[],
+  options: { allowNegativeStockSales?: boolean } = {},
+) {
+  return cart.map((item) => {
+    if (item.lineKey !== lineKey) return item;
+    const product = products.find((entry) => String(entry.id) === String(item.productId));
+    if (!product) return { ...item, qty: Math.max(1, options.allowNegativeStockSales ? qty : Math.min(qty, item.stockLimit)) };
+    const nextQty = Math.max(1, options.allowNegativeStockSales ? qty : Math.min(qty, item.stockLimit));
+    return repriceCartLine(item, product, nextQty);
+  });
+}
+
 export function removePosItem(cart: PosItem[], lineKey: string) {
   return cart.filter((row) => row.lineKey !== lineKey);
 }
 
-export function syncPosCartStock(cart: PosItem[], products: Product[]) {
+export function syncPosCartStock(cart: PosItem[], products: Product[], options: { allowNegativeStockSales?: boolean } = {}) {
   let changed = false;
   let removedCount = 0;
   let clampedCount = 0;
@@ -156,7 +179,7 @@ export function syncPosCartStock(cart: PosItem[], products: Product[]) {
     const product = products.find((entry) => String(entry.id) === String(item.productId));
     if (!product) return [item];
     const unit = safeUnits(product).find((entry) => String(entry.id || '') === String(item.unitId || '') || String(entry.name || '') === String(item.unitName || '')) || getSaleUnit(product);
-    const stockLimit = getStockLimit(product, unit);
+    const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getStockLimit(product, unit);
     if (stockLimit <= 0) {
       changed = true;
       removedCount += 1;
