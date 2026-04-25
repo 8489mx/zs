@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateAuditLogs } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
 import { buildPosSalePayload, buildLegacyPosSalePayload, buildMinimalPosSalePayload, type CreatePosSaleInput } from '@/features/pos/contracts';
@@ -24,6 +25,7 @@ export function usePosSaleMutation() {
         queryClient.invalidateQueries({ queryKey: ['products', 'pos'] }),
         queryClient.invalidateQueries({ queryKey: queryKeys.posCustomers }),
         queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }),
+        invalidateAuditLogs(queryClient),
       ]);
     }
   });

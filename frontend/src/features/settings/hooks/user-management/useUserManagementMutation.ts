@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateAuditLogs } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import { settingsApi, type ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { normalizeUserRecord } from '@/features/settings/components/user-management.shared';
@@ -47,7 +48,10 @@ export function useUserManagementMutation({
       }
     },
     onSuccess: async (payload, action) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.settingsUsers });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.settingsUsers }),
+        invalidateAuditLogs(queryClient),
+      ]);
       const nextUsers = Array.isArray(payload.users) ? payload.users.map(normalizeUserRecord) : [];
       const isSelfUpdate = action.type === 'update' && String(action.id || '') === String(currentUserId || '');
       const rotatedOwnPassword = isSelfUpdate && Boolean(String(draft.password || '').trim());

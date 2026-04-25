@@ -5,6 +5,10 @@ export async function invalidateDashboardOverview(queryClient: QueryClient) {
   await queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
 }
 
+export async function invalidateAuditLogs(queryClient: QueryClient) {
+  await queryClient.invalidateQueries({ queryKey: queryKeys.auditLogs });
+}
+
 export async function invalidateCatalogDomain(
   queryClient: QueryClient,
   options?: {
@@ -55,6 +59,7 @@ export async function invalidateInventoryDomain(
     queryClient.invalidateQueries({ queryKey: queryKeys.stockCountSessions }),
     queryClient.invalidateQueries({ queryKey: queryKeys.damagedStock }),
     queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements }),
+    invalidateAuditLogs(queryClient),
   ];
   if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.products }));
   if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: ['products', 'pos'] }));
@@ -71,6 +76,7 @@ export async function invalidateSalesDomain(
     queryClient.invalidateQueries({ queryKey: queryKeys.sales }),
     queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }),
     queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances }),
+    invalidateAuditLogs(queryClient),
   ];
   if (saleId) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.saleDetail(saleId) }));
   if (includeDashboard) tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
@@ -99,6 +105,7 @@ export async function invalidatePurchasesDomain(
 export async function invalidateReturnsDomain(queryClient: QueryClient) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.returns }),
+    invalidateAuditLogs(queryClient),
     invalidateSalesDomain(queryClient),
     invalidatePurchasesDomain(queryClient),
     invalidateTreasuryDomain(queryClient),
@@ -138,6 +145,7 @@ export async function invalidateAdminWorkspaceQueries(queryClient: QueryClient) 
     queryClient.invalidateQueries({ queryKey: queryKeys.adminOperational }),
     queryClient.invalidateQueries({ queryKey: queryKeys.adminSupport }),
     queryClient.invalidateQueries({ queryKey: queryKeys.backupSnapshots }),
+    invalidateAuditLogs(queryClient),
   ]);
 }
 
@@ -160,6 +168,7 @@ export async function invalidateSettingsReferenceDomain(
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.posLocations }));
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.settingsLocations }));
   }
+  tasks.push(invalidateAuditLogs(queryClient));
   await Promise.all(tasks);
 }
 
@@ -169,5 +178,6 @@ export async function invalidateImportedReferenceData(queryClient: QueryClient) 
     invalidateSettingsReferenceDomain(queryClient),
     queryClient.invalidateQueries({ queryKey: queryKeys.inventoryReport }),
     queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements }),
+    invalidateAuditLogs(queryClient),
   ]);
 }

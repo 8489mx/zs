@@ -92,25 +92,70 @@
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-product-group-grid {
-  grid-template-columns: 1fr;
-  gap: 6px;
+  display: block;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-group-card {
-  border-radius: 12px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.26);
+  background: #fff;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-group-card:nth-child(even) {
+  background: #f8fafc;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-group-card:last-child {
+  border-bottom: 0;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-group-card.is-selected {
+  background: #eff6ff;
+  box-shadow: inset 3px 0 0 #2563eb !important;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-group-card-top {
+  display: none;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-group-card-action {
-  min-height: 64px;
-  padding: 8px 10px;
+  min-height: 42px;
+  padding: 6px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  text-align: start;
+  width: 100%;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-group-card-action strong {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-group-tags,
 .pos-workspace.pos-sale-mode-scanner .pos-group-card-meta {
+  display: none;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-pick-meta-row {
+  margin: 0;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-pick-meta-row .muted {
   display: none;
 }
 
@@ -119,13 +164,80 @@
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-grid-row {
-  grid-template-columns: 38px minmax(0, 1.58fr) 154px 104px 126px 64px;
-  min-height: 54px;
-  padding: 8px 10px;
+  grid-template-columns: 30px minmax(0, 1.7fr) 112px 82px 96px 48px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+  background: #fff;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded {
+  gap: 0;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-grid-row:nth-child(even) {
+  background: #f8fafc;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-grid-row:last-child {
+  border-bottom: 0;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-row-selected {
+  background: #eff6ff;
+  box-shadow: inset 3px 0 0 #2563eb !important;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-row-highlight:not(.pos-cart-row-selected) {
+  background: #fef9c3;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-table-head {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.34);
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-index-badge {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-product-name {
-  font-size: 16px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-product-code {
+  font-size: 10px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-number {
+  font-size: 12px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-qty-shell {
+  grid-template-columns: 28px minmax(42px, 52px) 28px;
+  gap: 3px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-qty-shell input,
+.pos-workspace.pos-sale-mode-scanner .pos-cart-qty-btn {
+  min-height: 28px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-remove-button {
+  min-height: 28px;
+  padding: 0 7px;
+  border-radius: 8px;
+  font-size: 11px;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-payment-shell-inline {
@@ -229,7 +341,7 @@
   }
 
   .pos-workspace.pos-sale-mode-scanner .pos-product-group-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    display: block;
   }
 }
 
@@ -239,7 +351,7 @@
   }
 
   .pos-workspace.pos-sale-mode-scanner .pos-cart-grid-row {
-    grid-template-columns: 34px minmax(0, 1fr) 112px 76px 86px 58px;
+    grid-template-columns: 28px minmax(0, 1fr) 100px 72px 82px 44px;
   }
 
   .pos-workspace.pos-sale-mode-touch .pos-product-group-grid {
