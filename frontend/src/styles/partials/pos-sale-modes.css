@@ -91,6 +91,55 @@
   grid-template-columns: 1fr;
 }
 
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-copy strong {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-copy span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-section {
+  display: grid;
+  gap: 6px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-buttons .btn,
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-buttons .button {
+  min-height: 30px;
+  max-width: 100%;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
 .pos-workspace.pos-sale-mode-scanner .pos-product-group-grid {
   display: block;
   border: 1px solid rgba(148, 163, 184, 0.34);
@@ -260,6 +309,36 @@
 .pos-workspace.pos-sale-mode-scanner .pos-workspace-dock-chip--warning strong,
 .pos-workspace.pos-sale-mode-scanner .pos-workspace-dock-chip--success strong {
   font-size: 20px;
+}
+
+.pos-workspace .pos-destructive-confirm-overlay.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.24);
+}
+
+.pos-workspace .pos-destructive-confirm-shell.dialog-shell {
+  width: min(420px, calc(100vw - 24px)) !important;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+
+.pos-workspace .pos-destructive-confirm-shell .dialog-card {
+  border: 2px solid rgba(220, 38, 38, 0.38);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.pos-workspace .pos-destructive-confirm-shell .actions {
+  justify-content: center !important;
+}
+
+.pos-workspace .pos-destructive-confirm-shell .actions .btn,
+.pos-workspace .pos-destructive-confirm-shell .actions .button {
+  min-width: 104px;
 }
 
 .pos-workspace.pos-sale-mode-touch .pos-grid-premium {

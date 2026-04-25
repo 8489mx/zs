@@ -37,6 +37,8 @@ export function PosWorkspaceConfirmDialogs({
     <>
       <ActionConfirmDialog
         open={clearCartConfirmOpen}
+        overlayClassName="pos-destructive-confirm-overlay"
+        shellClassName="pos-destructive-confirm-shell"
         title="هل تريد تفريغ الفاتورة الحالية؟"
         description="سيتم حذف كل بنود الفاتورة الحالية فقط، ولن يتم حذف أي فاتورة معلقة."
         confirmLabel="تفريغ"
@@ -48,6 +50,8 @@ export function PosWorkspaceConfirmDialogs({
 
       <ActionConfirmDialog
         open={Boolean(lineDeleteConfirmItem)}
+        overlayClassName="pos-destructive-confirm-overlay"
+        shellClassName="pos-destructive-confirm-shell"
         title="تأكيد حذف البند"
         description={lineDeleteConfirmItem ? `سيتم حذف ${lineDeleteConfirmItem.name} من الفاتورة الحالية.` : ''}
         confirmLabel="حذف"
@@ -59,6 +63,8 @@ export function PosWorkspaceConfirmDialogs({
 
       <ActionConfirmDialog
         open={Boolean(heldDeleteConfirmDraft)}
+        overlayClassName="pos-destructive-confirm-overlay"
+        shellClassName="pos-destructive-confirm-shell"
         title="تأكيد حذف الفاتورة المعلقة"
         description={heldDeleteConfirmDraft ? `سيتم حذف ${heldDeleteConfirmDraft.label} من الفواتير المعلقة.` : ''}
         confirmLabel="حذف"
@@ -70,9 +76,11 @@ export function PosWorkspaceConfirmDialogs({
 
       <ActionConfirmDialog
         open={clearHeldConfirmOpen}
+        overlayClassName="pos-destructive-confirm-overlay"
+        shellClassName="pos-destructive-confirm-shell"
         title="تأكيد حذف كل الفواتير المعلقة"
         description={`سيتم حذف ${heldDraftsCount} فاتورة معلقة من هذه الشاشة. اكتب حذف الكل للتأكيد.`}
-        confirmLabel="حذف الكل"
+        confirmLabel="حذف"
         cancelLabel="إلغاء"
         confirmVariant="danger"
         confirmationKeyword="حذف الكل"

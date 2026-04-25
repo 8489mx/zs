@@ -23,6 +23,8 @@ interface ActionConfirmDialogProps {
   reasonHint?: ReactNode;
   reasonPlaceholder?: string;
   minReasonLength?: number;
+  overlayClassName?: string;
+  shellClassName?: string;
   onConfirm: (context: { confirmationValue: string; managerPin: string; reason: string }) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -46,6 +48,8 @@ export function ActionConfirmDialog({
   reasonHint,
   reasonPlaceholder = 'اكتب السبب باختصار',
   minReasonLength = 8,
+  overlayClassName = '',
+  shellClassName = '',
   onConfirm,
   onCancel
 }: ActionConfirmDialogProps) {
@@ -93,7 +97,7 @@ export function ActionConfirmDialog({
   if (!open) return null;
 
   return (
-    <DialogShell open={open} onClose={isBusy ? () => {} : onCancel} width="min(560px, 100%)" zIndex={60}>
+    <DialogShell open={open} onClose={isBusy ? () => {} : onCancel} width="min(560px, 100%)" zIndex={60} overlayClassName={overlayClassName} shellClassName={shellClassName}>
       <Card title={title} className="dialog-card">
         <div className="muted dialog-description">{description}</div>
 

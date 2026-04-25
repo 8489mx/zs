@@ -251,7 +251,7 @@ describe('POS workspace destructive keyboard safety', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'clear held' }));
     expect(screen.getByText('تأكيد حذف كل الفواتير المعلقة')).toBeInTheDocument();
-    const confirmButton = screen.getByRole('button', { name: 'حذف الكل' });
+    const confirmButton = screen.getByRole('button', { name: 'حذف' });
     expect(confirmButton).toBeDisabled();
 
     fireEvent.change(screen.getByPlaceholderText('حذف الكل'), { target: { value: 'حذف الكل' } });

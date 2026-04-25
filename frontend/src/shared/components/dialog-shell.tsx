@@ -8,6 +8,8 @@ interface DialogShellProps {
   zIndex?: number;
   closeOnBackdrop?: boolean;
   ariaLabel?: string;
+  overlayClassName?: string;
+  shellClassName?: string;
 }
 
 function getFocusableElements(root: HTMLElement) {
@@ -24,6 +26,8 @@ export function DialogShell({
   zIndex = 70,
   closeOnBackdrop = true,
   ariaLabel,
+  overlayClassName = '',
+  shellClassName = '',
 }: DialogShellProps) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
@@ -37,7 +41,7 @@ export function DialogShell({
     const focusDialog = () => {
       const shell = shellRef.current;
       if (!shell) return;
-      shell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      shell.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
       const focusable = getFocusableElements(shell);
       const preferredTarget = shell.querySelector<HTMLElement>('[data-autofocus]');
       (preferredTarget || focusable[0] || shell).focus();
@@ -89,7 +93,7 @@ export function DialogShell({
 
   return (
     <div
-      className="dialog-overlay"
+      className={`dialog-overlay ${overlayClassName}`.trim()}
       style={{ zIndex }}
       onClick={(event) => {
         if (!closeOnBackdrop) return;
@@ -99,7 +103,7 @@ export function DialogShell({
     >
       <div
         ref={shellRef}
-        className="dialog-shell"
+        className={`dialog-shell ${shellClassName}`.trim()}
         style={{ width }}
         role="dialog"
         aria-modal="true"
