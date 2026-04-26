@@ -1,10 +1,19 @@
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const backendRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(backendRoot, '..');
 const portableOfflineTemplatePath = path.join(repoRoot, 'portable', 'config', '.env.offline.template');
 const packageCleanScriptPath = path.join(repoRoot, 'scripts', 'package-clean-release.sh');
+const trackedLocalArtifactPatterns = [
+  'frontend/tsconfig.app.tsbuildinfo',
+  'frontend/tsconfig.node.tsbuildinfo',
+  'portable/app',
+  'portable/runtime',
+  'portable/config/.env.offline',
+  '*.bak',
+];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -28,6 +37,38 @@ function parseEnv(content) {
     out[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
   }
   return out;
+}
+
+function getTrackedLocalArtifacts() {
+  try {
+    const output = execFileSync('git', ['ls-files', '--', ...trackedLocalArtifactPatterns], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    return output
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (error) {
+    const stderr = String(error && error.stderr ? error.stderr : '').trim();
+    const message = String(error && error.message ? error.message : '');
+    const combined = `${message}\n${stderr}`.trim();
+    const gitUnavailable =
+      error.code === 'ENOENT' ||
+      error.code === 'EPERM' ||
+      /not recognized/i.test(combined) ||
+      /unable to find/i.test(combined) ||
+      /spawnsync git eperm/i.test(combined);
+
+    if (gitUnavailable) {
+      console.warn('[verify-readiness] Warning: git is unavailable; skipping tracked local artifact checks.');
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 const requiredBackendFiles = [
@@ -139,5 +180,13 @@ assert(fs.existsSync(packageCleanScriptPath), 'Missing scripts/package-clean-rel
 const packageCleanScript = fs.readFileSync(packageCleanScriptPath, 'utf8');
 assert(packageCleanScript.includes("--exclude 'backend/scripts/reset-zs-password.js'"), 'package-clean-release.sh must exclude backend/scripts/reset-zs-password.js from clean customer releases');
 assert(packageCleanScript.includes("--exclude 'backend/.env'"), 'package-clean-release.sh must exclude backend/.env from clean customer releases');
+
+const trackedLocalArtifacts = getTrackedLocalArtifacts();
+if (trackedLocalArtifacts) {
+  assert(
+    trackedLocalArtifacts.length === 0,
+    `Tracked generated/customer-local files must be removed from git: ${trackedLocalArtifacts.join(', ')}`
+  );
+}
 
 console.log('Readiness assets, scripts, and release wiring verified.');

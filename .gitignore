@@ -26,6 +26,12 @@ Thumbs.db
 
 # additional generated artifacts
 **/*.tsbuildinfo
+*.tsbuildinfo
+frontend/**/*.tsbuildinfo
 **/coverage/
 **/test-results/
 *.zip
+portable/app/
+portable/runtime/
+portable/config/.env.offline
+*.bak
