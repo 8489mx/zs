@@ -21,6 +21,12 @@ export class SettingsAdminService {
     if (!canManage) throw new ForbiddenException('Missing required permissions');
   }
 
+  private assertDestructiveAdminPermission(auth?: AuthContext | null): asserts auth is AuthContext {
+    if (!auth) throw new ForbiddenException('Authentication required');
+    const canRunDestructiveAdminOperation = auth.role === 'super_admin' || auth.permissions.includes('canManageBackups');
+    if (!canRunDestructiveAdminOperation) throw new ForbiddenException('Destructive admin operations require super_admin or canManageBackups permission');
+  }
+
   private withScope(payload: Record<string, unknown>, actor: AuthContext): Record<string, unknown> {
     return {
       ...payload,
@@ -213,6 +219,7 @@ export class SettingsAdminService {
   }
 
   async cleanupExpiredSessions(actor: AuthContext): Promise<Record<string, unknown>> {
+    this.assertDestructiveAdminPermission(actor);
     const result = await this.db.deleteFrom('sessions').where('expires_at', '<', new Date()).executeTakeFirst();
     const removed = Number(result.numDeletedRows || 0);
     await this.audit.log('تنظيف الجلسات', `تم حذف ${removed} جلسة منتهية بواسطة ${actor.username}`, actor);
@@ -220,6 +227,7 @@ export class SettingsAdminService {
   }
 
   async reconcileCustomers(actor: AuthContext): Promise<Record<string, unknown>> {
+    this.assertDestructiveAdminPermission(actor);
     const rows = await this.db
       .selectFrom('customers as c')
       .leftJoin('customer_ledger as l', 'l.customer_id', 'c.id')
@@ -242,6 +250,7 @@ export class SettingsAdminService {
   }
 
   async reconcileSuppliers(actor: AuthContext): Promise<Record<string, unknown>> {
+    this.assertDestructiveAdminPermission(actor);
     const rows = await this.db
       .selectFrom('suppliers as s')
       .leftJoin('supplier_ledger as l', 'l.supplier_id', 's.id')
@@ -264,6 +273,7 @@ export class SettingsAdminService {
   }
 
   async reconcileAll(actor: AuthContext): Promise<Record<string, unknown>> {
+    this.assertDestructiveAdminPermission(actor);
     const customers = await this.reconcileCustomers(actor);
     const suppliers = await this.reconcileSuppliers(actor);
     return {

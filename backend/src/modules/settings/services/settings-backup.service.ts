@@ -58,6 +58,7 @@ const BACKUP_TABLES: BackupTableName[] = [
 ];
 
 const CLEAR_ORDER: (BackupTableName | 'services')[] = ['services', ...[...BACKUP_TABLES].reverse()];
+const RESTORE_CONFIRMATION_TEXT = 'RESTORE BACKUP';
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -86,6 +87,19 @@ export class SettingsBackupService {
     if (!auth) throw new ForbiddenException('Authentication required');
     const canManage = auth.role === 'super_admin' || auth.permissions.includes('settings') || auth.permissions.includes('canManageSettings');
     if (!canManage) throw new ForbiddenException('Missing required permissions');
+  }
+
+  private assertCanRestoreBackup(auth?: AuthContext | null): asserts auth is AuthContext {
+    if (!auth) throw new ForbiddenException('Authentication required');
+    const canRestore = auth.role === 'super_admin' || auth.permissions.includes('canManageBackups');
+    if (!canRestore) throw new ForbiddenException('Backup restore requires super_admin or canManageBackups permission');
+  }
+
+  private assertRestoreConfirmation(payload: unknown): void {
+    const confirmation = isObjectRecord(payload) ? String(payload.confirmation || payload.restoreConfirmation || '').trim() : '';
+    if (confirmation !== RESTORE_CONFIRMATION_TEXT) {
+      throw new AppError(`Type ${RESTORE_CONFIRMATION_TEXT} to confirm backup restore`, 'BACKUP_RESTORE_CONFIRMATION_REQUIRED', 400);
+    }
   }
 
   private normalizeEnvelope(payload: unknown): BackupEnvelope {
@@ -201,6 +215,11 @@ export class SettingsBackupService {
   }
 
   async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> {
+    if (!dryRun) {
+      this.assertCanRestoreBackup(actor);
+      this.assertRestoreConfirmation(payload);
+    }
+
     const envelope = this.normalizeEnvelope(payload);
     const verification = await this.verifyBackup(payload);
     if (dryRun) {
