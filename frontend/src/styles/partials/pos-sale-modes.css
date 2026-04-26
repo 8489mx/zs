@@ -321,7 +321,7 @@
 }
 
 .pos-workspace .pos-destructive-confirm-shell.dialog-shell {
-  width: min(420px, calc(100vw - 24px)) !important;
+  width: min(420px, calc(100vw - 24px));
   max-height: calc(100vh - 32px);
   overflow: auto;
 }
@@ -333,7 +333,7 @@
 }
 
 .pos-workspace .pos-destructive-confirm-shell .actions {
-  justify-content: center !important;
+  justify-content: center;
 }
 
 .pos-workspace .pos-destructive-confirm-shell .actions .btn,
