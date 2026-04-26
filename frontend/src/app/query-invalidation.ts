@@ -84,6 +84,8 @@ export async function invalidateSalesDomain(
   await Promise.all([
     invalidateCatalogDomain(queryClient, { includeProducts: true, includeCustomers: true, includeCustomerBalances: true }),
     invalidateInventoryDomain(queryClient, { includeProducts: true, includeDashboard }),
+    invalidateTreasuryDomain(queryClient),
+    queryClient.invalidateQueries({ queryKey: ['reports-summary'] }),
   ]);
 }
 

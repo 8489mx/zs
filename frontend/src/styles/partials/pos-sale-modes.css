@@ -373,6 +373,15 @@
   gap: 12px;
 }
 
+.pos-workspace.pos-sale-mode-touch .pos-touch-show-more-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 0 4px;
+}
+
 .pos-workspace.pos-sale-mode-touch .pos-group-card-action {
   min-height: 150px;
   padding: 14px;

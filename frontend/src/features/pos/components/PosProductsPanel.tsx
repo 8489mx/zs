@@ -31,6 +31,7 @@ interface PosProductsPanelProps {
 }
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
+const touchModeVisibleStep = 60;
 
 function readFavoriteKeys() {
   if (typeof window === 'undefined') return [] as string[];
@@ -206,6 +207,7 @@ function PosProductsPanelComponent({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [favoriteKeys, setFavoriteKeys] = useState<string[]>(readFavoriteKeys);
   const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
+  const [touchVisibleCount, setTouchVisibleCount] = useState(touchModeVisibleStep);
   const groupRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const groupedProducts = useMemo(() => buildPosProductGroups(products, priceType), [priceType, products]);
@@ -213,6 +215,7 @@ function PosProductsPanelComponent({
   const favoriteKeySet = useMemo(() => new Set(favoriteKeys), [favoriteKeys]);
   const scannerSearchQuery = search.trim();
   const isScannerMode = posMode === 'scanner';
+  const isTouchMode = posMode === 'touch';
   const canShowScannerResults = !isScannerMode || scannerSearchQuery.length >= 2;
   const visibleGroups = useMemo(() => getGroupShelfGroups({
     groups: groupedProducts,
@@ -220,10 +223,12 @@ function PosProductsPanelComponent({
     favoriteKeys: favoriteKeySet,
     recentKeys: recentGroupKeys,
   }), [favoriteKeySet, groupedProducts, recentGroupKeys, shelf]);
+  const visibleTouchGroupCount = isTouchMode ? Math.min(touchVisibleCount, visibleGroups.length) : visibleGroups.length;
   const displayedGroups = useMemo(
-    () => (canShowScannerResults ? (isScannerMode ? visibleGroups.slice(0, 12) : visibleGroups) : []),
-    [canShowScannerResults, isScannerMode, visibleGroups],
+    () => (canShowScannerResults ? (isScannerMode ? visibleGroups.slice(0, 12) : visibleGroups.slice(0, visibleTouchGroupCount)) : []),
+    [canShowScannerResults, isScannerMode, visibleGroups, visibleTouchGroupCount],
   );
+  const hasMoreTouchGroups = isTouchMode && visibleGroups.length > displayedGroups.length;
   const visibleRecentGroups = useMemo(
     () => recentGroupKeys
       .map((key) => groupedProducts.find((group) => group.key === key))
@@ -244,6 +249,10 @@ function PosProductsPanelComponent({
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem(favoritesStorageKey, JSON.stringify(favoriteKeys));
   }, [favoriteKeys]);
+
+  useEffect(() => {
+    setTouchVisibleCount(touchModeVisibleStep);
+  }, [isTouchMode, productFilter, products, search, shelf]);
 
   useEffect(() => {
     if (!displayedGroups.length) {
@@ -496,7 +505,8 @@ function PosProductsPanelComponent({
         {canShowScannerResults && !displayedGroups.length ? <div className="surface-note pos-compact-empty">لا توجد مجموعات مطابقة الآن. جرّب بحثًا آخر أو ألغِ الفلاتر.</div> : null}
 
         {canShowScannerResults ? (
-          <div className="product-pick-grid pos-product-group-grid pos-product-group-grid-density-compact">
+          <>
+            <div className="product-pick-grid pos-product-group-grid pos-product-group-grid-density-compact">
             {displayedGroups.map((group, index) => {
               const isSelected = index === selectedIndex;
               const isFavorite = favoriteKeySet.has(group.key);
@@ -545,7 +555,21 @@ function PosProductsPanelComponent({
                 </article>
               );
             })}
-          </div>
+            </div>
+
+            {hasMoreTouchGroups ? (
+              <div className="pos-touch-show-more-row">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setTouchVisibleCount((current) => current + touchModeVisibleStep)}
+                >
+                  عرض المزيد
+                </Button>
+                <span className="muted small">المعروض {displayedGroups.length} من {visibleGroups.length}</span>
+              </div>
+            ) : null}
+          </>
         ) : null}
 
         {openGroup ? (
