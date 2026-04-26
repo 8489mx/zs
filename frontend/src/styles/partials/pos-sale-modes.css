@@ -41,6 +41,7 @@
   min-height: calc(100vh - 150px);
 }
 
+/* Scanner mode: compact cart-first register layout. */
 .pos-workspace.pos-sale-mode-scanner .pos-checkout-column {
   grid-area: cart;
 }
@@ -311,6 +312,7 @@
   font-size: 20px;
 }
 
+/* POS destructive confirmations are shared by scanner and touch mode. */
 .pos-workspace .pos-destructive-confirm-overlay.dialog-overlay {
   position: fixed;
   inset: 0;
@@ -341,6 +343,7 @@
   min-width: 104px;
 }
 
+/* Touch mode: product-first layout with larger tap targets. */
 .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
   grid-template-columns: minmax(0, 1.42fr) minmax(360px, 0.78fr);
   grid-template-areas: "products cart";

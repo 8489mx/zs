@@ -149,6 +149,16 @@ export class PurchasesWriteService {
     };
   }
 
+  private async buildPurchaseMutationResponse(
+    purchaseId: number,
+    auth: AuthContext,
+    extras: Record<string, unknown> = {},
+  ): Promise<Record<string, unknown>> {
+    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
+    const purchases = await this.queryService.listPurchases({}, auth);
+    return { ok: true, purchase, purchases: purchases.purchases, ...extras };
+  }
+
   async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const created = await this.tx.runInTransaction(this.db, async (trx) => {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where('is_active', '=', true).executeTakeFirst();
@@ -250,9 +260,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${created.purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === created.purchaseId) || null;
-    const purchases = await this.queryService.listPurchases({}, auth);
-    return { ok: true, purchase, purchases: purchases.purchases, repricingInsights: created.repricingInsights };
+    return this.buildPurchaseMutationResponse(created.purchaseId, auth, { repricingInsights: created.repricingInsights });
   }
 
   async updatePurchase(purchaseId: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -397,8 +405,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
-    return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases, repricingInsights: updated.repricingInsights };
+    return this.buildPurchaseMutationResponse(purchaseId, auth, { repricingInsights: updated.repricingInsights });
   }
 
   async cancelPurchase(purchaseId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -454,8 +461,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('إلغاء فاتورة شراء', `تم إلغاء فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
-    return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases };
+    return this.buildPurchaseMutationResponse(purchaseId, auth);
   }
 
   async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {

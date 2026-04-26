@@ -20,6 +20,8 @@
     "dev:backend": "npm --prefix backend run start:dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "qa:release": "npm run qa && npm run compose:e2e && npm run package:clean",
+    "customer:portable": "node ./scripts/customer-portable-release.cjs",
+    "customer:portable:preflight": "node ./scripts/verify-customer-portable-release.cjs",
     "e2e:self": "bash ./scripts/run-backend-e2e-local.sh",
     "package:clean": "bash ./scripts/package-clean-release.sh",
     "qa:sale-ready": "bash ./scripts/certify-sale-ready.sh",

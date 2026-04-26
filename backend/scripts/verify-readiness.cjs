@@ -6,6 +6,8 @@ const backendRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(backendRoot, '..');
 const portableOfflineTemplatePath = path.join(repoRoot, 'portable', 'config', '.env.offline.template');
 const packageCleanScriptPath = path.join(repoRoot, 'scripts', 'package-clean-release.sh');
+const customerPortableScriptPath = path.join(repoRoot, 'scripts', 'customer-portable-release.cjs');
+const customerPortablePreflightScriptPath = path.join(repoRoot, 'scripts', 'verify-customer-portable-release.cjs');
 const trackedLocalArtifactPatterns = [
   'frontend/tsconfig.app.tsbuildinfo',
   'frontend/tsconfig.node.tsbuildinfo',
@@ -130,6 +132,8 @@ const requiredRepoScripts = [
   'qa:frontend',
   'compose:e2e',
   'qa:release',
+  'customer:portable',
+  'customer:portable:preflight',
   'e2e:self',
   'package:clean',
   'qa:sale-ready',
@@ -180,6 +184,8 @@ assert(fs.existsSync(packageCleanScriptPath), 'Missing scripts/package-clean-rel
 const packageCleanScript = fs.readFileSync(packageCleanScriptPath, 'utf8');
 assert(packageCleanScript.includes("--exclude 'backend/scripts/reset-zs-password.js'"), 'package-clean-release.sh must exclude backend/scripts/reset-zs-password.js from clean customer releases');
 assert(packageCleanScript.includes("--exclude 'backend/.env'"), 'package-clean-release.sh must exclude backend/.env from clean customer releases');
+assert(fs.existsSync(customerPortableScriptPath), 'Missing scripts/customer-portable-release.cjs');
+assert(fs.existsSync(customerPortablePreflightScriptPath), 'Missing scripts/verify-customer-portable-release.cjs');
 
 const trackedLocalArtifacts = getTrackedLocalArtifacts();
 if (trackedLocalArtifacts) {
