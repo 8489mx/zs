@@ -1,5 +1,7 @@
 export const queryKeys = {
   dashboardOverview: (from: string, to: string) => ['dashboard-overview', from, to] as const,
+  dashboardManagerOverview: ['dashboard-manager-overview'] as const,
+  managerActions: (limit: number) => ['manager-actions', String(limit)] as const,
   products: ['products'] as const,
   posProducts: (locationId: string, mode: 'browse' | 'barcode' | 'search', term: string, limit: number) => ['products', 'pos', locationId || 'all', mode, term || '', String(limit)] as const,
   productsPage: (paramsKey: string) => ['products', 'page', paramsKey] as const,

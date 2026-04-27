@@ -82,6 +82,17 @@ function apiPayload(pathname: string) {
     };
   }
   if (pathname === '/api/dashboard/overview') return dashboardOverview;
+  if (pathname === '/api/manager-actions') return { insights: [] };
+  if (pathname === '/api/dashboard/manager-overview') {
+    return {
+      salesLast30: { total: 100, count: 1, averageInvoice: 100, previousTotal: 50, comparisonPercent: 100 },
+      profitSummary: { netSales: 100, cogs: 50, grossProfit: 50, expenses: 20, netProfit: 30 },
+      profitSources: { topProducts: [], topCategories: [], weakMarginHighSales: [] },
+      stagnant: { days30: 0, days60: 0, days90: 0, inventoryValue: 0, items: [] },
+      buying: { outOfStock: [], lowStock: [], priority: [] },
+      collection: { topDebts: [], aboveCreditLimit: [], nearCreditLimit: [] },
+    };
+  }
   if (pathname === '/api/reports/summary') return summary;
   if (pathname === '/api/settings') return { settings };
   if (pathname === '/api/branches') return { branches };
