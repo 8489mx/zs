@@ -97,7 +97,11 @@ function removeForbiddenReleasePaths(outputDir) {
 }
 
 function run(command, args) {
-  const result = spawnSync(command, args, { cwd: repoRoot, stdio: 'inherit', shell: false });
+  const result = spawnSync(command, args, {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    shell: os.platform() === 'win32',
+  });
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed with exit code ${result.status}`);
