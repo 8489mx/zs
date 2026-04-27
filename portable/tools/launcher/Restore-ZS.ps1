@@ -1,9 +1,9 @@
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
 param(
   [Parameter(Mandatory = $true)][string]$BackupFile
 )
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
 . "$PSScriptRoot/Common.ps1"
 
@@ -31,7 +31,9 @@ try {
   $env:PGPASSWORD = $dbPass
 
   # Ensure DB exists
-  $exists = (& $psql -h 127.0.0.1 -p $dbPort -U $dbUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$dbName';").Trim()
+  $existsRaw = & $psql -h 127.0.0.1 -p $dbPort -U $dbUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$dbName';"
+  $exists = if ($null -eq $existsRaw) { '' } else { ([string]$existsRaw).Trim() }
+
   if ($exists -ne '1') {
     & $createdb -h 127.0.0.1 -p $dbPort -U $dbUser $dbName
     if ($LASTEXITCODE -ne 0) {
