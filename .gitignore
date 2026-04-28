@@ -36,3 +36,4 @@ portable/runtime/
 portable/config/.env.offline
 *.bak
 *.localbak
+release/
