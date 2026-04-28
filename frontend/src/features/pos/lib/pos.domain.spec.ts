@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addPosItem, syncPosCartStock, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
+import { addPosItem, getProductPrice, syncPosCartStock, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
 import type { Product } from '@/types/domain';
 
 const product: Product = {
@@ -37,5 +37,21 @@ describe('POS stock handling', () => {
     expect(result.cart).toHaveLength(1);
     expect(result.removedCount).toBe(0);
     expect(result.clampedCount).toBe(0);
+  });
+
+  it('uses date-only active offers for the cashier price', () => {
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    expect(getProductPrice({
+      ...product,
+      stock: 5,
+      offers: [{ id: 'offer-1', type: 'percent', value: 10, minQty: 1, from: `${todayIso}T23:30:00.000Z`, to: `${todayIso}T01:30:00.000Z` }],
+    }, 'retail', 1)).toBe(9);
+
+    expect(getProductPrice({
+      ...product,
+      stock: 5,
+      offers: [{ id: 'offer-1', type: 'percent', value: 10, minQty: 1, from: todayIso, to: todayIso }],
+    }, 'retail', 1)).toBe(9);
   });
 });

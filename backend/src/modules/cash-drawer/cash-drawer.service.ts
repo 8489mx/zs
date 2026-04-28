@@ -112,15 +112,28 @@ export class CashDrawerService {
     const shift = await this.getShift(shiftId);
     if (!shift) return 0;
 
-    const totals = await sql<{ total?: number | string }>`
-      select coalesce(sum(amount), 0) as total
-      from treasury_transactions
-      where reference_type = 'cashier_shift'
-        and reference_id = ${shiftId}
+    const totals = await sql<{ shift_total?: number | string; sales_total?: number | string }>`
+      select
+        coalesce(sum(case when tt.reference_type = 'cashier_shift' and tt.reference_id = ${shiftId} then tt.amount else 0 end), 0) as shift_total,
+        coalesce(sum(case when tt.reference_type = 'sale' then tt.amount else 0 end), 0) as sales_total
+      from treasury_transactions tt
+      where (
+          tt.reference_type = 'cashier_shift'
+          and tt.reference_id = ${shiftId}
+        )
+        or (
+          tt.reference_type = 'sale'
+          and tt.created_by = ${Number(shift.opened_by || 0)}
+          and tt.created_at >= ${shift.created_at || null}
+          and (${shift.closed_at || null}::timestamptz is null or tt.created_at <= ${shift.closed_at || null})
+          and (${shift.branch_id || null}::int is null or tt.branch_id is null or tt.branch_id = ${Number(shift.branch_id || 0) || null})
+          and (${shift.location_id || null}::int is null or tt.location_id is null or tt.location_id = ${Number(shift.location_id || 0) || null})
+        )
     `.execute(this.db);
 
-    const movementTotal = Number(totals.rows?.[0]?.total || 0);
-    return Number((Number(shift.opening_cash || 0) + movementTotal).toFixed(2));
+    const movementTotal = Number(totals.rows?.[0]?.shift_total || 0);
+    const cashSalesTotal = Number(totals.rows?.[0]?.sales_total || 0);
+    return Number((Number(shift.opening_cash || 0) + movementTotal + cashSalesTotal).toFixed(2));
   }
 
   async listCashierShifts(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {

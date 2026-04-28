@@ -3,11 +3,11 @@ export type ReportsSectionKey = 'overview' | 'sales' | 'purchases' | 'inventory'
 export const reportsSections: Array<{ key: ReportsSectionKey; label: string; description?: string }> = [
   { key: 'overview', label: 'نظرة عامة' },
   { key: 'sales', label: 'المبيعات' },
-  { key: 'purchases', label: 'المشتريات' },
+  { key: 'treasury', label: 'الخزينة والربحية' },
   { key: 'inventory', label: 'المخزون' },
   { key: 'balances', label: 'الذمم' },
-  { key: 'treasury', label: 'الخزينة والربحية' },
-  { key: 'employees', label: 'الموظفون' }
+  { key: 'purchases', label: 'المشتريات' },
+  { key: 'employees', label: 'الموظفون' },
 ];
 
 export function isReportsSection(value: string | undefined): value is ReportsSectionKey {

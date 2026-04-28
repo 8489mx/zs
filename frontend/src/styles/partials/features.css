@@ -13,6 +13,28 @@
 .settings-main-grid { align-items: start; }
 .compact-stat-card { padding: 16px; }
 .compact-stat-card strong { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.invoice-detail-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.invoice-detail-summary-grid .stat-card {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.invoice-detail-summary-grid .stat-card span {
+  font-size: 11px;
+}
+
+.invoice-detail-summary-grid .stat-card strong {
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
 .required-columns-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 44px; }
 .import-preview-table table,
 .import-preview-table th,

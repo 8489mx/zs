@@ -91,19 +91,6 @@ export function DashboardPage() {
         netOperatingProfit={Number(summary.commercial.netOperatingProfit || 0)}
       />
 
-      <DashboardSummaryGrid
-        todaySalesCount={Number(stats.todaySalesCount || 0)}
-        todayPurchasesCount={Number(stats.todayPurchasesCount || 0)}
-        todayExpenses={Number(summary.expenses.total || 0)}
-        returnsTotal={Number(summary.returns.total || 0)}
-        smartAlerts={smartAlerts}
-        topToday={topToday}
-        productsCount={Number(stats.productsCount || 0)}
-        inventorySaleValue={Number(stats.inventorySaleValue || 0)}
-        customerDebt={Number(stats.customerDebt || 0)}
-        supplierDebt={Number(stats.supplierDebt || 0)}
-      />
-
       <DashboardManagerOverviewSections
         data={managerOverview.data}
         isLoading={managerOverview.isLoading}
@@ -116,6 +103,19 @@ export function DashboardPage() {
         isLoading={managerActions.isLoading}
         isError={managerActions.isError}
         error={managerActions.error}
+      />
+
+      <DashboardSummaryGrid
+        todaySalesCount={Number(stats.todaySalesCount || 0)}
+        todayPurchasesCount={Number(stats.todayPurchasesCount || 0)}
+        todayExpenses={Number(summary.expenses.total || 0)}
+        returnsTotal={Number(summary.returns.total || 0)}
+        smartAlerts={smartAlerts}
+        topToday={topToday}
+        productsCount={Number(stats.productsCount || 0)}
+        inventorySaleValue={Number(stats.inventorySaleValue || 0)}
+        customerDebt={Number(stats.customerDebt || 0)}
+        supplierDebt={Number(stats.supplierDebt || 0)}
       />
 
       <DashboardOperationalGrid

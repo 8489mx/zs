@@ -1310,7 +1310,7 @@
 }
 
 .pos-workspace .pos-payment-strip {
-  grid-template-columns: minmax(208px, 1.5fr) minmax(150px, 1fr) minmax(126px, 0.84fr) minmax(112px, 0.72fr) minmax(124px, 0.8fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(152px, 100%), 1fr));
   gap: 6px;
   align-items: stretch;
 }
@@ -1479,7 +1479,7 @@
 
 @media (max-width: 1320px) {
   .pos-workspace .pos-payment-strip {
-    grid-template-columns: minmax(180px, 1.3fr) minmax(142px, 1fr) minmax(120px, 0.82fr) minmax(100px, 0.72fr) minmax(112px, 0.8fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(138px, 100%), 1fr));
   }
 
   .pos-workspace .pos-workspace-dock-summary-extended {

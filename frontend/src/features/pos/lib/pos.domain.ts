@@ -15,7 +15,13 @@ function safeUnits(product: Product) {
 
 function normalizeDateOnly(value: unknown) {
   if (!value) return '';
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return '';
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
   const text = String(value).trim();
   if (!text) return '';
   const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
@@ -28,6 +34,14 @@ function roundMoney(value: number) {
   return Number(Number(value || 0).toFixed(2));
 }
 
+function todayLocalIsoDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function getOfferAppliedPrice(basePrice: number, offer: ProductOffer) {
   if (offer.type === 'percent') return roundMoney(Math.max(0, basePrice - ((basePrice * Number(offer.value || 0)) / 100)));
   if (offer.type === 'fixed') return roundMoney(Math.max(0, basePrice - Number(offer.value || 0)));
@@ -36,7 +50,7 @@ function getOfferAppliedPrice(basePrice: number, offer: ProductOffer) {
 }
 
 function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalIsoDate();
   const basePrice = Number(priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
   const applicableOffers = (product.offers || []).filter((offer) => {
     const from = normalizeDateOnly(offer.from || offer.start_date || '');

@@ -58,10 +58,6 @@ export class SalesWriteService {
       .select(['offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
       .where('product_id', '=', productId)
       .where('is_active', '=', true)
-      .where((eb) => eb.and([
-        eb.or([eb('start_date', 'is', null), sql<boolean>`start_date <= CURRENT_DATE`]),
-        eb.or([eb('end_date', 'is', null), sql<boolean>`end_date >= CURRENT_DATE`]),
-      ]))
       .orderBy('id', 'desc')
       .execute();
   }

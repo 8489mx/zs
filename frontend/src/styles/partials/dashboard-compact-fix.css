@@ -303,6 +303,15 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.dashboard-premium-shell .manager-action-center-card,
+.dashboard-premium-shell .manager-overview-card {
+  min-height: 0;
+}
+
+.dashboard-premium-shell .manager-action-center-card {
+  align-self: stretch;
+}
+
 @media (max-width: 1200px) {
   .dashboard-premium-shell .dashboard-content-grid-summary-merged {
     grid-template-columns: repeat(2, minmax(0, 1fr));

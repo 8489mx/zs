@@ -131,7 +131,7 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
         <div className="section-title">
           <div className="section-heading-copy">
             <h3>العروض على الأصناف</h3>
-            <p className="section-description">{currentProduct.name} · بداية العرض ستسجل تلقائيًا من تاريخ اليوم، واختر فقط تاريخ نهاية العرض.</p>
+            <p className="section-description">{currentProduct.name} · بداية العرض افتراضيًا اليوم، ويمكن تعديل تاريخ البداية والنهاية حسب الحاجة.</p>
           </div>
           <div className="section-title-actions actions compact-actions">
             <span className="nav-pill">{offers.length} عرض</span>
