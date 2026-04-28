@@ -26,7 +26,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
 
           return (
             <div
-              className={`list-row stacked-row pos-cart-row pos-cart-row-upgraded pos-cart-grid-row ${isSelected ? 'pos-cart-row-selected' : ''} ${isRecent ? 'pos-cart-row-highlight' : ''}`.trim()}
+              className={`list-row stacked-row pos-cart-row pos-cart-row-upgraded pos-cart-grid-row ${index % 2 === 0 ? 'pos-cart-row-odd' : 'pos-cart-row-even'} ${isSelected ? 'pos-cart-row-selected' : ''} ${isRecent ? 'pos-cart-row-highlight' : ''}`.trim()}
               key={item.lineKey}
               onClick={() => onSelectLine(item.lineKey)}
             >

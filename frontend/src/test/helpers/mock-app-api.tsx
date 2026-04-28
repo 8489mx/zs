@@ -101,6 +101,19 @@ function apiPayload(pathname: string) {
   if (pathname === '/api/products') return pageEnvelope('products', products, { totalProducts: 1, lowStockCount: 0, outOfStockCount: 0, inventoryCost: 100, inventorySaleValue: 200, activeOffersCount: 0, customerPriceCount: 0 });
   if (pathname === '/api/categories') return { categories: [{ id: 'cat-1', name: 'مشروبات' }] };
   if (pathname === '/api/customers') return pageEnvelope('customers', customers, { totalCustomers: 2, totalBalance: 150, totalCredit: 150, vipCount: 1 });
+  if (/^\/api\/customers\/[^/]+\/pos-summary$/.test(pathname)) return {
+    customerId: 'cust-1',
+    balance: 150,
+    creditLimit: 1000,
+    remainingCredit: 850,
+    storeCreditBalance: 0,
+    customerType: 'vip',
+    lastSaleAt: today,
+    totalSalesAmount: 100,
+    invoiceCount: 1,
+    averageInvoice: 100,
+    returnCount: 0,
+  };
   if (pathname === '/api/suppliers') return pageEnvelope('suppliers', suppliers, { totalSuppliers: 2, totalBalance: 320, withNotes: 1 });
   if (pathname === '/api/sales') return { sales };
   if (pathname === '/api/purchases') return pageEnvelope('purchases', purchases, { totalPurchases: 1, totalAmount: 50, totalDue: 0 });

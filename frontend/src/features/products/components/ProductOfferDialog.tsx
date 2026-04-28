@@ -18,7 +18,11 @@ interface ProductOfferDialogProps {
 }
 
 function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function describeOffer(offer: ProductOffer) {
@@ -33,6 +37,7 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
   const queryClient = useQueryClient();
   const [offerType, setOfferType] = useState<'percent' | 'fixed' | 'price'>('percent');
   const [offerValue, setOfferValue] = useState('');
+  const [offerStartDate, setOfferStartDate] = useState(todayIsoDate);
   const [offerEndDate, setOfferEndDate] = useState('');
   const [minQty, setMinQty] = useState(1);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -41,13 +46,13 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
     if (!open) return;
     setOfferType('percent');
     setOfferValue('');
+    setOfferStartDate(todayIsoDate());
     setOfferEndDate('');
     setMinQty(1);
     setEditingIndex(null);
   }, [open, product?.id]);
 
   const offers = useMemo(() => product?.offers || [], [product?.offers]);
-  const startDate = todayIsoDate();
 
   const mutation = useMutation({
     mutationFn: async (nextOffers: ProductOffer[]) => {
@@ -74,14 +79,13 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
   async function saveOffer() {
     const value = Number(offerValue || 0);
     if (!(value > 0)) return;
-    if (!offerEndDate) return;
     const nextOffer: ProductOffer = {
       id: editingIndex != null ? offers[editingIndex]?.id : `${Date.now()}`,
       type: offerType,
       value,
       minQty: Math.max(1, Number(minQty || 1)),
-      from: startDate,
-      to: offerEndDate,
+      from: offerStartDate || todayIsoDate(),
+      to: offerEndDate || null,
     };
     const nextOffers = editingIndex != null
       ? offers.map((offer, index) => (index === editingIndex ? nextOffer : offer))
@@ -90,6 +94,7 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
     onSaved?.({ ...currentProduct, offers: nextOffers });
     setOfferType('percent');
     setOfferValue('');
+    setOfferStartDate(todayIsoDate());
     setOfferEndDate('');
     setMinQty(1);
     setEditingIndex(null);
@@ -103,6 +108,7 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
       setEditingIndex(null);
       setOfferType('percent');
       setOfferValue('');
+      setOfferStartDate(todayIsoDate());
       setOfferEndDate('');
       setMinQty(1);
     }
@@ -114,6 +120,7 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
     setEditingIndex(index);
     setOfferType(offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent');
     setOfferValue(String(Number(offer.value || 0)));
+    setOfferStartDate(String(offer.from || todayIsoDate()));
     setOfferEndDate(String(offer.to || ''));
     setMinQty(Math.max(1, Number(offer.minQty || 1)));
   }
@@ -149,21 +156,22 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
                 <input type="number" min="1" step="1" value={minQty} onChange={(event) => setMinQty(Math.max(1, Number(event.target.value || 1)))} />
               </Field>
               <Field label="تاريخ البداية">
-                <input value={startDate} readOnly disabled />
+                <input type="date" value={offerStartDate} onChange={(event) => setOfferStartDate(event.target.value)} />
               </Field>
               <Field label="تاريخ الانتهاء">
-                <input type="date" value={offerEndDate} min={startDate} onChange={(event) => setOfferEndDate(event.target.value)} />
+                <input type="date" value={offerEndDate} min={offerStartDate || todayIsoDate()} onChange={(event) => setOfferEndDate(event.target.value)} />
               </Field>
               <Field label="ملحوظة سريعة">
                 <input value={minQty > 1 ? `عرض كميات يبدأ من ${minQty}` : 'عرض على القطعة'} readOnly disabled />
               </Field>
             </div>
             <div className="actions compact-actions" style={{ marginTop: 12 }}>
-              <Button type="button" onClick={() => void saveOffer()} disabled={mutation.isPending || !offerValue || !offerEndDate}>{editingIndex != null ? 'حفظ التعديل' : 'إضافة العرض'}</Button>
+              <Button type="button" onClick={() => void saveOffer()} disabled={mutation.isPending || !offerValue}>{editingIndex != null ? 'حفظ التعديل' : 'إضافة العرض'}</Button>
               <Button type="button" variant="secondary" onClick={() => {
                 setEditingIndex(null);
                 setOfferType('percent');
                 setOfferValue('');
+                setOfferStartDate(todayIsoDate());
                 setOfferEndDate('');
                 setMinQty(1);
               }} disabled={mutation.isPending}>إعادة التهيئة</Button>
@@ -184,7 +192,7 @@ export function ProductOfferDialog({ open, product, onClose, onSaved }: ProductO
                 <div key={`${offer.id || index}`} className="list-row stacked-row" style={{ gap: 12 }}>
                   <div style={{ flex: 1 }}>
                     <strong>{describeOffer(offer)}</strong>
-                    <div className="muted small">{offer.from || startDate} ← بداية تلقائية · ينتهي في {offer.to || '—'}</div>
+                    <div className="muted small">{offer.from || todayIsoDate()} ← بداية العرض · ينتهي في {offer.to || 'مفتوح'}</div>
                   </div>
                   <div className="actions compact-actions">
                     <Button type="button" variant="secondary" onClick={() => loadOffer(index)} disabled={mutation.isPending}>تخصيص</Button>

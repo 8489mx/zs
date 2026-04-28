@@ -11,6 +11,20 @@ type PosLookupParams = {
   limit?: number;
 };
 
+export interface PosCustomerSummary {
+  customerId: string;
+  balance: number;
+  creditLimit: number;
+  remainingCredit: number | null;
+  storeCreditBalance: number;
+  customerType: string;
+  lastSaleAt: string | null;
+  totalSalesAmount: number;
+  invoiceCount: number;
+  averageInvoice: number;
+  returnCount: number;
+}
+
 function shouldRetrySaleWithFallback(error: unknown) {
   if (!(error instanceof ApiError)) return false;
   if (error.status !== 400) return false;
@@ -41,6 +55,7 @@ function buildPosLookupPath(params: PosLookupParams = {}) {
 export const posApi = {
   lookupProducts: async (params: PosLookupParams = {}) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(buildPosLookupPath(params)), 'products'),
   customers: async () => unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>('/api/customers'), 'customers'),
+  customerPosSummary: (customerId: string) => http<PosCustomerSummary>(`/api/customers/${customerId}/pos-summary`),
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations'), 'locations'),

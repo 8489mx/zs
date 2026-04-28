@@ -14,6 +14,7 @@ export const queryKeys = {
   customers: ['customers'] as const,
   customersPage: (paramsKey: string) => ['customers', 'page', paramsKey] as const,
   posCustomers: ['pos', 'customers'] as const,
+  posCustomerSummary: (customerId: string) => ['pos', 'customers', customerId, 'summary'] as const,
   posBranches: ['pos', 'branches'] as const,
   posLocations: ['pos', 'locations'] as const,
   posSettings: ['pos', 'settings'] as const,

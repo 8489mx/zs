@@ -17,22 +17,30 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     params.requestBarcodeFocus();
   }
 
-  function reprintLastSale() {
-    if (!params.lastSale) return;
-    printPostedSaleReceipt(params.lastSale, { pageSize: params.settings?.paperSize === 'receipt' ? 'receipt' : 'a4', settings: params.settings || null });
+  function printLastSaleAs(pageSize: 'receipt' | 'a4') {
+    if (!params.lastSale) return false;
+    printPostedSaleReceipt(params.lastSale, { pageSize, settings: params.settings || null });
     params.requestBarcodeFocus();
+    return true;
+  }
+
+  function reprintLastSale() {
+    if (!printLastSaleAs(params.settings?.paperSize === 'receipt' ? 'receipt' : 'a4')) {
+      params.setSubmitMessage('لا توجد فاتورة أخيرة لإعادة طباعتها');
+      params.requestBarcodeFocus();
+    }
   }
 
   function printReceiptNow() {
     if (!hasFreshLastSale() || !params.lastSale) return;
-    printPostedSaleReceipt(params.lastSale, { pageSize: 'receipt', settings: params.settings || null });
-    completePostSaleCycle('تمت طباعة الريسيت. جاهز لعميل جديد.');
+    printLastSaleAs('receipt');
+    params.setSubmitMessage('تمت طباعة الريسيت.');
   }
 
   function printA4Now() {
     if (!hasFreshLastSale() || !params.lastSale) return;
-    printPostedSaleReceipt(params.lastSale, { pageSize: 'a4', settings: params.settings || null });
-    completePostSaleCycle('تم فتح طباعة A4. جاهز لعميل جديد.');
+    printLastSaleAs('a4');
+    params.setSubmitMessage('تم فتح طباعة A4.');
   }
 
   function exportPdfNow() {
@@ -52,6 +60,7 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     printReceiptNow,
     printA4Now,
     exportPdfNow,
+    completePostSaleCycle,
     heldDraftSummaries: params.heldDrafts.map((draft, index) => ({
       id: draft.id,
       label: `معلقة ${index + 1} - ${new Date(draft.savedAt).toLocaleString('ar-EG')}`,

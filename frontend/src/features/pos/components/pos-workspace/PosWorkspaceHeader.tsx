@@ -54,6 +54,8 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
           <Button type="button" variant="secondary" onClick={() => { void pos.holdDraft(); }} disabled={!pos.cart.length}>تعليق F4</Button>
           <Button type="button" variant="secondary" onClick={onPrintDraft} disabled={!pos.cart.length}>طباعة F8</Button>
+          <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>إعادة طباعة آخر فاتورة</Button>
+          <span className="toolbar-meta-pill">F9 إعادة طباعة آخر فاتورة</span>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
           <Link to="/cash-drawer"><Button type="button" variant={pos.ownOpenShift ? 'secondary' : 'primary'}>{pos.ownOpenShift ? 'الوردية' : 'فتح وردية'}</Button></Link>
@@ -71,6 +73,7 @@ function areEqual(prev: PosWorkspaceHeaderProps, next: PosWorkspaceHeaderProps) 
     && prev.pos.hasCatalogReady === next.pos.hasCatalogReady
     && prev.pos.requiresCashierShift === next.pos.requiresCashierShift
     && prev.pos.cart === next.pos.cart
+    && prev.pos.lastSale === next.pos.lastSale
     && prev.pos.canSubmitSale === next.pos.canSubmitSale
     && prev.pos.canSubmitHint === next.pos.canSubmitHint
     && prev.posMode === next.posMode

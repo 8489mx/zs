@@ -45,7 +45,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         }
         return;
       }
-      if (isTypingTarget && !['F2', 'F4', 'F6', 'F8', 'F12'].includes(event.key)) return;
+      if (isTypingTarget && !['F2', 'F4', 'F6', 'F8', 'F9', 'F12'].includes(event.key)) return;
       if (!isTypingTarget && pos.selectedLineKey) {
         if (event.key === 'ArrowDown') {
           event.preventDefault();
@@ -86,6 +86,9 @@ export function usePosWorkspaceKeyboardShortcuts({
       } else if (event.key === 'F8') {
         event.preventDefault();
         printCurrentDraft();
+      } else if (event.key === 'F9') {
+        event.preventDefault();
+        pos.reprintLastSale();
       } else if (event.key === 'F12') {
         event.preventDefault();
         if (pos.canShowLastSaleActions) pos.printA4Now();

@@ -17,7 +17,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-
+ 
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -35,3 +35,4 @@ portable/app/
 portable/runtime/
 portable/config/.env.offline
 *.bak
+*.localbak

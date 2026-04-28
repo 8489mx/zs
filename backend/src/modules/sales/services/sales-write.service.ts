@@ -53,15 +53,14 @@ export class SalesWriteService {
   }
 
   private async getCurrentProductOffers(trx: Kysely<Database> | Transaction<Database>, productId: number) {
-    const todayIso = new Date().toISOString().slice(0, 10);
     return trx
       .selectFrom('product_offers')
       .select(['offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
       .where('product_id', '=', productId)
       .where('is_active', '=', true)
       .where((eb) => eb.and([
-        eb.or([eb('start_date', 'is', null), eb('start_date', '<=', todayIso)]),
-        eb.or([eb('end_date', 'is', null), eb('end_date', '>=', todayIso)]),
+        eb.or([eb('start_date', 'is', null), sql<boolean>`start_date <= CURRENT_DATE`]),
+        eb.or([eb('end_date', 'is', null), sql<boolean>`end_date >= CURRENT_DATE`]),
       ]))
       .orderBy('id', 'desc')
       .execute();

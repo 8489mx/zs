@@ -7,6 +7,7 @@ import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
 import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWorkspaceDock';
 import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
+import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
 import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import {
   getSelectedCustomerName,
@@ -28,6 +29,7 @@ export function PosWorkspace() {
   const [lineDeleteConfirmKey, setLineDeleteConfirmKey] = useState('');
   const [heldDeleteConfirmId, setHeldDeleteConfirmId] = useState('');
   const [clearHeldConfirmOpen, setClearHeldConfirmOpen] = useState(false);
+  const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
 
@@ -35,6 +37,11 @@ export function PosWorkspace() {
   const catalogsError = pos.productsQuery.error || pos.customersQuery.error || pos.branchesQuery.error || pos.locationsQuery.error || pos.settingsQuery.error;
 
   const selectedCustomerName = useMemo(() => getSelectedCustomerName(pos), [pos]);
+  const lastSaleCustomer = useMemo(() => {
+    const customerId = String(pos.lastSale?.customerId || pos.customerId || '');
+    if (!customerId) return null;
+    return (pos.customersQuery.data || []).find((customer) => String(customer.id) === customerId) || null;
+  }, [pos.customerId, pos.customersQuery.data, pos.lastSale?.customerId]);
   const paymentModeLabel = useMemo(() => paymentLabel(pos.paymentType, pos.paymentChannel), [pos.paymentChannel, pos.paymentType]);
   const cartPiecesCount = useMemo(() => pos.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0), [pos.cart]);
   const lineDeleteConfirmItem = useMemo(
@@ -170,6 +177,12 @@ export function PosWorkspace() {
     if (catalogsLoading) return;
     return focusBarcodeEntry();
   }, [catalogsLoading, focusBarcodeEntry, pos.barcodeFocusTick]);
+
+  useEffect(() => {
+    if (pos.canShowLastSaleActions && pos.lastSale) {
+      setSaleSuccessDialogOpen(true);
+    }
+  }, [pos.canShowLastSaleActions, pos.lastSale]);
 
   usePosWorkspaceKeyboardShortcuts({
     pos,
@@ -368,6 +381,21 @@ export function PosWorkspace() {
           setClearHeldConfirmOpen(false);
           focusBarcodeEntry();
         }}
+      />
+
+      <PosSaleSuccessDialog
+        open={saleSuccessDialogOpen && Boolean(pos.canShowLastSaleActions && pos.lastSale)}
+        sale={pos.lastSale}
+        customer={lastSaleCustomer}
+        settings={pos.settingsQuery.data || null}
+        onClose={() => setSaleSuccessDialogOpen(false)}
+        onNewSale={() => {
+          pos.completePostSaleCycle();
+          setSaleSuccessDialogOpen(false);
+          focusBarcodeEntry();
+        }}
+        onPrintReceipt={pos.printReceiptNow}
+        onPrintA4={pos.printA4Now}
       />
     </div>
   );

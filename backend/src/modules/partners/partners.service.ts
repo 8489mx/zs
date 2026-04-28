@@ -136,6 +136,55 @@ export class PartnersService {
     };
   }
 
+  async getCustomerPosSummary(id: number): Promise<Record<string, unknown>> {
+    const customer = await this.db
+      .selectFrom('customers')
+      .select(['id', 'balance', 'credit_limit', 'store_credit_balance', 'customer_type'])
+      .where('id', '=', id)
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+
+    if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
+
+    const [salesSummary, returnsSummary] = await Promise.all([
+      this.db
+        .selectFrom('sales')
+        .select([
+          sql<number>`coalesce(sum(total), 0)`.as('total_sales_amount'),
+          sql<number>`count(*)`.as('invoice_count'),
+          sql<number>`coalesce(avg(total), 0)`.as('average_invoice'),
+          sql<Date>`max(created_at)`.as('last_sale_at'),
+        ])
+        .where('customer_id', '=', id)
+        .where('status', '=', 'posted')
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('return_documents as rd')
+        .innerJoin('sales as s', 's.id', 'rd.invoice_id')
+        .select(sql<number>`count(*)`.as('return_count'))
+        .where('rd.return_type', '=', 'sale')
+        .where('s.customer_id', '=', id)
+        .executeTakeFirst(),
+    ]);
+
+    const balance = Number(customer.balance || 0);
+    const creditLimit = Number(customer.credit_limit || 0);
+
+    return {
+      customerId: String(customer.id),
+      balance,
+      creditLimit,
+      remainingCredit: creditLimit > 0 ? Number((creditLimit - balance).toFixed(2)) : null,
+      storeCreditBalance: Number(customer.store_credit_balance || 0),
+      customerType: customer.customer_type || 'cash',
+      lastSaleAt: salesSummary?.last_sale_at || null,
+      totalSalesAmount: Number(salesSummary?.total_sales_amount || 0),
+      invoiceCount: Number(salesSummary?.invoice_count || 0),
+      averageInvoice: Number(salesSummary?.average_invoice || 0),
+      returnCount: Number(returnsSummary?.return_count || 0),
+    };
+  }
+
   async createCustomer(payload: UpsertCustomerDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const name = String(payload.name || '').trim();
     if (!name) throw new AppError('Customer name is required', 'CUSTOMER_NAME_REQUIRED', 400);

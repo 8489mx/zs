@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode, RefObject } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PosWorkspace } from './PosWorkspace';
 
@@ -181,6 +182,7 @@ function createPosMock() {
     printReceiptNow: vi.fn(),
     printA4Now: vi.fn(),
     reprintLastSale: vi.fn(),
+    completePostSaleCycle: vi.fn(),
     exportPdfNow: vi.fn(),
     exportHeldDrafts: vi.fn(),
   };
@@ -258,5 +260,43 @@ describe('POS workspace destructive keyboard safety', () => {
     fireEvent.click(confirmButton);
 
     await waitFor(() => expect(testState.pos?.clearHeldDrafts).toHaveBeenCalledTimes(1));
+  });
+
+  it('opens the sale success modal and lets F2 print without submitting again', async () => {
+    const pos = {
+      ...createPosMock(),
+      canShowLastSaleActions: true,
+      postSaleSaleKey: 'S-100',
+      lastSale: {
+        id: 'sale-100',
+        docNo: 'S-100',
+        customerId: '',
+        customerName: 'عميل نقدي',
+        paymentType: 'cash',
+        paymentChannel: 'cash',
+        total: 10,
+        paidAmount: 10,
+        items: [],
+        payments: [],
+      },
+    } as unknown as ReturnType<typeof createPosMock>;
+    testState.pos = pos;
+
+    render(<MemoryRouter><PosWorkspace /></MemoryRouter>);
+
+    expect(await screen.findByText('تم البيع بنجاح')).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'F2' });
+
+    expect(pos.printReceiptNow).toHaveBeenCalledTimes(1);
+    expect(pos.handleSubmit).not.toHaveBeenCalled();
+  });
+
+  it('uses F9 for last sale reprint', () => {
+    render(<PosWorkspace />);
+
+    fireEvent.keyDown(window, { key: 'F9' });
+
+    expect(testState.pos?.reprintLastSale).toHaveBeenCalledTimes(1);
   });
 });
