@@ -1,0 +1,122 @@
+/* POS cashier vertical fill
+   Scanner and touch modes should use the full viewport height without page-level vertical scroll.
+   The checkout/cart side stretches, while the payment dock stays aligned with the products panel bottom.
+   Internal scroll remains inside the cart items/products results only. */
+
+@media (min-width: 1080px) {
+  .content-wrap:has(.pos-workspace.pos-sale-mode-scanner),
+  .content-wrap:has(.pos-workspace.pos-sale-mode-touch) {
+    overflow-y: hidden;
+    overscroll-behavior: contain;
+    padding-block: 8px;
+  }
+
+  .content-wrap:has(.pos-workspace.pos-sale-mode-scanner) > .page-stack,
+  .content-wrap:has(.pos-workspace.pos-sale-mode-touch) > .page-stack {
+    min-height: 0;
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+
+  .pos-workspace.pos-sale-mode-scanner,
+  .pos-workspace.pos-sale-mode-touch {
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
+  .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
+    min-height: 0;
+    height: 100%;
+    align-self: stretch;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-products-card,
+  .pos-workspace.pos-sale-mode-touch .pos-products-card,
+  .pos-workspace.pos-sale-mode-scanner .pos-checkout-column,
+  .pos-workspace.pos-sale-mode-touch .pos-checkout-column {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-products-card,
+  .pos-workspace.pos-sale-mode-touch .pos-products-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-products-static,
+  .pos-workspace.pos-sale-mode-touch .pos-products-static {
+    flex: 0 0 auto;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-products-scroll,
+  .pos-workspace.pos-sale-mode-touch .pos-products-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 8px;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-checkout-column,
+  .pos-workspace.pos-sale-mode-touch .pos-checkout-column {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-checkout-card,
+  .pos-workspace.pos-sale-mode-touch .pos-checkout-card {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-checkout-static,
+  .pos-workspace.pos-sale-mode-touch .pos-checkout-static {
+    flex: 0 0 auto;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-checkout-scroll,
+  .pos-workspace.pos-sale-mode-touch .pos-checkout-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-checkout-body,
+  .pos-workspace.pos-sale-mode-touch .pos-checkout-body {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-cart-table,
+  .pos-workspace.pos-sale-mode-touch .pos-cart-table {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-cart-table-body,
+  .pos-workspace.pos-sale-mode-touch .pos-cart-table-body {
+    max-height: none !important;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-workspace-dock,
+  .pos-workspace.pos-sale-mode-touch .pos-workspace-dock {
+    align-self: end;
+    flex: 0 0 auto;
+  }
+}
