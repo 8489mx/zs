@@ -1,0 +1,149 @@
+/* POS cashier product picker cleanup
+   Applies only to scanner/touch modes.
+   Goals:
+   - keep only the main filter chips in the products side
+   - remove quick-pick / recent helper clutter
+   - make barcode search taller
+   - give price/action buttons clear spacing
+*/
+
+.pos-workspace.pos-sale-mode-scanner .pos-products-top-row-unified,
+.pos-workspace.pos-sale-mode-touch .pos-products-top-row-unified {
+  grid-template-columns: minmax(0, 0.9fr) minmax(190px, 0.26fr) minmax(104px, 0.14fr) !important;
+  gap: 14px !important;
+  align-items: end;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-products-unified-search-field,
+.pos-workspace.pos-sale-mode-touch .pos-products-unified-search-field,
+.pos-workspace.pos-sale-mode-scanner .pos-price-toggle-field,
+.pos-workspace.pos-sale-mode-touch .pos-price-toggle-field,
+.pos-workspace.pos-sale-mode-scanner .pos-products-reset-field,
+.pos-workspace.pos-sale-mode-touch .pos-products-reset-field {
+  min-width: 0;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-products-unified-search-field .field,
+.pos-workspace.pos-sale-mode-touch .pos-products-unified-search-field .field,
+.pos-workspace.pos-sale-mode-scanner .pos-price-toggle-field,
+.pos-workspace.pos-sale-mode-touch .pos-price-toggle-field,
+.pos-workspace.pos-sale-mode-scanner .pos-products-reset-field,
+.pos-workspace.pos-sale-mode-touch .pos-products-reset-field {
+  margin: 0;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-products-unified-search-field input,
+.pos-workspace.pos-sale-mode-touch .pos-products-unified-search-field input {
+  min-height: 60px;
+  height: 60px;
+  padding-block: 0;
+  padding-inline: 18px;
+  border-radius: 18px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-price-toggle-field > span,
+.pos-workspace.pos-sale-mode-touch .pos-price-toggle-field > span,
+.pos-workspace.pos-sale-mode-scanner .pos-products-reset-field > span,
+.pos-workspace.pos-sale-mode-touch .pos-products-reset-field > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-price-toggle-buttons,
+.pos-workspace.pos-sale-mode-touch .pos-price-toggle-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px !important;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-price-toggle-buttons .btn,
+.pos-workspace.pos-sale-mode-touch .pos-price-toggle-buttons .btn,
+.pos-workspace.pos-sale-mode-scanner .pos-products-reset-field .btn,
+.pos-workspace.pos-sale-mode-touch .pos-products-reset-field .btn {
+  min-width: 0;
+  min-height: 46px;
+  height: 46px;
+  padding-inline: 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-products-reset-field .btn,
+.pos-workspace.pos-sale-mode-touch .pos-products-reset-field .btn {
+  width: 100%;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-filter-row-single,
+.pos-workspace.pos-sale-mode-touch .pos-filter-row-single {
+  margin-top: 10px;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-filter-row-single .btn,
+.pos-workspace.pos-sale-mode-touch .pos-filter-row-single .btn {
+  min-height: 40px;
+  padding-inline: 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+/* Remove extra helper/suggestion clutter; filters are enough in scanner/touch. */
+.pos-workspace.pos-sale-mode-scanner .pos-quick-picks-row,
+.pos-workspace.pos-sale-mode-touch .pos-quick-picks-row,
+.pos-workspace.pos-sale-mode-scanner .pos-scanner-ready-panel,
+.pos-workspace.pos-sale-mode-touch .pos-scanner-ready-panel {
+  display: none !important;
+}
+
+/* With the ready panel hidden, keep the products side visually clean when there are no search results yet. */
+.pos-workspace.pos-sale-mode-scanner .pos-products-scroll:empty,
+.pos-workspace.pos-sale-mode-touch .pos-products-scroll:empty {
+  min-height: 140px;
+}
+
+@media (max-width: 1320px) {
+  .pos-workspace.pos-sale-mode-scanner .pos-products-top-row-unified,
+  .pos-workspace.pos-sale-mode-touch .pos-products-top-row-unified {
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 0.3fr) minmax(96px, 0.16fr) !important;
+    gap: 10px !important;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-products-unified-search-field input,
+  .pos-workspace.pos-sale-mode-touch .pos-products-unified-search-field input {
+    min-height: 56px;
+    height: 56px;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-price-toggle-buttons .btn,
+  .pos-workspace.pos-sale-mode-touch .pos-price-toggle-buttons .btn,
+  .pos-workspace.pos-sale-mode-scanner .pos-products-reset-field .btn,
+  .pos-workspace.pos-sale-mode-touch .pos-products-reset-field .btn {
+    min-height: 42px;
+    height: 42px;
+    padding-inline: 12px;
+  }
+}
+
+@media (max-width: 1080px) {
+  .pos-workspace.pos-sale-mode-scanner .pos-products-top-row-unified,
+  .pos-workspace.pos-sale-mode-touch .pos-products-top-row-unified {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-price-toggle-field > span,
+  .pos-workspace.pos-sale-mode-touch .pos-price-toggle-field > span,
+  .pos-workspace.pos-sale-mode-scanner .pos-products-reset-field > span,
+  .pos-workspace.pos-sale-mode-touch .pos-products-reset-field > span {
+    text-align: right;
+  }
+}
