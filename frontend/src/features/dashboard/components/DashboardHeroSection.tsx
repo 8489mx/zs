@@ -1,8 +1,7 @@
-import { NavLink } from 'react-router-dom';
 import { Card } from '@/shared/ui/card';
 import { AnimatedValue } from '@/shared/components/animated-value';
 import { DashboardMetricCard } from '@/features/dashboard/components/DashboardMetricCard';
-import { dashboardQuickLinks, formatInteger } from '@/features/dashboard/lib/dashboard-page.utils';
+import { formatInteger } from '@/features/dashboard/lib/dashboard-page.utils';
 
 interface DashboardHeroSectionProps {
   todaySalesCount: number;
@@ -22,44 +21,33 @@ export function DashboardHeroSection({
   netOperatingProfit,
 }: DashboardHeroSectionProps) {
   return (
-    <section className="dashboard-hero-grid">
-      <Card className="dashboard-hero-card">
-        <div className="dashboard-hero-copy">
-          <div>
-            <span className="dashboard-hero-kicker">صورة اليوم</span>
-            <h2>البيع والخزينة والمخزون أمامك مباشرة</h2>
-            <p className="section-description">كل الأرقام الأساسية في الشاشة نفسها حتى يقدر صاحب المحل أو الكاشير يأخذ قرارًا سريعًا.</p>
+    <section className="dashboard-hero-grid dashboard-hero-grid-compact">
+      <Card className="dashboard-hero-card dashboard-hero-card-compact">
+        <div className="dashboard-hero-copy dashboard-hero-copy-compact">
+          <span className="dashboard-hero-kicker">أرقام اليوم</span>
+          <h2>البيع والخزينة</h2>
+          <p className="section-description">الأهم للمتابعة السريعة بدون اختصارات مكررة.</p>
+        </div>
+
+        <div className="dashboard-hero-chips dashboard-hero-chips-compact">
+          <div className="dashboard-hero-chip">
+            <span>فواتير البيع</span>
+            <strong><AnimatedValue value={todaySalesCount} formatter={formatInteger} /></strong>
           </div>
-          <div className="dashboard-hero-chips">
-            <div className="dashboard-hero-chip">
-              <span>فواتير البيع اليوم</span>
-              <strong><AnimatedValue value={todaySalesCount} formatter={formatInteger} /></strong>
-            </div>
-            <div className="dashboard-hero-chip">
-              <span>فواتير الشراء اليوم</span>
-              <strong><AnimatedValue value={todayPurchasesCount} formatter={formatInteger} /></strong>
-            </div>
-            <div className="dashboard-hero-chip">
-              <span>العروض النشطة</span>
-              <strong><AnimatedValue value={activeOffers} formatter={formatInteger} /></strong>
-            </div>
+          <div className="dashboard-hero-chip">
+            <span>فواتير الشراء</span>
+            <strong><AnimatedValue value={todayPurchasesCount} formatter={formatInteger} /></strong>
+          </div>
+          <div className="dashboard-hero-chip">
+            <span>العروض النشطة</span>
+            <strong><AnimatedValue value={activeOffers} formatter={formatInteger} /></strong>
           </div>
         </div>
-        <div className="dashboard-hero-spotlight">
+
+        <div className="dashboard-hero-spotlight dashboard-hero-spotlight-compact">
           <DashboardMetricCard label="مبيعات اليوم" value={todaySalesAmount} helper="إجمالي البيع المسجل اليوم" tone="primary" />
           <DashboardMetricCard label="رصيد الخزينة" value={treasuryNet} helper="النقد المتاح حاليًا" tone={treasuryNet >= 0 ? 'success' : 'danger'} />
           <DashboardMetricCard label="الربح التشغيلي" value={netOperatingProfit} helper="بعد المصروفات الحالية" tone={netOperatingProfit >= 0 ? 'success' : 'warning'} />
-        </div>
-      </Card>
-
-      <Card title="اختصارات سريعة" className="dashboard-premium-card dashboard-side-card">
-        <div className="dashboard-actions-grid dashboard-actions-grid-premium">
-          {dashboardQuickLinks.map((link) => (
-            <NavLink key={link.to} to={link.to} className="dashboard-action-link">
-              <strong>{link.label}</strong>
-              <div className="muted small">{link.hint}</div>
-            </NavLink>
-          ))}
         </div>
       </Card>
     </section>

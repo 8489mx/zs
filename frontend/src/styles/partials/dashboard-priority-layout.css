@@ -1,0 +1,353 @@
+/* Dashboard priority layout
+   Reorders DashboardPage in React and tunes card sizes so the first screen focuses on decisions,
+   today's numbers, cash/profit and fast actions. */
+
+.dashboard-priority-shell {
+  gap: clamp(10px, 0.9vw, 14px);
+}
+
+.dashboard-priority-shell > .page-header {
+  padding: clamp(14px, 1.2vw, 20px);
+}
+
+.dashboard-priority-shell .manager-action-center-card {
+  border-color: rgba(220, 38, 38, 0.12);
+  background: linear-gradient(180deg, #ffffff 0%, #fffafa 100%);
+}
+
+.dashboard-priority-shell .manager-action-center-card .section-title,
+.dashboard-priority-shell .dashboard-side-card .section-title,
+.dashboard-priority-shell .dashboard-daily-brief-card .section-title {
+  margin-bottom: 10px;
+}
+
+.dashboard-priority-shell .manager-action-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 310px;
+  overflow-y: auto;
+  padding-inline-end: 2px;
+}
+
+.dashboard-priority-shell .manager-action-item {
+  padding: 10px;
+  border-radius: 14px;
+  align-items: stretch;
+}
+
+.dashboard-priority-shell .manager-action-copy strong {
+  font-size: 13px;
+}
+
+.dashboard-priority-shell .manager-action-copy span:not(.manager-action-severity) {
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.dashboard-priority-shell .manager-action-metadata {
+  gap: 4px;
+}
+
+.dashboard-priority-shell .manager-action-link {
+  align-self: center;
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+/* Compact daily numbers only. The old quick shortcuts card is removed from the component. */
+.dashboard-priority-shell .dashboard-hero-grid,
+.dashboard-priority-shell .dashboard-hero-grid-compact {
+  grid-template-columns: 1fr !important;
+  gap: 10px;
+}
+
+.dashboard-priority-shell .dashboard-hero-card,
+.dashboard-priority-shell .dashboard-hero-card-compact {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.5fr) minmax(300px, 0.75fr) minmax(520px, 1.45fr);
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px !important;
+  border-radius: 20px;
+  min-height: 0;
+}
+
+.dashboard-priority-shell .dashboard-hero-copy,
+.dashboard-priority-shell .dashboard-hero-copy-compact {
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.dashboard-priority-shell .dashboard-hero-copy h2 {
+  margin: 4px 0 2px;
+  font-size: clamp(17px, 1vw, 22px);
+}
+
+.dashboard-priority-shell .dashboard-hero-copy .section-description {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.dashboard-priority-shell .dashboard-hero-kicker {
+  width: fit-content;
+  margin-bottom: 2px;
+  padding: 4px 9px;
+  font-size: 10px;
+}
+
+.dashboard-priority-shell .dashboard-hero-chips,
+.dashboard-priority-shell .dashboard-hero-chips-compact {
+  align-content: stretch;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dashboard-priority-shell .dashboard-hero-chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 74px;
+  padding: 9px 10px;
+  border-radius: 14px;
+}
+
+.dashboard-priority-shell .dashboard-hero-chip strong {
+  margin-top: 4px;
+  font-size: clamp(17px, 1.1vw, 22px);
+}
+
+.dashboard-priority-shell .dashboard-hero-spotlight,
+.dashboard-priority-shell .dashboard-hero-spotlight-compact {
+  align-content: stretch;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 !important;
+}
+
+.dashboard-priority-shell .dashboard-metric-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 74px;
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.dashboard-priority-shell .dashboard-metric-copy {
+  gap: 8px;
+}
+
+.dashboard-priority-shell .dashboard-metric-copy span {
+  font-size: 11px;
+}
+
+.dashboard-priority-shell .dashboard-metric-copy strong {
+  font-size: clamp(18px, 1.2vw, 24px);
+}
+
+.dashboard-priority-shell .dashboard-metric-card small {
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.dashboard-priority-shell .dashboard-metric-glow {
+  height: 6px;
+  margin-top: 8px;
+}
+
+.dashboard-priority-shell .dashboard-side-card {
+  display: none !important;
+}
+
+/* Daily brief becomes a compact context row after the main decision/numbers area. */
+.dashboard-priority-shell .dashboard-daily-brief-card {
+  border-radius: 20px;
+}
+
+.dashboard-priority-shell .daily-brief-layout {
+  grid-template-columns: minmax(220px, .7fr) minmax(0, 1.7fr) minmax(180px, .55fr);
+  gap: 10px;
+}
+
+.dashboard-priority-shell .daily-brief-copy,
+.dashboard-priority-shell .daily-brief-action,
+.dashboard-priority-shell .daily-brief-positive,
+.dashboard-priority-shell .daily-brief-comparison {
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.dashboard-priority-shell .daily-brief-copy h2 {
+  margin: 8px 0 5px;
+  font-size: 18px;
+}
+
+.dashboard-priority-shell .daily-brief-copy p,
+.dashboard-priority-shell .daily-brief-action small,
+.dashboard-priority-shell .daily-brief-positive span,
+.dashboard-priority-shell .daily-brief-comparison small {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.dashboard-priority-shell .daily-brief-actions {
+  gap: 8px;
+}
+
+.dashboard-priority-shell .daily-brief-action strong {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dashboard-priority-shell .daily-brief-positive {
+  min-height: 0;
+}
+
+/* The old "priority strip" stays helpful but no longer dominates the screen. */
+.dashboard-priority-shell .spotlight-card-strip,
+.dashboard-priority-shell [aria-label="أولوية المشاهدة في الرئيسية"] {
+  margin-block: 0;
+}
+
+/* Heavier manager analytics move lower, so make them easier to scan and less tall. */
+.dashboard-priority-shell .manager-overview-sections {
+  gap: 12px;
+}
+
+.dashboard-priority-shell .manager-overview-metrics-grid,
+.dashboard-priority-shell .manager-overview-profit-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.dashboard-priority-shell .manager-overview-metric {
+  min-height: 66px;
+  padding: 9px 10px;
+  border-radius: 14px;
+}
+
+.dashboard-priority-shell .manager-overview-metric strong {
+  font-size: 15px;
+}
+
+.dashboard-priority-shell .manager-decision-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-priority-shell .manager-overview-three-col {
+  gap: 8px;
+}
+
+.dashboard-priority-shell .manager-overview-list-card,
+.dashboard-priority-shell .manager-overview-row {
+  border-radius: 13px;
+}
+
+.dashboard-priority-shell .manager-overview-list-card {
+  padding: 10px;
+}
+
+.dashboard-priority-shell .manager-overview-row {
+  padding: 8px 9px;
+}
+
+.dashboard-priority-shell .manager-overview-mini-metrics {
+  gap: 7px;
+}
+
+.dashboard-priority-shell .dashboard-content-grid,
+.dashboard-priority-shell .dashboard-premium-stats-grid {
+  gap: 12px;
+}
+
+/* Keep list-heavy cards from becoming huge on the first pass through the dashboard. */
+.dashboard-priority-shell .dashboard-content-grid .list-stack,
+.dashboard-priority-shell .dashboard-premium-card .list-stack {
+  gap: 8px;
+}
+
+.dashboard-priority-shell .dashboard-content-grid .list-row,
+.dashboard-priority-shell .dashboard-premium-card .list-row {
+  padding: 9px 10px;
+  border-radius: 14px;
+}
+
+@media (max-width: 1500px) {
+  .dashboard-priority-shell .manager-action-list {
+    grid-template-columns: 1fr;
+    max-height: 360px;
+  }
+
+  .dashboard-priority-shell .dashboard-hero-card,
+  .dashboard-priority-shell .dashboard-hero-card-compact {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-priority-shell .dashboard-hero-copy,
+  .dashboard-priority-shell .dashboard-hero-copy-compact {
+    min-height: 0;
+  }
+
+  .dashboard-priority-shell .dashboard-actions-grid-premium {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
+  .dashboard-priority-shell .dashboard-action-link {
+    min-height: 66px;
+  }
+
+  .dashboard-priority-shell .manager-decision-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-priority-shell .manager-decision-grid > .manager-overview-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1180px) {
+  .dashboard-priority-shell .daily-brief-layout,
+  .dashboard-priority-shell .daily-brief-actions,
+  .dashboard-priority-shell .dashboard-hero-spotlight,
+  .dashboard-priority-shell .dashboard-hero-chips,
+  .dashboard-priority-shell .manager-overview-three-col,
+  .dashboard-priority-shell .manager-overview-mini-metrics,
+  .dashboard-priority-shell .manager-decision-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-priority-shell .daily-brief-copy,
+  .dashboard-priority-shell .daily-brief-comparisons,
+  .dashboard-priority-shell .manager-decision-grid > .manager-overview-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-priority-shell .manager-action-list,
+  .dashboard-priority-shell .dashboard-actions-grid-premium,
+  .dashboard-priority-shell .daily-brief-layout,
+  .dashboard-priority-shell .daily-brief-actions,
+  .dashboard-priority-shell .dashboard-hero-spotlight,
+  .dashboard-priority-shell .dashboard-hero-chips,
+  .dashboard-priority-shell .manager-overview-three-col,
+  .dashboard-priority-shell .manager-overview-mini-metrics,
+  .dashboard-priority-shell .manager-decision-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-priority-shell .manager-action-item {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-priority-shell .manager-action-link {
+    width: 100%;
+    justify-content: center;
+  }
+}

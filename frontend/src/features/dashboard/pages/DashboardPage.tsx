@@ -51,14 +51,14 @@ export function DashboardPage() {
   const salesTrend = (trends.sales || []).map((row) => ({ ...row, label: formatShortDate(row.key) }));
   const purchasesTrend = (trends.purchases || []).map((row) => ({ ...row, label: formatShortDate(row.key) }));
   const focusCards = [
-    { key: 'start', label: 'ابدأ من', value: Number(stats.todaySalesCount || 0) ? 'ملخص اليوم' : 'تنبيه البداية' },
+    { key: 'decision', label: 'ابدأ من', value: 'قرارات المدير' },
     { key: 'sell', label: 'الرقم الأهم الآن', value: `${Number(stats.todaySalesCount || 0)} بيع اليوم` },
     { key: 'stock', label: 'راقب بعده', value: `${lowStock.length} أصناف تحتاج متابعة` },
     { key: 'cash', label: 'ثم راجع', value: `صافي الخزينة ${Number(summary.treasury.net || 0)}` },
   ];
 
   return (
-    <div className="page-stack dashboard-premium-shell">
+    <div className="page-stack dashboard-premium-shell dashboard-priority-shell">
       <PageHeader
         title="الرئيسية"
         description="نظرة سريعة على البيع والربح والخزينة والمخزون في مكان واحد."
@@ -74,13 +74,13 @@ export function DashboardPage() {
 
       <CompactFirstRunSetupPrompt />
       <FirstRunSetupChecklist />
-      <DashboardDailyBrief
+
+      <ManagerActionCenterCard
         insights={managerActions.data?.insights || []}
-        salesTrend={trends.sales || []}
-        purchasesTrend={trends.purchases || []}
         isLoading={managerActions.isLoading}
+        isError={managerActions.isError}
+        error={managerActions.error}
       />
-      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في الرئيسية" />
 
       <DashboardHeroSection
         todaySalesCount={Number(stats.todaySalesCount || 0)}
@@ -91,19 +91,14 @@ export function DashboardPage() {
         netOperatingProfit={Number(summary.commercial.netOperatingProfit || 0)}
       />
 
-      <DashboardManagerOverviewSections
-        data={managerOverview.data}
-        isLoading={managerOverview.isLoading}
-        isError={managerOverview.isError}
-        error={managerOverview.error}
+      <DashboardDailyBrief
+        insights={managerActions.data?.insights || []}
+        salesTrend={trends.sales || []}
+        purchasesTrend={trends.purchases || []}
+        isLoading={managerActions.isLoading}
       />
 
-      <ManagerActionCenterCard
-        insights={managerActions.data?.insights || []}
-        isLoading={managerActions.isLoading}
-        isError={managerActions.isError}
-        error={managerActions.error}
-      />
+      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في الرئيسية" />
 
       <DashboardSummaryGrid
         todaySalesCount={Number(stats.todaySalesCount || 0)}
@@ -128,6 +123,13 @@ export function DashboardPage() {
         cashOut={Number(summary.treasury.cashOut || 0)}
         treasuryNet={Number(summary.treasury.net || 0)}
         grossProfit={Number(summary.commercial.grossProfit || 0)}
+      />
+
+      <DashboardManagerOverviewSections
+        data={managerOverview.data}
+        isLoading={managerOverview.isLoading}
+        isError={managerOverview.isError}
+        error={managerOverview.error}
       />
 
       <DashboardRelationshipGrid lowStock={lowStock} topCustomers={topCustomers} topSuppliers={topSuppliers} />
