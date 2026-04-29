@@ -13,14 +13,22 @@ void cashDrawerRegressionMarkers;
 
 export function CashDrawerPage() {
   const controller = useCashDrawerPageController();
-  const confirmDialogTitle = controller.confirmAction?.kind === 'movement' ? 'تأكيد تسجيل حركة صرف من الدرج' : 'تأكيد إغلاق الوردية';
-  const confirmDialogDescription = controller.confirmAction?.kind === 'movement'
-    ? 'سيتم تسجيل حركة صرف نقدي على الوردية الحالية بعد اعتماد المدير.'
-    : 'سيتم إغلاق الوردية الحالية وتسجيل المبلغ المعدود والفرق النهائي بعد اعتماد المدير.';
-  const confirmKeyword = controller.confirmAction?.kind === 'movement' ? 'صرف' : 'إغلاق';
+  const movementType = controller.confirmAction?.kind === 'movement' ? controller.confirmAction.values.type : '';
+  const isCashOut = movementType === 'cash_out';
+  const isMovement = controller.confirmAction?.kind === 'movement';
+  const confirmDialogTitle = isMovement
+    ? (isCashOut ? 'اعتماد صرف من الدرج' : 'تأكيد إيداع في الدرج')
+    : 'تأكيد إغلاق الوردية';
+  const confirmDialogDescription = isMovement
+    ? (isCashOut
+      ? 'سيتم تسجيل حركة صرف نقدي على الوردية الحالية بعد الاعتماد.'
+      : 'سيتم تسجيل حركة إيداع نقدي على الوردية الحالية بعد تأكيد المستخدم الحالي.')
+    : 'سيتم إغلاق الوردية الحالية وتسجيل المبلغ المعدود والفرق النهائي بعد تأكيد المستخدم الحالي.';
   const confirmBusy = controller.movementMutation.isPending || controller.closeMutation.isPending;
-
-
+  const managerPinLabel = isCashOut ? 'رمز اعتماد المدير' : 'كلمة مرور المستخدم الحالي';
+  const managerPinHint = isCashOut
+    ? 'صرف النقدية يحتاج اعتماد المدير إذا كان المستخدم الحالي ليس مديرًا أو أدمن.'
+    : 'أدخل كلمة مرور المستخدم الحالي لتأكيد العملية.';
 
   return (
     <div className="page-stack page-shell cash-drawer-page">
@@ -84,15 +92,11 @@ export function CashDrawerPage() {
         open={Boolean(controller.confirmAction)}
         title={confirmDialogTitle}
         description={confirmDialogDescription}
-        confirmLabel={controller.confirmAction?.kind === 'movement' ? 'تنفيذ الصرف' : 'إغلاق الوردية'}
-        confirmVariant={controller.confirmAction?.kind === 'movement' ? 'danger' : 'primary'}
-        confirmationKeyword={confirmKeyword}
-        confirmationLabel={controller.confirmAction?.kind === 'movement' ? 'اكتب كلمة صرف للتأكيد' : 'اكتب كلمة إغلاق للتأكيد'}
-        confirmationHint={controller.confirmAction?.kind === 'movement'
-          ? 'حركات الصرف تؤثر على النقدية الفعلية للوردية الحالية.'
-          : 'إغلاق الوردية يسجل الفرق النهائي ويمنع استمرار الحركات على نفس الوردية.'}
+        confirmLabel={isMovement ? (isCashOut ? 'تنفيذ الصرف' : 'تسجيل الإيداع') : 'إغلاق الوردية'}
+        confirmVariant={isMovement ? (isCashOut ? 'danger' : 'success') : 'primary'}
         managerPinRequired
-        managerPinHint={controller.confirmAction?.kind === 'movement' ? 'صرف النقدية يحتاج اعتماد المدير.' : 'إغلاق الوردية يحتاج اعتماد المدير.'}
+        managerPinLabel={managerPinLabel}
+        managerPinHint={managerPinHint}
         isBusy={confirmBusy}
         onCancel={() => controller.setConfirmAction(null)}
         onConfirm={({ managerPin }) => void controller.performConfirmedAction(managerPin)}
