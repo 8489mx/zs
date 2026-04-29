@@ -1,6 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductOfferDialog } from './ProductOfferDialog';
 import { createTestQueryClient } from '@/test/test-query-client';
@@ -59,29 +58,31 @@ describe('ProductOfferDialog', () => {
     vi.clearAllMocks();
   });
 
-  it('defaults the offer start date to the local date and resets back to it', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  it('defaults the offer start date to the local date and resets back to it', () => {
     renderDialog();
 
     const startDate = screen.getByLabelText('تاريخ البداية');
     expect(startDate).toHaveValue('2026-04-27');
 
-    await user.clear(startDate);
-    await user.type(startDate, '2026-04-30');
+    fireEvent.change(startDate, { target: { value: '2026-04-30' } });
     expect(startDate).toHaveValue('2026-04-30');
 
-    await user.click(screen.getByRole('button', { name: 'إعادة التهيئة' }));
+    fireEvent.click(screen.getByRole('button', { name: 'إعادة التهيئة' }));
     expect(startDate).toHaveValue('2026-04-27');
   });
 
   it('allows saving an open-ended offer without forcing an end date', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderDialog();
 
-    await user.type(screen.getByLabelText('قيمة العرض'), '10');
-    await user.click(screen.getByRole('button', { name: 'إضافة العرض' }));
+    const startDate = screen.getByLabelText('تاريخ البداية');
+    expect(startDate).toHaveValue('2026-04-27');
 
-    expect(updateMock).toHaveBeenCalled();
+    vi.useRealTimers();
+
+    fireEvent.change(screen.getByLabelText('قيمة العرض'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'إضافة العرض' }));
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalled());
     const payload = updateMock.mock.calls[0][1];
     expect(payload.offers[0]).toMatchObject({ from: '2026-04-27', to: null });
   });

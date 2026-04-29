@@ -91,12 +91,19 @@ export function createPosWorkspaceAsyncActions(
 
     const effectivePaymentType = options.fastCash ? 'cash' : params.paymentType;
     const effectivePaymentChannel = options.fastCash ? 'cash' : params.paymentChannel;
+    const effectiveCustomerId = options.fastCash ? '' : String(params.customerId || '').trim();
     const effectiveCashAmount = options.fastCash ? Number(params.totals.total || 0) : Number(params.cashAmount || 0);
     const effectiveCardAmount = options.fastCash ? 0 : Number(params.cardAmount || 0);
     const effectivePaidAmount = effectivePaymentType === 'credit'
       ? 0
       : Number((effectiveCashAmount + effectiveCardAmount).toFixed(2));
     const isUnderpaid = effectivePaymentType !== 'credit' && effectivePaidAmount < Number(params.totals.total || 0);
+
+    if (effectivePaymentType === 'credit' && !effectiveCustomerId) {
+      params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يجب أن يسجل على حساب العميل.');
+      params.requestBarcodeFocus();
+      return;
+    }
 
     if (isUnderpaid) {
       params.setSubmitMessage('المبلغ المدفوع أقل من المطلوب. أكمل المدفوع أو اختر بيعًا آجلًا.');
@@ -116,7 +123,7 @@ export function createPosWorkspaceAsyncActions(
     try {
       const createdSale = await params.createSale.mutateAsync({
         cart: params.cart,
-        customerId: options.fastCash ? '' : params.customerId,
+        customerId: effectiveCustomerId,
         paymentType: effectivePaymentType,
         paymentChannel: effectivePaymentChannel,
         discount: params.totals.discountValue,

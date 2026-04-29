@@ -13,15 +13,72 @@ type Entry = CustomerLedgerEntry | SupplierLedgerEntry;
 type SupportedDocumentType = 'sale' | 'purchase';
 type SelectedLedgerDocument = { key: string; type: SupportedDocumentType; referenceId: string; label: string };
 
-function getDocumentReference(entry: Entry, index: number): SelectedLedgerDocument | null {
-  const referenceType = String(entry.reference_type || '').trim();
-  const referenceId = String(entry.reference_id || '').trim();
-  if (!referenceId || (referenceType !== 'sale' && referenceType !== 'purchase')) return null;
+function readEntryText(entry: Entry, keys: string[]) {
+  const row = entry as Entry & Record<string, unknown>;
+  for (const key of keys) {
+    const value = row[key];
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function inferDocumentType(entry: Entry): SupportedDocumentType | '' {
+  const referenceType = readEntryText(entry, ['reference_type', 'referenceType']).toLowerCase();
+  if (referenceType === 'sale' || referenceType === 'purchase') return referenceType;
+
+  const entryType = readEntryText(entry, ['entry_type', 'entryType', 'type']).toLowerCase();
+  const note = readEntryText(entry, ['note', 'description']);
+  const docNo = readEntryText(entry, ['doc_no', 'docNo', 'documentNo']);
+
+  if (entryType.includes('purchase') || entryType.includes('supplier') || /(^|\s)P-\d+/i.test(`${docNo} ${note}`) || note.includes('شراء')) {
+    return 'purchase';
+  }
+  if (entryType.includes('sale') || entryType.includes('customer') || /(^|\s)S-\d+/i.test(`${docNo} ${note}`) || note.includes('بيع')) {
+    return 'sale';
+  }
+
+  return '';
+}
+
+function inferDocumentId(entry: Entry, type: SupportedDocumentType | '') {
+  const referenceId = readEntryText(entry, ['reference_id', 'referenceId']);
+  if (referenceId) return referenceId;
+
+  const docNo = readEntryText(entry, ['doc_no', 'docNo', 'documentNo']);
+  const note = readEntryText(entry, ['note', 'description']);
+  const haystack = `${docNo} ${note}`;
+
+  if (type === 'sale') {
+    const match = haystack.match(/\bS-(\d+)\b/i);
+    if (match?.[1]) return match[1];
+  }
+
+  if (type === 'purchase') {
+    const match = haystack.match(/\bP-(\d+)\b/i);
+    if (match?.[1]) return match[1];
+  }
+
+  const genericMatch = haystack.match(/#?(\d+)/);
+  return genericMatch?.[1] || '';
+}
+
+function getDocumentReference(entry: Entry): SelectedLedgerDocument | null {
+  const type = inferDocumentType(entry);
+  if (type !== 'sale' && type !== 'purchase') return null;
+
+  const referenceId = inferDocumentId(entry, type);
+  if (!referenceId) return null;
+
+  const docNo = readEntryText(entry, ['doc_no', 'docNo', 'documentNo']);
+  const note = readEntryText(entry, ['note', 'description']);
+  const label = docNo || note || `${type === 'sale' ? 'فاتورة بيع' : 'فاتورة شراء'} #${referenceId}`;
+
   return {
-    key: `${referenceType}-${referenceId}-${index}`,
-    type: referenceType,
+    key: `${type}-${referenceId}`,
+    type,
     referenceId,
-    label: String(entry.doc_no || entry.note || `${referenceType} #${referenceId}`),
+    label,
   };
 }
 
@@ -71,6 +128,12 @@ export function LedgerPanel({
     enabled: selectedDocument?.type === 'purchase' && Boolean(selectedDocument?.referenceId),
   });
 
+  function toggleDocument(entry: Entry) {
+    const document = getDocumentReference(entry);
+    if (!document) return;
+    setSelectedDocument((current) => current?.key === document.key ? null : document);
+  }
+
   return (
     <Card title={title}>
       <div className="inline-create-grid">
@@ -99,18 +162,17 @@ export function LedgerPanel({
         rows={entries}
         empty={<div className="muted small">{value ? 'لا توجد قيود مطابقة لهذا الكشف.' : 'اختر عنصرًا لعرض الكشف.'}</div>}
         columns={[
-          { key: 'type', header: 'النوع', cell: (entry) => entry.entry_type || 'قيد' },
-          { key: 'note', header: 'الملاحظة', cell: (entry) => entry.note || '—' },
-          { key: 'date', header: 'التاريخ', cell: (entry) => formatDate(entry.created_at || entry.date) },
-          { key: 'debit', header: 'مدين', className: 'numeric-cell', cell: (entry) => formatCurrency(entry.debit || 0) },
-          { key: 'credit', header: 'دائن', className: 'numeric-cell', cell: (entry) => formatCurrency(entry.credit || 0) },
-          { key: 'balance', header: 'الرصيد', className: 'numeric-cell', cell: (entry) => formatCurrency(entry.balance_after || 0) },
+          { key: 'type', header: 'النوع', cell: (entry) => readEntryText(entry, ['entry_type', 'entryType', 'type']) || 'قيد' },
+          { key: 'note', header: 'الملاحظة', cell: (entry) => readEntryText(entry, ['note', 'description']) || '—' },
+          { key: 'date', header: 'التاريخ', cell: (entry) => formatDate(readEntryText(entry, ['created_at', 'createdAt', 'date'])) },
+          { key: 'debit', header: 'مدين', className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).debit || 0)) },
+          { key: 'credit', header: 'دائن', className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).credit || 0)) },
+          { key: 'balance', header: 'الرصيد', className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).balance_after || (entry as Entry & Record<string, unknown>).balanceAfter || 0)) },
           {
             key: 'document',
             header: 'الفاتورة',
             cell: (entry) => {
-              const rowPosition = entries.indexOf(entry);
-              const document = getDocumentReference(entry, rowPosition);
+              const document = getDocumentReference(entry);
               if (!document) return <span className="muted small">—</span>;
               return (
                 <Button
@@ -118,16 +180,23 @@ export function LedgerPanel({
                   variant={selectedDocument?.key === document.key ? 'primary' : 'secondary'}
                   onClick={(event) => {
                     event.stopPropagation();
-                    setSelectedDocument((current) => current?.key === document.key ? null : document);
+                    toggleDocument(entry);
                   }}
                 >
-                  تفاصيل الفاتورة
+                  {selectedDocument?.key === document.key ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
                 </Button>
               );
             },
           },
         ]}
-        rowKey={(entry, index) => `${entry.doc_no || 'doc'}-${entry.created_at || entry.date || 'date'}-${index}`}
+        rowKey={(entry, index) => `${readEntryText(entry, ['id']) || readEntryText(entry, ['doc_no', 'docNo']) || 'doc'}-${readEntryText(entry, ['created_at', 'createdAt', 'date']) || 'date'}-${index}`}
+        onRowClick={(entry) => toggleDocument(entry)}
+        rowClassName={(entry) => {
+          const document = getDocumentReference(entry);
+          if (!document) return undefined;
+          return selectedDocument?.key === document.key ? 'table-row-selected table-row-clickable' : 'table-row-clickable';
+        }}
+        rowTitle={(entry) => getDocumentReference(entry) ? 'اضغط لعرض تفاصيل الفاتورة' : undefined}
         pagination={value ? {
           page: pagination?.page || 1,
           pageSize: pagination?.pageSize || 10,

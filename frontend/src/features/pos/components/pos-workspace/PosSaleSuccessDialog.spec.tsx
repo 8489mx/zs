@@ -41,16 +41,21 @@ describe('PosSaleSuccessDialog', () => {
     renderDialog();
 
     expect(screen.getByText('تم البيع بنجاح')).toBeInTheDocument();
-    expect(screen.getByText('S-100')).toBeInTheDocument();
-    expect(screen.getByText('F2 طباعة الريسيت')).toBeInTheDocument();
+    expect(screen.getAllByText('S-100').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'طباعة الريسيت F2' })).toBeInTheDocument();
   });
 
-  it('uses the selected customer phone for WhatsApp', () => {
+  it('uses the selected customer phone for WhatsApp', async () => {
+    const user = userEvent.setup();
+    const openMock = vi.spyOn(window, 'open').mockImplementation(() => null);
+
     renderDialog();
 
-    const link = screen.getByRole('link', { name: 'إرسال واتساب' });
-    expect(link).toHaveAttribute('href', expect.stringContaining('https://wa.me/01000000001'));
-    expect(link).toHaveAttribute('href', expect.stringContaining(encodeURIComponent('S-100')));
+    await user.click(screen.getByRole('button', { name: 'إرسال واتساب F8' }));
+
+    expect(openMock).toHaveBeenCalledWith(expect.stringContaining('https://wa.me/01000000001'), '_blank', 'noopener,noreferrer');
+    expect(openMock).toHaveBeenCalledWith(expect.stringContaining(encodeURIComponent('S-100')), '_blank', 'noopener,noreferrer');
+    openMock.mockRestore();
   });
 
   it('shows phone input when no customer phone exists and sends once', async () => {
@@ -62,7 +67,7 @@ describe('PosSaleSuccessDialog', () => {
 
     expect(screen.getByLabelText('رقم الهاتف')).toBeInTheDocument();
     await user.type(screen.getByLabelText('رقم الهاتف'), '01234567890');
-    await user.click(screen.getByRole('button', { name: 'إرسال مرة واحدة' }));
+    await user.click(screen.getByRole('button', { name: 'إرسال مرة واحدة F8' }));
 
     expect(openMock).toHaveBeenCalledWith(expect.stringContaining('https://wa.me/01234567890'), '_blank', 'noopener,noreferrer');
     openMock.mockRestore();

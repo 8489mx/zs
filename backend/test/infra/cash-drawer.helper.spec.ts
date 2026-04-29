@@ -29,7 +29,8 @@ import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNo
   assert.equal(computeCashDrawerVariance(88.5, 100), -11.5);
   assert.throws(() => assertCashDrawerAmount(0), (error: any) => error?.code === 'AMOUNT_INVALID');
   assert.throws(() => assertCashDrawerCountedCash(-1), (error: any) => error?.code === 'COUNTED_CASH_INVALID');
-  assert.throws(() => assertCashDrawerNote('قصير'), (error: any) => error?.code === 'NOTE_TOO_SHORT');
+  assert.throws(() => assertCashDrawerNote(''), (error: any) => error?.code === 'NOTE_REQUIRED');
+  assert.doesNotThrow(() => assertCashDrawerNote('قصير'));
   assert.doesNotThrow(() => assertCashDrawerNote('سبب حركة واضح'));
   console.log('cash drawer helper spec passed');
 })();

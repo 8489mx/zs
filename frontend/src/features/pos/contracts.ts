@@ -29,6 +29,10 @@ function normalizeMoney(value: number) {
   return Number(Number(value || 0).toFixed(2));
 }
 
+function normalizeCustomerId(value: string) {
+  return String(value || '').trim();
+}
+
 function normalizeCart(items: PosItem[]) {
   return items.map((item) => ({
     productId: item.productId,
@@ -44,7 +48,7 @@ export function validatePosSaleInput(input: CreatePosSaleInput) {
   if (!input.cart.length) throw new Error('أضف صنفًا واحدًا على الأقل');
   if (input.cart.some((item) => !item.productId)) throw new Error('توجد عناصر غير صالحة داخل السلة');
   if (input.cart.some((item) => Number(item.qty || 0) <= 0)) throw new Error('كمية الصنف يجب أن تكون أكبر من صفر');
-  if (input.paymentType === 'credit' && !input.customerId) throw new Error('اختر العميل أولًا في حالة البيع الآجل');
+  if (input.paymentType === 'credit' && !normalizeCustomerId(input.customerId)) throw new Error('اختر العميل أولًا في حالة البيع الآجل');
   if (input.paymentType === 'credit' && input.paymentChannel !== 'credit') throw new Error('قناة السداد يجب أن تكون آجل مع البيع الآجل');
   if (input.paymentType === 'cash' && input.paymentChannel === 'credit') throw new Error('لا يمكن استخدام قناة آجل مع بيع نقدي');
   if (Number(input.discount || 0) < 0) throw new Error('الخصم لا يمكن أن يكون سالبًا');
@@ -58,8 +62,9 @@ export function validatePosSaleInput(input: CreatePosSaleInput) {
 export function buildPosSalePayload(input: CreatePosSaleInput) {
   validatePosSaleInput(input);
 
+  const customerId = normalizeCustomerId(input.customerId);
   return {
-    customerId: input.customerId || null,
+    customerId: customerId || null,
     paymentType: input.paymentType,
     paymentChannel: input.paymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
@@ -83,6 +88,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
 export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
   validatePosSaleInput(input);
 
+  const customerId = normalizeCustomerId(input.customerId);
   const normalizedItems = normalizeCart(input.cart);
   const simplePaymentChannel =
     input.paymentType === 'credit'
@@ -90,7 +96,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
       : ((input.payments || []).length === 1 && input.payments[0].paymentChannel === 'card' ? 'card' : 'cash');
 
   return {
-    customerId: input.customerId || null,
+    customerId: customerId || null,
     paymentType: input.paymentType,
     paymentChannel: simplePaymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
@@ -114,9 +120,10 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
 export function buildMinimalPosSalePayload(input: CreatePosSaleInput) {
   validatePosSaleInput(input);
 
+  const customerId = normalizeCustomerId(input.customerId);
   const normalizedItems = normalizeCart(input.cart);
   return {
-    customerId: input.customerId || null,
+    customerId: customerId || null,
     paymentType: input.paymentType,
     ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
     items: normalizedItems.map((item) => ({

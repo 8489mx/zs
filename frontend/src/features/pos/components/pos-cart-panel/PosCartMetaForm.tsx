@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
@@ -132,7 +133,9 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   }
 
   function selectCustomer(id: string) {
-    props.onCustomerChange(id);
+    flushSync(() => {
+      props.onCustomerChange(id);
+    });
     if (id) {
       const nextRecentIds = [id, ...recentCustomerIds.filter((recentId) => recentId !== id)].slice(0, 5);
       setRecentCustomerIds(nextRecentIds);
@@ -142,7 +145,9 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   }
 
   function removeCustomer() {
-    props.onCustomerChange('');
+    flushSync(() => {
+      props.onCustomerChange('');
+    });
     closeInlinePicker();
   }
 
