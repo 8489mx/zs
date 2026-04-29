@@ -10,9 +10,11 @@ export interface ProductUnit {
 
 export interface ProductOffer {
   id?: string;
-  type: 'percent' | 'fixed' | 'price';
+  type?: 'percent' | 'fixed' | 'price';
+  offer_type?: 'percent' | 'fixed' | 'price';
   value: number;
   minQty?: number;
+  min_qty?: number | string | null;
   from?: string | null;
   to?: string | null;
   start_date?: string | null;

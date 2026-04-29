@@ -189,6 +189,7 @@ export class CatalogProductService {
 
   async listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { q, barcode, limit, requestedLocationId } = this.parsePosProductLookupQuery(query);
+    const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
     const productRows = barcode
       ? await this.findPosProductsByBarcode(barcode, limit)
@@ -196,9 +197,10 @@ export class CatalogProductService {
 
     const uniqueRows = this.uniquePosProductRows(productRows).slice(0, limit);
     const productIds = uniqueRows.map((product) => Number(product.id));
-    const [unitsByProduct, scopedStockByProduct] = await Promise.all([
+    const [unitsByProduct, scopedStockByProduct, offersByProduct] = await Promise.all([
       this.fetchPosProductUnits(productIds),
       this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, uniqueRows),
+      this.fetchProductOffers(productIds, offerCapabilities.hasMinQty),
     ]);
 
     return {
@@ -206,6 +208,7 @@ export class CatalogProductService {
         scopedLocationId: scopedLocation?.id || null,
         scopedStockByProduct,
         unitsByProduct,
+        offersByProduct,
       })),
       meta: {
         q,
@@ -353,12 +356,51 @@ export class CatalogProductService {
     return unitsByProduct;
   }
 
+  private async fetchProductOffers(productIds: number[], hasMinQty: boolean): Promise<Map<string, Record<string, unknown>[]>> {
+    if (!productIds.length) return new Map();
+    const offers = hasMinQty
+      ? await this.db
+          .selectFrom('product_offers')
+          .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
+          .where('is_active', '=', true)
+          .where('product_id', 'in', productIds)
+          .orderBy('id', 'desc')
+          .execute() as ProductOfferReadRow[]
+      : await this.db
+          .selectFrom('product_offers')
+          .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date'])
+          .where('is_active', '=', true)
+          .where('product_id', 'in', productIds)
+          .orderBy('id', 'desc')
+          .execute() as ProductOfferReadRow[];
+
+    return this.mapOffersByProduct(offers);
+  }
+
+  private mapOffersByProduct(offers: ProductOfferReadRow[]): Map<string, Record<string, unknown>[]> {
+    const offersByProduct = new Map<string, Record<string, unknown>[]>();
+    for (const offer of offers) {
+      const key = String(offer.product_id);
+      if (!offersByProduct.has(key)) offersByProduct.set(key, []);
+      offersByProduct.get(key)!.push({
+        id: String(offer.id),
+        type: offer.offer_type === 'price' ? 'price' : offer.offer_type === 'fixed' ? 'fixed' : 'percent',
+        value: Number(offer.value || 0),
+        minQty: Math.max(1, Number(offer.min_qty || 1)),
+        from: this.normalizeDateOnly(offer.start_date),
+        to: this.normalizeDateOnly(offer.end_date),
+      });
+    }
+    return offersByProduct;
+  }
+
   private mapPosProduct(
     product: PosProductLookupRow,
     context: {
       scopedLocationId: number | null;
       scopedStockByProduct: Map<string, number>;
       unitsByProduct: Map<string, Record<string, unknown>[]>;
+      offersByProduct: Map<string, Record<string, unknown>[]>;
     },
   ): Record<string, unknown> {
     const units = context.unitsByProduct.get(String(product.id)) || [
@@ -393,9 +435,10 @@ export class CatalogProductService {
             name: product.matched_unit_name || '',
             multiplier: Number(product.matched_unit_multiplier || 1),
             barcode: product.matched_unit_barcode || '',
-          }
+        }
         : null,
       units,
+      offers: context.offersByProduct.get(String(product.id)) || [],
     };
   }
 
@@ -579,19 +622,7 @@ export class CatalogProductService {
       });
     }
 
-    const offersByProduct = new Map<string, Record<string, unknown>[]>();
-    for (const offer of offers) {
-      const key = String(offer.product_id);
-      if (!offersByProduct.has(key)) offersByProduct.set(key, []);
-      offersByProduct.get(key)!.push({
-        id: String(offer.id),
-        type: offer.offer_type === 'price' ? 'price' : offer.offer_type === 'fixed' ? 'fixed' : 'percent',
-        value: Number(offer.value || 0),
-        minQty: Math.max(1, Number(offer.min_qty || 1)),
-        from: this.normalizeDateOnly(offer.start_date),
-        to: this.normalizeDateOnly(offer.end_date),
-      });
-    }
+    const offersByProduct = this.mapOffersByProduct(offers);
 
     const pricesByProduct = new Map<string, Record<string, unknown>[]>();
     for (const cp of customerPrices) {

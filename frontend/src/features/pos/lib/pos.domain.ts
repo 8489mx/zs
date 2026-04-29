@@ -43,10 +43,23 @@ function todayLocalIsoDate() {
 }
 
 function getOfferAppliedPrice(basePrice: number, offer: ProductOffer) {
-  if (offer.type === 'percent') return roundMoney(Math.max(0, basePrice - ((basePrice * Number(offer.value || 0)) / 100)));
-  if (offer.type === 'fixed') return roundMoney(Math.max(0, basePrice - Number(offer.value || 0)));
-  if (offer.type === 'price') return roundMoney(Math.max(0, Number(offer.value || 0)));
+  const type = getOfferType(offer);
+  if (type === 'percent') return roundMoney(Math.max(0, basePrice - ((basePrice * Number(offer.value || 0)) / 100)));
+  if (type === 'fixed') return roundMoney(Math.max(0, basePrice - Number(offer.value || 0)));
+  if (type === 'price') return roundMoney(Math.max(0, Number(offer.value || 0)));
   return roundMoney(basePrice);
+}
+
+function getOfferType(offer: ProductOffer) {
+  return offer.type === 'price' || offer.offer_type === 'price'
+    ? 'price'
+    : offer.type === 'fixed' || offer.offer_type === 'fixed'
+      ? 'fixed'
+      : 'percent';
+}
+
+function getOfferMinQty(offer: ProductOffer) {
+  return Math.max(1, Number(offer.minQty ?? offer.min_qty ?? 1));
 }
 
 function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) {
@@ -55,15 +68,15 @@ function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) 
   const applicableOffers = (product.offers || []).filter((offer) => {
     const from = normalizeDateOnly(offer.from || offer.start_date || '');
     const to = normalizeDateOnly(offer.to || offer.end_date || '');
-    const minQty = Math.max(1, Number(offer.minQty || 1));
+    const minQty = getOfferMinQty(offer);
     return (!from || from <= today) && (!to || to >= today) && qty >= minQty;
   });
 
   if (!applicableOffers.length) return null;
 
   return [...applicableOffers].sort((left, right) => {
-    const leftMinQty = Math.max(1, Number(left.minQty || 1));
-    const rightMinQty = Math.max(1, Number(right.minQty || 1));
+    const leftMinQty = getOfferMinQty(left);
+    const rightMinQty = getOfferMinQty(right);
     if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
 
     const leftPrice = getOfferAppliedPrice(basePrice, left);
