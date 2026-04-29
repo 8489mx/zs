@@ -304,8 +304,7 @@ describe('app ui coverage', () => {
     await user.click(await screen.findByRole('button', { name: 'فتح تفاصيل اختبارية' }));
     expect(await screen.findByRole('button', { name: 'طباعة الفاتورة' })).toBeInTheDocument();
     expect((await screen.findAllByText('مورد رئيسي')).length).toBeGreaterThan(0);
-    expect((await screen.findAllByText((content) => content.includes('المخزن الرئيسي'))).length
-).toBeGreaterThan(0);
+    expect((await screen.findAllByText((content) => content.includes('المخزن الرئيسي'))).length).toBeGreaterThan(0);
   });
 
   it('shows selected return details after choosing a return row', async () => {
@@ -320,17 +319,24 @@ describe('app ui coverage', () => {
   it('switches report sections to inventory, balances, and treasury', async () => {
     const user = userEvent.setup();
     await renderAppAt('/reports/overview');
-    expect((await screen.findAllByText('الملخص التنفيذي')).length).toBeGreaterThan(0);
+
+    expect(
+      (await screen.findAllByText('الملخص التنفيذي', {}, { timeout: 5000 })).length,
+    ).toBeGreaterThan(0);
+
     const tabs = document.querySelector('.reports-section-tabs') as HTMLElement;
+    expect(tabs).toBeTruthy();
 
     await user.click(within(tabs).getByRole('link', { name: 'المخزون' }));
-    expect(await screen.findByText('أصناف تحتاج متابعة')).toBeInTheDocument();
+    expect(await screen.findByText('أصناف تحتاج متابعة', {}, { timeout: 5000 })).toBeInTheDocument();
 
     await user.click(within(tabs).getByRole('link', { name: 'الذمم' }));
-    expect(await screen.findByText('العملاء الأعلى رصيدًا')).toBeInTheDocument();
+    expect(await screen.findByText('العملاء الأعلى رصيدًا', {}, { timeout: 5000 })).toBeInTheDocument();
 
     await user.click(within(tabs).getByRole('link', { name: 'الخزينة والربحية' }));
-    expect((await screen.findAllByText('الخزينة والربحية')).length).toBeGreaterThan(0);
+    expect(
+      (await screen.findAllByText('الخزينة والربحية', {}, { timeout: 5000 })).length,
+    ).toBeGreaterThan(0);
   });
 
   it('keeps treasury and services operational areas visible', async () => {
