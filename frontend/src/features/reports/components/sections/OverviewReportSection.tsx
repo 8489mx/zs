@@ -31,13 +31,19 @@ export function OverviewReportSection({ report, reportQuery, executiveRows, oper
         emptyHint="جرّب تغيير الفترة أو إضافة عمليات جديدة."
       >
         <div className="reports-executive-layout enhanced-executive-layout">
-          <div className="reports-spotlight-grid section-spotlight-grid compact-spotlight-grid">
-            <ReportMetricCard label="إجمالي البيع" value={report?.sales.total || 0} helper="كل البيع المسجل" tone="primary" formatter={formatCurrency} progress={relativePercent(report?.sales.total || 0, overviewValues)} />
-            <ReportMetricCard label="صافي البيع" value={report?.sales.netSales || 0} helper="بعد الخصومات" tone="success" formatter={formatCurrency} progress={relativePercent(report?.sales.netSales || 0, overviewValues)} />
-            <ReportMetricCard label="إجمالي الشراء" value={report?.purchases.total || 0} helper="كل المشتريات" tone="warning" formatter={formatCurrency} progress={relativePercent(report?.purchases.total || 0, overviewValues)} />
-            <ReportMetricCard label="صافي الشراء" value={report?.purchases.netPurchases || 0} helper="بعد التسويات" tone="warning" formatter={formatCurrency} progress={relativePercent(report?.purchases.netPurchases || 0, overviewValues)} />
-            <ReportMetricCard label="الربح الإجمالي" value={report?.commercial.grossProfit || 0} helper="قبل المصروفات" tone="success" formatter={formatCurrency} progress={relativePercent(report?.commercial.grossProfit || 0, overviewValues)} />
-            <ReportMetricCard label="الربح التشغيلي" value={report?.commercial.netOperatingProfit || 0} helper="بعد المصروفات" tone="danger" formatter={formatCurrency} progress={relativePercent(report?.commercial.netOperatingProfit || 0, overviewValues)} />
+          <div className="reports-spotlight-grid section-spotlight-grid compact-spotlight-grid reports-executive-paired-grid">
+            <div className="reports-executive-metric-pair">
+              <ReportMetricCard label="إجمالي البيع" value={report?.sales.total || 0} helper="كل البيع المسجل" tone="primary" formatter={formatCurrency} progress={relativePercent(report?.sales.total || 0, overviewValues)} />
+              <ReportMetricCard label="صافي البيع" value={report?.sales.netSales || 0} helper="بعد الخصومات" tone="success" formatter={formatCurrency} progress={relativePercent(report?.sales.netSales || 0, overviewValues)} />
+            </div>
+            <div className="reports-executive-metric-pair">
+              <ReportMetricCard label="إجمالي الشراء" value={report?.purchases.total || 0} helper="كل المشتريات" tone="warning" formatter={formatCurrency} progress={relativePercent(report?.purchases.total || 0, overviewValues)} />
+              <ReportMetricCard label="صافي الشراء" value={report?.purchases.netPurchases || 0} helper="بعد التسويات" tone="warning" formatter={formatCurrency} progress={relativePercent(report?.purchases.netPurchases || 0, overviewValues)} />
+            </div>
+            <div className="reports-executive-metric-pair">
+              <ReportMetricCard label="الربح الإجمالي" value={report?.commercial.grossProfit || 0} helper="قبل المصروفات" tone="success" formatter={formatCurrency} progress={relativePercent(report?.commercial.grossProfit || 0, overviewValues)} />
+              <ReportMetricCard label="الربح التشغيلي" value={report?.commercial.netOperatingProfit || 0} helper="بعد المصروفات" tone="danger" formatter={formatCurrency} progress={relativePercent(report?.commercial.netOperatingProfit || 0, overviewValues)} />
+            </div>
           </div>
           <div className="metric-list reports-metric-list">
             {executiveRows.map(([metric, value]) => (
