@@ -37,6 +37,7 @@ export class CashDrawerService {
 
 
 
+
   private async getManagerPin(): Promise<string> {
     const result = await sql<SettingsRow>`
       select key, value from settings
@@ -94,7 +95,17 @@ export class CashDrawerService {
     `.execute(this.db);
 
     const rows = result.rows ?? [];
-    return rows.map((row) => mapCashDrawerShiftRow(row));
+    const rowsWithLiveExpectedCash = await Promise.all(rows.map(async (row) => {
+      if (String(row.status || 'open') !== 'open') return row;
+
+      const shiftId = Number(row.id || 0);
+      if (!(shiftId > 0)) return row;
+
+      const expectedCash = await this.computeShiftExpectedCash(shiftId);
+      return { ...row, expected_cash: expectedCash };
+    }));
+
+    return rowsWithLiveExpectedCash.map((row) => mapCashDrawerShiftRow(row));
   }
 
   private async getShift(shiftId: number): Promise<ShiftRow | null> {
