@@ -1527,3 +1527,120 @@
     border-top: 1px solid rgba(226, 232, 240, 0.92);
   }
 }
+
+/* Normal cashier mode with the app sidebar visible: keep the cart inside its grid track. */
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-grid-premium {
+  grid-template-columns: minmax(0, 1fr) minmax(340px, clamp(360px, 42%, 480px));
+  gap: 12px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-products-card,
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-checkout-column,
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-checkout-card,
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-checkout-static,
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-checkout-scroll {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-checkout-column {
+  overflow: hidden;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-checkout-top-strip {
+  grid-template-columns: 1fr;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-meta-grid-aux {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-meta-grid-aux .field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 30px;
+  margin: 0;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-meta-grid-aux .field > span {
+  margin: 0;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-meta-grid-aux select {
+  min-width: 0;
+  min-height: 28px;
+  height: 28px;
+  padding-block: 2px;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-payment-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-strip-presets {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-strip-presets > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-payment-preset-row-inline {
+  gap: 8px;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-payment-preset-row-inline .btn {
+  min-height: 38px;
+  height: 38px;
+  padding-inline: 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-cart-table-head,
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-cart-grid-row {
+  grid-template-columns: 34px minmax(0, 1fr) 108px 72px 82px 54px;
+  gap: 7px;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-odd {
+  background: #ffffff;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even {
+  background: #fffbeb;
+}
+
+.content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
+  background: #dbeafe;
+  border-color: rgba(37, 99, 235, 0.48);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+}
+
+@media (max-width: 1100px) {
+  .content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-grid-premium {
+    grid-template-columns: 1fr;
+  }
+}
