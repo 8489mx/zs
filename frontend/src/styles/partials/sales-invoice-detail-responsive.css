@@ -1,0 +1,163 @@
+/* Sales invoice detail responsive/compact fixes */
+
+.sales-workspace .sales-main-grid {
+  min-width: 0;
+  align-items: start;
+}
+
+.sales-workspace .sales-side-stack,
+.sales-workspace .sales-register-card {
+  min-width: 0;
+}
+
+.sales-workspace .sales-side-stack {
+  gap: 12px;
+}
+
+.sales-workspace .sales-side-stack > .card,
+.sales-workspace .sales-side-stack .workspace-panel {
+  min-width: 0;
+}
+
+.sales-workspace .sales-side-stack .section-title,
+.sales-workspace .sales-side-stack .card-title,
+.sales-workspace .sales-side-stack .card-header {
+  min-width: 0;
+}
+
+.sales-workspace .sales-side-stack .actions {
+  gap: 6px;
+}
+
+.sales-workspace .sales-side-stack .actions .btn,
+.sales-workspace .sales-side-stack .actions .button {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sales-workspace .invoice-detail-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.sales-workspace .invoice-detail-summary-grid .stat-card {
+  min-width: 0;
+  padding: 8px 10px !important;
+  border-radius: 12px !important;
+  box-shadow: none;
+}
+
+.sales-workspace .invoice-detail-summary-grid .stat-card span {
+  font-size: 10px !important;
+  line-height: 1.25;
+}
+
+.sales-workspace .invoice-detail-summary-grid .stat-card strong {
+  margin-top: 4px !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.sales-workspace .invoice-detail-summary-grid .stat-card:nth-child(2) strong {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+}
+
+.sales-workspace .invoice-detail-summary-grid .stat-card:nth-child(4) {
+  grid-column: 1 / -1;
+}
+
+.sales-workspace .invoice-detail-summary-grid .stat-card:nth-child(4) strong {
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.sales-workspace .sales-side-stack .table-wrap {
+  border-radius: 12px;
+  max-width: 100%;
+}
+
+.sales-workspace .sales-side-stack .table-wrap table {
+  min-width: 440px !important;
+}
+
+.sales-workspace .sales-side-stack .table-wrap th,
+.sales-workspace .sales-side-stack .table-wrap td {
+  padding: 7px 8px !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.sales-workspace .sales-side-stack .list-row {
+  padding: 9px 10px;
+  border-radius: 14px;
+}
+
+.sales-workspace .sales-side-stack .list-row strong {
+  font-size: 13px;
+}
+
+/* When the available app width is medium/narrow, stop squeezing invoice details into a thin side column. */
+@media (max-width: 1500px) {
+  .sales-workspace .sales-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sales-workspace .sales-side-stack {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.85fr) minmax(360px, 1.15fr);
+    gap: 12px;
+    align-items: start;
+  }
+
+  .sales-workspace .sales-side-stack .invoice-detail-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .sales-workspace .sales-side-stack .invoice-detail-summary-grid .stat-card:nth-child(4) {
+    grid-column: auto;
+  }
+
+  .sales-workspace .sales-side-stack .table-wrap table {
+    min-width: 520px !important;
+  }
+}
+
+/* One-column detail card on smaller windows. */
+@media (max-width: 980px) {
+  .sales-workspace .sales-side-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-workspace .sales-side-stack .invoice-detail-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .sales-workspace .sales-side-stack .invoice-detail-summary-grid .stat-card:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .sales-workspace .invoice-detail-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sales-workspace .sales-side-stack .invoice-detail-summary-grid .stat-card:nth-child(4) {
+    grid-column: auto;
+  }
+}
