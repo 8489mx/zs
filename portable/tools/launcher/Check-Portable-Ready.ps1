@@ -16,6 +16,7 @@ try {
 
   $nodeExe = Resolve-NodeExe -Paths $paths -EnvMap $envMap
   $npmExe = Resolve-NpmExe -Paths $paths -EnvMap $envMap
+  $migrationCommand = Resolve-MigrationCommand -Paths $paths -EnvMap $envMap
   $bootstrapCommand = Resolve-BootstrapCommand -Paths $paths -EnvMap $envMap
 
   Write-Host 'Portable readiness check: OK'
@@ -25,6 +26,7 @@ try {
   Write-Host ("- npm exe: {0}" -f $npmExe)
   Write-Host ("- Backend dir: {0}" -f $paths.AppBackendDir)
   Write-Host ("- Frontend dir: {0}" -f $paths.AppFrontendDir)
+  Write-Host ("- Migration command: {0}" -f $migrationCommand)
   Write-Host ("- Bootstrap command: {0}" -f $bootstrapCommand)
 } catch {
   Write-Error $_.Exception.Message

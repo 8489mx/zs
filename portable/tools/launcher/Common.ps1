@@ -142,8 +142,8 @@ function Quote-ForCmd([string]$Value) {
   return ('"{0}"' -f $Value)
 }
 
-function Resolve-BootstrapCommand([hashtable]$Paths, [hashtable]$EnvMap) {
-  $raw = Get-EnvValue -EnvMap $EnvMap -Key 'BACKEND_BOOTSTRAP_CMD' -Default '{NPM_EXE} run migration:run'
+function Resolve-BackendCommand([hashtable]$Paths, [hashtable]$EnvMap, [string]$Key, [string]$Default) {
+  $raw = Get-EnvValue -EnvMap $EnvMap -Key $Key -Default $Default
   if ([string]::IsNullOrWhiteSpace($raw)) {
     return ''
   }
@@ -175,6 +175,14 @@ function Resolve-BootstrapCommand([hashtable]$Paths, [hashtable]$EnvMap) {
   }
 
   return $resolved
+}
+
+function Resolve-BootstrapCommand([hashtable]$Paths, [hashtable]$EnvMap) {
+  return Resolve-BackendCommand -Paths $Paths -EnvMap $EnvMap -Key 'BACKEND_BOOTSTRAP_CMD' -Default ''
+}
+
+function Resolve-MigrationCommand([hashtable]$Paths, [hashtable]$EnvMap) {
+  return Resolve-BackendCommand -Paths $Paths -EnvMap $EnvMap -Key 'BACKEND_MIGRATION_CMD' -Default '..\..\runtime\node\node.exe dist/database/migrate.js up'
 }
 
 function Assert-BundledNodeRuntime([hashtable]$Paths) {
@@ -309,7 +317,7 @@ function Start-ProcessHiddenTracked {
   return $process
 }
 
-function Invoke-BootstrapCommand([string]$Command, [string]$WorkingDirectory) {
+function Invoke-BackendCommand([string]$Command, [string]$WorkingDirectory, [string]$Label = 'Backend command') {
   if (-not $Command) {
     return
   }
@@ -318,9 +326,13 @@ function Invoke-BootstrapCommand([string]$Command, [string]$WorkingDirectory) {
   try {
     & cmd.exe /c $Command
     if ($LASTEXITCODE -ne 0) {
-      throw "Bootstrap command failed ($LASTEXITCODE): $Command"
+      throw "$Label failed ($LASTEXITCODE): $Command"
     }
   } finally {
     Pop-Location
   }
+}
+
+function Invoke-BootstrapCommand([string]$Command, [string]$WorkingDirectory) {
+  Invoke-BackendCommand -Command $Command -WorkingDirectory $WorkingDirectory -Label 'Bootstrap command'
 }

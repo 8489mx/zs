@@ -124,6 +124,7 @@ try {
   $nodeExe = Resolve-NodeExe -Paths $paths -EnvMap $envMap
   $npmExe = Resolve-NpmExe -Paths $paths -EnvMap $envMap
   $backendEntry = Get-EnvValue -EnvMap $envMap -Key 'BACKEND_ENTRY' -Default 'dist/main.js'
+  $migrationCommand = Resolve-MigrationCommand -Paths $paths -EnvMap $envMap
   $bootstrapCommand = Resolve-BootstrapCommand -Paths $paths -EnvMap $envMap
 
   $pgCtl = Join-Path $paths.PostgresBinDir 'pg_ctl.exe'
@@ -181,13 +182,18 @@ try {
     $createdDatabase = $true
   }
 
+  Write-LauncherLog -Paths $paths -Name $logName -Message "Running database migrations: $migrationCommand"
+  Invoke-BackendCommand -Command $migrationCommand -WorkingDirectory $paths.AppBackendDir -Label 'Database migration command'
+
   $bootstrapMarker = Join-Path $paths.RuntimeRunDir '.bootstrap_done'
   if ($isFreshRuntimeData -or $createdDatabase) {
     Remove-Item -Path $bootstrapMarker -Force -ErrorAction SilentlyContinue
   }
-  if (-not (Test-Path $bootstrapMarker)) {
+  if ((-not (Test-Path $bootstrapMarker)) -and $bootstrapCommand) {
     Write-LauncherLog -Paths $paths -Name $logName -Message "Running first-run bootstrap command: $bootstrapCommand"
     Invoke-BootstrapCommand -Command $bootstrapCommand -WorkingDirectory $paths.AppBackendDir
+    Set-Content -Path $bootstrapMarker -Value (Get-Date -Format o) -Encoding ascii
+  } elseif (-not (Test-Path $bootstrapMarker)) {
     Set-Content -Path $bootstrapMarker -Value (Get-Date -Format o) -Encoding ascii
   }
 
