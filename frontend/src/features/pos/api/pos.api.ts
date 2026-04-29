@@ -4,6 +4,26 @@ import type { AppSettings, Branch, Customer, Location, Product, Sale } from '@/t
 import type { HeldPosDraft } from '@/features/pos/hooks/usePosWorkspace';
 
 type SaleMutationEnvelope = { ok?: boolean; sale: Sale };
+type PosLookupParams = {
+  q?: string;
+  barcode?: string;
+  locationId?: string;
+  limit?: number;
+};
+
+export interface PosCustomerSummary {
+  customerId: string;
+  balance: number;
+  creditLimit: number;
+  remainingCredit: number | null;
+  storeCreditBalance: number;
+  customerType: string;
+  lastSaleAt: string | null;
+  totalSalesAmount: number;
+  invoiceCount: number;
+  averageInvoice: number;
+  returnCount: number;
+}
 
 function shouldRetrySaleWithFallback(error: unknown) {
   if (!(error instanceof ApiError)) return false;
@@ -16,9 +36,26 @@ async function postSale(payload: unknown) {
   return unwrapEntity<Sale>(await http<Sale | SaleMutationEnvelope>('/api/sales', { method: 'POST', body: JSON.stringify(payload) }), 'sale');
 }
 
+function buildPosLookupPath(params: PosLookupParams = {}) {
+  const searchParams = new URLSearchParams();
+  const q = String(params.q || '').trim();
+  const barcode = String(params.barcode || '').trim();
+  const locationId = String(params.locationId || '').trim();
+  const limit = Number(params.limit || 0);
+
+  if (q) searchParams.set('q', q);
+  if (barcode) searchParams.set('barcode', barcode);
+  if (locationId) searchParams.set('locationId', locationId);
+  if (limit > 0) searchParams.set('limit', String(limit));
+
+  const query = searchParams.toString();
+  return `/api/catalog/pos-products${query ? `?${query}` : ''}`;
+}
+
 export const posApi = {
-  products: async (locationId?: string) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(`/api/products${locationId ? `?locationId=${encodeURIComponent(locationId)}` : ''}`), 'products'),
+  lookupProducts: async (params: PosLookupParams = {}) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(buildPosLookupPath(params)), 'products'),
   customers: async () => unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>('/api/customers'), 'customers'),
+  customerPosSummary: (customerId: string) => http<PosCustomerSummary>(`/api/customers/${customerId}/pos-summary`),
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations'), 'locations'),

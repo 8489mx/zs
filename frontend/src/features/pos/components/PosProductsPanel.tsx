@@ -13,6 +13,7 @@ import {
 } from '@/features/pos/lib/pos-product-groups';
 import type { Product } from '@/types/domain';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
+import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 
 interface PosProductsPanelProps {
   search: string;
@@ -26,9 +27,11 @@ interface PosProductsPanelProps {
   productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent';
   onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent') => void;
   searchInputRef: RefObject<HTMLInputElement | null>;
+  posMode: PosSaleMode;
 }
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
+const touchModeVisibleStep = 60;
 
 function readFavoriteKeys() {
   if (typeof window === 'undefined') return [] as string[];
@@ -198,22 +201,34 @@ function PosProductsPanelComponent({
   productFilter,
   onProductFilterChange,
   searchInputRef,
+  posMode,
 }: PosProductsPanelProps) {
   const [shelf, setShelf] = useState<PosGroupShelf>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [favoriteKeys, setFavoriteKeys] = useState<string[]>(readFavoriteKeys);
   const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
+  const [touchVisibleCount, setTouchVisibleCount] = useState(touchModeVisibleStep);
   const groupRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const groupedProducts = useMemo(() => buildPosProductGroups(products, priceType), [priceType, products]);
   const recentGroupKeys = useMemo(() => buildRecentGroupKeys(recentProducts, groupedProducts), [groupedProducts, recentProducts]);
   const favoriteKeySet = useMemo(() => new Set(favoriteKeys), [favoriteKeys]);
+  const scannerSearchQuery = search.trim();
+  const isScannerMode = posMode === 'scanner';
+  const isTouchMode = posMode === 'touch';
+  const canShowScannerResults = !isScannerMode || scannerSearchQuery.length >= 2;
   const visibleGroups = useMemo(() => getGroupShelfGroups({
     groups: groupedProducts,
     shelf,
     favoriteKeys: favoriteKeySet,
     recentKeys: recentGroupKeys,
   }), [favoriteKeySet, groupedProducts, recentGroupKeys, shelf]);
+  const visibleTouchGroupCount = isTouchMode ? Math.min(touchVisibleCount, visibleGroups.length) : visibleGroups.length;
+  const displayedGroups = useMemo(
+    () => (canShowScannerResults ? (isScannerMode ? visibleGroups.slice(0, 12) : visibleGroups.slice(0, visibleTouchGroupCount)) : []),
+    [canShowScannerResults, isScannerMode, visibleGroups, visibleTouchGroupCount],
+  );
+  const hasMoreTouchGroups = isTouchMode && visibleGroups.length > displayedGroups.length;
   const visibleRecentGroups = useMemo(
     () => recentGroupKeys
       .map((key) => groupedProducts.find((group) => group.key === key))
@@ -221,7 +236,14 @@ function PosProductsPanelComponent({
       .slice(0, 6) as PosProductGroup[],
     [groupedProducts, recentGroupKeys],
   );
-  const selectedGroup = visibleGroups[selectedIndex] || null;
+  const visibleFavoriteGroups = useMemo(
+    () => favoriteKeys
+      .map((key) => groupedProducts.find((group) => group.key === key))
+      .filter(Boolean)
+      .slice(0, 5) as PosProductGroup[],
+    [favoriteKeys, groupedProducts],
+  );
+  const selectedGroup = displayedGroups[selectedIndex] || null;
   const openGroup = groupedProducts.find((group) => group.key === openGroupKey) || null;
 
   useEffect(() => {
@@ -229,12 +251,16 @@ function PosProductsPanelComponent({
   }, [favoriteKeys]);
 
   useEffect(() => {
-    if (!visibleGroups.length) {
+    setTouchVisibleCount(touchModeVisibleStep);
+  }, [isTouchMode, productFilter, products, search, shelf]);
+
+  useEffect(() => {
+    if (!displayedGroups.length) {
       if (selectedIndex !== 0) setSelectedIndex(0);
       return;
     }
-    if (selectedIndex >= visibleGroups.length) setSelectedIndex(0);
-  }, [selectedIndex, visibleGroups]);
+    if (selectedIndex >= displayedGroups.length) setSelectedIndex(0);
+  }, [displayedGroups, selectedIndex]);
 
   useEffect(() => {
     if (!openGroupKey || typeof window === 'undefined') return undefined;
@@ -257,8 +283,8 @@ function PosProductsPanelComponent({
   }, [selectedIndex]);
 
   function moveSelection(nextIndex: number) {
-    if (!visibleGroups.length) return;
-    const safeIndex = Math.max(0, Math.min(nextIndex, visibleGroups.length - 1));
+    if (!displayedGroups.length) return;
+    const safeIndex = Math.max(0, Math.min(nextIndex, displayedGroups.length - 1));
     setSelectedIndex(safeIndex);
   }
 
@@ -300,7 +326,7 @@ function PosProductsPanelComponent({
     }
     if (event.key === 'End') {
       event.preventDefault();
-      moveSelection(visibleGroups.length - 1);
+      moveSelection(displayedGroups.length - 1);
       return;
     }
     if (event.key === 'PageDown') {
@@ -343,8 +369,8 @@ function PosProductsPanelComponent({
   return (
     <Card
       title="1. اختيار الأصناف"
-      actions={<span className="nav-pill">{visibleGroups.length} مجموعة</span>}
-      className="workspace-panel pos-products-card pos-products-card-compact pos-products-card-density-compact"
+      actions={<span className="nav-pill">{displayedGroups.length} مجموعة</span>}
+      className={`workspace-panel pos-products-card pos-products-card-compact pos-products-card-density-compact pos-products-card-mode-${posMode}`.trim()}
     >
       <div className="pos-products-static">
 
@@ -445,58 +471,106 @@ function PosProductsPanelComponent({
       </div>
 
       <div className="pos-products-scroll">
-        {!visibleGroups.length ? <div className="surface-note pos-compact-empty">لا توجد مجموعات مطابقة الآن. جرّب بحثًا آخر أو ألغِ الفلاتر.</div> : null}
+        {!canShowScannerResults ? (
+          <div className="pos-scanner-ready-panel">
+            <div className="pos-scanner-ready-copy">
+              <strong>اضرب الباركود أو اكتب أول حرفين للبحث</strong>
+              <span>تبقى الفاتورة والسلة أمامك، والنتائج ستظهر هنا فقط بعد البحث.</span>
+            </div>
 
-        <div className="product-pick-grid pos-product-group-grid pos-product-group-grid-density-compact">
-          {visibleGroups.map((group, index) => {
-            const isSelected = index === selectedIndex;
-            const isFavorite = favoriteKeySet.has(group.key);
-            const priceLabel = group.minPrice === group.maxPrice
-              ? formatCurrency(group.minPrice)
-              : `${formatCurrency(group.minPrice)} - ${formatCurrency(group.maxPrice)}`;
-            return (
-              <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
-                <div className="pos-group-card-top">
-                  <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
-                    {group.hasVariants ? `${group.products.length} فرع` : 'مباشر'}
-                  </span>
-                  <button
-                    type="button"
-                    className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
-                    onClick={() => toggleFavorite(group.key)}
-                    aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
-                  >
-                    ★
-                  </button>
+            {visibleRecentGroups.length ? (
+              <div className="pos-scanner-ready-section">
+                <span className="muted small">آخر ما تمت إضافته</span>
+                <div className="pos-scanner-ready-buttons">
+                  {visibleRecentGroups.map((group) => (
+                    <Button key={group.key} type="button" variant="secondary" onClick={() => activateGroup(group)}>{group.title}</Button>
+                  ))}
                 </div>
+              </div>
+            ) : null}
 
-                <button
-                  ref={(node) => { groupRefs.current[index] = node; }}
-                  type="button"
-                  className="pos-group-card-action"
-                  onClick={() => {
-                    setSelectedIndex(index);
-                    activateGroup(group);
-                  }}
-                  onFocus={() => setSelectedIndex(index)}
-                >
-                  <strong>{group.title}</strong>
-                  <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
-                  {group.hasVariants ? (
-                    <div className="pos-group-tags">
-                      {group.colors.slice(0, 3).map((color) => <span key={`${group.key}-${color}`} className="pos-group-tag">{color}</span>)}
-                      {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
-                    </div>
-                  ) : null}
-                  <div className="pick-meta-row pos-pick-meta-row">
-                    <span>{priceLabel}</span>
-                    <span className="small muted">{group.hasVariants ? 'افتح الاختيارات' : 'أضف الآن'}</span>
+            {visibleFavoriteGroups.length ? (
+              <div className="pos-scanner-ready-section">
+                <span className="muted small">المفضلة</span>
+                <div className="pos-scanner-ready-buttons">
+                  {visibleFavoriteGroups.map((group) => (
+                    <Button key={group.key} type="button" variant="secondary" onClick={() => activateGroup(group)}>{group.title}</Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {canShowScannerResults && !displayedGroups.length ? <div className="surface-note pos-compact-empty">لا توجد مجموعات مطابقة الآن. جرّب بحثًا آخر أو ألغِ الفلاتر.</div> : null}
+
+        {canShowScannerResults ? (
+          <>
+            <div className="product-pick-grid pos-product-group-grid pos-product-group-grid-density-compact">
+            {displayedGroups.map((group, index) => {
+              const isSelected = index === selectedIndex;
+              const isFavorite = favoriteKeySet.has(group.key);
+              const priceLabel = group.minPrice === group.maxPrice
+                ? formatCurrency(group.minPrice)
+                : `${formatCurrency(group.minPrice)} - ${formatCurrency(group.maxPrice)}`;
+              return (
+                <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
+                  <div className="pos-group-card-top">
+                    <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
+                      {group.hasVariants ? `${group.products.length} فرع` : 'مباشر'}
+                    </span>
+                    <button
+                      type="button"
+                      className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
+                      onClick={() => toggleFavorite(group.key)}
+                      aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                    >
+                      ★
+                    </button>
                   </div>
-                </button>
-              </article>
-            );
-          })}
-        </div>
+
+                  <button
+                    ref={(node) => { groupRefs.current[index] = node; }}
+                    type="button"
+                    className="pos-group-card-action"
+                    onClick={() => {
+                      setSelectedIndex(index);
+                      activateGroup(group);
+                    }}
+                    onFocus={() => setSelectedIndex(index)}
+                  >
+                    <strong>{group.title}</strong>
+                    <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
+                    {group.hasVariants ? (
+                      <div className="pos-group-tags">
+                        {group.colors.slice(0, 3).map((color) => <span key={`${group.key}-${color}`} className="pos-group-tag">{color}</span>)}
+                        {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
+                      </div>
+                    ) : null}
+                    <div className="pick-meta-row pos-pick-meta-row">
+                      <span>{priceLabel}</span>
+                      <span className="small muted">{group.hasVariants ? 'افتح الاختيارات' : 'أضف الآن'}</span>
+                    </div>
+                  </button>
+                </article>
+              );
+            })}
+            </div>
+
+            {hasMoreTouchGroups ? (
+              <div className="pos-touch-show-more-row">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setTouchVisibleCount((current) => current + touchModeVisibleStep)}
+                >
+                  عرض المزيد
+                </Button>
+                <span className="muted small">المعروض {displayedGroups.length} من {visibleGroups.length}</span>
+              </div>
+            ) : null}
+          </>
+        ) : null}
 
         {openGroup ? (
           <InlineGroupPicker
@@ -517,7 +591,8 @@ function arePropsEqual(prev: PosProductsPanelProps, next: PosProductsPanelProps)
     && prev.priceType === next.priceType
     && prev.products === next.products
     && prev.recentProducts === next.recentProducts
-    && prev.productFilter === next.productFilter;
+    && prev.productFilter === next.productFilter
+    && prev.posMode === next.posMode;
 }
 
 export const PosProductsPanel = memo(PosProductsPanelComponent, arePropsEqual);

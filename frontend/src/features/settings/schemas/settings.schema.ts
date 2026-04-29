@@ -27,6 +27,8 @@ export const settingsFormSchema = z.object({
   currentLocationId: z.string().optional(),
   clothingModuleEnabled: z.boolean().default(false),
   defaultProductKind: z.enum(['standard', 'fashion']).default('standard'),
+  defaultPosMode: z.enum(['scanner', 'touch']).default('scanner'),
+  allowNegativeStockSales: z.boolean().default(false),
   printShowLogo: z.boolean().default(true),
   printShowPhone: z.boolean().default(true),
   printShowAddress: z.boolean().default(true),

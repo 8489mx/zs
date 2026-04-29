@@ -129,11 +129,7 @@ export function useCashDrawerPageController() {
   };
 
   const handleMovementSubmit = movementForm.handleSubmit((values) => {
-    if (values.type === 'cash_out') {
-      setConfirmAction({ kind: 'movement', values });
-      return;
-    }
-    movementMutation.mutate(values);
+    setConfirmAction({ kind: 'movement', values });
   });
 
   const handleCloseSubmit = closeForm.handleSubmit((values) => {

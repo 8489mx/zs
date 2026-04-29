@@ -1,7 +1,19 @@
 import { NormalizedSalePayload, UpsertSaleDto } from '../dto/upsert-sale.dto';
 
+type FlexibleSalePayload = UpsertSaleDto & {
+  customer_id?: number | string | null;
+  customer?: { id?: number | string | null } | null;
+};
+
+function resolveCustomerId(payload: FlexibleSalePayload): number | null {
+  const direct = payload.customerId ?? payload.customer_id ?? payload.customer?.id ?? null;
+  const numeric = Number(direct || 0);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
 export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayload {
-  const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
+  const flexiblePayload = payload as FlexibleSalePayload;
+  const paymentType = payload.paymentType === 'credit' || payload.paymentChannel === 'credit' ? 'credit' : 'cash';
   const normalizedPayments = (Array.isArray(payload.payments) ? payload.payments : [])
     .map((entry) => ({
       paymentChannel: (entry.paymentChannel === 'card' ? 'card' : 'cash') as 'cash' | 'card',
@@ -16,7 +28,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     : (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || fallbackChannel));
 
   return {
-    customerId: payload.customerId ? Number(payload.customerId) : null,
+    customerId: resolveCustomerId(flexiblePayload),
     paymentType,
     paymentChannel,
     discount: Number(payload.discount || 0),

@@ -18,6 +18,7 @@ import { productFormSchema, type ProductFormInput, type ProductFormOutput } from
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
+import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 
 interface ProductFormProps {
   categories: Category[];
@@ -25,6 +26,26 @@ interface ProductFormProps {
   onCategoryCreated?: (categoryId: string) => void;
   onSupplierCreated?: (supplierId: string) => void;
 }
+
+const normalizeLookupText = (value: unknown) => String(value ?? '').trim().toLocaleLowerCase();
+
+const findCreatedCategoryId = (categories: Category[], name: string) => {
+  const normalizedName = normalizeLookupText(name);
+  if (!normalizedName) return '';
+  const matched = [...categories].reverse().find((category) => normalizeLookupText(category.name) === normalizedName);
+  return matched?.id ? String(matched.id) : '';
+};
+
+const findCreatedSupplierId = (suppliers: Supplier[], name: string, phone: string) => {
+  const normalizedName = normalizeLookupText(name);
+  const normalizedPhone = normalizeLookupText(phone);
+  if (!normalizedName) return '';
+  const matched = [...suppliers].reverse().find((supplier) => {
+    if (normalizeLookupText(supplier.name) !== normalizedName) return false;
+    return normalizedPhone ? normalizeLookupText(supplier.phone) === normalizedPhone : true;
+  });
+  return matched?.id ? String(matched.id) : '';
+};
 
 function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): ProductFormInput {
   return {
@@ -157,11 +178,15 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
       return productsApi.createCategory({ name }) as Promise<{ id?: string | number; category?: { id?: string | number }; data?: { id?: string | number } }>;
     },
     onSuccess: async (created) => {
-      const nextId = String(created?.id || created?.category?.id || created?.data?.id || '');
+      const createdName = inlineCategoryName.trim();
+      let nextId = extractCreatedEntityId(created);
       setInlineCategoryName('');
       await invalidateCatalogDomain(queryClient, { includeCategories: true });
+      if (!nextId) {
+        nextId = findCreatedCategoryId(await productsApi.categories(), createdName);
+      }
       if (nextId) {
-        form.setValue('categoryId', nextId);
+        form.setValue('categoryId', nextId, { shouldDirty: true, shouldValidate: true });
         onCategoryCreated?.(nextId);
       }
     }
@@ -174,12 +199,17 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
       return productsApi.createSupplier({ name, phone: inlineSupplierPhone.trim(), address: '', balance: 0, notes: '' }) as Promise<{ id?: string | number; supplier?: { id?: string | number }; data?: { id?: string | number } }>;
     },
     onSuccess: async (created) => {
-      const nextId = String(created?.id || created?.supplier?.id || created?.data?.id || '');
+      const createdName = inlineSupplierName.trim();
+      const createdPhone = inlineSupplierPhone.trim();
+      let nextId = extractCreatedEntityId(created);
       setInlineSupplierName('');
       setInlineSupplierPhone('');
       await invalidateCatalogDomain(queryClient, { includeSuppliers: true });
+      if (!nextId) {
+        nextId = findCreatedSupplierId(await productsApi.suppliers(), createdName, createdPhone);
+      }
       if (nextId) {
-        form.setValue('supplierId', nextId);
+        form.setValue('supplierId', nextId, { shouldDirty: true, shouldValidate: true });
         onSupplierCreated?.(nextId);
       }
     }

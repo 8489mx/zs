@@ -107,7 +107,11 @@ export function normalizeShiftOpenPayload(payload: { openingCash?: number; note?
 
 export function assertCashDrawerAmount(amount: number): void { if (!(amount > 0)) throw new AppError('المبلغ يجب أن يكون أكبر من صفر', 'AMOUNT_INVALID', 400); }
 export function assertCashDrawerCountedCash(countedCash: number): void { if (!(countedCash >= 0)) throw new AppError('المبلغ المعدود لا يمكن أن يكون سالبًا', 'COUNTED_CASH_INVALID', 400); }
-export function assertCashDrawerNote(note: string, code = 'NOTE_TOO_SHORT', minLength = 8): void { if (String(note || '').trim().length < minLength) throw new AppError('اكتب سبب الحركة بوضوح في 8 أحرف على الأقل', code, 400); }
+export function assertCashDrawerNote(note: string, code = 'NOTE_REQUIRED', minLength = 1): void {
+  if (String(note || '').trim().length < minLength) {
+    throw new AppError('اكتب سبب العملية', code, 400);
+  }
+}
 export function normalizeCashDrawerMovementType(type?: string): 'cash_in' | 'cash_out' { return String(type || '').trim() === 'cash_out' ? 'cash_out' : 'cash_in'; }
 export function toSignedCashDrawerAmount(type: 'cash_in' | 'cash_out', amount: number): number { return type === 'cash_out' ? -Math.abs(amount) : Math.abs(amount); }
 export function computeCashDrawerVariance(countedCash: number, expectedCash: number): number { return Number((countedCash - expectedCash).toFixed(2)); }

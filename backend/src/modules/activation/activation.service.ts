@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kysely, sql } from '../../database/kysely';
+import { Kysely, Transaction } from '../../database/kysely';
 import { createHash, createVerify } from 'crypto';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
@@ -30,6 +30,8 @@ interface ActivationRecord {
   signature: string;
 }
 
+type DbOrTx = Kysely<Database> | Transaction<Database>;
+
 @Injectable()
 export class ActivationService {
   constructor(
@@ -45,17 +47,17 @@ export class ActivationService {
     return this.deploymentMode === 'desktop' && this.configService.get<boolean>('ACTIVATION_ENFORCED') === true;
   }
 
-  private async getSetting(key: string): Promise<string | null> {
-    const row = await this.db.selectFrom('settings').select(['value']).where('key', '=', key).executeTakeFirst();
+  private async getSetting(key: string, executor: DbOrTx = this.db): Promise<string | null> {
+    const row = await executor.selectFrom('settings').select(['value']).where('key', '=', key).executeTakeFirst();
     return row?.value ?? null;
   }
 
-  private async setSetting(key: string, value: string): Promise<void> {
-    await this.db.insertInto('settings').values({ key, value } as any).onConflict((oc) => oc.column('key').doUpdateSet({ value } as any)).execute();
+  private async setSetting(key: string, value: string, executor: DbOrTx = this.db): Promise<void> {
+    await executor.insertInto('settings').values({ key, value } as any).onConflict((oc) => oc.column('key').doUpdateSet({ value } as any)).execute();
   }
 
-  private async getUserCount(): Promise<number> {
-    const row = await this.db.selectFrom('users').select((eb) => eb.fn.countAll<number>().as('count')).executeTakeFirstOrThrow();
+  private async getUserCount(executor: DbOrTx = this.db): Promise<number> {
+    const row = await executor.selectFrom('users').select((eb) => eb.fn.countAll<number>().as('count')).executeTakeFirstOrThrow();
     return Number(row.count || 0);
   }
 
@@ -140,45 +142,52 @@ export class ActivationService {
     assertStrongPassword(dto.adminPassword);
     const passwordRecord = await createPasswordRecord(dto.adminPassword);
 
-    await this.setSetting('storeName', dto.storeName.trim());
-    if (dto.theme?.trim()) await this.setSetting('theme', dto.theme.trim());
+    await this.db.transaction().execute(async (trx) => {
+      if (await this.getUserCount(trx) > 0) throw new ForbiddenException('تمت التهيئة الأولى مسبقًا.');
 
-    const branch = await this.db.insertInto('branches').values({
-      name: dto.branchName.trim(),
-      code: dto.branchCode?.trim() || '',
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date(),
-    } as any).returning(['id']).executeTakeFirstOrThrow();
+      await this.setSetting('storeName', dto.storeName.trim(), trx);
+      if (dto.theme?.trim()) await this.setSetting('theme', dto.theme.trim(), trx);
 
-    const location = await this.db.insertInto('stock_locations').values({
-      branch_id: Number(branch.id),
-      name: dto.locationName.trim(),
-      code: dto.locationCode?.trim() || '',
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date(),
-    } as any).returning(['id']).executeTakeFirstOrThrow();
+      const branch = await trx.insertInto('branches').values({
+        name: dto.branchName.trim(),
+        code: dto.branchCode?.trim() || '',
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      } as any).returning(['id']).executeTakeFirstOrThrow();
 
-    const user = await this.db.insertInto('users').values({
-      username: dto.adminUsername.trim(),
-      password_hash: passwordRecord.hash,
-      password_salt: passwordRecord.salt,
-      role: 'super_admin',
-      is_active: true,
-      permissions_json: JSON.stringify(SUPER_ADMIN_PERMISSIONS),
-      default_branch_id: Number(branch.id),
-      display_name: dto.adminDisplayName.trim(),
-      failed_login_count: 0,
-      locked_until: null,
-      last_login_at: null,
-      must_change_password: false,
-    } as any).returning(['id']).executeTakeFirstOrThrow();
+      const location = await trx.insertInto('stock_locations').values({
+        branch_id: Number(branch.id),
+        name: dto.locationName.trim(),
+        code: dto.locationCode?.trim() || '',
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      } as any).returning(['id']).executeTakeFirstOrThrow();
 
-    await sql`insert into user_branches (user_id, branch_id) values (${Number(user.id)}, ${Number(branch.id)}) on conflict do nothing`.execute(this.db);
-    await this.setSetting('activation.initializedAt', new Date().toISOString());
-    await this.setSetting('activation.primaryBranchId', String(branch.id));
-    await this.setSetting('activation.primaryLocationId', String(location.id));
+      const user = await trx.insertInto('users').values({
+        username: dto.adminUsername.trim(),
+        password_hash: passwordRecord.hash,
+        password_salt: passwordRecord.salt,
+        role: 'super_admin',
+        is_active: true,
+        permissions_json: JSON.stringify(SUPER_ADMIN_PERMISSIONS),
+        default_branch_id: Number(branch.id),
+        display_name: dto.adminDisplayName.trim(),
+        failed_login_count: 0,
+        locked_until: null,
+        last_login_at: null,
+        must_change_password: false,
+      } as any).returning(['id']).executeTakeFirstOrThrow();
+
+      await trx.insertInto('user_branches').values({
+        user_id: Number(user.id),
+        branch_id: Number(branch.id),
+      } as any).onConflict((oc) => oc.columns(['user_id', 'branch_id']).doNothing()).execute();
+      await this.setSetting('activation.initializedAt', new Date().toISOString(), trx);
+      await this.setSetting('activation.primaryBranchId', String(branch.id), trx);
+      await this.setSetting('activation.primaryLocationId', String(location.id), trx);
+    });
     return { ok: true, ...(await this.getStatus()) };
   }
 

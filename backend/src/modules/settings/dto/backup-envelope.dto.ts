@@ -17,6 +17,14 @@ class BackupMetaDto {
 
 export class BackupEnvelopeDto {
   @IsOptional()
+  @IsString()
+  confirmation?: string;
+
+  @IsOptional()
+  @IsString()
+  restoreConfirmation?: string;
+
+  @IsOptional()
   @IsObject()
   @ValidateNested()
   @Type(() => BackupMetaDto)

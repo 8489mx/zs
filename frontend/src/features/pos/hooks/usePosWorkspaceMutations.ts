@@ -1,7 +1,7 @@
 import { useMutation, useQuery, type QueryClient } from '@tanstack/react-query';
 import { catalogApi } from '@/lib/api/catalog';
 import { cashDrawerApi } from '@/lib/api/cash-drawer';
-import { invalidateCatalogDomain } from '@/app/query-invalidation';
+import { invalidateAuditLogs, invalidateCatalogDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
 import type { HeldPosDraft } from '@/features/pos/hooks/usePosWorkspace';
@@ -34,13 +34,19 @@ export function usePosWorkspaceMutations({ queryClient, storedHeld }: { queryCli
   const deleteHeldDraftMutation = useMutation({
     mutationFn: (draftId: string) => posApi.deleteHeldDraft(draftId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.posHeldDrafts });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.posHeldDrafts }),
+        invalidateAuditLogs(queryClient),
+      ]);
     },
   });
   const clearHeldDraftsMutation = useMutation({
     mutationFn: () => posApi.clearHeldDrafts(),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.posHeldDrafts });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.posHeldDrafts }),
+        invalidateAuditLogs(queryClient),
+      ]);
     },
   });
 

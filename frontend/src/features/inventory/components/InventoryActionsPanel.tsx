@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type SyntheticEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card } from '@/shared/ui/card';
@@ -54,15 +54,6 @@ function buildDamagedDefaults(locations: Location[]): DamagedStockInput {
   };
 }
 
-function hasAdjustmentDraft(values: InventoryAdjustmentInput): boolean {
-  return Boolean(values.productId)
-    || values.actionType !== ADJUSTMENT_DEFAULTS.actionType
-    || Number(values.qty || 0) !== Number(ADJUSTMENT_DEFAULTS.qty)
-    || String(values.reason || '') !== ADJUSTMENT_DEFAULTS.reason
-    || Boolean(String(values.note || '').trim())
-    || Boolean(String(values.managerPin || '').trim());
-}
-
 function hasDamagedDraft(values: DamagedStockInput, locations: Location[]): boolean {
   const defaults = buildDamagedDefaults(locations);
   return Boolean(values.productId)
@@ -77,6 +68,7 @@ function hasDamagedDraft(values: DamagedStockInput, locations: Location[]): bool
 export function InventoryActionsPanel({ products, selectedProduct = null, selectedProductToken = 0, branches, locations, isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
   const adjustmentDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const damagedDisclosureRef = useRef<HTMLDetailsElement | null>(null);
+  const lastPreparedAdjustmentTokenRef = useRef(0);
   const productList = useMemo(() => (Array.isArray(products) ? products : []), [products]);
   const branchList = useMemo(() => (Array.isArray(branches) ? branches : []), [branches]);
   const locationList = useMemo(() => (Array.isArray(locations) ? locations : []), [locations]);
@@ -116,6 +108,8 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
 
   useEffect(() => {
     if (!selectedProduct || !selectedProductToken) return;
+    if (lastPreparedAdjustmentTokenRef.current === selectedProductToken) return;
+    lastPreparedAdjustmentTokenRef.current = selectedProductToken;
     const recommendedActionType = Number(selectedProduct.stock || 0) <= Number(selectedProduct.minStock || 0) ? 'add' : 'adjust';
     adjustmentForm.reset({
       ...ADJUSTMENT_DEFAULTS,
@@ -128,9 +122,8 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
     if (adjustmentDisclosureRef.current && !adjustmentDisclosureRef.current.open) adjustmentDisclosureRef.current.open = true;
     scrollDisclosureToView(adjustmentDisclosureRef.current);
   }, [selectedProduct, selectedProductToken, adjustmentForm, adjustmentMutation, scrollDisclosureToView]);
-  const adjustmentValues = adjustmentForm.watch();
   const damagedValues = damagedForm.watch();
-  const adjustmentDraft = hasAdjustmentDraft(adjustmentValues);
+  const adjustmentDraft = adjustmentForm.formState.isDirty;
   const damagedDraft = hasDamagedDraft(damagedValues, locationList);
   const hasAnyDraft = (adjustmentDraft || damagedDraft) && !adjustmentMutation.isPending && !damagedMutation.isPending;
   const canDiscardDrafts = useUnsavedChangesGuard(hasAnyDraft, 'لديك تغييرات غير محفوظة داخل إجراءات المخزون. هل تريد المتابعة وفقدان هذه التغييرات؟');
@@ -152,6 +145,21 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
     resetAdjustmentDefaults();
     adjustmentMutation.reset();
   }, [adjustmentDraft, adjustmentMutation, canDiscardDrafts, resetAdjustmentDefaults]);
+
+  const closeAdjustmentForm = useCallback(() => {
+    resetAdjustmentDefaults();
+    adjustmentMutation.reset();
+    if (adjustmentDisclosureRef.current) adjustmentDisclosureRef.current.open = false;
+  }, [adjustmentMutation, resetAdjustmentDefaults]);
+
+  const handleAdjustmentToggle = useCallback((event: SyntheticEvent<HTMLDetailsElement>) => {
+    if (event.currentTarget.open) {
+      scrollDisclosureToView(adjustmentDisclosureRef.current);
+      return;
+    }
+    resetAdjustmentDefaults();
+    adjustmentMutation.reset();
+  }, [adjustmentMutation, resetAdjustmentDefaults, scrollDisclosureToView]);
 
   const resetDamagedForm = useCallback(() => {
     if (damagedDraft && !canDiscardDrafts()) return;
@@ -184,9 +192,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
           <details
             ref={adjustmentDisclosureRef}
             className="inventory-action-disclosure"
-            onToggle={(event) => {
-              if ((event.currentTarget as HTMLDetailsElement).open) scrollDisclosureToView(adjustmentDisclosureRef.current);
-            }}
+            onToggle={handleAdjustmentToggle}
           >
             <summary>
               <div className="inventory-action-summary-copy">
@@ -218,6 +224,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
               <div className="actions">
                 <SubmitButton type="submit" disabled={adjustmentMutation.isPending || !canManageInventory} idleText="حفظ حركة المخزون" pendingText="جارٍ الحفظ..." />
                 <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending || !canManageInventory} onClick={resetAdjustmentForm}>تفريغ</Button>
+                <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending} onClick={closeAdjustmentForm}>إلغاء وإغلاق</Button>
               </div>
             </form>
           </details>

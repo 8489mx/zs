@@ -6,7 +6,6 @@ import { Kysely, Migrator, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
 import { Database } from './database.types';
 import { FileMigrationProvider } from './migration-provider';
-import { resolvePgSslConfig, toBoolean } from './ssl.util';
 
 function getMigrationsPath(): string {
   const distPath = join(process.cwd(), 'dist', 'database', 'migrations');
@@ -17,25 +16,67 @@ function getMigrationsPath(): string {
   return join(process.cwd(), 'src', 'database', 'migrations');
 }
 
+function getEnvValue(keys: string[], defaultValue?: string): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value !== undefined && value !== '') {
+      return value;
+    }
+  }
+
+  return defaultValue;
+}
+
+function getRequiredEnvValue(keys: string[]): string {
+  const value = getEnvValue(keys);
+  if (value === undefined) {
+    throw new Error(`Missing required database environment variable. Checked keys: ${keys.join(', ')}`);
+  }
+
+  return value;
+}
+
+function getRequiredPort(): number {
+  const raw = getRequiredEnvValue(['DATABASE_PORT', 'DB_PORT', 'PGPORT']);
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`Invalid database port value: ${raw}`);
+  }
+
+  return port;
+}
+
+function formatErrorDetails(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const details: string[] = [];
+  details.push(`message: ${error.message}`);
+
+  if (error.stack) {
+    details.push(`stack: ${error.stack}`);
+  }
+
+  const cause = (error as Error & { cause?: unknown }).cause;
+  if (cause !== undefined) {
+    details.push(`cause: ${formatErrorDetails(cause)}`);
+  }
+
+  return details.join('\n');
+}
+
 async function run(): Promise<void> {
   const command = process.argv[2] ?? 'up';
-  const sslEnabled = toBoolean(process.env.DATABASE_SSL, false);
-  const sslRejectUnauthorized = toBoolean(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED, true);
-  const sslCaCert = process.env.DATABASE_SSL_CA_CERT ?? '';
-
   const db = new Kysely<Database>({
     dialect: new PostgresDialect({
       pool: new Pool({
-        host: process.env.DATABASE_HOST,
-        port: Number(process.env.DATABASE_PORT ?? '5432'),
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASSWORD,
-        database: process.env.DATABASE_NAME,
-        ssl: resolvePgSslConfig({
-          enabled: sslEnabled,
-          rejectUnauthorized: sslRejectUnauthorized,
-          caCert: sslCaCert,
-        }),
+        host: getRequiredEnvValue(['DATABASE_HOST', 'DB_HOST']),
+        port: getRequiredPort(),
+        user: getRequiredEnvValue(['DATABASE_USER', 'DB_USER']),
+        password: getRequiredEnvValue(['DATABASE_PASSWORD', 'DB_PASSWORD']),
+        database: getRequiredEnvValue(['DATABASE_NAME', 'DB_NAME']),
+        ssl: getEnvValue(['DATABASE_SSL', 'DB_SSL'], 'false') === 'true' ? { rejectUnauthorized: false } : false,
       }),
     }),
   });
@@ -64,9 +105,7 @@ async function run(): Promise<void> {
   }
 
   if (result.error) {
-    const message =
-      result.error instanceof Error ? result.error.message : String(result.error);
-    process.stderr.write(`Migration failed: ${message}\n`);
+    process.stderr.write(`Migration failed:\n${formatErrorDetails(result.error)}\n`);
     await db.destroy();
     process.exit(1);
   }
@@ -75,6 +114,6 @@ async function run(): Promise<void> {
 }
 
 run().catch((error: unknown) => {
-  process.stderr.write(`Migration command failed: ${String(error)}\n`);
+  process.stderr.write(`Migration command failed:\n${formatErrorDetails(error)}\n`);
   process.exit(1);
 });

@@ -27,6 +27,7 @@ type StockDeltaParams = StockScopeParams & {
   delta: number;
   errorCode?: string;
   errorMessage?: string;
+  allowNegative?: boolean;
 };
 
 type StockSetParams = StockScopeParams & {
@@ -218,13 +219,13 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
   const errorCode = params.errorCode || 'INSUFFICIENT_STOCK';
   const errorMessage = params.errorMessage || `Insufficient stock for ${state.product.name || `#${params.productId}`}`;
 
-  ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
+  if (!params.allowNegative) ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
 
   if (!params.locationId) {
     const unassigned = await ensureUnassignedBalance(db, state);
     const scopeBefore = roundStockQty(unassigned.qty);
     const scopeAfter = roundStockQty(scopeBefore + delta);
-    ensureNonNegativeStock(scopeAfter, errorCode, errorMessage);
+    if (!params.allowNegative) ensureNonNegativeStock(scopeAfter, errorCode, errorMessage);
     await updateBalanceQty(db, unassigned, scopeAfter, null);
     await updateGlobalQty(db, params.productId, globalAfter);
     return { globalBefore, globalAfter, scopeBefore, scopeAfter };
@@ -234,11 +235,11 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
   const location = await ensureLocationBalance(db, state, params.locationId, params.branchId ?? null);
   let locationBefore = roundStockQty(location.qty);
 
-  if (delta < 0 && locationBefore + 0.0001 < Math.abs(delta)) {
+  if (!params.allowNegative && delta < 0 && locationBefore + 0.0001 < Math.abs(delta)) {
     const shortage = roundStockQty(Math.abs(delta) - locationBefore);
     const unassignedBefore = roundStockQty(unassigned.qty);
     const unassignedAfter = roundStockQty(unassignedBefore - shortage);
-    ensureNonNegativeStock(unassignedAfter, errorCode, errorMessage);
+    if (!params.allowNegative) ensureNonNegativeStock(unassignedAfter, errorCode, errorMessage);
     const provisionedLocationQty = roundStockQty(locationBefore + shortage);
     await updateBalanceQty(db, unassigned, unassignedAfter, null);
     await updateBalanceQty(db, location, provisionedLocationQty, params.branchId ?? null);
@@ -246,7 +247,7 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
   }
 
   const scopeAfter = roundStockQty(locationBefore + delta);
-  ensureNonNegativeStock(scopeAfter, errorCode, errorMessage);
+  if (!params.allowNegative) ensureNonNegativeStock(scopeAfter, errorCode, errorMessage);
   await updateBalanceQty(db, location, scopeAfter, params.branchId ?? null);
   await updateGlobalQty(db, params.productId, globalAfter);
   return { globalBefore, globalAfter, scopeBefore: locationBefore, scopeAfter };

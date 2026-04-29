@@ -23,6 +23,11 @@ export class PartnersController {
     return this.partnersService.createCustomer(payload, req.authContext!);
   }
 
+  @Get('customers/:id/pos-summary')
+  getCustomerPosSummary(@Param('id', ParseIntPipe) id: number): Promise<Record<string, unknown>> {
+    return this.partnersService.getCustomerPosSummary(id);
+  }
+
   @Put('customers/:id')
   @RequirePermissions('customers')
   updateCustomer(

@@ -1,0 +1,215 @@
+/* POS cashier unified scanner/touch layout
+   Goal: scanner and touch modes share the same safe 45/55 layout:
+   - products/scanner side: 45%
+   - cart/checkout side: 55%
+   This file is imported after pos-step4-cashier-tune.css to override late POS CSS safely. */
+
+@media (min-width: 1080px) {
+  .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
+  .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
+    grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr) !important;
+    gap: 12px !important;
+    max-width: 100%;
+    min-width: 0;
+    align-items: start;
+  }
+}
+
+.pos-workspace.pos-sale-mode-scanner,
+.pos-workspace.pos-sale-mode-touch,
+.pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
+.pos-workspace.pos-sale-mode-touch .pos-grid-premium,
+.pos-workspace.pos-sale-mode-scanner .pos-products-card,
+.pos-workspace.pos-sale-mode-touch .pos-products-card,
+.pos-workspace.pos-sale-mode-scanner .pos-checkout-column,
+.pos-workspace.pos-sale-mode-touch .pos-checkout-column,
+.pos-workspace.pos-sale-mode-scanner .pos-checkout-card,
+.pos-workspace.pos-sale-mode-touch .pos-checkout-card,
+.pos-workspace.pos-sale-mode-scanner .pos-checkout-static,
+.pos-workspace.pos-sale-mode-touch .pos-checkout-static,
+.pos-workspace.pos-sale-mode-scanner .pos-checkout-scroll,
+.pos-workspace.pos-sale-mode-touch .pos-checkout-scroll {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pos-workspace.pos-sale-mode-scanner,
+.pos-workspace.pos-sale-mode-touch {
+  overflow-x: clip;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-checkout-column,
+.pos-workspace.pos-sale-mode-touch .pos-checkout-column {
+  overflow: hidden;
+}
+
+/* Keep the checkout/cart internals compact but readable in scanner and touch modes. */
+.pos-workspace.pos-sale-mode-scanner .pos-checkout-static,
+.pos-workspace.pos-sale-mode-touch .pos-checkout-static {
+  gap: 6px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-checkout-top-strip,
+.pos-workspace.pos-sale-mode-touch .pos-checkout-top-strip {
+  grid-template-columns: 1fr !important;
+  gap: 6px;
+}
+
+/* Branch + warehouse: compact same-row controls when width allows. */
+.pos-workspace.pos-sale-mode-scanner .pos-meta-grid-aux,
+.pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-meta-grid-aux .field,
+.pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux .field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 30px;
+  margin: 0;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-meta-grid-aux .field > span,
+.pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux .field > span {
+  margin: 0;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-meta-grid-aux select,
+.pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux select {
+  min-width: 0;
+  min-height: 30px;
+  height: 30px;
+  padding-block: 2px;
+}
+
+/* Payment row: clearer preset buttons and no cramped label. */
+.pos-workspace.pos-sale-mode-scanner .pos-payment-strip,
+.pos-workspace.pos-sale-mode-touch .pos-payment-strip {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 0.9fr) !important;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-strip-presets,
+.pos-workspace.pos-sale-mode-touch .pos-strip-presets {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-strip-presets > span,
+.pos-workspace.pos-sale-mode-touch .pos-strip-presets > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-payment-preset-row-inline,
+.pos-workspace.pos-sale-mode-touch .pos-payment-preset-row-inline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-payment-preset-row-inline .btn,
+.pos-workspace.pos-sale-mode-touch .pos-payment-preset-row-inline .btn {
+  min-height: 38px;
+  height: 38px;
+  padding-inline: 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Cart rows: keep 55% cart side useful without horizontal overflow. */
+.pos-workspace.pos-sale-mode-scanner .pos-cart-table-head,
+.pos-workspace.pos-sale-mode-scanner .pos-cart-grid-row,
+.pos-workspace.pos-sale-mode-touch .pos-cart-table-head,
+.pos-workspace.pos-sale-mode-touch .pos-cart-grid-row {
+  grid-template-columns: 38px minmax(0, 1fr) 126px 84px 90px 66px !important;
+  gap: 8px !important;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-table-body,
+.pos-workspace.pos-sale-mode-touch .pos-cart-table-body {
+  max-height: clamp(300px, 48vh, 580px);
+  padding-inline-start: 2px;
+  padding-inline-end: 2px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-row-upgraded,
+.pos-workspace.pos-sale-mode-touch .pos-cart-row-upgraded {
+  min-height: 46px;
+  padding: 7px 10px;
+  border-radius: 14px;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(odd),
+.pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-odd,
+.pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(odd),
+.pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-odd {
+  background: #ffffff !important;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(even),
+.pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even,
+.pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(even),
+.pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even {
+  background: #fffbeb !important;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected,
+.pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
+  background: #dbeafe !important;
+  border-color: rgba(37, 99, 235, 0.48) !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16) !important;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-highlight:not(.pos-cart-row-selected),
+.pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-highlight:not(.pos-cart-row-selected) {
+  background: #fef3c7 !important;
+}
+
+@media (max-width: 1320px) {
+  .pos-workspace.pos-sale-mode-scanner .pos-payment-strip,
+  .pos-workspace.pos-sale-mode-touch .pos-payment-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 1080px) {
+  .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
+  .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 920px) {
+  .pos-workspace.pos-sale-mode-scanner .pos-meta-grid-aux,
+  .pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux,
+  .pos-workspace.pos-sale-mode-scanner .pos-payment-strip,
+  .pos-workspace.pos-sale-mode-touch .pos-payment-strip {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-cart-table-head,
+  .pos-workspace.pos-sale-mode-touch .pos-cart-table-head {
+    display: none;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-cart-grid-row,
+  .pos-workspace.pos-sale-mode-touch .pos-cart-grid-row {
+    grid-template-columns: 34px minmax(0, 1fr) 112px 76px 82px 60px !important;
+    gap: 6px !important;
+  }
+}

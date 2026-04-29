@@ -1,0 +1,97 @@
+/* Reports executive summary metric pairs
+   Balanced layout:
+   - Main 6 cards stay as 3 logical columns x 2 rows.
+   - The detailed metric list keeps a comfortable natural width instead of being squeezed. */
+
+.reports-executive-card .enhanced-executive-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 440px) !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+}
+
+.reports-executive-paired-grid {
+  display: grid !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch;
+}
+
+.reports-executive-metric-pair {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.reports-executive-metric-pair > * {
+  min-width: 0;
+  width: 100%;
+}
+
+.reports-executive-paired-grid .report-metric-card,
+.reports-executive-paired-grid .dashboard-metric-card,
+.reports-executive-paired-grid > * > * {
+  width: 100%;
+}
+
+.reports-executive-paired-grid .report-metric-card,
+.reports-executive-paired-grid .dashboard-metric-card {
+  min-height: 116px;
+}
+
+/* Detailed list beside the cards: give it enough width and keep labels readable. */
+.reports-executive-card .reports-metric-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  align-content: start;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+}
+
+.reports-executive-card .reports-metric-list .metric-row {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.reports-executive-card .reports-metric-list .metric-row span,
+.reports-executive-card .reports-metric-list .metric-row strong {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.reports-executive-card .reports-metric-list .metric-row strong {
+  white-space: nowrap;
+}
+
+@media (max-width: 1380px) {
+  .reports-executive-card .enhanced-executive-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .reports-executive-card .reports-metric-list {
+    grid-template-columns: repeat(3, minmax(150px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 980px) {
+  .reports-executive-paired-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .reports-executive-card .reports-metric-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .reports-executive-paired-grid,
+  .reports-executive-card .reports-metric-list {
+    grid-template-columns: 1fr !important;
+  }
+}

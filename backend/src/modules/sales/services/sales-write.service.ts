@@ -53,18 +53,29 @@ export class SalesWriteService {
   }
 
   private async getCurrentProductOffers(trx: Kysely<Database> | Transaction<Database>, productId: number) {
-    const todayIso = new Date().toISOString().slice(0, 10);
     return trx
       .selectFrom('product_offers')
       .select(['offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
       .where('product_id', '=', productId)
       .where('is_active', '=', true)
-      .where((eb) => eb.and([
-        eb.or([eb('start_date', 'is', null), eb('start_date', '<=', todayIso)]),
-        eb.or([eb('end_date', 'is', null), eb('end_date', '>=', todayIso)]),
-      ]))
       .orderBy('id', 'desc')
       .execute();
+  }
+
+  private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>): Promise<boolean> {
+    const rows = await trx
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where('key', 'in', ['allowNegativeStockSales', 'allowSellingBelowStock'])
+      .execute();
+
+    return rows.some((row) => {
+      try {
+        return JSON.parse(String(row.value ?? 'false')) === true;
+      } catch {
+        return String(row.value || '').trim().toLowerCase() === 'true';
+      }
+    });
   }
 
   async authorizeDiscountOverride(secret: string, _auth: AuthContext): Promise<Record<string, unknown>> {
@@ -113,6 +124,7 @@ export class SalesWriteService {
         : null;
       if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
+      const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx);
 
       let subtotal = 0;
       const preparedItems = [];
@@ -132,7 +144,7 @@ export class SalesWriteService {
         const availableStockQty = normalized.locationId
           ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId })
           : Number(product.stock_qty || 0);
-        const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item);
+        const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item, { allowNegativeStockSales });
         subtotal += preparedItem.lineTotal;
         preparedItems.push(preparedItem);
       }
@@ -224,6 +236,7 @@ export class SalesWriteService {
           locationId: normalized.locationId,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: `Insufficient stock for ${item.productName}`,
+          allowNegative: allowNegativeStockSales,
         });
         await trx
           .insertInto('stock_movements')
@@ -428,14 +441,31 @@ export class SalesWriteService {
   }
 
   async deleteHeldSale(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const heldSale = await this.db
+      .selectFrom('held_sales')
+      .select(['id', 'created_by'])
+      .where('id', '=', id)
+      .executeTakeFirst();
+    if (!heldSale || !this.authz.canAccessHeldSale(auth, heldSale)) {
+      throw new AppError('Held sale not found', 'HELD_SALE_NOT_FOUND', 404);
+    }
+
     await this.db.deleteFrom('held_sales').where('id', '=', id).execute();
     await this.audit.log('حذف فاتورة معلقة', `تم حذف فاتورة معلقة #${id} بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 
   async clearHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
-    await this.db.deleteFrom('held_sales').execute();
-    await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username}`, auth);
-    return { ok: true, heldSales: [] };
+    const canManageHeldSales = this.authz.canManageHeldSales(auth);
+    const ownerUserId = this.authz.heldSaleOwnerUserId(auth);
+    const result = await this.db
+      .deleteFrom('held_sales')
+      .$if(!canManageHeldSales, (qb) => qb.where('created_by', '=', ownerUserId ?? -1))
+      .execute();
+    const deletedCount = Number(result?.[0]?.numDeletedRows ?? NaN);
+    const scopeLabel = canManageHeldSales ? 'privileged broader management' : 'own held sales';
+    const countLabel = Number.isFinite(deletedCount) ? ` | deletedCount=${deletedCount}` : '';
+    await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username} | scope=${scopeLabel}${countLabel}`, auth);
+    return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 }

@@ -8,35 +8,13 @@ export function PosCartFooter(props: Pick<PosCartPanelProps,
   'onReprintLastSale' | 'onPrintReceiptNow' | 'onPrintA4Now' |
   'onExportHeldDrafts' | 'onClearHeldDrafts' | 'onRecallDraft' | 'onDeleteDraft' | 'onResetDraft'
 >) {
-  const shouldShowReceiptAction = props.preferredPrintPageSize === 'receipt';
-  const shouldShowA4Action = props.preferredPrintPageSize !== 'receipt';
+  const shouldShowSubmitMessage = Boolean(props.submitMessage) && (props.isError || !props.canShowLastSaleActions);
 
   return (
     <>
-      {props.submitMessage ? (
+      {shouldShowSubmitMessage ? (
         <div className={props.isError ? 'error-box pos-compact-message' : 'success-box pos-compact-message'}>
           <div>{props.submitMessage}</div>
-          {!props.isError && props.canShowLastSaleActions && props.lastSaleDocNo ? (
-            <div className="pos-post-sale-inline-note">
-              <span className="status-badge">{props.lastSaleDocNo}</span>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {props.canShowLastSaleActions ? (
-        <div className="actions pos-primary-actions pos-primary-actions-sticky section-actions-clean pos-post-sale-bar">
-          <div className="pos-post-sale-bar-copy">
-            <span className="pos-post-sale-bar-kicker">تم الحفظ بنجاح</span>
-            <strong>{props.lastSaleDocNo ? `فاتورة ${props.lastSaleDocNo}` : 'آخر فاتورة جاهزة الآن'}</strong>
-            <span className="muted small">اطبع آخر فاتورة أو ابدأ عميلًا جديدًا مباشرة.</span>
-          </div>
-          <div className="actions compact-actions pos-post-sale-bar-actions">
-            {shouldShowReceiptAction ? <Button variant="secondary" onClick={props.onPrintReceiptNow}>ريسيت (F2)</Button> : null}
-            {shouldShowA4Action ? <Button variant="secondary" onClick={props.onPrintA4Now}>A4 (F12)</Button> : null}
-            <Button variant="secondary" onClick={props.onReprintLastSale}>إعادة الطباعة</Button>
-            <Button variant="success" onClick={props.onResetDraft}>عميل جديد</Button>
-          </div>
         </div>
       ) : null}
 

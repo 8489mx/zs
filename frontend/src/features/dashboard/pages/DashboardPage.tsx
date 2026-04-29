@@ -4,12 +4,18 @@ import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { CompactFirstRunSetupPrompt } from '@/shared/system/compact-first-run-setup-prompt';
 import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
+import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
+import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
 import { DashboardHeroSection } from '@/features/dashboard/components/DashboardHeroSection';
 import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardSummaryGrid';
 import { DashboardOperationalGrid } from '@/features/dashboard/components/DashboardOperationalGrid';
 import { DashboardRelationshipGrid } from '@/features/dashboard/components/DashboardRelationshipGrid';
 import { DashboardTrendsGrid } from '@/features/dashboard/components/DashboardTrendsGrid';
+import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
+import { DashboardManagerOverviewSections } from '@/features/dashboard/components/DashboardManagerOverviewSections';
+import { ManagerActionCenterCard } from '@/features/dashboard/components/ManagerActionCenterCard';
+import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
 import {
   buildDashboardAlerts,
   exportDashboardSnapshot,
@@ -19,6 +25,8 @@ import {
 
 export function DashboardPage() {
   const overview = useDashboardOverview();
+  const managerActions = useManagerActions(8);
+  const managerOverview = useDashboardManagerOverview();
 
   if (overview.isLoading && !overview.data) {
     return (
@@ -43,20 +51,21 @@ export function DashboardPage() {
   const salesTrend = (trends.sales || []).map((row) => ({ ...row, label: formatShortDate(row.key) }));
   const purchasesTrend = (trends.purchases || []).map((row) => ({ ...row, label: formatShortDate(row.key) }));
   const focusCards = [
-    { key: 'start', label: 'ابدأ من', value: Number(stats.todaySalesCount || 0) ? 'ملخص اليوم' : 'تنبيه البداية' },
+    { key: 'decision', label: 'ابدأ من', value: 'قرارات المدير' },
     { key: 'sell', label: 'الرقم الأهم الآن', value: `${Number(stats.todaySalesCount || 0)} بيع اليوم` },
     { key: 'stock', label: 'راقب بعده', value: `${lowStock.length} أصناف تحتاج متابعة` },
     { key: 'cash', label: 'ثم راجع', value: `صافي الخزينة ${Number(summary.treasury.net || 0)}` },
   ];
 
   return (
-    <div className="page-stack dashboard-premium-shell">
+    <div className="page-stack dashboard-premium-shell dashboard-priority-shell">
       <PageHeader
         title="الرئيسية"
         description="نظرة سريعة على البيع والربح والخزينة والمخزون في مكان واحد."
         badge={<span className="nav-pill">ملخص اليوم</span>}
         actions={(
-          <div className="actions compact-actions">
+          <div className="actions compact-actions dashboard-header-actions">
+            <ManagerNotificationsBell />
             <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير CSV</button>
             <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
           </div>
@@ -65,7 +74,13 @@ export function DashboardPage() {
 
       <CompactFirstRunSetupPrompt />
       <FirstRunSetupChecklist />
-      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في الرئيسية" />
+
+      <ManagerActionCenterCard
+        insights={managerActions.data?.insights || []}
+        isLoading={managerActions.isLoading}
+        isError={managerActions.isError}
+        error={managerActions.error}
+      />
 
       <DashboardHeroSection
         todaySalesCount={Number(stats.todaySalesCount || 0)}
@@ -75,6 +90,15 @@ export function DashboardPage() {
         treasuryNet={Number(summary.treasury.net || 0)}
         netOperatingProfit={Number(summary.commercial.netOperatingProfit || 0)}
       />
+
+      <DashboardDailyBrief
+        insights={managerActions.data?.insights || []}
+        salesTrend={trends.sales || []}
+        purchasesTrend={trends.purchases || []}
+        isLoading={managerActions.isLoading}
+      />
+
+      <SpotlightCardStrip cards={focusCards} ariaLabel="أولوية المشاهدة في الرئيسية" />
 
       <DashboardSummaryGrid
         todaySalesCount={Number(stats.todaySalesCount || 0)}
@@ -99,6 +123,13 @@ export function DashboardPage() {
         cashOut={Number(summary.treasury.cashOut || 0)}
         treasuryNet={Number(summary.treasury.net || 0)}
         grossProfit={Number(summary.commercial.grossProfit || 0)}
+      />
+
+      <DashboardManagerOverviewSections
+        data={managerOverview.data}
+        isLoading={managerOverview.isLoading}
+        isError={managerOverview.isError}
+        error={managerOverview.error}
       />
 
       <DashboardRelationshipGrid lowStock={lowStock} topCustomers={topCustomers} topSuppliers={topSuppliers} />

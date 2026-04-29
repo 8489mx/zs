@@ -45,15 +45,30 @@ export function useLoginForm() {
     setIsSubmitting(true);
 
     try {
-      await authApi.login(values);
-      const me = await authApi.me();
-      const storeName = me.settings.storeName || DEFAULT_STORE_NAME;
-      const theme = me.settings.theme || DEFAULT_THEME;
-      const user = {
-        ...me.user,
-        mustChangePassword: me.security?.mustChangePassword === true,
-        usingDefaultAdminPassword: me.security?.usingDefaultAdminPassword === true,
+      const loginResult = await authApi.login(values);
+
+      let storeName = DEFAULT_STORE_NAME;
+      let theme = DEFAULT_THEME;
+      let user = {
+        ...loginResult.user,
+        mustChangePassword: loginResult.mustChangePassword === true,
+        usingDefaultAdminPassword: false,
       };
+
+      try {
+        const me = await authApi.me();
+        storeName = me.settings.storeName || DEFAULT_STORE_NAME;
+        theme = me.settings.theme || DEFAULT_THEME;
+        user = {
+          ...me.user,
+          mustChangePassword: me.security?.mustChangePassword === true,
+          usingDefaultAdminPassword: me.security?.usingDefaultAdminPassword === true,
+        };
+      } catch (sessionError) {
+        if (!(sessionError instanceof Error)) {
+          throw sessionError;
+        }
+      }
 
       await clearQueryClientData(queryClient);
       setSession({ user, storeName, theme });

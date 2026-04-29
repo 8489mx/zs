@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import type { PosCartPanelProps } from './posCartPanel.types';
@@ -33,15 +34,21 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
   const isCreditSale = props.paymentType === 'credit';
   const isDiscountLocked = !props.canApplyDiscount;
 
+  function selectPaymentPreset(preset: 'cash' | 'card' | 'credit') {
+    flushSync(() => {
+      props.onPaymentPresetChange(preset);
+    });
+  }
+
   return (
     <div className="pos-payment-shell pos-payment-shell-compact pos-payment-shell-inline">
       <div className="pos-payment-strip" aria-label="طريقة الدفع والمدفوع">
         <div className="pos-strip-field pos-strip-field-inline pos-strip-presets">
           <span>طريقة السداد</span>
           <div className="actions compact-actions pos-payment-preset-row pos-payment-preset-row-inline">
-            <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'cash') ? 'primary' : 'secondary'} onClick={() => props.onPaymentPresetChange('cash')}>نقدي</Button>
-            <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'card') ? 'primary' : 'secondary'} onClick={() => props.onPaymentPresetChange('card')}>فيزا</Button>
-            <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'credit') ? 'primary' : 'secondary'} onClick={() => props.onPaymentPresetChange('credit')}>آجل</Button>
+            <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'cash') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('cash')}>نقدي</Button>
+            <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'card') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('card')}>فيزا</Button>
+            <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'credit') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('credit')}>آجل</Button>
           </div>
         </div>
 

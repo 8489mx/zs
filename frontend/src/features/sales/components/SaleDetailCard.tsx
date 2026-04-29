@@ -26,7 +26,7 @@ export function SaleDetailCard({ sale, isLoading = false, onEdit, onCancel, onPr
         </div>
       ) : <span className="status-badge status-cancelled">ملغاة</span>}
     >
-      <div className="stats-grid compact-grid">
+      <div className="stats-grid compact-grid invoice-detail-summary-grid">
         <div className="stat-card"><span>العميل</span><strong>{sale.customerName || 'عميل نقدي'}</strong></div>
         <div className="stat-card"><span>الحالة</span><strong>{sale.status || 'draft'}</strong></div>
         <div className="stat-card"><span>الإجمالي</span><strong>{formatCurrency(sale.total)}</strong></div>

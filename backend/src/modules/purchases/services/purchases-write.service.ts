@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from '../../../database/kysely';
+import { Kysely, sql, type Selectable } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AppError } from '../../../common/errors/app-error';
@@ -25,6 +25,8 @@ type PurchaseRepricingCandidate = {
   retailPrice: number;
   wholesalePrice: number;
 };
+
+type PurchaseRepricingProduct = Pick<Selectable<Database['products']>, 'id' | 'name' | 'item_kind' | 'style_code' | 'cost_price' | 'retail_price' | 'wholesale_price'>;
 
 type PurchaseRepricingInsights = {
   purchaseId: number;
@@ -85,6 +87,19 @@ export class PurchasesWriteService {
     return this.roundCurrency(safeCurrentSell);
   }
 
+  private buildPurchaseRepricingCandidate(product: PurchaseRepricingProduct, newCost: number): PurchaseRepricingCandidate {
+    return {
+      productId: Number(product.id),
+      name: String(product.name || ''),
+      itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
+      styleCode: String(product.style_code || ''),
+      previousCost: Number(product.cost_price || 0),
+      newCost,
+      retailPrice: Number(product.retail_price || 0),
+      wholesalePrice: Number(product.wholesale_price || 0),
+    };
+  }
+
   private buildPurchaseRepricingInsights(
     purchaseId: number,
     supplier: { id: number; name: string },
@@ -134,6 +149,16 @@ export class PurchasesWriteService {
     };
   }
 
+  private async buildPurchaseMutationResponse(
+    purchaseId: number,
+    auth: AuthContext,
+    extras: Record<string, unknown> = {},
+  ): Promise<Record<string, unknown>> {
+    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
+    const purchases = await this.queryService.listPurchases({}, auth);
+    return { ok: true, purchase, purchases: purchases.purchases, ...extras };
+  }
+
   async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const created = await this.tx.runInTransaction(this.db, async (trx) => {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where('is_active', '=', true).executeTakeFirst();
@@ -149,16 +174,7 @@ export class PurchasesWriteService {
         const product = await trx.selectFrom('products').select(['id', 'name', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         normalizedItems.push(buildNormalizedPurchaseItem(item, product));
-        repricingCandidates.push({
-          productId: Number(product.id),
-          name: String(product.name || ''),
-          itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
-          styleCode: String(product.style_code || ''),
-          previousCost: Number(product.cost_price || 0),
-          newCost: Number(item.cost || 0),
-          retailPrice: Number(product.retail_price || 0),
-          wholesalePrice: Number(product.wholesale_price || 0),
-        });
+        repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, Number(item.cost || 0)));
       }
 
       const subtotal = calculatePurchaseSubtotal(normalizedItems);
@@ -244,9 +260,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${created.purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === created.purchaseId) || null;
-    const purchases = await this.queryService.listPurchases({}, auth);
-    return { ok: true, purchase, purchases: purchases.purchases, repricingInsights: created.repricingInsights };
+    return this.buildPurchaseMutationResponse(created.purchaseId, auth, { repricingInsights: created.repricingInsights });
   }
 
   async updatePurchase(purchaseId: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -318,16 +332,7 @@ export class PurchasesWriteService {
           throw new AppError(`Cost edit is not allowed for ${product.name}`, 'COST_EDIT_NOT_ALLOWED', 403);
         }
         const normalizedItem = buildNormalizedPurchaseItem({ ...item, cost: incomingCost }, product);
-        repricingCandidates.push({
-          productId: Number(product.id),
-          name: String(product.name || ''),
-          itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
-          styleCode: String(product.style_code || ''),
-          previousCost: Number(product.cost_price || 0),
-          newCost: incomingCost,
-          retailPrice: Number(product.retail_price || 0),
-          wholesalePrice: Number(product.wholesale_price || 0),
-        });
+        repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, incomingCost));
         subtotal += normalizedItem.total;
 
         await trx.insertInto('purchase_items').values({
@@ -400,8 +405,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
-    return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases, repricingInsights: updated.repricingInsights };
+    return this.buildPurchaseMutationResponse(purchaseId, auth, { repricingInsights: updated.repricingInsights });
   }
 
   async cancelPurchase(purchaseId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -457,8 +461,7 @@ export class PurchasesWriteService {
     });
 
     await this.audit.log('إلغاء فاتورة شراء', `تم إلغاء فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
-    return { ok: true, purchase, purchases: (await this.queryService.listPurchases({}, auth)).purchases };
+    return this.buildPurchaseMutationResponse(purchaseId, auth);
   }
 
   async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {

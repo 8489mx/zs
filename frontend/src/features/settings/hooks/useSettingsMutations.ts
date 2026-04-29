@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { invalidateSettingsReferenceDomain } from '@/app/query-invalidation';
+import { invalidateAuditLogs, invalidateSettingsReferenceDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import { settingsApi } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
@@ -21,7 +21,10 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
         storeName: typeof updatedSettings?.storeName === 'string' ? updatedSettings.storeName : undefined,
         theme: typeof updatedSettings?.theme === 'string' ? updatedSettings.theme : undefined,
       });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.settings });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.settings }),
+        invalidateAuditLogs(queryClient),
+      ]);
       onSuccessCallback?.();
     }
   });

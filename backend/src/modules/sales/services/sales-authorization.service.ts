@@ -26,6 +26,22 @@ export class SalesAuthorizationService {
     return auth.role === 'super_admin' || auth.permissions.includes(permission);
   }
 
+  canManageHeldSales(auth: AuthContext): boolean {
+    return this.hasPermission(auth, 'canEditInvoices') || this.hasPermission(auth, 'canDelete');
+  }
+
+  heldSaleOwnerUserId(auth: AuthContext): number | null {
+    const userId = Number(auth.userId);
+    return Number.isInteger(userId) && userId > 0 ? userId : null;
+  }
+
+  canAccessHeldSale(auth: AuthContext, heldSale: { created_by?: number | string | null }): boolean {
+    if (this.canManageHeldSales(auth)) return true;
+    const userId = this.heldSaleOwnerUserId(auth);
+    const createdBy = Number(heldSale.created_by);
+    return userId !== null && Number.isInteger(createdBy) && createdBy > 0 && createdBy === userId;
+  }
+
   assertCanViewSales(auth: AuthContext): void {
     if (auth.role === 'super_admin') return;
     if (auth.permissions.includes('sales') || auth.permissions.includes('reports')) return;

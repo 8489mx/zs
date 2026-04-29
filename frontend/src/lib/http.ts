@@ -23,14 +23,42 @@ const RAW_API_BASE = import.meta.env?.VITE_API_BASE_URL?.trim();
 const CSRF_COOKIE_NAME = 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
 
-export function normalizeApiBaseUrl(value?: string) {
-  if (value) return value.replace(/\/$/, '');
-  if (typeof window === 'undefined') return '';
-  if (window.location.port === '5173') {
-    return `${window.location.protocol}//${window.location.hostname}:3001`;
+export function normalizeApiBaseUrl(
+  value?: string,
+  locationInfo?: { port: string; protocol: string; hostname: string },
+) {
+  const normalized = value?.replace(/\/$/, '') || '';
+  const runtimeLocation = locationInfo
+    ?? (typeof window !== 'undefined'
+      ? {
+        port: window.location.port,
+        protocol: window.location.protocol,
+        hostname: window.location.hostname,
+      }
+      : null);
+
+  if (!runtimeLocation) return normalized;
+
+  const isDevServer = runtimeLocation.port === '5173';
+  const isPortableStaticServer = runtimeLocation.port === '8080';
+  const isLoopbackRuntime = ['127.0.0.1', 'localhost'].includes(runtimeLocation.hostname);
+  const configuredUrl = normalized ? new URL(normalized, `${runtimeLocation.protocol}//${runtimeLocation.hostname}`) : null;
+  const configuredIsLoopbackApi = Boolean(
+    configuredUrl
+    && ['127.0.0.1', 'localhost'].includes(configuredUrl.hostname)
+    && configuredUrl.port === '3001',
+  );
+
+  if (isPortableStaticServer && isLoopbackRuntime && configuredIsLoopbackApi) return '';
+  if (normalized) return normalized;
+
+  if (isDevServer) {
+    return `${runtimeLocation.protocol}//${runtimeLocation.hostname}:3001`;
   }
-  return window.location.origin;
+
+  return '';
 }
+
 
 const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE);
 
@@ -204,7 +232,16 @@ export async function http<T>(path: string, init?: HttpRequestInit): Promise<T> 
     }
 
     const contentType = response.headers.get('content-type') || '';
-    const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+    const rawPayload = await response.text();
+
+    let payload: unknown = rawPayload;
+    if (contentType.includes('application/json')) {
+      try {
+        payload = rawPayload ? JSON.parse(rawPayload) : null;
+      } catch {
+        payload = rawPayload;
+      }
+    }
 
     if (!response.ok) {
       if (response.status === 401) {

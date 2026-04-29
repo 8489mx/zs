@@ -9,6 +9,16 @@ import { downloadJsonFile, triggerDownload } from '@/lib/browser';
 type AdminWorkspaceSection = 'overview' | 'core' | 'reference' | 'backup' | 'users' | 'diagnostics' | 'readiness';
 type BackupMessageKind = 'success' | 'error';
 
+const RESTORE_BACKUP_CONFIRMATION = 'RESTORE BACKUP';
+
+function withRestoreConfirmation(payload: unknown): Record<string, unknown> {
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    return { ...(payload as Record<string, unknown>), confirmation: RESTORE_BACKUP_CONFIRMATION };
+  }
+
+  return { confirmation: RESTORE_BACKUP_CONFIRMATION, payload };
+}
+
 async function readTextFile(file: File) {
   return await file.text();
 }
@@ -97,8 +107,9 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
       const verified = await settingsApi.verifyBackup(payload);
       setBackupResult(verified);
       if (mode === 'restore') {
-        await settingsApi.restoreBackup(payload, true);
-        const restored = await settingsApi.restoreBackup(payload, false);
+        const restorePayload = withRestoreConfirmation(payload);
+        await settingsApi.restoreBackup(restorePayload, true);
+        const restored = await settingsApi.restoreBackup(restorePayload, false);
         setBackupResult(restored);
         try {
           await refreshAdminQueries();
@@ -129,8 +140,9 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     setBackupMessage('');
     setBackupMessageKind('success');
     try {
-      await settingsApi.restoreBackup(snapshot.payload, true);
-      const restored = await settingsApi.restoreBackup(snapshot.payload, false);
+      const restorePayload = withRestoreConfirmation(snapshot.payload);
+      await settingsApi.restoreBackup(restorePayload, true);
+      const restored = await settingsApi.restoreBackup(restorePayload, false);
       setBackupResult(restored);
       setBackupMessage('تمت استعادة النسخة التلقائية بنجاح.');
       setBackupMessageKind('success');

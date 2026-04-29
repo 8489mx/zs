@@ -3,6 +3,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
 import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNote, buildCashDrawerShiftDocNo, computeCashDrawerVariance, filterCashDrawerRows, mapCashDrawerShiftRow, normalizeCashDrawerMovementType, normalizeShiftOpenPayload, paginateCashDrawerRows, summarizeCashDrawerRows, toSignedCashDrawerAmount } from './helpers/cash-drawer.helper';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
+import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 
@@ -29,13 +30,16 @@ type ShiftRow = {
 };
 
 type SettingsRow = { key?: string; value?: string | null };
+type UserPasswordRow = {
+  id?: number | string;
+  is_active?: boolean | number | string | null;
+  password_hash?: string | null;
+  password_salt?: string | null;
+};
 
 @Injectable()
 export class CashDrawerService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
-
-
-
 
   private async getManagerPin(): Promise<string> {
     const result = await sql<SettingsRow>`
@@ -61,6 +65,48 @@ export class CashDrawerService {
     if (String(pin || '').trim() !== expected) {
       throw new AppError('رمز اعتماد المدير غير صحيح', 'MANAGER_PIN_INVALID', 400);
     }
+  }
+
+  private shouldRequireManagerApprovalForCashOut(auth: AuthContext): boolean {
+    const role = String(auth.role || '').trim();
+    return !['admin', 'super_admin', 'manager'].includes(role);
+  }
+
+  private async assertCurrentUserPassword(password: string, auth: AuthContext): Promise<void> {
+    const providedPassword = String(password || '').trim();
+    if (!providedPassword) {
+      throw new AppError('أدخل كلمة مرور المستخدم الحالي', 'CURRENT_USER_PASSWORD_REQUIRED', 400);
+    }
+
+    const result = await sql<UserPasswordRow>`
+      select id, is_active, password_hash, password_salt
+      from users
+      where id = ${auth.userId}
+      limit 1
+    `.execute(this.db);
+
+    const user = result.rows?.[0] || null;
+    if (!user || user.is_active === false || user.is_active === 0 || user.is_active === 'false') {
+      throw new AppError('المستخدم الحالي غير متاح', 'CURRENT_USER_NOT_FOUND', 400);
+    }
+
+    const passwordCheck = await verifyPassword(providedPassword, String(user.password_hash || ''), String(user.password_salt || ''));
+    if (!passwordCheck.valid) {
+      throw new AppError('كلمة مرور المستخدم الحالي غير صحيحة', 'CURRENT_USER_PASSWORD_INVALID', 400);
+    }
+  }
+
+  private async assertCashDrawerApproval(
+    movementType: 'cash_in' | 'cash_out',
+    approvalSecret: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    if (movementType === 'cash_out' && this.shouldRequireManagerApprovalForCashOut(auth)) {
+      await this.assertManagerPin(approvalSecret);
+      return;
+    }
+
+    await this.assertCurrentUserPassword(approvalSecret, auth);
   }
 
   private async rawList(): Promise<Array<Record<string, unknown>>> {
@@ -94,7 +140,17 @@ export class CashDrawerService {
     `.execute(this.db);
 
     const rows = result.rows ?? [];
-    return rows.map((row) => mapCashDrawerShiftRow(row));
+    const rowsWithLiveExpectedCash = await Promise.all(rows.map(async (row) => {
+      if (String(row.status || 'open') !== 'open') return row;
+
+      const shiftId = Number(row.id || 0);
+      if (!(shiftId > 0)) return row;
+
+      const expectedCash = await this.computeShiftExpectedCash(shiftId);
+      return { ...row, expected_cash: expectedCash };
+    }));
+
+    return rowsWithLiveExpectedCash.map((row) => mapCashDrawerShiftRow(row));
   }
 
   private async getShift(shiftId: number): Promise<ShiftRow | null> {
@@ -112,15 +168,28 @@ export class CashDrawerService {
     const shift = await this.getShift(shiftId);
     if (!shift) return 0;
 
-    const totals = await sql<{ total?: number | string }>`
-      select coalesce(sum(amount), 0) as total
-      from treasury_transactions
-      where reference_type = 'cashier_shift'
-        and reference_id = ${shiftId}
+    const totals = await sql<{ shift_total?: number | string; sales_total?: number | string }>`
+      select
+        coalesce(sum(case when tt.reference_type = 'cashier_shift' and tt.reference_id = ${shiftId} then tt.amount else 0 end), 0) as shift_total,
+        coalesce(sum(case when tt.reference_type = 'sale' then tt.amount else 0 end), 0) as sales_total
+      from treasury_transactions tt
+      where (
+          tt.reference_type = 'cashier_shift'
+          and tt.reference_id = ${shiftId}
+        )
+        or (
+          tt.reference_type = 'sale'
+          and tt.created_by = ${Number(shift.opened_by || 0)}
+          and tt.created_at >= ${shift.created_at || null}
+          and (${shift.closed_at || null}::timestamptz is null or tt.created_at <= ${shift.closed_at || null})
+          and (${shift.branch_id || null}::int is null or tt.branch_id is null or tt.branch_id = ${Number(shift.branch_id || 0) || null})
+          and (${shift.location_id || null}::int is null or tt.location_id is null or tt.location_id = ${Number(shift.location_id || 0) || null})
+        )
     `.execute(this.db);
 
-    const movementTotal = Number(totals.rows?.[0]?.total || 0);
-    return Number((Number(shift.opening_cash || 0) + movementTotal).toFixed(2));
+    const movementTotal = Number(totals.rows?.[0]?.shift_total || 0);
+    const cashSalesTotal = Number(totals.rows?.[0]?.sales_total || 0);
+    return Number((Number(shift.opening_cash || 0) + movementTotal + cashSalesTotal).toFixed(2));
   }
 
   async listCashierShifts(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -222,9 +291,7 @@ export class CashDrawerService {
     assertCashDrawerAmount(amount);
     assertCashDrawerNote(note);
 
-    if (movementType === 'cash_out') {
-      await this.assertManagerPin(String(payload.managerPin || '').trim());
-    }
+    await this.assertCashDrawerApproval(movementType, String(payload.managerPin || '').trim(), auth);
 
     const signedAmount = toSignedCashDrawerAmount(movementType, amount);
 
@@ -249,7 +316,7 @@ export class CashDrawerService {
         ${shift.location_id ? Number(shift.location_id) : null},
         ${auth.userId}
       )
-    `.execute(this.db)
+    `.execute(this.db);
 
     const expectedCash = await this.computeShiftExpectedCash(shiftId);
 
@@ -290,7 +357,7 @@ export class CashDrawerService {
 
     assertCashDrawerCountedCash(countedCash);
 
-    await this.assertManagerPin(String(payload.managerPin || '').trim());
+    await this.assertCurrentUserPassword(String(payload.managerPin || '').trim(), auth);
 
     const expectedCash = await this.computeShiftExpectedCash(shiftId);
     const variance = computeCashDrawerVariance(countedCash, expectedCash);

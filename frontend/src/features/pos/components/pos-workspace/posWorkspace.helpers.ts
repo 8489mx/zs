@@ -14,6 +14,7 @@ export const POS_SHORTCUTS = [
   { key: 'F6', label: 'إعادة طباعة آخر فاتورة' },
   { key: 'F7', label: 'تعديل كمية السطر المحدد' },
   { key: 'F8', label: 'معاينة الطباعة' },
+  { key: 'F9', label: 'إعادة طباعة آخر فاتورة' },
   { key: 'F12', label: 'طباعة A4 عند تفعيلها' },
   { key: 'Esc', label: 'تفريغ السلة' },
 ] as const;

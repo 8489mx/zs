@@ -82,6 +82,17 @@ function apiPayload(pathname: string) {
     };
   }
   if (pathname === '/api/dashboard/overview') return dashboardOverview;
+  if (pathname === '/api/manager-actions') return { insights: [] };
+  if (pathname === '/api/dashboard/manager-overview') {
+    return {
+      salesLast30: { total: 100, count: 1, averageInvoice: 100, previousTotal: 50, comparisonPercent: 100 },
+      profitSummary: { netSales: 100, cogs: 50, grossProfit: 50, expenses: 20, netProfit: 30 },
+      profitSources: { topProducts: [], topCategories: [], weakMarginHighSales: [] },
+      stagnant: { days30: 0, days60: 0, days90: 0, inventoryValue: 0, items: [] },
+      buying: { outOfStock: [], lowStock: [], priority: [] },
+      collection: { topDebts: [], aboveCreditLimit: [], nearCreditLimit: [] },
+    };
+  }
   if (pathname === '/api/reports/summary') return summary;
   if (pathname === '/api/settings') return { settings };
   if (pathname === '/api/branches') return { branches };
@@ -90,6 +101,19 @@ function apiPayload(pathname: string) {
   if (pathname === '/api/products') return pageEnvelope('products', products, { totalProducts: 1, lowStockCount: 0, outOfStockCount: 0, inventoryCost: 100, inventorySaleValue: 200, activeOffersCount: 0, customerPriceCount: 0 });
   if (pathname === '/api/categories') return { categories: [{ id: 'cat-1', name: 'مشروبات' }] };
   if (pathname === '/api/customers') return pageEnvelope('customers', customers, { totalCustomers: 2, totalBalance: 150, totalCredit: 150, vipCount: 1 });
+  if (/^\/api\/customers\/[^/]+\/pos-summary$/.test(pathname)) return {
+    customerId: 'cust-1',
+    balance: 150,
+    creditLimit: 1000,
+    remainingCredit: 850,
+    storeCreditBalance: 0,
+    customerType: 'vip',
+    lastSaleAt: today,
+    totalSalesAmount: 100,
+    invoiceCount: 1,
+    averageInvoice: 100,
+    returnCount: 0,
+  };
   if (pathname === '/api/suppliers') return pageEnvelope('suppliers', suppliers, { totalSuppliers: 2, totalBalance: 320, withNotes: 1 });
   if (pathname === '/api/sales') return { sales };
   if (pathname === '/api/purchases') return pageEnvelope('purchases', purchases, { totalPurchases: 1, totalAmount: 50, totalDue: 0 });

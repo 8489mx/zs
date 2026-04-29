@@ -13,6 +13,7 @@ import { sharedProductsApi } from '@/shared/api/products';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import type { PurchaseQuickCreateDraft } from '@/features/purchases/components/purchase-composer/PurchaseQuickCreateDialog';
+import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 
 const DEFAULT_HEADER_VALUES: PurchaseHeaderInput = { supplierId: '', paymentType: 'cash', discount: 0, branchId: '', locationId: '', note: '' };
 const DEFAULT_QUICK_CREATE_DRAFT: PurchaseQuickCreateDraft = {
@@ -150,13 +151,19 @@ export function usePurchaseComposerController({
 
   const quickCreateMutation = useMutation({
     mutationFn: async (draft: PurchaseQuickCreateDraft) => sharedProductsApi.create(createProductPayload(draft)),
-    onSuccess: async (_, draft) => {
+    onSuccess: async (created, draft) => {
       await invalidateCatalogDomain(queryClient, { includeProducts: true, includeCategories: true, includeSuppliers: true });
       const refreshedProducts = await queryClient.fetchQuery({ queryKey: queryKeys.products, queryFn: sharedProductsApi.list });
-      const createdProduct = refreshedProducts.find((product) => (
-        product.name.trim().toLowerCase() === draft.name.trim().toLowerCase()
-        && String(product.barcode || '').trim().toLowerCase() === draft.barcode.trim().toLowerCase()
-      )) || refreshedProducts.find((product) => product.name.trim().toLowerCase() === draft.name.trim().toLowerCase()) || null;
+      const createdProductId = extractCreatedEntityId(created);
+      const createdProduct = (createdProductId
+        ? refreshedProducts.find((product) => String(product.id) === createdProductId)
+        : null)
+        || refreshedProducts.find((product) => (
+          product.name.trim().toLowerCase() === draft.name.trim().toLowerCase()
+          && String(product.barcode || '').trim().toLowerCase() === draft.barcode.trim().toLowerCase()
+        ))
+        || refreshedProducts.find((product) => product.name.trim().toLowerCase() === draft.name.trim().toLowerCase())
+        || null;
       if (createdProduct) {
         setLineProductId(String(createdProduct.id));
         setLineCost(Number(createdProduct.costPrice || draft.costPrice || 0));

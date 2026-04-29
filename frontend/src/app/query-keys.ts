@@ -1,7 +1,9 @@
 export const queryKeys = {
   dashboardOverview: (from: string, to: string) => ['dashboard-overview', from, to] as const,
+  dashboardManagerOverview: ['dashboard-manager-overview'] as const,
+  managerActions: (limit: number) => ['manager-actions', String(limit)] as const,
   products: ['products'] as const,
-  posProducts: (locationId: string) => ['products', 'pos', locationId || 'all'] as const,
+  posProducts: (locationId: string, mode: 'browse' | 'barcode' | 'search', term: string, limit: number) => ['products', 'pos', locationId || 'all', mode, term || '', String(limit)] as const,
   productsPage: (paramsKey: string) => ['products', 'page', paramsKey] as const,
   productsCategories: ['products', 'categories'] as const,
   productsSuppliers: ['products', 'suppliers'] as const,
@@ -12,6 +14,7 @@ export const queryKeys = {
   customers: ['customers'] as const,
   customersPage: (paramsKey: string) => ['customers', 'page', paramsKey] as const,
   posCustomers: ['pos', 'customers'] as const,
+  posCustomerSummary: (customerId: string) => ['pos', 'customers', customerId, 'summary'] as const,
   posBranches: ['pos', 'branches'] as const,
   posLocations: ['pos', 'locations'] as const,
   posSettings: ['pos', 'settings'] as const,

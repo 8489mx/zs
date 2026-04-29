@@ -87,7 +87,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               {props.openOptions.map((shift) => <option key={shift.id} value={shift.id}>{shift.openedByName || 'وردية'}{shift.docNo ? ` — ${shift.docNo}` : ''}</option>)}
             </select>
           </Field>
-          <Field label="المبلغ المتوقع"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
+          <Field label="النقدية المتوقعة"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
           <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
           <Field label="ملاحظة الإغلاق"><textarea rows={2} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل الإغلاق' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
           <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>

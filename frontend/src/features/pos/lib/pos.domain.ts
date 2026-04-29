@@ -15,7 +15,13 @@ function safeUnits(product: Product) {
 
 function normalizeDateOnly(value: unknown) {
   if (!value) return '';
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return '';
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
   const text = String(value).trim();
   if (!text) return '';
   const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
@@ -28,28 +34,49 @@ function roundMoney(value: number) {
   return Number(Number(value || 0).toFixed(2));
 }
 
+function todayLocalIsoDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function getOfferAppliedPrice(basePrice: number, offer: ProductOffer) {
-  if (offer.type === 'percent') return roundMoney(Math.max(0, basePrice - ((basePrice * Number(offer.value || 0)) / 100)));
-  if (offer.type === 'fixed') return roundMoney(Math.max(0, basePrice - Number(offer.value || 0)));
-  if (offer.type === 'price') return roundMoney(Math.max(0, Number(offer.value || 0)));
+  const type = getOfferType(offer);
+  if (type === 'percent') return roundMoney(Math.max(0, basePrice - ((basePrice * Number(offer.value || 0)) / 100)));
+  if (type === 'fixed') return roundMoney(Math.max(0, basePrice - Number(offer.value || 0)));
+  if (type === 'price') return roundMoney(Math.max(0, Number(offer.value || 0)));
   return roundMoney(basePrice);
 }
 
+function getOfferType(offer: ProductOffer) {
+  return offer.type === 'price' || offer.offer_type === 'price'
+    ? 'price'
+    : offer.type === 'fixed' || offer.offer_type === 'fixed'
+      ? 'fixed'
+      : 'percent';
+}
+
+function getOfferMinQty(offer: ProductOffer) {
+  return Math.max(1, Number(offer.minQty ?? offer.min_qty ?? 1));
+}
+
 function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalIsoDate();
   const basePrice = Number(priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
   const applicableOffers = (product.offers || []).filter((offer) => {
     const from = normalizeDateOnly(offer.from || offer.start_date || '');
     const to = normalizeDateOnly(offer.to || offer.end_date || '');
-    const minQty = Math.max(1, Number(offer.minQty || 1));
+    const minQty = getOfferMinQty(offer);
     return (!from || from <= today) && (!to || to >= today) && qty >= minQty;
   });
 
   if (!applicableOffers.length) return null;
 
   return [...applicableOffers].sort((left, right) => {
-    const leftMinQty = Math.max(1, Number(left.minQty || 1));
-    const rightMinQty = Math.max(1, Number(right.minQty || 1));
+    const leftMinQty = getOfferMinQty(left);
+    const rightMinQty = getOfferMinQty(right);
     if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
 
     const leftPrice = getOfferAppliedPrice(basePrice, left);
@@ -66,6 +93,12 @@ export function getSaleUnit(product: Product): ProductUnit {
 
 export function getStockLimit(product: Product, unit: ProductUnit = getSaleUnit(product)) {
   return Math.floor(Number(product.stock || 0) / Math.max(Number(unit.multiplier || 1), 1));
+}
+
+const UNBOUNDED_STOCK_LIMIT = Number.MAX_SAFE_INTEGER;
+
+export function isNegativeStockSalesAllowed(settings?: { allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown } | null) {
+  return settings?.allowNegativeStockSales === true || settings?.allowSellingBelowStock === true;
 }
 
 function getProductItemCode(product: Product, unit?: ProductUnit) {
@@ -86,11 +119,11 @@ function repriceCartLine(item: PosItem, product: Product, qty: number) {
   };
 }
 
-export function getAvailableSaleProducts(products: Product[], search: string) {
+export function getAvailableSaleProducts(products: Product[], search: string, allowNegativeStockSales = false) {
   const q = search.trim().toLowerCase();
   return products.filter((product) => {
     const stockLimit = getStockLimit(product);
-    if (stockLimit <= 0) return false;
+    if (!allowNegativeStockSales && stockLimit <= 0) return false;
     if (!q) return true;
     const unitMatches = safeUnits(product).some((unit) => [unit.name, unit.barcode].some((value) => String(value || '').toLowerCase().includes(q)));
     return [product.name, product.barcode].some((value) => String(value || '').toLowerCase().includes(q)) || unitMatches;
@@ -100,11 +133,12 @@ export function getAvailableSaleProducts(products: Product[], search: string) {
 interface AddPosItemOptions {
   priceType: PosPriceType;
   unitId?: string;
+  allowNegativeStockSales?: boolean;
 }
 
 export function addPosItem(cart: PosItem[], product: Product, options: AddPosItemOptions) {
   const unit = safeUnits(product).find((entry) => entry.id === options.unitId) || getSaleUnit(product);
-  const stockLimit = getStockLimit(product, unit);
+  const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getStockLimit(product, unit);
   if (stockLimit <= 0) {
     throw new Error('الصنف غير متاح للبيع حاليًا');
   }
@@ -143,11 +177,27 @@ export function updatePosItemQty(cart: PosItem[], lineKey: string, qty: number, 
   });
 }
 
+export function updatePosItemQtyWithOptions(
+  cart: PosItem[],
+  lineKey: string,
+  qty: number,
+  products: Product[],
+  options: { allowNegativeStockSales?: boolean } = {},
+) {
+  return cart.map((item) => {
+    if (item.lineKey !== lineKey) return item;
+    const product = products.find((entry) => String(entry.id) === String(item.productId));
+    if (!product) return { ...item, qty: Math.max(1, options.allowNegativeStockSales ? qty : Math.min(qty, item.stockLimit)) };
+    const nextQty = Math.max(1, options.allowNegativeStockSales ? qty : Math.min(qty, item.stockLimit));
+    return repriceCartLine(item, product, nextQty);
+  });
+}
+
 export function removePosItem(cart: PosItem[], lineKey: string) {
   return cart.filter((row) => row.lineKey !== lineKey);
 }
 
-export function syncPosCartStock(cart: PosItem[], products: Product[]) {
+export function syncPosCartStock(cart: PosItem[], products: Product[], options: { allowNegativeStockSales?: boolean } = {}) {
   let changed = false;
   let removedCount = 0;
   let clampedCount = 0;
@@ -156,7 +206,7 @@ export function syncPosCartStock(cart: PosItem[], products: Product[]) {
     const product = products.find((entry) => String(entry.id) === String(item.productId));
     if (!product) return [item];
     const unit = safeUnits(product).find((entry) => String(entry.id || '') === String(item.unitId || '') || String(entry.name || '') === String(item.unitName || '')) || getSaleUnit(product);
-    const stockLimit = getStockLimit(product, unit);
+    const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getStockLimit(product, unit);
     if (stockLimit <= 0) {
       changed = true;
       removedCount += 1;

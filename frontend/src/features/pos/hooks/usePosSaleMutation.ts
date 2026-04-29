@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/app/query-keys';
+import { invalidateSalesDomain } from '@/app/query-invalidation';
 import { posApi } from '@/features/pos/api/pos.api';
 import { buildPosSalePayload, buildLegacyPosSalePayload, buildMinimalPosSalePayload, type CreatePosSaleInput } from '@/features/pos/contracts';
 
@@ -18,13 +18,7 @@ export function usePosSaleMutation() {
         ? String((result as { id?: string | number }).id || '')
         : '';
 
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.sales }),
-        ...(saleId ? [queryClient.invalidateQueries({ queryKey: queryKeys.saleDetail(saleId) })] : []),
-        queryClient.invalidateQueries({ queryKey: ['products', 'pos'] }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.posCustomers }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }),
-      ]);
+      await invalidateSalesDomain(queryClient, { saleId, includeDashboard: true });
     }
   });
 }

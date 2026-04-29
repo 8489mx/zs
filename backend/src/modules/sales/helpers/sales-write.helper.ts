@@ -40,12 +40,13 @@ export type PreparedSaleItem = {
 export function buildPreparedSaleItem(
   product: SaleProductRow,
   item: NormalizedSalePayload['items'][number],
+  options: { allowNegativeStockSales?: boolean } = {},
 ): PreparedSaleItem {
   const productName = String(product.name || '').trim();
   const requiredQty = Number((Number(item.qty || 0) * Number(item.unitMultiplier || 1)).toFixed(3));
   const beforeQty = Number(product.stock_qty || 0);
 
-  if (beforeQty < requiredQty) {
+  if (!options.allowNegativeStockSales && beforeQty < requiredQty) {
     throw new AppError(`Insufficient stock for ${productName || `#${item.productId}`}`, 'INSUFFICIENT_STOCK', 400);
   }
 
@@ -73,7 +74,11 @@ export function calculateCollectibleTotal(total: number, storeCreditUsed: number
 function normalizeDateOnly(value: unknown): string {
   if (!value) return '';
   if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+    if (Number.isNaN(value.getTime())) return '';
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
   const text = String(value).trim();
   if (!text) return '';
@@ -84,6 +89,14 @@ function normalizeDateOnly(value: unknown): string {
     return parsed.toISOString().slice(0, 10);
   }
   return '';
+}
+
+function todayLocalIsoDate(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function isOfferActive(offer: SaleProductOfferRow, todayIso: string): boolean {
@@ -128,7 +141,7 @@ export function calculateAllowedSaleUnitPrice(params: {
   todayIso?: string;
 }): number {
   const basePrice = Number(params.priceType === 'wholesale' ? params.wholesalePrice || params.retailPrice || 0 : params.retailPrice || 0);
-  const todayIso = normalizeDateOnly(params.todayIso) || new Date().toISOString().slice(0, 10);
+  const todayIso = normalizeDateOnly(params.todayIso) || todayLocalIsoDate();
   const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, Number(params.qty || 1), basePrice);
 
   if (!activeOffer) {

@@ -1,16 +1,66 @@
 require('dotenv').config();
 const { Pool } = require('pg');
-const { createHash, randomBytes } = require('node:crypto');
+const { randomBytes } = require('node:crypto');
+const { genSalt, hash } = require('bcryptjs');
 
-function hashPassword(password, salt) {
-  return createHash('sha256').update(`${password}:${salt}`).digest('hex');
+function parseArgs(argv) {
+  const args = {};
+  for (const token of argv) {
+    if (!token.startsWith('--')) continue;
+    const eqIndex = token.indexOf('=');
+    if (eqIndex === -1) {
+      args[token.slice(2)] = 'true';
+      continue;
+    }
+    args[token.slice(2, eqIndex)] = token.slice(eqIndex + 1);
+  }
+  return args;
+}
+
+function requireValue(value, message) {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    throw new Error(message);
+  }
+  return normalized;
+}
+
+function assertStrongSupportPassword(password) {
+  if (password.length < 14) {
+    throw new Error('RESET_PASSWORD must be at least 14 characters long.');
+  }
+}
+
+async function createPasswordRecord(password) {
+  const passwordSalt = randomBytes(16).toString('hex');
+  const bcryptSalt = await genSalt(12);
+  const passwordHash = await hash(password, bcryptSalt);
+  return {
+    hash: passwordHash,
+    salt: passwordSalt,
+  };
 }
 
 async function main() {
-  const username = 'ZS';
-  const password = 'infoadmin';
-  const salt = randomBytes(16).toString('hex');
-  const passwordHash = hashPassword(password, salt);
+  const args = parseArgs(process.argv.slice(2));
+  const acknowledged =
+    String(args['support-only'] || process.env.SUPPORT_RESET_ACKNOWLEDGED || '').toLowerCase() === 'true';
+
+  if (!acknowledged) {
+    throw new Error('This support-only script requires --support-only=true or SUPPORT_RESET_ACKNOWLEDGED=true.');
+  }
+
+  const username = requireValue(
+    args.username || process.env.RESET_USERNAME,
+    'RESET_USERNAME is required. Pass --username=<value> or set RESET_USERNAME.',
+  );
+  const password = requireValue(
+    args.password || process.env.RESET_PASSWORD,
+    'RESET_PASSWORD is required. Pass --password=<value> or set RESET_PASSWORD.',
+  );
+  const displayName = String(args['display-name'] || process.env.RESET_DISPLAY_NAME || 'حساب الطوارئ الرئيسي').trim();
+  assertStrongSupportPassword(password);
+  const passwordRecord = await createPasswordRecord(password);
 
   const permissions = JSON.stringify([
     'dashboard',
@@ -60,6 +110,7 @@ async function main() {
     );
 
     if (existing.rows.length) {
+      const userId = Number(existing.rows[0].id);
       await client.query(
         `UPDATE users
          SET password_hash = $1,
@@ -67,29 +118,30 @@ async function main() {
              role = 'super_admin',
              is_active = true,
              permissions_json = $3,
-             branch_ids_json = '[]',
              default_branch_id = NULL,
-             display_name = 'حساب الطوارئ الرئيسي',
+             display_name = $4,
              failed_login_count = 0,
              locked_until = NULL,
-             must_change_password = false
-         WHERE username = $4`,
-        [passwordHash, salt, permissions, username]
+             must_change_password = true
+         WHERE username = $5`,
+        [passwordRecord.hash, passwordRecord.salt, permissions, displayName, username]
       );
-      console.log('[OK] reset existing ZS user');
+      await client.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM user_branches WHERE user_id = $1', [userId]);
+      console.log(`[OK] reset existing support user '${username}'`);
     } else {
       await client.query(
         `INSERT INTO users
-         (username, password_hash, password_salt, role, is_active, permissions_json, branch_ids_json, default_branch_id, display_name, failed_login_count, locked_until, last_login_at, must_change_password)
+         (username, password_hash, password_salt, role, is_active, permissions_json, default_branch_id, display_name, failed_login_count, locked_until, last_login_at, must_change_password)
          VALUES
-         ($1, $2, $3, 'super_admin', true, $4, '[]', NULL, 'حساب الطوارئ الرئيسي', 0, NULL, NULL, false)`,
-        [username, passwordHash, salt, permissions]
+         ($1, $2, $3, 'super_admin', true, $4, NULL, $5, 0, NULL, NULL, true)`,
+        [username, passwordRecord.hash, passwordRecord.salt, permissions, displayName]
       );
-      console.log('[OK] created ZS user');
+      console.log(`[OK] created support user '${username}'`);
     }
 
     await client.query('COMMIT');
-    console.log('[DONE] ZS / infoadmin is ready');
+    console.log(`[DONE] support reset user '${username}' is ready and must change password on next use.`);
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('[ERROR]', error.message);

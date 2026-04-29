@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { normalizePaymentChannel } from '@/features/pos/lib/pos-workspace.helpers';
 import { buildDraftState, persistDraftSnapshot, persistLastSale, persistRecentProductIds } from '@/features/pos/lib/pos.persistence';
-import { syncPosCartStock } from '@/features/pos/lib/pos.domain';
+import { isNegativeStockSalesAllowed, syncPosCartStock } from '@/features/pos/lib/pos.domain';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product, Sale } from '@/types/domain';
 import type { PaymentChannel, PaymentType } from '@/features/pos/hooks/usePosWorkspace';
@@ -39,6 +39,7 @@ export function usePosWorkspaceEffects({
   locations,
   discountApprovalSecret,
   setDiscountApprovalSecret,
+  settings,
 }: {
   cart: PosItem[];
   customerId: string;
@@ -71,6 +72,7 @@ export function usePosWorkspaceEffects({
   locations: Array<{ id: string | number }>;
   discountApprovalSecret: string;
   setDiscountApprovalSecret: (value: string) => void;
+  settings?: { allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown } | null;
 }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -84,7 +86,7 @@ export function usePosWorkspaceEffects({
 
   useEffect(() => {
     if (!cart.length || !products.length) return;
-    const result = syncPosCartStock(cart, products);
+    const result = syncPosCartStock(cart, products, { allowNegativeStockSales: isNegativeStockSalesAllowed(settings) });
     if (result.cart === cart) return;
     setCart(result.cart);
     if (result.removedCount || result.clampedCount) {
@@ -93,7 +95,7 @@ export function usePosWorkspaceEffects({
       if (result.clampedCount) parts.push(`تم تعديل كمية ${result.clampedCount} صنف حسب المخزون المتاح`);
       setSubmitMessage(`${parts.join('، ')}.`);
     }
-  }, [cart, products, setCart, setSubmitMessage]);
+  }, [cart, products, settings, setCart, setSubmitMessage]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

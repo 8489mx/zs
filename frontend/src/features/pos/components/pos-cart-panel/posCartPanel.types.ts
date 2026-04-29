@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import type { Branch, Customer, Location } from '@/types/domain';
+import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import type { PosItem } from '@/features/pos/types/pos.types';
 
 export type PaymentType = 'cash' | 'credit';
@@ -49,6 +50,7 @@ export interface PosCartPanelProps {
   canSubmitHint: string;
   lastAddedLineKey?: string;
   selectedLineKey?: string;
+  posMode: PosSaleMode;
   preferredPrintPageSize?: 'a4' | 'receipt';
   onCustomerChange: (value: string) => void;
   onQuickCustomerNameChange: (value: string) => void;

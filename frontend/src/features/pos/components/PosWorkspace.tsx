@@ -6,26 +6,52 @@ import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
 import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
 import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWorkspaceDock';
+import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
+import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
 import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import { posApi } from '@/features/pos/api/pos.api';
+import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
+import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
+import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
 
 export function PosWorkspace() {
   const pos = usePosWorkspace();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannerSubmitRef = useRef<{ code: string; at: number }>({ code: '', at: 0 });
   const [discountApprovalDialogOpen, setDiscountApprovalDialogOpen] = useState(false);
+  const [clearCartConfirmOpen, setClearCartConfirmOpen] = useState(false);
+  const [lineDeleteConfirmKey, setLineDeleteConfirmKey] = useState('');
+  const [heldDeleteConfirmId, setHeldDeleteConfirmId] = useState('');
+  const [clearHeldConfirmOpen, setClearHeldConfirmOpen] = useState(false);
+  const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
+  const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
+  const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
 
   const catalogsLoading = pos.productsQuery.isLoading || pos.customersQuery.isLoading || pos.branchesQuery.isLoading || pos.locationsQuery.isLoading || pos.settingsQuery.isLoading;
   const catalogsError = pos.productsQuery.error || pos.customersQuery.error || pos.branchesQuery.error || pos.locationsQuery.error || pos.settingsQuery.error;
 
   const selectedCustomerName = useMemo(() => getSelectedCustomerName(pos), [pos]);
+  const lastSaleCustomer = useMemo(() => {
+    const customerId = String(pos.lastSale?.customerId || pos.customerId || '');
+    if (!customerId) return null;
+    return (pos.customersQuery.data || []).find((customer) => String(customer.id) === customerId) || null;
+  }, [pos.customerId, pos.customersQuery.data, pos.lastSale?.customerId]);
   const paymentModeLabel = useMemo(() => paymentLabel(pos.paymentType, pos.paymentChannel), [pos.paymentChannel, pos.paymentType]);
   const cartPiecesCount = useMemo(() => pos.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0), [pos.cart]);
+  const lineDeleteConfirmItem = useMemo(
+    () => pos.cart.find((item) => item.lineKey === lineDeleteConfirmKey) || null,
+    [lineDeleteConfirmKey, pos.cart],
+  );
+  const heldDeleteConfirmDraft = useMemo(
+    () => pos.heldDraftSummaries.find((draft) => draft.id === heldDeleteConfirmId) || null,
+    [heldDeleteConfirmId, pos.heldDraftSummaries],
+  );
 
   const printCurrentDraft = useCallback(() => {
     printCurrentPosDraft(pos, selectedCustomerName);
@@ -43,6 +69,33 @@ export function PosWorkspace() {
     setDiscountApprovalDialogOpen(true);
   }, []);
 
+  const requestClearCart = useCallback(() => {
+    if (!pos.cart.length) {
+      pos.resetPosDraft();
+      return;
+    }
+    setClearCartConfirmOpen(true);
+  }, [pos]);
+
+  const requestLineDelete = useCallback((lineKey: string) => {
+    if (!lineKey) return;
+    setLineDeleteConfirmKey(lineKey);
+  }, []);
+
+  const requestSelectedLineDelete = useCallback(() => {
+    if (!pos.selectedLineKey) return;
+    setLineDeleteConfirmKey(pos.selectedLineKey);
+  }, [pos.selectedLineKey]);
+
+  const requestHeldDelete = useCallback((draftId: string) => {
+    setHeldDeleteConfirmId(draftId);
+  }, []);
+
+  const requestClearHeldDrafts = useCallback(() => {
+    if (!pos.heldDraftSummaries.length) return;
+    setClearHeldConfirmOpen(true);
+  }, [pos.heldDraftSummaries.length]);
+
   const handleQuickAddSubmit = useCallback((rawCode?: string) => {
     const code = String(rawCode ?? pos.quickAddCode).trim();
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -53,6 +106,28 @@ export function PosWorkspace() {
     if (submitted) lastScannerSubmitRef.current = { code, at: now };
     return submitted;
   }, [pos]);
+
+  const resolveRemoteBarcodeMatch = useCallback((query: string) => {
+    void (async () => {
+      try {
+        const lookupProducts = await posApi.lookupProducts({ barcode: query, locationId: pos.locationId, limit: 5 });
+        const remoteMatch = matchProductByCode(lookupProducts, query);
+        if (remoteMatch.status === 'matched') {
+          const submitted = pos.handleQuickAddCodeSubmit(query, lookupProducts);
+          if (submitted) pos.setSearch('');
+          return;
+        }
+        if (remoteMatch.status === 'ambiguous') {
+          pos.setSubmitMessage('هذا الباركود غير واضح أو مرتبط بأكثر من نتيجة. راجع الصنف أو الوحدة أولًا.');
+        } else {
+          pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
+        }
+      } catch (error) {
+        pos.setSubmitMessage(error instanceof Error ? error.message : 'تعذر البحث عن الصنف.');
+      }
+      focusBarcodeEntry();
+    })();
+  }, [focusBarcodeEntry, pos]);
 
   const submitFirstSearchResult = useCallback(() => {
     const query = pos.search.trim();
@@ -74,6 +149,11 @@ export function PosWorkspace() {
       return false;
     }
 
+    if (exactCodeMatch.status === 'not-found' && isLikelyBarcodeQuery(query)) {
+      resolveRemoteBarcodeMatch(query);
+      return true;
+    }
+
     const firstProduct = pos.filteredSaleProducts[0];
     if (!firstProduct) {
       pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
@@ -83,7 +163,7 @@ export function PosWorkspace() {
     pos.handleAddProduct(firstProduct);
     pos.setSearch('');
     return true;
-  }, [focusBarcodeEntry, handleQuickAddSubmit, pos]);
+  }, [focusBarcodeEntry, handleQuickAddSubmit, pos, resolveRemoteBarcodeMatch]);
 
   useEffect(() => {
     if (catalogsLoading) return;
@@ -99,74 +179,22 @@ export function PosWorkspace() {
   }, [catalogsLoading, focusBarcodeEntry, pos.barcodeFocusTick]);
 
   useEffect(() => {
-    const listener = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const isTypingTarget = Boolean(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable));
+    if (pos.canShowLastSaleActions && pos.lastSale) {
+      setSaleSuccessDialogOpen(true);
+    }
+  }, [pos.canShowLastSaleActions, pos.lastSale]);
 
-      if (event.key === 'F3') {
-        event.preventDefault();
-        focusBarcodeEntry();
-        return;
-      }
-      if (isTypingTarget && !['F2', 'F4', 'F6', 'F8', 'F12', 'Escape'].includes(event.key)) return;
-      if (!isTypingTarget && pos.selectedLineKey) {
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          pos.selectAdjacentCartLine('next');
-          return;
-        }
-        if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          pos.selectAdjacentCartLine('prev');
-          return;
-        }
-        if (event.key === 'Delete') {
-          event.preventDefault();
-          pos.removeSelectedItem();
-          return;
-        }
-        if (event.key === '+' || event.code === 'NumpadAdd' || event.key === '=') {
-          event.preventDefault();
-          pos.changeSelectedQty(1);
-          return;
-        }
-        if (event.key === '-' || event.code === 'NumpadSubtract') {
-          event.preventDefault();
-          pos.changeSelectedQty(-1);
-          return;
-        }
-      }
-      if (event.key === 'F2') {
-        event.preventDefault();
-        if (pos.canShowLastSaleActions) {
-          pos.printReceiptNow();
-        } else {
-          void pos.handleSubmit({ fastCash: true });
-        }
-      } else if (event.key === 'F4') {
-        event.preventDefault();
-        void pos.holdDraft();
-      } else if (event.key === 'F6') {
-        event.preventDefault();
-        pos.reprintLastSale();
-      } else if (event.key === 'F8') {
-        event.preventDefault();
-        printCurrentDraft();
-      } else if (event.key === 'F12') {
-        event.preventDefault();
-        if (pos.canShowLastSaleActions) pos.printA4Now();
-      } else if (event.key === 'Escape' && pos.cart.length) {
-        event.preventDefault();
-        pos.resetPosDraft();
-      }
-    };
-    window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
-  }, [focusBarcodeEntry, pos, printCurrentDraft]);
+  usePosWorkspaceKeyboardShortcuts({
+    pos,
+    focusBarcodeEntry,
+    printCurrentDraft,
+    onRequestClearCart: requestClearCart,
+    onRequestLineDelete: requestLineDelete,
+  });
 
   return (
-    <div className="page-stack page-shell pos-workspace pos-premium-shell">
-      <PosWorkspaceHeader pos={pos} onFocusSearch={focusBarcodeEntry} onPrintDraft={printCurrentDraft} />
+    <div className={`page-stack page-shell pos-workspace pos-premium-shell pos-sale-mode-${posMode}`.trim()}>
+      <PosWorkspaceHeader pos={pos} posMode={posMode} onModeChange={setPosMode} onFocusSearch={focusBarcodeEntry} onPrintDraft={printCurrentDraft} />
 
       <QueryFeedback
         isLoading={catalogsLoading}
@@ -192,6 +220,7 @@ export function PosWorkspace() {
             onProductFilterChange={pos.setProductFilter}
             onAddProduct={pos.handleAddProduct}
             searchInputRef={searchInputRef}
+            posMode={posMode}
           />
 
           <div className="pos-checkout-column">
@@ -232,6 +261,7 @@ export function PosWorkspace() {
               canSubmitHint={pos.canSubmitHint}
               lastAddedLineKey={pos.lastAddedLineKey}
               selectedLineKey={pos.selectedLineKey}
+              posMode={posMode}
               preferredPrintPageSize={pos.settingsQuery.data?.paperSize === 'receipt' ? 'receipt' : 'a4'}
               onCustomerChange={pos.setCustomerId}
               onQuickCustomerNameChange={pos.setQuickCustomerName}
@@ -247,17 +277,17 @@ export function PosWorkspace() {
               onRequestDiscountAuthorization={requestDiscountAuthorization}
               onNoteChange={pos.setNote}
               onQtyChange={pos.setQty}
-              onRemoveItem={pos.removeItem}
+              onRemoveItem={requestLineDelete}
               onSelectLine={pos.selectCartLine}
               onFillPaidAmount={pos.fillPaidAmount}
               onChangeSelectedQty={pos.changeSelectedQty}
               onEditSelectedQty={pos.editSelectedQty}
-              onRemoveSelectedItem={pos.removeSelectedItem}
+              onRemoveSelectedItem={requestSelectedLineDelete}
               onHoldDraft={pos.holdDraft}
               onRecallDraft={pos.recallDraft}
-              onDeleteDraft={pos.deleteDraft}
-              onClearHeldDrafts={pos.clearHeldDrafts}
-              onResetDraft={pos.resetPosDraft}
+              onDeleteDraft={requestHeldDelete}
+              onClearHeldDrafts={requestClearHeldDrafts}
+              onResetDraft={requestClearCart}
               onPrintPreview={printCurrentDraft}
               onReprintLastSale={pos.reprintLastSale}
               onPrintReceiptNow={pos.printReceiptNow}
@@ -281,7 +311,7 @@ export function PosWorkspace() {
               isPending={pos.createSale.isPending}
               onFocusSearch={focusBarcodeEntry}
               onPrintPreview={printCurrentDraft}
-              onResetDraft={pos.resetPosDraft}
+              onResetDraft={requestClearCart}
               onHoldDraft={() => { void pos.holdDraft(); }}
               onSubmit={() => { void pos.handleSubmit(); }}
             />
@@ -308,6 +338,64 @@ export function PosWorkspace() {
           setDiscountApprovalDialogOpen(false);
           focusBarcodeEntry();
         }}
+      />
+
+      <PosWorkspaceConfirmDialogs
+        clearCartConfirmOpen={clearCartConfirmOpen}
+        lineDeleteConfirmItem={lineDeleteConfirmItem}
+        heldDeleteConfirmDraft={heldDeleteConfirmDraft}
+        clearHeldConfirmOpen={clearHeldConfirmOpen}
+        heldDraftsCount={pos.heldDraftSummaries.length}
+        onCancelClearCart={() => {
+          setClearCartConfirmOpen(false);
+          focusBarcodeEntry();
+        }}
+        onConfirmClearCart={() => {
+          pos.resetPosDraft();
+          setClearCartConfirmOpen(false);
+        }}
+        onCancelLineDelete={() => {
+          setLineDeleteConfirmKey('');
+          focusBarcodeEntry();
+        }}
+        onConfirmLineDelete={() => {
+          if (lineDeleteConfirmKey) pos.removeItem(lineDeleteConfirmKey);
+          setLineDeleteConfirmKey('');
+          focusBarcodeEntry();
+        }}
+        onCancelHeldDelete={() => {
+          setHeldDeleteConfirmId('');
+          focusBarcodeEntry();
+        }}
+        onConfirmHeldDelete={async () => {
+          if (heldDeleteConfirmId) await pos.deleteDraft(heldDeleteConfirmId);
+          setHeldDeleteConfirmId('');
+          focusBarcodeEntry();
+        }}
+        onCancelClearHeld={() => {
+          setClearHeldConfirmOpen(false);
+          focusBarcodeEntry();
+        }}
+        onConfirmClearHeld={async () => {
+          await pos.clearHeldDrafts();
+          setClearHeldConfirmOpen(false);
+          focusBarcodeEntry();
+        }}
+      />
+
+      <PosSaleSuccessDialog
+        open={saleSuccessDialogOpen && Boolean(pos.canShowLastSaleActions && pos.lastSale)}
+        sale={pos.lastSale}
+        customer={lastSaleCustomer}
+        settings={pos.settingsQuery.data || null}
+        onClose={() => setSaleSuccessDialogOpen(false)}
+        onNewSale={() => {
+          pos.completePostSaleCycle();
+          setSaleSuccessDialogOpen(false);
+          focusBarcodeEntry();
+        }}
+        onPrintReceipt={pos.printReceiptNow}
+        onPrintA4={pos.printA4Now}
       />
     </div>
   );

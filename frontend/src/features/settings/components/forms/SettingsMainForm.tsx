@@ -50,6 +50,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       currentLocationId: '',
       clothingModuleEnabled: false,
       defaultProductKind: 'standard',
+      defaultPosMode: 'scanner',
+      allowNegativeStockSales: false,
       printShowLogo: true,
       printShowPhone: true,
       printShowAddress: true,
@@ -103,6 +105,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       currentLocationId: settings.currentLocationId || '',
       clothingModuleEnabled: clothingEnabled,
       defaultProductKind: clothingEnabled && settings.defaultProductKind === 'fashion' ? 'fashion' : 'standard',
+      defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
+      allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       printShowLogo: settings.printShowLogo !== false,
       printShowPhone: settings.printShowPhone !== false,
       printShowAddress: settings.printShowAddress !== false,
@@ -160,6 +164,16 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <option value="receipt">Receipt</option>
           </select>
         </Field>
+        <Field label="نمط الكاشير الافتراضي">
+          <select {...form.register('defaultPosMode')} disabled={mutation.isPending || !canManageSettings}>
+            <option value="scanner">سكانر</option>
+            <option value="touch">تاتش</option>
+          </select>
+        </Field>
+        <label style={printCheckboxStyle}>
+          <input type="checkbox" {...form.register('allowNegativeStockSales')} disabled={mutation.isPending || !canManageSettings} />
+          السماح بالبيع بالسالب
+        </label>
         {SINGLE_STORE_MODE ? (
           <Field label="المتجر الحالي"><input value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ تعريف المتجر'} disabled readOnly /></Field>
         ) : (

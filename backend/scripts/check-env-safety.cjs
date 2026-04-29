@@ -11,6 +11,8 @@ const composeExamplePath = path.join(repoRoot, '.env.compose.example');
 const ciWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'ci.yml');
 const saleReadyScriptPath = path.join(repoRoot, 'scripts', 'certify-sale-ready.sh');
 const localE2EScriptPath = path.join(repoRoot, 'scripts', 'run-backend-e2e-local.sh');
+const cleanReleaseScriptPath = path.join(repoRoot, 'scripts', 'package-clean-release.sh');
+const portableOfflineTemplatePath = path.join(repoRoot, 'portable', 'config', '.env.offline.template');
 const readmePath = path.join(repoRoot, 'README.md');
 
 function parseEnv(content) {
@@ -144,6 +146,12 @@ function assertBootstrapEnv(sourceName, env) {
   }
 }
 
+function assertPortableCustomerTemplateSafe(sourceName, env) {
+  assert(String(env.ENABLE_BOOTSTRAP_ADMIN || 'false').toLowerCase() === 'false', `${sourceName}: customer portable template must keep ENABLE_BOOTSTRAP_ADMIN=false`);
+  assert(String(env.DEFAULT_ADMIN_USERNAME || '').trim() === '', `${sourceName}: customer portable template must keep DEFAULT_ADMIN_USERNAME blank`);
+  assert(String(env.DEFAULT_ADMIN_PASSWORD || '').trim() === '', `${sourceName}: customer portable template must keep DEFAULT_ADMIN_PASSWORD blank`);
+}
+
 function assertFileDoesNotContain(filePath, pattern, message) {
   if (!fs.existsSync(filePath)) return;
   const content = fs.readFileSync(filePath, 'utf8');
@@ -223,8 +231,18 @@ if (fs.existsSync(ciWorkflowPath)) {
   assertBootstrapEnv('.github/workflows/ci.yml backend job', ciEnv);
 }
 
+assert(fs.existsSync(portableOfflineTemplatePath), 'Missing portable/config/.env.offline.template');
+const portableOfflineTemplate = parseEnv(fs.readFileSync(portableOfflineTemplatePath, 'utf8'));
+assertPortableCustomerTemplateSafe('portable/config/.env.offline.template', portableOfflineTemplate);
+
+assert(fs.existsSync(cleanReleaseScriptPath), 'Missing scripts/package-clean-release.sh');
+const cleanReleaseScript = fs.readFileSync(cleanReleaseScriptPath, 'utf8');
+assert(cleanReleaseScript.includes("--exclude 'backend/scripts/reset-zs-password.js'"), 'scripts/package-clean-release.sh must exclude backend/scripts/reset-zs-password.js from customer releases');
+assert(cleanReleaseScript.includes("--exclude 'backend/.env'"), 'scripts/package-clean-release.sh must exclude backend/.env from customer releases');
+
 assertFileDoesNotContain(saleReadyScriptPath, /owner123/, 'scripts/certify-sale-ready.sh still references the rejected bootstrap password owner123');
 assertFileDoesNotContain(localE2EScriptPath, /owner123/, 'scripts/run-backend-e2e-local.sh still references the rejected bootstrap password owner123');
 assertFileDoesNotContain(readmePath, /owner123/, 'README.md still documents the rejected bootstrap password owner123');
+assertFileDoesNotContain(portableOfflineTemplatePath, /DEFAULT_ADMIN_PASSWORD=\S+/, 'portable/config/.env.offline.template must not contain a distributable default admin password');
 
 console.log('[check:env-safety] env defaults, compose/CI bootstrap guardrails, and operator docs passed.');
