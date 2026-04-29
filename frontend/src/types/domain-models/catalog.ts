@@ -12,7 +12,7 @@ export interface ProductOffer {
   id?: string;
   type?: 'percent' | 'fixed' | 'price';
   offer_type?: 'percent' | 'fixed' | 'price';
-  value: number;
+  value: number | string;
   minQty?: number;
   min_qty?: number | string | null;
   from?: string | null;

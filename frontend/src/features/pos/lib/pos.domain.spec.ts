@@ -74,7 +74,7 @@ describe('POS stock handling', () => {
     expect(getProductPrice({
       ...product,
       stock: 5,
-      offers: [{ id: 'offer-1', offer_type: 'price', value: 7, min_qty: '1', start_date: localIsoDate(), end_date: null }],
+      offers: [{ id: 'offer-1', offer_type: 'price', value: '7', min_qty: '1', start_date: localIsoDate(), end_date: null }],
     }, 'retail', 1)).toBe(7);
   });
 
