@@ -1,3 +1,4 @@
+import { AppError } from '../../../common/errors/app-error';
 import { NormalizedSalePayload, UpsertSaleDto } from '../dto/upsert-sale.dto';
 
 type FlexibleSalePayload = UpsertSaleDto & {
@@ -11,9 +12,19 @@ function resolveCustomerId(payload: FlexibleSalePayload): number | null {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }
 
+function assertCreditSaleCustomer(paymentType: 'cash' | 'credit', customerId: number | null): void {
+  if (paymentType !== 'credit') return;
+  if (customerId) return;
+  throw new AppError('Credit sale requires a selected customer', 'CREDIT_SALE_REQUIRES_CUSTOMER', 400);
+}
+
 export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayload {
   const flexiblePayload = payload as FlexibleSalePayload;
   const paymentType = payload.paymentType === 'credit' || payload.paymentChannel === 'credit' ? 'credit' : 'cash';
+  const customerId = resolveCustomerId(flexiblePayload);
+
+  assertCreditSaleCustomer(paymentType, customerId);
+
   const normalizedPayments = (Array.isArray(payload.payments) ? payload.payments : [])
     .map((entry) => ({
       paymentChannel: (entry.paymentChannel === 'card' ? 'card' : 'cash') as 'cash' | 'card',
@@ -28,7 +39,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     : (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || fallbackChannel));
 
   return {
-    customerId: resolveCustomerId(flexiblePayload),
+    customerId,
     paymentType,
     paymentChannel,
     discount: Number(payload.discount || 0),

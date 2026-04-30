@@ -2,6 +2,7 @@ import type { FormEvent } from 'react';
 import type { Customer, Sale } from '@/types/domain';
 import { getPostSalePrintHint, getPostSalePrintMode } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import { catalogApi } from '@/lib/api/catalog';
+import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 import type { createPosWorkspaceBaseActions } from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
@@ -78,26 +79,47 @@ export function createPosWorkspaceAsyncActions(
       params.requestBarcodeFocus();
       return;
     }
-    if (params.hasCreditWithoutCustomer && !options.fastCash) {
-      params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يحتاج حساب عميل.');
-      params.requestBarcodeFocus();
-      return;
-    }
     if (params.hasZeroPriceLine) {
       params.setSubmitMessage('يوجد صنف بسعر صفر. راجع التسعير قبل إتمام البيع.');
       params.requestBarcodeFocus();
       return;
     }
 
-    const effectivePaymentType = options.fastCash ? 'cash' : params.paymentType;
-    const effectivePaymentChannel = options.fastCash ? 'cash' : params.paymentChannel;
-    const effectiveCustomerId = options.fastCash ? '' : String(params.customerId || '').trim();
-    const effectiveCashAmount = options.fastCash ? Number(params.totals.total || 0) : Number(params.cashAmount || 0);
-    const effectiveCardAmount = options.fastCash ? 0 : Number(params.cardAmount || 0);
+    const total = Number(params.totals.total || 0);
+    const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
+    const initialCashAmount = Number(params.cashAmount || 0);
+    const initialCardAmount = Number(params.cardAmount || 0);
+    const initialPaidAmount = Number((initialCashAmount + initialCardAmount).toFixed(2));
+
+    // F2 is a fast-cash shortcut only while the current invoice is NOT explicitly credit.
+    // If the cashier selected "آجل", the sale must remain credit and must stay attached to the selected customer.
+    const forceFastCash = options.fastCash === true && params.paymentType !== 'credit';
+
+    // Smooth negative-stock cashier flow: when below-stock sales are allowed and no amount was typed,
+    // treat a normal cash invoice as fully paid instead of blocking it with an underpaid warning.
+    const shouldAssumeFullCashPayment = !forceFastCash
+      && allowNegativeStockSales
+      && params.paymentType !== 'credit'
+      && initialPaidAmount <= 0.0001
+      && total > 0;
+
+    const settleAsCash = forceFastCash || shouldAssumeFullCashPayment;
+
+    if (params.hasCreditWithoutCustomer && !settleAsCash) {
+      params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يحتاج حساب عميل.');
+      params.requestBarcodeFocus();
+      return;
+    }
+
+    const effectivePaymentType = settleAsCash ? 'cash' : params.paymentType;
+    const effectivePaymentChannel = settleAsCash ? 'cash' : params.paymentChannel;
+    const effectiveCustomerId = settleAsCash ? '' : String(params.customerId || '').trim();
+    const effectiveCashAmount = settleAsCash ? total : initialCashAmount;
+    const effectiveCardAmount = settleAsCash ? 0 : initialCardAmount;
     const effectivePaidAmount = effectivePaymentType === 'credit'
       ? 0
       : Number((effectiveCashAmount + effectiveCardAmount).toFixed(2));
-    const isUnderpaid = effectivePaymentType !== 'credit' && effectivePaidAmount < Number(params.totals.total || 0);
+    const isUnderpaid = effectivePaymentType !== 'credit' && effectivePaidAmount < total;
 
     if (effectivePaymentType === 'credit' && !effectiveCustomerId) {
       params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يجب أن يسجل على حساب العميل.');
@@ -111,10 +133,10 @@ export function createPosWorkspaceAsyncActions(
       return;
     }
 
-    if (options.fastCash) {
+    if (settleAsCash) {
       params.setPaymentType('cash');
       params.setPaymentChannel('cash');
-      params.setCashAmount(Number(params.totals.total || 0));
+      params.setCashAmount(total);
       params.setCardAmount(0);
     }
 
@@ -135,7 +157,7 @@ export function createPosWorkspaceAsyncActions(
         ],
         taxRate: params.totals.taxRate,
         pricesIncludeTax: params.totals.pricesIncludeTax,
-        expectedTotal: Number(params.totals.total || 0),
+        expectedTotal: total,
         managerPin: params.discountApprovalSecret || undefined,
         branchId: params.branchId || (params.currentBranch?.id != null ? String(params.currentBranch.id) : null),
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
@@ -152,7 +174,6 @@ export function createPosWorkspaceAsyncActions(
       params.requestBarcodeFocus();
     }
   }
-
 
   async function approveDiscountOverride(password: string) {
     const normalized = String(password || '').trim();

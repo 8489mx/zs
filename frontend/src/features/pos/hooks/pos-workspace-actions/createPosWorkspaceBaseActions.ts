@@ -11,6 +11,20 @@ function toMoney(value: number) {
   return Number(Number(value || 0).toFixed(2));
 }
 
+function getAddProductErrorMessage(error: unknown, product: Product) {
+  const message = error instanceof Error ? error.message : '';
+
+  if (message.includes('غير متاح للبيع') || message.includes('المخزون')) {
+    return `مخزون "${product.name}" نافذ ولا يمكن إضافته للسلة.`;
+  }
+
+  if (message.includes('الكمية المطلوبة أكبر')) {
+    return `المخزون المتاح من "${product.name}" لا يكفي الكمية المطلوبة.`;
+  }
+
+  return message || `تعذر إضافة "${product.name}" إلى السلة.`;
+}
+
 export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) {
   function resolveUnitLineKey(product: Product, unitId?: string) {
     const unit = product.units?.find((entry) => String(entry.id || '') === String(unitId || ''))
@@ -56,7 +70,13 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     try {
       const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
       const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
-      params.setCart((current) => addPosItem(current, product, { priceType: params.priceType, unitId, allowNegativeStockSales }));
+      const nextCart = addPosItem(params.cart, product, {
+        priceType: params.priceType,
+        unitId,
+        allowNegativeStockSales,
+      });
+
+      params.setCart(nextCart);
       params.setSelectedLineKey(lineKey);
       params.setLastAddedLineKey(lineKey);
       registerRecentProduct(product.id);
@@ -64,9 +84,13 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.setSubmitMessage('');
       params.setPostSaleSaleKey('');
       params.requestBarcodeFocus();
+      return true;
     } catch (error) {
-      params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر إضافة الصنف');
+      const friendlyMessage = getAddProductErrorMessage(error, product);
+      params.setSubmitMessage(friendlyMessage);
+      params.setScannerMessage(friendlyMessage);
       params.requestBarcodeFocus();
+      return false;
     }
   }
 
@@ -88,7 +112,8 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.requestBarcodeFocus();
       return false;
     }
-    handleAddProduct(result.match.product, result.match.kind === 'unit' ? result.match.unitId : undefined);
+    const added = handleAddProduct(result.match.product, result.match.kind === 'unit' ? result.match.unitId : undefined);
+    if (!added) return false;
     params.setSearch('');
     params.setQuickAddCode('');
     params.setScannerMessage(result.match.kind === 'unit' && result.match.unitName ? `تمت إضافة ${result.match.product.name} بوحدة ${result.match.unitName}.` : `تمت إضافة ${result.match.product.name} إلى السلة.`);
@@ -131,11 +156,20 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   }
 
   function setQty(lineKey: string, qty: number) {
-    params.setSelectedLineKey(lineKey);
-    params.setCart((current) => updatePosItemQtyWithOptions(current, lineKey, qty, params.products || [], {
-      allowNegativeStockSales: isNegativeStockSalesAllowed(params.settings),
-    }));
-    params.setPostSaleSaleKey('');
+    try {
+      const nextCart = updatePosItemQtyWithOptions(params.cart, lineKey, qty, params.products || [], {
+        allowNegativeStockSales: isNegativeStockSalesAllowed(params.settings),
+      });
+
+      params.setSelectedLineKey(lineKey);
+      params.setCart(nextCart);
+      params.setSubmitMessage('');
+      params.setPostSaleSaleKey('');
+      // Do not force barcode focus here. Quantity editing happens inside the cart, and the
+      // cashier must be able to type multi-digit quantities or press +/- repeatedly.
+    } catch (error) {
+      params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر تعديل الكمية.');
+    }
   }
 
   function removeItem(lineKey: string) {
@@ -202,11 +236,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     const nextQty = Number(rawValue || 0);
     if (!Number.isFinite(nextQty) || nextQty <= 0) {
       params.setSubmitMessage('الكمية يجب أن تكون أكبر من صفر.');
-      params.requestBarcodeFocus();
       return false;
     }
     setQty(selectedItem.lineKey, Math.round(nextQty));
-    params.requestBarcodeFocus();
     return true;
   }
 

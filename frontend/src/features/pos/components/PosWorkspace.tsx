@@ -14,6 +14,7 @@ import {
   printCurrentPosDraft,
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import { posApi } from '@/features/pos/api/pos.api';
+import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
@@ -32,6 +33,7 @@ export function PosWorkspace() {
   const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
+  const allowNegativeStockSales = isNegativeStockSalesAllowed(pos.settingsQuery.data);
 
   const catalogsLoading = pos.productsQuery.isLoading || pos.customersQuery.isLoading || pos.branchesQuery.isLoading || pos.locationsQuery.isLoading || pos.settingsQuery.isLoading;
   const catalogsError = pos.productsQuery.error || pos.customersQuery.error || pos.branchesQuery.error || pos.locationsQuery.error || pos.settingsQuery.error;
@@ -257,6 +259,7 @@ export function PosWorkspace() {
               isDiscountAuthorizationPending={pos.discountAuthorizationMutation.isPending}
               hasDiscountPermissionViolation={pos.hasDiscountPermissionViolation}
               hasPricePermissionViolation={pos.hasPricePermissionViolation}
+              allowNegativeStockSales={allowNegativeStockSales}
               canSubmitSale={pos.canSubmitSale}
               canSubmitHint={pos.canSubmitHint}
               lastAddedLineKey={pos.lastAddedLineKey}

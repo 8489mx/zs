@@ -8,6 +8,48 @@ import { normalizeSalePayload } from '../../src/modules/sales/helpers/sales-payl
 import { mapSaleRows, summarizeSales } from '../../src/modules/sales/helpers/sales-query.helper';
 
 (() => {
+  const normalizedCredit = normalizeSalePayload({
+    customerId: 10,
+    paymentType: 'credit',
+    paymentChannel: 'credit',
+    discount: 0,
+    taxRate: 0,
+    storeCreditUsed: 0,
+    note: ' credit sale ',
+    branchId: 1,
+    locationId: 2,
+    items: [
+      { productId: 1, qty: 1, price: 75, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail' },
+    ],
+    payments: [
+      { paymentChannel: 'cash', amount: 75 },
+    ],
+  } as any);
+
+  assert.equal(normalizedCredit.customerId, 10);
+  assert.equal(normalizedCredit.paymentType, 'credit');
+  assert.equal(normalizedCredit.paymentChannel, 'credit');
+  assert.equal(normalizedCredit.payments.length, 0);
+  assert.equal(normalizedCredit.note, 'credit sale');
+
+  assert.throws(
+    () => normalizeSalePayload({
+      paymentType: 'credit',
+      paymentChannel: 'credit',
+      discount: 0,
+      taxRate: 0,
+      storeCreditUsed: 0,
+      note: '',
+      branchId: 1,
+      locationId: 2,
+      items: [
+        { productId: 1, qty: 1, price: 75, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail' },
+      ],
+      payments: [],
+    } as any),
+    (error: any) => error?.code === 'CREDIT_SALE_REQUIRES_CUSTOMER',
+  );
+
   const normalized = normalizeSalePayload({
     paymentType: 'cash',
     paymentChannel: 'cash',
@@ -63,9 +105,27 @@ import { mapSaleRows, summarizeSales } from '../../src/modules/sales/helpers/sal
         status: 'posted',
         created_at: new Date().toISOString(),
       },
+      {
+        id: 2,
+        doc_no: 'S-2',
+        customer_id: 11,
+        customer_name: 'عميل آجل',
+        payment_type: 'credit',
+        payment_channel: 'credit',
+        subtotal: 75,
+        discount: 0,
+        tax_rate: 0,
+        tax_amount: 0,
+        total: 75,
+        paid_amount: 0,
+        store_credit_used: 0,
+        status: 'posted',
+        created_at: new Date().toISOString(),
+      },
     ],
     [
       { id: 11, sale_id: 1, product_id: 1, product_name: 'A', qty: 2, unit_price: 100, line_total: 200, unit_name: 'قطعة', unit_multiplier: 1, cost_price: 60, price_type: 'retail' },
+      { id: 12, sale_id: 2, product_id: 2, product_name: 'B', qty: 1, unit_price: 75, line_total: 75, unit_name: 'قطعة', unit_multiplier: 1, cost_price: 40, price_type: 'retail' },
     ],
     [
       { id: 21, sale_id: 1, payment_channel: 'cash', amount: 50 },
@@ -73,11 +133,15 @@ import { mapSaleRows, summarizeSales } from '../../src/modules/sales/helpers/sal
     ],
   );
   const salesSummary = summarizeSales(sales as any);
-  assert.equal(salesSummary.totalItems, 1);
-  assert.equal(salesSummary.totalSales, 216.6);
+  assert.equal(salesSummary.totalItems, 2);
+  assert.equal(salesSummary.totalSales, 291.6);
   assert.equal(salesSummary.cashTotal, 216.6);
+  assert.equal(salesSummary.creditTotal, 75);
   assert.equal((sales[0] as any).items.length, 1);
   assert.equal((sales[0] as any).payments.length, 2);
+  assert.equal((sales[1] as any).customerId, '11');
+  assert.equal((sales[1] as any).customerName, 'عميل آجل');
+  assert.equal((sales[1] as any).paymentType, 'credit');
 
   const purchases = mapPurchaseRows(
     [

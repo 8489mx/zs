@@ -5,6 +5,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
   pos: {
     cart: unknown[];
     selectedLineKey: string;
+    paymentType: 'cash' | 'credit';
     canShowLastSaleActions: boolean;
     selectAdjacentCartLine: (direction: 'next' | 'prev') => void;
     changeSelectedQty: (delta: number) => void;
@@ -75,8 +76,11 @@ export function usePosWorkspaceKeyboardShortcuts({
       }
       if (event.key === 'F2') {
         event.preventDefault();
-        if (pos.canShowLastSaleActions) pos.printReceiptNow();
-        else void pos.handleSubmit({ fastCash: true });
+        if (pos.canShowLastSaleActions) {
+          pos.printReceiptNow();
+        } else {
+          void pos.handleSubmit(pos.paymentType === 'credit' ? undefined : { fastCash: true });
+        }
       } else if (event.key === 'F4') {
         event.preventDefault();
         void pos.holdDraft();
