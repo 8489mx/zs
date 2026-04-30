@@ -17,10 +17,19 @@ $envMap = Get-EnvMap -EnvFile $envFile
 $frontendPort = Get-EnvValue -EnvMap $envMap -Key 'FRONTEND_PORT' -Default '8080'
 $appUrl = "http://127.0.0.1:$frontendPort"
 
+$explorerExe = Join-Path $env:WINDIR 'explorer.exe'
+if (-not (Test-Path $explorerExe)) {
+  $explorerExe = 'explorer.exe'
+}
+
 $shortcutPath = Join-Path $desktopDir 'ZS Portable.lnk'
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = $appUrl
+
+# Use explorer.exe instead of assigning the URL directly to TargetPath.
+# This makes shortcut details clearer and more reliable across Windows versions.
+$shortcut.TargetPath = $explorerExe
+$shortcut.Arguments = $appUrl
 $shortcut.WorkingDirectory = $desktopDir
 $shortcut.Description = 'Open ZS Portable in the browser.'
 
@@ -50,6 +59,7 @@ $shortcut.Save()
 Write-Host 'ZS desktop shortcut installed successfully:'
 Write-Host $shortcutPath
 Write-Host "Shortcut URL: $appUrl"
+Write-Host "Target: $explorerExe"
 if ($shortcut.IconLocation) {
   Write-Host "Icon: $($shortcut.IconLocation)"
 } else {

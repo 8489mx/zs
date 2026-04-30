@@ -16,9 +16,9 @@ function Add-Section([string]$Title) {
   Add-ReportLine ("=== {0} ===" -f $Title)
 }
 
-function Test-FileExists([string]$Label, [string]$Path) {
+function Test-FileExists([string]$Label, [string]$Path, [string]$MissingStatus = 'MISSING') {
   $exists = Test-Path $Path
-  $status = if ($exists) { 'OK' } else { 'MISSING' }
+  $status = if ($exists) { 'OK' } else { $MissingStatus }
   Add-ReportLine ("[{0}] {1}: {2}" -f $status, $Label, $Path)
   return $exists
 }
@@ -153,7 +153,7 @@ try {
 
   Add-Section 'Application artifacts'
   [void](Test-FileExists -Label 'Backend entry' -Path $paths.BackendEntryFile)
-  [void](Test-FileExists -Label 'Backend package.json' -Path (Join-Path $paths.AppBackendDir 'package.json'))
+  [void](Test-FileExists -Label 'Backend package.json (optional)' -Path (Join-Path $paths.AppBackendDir 'package.json') -MissingStatus 'OPTIONAL')
   [void](Test-FileExists -Label 'Frontend index.html' -Path $paths.FrontendEntry)
   [void](Test-FileExists -Label 'Frontend assets directory' -Path (Join-Path $paths.AppFrontendDir 'assets'))
 
