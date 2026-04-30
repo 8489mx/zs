@@ -5,23 +5,71 @@
 ## المكونات
 - `backend/` API مبني بـ NestJS + TypeScript + PostgreSQL
 - `frontend/` واجهة React + TypeScript + Vite
-- `docker-compose.yml` لتشغيل البيئة محليًا
+- `portable/` مسار تسليم Windows Portable بدون Docker
+- `docker-compose.yml` لتشغيل بيئة التطوير/الاختبار محليًا فقط
 - `.github/workflows/ci.yml` لتشغيل CI تلقائيًا
 
-## المتطلبات المسبقة
-- Node.js 22.x (نفس نسخة CI و Docker)
+## المتطلبات المسبقة للتطوير
+- Node.js 22.x
 - npm 10.x
 - PostgreSQL 16 عند التشغيل المحلي بدون Docker
-- ملف `.nvmrc` مضاف لضبط نفس النسخة محليًا (`nvm use`)
+- Docker Desktop اختياري لبيئة التطوير/اختبارات الـ Docker فقط
+- ملف `.nvmrc` مضاف لضبط نفس نسخة Node محليًا (`nvm use`)
 
 ## Mode Contract (نفس الكودbase)
-- `APP_MODE=LOCAL_PILOT` لنسخة العميل الحالية (pilot محلي).
-- `APP_MODE=SELF_CONTAINED` لنسخة installer عند الحاجة.
-- `APP_MODE=CLOUD_SAAS` لنسخة الاستضافة (hosted PostgreSQL).
-- التبديل بين الأوضاع يتم من خلال `.env` فقط (مع دعم legacy alias: `offline`/`online`).
+- `APP_MODE=LOCAL_PILOT` لنسخة العميل التجريبية محليًا.
+- `APP_MODE=SELF_CONTAINED` لنسخة Windows Portable.
+- `APP_MODE=CLOUD_SAAS` لنسخة الاستضافة بقاعدة بيانات مستضافة.
+- التبديل بين الأوضاع يتم من خلال ملفات البيئة فقط.
 - التفاصيل الكاملة في: `MODE_CONTRACT.md`.
 
-## التشغيل السريع بالحاويات
+## نسخة العميل الحالية: Windows Portable بدون Docker
+
+هذه هي نسخة التسليم الحالية للعميل، وتعتمد على مسار `portable/` فقط.
+
+راجع التفاصيل الكاملة في:
+
+```text
+portable/README.md
+```
+
+### أوامر التشغيل للعميل
+- تشغيل:
+```text
+portable/tools/launcher/Start-ZS.bat
+```
+
+- إيقاف:
+```text
+portable/tools/launcher/Stop-ZS.bat
+```
+
+- نسخ احتياطي:
+```text
+portable/tools/launcher/Backup-ZS.bat
+```
+
+- استرجاع نسخة احتياطية:
+```text
+portable/tools/launcher/Restore-ZS.bat
+```
+
+- فحص وتشخيص:
+```text
+portable/tools/launcher/Diagnostics-ZS.bat
+```
+
+### ملاحظات مهمة للـ Portable
+- لا يحتاج العميل إلى Docker.
+- يتم تشغيل PostgreSQL من runtime محلي داخل `portable/runtime/postgres/bin`.
+- يتم تشغيل backend وfrontend من ملفات build داخل `portable/app`.
+- بعد أول تشغيل ناجح، يمكن إعداد التشغيل التلقائي مع Windows Startup حسب منطق الـ launcher الحالي.
+- لا يتم تخزين PostgreSQL binaries الفعلية في Git.
+
+## التشغيل السريع بالحاويات للتطوير فقط
+
+هذا المسار مخصص للتطوير والاختبار، وليس تسليم العميل النهائي.
+
 ```bash
 npm run compose:up
 ```
@@ -34,161 +82,19 @@ npm run compose:up
 - Liveness: `http://localhost:3001/health/live`
 
 لإيقاف البيئة:
+
 ```bash
 npm run compose:down
 ```
 
-## تشغيل Production بنقطة دخول واحدة (Gateway)
-هذا الوضع يجهّز المشروع للبيع/الاستضافة بحيث الواجهة والخلفية يشتغلوا من نفس الـ IP/Domain.
+عرض السجلات:
 
-تشغيل:
 ```bash
-npm run compose:prod:up
+npm run compose:logs
 ```
-
-مراجعة ملف الـ compose النهائي:
-```bash
-npm run compose:prod:config
-```
-
-السجلات:
-```bash
-npm run compose:prod:logs
-```
-
-إيقاف:
-```bash
-npm run compose:prod:down
-```
-
-
-## تشغيل SaaS بدون Postgres محلي (Hosted DB)
-1) جهّز ملف البيئة:
-```bash
-cp .env.saas.example .env.saas
-```
-
-2) راجع/اختبر compose:
-```bash
-npm run compose:saas:config
-```
-
-3) تشغيل:
-```bash
-npm run compose:saas:up
-```
-
-4) إيقاف:
-```bash
-npm run compose:saas:down
-```
-
-## نسخة Offline جاهزة للتثبيت عند العميل
-1) جهّز ملف البيئة:
-```bash
-cp .env.offline.example .env.offline
-```
-
-2) تثبيت وتشغيل أول مرة:
-```bash
-npm run offline:install
-```
-
-3) أوامر الإدارة اليومية:
-```bash
-npm run offline:start
-npm run offline:stop
-npm run offline:backup
-npm run offline:restore -- ./backups/your-backup.sql
-npm run offline:upgrade -- ./backups
-npm run offline:rollback -- ./backups/pre-upgrade-YYYYMMDD-HHMMSS.sql
-```
-
-4) فحص تكوين compose:
-```bash
-npm run compose:offline:config
-```
-
-### تشغيل ويندوز بدون ترمنال (Step 3)
-- Start: `windows\\Start-ZS.bat`
-- Stop: `windows\\Stop-ZS.bat`
-- logs: `%ProgramData%\\ZS\\logs`
-
-> ملاحظة: launcher يعمل مع `APP_MODE=SELF_CONTAINED` (ويدعم legacy `offline` للتوافق).
-
-### Installer لويندوز (Step 4)
-- ملف Inno Setup: `installer/windows/zs-offline.iss`
-- بناء installer (على ويندوز مع Inno Setup 6):
-  - `installer\\windows\\build-installer.bat`
-- الناتج المتوقع في مجلد `release/` باسم قريب من:
-  - `zs-offline-installer.exe`
-
-## تجهيز حزمة إصدار للبيع (Offline Package)
-إنشاء حزمة إصدار:
-```bash
-npm run release:bundle -- 1.0.0
-```
-
-التحقق من سلامة الملفات بعد النقل:
-```bash
-npm run release:verify -- ./release/zs-offline-1.0.0
-```
-
-### Offline independence audit (Step 5)
-```bash
-npm run audit:offline-independence
-```
-
-### Mode coupling audit (SaaS-first boundary check)
-```bash
-npm run audit:mode-coupling
-```
-
-### DB parity audit (offline/prod backend contract)
-```bash
-npm run audit:db-parity
-```
-
-### Data-access seam audit (R1 non-regression gate)
-```bash
-npm run audit:data-access-seams
-```
-
-### Cloud readiness audit (hosted DB + SaaS compose guard)
-```bash
-npm run audit:cloud-readiness
-```
-
-### Migration parity audit (startup + SSL wiring across modes)
-```bash
-npm run audit:migration-parity
-```
-
-### Hosted DB CI-like validation (staging gate)
-```bash
-APP_MODE=CLOUD_SAAS DATABASE_HOST=db.example.com DATABASE_NAME=zsdb DATABASE_USER=zs DATABASE_PASSWORD=strong-secret npm run audit:hosted-db-validation
-# local/CI بدون وصول DB حقيقي:
-SKIP_DB_CONNECT=true APP_MODE=CLOUD_SAAS DATABASE_HOST=db.example.com DATABASE_NAME=zsdb DATABASE_USER=zs DATABASE_PASSWORD=strong-secret npm run audit:hosted-db-validation
-```
-
-### Offline operational dry-run signoff (Step 6)
-```bash
-npm run audit:offline-signoff
-```
-
-### Launch readiness report (Step 7)
-```bash
-npm run audit:launch-report
-```
-
-راجع أيضًا:
-- `OFFLINE_SUPABASE_INDEPENDENCE_CHECKLIST.md`
-- `OFFLINE_ONLINE_SMOKE_CHECKLIST.md`
-- `OFFLINE_OPERATIONAL_DRY_RUN_SIGNOFF.md`
-- `CLOUD_SAAS_OPERATIONAL_CHECKLIST.md`
-- `CLOUD_SAAS_STAGING_SIGNOFF.md`
 
 ## التشغيل المحلي بدون Docker
+
 ### 1) قاعدة البيانات
 أنشئ PostgreSQL ثم انسخ القيم من `backend/.env.example` إلى `backend/.env`.
 
@@ -209,6 +115,7 @@ npm run dev
 ```
 
 ## فحوص الجودة
+
 ### المشروع كاملًا
 ```bash
 npm run qa
@@ -224,10 +131,9 @@ npm run qa:backend
 npm run qa:frontend
 ```
 
-## E2E
-### عبر بيئة Docker المحلية
+### اختبارات Backend E2E
 ```bash
-npm run compose:e2e
+npm run e2e:backend
 ```
 
 ### تشغيل E2E ذاتيًا من سكربت واحد
@@ -235,15 +141,43 @@ npm run compose:e2e
 npm run e2e:self
 ```
 
-### بوابة تحقق موسعة قبل التسليم
+### عبر بيئة Docker المحلية
 ```bash
-npm run qa:release
+npm run compose:e2e
 ```
 
-### ضد Backend شغال بالفعل
+## Sale readiness certification
+
 ```bash
-cd backend
-E2E_BASE_URL=http://127.0.0.1:3001 E2E_USERNAME=owner E2E_PASSWORD=OwnerBootstrap2026! npm run test:e2e
+npm run qa:sale-ready
+```
+
+هذا الأمر يشغّل فحوص الجودة الكاملة، ثم يرفع stack اختباري بالحاويات، ويتحقق من جاهزية backend وfrontend، ثم يشغّل backend E2E ضد خدمة حية، وبعدها ينتج أرشيف تسليم نظيف.
+
+ملاحظة: هذا الأمر ما زال يحتاج Docker لأنه مسار certification/QA، وليس مسار تشغيل العميل النهائي.
+
+راجع أيضًا:
+
+```text
+SALE_READY_CHECKLIST.md
+```
+
+## تجهيز حزمة Portable
+
+الأوامر المتاحة حاليًا من روت المشروع:
+
+```bash
+npm run build
+npm run sync:portable-backend
+npm run customer:portable:preflight
+npm run customer:portable
+```
+
+قبل التسليم، راجع:
+
+```text
+portable/README.md
+SALE_READY_CHECKLIST.md
 ```
 
 ## ما الذي تحسن في هذه النسخة
@@ -251,38 +185,13 @@ E2E_BASE_URL=http://127.0.0.1:3001 E2E_USERNAME=owner E2E_PASSWORD=OwnerBootstra
 - إزالة duplication الخاص بمسار `GET /api/branches`.
 - إضافة DTO validation في نقاط إعدادات حرجة.
 - إصلاح `frontend qa:functional` ليتوافق مع بنية الواجهة الحالية.
-- تصفير تحذيرات lint الظاهرة سابقًا في الواجهة.
-- إضافة Dockerfiles و `docker-compose.yml` وملفات بيئة تشغيل محلية.
-- إضافة GitHub Actions workflow لتشغيل build + QA + backend E2E.
-- إضافة سكربت انتظار HTTP لتبسيط تشغيل E2E محليًا وفي CI.
 - تحسين health endpoints بإتاحة مسارات أوضح للفحص الحي والجاهزية.
-- فصل منطق قوائم الشركاء إلى helper مستقلة لتقليل التكدس داخل الخدمة.
-- فصل mapping/filtering/summary الخاص بقوائم المرتجعات إلى helper مستقلة وأسهل للاختبار.
-- إضافة اختبارات بنيوية جديدة تغطي helpers الجديدة لضمان أن refactor ليس شكليًا فقط.
-- فصل جزء من منطق المبيعات والمشتريات إلى helpers مستقلة مع اختبارات تغطي الحسابات الحساسة مثل التقريب المالي ومبالغ السداد.
+- فصل أجزاء من منطق الشركاء والمرتجعات والمبيعات والمشتريات والتقارير إلى helpers مستقلة.
+- إضافة اختبارات بنيوية وcritical tests لتغطية الحسابات الحساسة، الجلسات، الصلاحيات، التقارير، والـ operational flows.
+- إضافة مسار Windows Portable بدون Docker لتسليم العميل بشكل أبسط وأكثر استقلالًا.
 
 ## ملاحظات مهمة
+- مسار العميل الحالي هو Windows Portable بدون Docker.
+- Docker ما زال مفيدًا للتطوير، CI، و`qa:sale-ready`.
 - المشروع مناسب أكثر حاليًا لتشغيل deployment مستقل لكل عميل، وليس SaaS متعدد العملاء من نفس النسخة.
-- اختبارات الـ E2E ما زالت تعتمد على وجود PostgreSQL وBackend شغالين، لكن تم تبسيط تشغيلها عبر `npm run compose:e2e`.
-
-- Additional service hardening: extracted reusable helpers for returns write flows and partner ledger aggregation in reports, with dedicated infrastructure tests.
-
-
-## Current hardening notes
-- Added customer/supplier balance helpers in reports to reduce service complexity and improve testability.
-
-
-## Sale readiness certification
-```bash
-npm run qa:sale-ready
-```
-
-This command runs the full QA suite, boots the dockerized stack, verifies backend and frontend availability, executes backend E2E against the live service, and produces a clean delivery archive.
-
-Additional delivery checklist: see `SALE_READY_CHECKLIST.md`.
-
-- تم فصل جزء إضافي من منطق الدرج النقدي إلى أدوات مساعدة مستقلة مع اختبار بنيوي خاص بها.
-
-- تحسينات إضافية في منطق المشتريات: توحيد تطبيع النطاق والمبالغ والملاحظات وبناء مراجع العمليات داخل helper مستقلة مع تغطية اختبارية.
-
-- منطق إدارة المستخدمين (التطبيع، الفلترة، التلخيص، مزامنة الإدخالات) أصبح مفصولًا جزئيًا إلى helper و DTO مستقلة.
+- اختبارات E2E ما زالت تعتمد على وجود PostgreSQL وBackend شغالين.
