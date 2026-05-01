@@ -155,10 +155,13 @@ export function resolveSalePayments(
   paymentType: 'cash' | 'credit',
   payments: NormalizedSalePayload['payments'],
   collectibleTotal: number,
+  fallbackPaymentChannel: 'cash' | 'card' | 'mixed' | 'credit' = 'cash',
 ): Array<{ paymentChannel: 'cash' | 'card'; amount: number }> {
   if (paymentType === 'credit') return [];
   if (payments.length) return payments;
-  if (collectibleTotal > 0) return [{ paymentChannel: 'cash', amount: collectibleTotal }];
+  if (collectibleTotal > 0) {
+    return [{ paymentChannel: fallbackPaymentChannel === 'card' ? 'card' : 'cash', amount: collectibleTotal }];
+  }
   return [];
 }
 

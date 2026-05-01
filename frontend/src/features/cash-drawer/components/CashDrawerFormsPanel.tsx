@@ -34,6 +34,12 @@ interface CashDrawerFormsPanelProps {
 
 export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const locationList = Array.isArray(props.locations) ? props.locations : [];
+  const selectedCloseShift = props.openOptions.find((shift) => String(shift.id) === String(props.closeForm.watch('shiftId'))) || null;
+  const closeCashSalesTotal = Number(selectedCloseShift?.cashSalesTotal || 0);
+  const closeCardSalesTotal = Number(selectedCloseShift?.cardSalesTotal || 0);
+  const closeCreditSalesTotal = Number(selectedCloseShift?.creditSalesTotal || 0);
+  const closeShiftSalesTotal = Number(selectedCloseShift?.shiftSalesTotal || 0);
+  const closeCashDrawerMovementTotal = Number(selectedCloseShift?.cashDrawerMovementTotal || 0);
 
   return (
     <div className="three-column-grid panel-grid cash-drawer-forms-grid">
@@ -88,6 +94,33 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             </select>
           </Field>
           <Field label="النقدية المتوقعة"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
+          {selectedCloseShift ? (
+            <div className="muted small" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+              <span>
+                مبيعات نقدي:
+                {' '}<strong>{formatCurrency(closeCashSalesTotal)}</strong>
+              </span>
+              <span>
+                مبيعات فيزا:
+                {' '}<strong>{formatCurrency(closeCardSalesTotal)}</strong>
+              </span>
+              {closeCreditSalesTotal > 0 ? (
+                <span>
+                  مبيعات آجل:
+                  {' '}<strong>{formatCurrency(closeCreditSalesTotal)}</strong>
+                </span>
+              ) : null}
+              <span>
+                حركات الدرج:
+                {' '}<strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong>
+              </span>
+              <span>
+                إجمالي مبيعات الوردية:
+                {' '}<strong>{formatCurrency(closeShiftSalesTotal)}</strong>
+              </span>
+              <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات النقدي + حركات الدرج فقط. مبيعات الفيزا تظهر للمتابعة ولا تدخل في المبلغ المعدود.</span>
+            </div>
+          ) : null}
           <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
           <Field label="ملاحظة الإغلاق"><textarea rows={2} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل الإغلاق' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
           <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>

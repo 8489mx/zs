@@ -42,6 +42,13 @@ export interface CashierShift {
   openingCash: number;
   expectedCash: number;
   countedCash: number;
+  cashSalesTotal?: number;
+  cardSalesTotal?: number;
+  creditSalesTotal?: number;
+  shiftSalesTotal?: number;
+  saleCount?: number;
+  mixedSalesCount?: number;
+  cashDrawerMovementTotal?: number;
   variance: number;
   openingNote?: string;
   closeNote?: string;

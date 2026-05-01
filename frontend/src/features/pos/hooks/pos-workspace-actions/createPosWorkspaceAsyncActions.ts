@@ -100,10 +100,19 @@ export function createPosWorkspaceAsyncActions(
     const shouldAssumeFullCashPayment = !forceFastCash
       && allowNegativeStockSales
       && params.paymentType !== 'credit'
+      && params.paymentChannel === 'cash'
+      && initialPaidAmount <= 0.0001
+      && total > 0;
+
+    const shouldAssumeFullCardPayment = !forceFastCash
+      && allowNegativeStockSales
+      && params.paymentType !== 'credit'
+      && params.paymentChannel === 'card'
       && initialPaidAmount <= 0.0001
       && total > 0;
 
     const settleAsCash = forceFastCash || shouldAssumeFullCashPayment;
+    const settleAsCard = shouldAssumeFullCardPayment;
 
     if (params.hasCreditWithoutCustomer && !settleAsCash) {
       params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يحتاج حساب عميل.');
@@ -111,11 +120,15 @@ export function createPosWorkspaceAsyncActions(
       return;
     }
 
-    const effectivePaymentType = settleAsCash ? 'cash' : params.paymentType;
-    const effectivePaymentChannel = settleAsCash ? 'cash' : params.paymentChannel;
-    const effectiveCustomerId = settleAsCash ? '' : String(params.customerId || '').trim();
-    const effectiveCashAmount = settleAsCash ? total : initialCashAmount;
-    const effectiveCardAmount = settleAsCash ? 0 : initialCardAmount;
+    const effectivePaymentType = settleAsCash || settleAsCard ? 'cash' : params.paymentType;
+    const effectivePaymentChannel = settleAsCash ? 'cash' : (settleAsCard ? 'card' : params.paymentChannel);
+    const effectiveCustomerId = settleAsCash || settleAsCard ? '' : String(params.customerId || '').trim();
+    const effectiveCashAmount = effectivePaymentType === 'credit'
+      ? 0
+      : (effectivePaymentChannel === 'card' ? 0 : (settleAsCash ? total : initialCashAmount));
+    const effectiveCardAmount = effectivePaymentType === 'credit'
+      ? 0
+      : (effectivePaymentChannel === 'card' ? total : (settleAsCard ? total : initialCardAmount));
     const effectivePaidAmount = effectivePaymentType === 'credit'
       ? 0
       : Number((effectiveCashAmount + effectiveCardAmount).toFixed(2));
@@ -138,6 +151,11 @@ export function createPosWorkspaceAsyncActions(
       params.setPaymentChannel('cash');
       params.setCashAmount(total);
       params.setCardAmount(0);
+    } else if (settleAsCard) {
+      params.setPaymentType('cash');
+      params.setPaymentChannel('card');
+      params.setCashAmount(0);
+      params.setCardAmount(total);
     }
 
     params.setPostSaleSaleKey('');

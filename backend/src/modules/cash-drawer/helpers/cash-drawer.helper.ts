@@ -9,6 +9,13 @@ type CashDrawerShiftSource = {
   branch_id?: number | string | null;
   location_id?: number | string | null;
   opened_by?: number | string | null;
+  cash_sales_total?: number | string | null;
+  card_sales_total?: number | string | null;
+  credit_sales_total?: number | string | null;
+  shift_sales_total?: number | string | null;
+  sale_count?: number | string | null;
+  mixed_sale_count?: number | string | null;
+  cash_drawer_movement_total?: number | string | null;
   opening_cash?: number | string | null;
   opening_note?: string | null;
   status?: string | null;
@@ -84,6 +91,13 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
     locationName: row.location_name || '',
     openedById: row.opened_by ? String(row.opened_by) : '',
     openedByName: row.opened_by_name || '',
+    cashSalesTotal: Number(row.cash_sales_total || 0),
+    cardSalesTotal: Number(row.card_sales_total || 0),
+    creditSalesTotal: Number(row.credit_sales_total || 0),
+    shiftSalesTotal: Number(row.shift_sales_total || 0),
+    saleCount: Number(row.sale_count || 0),
+    mixedSalesCount: Number(row.mixed_sale_count || 0),
+    cashDrawerMovementTotal: Number(row.cash_drawer_movement_total || 0),
     openingCash: Number(row.opening_cash || 0),
     openingNote: row.opening_note || '',
     status: row.status || 'open',

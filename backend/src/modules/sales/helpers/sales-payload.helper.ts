@@ -25,6 +25,12 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
 
   assertCreditSaleCustomer(paymentType, customerId);
 
+  const requestedPaymentChannel = payload.paymentChannel === 'card'
+    ? 'card'
+    : payload.paymentChannel === 'mixed'
+      ? 'mixed'
+      : 'cash';
+
   const normalizedPayments = (Array.isArray(payload.payments) ? payload.payments : [])
     .map((entry) => ({
       paymentChannel: (entry.paymentChannel === 'card' ? 'card' : 'cash') as 'cash' | 'card',
@@ -32,11 +38,22 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     }))
     .filter((entry) => entry.amount > 0);
 
-  const fallbackChannel = payload.paymentChannel === 'card' ? 'card' : 'cash';
-  const payments = paymentType === 'credit' ? [] : normalizedPayments;
+  // Guard against stale POS state: if the cashier selected "فيزا" but the
+  // payment input still arrived as a single cash line, trust the explicit
+  // selected channel and keep the sale out of the cash drawer.
+  const correctedPayments = paymentType === 'credit'
+    ? []
+    : (requestedPaymentChannel === 'card' && normalizedPayments.length > 0 && normalizedPayments.every((entry) => entry.paymentChannel === 'cash')
+      ? normalizedPayments.map((entry) => ({ ...entry, paymentChannel: 'card' as const }))
+      : normalizedPayments);
+
+  const fallbackChannel = requestedPaymentChannel === 'card' ? 'card' : 'cash';
+  const payments = paymentType === 'credit' ? [] : correctedPayments;
   const paymentChannel: 'cash' | 'card' | 'mixed' | 'credit' = paymentType === 'credit'
     ? 'credit'
-    : (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || fallbackChannel));
+    : (requestedPaymentChannel === 'mixed'
+      ? (payments.length ? 'mixed' : fallbackChannel)
+      : (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || fallbackChannel)));
 
   return {
     customerId,
