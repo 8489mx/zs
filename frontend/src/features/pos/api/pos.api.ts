@@ -9,6 +9,7 @@ type PosLookupParams = {
   barcode?: string;
   locationId?: string;
   limit?: number;
+  view?: 'offers' | string;
 };
 
 export interface PosCustomerSummary {
@@ -42,11 +43,13 @@ function buildPosLookupPath(params: PosLookupParams = {}) {
   const barcode = String(params.barcode || '').trim();
   const locationId = String(params.locationId || '').trim();
   const limit = Number(params.limit || 0);
+  const view = String(params.view || '').trim();
 
   if (q) searchParams.set('q', q);
   if (barcode) searchParams.set('barcode', barcode);
   if (locationId) searchParams.set('locationId', locationId);
   if (limit > 0) searchParams.set('limit', String(limit));
+  if (view) searchParams.set('view', view);
 
   const query = searchParams.toString();
   return `/api/catalog/pos-products${query ? `?${query}` : ''}`;

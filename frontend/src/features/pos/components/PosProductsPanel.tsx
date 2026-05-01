@@ -216,7 +216,8 @@ function PosProductsPanelComponent({
   const scannerSearchQuery = search.trim();
   const isScannerMode = posMode === 'scanner';
   const isTouchMode = posMode === 'touch';
-  const canShowScannerResults = !isScannerMode || scannerSearchQuery.length >= 2;
+  const hasBrowseFilter = productFilter !== 'all' || shelf !== 'all';
+  const canShowScannerResults = !isScannerMode || scannerSearchQuery.length >= 2 || hasBrowseFilter;
   const visibleGroups = useMemo(() => getGroupShelfGroups({
     groups: groupedProducts,
     shelf,

@@ -9,16 +9,18 @@ import type { Product } from '@/types/domain';
 
 const posReferenceStaleTime = 45_000;
 
-export function usePosCatalog(search: string, locationId: string) {
+export function usePosCatalog(search: string, locationId: string, productFilter: string = 'all') {
   const [productCache, setProductCache] = useState<Product[]>([]);
   const trimmedSearch = search.trim();
   const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
   const lookupTerm = isLikelyBarcodeQuery(trimmedSearch) ? trimmedSearch : debouncedSearch;
   const lookupMode: 'browse' | 'barcode' | 'search' = !lookupTerm ? 'browse' : isLikelyBarcodeQuery(lookupTerm) ? 'barcode' : 'search';
+  const lookupView = productFilter === 'offers' ? 'offers' : '';
   const productsQuery = useQuery({
-    queryKey: queryKeys.posProducts(locationId, lookupMode, lookupTerm, POS_PRODUCT_LOOKUP_LIMIT),
+    queryKey: ['products', 'pos', locationId || 'all', lookupMode, lookupTerm || '', lookupView || 'all', String(POS_PRODUCT_LOOKUP_LIMIT)] as const,
     queryFn: () => posApi.lookupProducts({
       ...(lookupMode === 'barcode' ? { barcode: lookupTerm } : lookupTerm ? { q: lookupTerm } : {}),
+      ...(lookupView ? { view: lookupView } : {}),
       locationId,
       limit: POS_PRODUCT_LOOKUP_LIMIT,
     }),

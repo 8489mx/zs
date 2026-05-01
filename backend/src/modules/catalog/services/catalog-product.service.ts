@@ -188,12 +188,12 @@ export class CatalogProductService {
   }
 
   async listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
-    const { q, barcode, limit, requestedLocationId } = this.parsePosProductLookupQuery(query);
+    const { q, barcode, limit, requestedLocationId, view } = this.parsePosProductLookupQuery(query);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
     const productRows = barcode
       ? await this.findPosProductsByBarcode(barcode, limit)
-      : await this.searchPosProducts(q, limit);
+      : await this.searchPosProducts(q, limit, view === 'offers' ? 'offers' : 'all');
 
     const uniqueRows = this.uniquePosProductRows(productRows).slice(0, limit);
     const productIds = uniqueRows.map((product) => Number(product.id));
@@ -214,6 +214,7 @@ export class CatalogProductService {
         q,
         barcode,
         limit,
+        view,
         locationId: scopedLocation?.id ? String(scopedLocation.id) : '',
       },
     };
@@ -222,11 +223,14 @@ export class CatalogProductService {
   private parsePosProductLookupQuery(query: Record<string, unknown>) {
     const requestedLimit = Number(query.limit || 30);
     const safeLimit = Number.isFinite(requestedLimit) ? Math.floor(requestedLimit) : 30;
+    const view = String(query.view || '').trim() === 'offers' ? 'offers' : 'all';
+    const maxLimit = view === 'offers' ? 240 : 50;
     return {
       q: String(query.q || '').trim(),
       barcode: String(query.barcode || '').trim(),
-      limit: Math.min(50, Math.max(1, safeLimit)),
+      limit: Math.min(maxLimit, Math.max(1, safeLimit)),
       requestedLocationId: Number(query.locationId || 0),
+      view,
     };
   }
 
@@ -278,7 +282,7 @@ export class CatalogProductService {
     return [...productMatches, ...unitMatches];
   }
 
-  private async searchPosProducts(q: string, limit: number): Promise<PosProductLookupRow[]> {
+  private async searchPosProducts(q: string, limit: number, view: 'all' | 'offers' = 'all'): Promise<PosProductLookupRow[]> {
     const normalized = q.trim().toLowerCase();
     const pattern = `%${normalized}%`;
     let productQuery = this.db
@@ -306,6 +310,15 @@ export class CatalogProductService {
         OR LOWER(COALESCE(p.style_code, '')) LIKE ${pattern}
         OR LOWER(COALESCE(pu.barcode, '')) LIKE ${pattern}
         OR LOWER(COALESCE(pu.name, '')) LIKE ${pattern}
+      )`);
+    }
+
+    if (view === 'offers') {
+      productQuery = productQuery.where(sql<boolean>`exists (
+        select 1
+        from product_offers po
+        where po.product_id = p.id
+          and po.is_active = true
       )`);
     }
 
