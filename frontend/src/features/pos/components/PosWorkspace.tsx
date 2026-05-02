@@ -18,6 +18,7 @@ import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
+import { parseWeightedBarcode } from '@/features/pos/lib/weighted-barcode';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
 
@@ -122,6 +123,32 @@ export function PosWorkspace() {
         if (remoteMatch.status === 'ambiguous') {
           pos.setSubmitMessage('هذا الباركود غير واضح أو مرتبط بأكثر من نتيجة. راجع الصنف أو الوحدة أولًا.');
         } else {
+          const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
+          if (weightedBarcode) {
+            const weightedLookupProducts = await posApi.lookupProducts({ barcode: weightedBarcode.productCode, locationId: pos.locationId, limit: 5 });
+            const weightedSubmitted = pos.handleQuickAddCodeSubmit(query, weightedLookupProducts);
+            if (weightedSubmitted) {
+              pos.setSearch('');
+              return;
+            }
+
+            const weightedSearchProducts = await posApi.lookupProducts({ q: weightedBarcode.productCode, locationId: pos.locationId, limit: 5 });
+            const weightedSearchSubmitted = pos.handleQuickAddCodeSubmit(query, weightedSearchProducts);
+            if (weightedSearchSubmitted) {
+              pos.setSearch('');
+              return;
+            }
+
+            const strippedProductCode = weightedBarcode.productCode.replace(/^0+/, '') || weightedBarcode.productCode;
+            if (strippedProductCode !== weightedBarcode.productCode) {
+              const strippedSearchProducts = await posApi.lookupProducts({ q: strippedProductCode, locationId: pos.locationId, limit: 5 });
+              const strippedSearchSubmitted = pos.handleQuickAddCodeSubmit(query, strippedSearchProducts);
+              if (strippedSearchSubmitted) {
+                pos.setSearch('');
+                return;
+              }
+            }
+          }
           pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
         }
       } catch (error) {
@@ -149,6 +176,17 @@ export function PosWorkspace() {
       pos.setSubmitMessage('هذا الباركود غير واضح أو مرتبط بأكثر من نتيجة. راجع الصنف أو الوحدة أولًا.');
       focusBarcodeEntry();
       return false;
+    }
+
+    if (exactCodeMatch.status === 'not-found') {
+      const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
+      if (weightedBarcode) {
+        const submitted = handleQuickAddSubmit(query);
+        if (submitted) {
+          pos.setSearch('');
+          return true;
+        }
+      }
     }
 
     if (exactCodeMatch.status === 'not-found' && isLikelyBarcodeQuery(query)) {

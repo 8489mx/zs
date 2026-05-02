@@ -52,6 +52,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       defaultProductKind: 'standard',
       defaultPosMode: 'scanner',
       allowNegativeStockSales: false,
+      weightedBarcodeEnabled: false,
+      weightedBarcodePrefix: '21',
+      weightedBarcodeProductCodeLength: 5,
+      weightedBarcodeWeightDigits: 5,
+      weightedBarcodeWeightDecimals: 3,
       printShowLogo: true,
       printShowPhone: true,
       printShowAddress: true,
@@ -73,6 +78,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const currentBranchId = form.watch('currentBranchId');
   const currentLocationId = form.watch('currentLocationId');
   const clothingModuleEnabled = form.watch('clothingModuleEnabled');
+  const weightedBarcodeEnabled = form.watch('weightedBarcodeEnabled');
   const resolvedBranchId = SINGLE_STORE_MODE ? (currentBranchId || settings?.currentBranchId || branches[0]?.id || '') : currentBranchId;
   const visibleLocations = useMemo(
     () => locations.filter((location) => !resolvedBranchId || String(location.branchId || '') === String(resolvedBranchId)),
@@ -107,6 +113,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       defaultProductKind: clothingEnabled && settings.defaultProductKind === 'fashion' ? 'fashion' : 'standard',
       defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
+      weightedBarcodeEnabled: settings.weightedBarcodeEnabled === true,
+      weightedBarcodePrefix: String(settings.weightedBarcodePrefix || '21').replace(/\D/g, '') || '21',
+      weightedBarcodeProductCodeLength: Math.min(8, Math.max(3, Math.floor(Number(settings.weightedBarcodeProductCodeLength || 5)))),
+      weightedBarcodeWeightDigits: Math.min(8, Math.max(3, Math.floor(Number(settings.weightedBarcodeWeightDigits || 5)))),
+      weightedBarcodeWeightDecimals: Math.min(3, Math.max(0, Math.floor(Number(settings.weightedBarcodeWeightDecimals || 3)))),
       printShowLogo: settings.printShowLogo !== false,
       printShowPhone: settings.printShowPhone !== false,
       printShowAddress: settings.printShowAddress !== false,
@@ -258,6 +269,33 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                   <option value="fashion">موديل ملابس</option>
                 </select>
                 <div className="muted small">يحدد النوع الذي يظهر أولًا في نموذج الإضافة. ما زال بإمكانك تغييره يدويًا داخل الشاشة نفسها طالما موديول الملابس مفعّل.</div>
+              </Field>
+            </div>
+          </section>
+
+          <section className="panel page-stack">
+            <div>
+              <strong>باركود الميزان</strong>
+              <div className="muted small">فعّلها فقط للمتاجر التي تستخدم ميزان يطبع باركود وزن. عند الإيقاف يظل الكاشير يبحث عن الباركود العادي كما هو بدون أي تغيير.</div>
+            </div>
+            <div className="form-grid three-col-form">
+              <label style={printCheckboxStyle}>
+                <input type="checkbox" {...form.register('weightedBarcodeEnabled')} disabled={mutation.isPending || !canManageSettings} />
+                تفعيل باركود الميزان
+              </label>
+              <Field label="بادئة باركود الميزان" error={form.formState.errors.weightedBarcodePrefix?.message}>
+                <input inputMode="numeric" {...form.register('weightedBarcodePrefix')} disabled={mutation.isPending || !canManageSettings || !weightedBarcodeEnabled} placeholder="21" />
+                <div className="muted small">مثال: 21 للباركود بالشكل 21 + كود الصنف + الوزن + رقم تحقق.</div>
+              </Field>
+              <Field label="أرقام كود الصنف" error={form.formState.errors.weightedBarcodeProductCodeLength?.message}>
+                <input type="number" min="3" max="8" {...form.register('weightedBarcodeProductCodeLength')} disabled={mutation.isPending || !canManageSettings || !weightedBarcodeEnabled} />
+              </Field>
+              <Field label="أرقام الوزن" error={form.formState.errors.weightedBarcodeWeightDigits?.message}>
+                <input type="number" min="3" max="8" {...form.register('weightedBarcodeWeightDigits')} disabled={mutation.isPending || !canManageSettings || !weightedBarcodeEnabled} />
+              </Field>
+              <Field label="دقة الوزن" error={form.formState.errors.weightedBarcodeWeightDecimals?.message}>
+                <input type="number" min="0" max="3" {...form.register('weightedBarcodeWeightDecimals')} disabled={mutation.isPending || !canManageSettings || !weightedBarcodeEnabled} />
+                <div className="muted small">مثال: 00750 مع دقة 3 تتحسب 0.750 كجم.</div>
               </Field>
             </div>
           </section>

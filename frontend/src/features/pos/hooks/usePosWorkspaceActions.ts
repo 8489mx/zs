@@ -13,7 +13,7 @@ import {
 
 interface PosWorkspaceActions {
   resetPosDraft: () => void;
-  handleAddProduct: (product: Product, unitId?: string) => void;
+  handleAddProduct: (product: Product, unitId?: string, options?: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string }) => boolean;
   handleQuickAddCodeSubmit: (rawCode?: string, productsOverride?: Product[]) => boolean;
   handleQuickCustomerSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   approveDiscountOverride: (password: string) => Promise<unknown>;

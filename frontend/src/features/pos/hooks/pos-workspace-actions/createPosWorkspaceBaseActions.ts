@@ -2,6 +2,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { downloadCsvFile } from '@/lib/browser';
 import { addPosItem, getProductPrice, isNegativeStockSalesAllowed, removePosItem, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
 import { buildSaleLineKey, computeDraftTotal, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
+import { formatWeightedBarcodeQuantity, matchProductByWeightedCode, parseWeightedBarcode } from '@/features/pos/lib/weighted-barcode';
 import { clearDraftSnapshot } from '@/features/pos/lib/pos.persistence';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product } from '@/types/domain';
@@ -66,7 +67,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.requestBarcodeFocus();
   }
 
-  function handleAddProduct(product: Product, unitId?: string) {
+  function handleAddProduct(product: Product, unitId?: string, options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string } = {}) {
     try {
       const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
       const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
@@ -74,6 +75,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
         priceType: params.priceType,
         unitId,
         allowNegativeStockSales,
+        quantity: options.quantity,
+        isWeighted: options.isWeighted,
+        sourceBarcode: options.sourceBarcode,
       });
 
       params.setCart(nextCart);
@@ -103,6 +107,30 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       return false;
     }
     if (result.status === 'not-found') {
+      const weightedBarcode = parseWeightedBarcode(code, params.settings);
+      if (weightedBarcode) {
+        const weightedResult = matchProductByWeightedCode(productsOverride || params.products || [], weightedBarcode.productCode);
+        if (weightedResult.status === 'matched') {
+          const added = handleAddProduct(
+            weightedResult.match.product,
+            weightedResult.match.kind === 'unit' ? weightedResult.match.unitId : undefined,
+            { quantity: weightedBarcode.quantity, isWeighted: true, sourceBarcode: weightedBarcode.rawCode },
+          );
+          if (!added) return false;
+          params.setSearch('');
+          params.setQuickAddCode('');
+          params.setScannerMessage(`تمت إضافة ${weightedResult.match.product.name} بوزن ${formatWeightedBarcodeQuantity(weightedBarcode.quantity)}.`);
+          return true;
+        }
+        if (weightedResult.status === 'ambiguous') {
+          params.setScannerMessage(`كود الميزان ${weightedBarcode.productCode} مرتبط بأكثر من صنف أو وحدة. راجع كود الصنف أولًا.`);
+          params.requestBarcodeFocus();
+          return false;
+        }
+        params.setScannerMessage(`باركود ميزان: لم يتم العثور على كود الصنف ${weightedBarcode.productCode}.`);
+        params.requestBarcodeFocus();
+        return false;
+      }
       params.setScannerMessage('لا يوجد صنف أو وحدة بهذا الباركود.');
       params.requestBarcodeFocus();
       return false;
@@ -224,7 +252,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   function changeSelectedQty(delta: number) {
     const selectedItem = params.cart.find((item) => item.lineKey === params.selectedLineKey);
     if (!selectedItem) return false;
-    setQty(selectedItem.lineKey, Math.max(1, selectedItem.qty + delta));
+    const minQty = selectedItem.isWeighted === true ? 0.001 : 1;
+    const nextQty = selectedItem.isWeighted === true ? Number((Number(selectedItem.qty || 0) + delta).toFixed(3)) : Number(selectedItem.qty || 1) + delta;
+    setQty(selectedItem.lineKey, Math.max(minQty, nextQty));
     return true;
   }
 
@@ -238,7 +268,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.setSubmitMessage('الكمية يجب أن تكون أكبر من صفر.');
       return false;
     }
-    setQty(selectedItem.lineKey, Math.round(nextQty));
+    setQty(selectedItem.lineKey, selectedItem.isWeighted === true ? Number(nextQty.toFixed(3)) : Math.round(nextQty));
     return true;
   }
 

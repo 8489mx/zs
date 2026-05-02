@@ -36,5 +36,10 @@ export interface AppSettings {
   defaultPosMode?: 'scanner' | 'touch' | string;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
+  weightedBarcodeEnabled?: boolean;
+  weightedBarcodePrefix?: string;
+  weightedBarcodeProductCodeLength?: number;
+  weightedBarcodeWeightDigits?: number;
+  weightedBarcodeWeightDecimals?: number;
   theme?: string;
 }
