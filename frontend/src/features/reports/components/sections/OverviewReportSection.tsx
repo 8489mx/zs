@@ -1,18 +1,32 @@
+import type { CSSProperties } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
+import { AnimatedValue } from '@/shared/components/animated-value';
 import { Card } from '@/shared/ui/card';
-import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
-import { relativePercent } from '@/features/reports/lib/reports-format';
 import { formatCurrency } from '@/lib/format';
 import type { ReportsSectionContentProps } from '@/features/reports/components/reports-section.types';
 
 export function OverviewReportSection({ report, reportQuery, executiveRows, operatingSignalRows, formatPercent }: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'executiveRows' | 'operatingSignalRows' | 'formatPercent'>) {
-  const overviewValues = [
-    report?.sales.total || 0,
-    report?.sales.netSales || 0,
-    report?.purchases.total || 0,
-    report?.purchases.netPurchases || 0,
-    report?.commercial.grossProfit || 0,
-    report?.commercial.netOperatingProfit || 0,
+  const executiveSalesValue = Math.max(0, Number(report?.sales.netSales || 0));
+  const executivePurchasesValue = Math.max(0, Number(report?.purchases.netPurchases || 0));
+  const executiveProfitValue = Math.max(0, Number(report?.commercial.grossProfit || 0));
+  const executiveFlowTotal = executiveSalesValue + executivePurchasesValue + executiveProfitValue;
+  const executiveSalesShare = executiveFlowTotal > 0 ? Math.round((executiveSalesValue / executiveFlowTotal) * 100) : 0;
+  const executivePurchasesShare = executiveFlowTotal > 0 ? Math.round((executivePurchasesValue / executiveFlowTotal) * 100) : 0;
+  const executiveProfitShare = executiveFlowTotal > 0 ? Math.max(0, 100 - executiveSalesShare - executivePurchasesShare) : 0;
+  const executiveRingStyle = {
+    '--reports-sales-share': `${executiveSalesShare}%`,
+    '--reports-purchases-share': `${Math.min(100, executiveSalesShare + executivePurchasesShare)}%`,
+  } as CSSProperties;
+  const premiumSalesTotal = Number(report?.sales.total || 0);
+  const premiumNetSales = Number(report?.sales.netSales || 0);
+  const premiumGrossProfit = Number(report?.commercial.grossProfit || 0);
+  const premiumTreasuryNet = Number(report?.treasury.net || 0);
+  const premiumStatMax = Math.max(1, Math.abs(premiumSalesTotal), Math.abs(premiumNetSales), Math.abs(premiumGrossProfit), Math.abs(premiumTreasuryNet));
+  const premiumStats = [
+    { label: 'إجمالي البيع', value: premiumSalesTotal, helper: 'كل البيع المسجل', tone: 'primary', progress: Math.round((Math.abs(premiumSalesTotal) / premiumStatMax) * 100) },
+    { label: 'صافي البيع', value: premiumNetSales, helper: 'بعد الخصومات', tone: 'success', progress: Math.round((Math.abs(premiumNetSales) / premiumStatMax) * 100) },
+    { label: 'الربح الإجمالي', value: premiumGrossProfit, helper: 'قبل المصروفات', tone: 'profit', progress: Math.round((Math.abs(premiumGrossProfit) / premiumStatMax) * 100) },
+    { label: 'صافي الخزينة', value: premiumTreasuryNet, helper: 'داخل وخارج الخزينة', tone: 'treasury', progress: Math.round((Math.abs(premiumTreasuryNet) / premiumStatMax) * 100) },
   ];
 
   return (
@@ -30,30 +44,58 @@ export function OverviewReportSection({ report, reportQuery, executiveRows, oper
         emptyTitle="لا توجد بيانات للفترة الحالية"
         emptyHint="جرّب تغيير الفترة أو إضافة عمليات جديدة."
       >
-        <div className="reports-executive-layout enhanced-executive-layout">
-          <div className="reports-spotlight-grid section-spotlight-grid compact-spotlight-grid reports-executive-paired-grid">
-            <div className="reports-executive-metric-pair">
-              <ReportMetricCard label="إجمالي البيع" value={report?.sales.total || 0} helper="كل البيع المسجل" tone="primary" formatter={formatCurrency} progress={relativePercent(report?.sales.total || 0, overviewValues)} />
-              <ReportMetricCard label="صافي البيع" value={report?.sales.netSales || 0} helper="بعد الخصومات" tone="success" formatter={formatCurrency} progress={relativePercent(report?.sales.netSales || 0, overviewValues)} />
+        <div className="reports-premium-summary-strip" aria-label="أهم أرقام الفترة">
+          {premiumStats.map((stat) => (
+            <div className={`reports-premium-stat reports-premium-stat-${stat.tone}`} key={stat.label}>
+              <span>{stat.label}</span>
+              <strong><AnimatedValue value={stat.value} formatter={formatCurrency} /></strong>
+              <small>{stat.helper}</small>
+              <span className="reports-premium-stat-rail" style={{ '--reports-stat-progress': `${stat.progress}%` } as CSSProperties} aria-hidden="true">
+                <i />
+              </span>
             </div>
-            <div className="reports-executive-metric-pair">
-              <ReportMetricCard label="إجمالي الشراء" value={report?.purchases.total || 0} helper="كل المشتريات" tone="warning" formatter={formatCurrency} progress={relativePercent(report?.purchases.total || 0, overviewValues)} />
-              <ReportMetricCard label="صافي الشراء" value={report?.purchases.netPurchases || 0} helper="بعد التسويات" tone="warning" formatter={formatCurrency} progress={relativePercent(report?.purchases.netPurchases || 0, overviewValues)} />
-            </div>
-            <div className="reports-executive-metric-pair">
-              <ReportMetricCard label="الربح الإجمالي" value={report?.commercial.grossProfit || 0} helper="قبل المصروفات" tone="success" formatter={formatCurrency} progress={relativePercent(report?.commercial.grossProfit || 0, overviewValues)} />
-              <ReportMetricCard label="الربح التشغيلي" value={report?.commercial.netOperatingProfit || 0} helper="بعد المصروفات" tone="danger" formatter={formatCurrency} progress={relativePercent(report?.commercial.netOperatingProfit || 0, overviewValues)} />
-            </div>
-          </div>
-          <div className="metric-list reports-metric-list">
-            {executiveRows.map(([metric, value]) => (
-              <div className="metric-row" key={metric}>
-                <span>{metric}</span>
-                <strong>{metric === 'هامش الربح %' ? formatPercent(Number(value || 0)) : formatCurrency(Number(value || 0))}</strong>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
+
+        <div className="reports-executive-layout enhanced-executive-layout reports-executive-wide-layout">
+          <aside className="reports-executive-insight-card reports-executive-wide-card" aria-label="ملخص بصري للتقرير">
+            <div className="reports-executive-insight-copy">
+              <span className="reports-kicker">نبض الفترة</span>
+              <strong>قراءة سريعة لحركة البيع والشراء والربح</strong>
+            </div>
+            <div className="reports-orb-cluster">
+              <div className="reports-balance-orb" style={executiveRingStyle} aria-hidden="true">
+                <div className="reports-balance-orb-core">
+                  <span>هامش الربح</span>
+                  <strong>{formatPercent(Number(report?.commercial.grossMarginPercent || 0))}</strong>
+                </div>
+              </div>
+              <div className="reports-ring-legend">
+                <div className="reports-ring-legend-row">
+                  <span><i className="reports-ring-dot dot-sales" /> صافي البيع</span>
+                  <strong>{executiveSalesShare}%</strong>
+                </div>
+                <div className="reports-ring-legend-row">
+                  <span><i className="reports-ring-dot dot-purchases" /> صافي الشراء</span>
+                  <strong>{executivePurchasesShare}%</strong>
+                </div>
+                <div className="reports-ring-legend-row">
+                  <span><i className="reports-ring-dot dot-profit" /> الربح الإجمالي</span>
+                  <strong>{executiveProfitShare}%</strong>
+                </div>
+              </div>
+            </div>
+            <div className="metric-list reports-metric-list reports-executive-list">
+              {executiveRows.map(([metric, value]) => (
+                <div className="metric-row" key={metric}>
+                  <span>{metric}</span>
+                  <strong>{metric === 'هامش الربح %' ? formatPercent(Number(value || 0)) : formatCurrency(Number(value || 0))}</strong>
+                </div>
+              ))}
+            </div>
+          </aside>
+        </div>
+
       </QueryCard>
 
       <div className="three-column-grid reports-unified-grid">
