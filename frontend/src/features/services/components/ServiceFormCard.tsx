@@ -27,7 +27,8 @@ function buildDefaultValues(service?: ServiceRecord): ServiceFormValues {
     name: service?.name || '',
     amount: Number(service?.amount || 0),
     notes: service?.notes || '',
-    date: (service?.serviceDate || new Date().toISOString()).slice(0, 16)
+    date: (service?.serviceDate || new Date().toISOString()).slice(0, 16),
+    paymentChannel: service?.paymentChannel === 'card' ? 'card' : 'cash'
   };
 }
 
@@ -155,6 +156,13 @@ export function ServiceFormCard({ service, onSaved }: { service?: ServiceRecord;
 
       <Field label="القيمه">
         <input type="number" step="0.01" {...form.register('amount', { valueAsNumber: true })} disabled={mutation.isPending} />
+      </Field>
+
+      <Field label="طريقة التحصيل">
+        <select {...form.register('paymentChannel')} disabled={mutation.isPending}>
+          <option value="cash">نقدي - يدخل الخزينة والدرج</option>
+          <option value="card">فيزا - يظهر في التقارير ولا يدخل درج النقدية</option>
+        </select>
       </Field>
 
       <Field label="التاريخ">

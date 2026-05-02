@@ -5,6 +5,14 @@ export interface ReportSummary {
     count: number;
     total: number;
     netSales: number;
+    invoiceCount?: number;
+    servicesCount?: number;
+    merchandiseTotal?: number;
+    servicesTotal?: number;
+  };
+  services?: {
+    count: number;
+    total: number;
   };
   purchases: {
     count: number;

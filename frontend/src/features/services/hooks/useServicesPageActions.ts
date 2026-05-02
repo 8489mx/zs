@@ -4,11 +4,16 @@ import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { ServiceRecord } from '@/types/domain';
 
+function formatServicePaymentChannel(channel?: string) {
+  return channel === 'card' ? 'فيزا' : 'نقدي';
+}
+
 function printServicesRegister(rows: ServiceRecord[], meta?: { totalItems?: number; totalAmount?: number }) {
   const body = rows.map((row) => `
     <tr>
       <td>${escapeHtml(row.name || '—')}</td>
       <td>${formatCurrency(Number(row.amount || 0))}</td>
+      <td>${escapeHtml(formatServicePaymentChannel(row.paymentChannel))}</td>
       <td>${escapeHtml(row.notes || '—')}</td>
       <td>${escapeHtml(row.createdByName || '—')}</td>
       <td>${escapeHtml(formatDate(row.serviceDate))}</td>
@@ -20,8 +25,8 @@ function printServicesRegister(rows: ServiceRecord[], meta?: { totalItems?: numb
     <h1>سجل الخدمات</h1>
     <div class="meta">عدد الخدمات المطابقة: ${totalItems} · الإجمالي: ${formatCurrency(total)}</div>
     <table>
-      <thead><tr><th>الخدمة</th><th>القيمة</th><th>الملاحظات</th><th>المنفذ</th><th>التاريخ</th></tr></thead>
-      <tbody>${body || '<tr><td colspan="5">لا توجد خدمات</td></tr>'}</tbody>
+      <thead><tr><th>الخدمة</th><th>القيمة</th><th>التحصيل</th><th>الملاحظات</th><th>المنفذ</th><th>التاريخ</th></tr></thead>
+      <tbody>${body || '<tr><td colspan="6">لا توجد خدمات</td></tr>'}</tbody>
     </table>
   `);
 }
@@ -31,9 +36,10 @@ export function useServicesPageActions(params: { search: string; filter: 'all' |
   const exportServices = useCallback(async () => {
     const payload = await servicesApi.listAll({ search, filter });
     const exportRows = payload.services || [];
-    downloadCsvFile('services-register.csv', ['name', 'amount', 'notes', 'createdBy', 'serviceDate'], exportRows.map((row) => [
+    downloadCsvFile('services-register.csv', ['name', 'amount', 'paymentChannel', 'notes', 'createdBy', 'serviceDate'], exportRows.map((row) => [
       row.name,
       row.amount,
+      formatServicePaymentChannel(row.paymentChannel),
       row.notes || '',
       row.createdByName || '',
       row.serviceDate || ''

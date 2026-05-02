@@ -39,10 +39,12 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const closeCardSalesTotal = Number(selectedCloseShift?.cardSalesTotal || 0);
   const closeCreditSalesTotal = Number(selectedCloseShift?.creditSalesTotal || 0);
   const closeShiftSalesTotal = Number(selectedCloseShift?.shiftSalesTotal || 0);
+  const closeServiceCashTotal = Number(selectedCloseShift?.serviceCashTotal || 0);
+  const closeServiceCardTotal = Number(selectedCloseShift?.serviceCardTotal || 0);
   const closeCashDrawerMovementTotal = Number(selectedCloseShift?.cashDrawerMovementTotal || 0);
   const rawCloseSaleReturnCashRefundTotal = Number(selectedCloseShift?.saleReturnCashRefundTotal || 0);
   const inferredCloseSaleReturnCashRefundTotal = selectedCloseShift
-    ? Math.max(0, Number((Number(selectedCloseShift.openingCash || 0) + closeCashSalesTotal + closeCashDrawerMovementTotal - Number(selectedCloseShift.expectedCash || 0)).toFixed(2)))
+    ? Math.max(0, Number((Number(selectedCloseShift.openingCash || 0) + closeCashSalesTotal + closeServiceCashTotal + closeCashDrawerMovementTotal - Number(selectedCloseShift.expectedCash || 0)).toFixed(2)))
     : 0;
   const closeSaleReturnCashRefundTotal = rawCloseSaleReturnCashRefundTotal > 0 ? rawCloseSaleReturnCashRefundTotal : inferredCloseSaleReturnCashRefundTotal;
   const closeSaleReturnCardRefundTotal = Number(selectedCloseShift?.saleReturnCardRefundTotal || 0);
@@ -110,6 +112,18 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 مبيعات فيزا:
                 {' '}<strong>{formatCurrency(closeCardSalesTotal)}</strong>
               </span>
+              {closeServiceCashTotal > 0 ? (
+                <span>
+                  خدمات نقدي:
+                  {' '}<strong>{formatCurrency(closeServiceCashTotal)}</strong>
+                </span>
+              ) : null}
+              {closeServiceCardTotal > 0 ? (
+                <span>
+                  خدمات فيزا:
+                  {' '}<strong>{formatCurrency(closeServiceCardTotal)}</strong>
+                </span>
+              ) : null}
               {closeCreditSalesTotal > 0 ? (
                 <span>
                   مبيعات آجل:
@@ -134,7 +148,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 إجمالي مبيعات الوردية:
                 {' '}<strong>{formatCurrency(closeShiftSalesTotal)}</strong>
               </span>
-              <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات النقدي - مرتجعات النقدي + حركات الدرج فقط. مبيعات الفيزا ومرتجعات الفيزا تظهر للمتابعة ولا تدخل في المبلغ المعدود.</span>
+              <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات النقدي + خدمات النقدي - مرتجعات النقدي + حركات الدرج فقط. مبيعات/خدمات الفيزا ومرتجعات الفيزا تظهر للمتابعة ولا تدخل في المبلغ المعدود.</span>
             </div>
           ) : null}
           <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>

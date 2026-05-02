@@ -34,6 +34,7 @@ function getDisplaySaleReturnCashRefundTotal(row: CashierShift): number {
 
   const inferredTotal = Number(row.openingCash || 0)
     + Number(row.cashSalesTotal || 0)
+    + Number(row.serviceCashTotal || 0)
     + Number(row.cashDrawerMovementTotal || 0)
     - Number(row.expectedCash || 0);
 
@@ -101,6 +102,8 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
             { key: 'opening', header: 'رصيد الفتح', cell: (row: CashierShift) => formatCurrency(row.openingCash) },
             { key: 'cashSales', header: 'مبيعات نقدي', cell: (row: CashierShift) => formatCurrency(row.cashSalesTotal || 0) },
             { key: 'cardSales', header: 'مبيعات فيزا', cell: (row: CashierShift) => formatCurrency(row.cardSalesTotal || 0) },
+            { key: 'serviceCash', header: 'خدمات نقدي', cell: (row: CashierShift) => formatCurrency(row.serviceCashTotal || 0) },
+            { key: 'serviceCard', header: 'خدمات فيزا', cell: (row: CashierShift) => formatCurrency(row.serviceCardTotal || 0) },
             { key: 'saleReturnCash', header: 'مرتجعات نقدي', cell: (row: CashierShift) => formatCurrency(getDisplaySaleReturnCashRefundTotal(row)) },
             { key: 'saleReturnCard', header: 'مرتجعات فيزا', cell: (row: CashierShift) => formatCurrency(row.saleReturnCardRefundTotal || 0) },
             { key: 'salesTotal', header: 'إجمالي المبيعات', cell: (row: CashierShift) => formatCurrency(row.shiftSalesTotal || 0) },

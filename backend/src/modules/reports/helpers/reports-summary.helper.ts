@@ -2,6 +2,7 @@ import { sumMoney, toMoney } from './reports-math.helper';
 
 type SummaryCounts = {
   salesCount: number;
+  servicesCount: number;
   purchasesCount: number;
   expensesCount: number;
   returnsCount: number;
@@ -11,6 +12,7 @@ type SummaryCounts = {
 
 type SummaryTotals = {
   salesTotal: number;
+  servicesTotal: number;
   purchasesTotal: number;
   expensesTotal: number;
   salesReturnsTotal: number;
@@ -69,7 +71,10 @@ export function buildTopProducts(rows: TopProductAccumulatorRow[], limit = 10): 
 
 export function buildCommercialSummary(counts: SummaryCounts, totals: SummaryTotals) {
   const returnsTotal = toMoney(totals.salesReturnsTotal + totals.purchaseReturnsTotal);
-  const netSales = Math.max(0, toMoney(totals.salesTotal - totals.salesReturnsTotal));
+  const merchandiseSalesTotal = toMoney(totals.salesTotal);
+  const servicesTotal = toMoney(totals.servicesTotal);
+  const revenueTotal = toMoney(merchandiseSalesTotal + servicesTotal);
+  const netSales = Math.max(0, toMoney(revenueTotal - totals.salesReturnsTotal));
   const netPurchases = Math.max(0, toMoney(totals.purchasesTotal - totals.purchaseReturnsTotal));
   const grossProfit = toMoney(netSales - totals.cogs);
   const grossMarginPercent = netSales > 0 ? toMoney((grossProfit / netSales) * 100) : 0;
@@ -77,9 +82,17 @@ export function buildCommercialSummary(counts: SummaryCounts, totals: SummaryTot
 
   return {
     sales: {
-      count: counts.salesCount,
-      total: totals.salesTotal,
+      count: counts.salesCount + counts.servicesCount,
+      invoiceCount: counts.salesCount,
+      servicesCount: counts.servicesCount,
+      total: revenueTotal,
+      merchandiseTotal: merchandiseSalesTotal,
+      servicesTotal,
       netSales,
+    },
+    services: {
+      count: counts.servicesCount,
+      total: servicesTotal,
     },
     purchases: {
       count: counts.purchasesCount,
@@ -125,6 +138,7 @@ export function splitReturnRowsByType(rows: SummaryReturnRow[]) {
 
 export function buildReportSummaryPayload(args: {
   salesRows: SummaryMoneyRow[];
+  servicesRows?: SummaryMoneyRow[];
   purchasesRows: SummaryMoneyRow[];
   expensesRows: SummaryExpenseRow[];
   returnsRows: SummaryReturnRow[];
@@ -132,10 +146,11 @@ export function buildReportSummaryPayload(args: {
   saleItemsRows: SummarySaleItemRow[];
   topProductsLimit?: number;
 }) {
-  const { salesRows, purchasesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows, topProductsLimit = 10 } = args;
+  const { salesRows, servicesRows = [], purchasesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows, topProductsLimit = 10 } = args;
   const splitReturns = splitReturnRowsByType(returnsRows);
 
   const salesTotal = sumMoney(salesRows, (row) => row.total);
+  const servicesTotal = sumMoney(servicesRows, (row) => row.total);
   const purchasesTotal = sumMoney(purchasesRows, (row) => row.total);
   const expensesTotal = sumMoney(expensesRows, (row) => row.amount);
   const salesReturnsTotal = sumMoney(splitReturns.sales, (row) => row.total);
@@ -147,6 +162,7 @@ export function buildReportSummaryPayload(args: {
   return {
     ...buildCommercialSummary({
       salesCount: salesRows.length,
+      servicesCount: servicesRows.length,
       purchasesCount: purchasesRows.length,
       expensesCount: expensesRows.length,
       returnsCount: returnsRows.length,
@@ -154,6 +170,7 @@ export function buildReportSummaryPayload(args: {
       purchaseReturnCount: splitReturns.purchases.length,
     }, {
       salesTotal,
+      servicesTotal,
       purchasesTotal,
       expensesTotal,
       salesReturnsTotal,

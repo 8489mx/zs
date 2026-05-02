@@ -21,6 +21,11 @@ export interface ServiceRecord {
   amount: number;
   notes: string;
   serviceDate: string;
+  paymentChannel?: 'cash' | 'card' | string;
+  branchId?: string;
+  branchName?: string;
+  locationId?: string;
+  locationName?: string;
   createdByName?: string;
 }
 
@@ -49,6 +54,9 @@ export interface CashierShift {
   saleCount?: number;
   mixedSalesCount?: number;
   cashDrawerMovementTotal?: number;
+  serviceCashTotal?: number;
+  serviceCardTotal?: number;
+  serviceTotal?: number;
   saleReturnCashRefundTotal?: number;
   saleReturnCardRefundTotal?: number;
   saleReturnTotal?: number;

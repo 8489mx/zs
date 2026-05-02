@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsNumber, IsObject, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsDateString, IsIn, IsNumber, IsObject, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 class ServicePayloadDto {
   @IsString()
@@ -16,6 +16,10 @@ class ServicePayloadDto {
 
   @IsDateString()
   date!: string;
+
+  @IsOptional()
+  @IsIn(['cash', 'card'])
+  paymentChannel?: 'cash' | 'card';
 }
 
 export class UpsertServiceDto {
