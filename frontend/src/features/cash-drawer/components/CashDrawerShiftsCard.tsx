@@ -89,6 +89,8 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
             { key: 'opening', header: 'رصيد الفتح', cell: (row: CashierShift) => formatCurrency(row.openingCash) },
             { key: 'cashSales', header: 'مبيعات نقدي', cell: (row: CashierShift) => formatCurrency(row.cashSalesTotal || 0) },
             { key: 'cardSales', header: 'مبيعات فيزا', cell: (row: CashierShift) => formatCurrency(row.cardSalesTotal || 0) },
+            { key: 'saleReturnCash', header: 'مرتجعات نقدي', cell: (row: CashierShift) => formatCurrency(row.saleReturnCashRefundTotal || 0) },
+            { key: 'saleReturnCard', header: 'مرتجعات فيزا', cell: (row: CashierShift) => formatCurrency(row.saleReturnCardRefundTotal || 0) },
             { key: 'salesTotal', header: 'إجمالي المبيعات', cell: (row: CashierShift) => formatCurrency(row.shiftSalesTotal || 0) },
             { key: 'expected', header: 'نقدية متوقعة', cell: (row: CashierShift) => formatCurrency(row.expectedCash) },
             { key: 'counted', header: 'المعدود', cell: (row: CashierShift) => formatCurrency(row.countedCash || 0) },

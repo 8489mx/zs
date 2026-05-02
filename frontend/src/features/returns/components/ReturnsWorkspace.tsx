@@ -25,6 +25,7 @@ import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 export function ReturnsWorkspace() {
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState<'all' | 'sales' | 'purchase' | 'today'>('all');
+  const [employeeFilter, setEmployeeFilter] = useState('');
   const [selectedReturnId, setSelectedReturnId] = useState('');
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [confirmReturn, setConfirmReturn] = useState(false);
@@ -33,7 +34,7 @@ export function ReturnsWorkspace() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const query = useReturnsPage({ page, pageSize, search, filter: viewFilter });
+  const query = useReturnsPage({ page, pageSize, search, filter: viewFilter, employee: employeeFilter });
   const salesQuery = useQuery({ queryKey: ['sales'], queryFn: catalogApi.listSales });
   const purchasesQuery = useQuery({ queryKey: ['purchases'], queryFn: catalogApi.listPurchases });
   const queryClient = useQueryClient();
@@ -45,7 +46,21 @@ export function ReturnsWorkspace() {
   ), [form.type, purchasesQuery.data, salesQuery.data]);
 
   const selectedInvoice = invoiceRows.find((row) => String(row.id) === String(form.invoiceId)) as Sale | Purchase | undefined;
+  const rows = useMemo(() => query.data?.returns || [], [query.data?.returns]);
   const invoiceItems = useMemo(() => (selectedInvoice?.items || []) as Array<SaleItem | PurchaseItem>, [selectedInvoice?.items]);
+  const returnedQtyByProduct = useMemo(() => {
+    if (!selectedInvoice) return {};
+    const selectedInvoiceId = String(selectedInvoice.id);
+    const selectedType = form.type;
+    return rows
+      .filter((row) => String(row.invoiceId || '') === selectedInvoiceId && String(row.returnType || 'sale') === selectedType)
+      .reduce<Record<string, number>>((acc, row) => {
+        const productId = String(row.productId || '');
+        if (!productId) return acc;
+        acc[productId] = Number(acc[productId] || 0) + Number(row.qty || 0);
+        return acc;
+      }, {});
+  }, [form.type, rows, selectedInvoice]);
   const settlementNeedsRefundMethod = form.settlementMode === 'refund';
   const canUseCreditSettlement = form.type === 'sale' && Boolean(selectedInvoice && 'customerId' in selectedInvoice && selectedInvoice.customerId);
 
@@ -62,7 +77,6 @@ export function ReturnsWorkspace() {
   const selectedQtyTotal = selectedReturnItems.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
   const expectedReturnValue = selectedReturnItems.reduce((sum, entry) => sum + Number(entry.lineTotal || 0), 0);
 
-  const rows = useMemo(() => query.data?.returns || [], [query.data?.returns]);
   const summary = query.data?.summary;
   const salesReturns = Number(summary?.salesReturns || 0);
   const purchaseReturns = Number(summary?.purchaseReturns || 0);
@@ -97,6 +111,7 @@ export function ReturnsWorkspace() {
   const resetReturnsView = () => {
     setSearch('');
     setViewFilter('all');
+    setEmployeeFilter('');
     setSelectedReturnId('');
     setPage(1);
   };
@@ -129,6 +144,14 @@ export function ReturnsWorkspace() {
   };
 
   const setItemQty = (productId: string, value: string) => {
+    const alreadyReturnedQty = Number(returnedQtyByProduct[productId] || 0);
+    const invoiceItem = invoiceItems.find((item) => String(item.productId || '') === String(productId));
+    const remainingQty = Math.max(0, Number(invoiceItem?.qty || 0) - alreadyReturnedQty);
+    const requestedQty = Number(value || 0);
+    if (requestedQty > remainingQty) {
+      setSelectedItems((current) => ({ ...current, [productId]: String(remainingQty) }));
+      return;
+    }
     setSelectedItems((current) => ({ ...current, [productId]: value }));
   };
 
@@ -169,7 +192,7 @@ export function ReturnsWorkspace() {
   };
 
   const printReturns = async () => {
-    const payload = await returnsApi.listAll({ search, filter: viewFilter });
+    const payload = await returnsApi.listAll({ search, filter: viewFilter, employee: employeeFilter });
     printReturnsRegister(payload.returns || [], { totalItems: payload.summary?.totalItems, totalAmount: payload.summary?.totalAmount });
   };
 
@@ -208,6 +231,8 @@ export function ReturnsWorkspace() {
         onSearchChange={handleRegisterSearchChange}
         onReset={resetReturnsView}
         onFilterChange={handleFilterChange}
+        employeeFilter={employeeFilter}
+        onEmployeeFilterChange={(value) => { setEmployeeFilter(value); setPage(1); }}
         onSelectReturn={setSelectedReturnId}
         onPrintReturn={printReturnRecord}
         onPageChange={setPage}
@@ -233,6 +258,7 @@ export function ReturnsWorkspace() {
           onToggleItem={toggleItem}
           onSetItemQty={setItemQty}
           onOpenConfirm={() => setConfirmReturn(true)}
+          returnedQtyByProduct={returnedQtyByProduct}
         />
 
         <div className="returns-side-stack">
@@ -257,15 +283,14 @@ export function ReturnsWorkspace() {
         description={selectedInvoice ? `سيتم إنشاء مرتجع على الفاتورة ${selectedInvoice.docNo || selectedInvoice.id} بعدد ${selectedItemsCount} بند بقيمة متوقعة ${formatCurrency(expectedReturnValue)}.` : 'راجع البيانات قبل حفظ المرتجع.'}
         confirmLabel={form.type === 'sale' ? 'تسجيل مرتجع البيع' : 'تسجيل مرتجع الشراء'}
         confirmVariant="danger"
-        confirmationKeyword="مرتجع"
-        confirmationLabel="اكتب كلمة مرتجع للتأكيد"
-        confirmationHint="المرتجع يؤثر على المخزون والحسابات، لذلك يحتاج تأكيدًا صريحًا."
         managerPinRequired
-        managerPinHint="هذه العملية تحتاج موافقة المدير."
+        managerPinLabel="كلمة مرور المستخدم"
+        managerPinHint="أدخل كلمة مرور المستخدم الحالي لتأكيد العملية."
         reasonRequired
         reasonLabel="سبب المرتجع"
-        reasonPlaceholder="اكتب سببًا واضحًا للمرتجع"
+        reasonPlaceholder="اكتب سبب المرتجع"
         reasonHint="هذا السبب سيظهر في السجل ويُستخدم للمراجعة لاحقًا."
+        minReasonLength={1}
         isBusy={createMutation.isPending}
         onCancel={() => setConfirmReturn(false)}
         onConfirm={({ managerPin, reason }) => void createMutation.mutate({ managerPin, reason })}

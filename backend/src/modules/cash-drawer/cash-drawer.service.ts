@@ -20,6 +20,9 @@ type ShiftRow = {
   sale_count?: number | string | null;
   mixed_sale_count?: number | string | null;
   cash_drawer_movement_total?: number | string | null;
+  sale_return_cash_refund_total?: number | string | null;
+  sale_return_card_refund_total?: number | string | null;
+  sale_return_total?: number | string | null;
   opening_cash?: number | string | null;
   opening_note?: string | null;
   status?: string | null;
@@ -64,6 +67,18 @@ type ShiftSalesBreakdownRow = {
 };
 
 type CashDrawerMovementRow = { cash_drawer_movement_total?: number | string | null };
+
+type ShiftSaleReturnTotals = {
+  saleReturnCashRefundTotal: number;
+  saleReturnCardRefundTotal: number;
+  saleReturnTotal: number;
+};
+
+type ShiftSaleReturnTotalsRow = {
+  sale_return_cash_refund_total?: number | string | null;
+  sale_return_card_refund_total?: number | string | null;
+  sale_return_total?: number | string | null;
+};
 
 @Injectable()
 export class CashDrawerService {
@@ -147,6 +162,7 @@ export class CashDrawerService {
       from treasury_transactions tt
       where tt.reference_type = 'cashier_shift'
         and tt.reference_id = ${shiftId}
+        and tt.return_document_id is null
     `.execute(this.db);
 
     return this.toMoney(result.rows?.[0]?.cash_drawer_movement_total || 0);
@@ -212,13 +228,43 @@ export class CashDrawerService {
     };
   }
 
+
+  private async computeShiftSaleReturnTotals(shift: ShiftRow): Promise<ShiftSaleReturnTotals> {
+    const openerId = Number(shift.opened_by || 0);
+    if (!(openerId > 0) || !shift.created_at) {
+      return { saleReturnCashRefundTotal: 0, saleReturnCardRefundTotal: 0, saleReturnTotal: 0 };
+    }
+
+    const result = await sql<ShiftSaleReturnTotalsRow>`
+      select
+        coalesce(sum(case when rd.refund_method = 'cash' then rd.total else 0 end), 0) as sale_return_cash_refund_total,
+        coalesce(sum(case when rd.refund_method = 'card' then rd.total else 0 end), 0) as sale_return_card_refund_total,
+        coalesce(sum(rd.total), 0) as sale_return_total
+      from return_documents rd
+      where rd.return_type = 'sale'
+        and rd.created_by = ${openerId}
+        and rd.created_at >= ${shift.created_at}
+        and (${shift.closed_at || null}::timestamptz is null or rd.created_at <= ${shift.closed_at || null})
+        and (${shift.branch_id || null}::int is null or rd.branch_id is null or rd.branch_id = ${Number(shift.branch_id || 0) || null})
+        and (${shift.location_id || null}::int is null or rd.location_id is null or rd.location_id = ${Number(shift.location_id || 0) || null})
+    `.execute(this.db);
+
+    const row = result.rows?.[0] || {};
+    return {
+      saleReturnCashRefundTotal: this.toMoney(row.sale_return_cash_refund_total || 0),
+      saleReturnCardRefundTotal: this.toMoney(row.sale_return_card_refund_total || 0),
+      saleReturnTotal: this.toMoney(row.sale_return_total || 0),
+    };
+  }
+
   private async computeShiftExpectedCashFromShift(shift: ShiftRow, salesBreakdown?: ShiftSalesBreakdown): Promise<number> {
     const shiftId = Number(shift.id || 0);
     if (!(shiftId > 0)) return this.toMoney(shift.opening_cash || 0);
 
     const cashDrawerMovementTotal = await this.computeShiftCashDrawerMovementTotal(shiftId);
     const breakdown = salesBreakdown || await this.computeShiftSalesBreakdown(shift);
-    return this.toMoney(Number(shift.opening_cash || 0) + cashDrawerMovementTotal + breakdown.cashSalesTotal);
+    const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift);
+    return this.toMoney(Number(shift.opening_cash || 0) + cashDrawerMovementTotal + breakdown.cashSalesTotal - saleReturnTotals.saleReturnCashRefundTotal);
   }
 
   private async hydrateShiftRow(row: ShiftRow): Promise<ShiftRow> {
@@ -227,8 +273,9 @@ export class CashDrawerService {
 
     const salesBreakdown = await this.computeShiftSalesBreakdown(row);
     const cashDrawerMovementTotal = await this.computeShiftCashDrawerMovementTotal(shiftId);
+    const saleReturnTotals = await this.computeShiftSaleReturnTotals(row);
     const expectedCash = String(row.status || 'open') === 'open'
-      ? this.toMoney(Number(row.opening_cash || 0) + cashDrawerMovementTotal + salesBreakdown.cashSalesTotal)
+      ? this.toMoney(Number(row.opening_cash || 0) + cashDrawerMovementTotal + salesBreakdown.cashSalesTotal - saleReturnTotals.saleReturnCashRefundTotal)
       : Number(row.expected_cash || 0);
 
     return {
@@ -241,6 +288,9 @@ export class CashDrawerService {
       sale_count: salesBreakdown.saleCount,
       mixed_sale_count: salesBreakdown.mixedSalesCount,
       cash_drawer_movement_total: cashDrawerMovementTotal,
+      sale_return_cash_refund_total: saleReturnTotals.saleReturnCashRefundTotal,
+      sale_return_card_refund_total: saleReturnTotals.saleReturnCardRefundTotal,
+      sale_return_total: saleReturnTotals.saleReturnTotal,
     };
   }
 

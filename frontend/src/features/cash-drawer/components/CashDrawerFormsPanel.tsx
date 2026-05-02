@@ -40,6 +40,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const closeCreditSalesTotal = Number(selectedCloseShift?.creditSalesTotal || 0);
   const closeShiftSalesTotal = Number(selectedCloseShift?.shiftSalesTotal || 0);
   const closeCashDrawerMovementTotal = Number(selectedCloseShift?.cashDrawerMovementTotal || 0);
+  const closeSaleReturnCashRefundTotal = Number(selectedCloseShift?.saleReturnCashRefundTotal || 0);
+  const closeSaleReturnCardRefundTotal = Number(selectedCloseShift?.saleReturnCardRefundTotal || 0);
 
   return (
     <div className="three-column-grid panel-grid cash-drawer-forms-grid">
@@ -110,6 +112,18 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   {' '}<strong>{formatCurrency(closeCreditSalesTotal)}</strong>
                 </span>
               ) : null}
+              {closeSaleReturnCashRefundTotal > 0 ? (
+                <span>
+                  مرتجعات نقدي:
+                  {' '}<strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong>
+                </span>
+              ) : null}
+              {closeSaleReturnCardRefundTotal > 0 ? (
+                <span>
+                  مرتجعات فيزا:
+                  {' '}<strong>{formatCurrency(closeSaleReturnCardRefundTotal)}</strong>
+                </span>
+              ) : null}
               <span>
                 حركات الدرج:
                 {' '}<strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong>
@@ -118,7 +132,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 إجمالي مبيعات الوردية:
                 {' '}<strong>{formatCurrency(closeShiftSalesTotal)}</strong>
               </span>
-              <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات النقدي + حركات الدرج فقط. مبيعات الفيزا تظهر للمتابعة ولا تدخل في المبلغ المعدود.</span>
+              <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات النقدي - مرتجعات النقدي + حركات الدرج فقط. مبيعات الفيزا ومرتجعات الفيزا تظهر للمتابعة ولا تدخل في المبلغ المعدود.</span>
             </div>
           ) : null}
           <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>

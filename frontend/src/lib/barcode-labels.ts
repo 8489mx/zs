@@ -59,6 +59,14 @@ export function resolveBarcodeUnit(product: Product, requestedUnit?: ProductUnit
   return requestedUnit || units.find((unit) => unit.isBaseUnit) || units[0];
 }
 
+function getBarcodeLabelNameFontSize(productName: string, preset: BarcodePrintPreset, compact = false) {
+  const length = Array.from(String(productName || '')).length;
+  const base = compact || preset.maxLabelsPerPage >= 65 ? 8.2 : preset.maxLabelsPerPage >= 48 ? 9 : 10.5;
+  const widthPenalty = Math.max(0, length - Math.floor(preset.labelWidthMm / 2.4)) * 0.18;
+  const heightPenalty = preset.labelHeightMm < 23 ? 0.8 : 0;
+  return Math.max(5.8, Math.min(base, base - widthPenalty - heightPenalty));
+}
+
 export function getBarcodeCardData(product: Product, unit?: ProductUnit | null) {
   const effectiveUnit = resolveBarcodeUnit(product, unit);
   const barcode = normalizeCode128Value(effectiveUnit?.barcode || product.barcode);
@@ -73,12 +81,13 @@ export function getBarcodeCardData(product: Product, unit?: ProductUnit | null) 
   };
 }
 
-function buildSingleLabelHtml(product: Product, unit?: ProductUnit | null, compact = false) {
+function buildSingleLabelHtml(product: Product, unit: ProductUnit | null | undefined, preset: BarcodePrintPreset, compact = false) {
   const card = getBarcodeCardData(product, unit);
+  const productName = String(product.name || '-').trim() || '-';
+  const nameFontSize = getBarcodeLabelNameFontSize(productName, preset, compact);
   return `
     <div class="barcode-label-card ${compact ? 'compact' : ''}">
-      <div class="barcode-label-name">${escapeHtml(product.name || '-')}</div>
-      <div class="barcode-label-unit">${escapeHtml(card.unit?.name || 'قطعة')}</div>
+      <div class="barcode-label-name" style="font-size:${nameFontSize.toFixed(1)}px" title="${escapeHtml(productName)}">${escapeHtml(productName)}</div>
       <div class="barcode-label-svg">${card.barcodeSvg || '<div class="barcode-label-missing">بدون باركود</div>'}</div>
       <div class="barcode-label-text">${escapeHtml(card.barcode || '—')}</div>
       <div class="barcode-label-price">${escapeHtml(card.priceText)}</div>
@@ -89,7 +98,7 @@ function buildSingleLabelHtml(product: Product, unit?: ProductUnit | null, compa
 export function buildBarcodePreviewHtml(options: { product: Product; unit?: ProductUnit | null; presetId: string; labelsPerPage?: number }) {
   const preset = getBarcodePrintPreset(options.presetId);
   const labelsPerPage = Math.max(1, Math.min(Number(options.labelsPerPage || preset.maxLabelsPerPage), preset.maxLabelsPerPage));
-  const previewItems = Array.from({ length: labelsPerPage }, () => buildSingleLabelHtml(options.product, options.unit, preset.family === 'thermal')).join('');
+  const previewItems = Array.from({ length: labelsPerPage }, () => buildSingleLabelHtml(options.product, options.unit, preset, preset.family === 'thermal')).join('');
   return `
     <div class="barcode-preview-sheet barcode-preview-sheet-${preset.family}" style="padding:${preset.marginMm}mm;gap:${preset.gapMm}mm;grid-template-columns:repeat(${preset.family === 'sheet' ? preset.columns : 1}, minmax(0, 1fr));">
       ${previewItems}
@@ -106,7 +115,7 @@ export function printProductBarcodeLabels(product: Product, unit: ProductUnit | 
   const pageHtml = Array.from({ length: pages }, (_, pageIndex) => {
     const start = pageIndex * perPage;
     const count = Math.min(perPage, copies - start);
-    const labels = Array.from({ length: count }, () => buildSingleLabelHtml(product, unit, preset.family === 'thermal')).join('');
+    const labels = Array.from({ length: count }, () => buildSingleLabelHtml(product, unit, preset, preset.family === 'thermal')).join('');
     return `
       <section class="barcode-print-page ${pageIndex < pages - 1 ? 'page-break' : ''}">
         <div class="barcode-print-grid barcode-print-grid-${preset.family}" style="padding:${preset.marginMm}mm;gap:${preset.gapMm}mm;grid-template-columns:repeat(${preset.family === 'sheet' ? preset.columns : 1}, minmax(0, 1fr));">
@@ -126,18 +135,21 @@ export function printProductBarcodeLabels(product: Product, unit: ProductUnit | 
     orientation: 'portrait',
     extraStyles: `
       ${thermalPageRule}
+      @page { size: ${preset.family === 'sheet' ? 'A4 portrait' : `${preset.pageWidthMm || preset.labelWidthMm}mm auto`}; margin: 0; }
+      .print-header{display:none!important;}
+      .print-shell{padding:0!important;}
+      .print-content{gap:0!important;}
       .barcode-print-page{width:100%;}
       .barcode-print-page.page-break{page-break-after:always;break-after:page;}
-      .barcode-print-grid{display:grid;align-items:stretch;}
-      .barcode-label-card{border:1px dashed #94a3b8;border-radius:10px;padding:2.5mm;text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:${preset.labelHeightMm}mm;height:${preset.labelHeightMm}mm;background:#fff;overflow:hidden;}
-      .barcode-label-card.compact{padding:2mm;}
-      .barcode-label-name{font-size:12px;font-weight:700;line-height:1.25;max-height:2.6em;overflow:hidden;}
-      .barcode-label-unit{font-size:11px;color:#475569;margin-top:1mm;}
-      .barcode-label-svg{margin:1.5mm 0;height:${Math.max(12, preset.labelHeightMm * 0.38)}mm;display:flex;align-items:center;justify-content:center;}
+      .barcode-print-grid{display:grid;align-items:stretch;width:100%;}
+      .barcode-label-card{border:1px dashed #94a3b8;border-radius:8px;padding:1.6mm 2mm;text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:${preset.labelHeightMm}mm;height:${preset.labelHeightMm}mm;background:#fff;overflow:hidden;}
+      .barcode-label-card.compact{padding:1.4mm 1.8mm;}
+      .barcode-label-name{font-weight:800;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;direction:rtl;margin-bottom:.8mm;}
+      .barcode-label-svg{margin:.6mm 0 .7mm;height:${Math.max(9, preset.labelHeightMm * 0.42)}mm;display:flex;align-items:center;justify-content:center;min-height:8mm;}
       .barcode-label-svg svg{width:100%;height:100%;display:block;}
-      .barcode-label-text{font-size:11px;font-weight:700;direction:ltr;letter-spacing:.7px;}
-      .barcode-label-price{font-size:11px;font-weight:700;margin-top:1mm;}
-      .barcode-label-missing{font-size:11px;color:#b91c1c;display:flex;align-items:center;justify-content:center;height:100%;}
+      .barcode-label-text{font-size:${preset.maxLabelsPerPage >= 65 ? 8.6 : preset.maxLabelsPerPage >= 48 ? 9.2 : 10.5}px;font-weight:800;direction:ltr;letter-spacing:.35px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:clip;}
+      .barcode-label-price{font-size:${preset.maxLabelsPerPage >= 65 ? 8.8 : preset.maxLabelsPerPage >= 48 ? 9.4 : 10.5}px;font-weight:800;margin-top:.5mm;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .barcode-label-missing{font-size:10px;color:#b91c1c;display:flex;align-items:center;justify-content:center;height:100%;}
     `,
   });
 }

@@ -16,6 +16,9 @@ type CashDrawerShiftSource = {
   sale_count?: number | string | null;
   mixed_sale_count?: number | string | null;
   cash_drawer_movement_total?: number | string | null;
+  sale_return_cash_refund_total?: number | string | null;
+  sale_return_card_refund_total?: number | string | null;
+  sale_return_total?: number | string | null;
   opening_cash?: number | string | null;
   opening_note?: string | null;
   status?: string | null;
@@ -98,6 +101,9 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
     saleCount: Number(row.sale_count || 0),
     mixedSalesCount: Number(row.mixed_sale_count || 0),
     cashDrawerMovementTotal: Number(row.cash_drawer_movement_total || 0),
+    saleReturnCashRefundTotal: Number(row.sale_return_cash_refund_total || 0),
+    saleReturnCardRefundTotal: Number(row.sale_return_card_refund_total || 0),
+    saleReturnTotal: Number(row.sale_return_total || 0),
     openingCash: Number(row.opening_cash || 0),
     openingNote: row.opening_note || '',
     status: row.status || 'open',

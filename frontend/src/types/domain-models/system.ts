@@ -49,6 +49,9 @@ export interface CashierShift {
   saleCount?: number;
   mixedSalesCount?: number;
   cashDrawerMovementTotal?: number;
+  saleReturnCashRefundTotal?: number;
+  saleReturnCardRefundTotal?: number;
+  saleReturnTotal?: number;
   variance: number;
   openingNote?: string;
   closeNote?: string;

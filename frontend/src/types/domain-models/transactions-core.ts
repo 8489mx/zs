@@ -92,4 +92,6 @@ export interface ReturnRecord {
   date?: string;
   settlementMode?: string;
   refundMethod?: string;
+  createdBy?: string;
+  createdByName?: string;
 }

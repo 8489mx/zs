@@ -25,6 +25,7 @@ type Props = {
   onToggleItem: (productId: string, checked: boolean) => void;
   onSetItemQty: (productId: string, value: string) => void;
   onOpenConfirm: () => void;
+  returnedQtyByProduct?: Record<string, number>;
 };
 
 export function ReturnsCreateCard(props: Props) {
@@ -46,6 +47,7 @@ export function ReturnsCreateCard(props: Props) {
     onToggleItem,
     onSetItemQty,
     onOpenConfirm,
+    returnedQtyByProduct = {},
   } = props;
 
   return (
@@ -90,6 +92,7 @@ export function ReturnsCreateCard(props: Props) {
           selectedItems={selectedItems}
           onToggleItem={onToggleItem}
           onSetItemQty={onSetItemQty}
+          returnedQtyByProduct={returnedQtyByProduct}
         />
         <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر حفظ المرتجع" successText="تم حفظ المرتجع بنجاح." />
         <div className="actions">

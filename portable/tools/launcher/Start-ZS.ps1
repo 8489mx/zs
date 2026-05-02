@@ -221,7 +221,7 @@ try {
     -Paths $paths `
     -Name 'frontend'
 
-  $backendReady = Wait-HttpReady -Url $backendHealthUrl -TimeoutSeconds 30
+  $backendReady = Wait-HttpReady -Url $backendHealthUrl -TimeoutSeconds 180
   if (-not $backendReady) {
     if (-not (Test-ProcessAlive -ProcessId $backendProc.Id)) {
       throw 'Backend process exited immediately after launch.'
@@ -230,7 +230,7 @@ try {
     throw 'Backend process did not become ready within timeout.'
   }
 
-  $frontendReady = Wait-HttpReady -Url $frontendHealthUrl -TimeoutSeconds 30
+  $frontendReady = Wait-HttpReady -Url $frontendHealthUrl -TimeoutSeconds 90
   if (-not $frontendReady) {
     if (-not (Test-ProcessAlive -ProcessId $frontendProc.Id)) {
       throw 'Frontend process exited immediately after launch.'

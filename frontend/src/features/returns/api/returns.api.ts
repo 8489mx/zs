@@ -8,6 +8,7 @@ export interface ReturnsListParams {
   pageSize?: number;
   search?: string;
   filter?: 'all' | 'sales' | 'purchase' | 'today';
+  employee?: string;
 }
 
 export interface ReturnsListResponse {

@@ -59,3 +59,25 @@
     padding: 14px;
   }
 }
+
+/* Comfortable spacing for DialogShell screens that render page content directly.
+   Fixes Arabic title clipping in dialogs such as the product offers window
+   without adding double padding to dialogs already wrapped in .dialog-card. */
+.dialog-shell > .page-stack {
+  padding: 20px;
+}
+
+.dialog-shell .section-title h3 {
+  line-height: 1.45;
+  padding-block: 2px;
+}
+
+.dialog-shell .section-description {
+  line-height: 1.75;
+}
+
+@media (max-width: 640px) {
+  .dialog-shell > .page-stack {
+    padding: 16px;
+  }
+}
