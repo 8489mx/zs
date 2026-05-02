@@ -28,6 +28,18 @@ interface CashDrawerShiftsCardProps {
   onPageSizeChange: (value: number) => void;
 }
 
+function getDisplaySaleReturnCashRefundTotal(row: CashierShift): number {
+  const rawTotal = Number(row.saleReturnCashRefundTotal || 0);
+  if (rawTotal > 0) return rawTotal;
+
+  const inferredTotal = Number(row.openingCash || 0)
+    + Number(row.cashSalesTotal || 0)
+    + Number(row.cashDrawerMovementTotal || 0)
+    - Number(row.expectedCash || 0);
+
+  return Math.max(0, Number(inferredTotal.toFixed(2)));
+}
+
 export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
   return (
     <Card
@@ -89,7 +101,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
             { key: 'opening', header: 'رصيد الفتح', cell: (row: CashierShift) => formatCurrency(row.openingCash) },
             { key: 'cashSales', header: 'مبيعات نقدي', cell: (row: CashierShift) => formatCurrency(row.cashSalesTotal || 0) },
             { key: 'cardSales', header: 'مبيعات فيزا', cell: (row: CashierShift) => formatCurrency(row.cardSalesTotal || 0) },
-            { key: 'saleReturnCash', header: 'مرتجعات نقدي', cell: (row: CashierShift) => formatCurrency(row.saleReturnCashRefundTotal || 0) },
+            { key: 'saleReturnCash', header: 'مرتجعات نقدي', cell: (row: CashierShift) => formatCurrency(getDisplaySaleReturnCashRefundTotal(row)) },
             { key: 'saleReturnCard', header: 'مرتجعات فيزا', cell: (row: CashierShift) => formatCurrency(row.saleReturnCardRefundTotal || 0) },
             { key: 'salesTotal', header: 'إجمالي المبيعات', cell: (row: CashierShift) => formatCurrency(row.shiftSalesTotal || 0) },
             { key: 'expected', header: 'نقدية متوقعة', cell: (row: CashierShift) => formatCurrency(row.expectedCash) },

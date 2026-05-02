@@ -40,7 +40,11 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const closeCreditSalesTotal = Number(selectedCloseShift?.creditSalesTotal || 0);
   const closeShiftSalesTotal = Number(selectedCloseShift?.shiftSalesTotal || 0);
   const closeCashDrawerMovementTotal = Number(selectedCloseShift?.cashDrawerMovementTotal || 0);
-  const closeSaleReturnCashRefundTotal = Number(selectedCloseShift?.saleReturnCashRefundTotal || 0);
+  const rawCloseSaleReturnCashRefundTotal = Number(selectedCloseShift?.saleReturnCashRefundTotal || 0);
+  const inferredCloseSaleReturnCashRefundTotal = selectedCloseShift
+    ? Math.max(0, Number((Number(selectedCloseShift.openingCash || 0) + closeCashSalesTotal + closeCashDrawerMovementTotal - Number(selectedCloseShift.expectedCash || 0)).toFixed(2)))
+    : 0;
+  const closeSaleReturnCashRefundTotal = rawCloseSaleReturnCashRefundTotal > 0 ? rawCloseSaleReturnCashRefundTotal : inferredCloseSaleReturnCashRefundTotal;
   const closeSaleReturnCardRefundTotal = Number(selectedCloseShift?.saleReturnCardRefundTotal || 0);
 
   return (
@@ -112,12 +116,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   {' '}<strong>{formatCurrency(closeCreditSalesTotal)}</strong>
                 </span>
               ) : null}
-              {closeSaleReturnCashRefundTotal > 0 ? (
-                <span>
-                  مرتجعات نقدي:
-                  {' '}<strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong>
-                </span>
-              ) : null}
+              <span>
+                مرتجعات نقدي:
+                {' '}<strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong>
+              </span>
               {closeSaleReturnCardRefundTotal > 0 ? (
                 <span>
                   مرتجعات فيزا:
