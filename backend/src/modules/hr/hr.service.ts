@@ -432,9 +432,24 @@ export class HrService {
     requireTenantScope(auth);
     const employeeId = toId(query.employeeId);
     const result = await sql<Record<string, unknown>>`
-      SELECT l.*, e.display_name AS employee_name
+      SELECT
+        l.*,
+        e.display_name AS employee_name,
+        latest_paid.latest_paid_at,
+        to_char(l.issue_date, 'YYYY-MM-DD') AS issue_date_text,
+        to_char(l.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
+        to_char(l.updated_at, 'YYYY-MM-DD HH24:MI') AS updated_at_text,
+        to_char(l.approved_at, 'YYYY-MM-DD HH24:MI') AS approved_at_text,
+        to_char(l.disbursed_at, 'YYYY-MM-DD HH24:MI') AS disbursed_at_text,
+        to_char(latest_paid.latest_paid_at, 'YYYY-MM-DD HH24:MI') AS paid_at_text
       FROM hr_employee_loans l
       JOIN hr_employees e ON e.id = l.employee_id
+      LEFT JOIN (
+        SELECT loan_id, MAX(paid_at) AS latest_paid_at
+        FROM hr_employee_loan_installments
+        WHERE paid_at IS NOT NULL
+        GROUP BY loan_id
+      ) latest_paid ON latest_paid.loan_id = l.id
       WHERE (${employeeId}::BIGINT IS NULL OR l.employee_id = ${employeeId})
       ORDER BY l.id DESC
     `.execute(this.db);
@@ -452,14 +467,14 @@ export class HrService {
       repaymentMode: clean(row.repayment_mode) || 'manual_cash',
       monthlyInstallmentAmount: row.monthly_installment_amount ? Number(row.monthly_installment_amount) : null,
       status: clean(row.status),
-      issueDate: String(row.issue_date).slice(0, 10),
+      issueDate: clean(row.issue_date_text) || String(row.issue_date).slice(0, 10),
       firstDueDate: row.first_due_date ? String(row.first_due_date).slice(0, 10) : '',
       salaryDueDate: row.salary_due_date ? String(row.salary_due_date).slice(0, 10) : '',
-      createdAt: row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '',
-      updatedAt: row.updated_at ? String(row.updated_at).replace('T', ' ').slice(0, 16) : '',
-      approvedAt: row.approved_at ? String(row.approved_at).replace('T', ' ').slice(0, 16) : '',
-      disbursedAt: row.disbursed_at ? String(row.disbursed_at).replace('T', ' ').slice(0, 16) : '',
-      paidAt: row.paid_at ? String(row.paid_at).replace('T', ' ').slice(0, 16) : '',
+      createdAt: clean(row.created_at_text),
+      updatedAt: clean(row.updated_at_text),
+      approvedAt: clean(row.approved_at_text),
+      disbursedAt: clean(row.disbursed_at_text),
+      paidAt: clean(row.paid_at_text),
       branchId: row.branch_id ? String(row.branch_id) : '',
       locationId: row.location_id ? String(row.location_id) : '',
       notes: clean(row.notes),
@@ -632,114 +647,200 @@ export class HrService {
     if (!employeeId) throw new AppError('Employee is required', 'HR_WITHDRAWALS_EMPLOYEE_REQUIRED', 400);
 
     const period = clean(query.period) || 'current_month';
-    const month = clean(query.month);
-    const from = clean(query.from);
-    const to = clean(query.to);
+    const requestedMonth = clean(query.month);
+    const customFrom = normalizeDateOnly(query.from);
+    const customTo = normalizeDateOnly(query.to);
+
     const employeeResult = await sql<{ hire_date_text: string | null; display_name: string }>`
-      SELECT to_char(hire_date, 'YYYY-MM-DD') AS hire_date_text, display_name FROM hr_employees WHERE id = ${employeeId} LIMIT 1
+      SELECT to_char(hire_date, 'YYYY-MM-DD') AS hire_date_text, display_name
+      FROM hr_employees
+      WHERE id = ${employeeId}
+      LIMIT 1
     `.execute(this.db);
     const employee = employeeResult.rows[0];
     if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
 
     const now = new Date();
-    let rangeFrom = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    let rangeTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-    if (period === 'month' && month) {
-      rangeFrom = `${month.slice(0, 7)}-01`;
-      const monthDate = new Date(`${rangeFrom}T00:00:00`);
-      rangeTo = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).toISOString().slice(0, 10);
-    } else if (period === 'since_hire') {
-      rangeFrom = employee.hire_date_text ? String(employee.hire_date_text).slice(0, 10) : '1900-01-01';
-      rangeTo = now.toISOString().slice(0, 10);
-    } else if (period === 'custom') {
-      rangeFrom = from || rangeFrom;
-      rangeTo = to || rangeTo;
-    }
+    const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const monthValue = /^\d{4}-\d{2}$/.test(requestedMonth) ? requestedMonth : currentMonth;
+    const [yearValue, monthValueNumber] = monthValue.split('-').map(Number);
+    const monthFrom = `${monthValue}-01`;
+    const monthTo = new Date(Date.UTC(yearValue, monthValueNumber, 0)).toISOString().slice(0, 10);
+
+    const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+    const hireDate = clean(employee.hire_date_text) || '1900-01-01';
+    const fromDate = period === 'custom'
+      ? customFrom || monthFrom
+      : period === 'since_hire'
+        ? hireDate
+        : period === 'all'
+          ? ''
+          : monthFrom;
+    const toDate = period === 'custom'
+      ? customTo || monthTo
+      : period === 'since_hire'
+        ? today
+        : period === 'all'
+          ? ''
+          : monthTo;
 
     const loanResult = await sql<Record<string, unknown>>`
-      SELECT *
-      FROM hr_employee_loans
-      WHERE employee_id = ${employeeId}
-        AND issue_date BETWEEN ${rangeFrom} AND ${rangeTo}
-      ORDER BY issue_date DESC, id DESC
-    `.execute(this.db);
-    const repaymentResult = await sql<Record<string, unknown>>`
-      SELECT *
-      FROM hr_employee_ledger
-      WHERE employee_id = ${employeeId}
-        AND entry_type = 'loan_repayment'
-        AND created_at::DATE BETWEEN ${rangeFrom} AND ${rangeTo}
-      ORDER BY created_at DESC, id DESC
+      SELECT
+        l.*,
+        e.display_name AS employee_name,
+        latest_paid.latest_paid_at,
+        to_char(l.issue_date, 'YYYY-MM-DD') AS issue_date_text,
+        to_char(l.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
+        to_char(l.disbursed_at, 'YYYY-MM-DD HH24:MI') AS disbursed_at_text,
+        to_char(latest_paid.latest_paid_at, 'YYYY-MM-DD HH24:MI') AS paid_at_text
+      FROM hr_employee_loans l
+      JOIN hr_employees e ON e.id = l.employee_id
+      LEFT JOIN (
+        SELECT loan_id, MAX(paid_at) AS latest_paid_at
+        FROM hr_employee_loan_installments
+        WHERE paid_at IS NOT NULL
+        GROUP BY loan_id
+      ) latest_paid ON latest_paid.loan_id = l.id
+      WHERE l.employee_id = ${employeeId}
+      ORDER BY l.id DESC
     `.execute(this.db);
 
-    const loanRows = loanResult.rows.map((row) => ({
-      id: `loan-${row.id}`,
-      loanId: String(row.id),
-      referenceId: String(row.id),
-      loanNo: clean(row.loan_no),
-      issueDate: row.issue_date ? String(row.issue_date).slice(0, 10) : '',
-      createdAt: row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '',
-      approvedAt: row.approved_at ? String(row.approved_at).replace('T', ' ').slice(0, 16) : '',
-      disbursedAt: row.disbursed_at ? String(row.disbursed_at).replace('T', ' ').slice(0, 16) : '',
-      paidAt: row.paid_at ? String(row.paid_at).replace('T', ' ').slice(0, 16) : '',
-      updatedAt: row.updated_at ? String(row.updated_at).replace('T', ' ').slice(0, 16) : '',
-      movementAt: ['paid', 'disbursed', 'partially_repaid', 'repaid'].includes(clean(row.status))
-        ? clean(row.disbursed_at ? String(row.disbursed_at).replace('T', ' ').slice(0, 16) : row.paid_at ? String(row.paid_at).replace('T', ' ').slice(0, 16) : row.issue_date ? String(row.issue_date).slice(0, 10) : row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '')
-        : clean(row.issue_date ? String(row.issue_date).slice(0, 10) : row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : ''),
-      date: String(row.issue_date).slice(0, 10),
-      type: clean(row.loan_type) === 'loan' ? 'loan' : 'advance',
-      amount: Number(row.principal_amount || 0),
-      repaymentMode: clean(row.repayment_mode) || 'manual_cash',
-      status: clean(row.status),
-      remainingAmount: Number(row.remaining_amount || 0),
-      note: clean(row.notes),
-    }));
-    const repaymentRows = repaymentResult.rows.map((row) => ({
-      id: `ledger-${row.id}`,
-      loanId: row.reference_id ? String(row.reference_id) : '',
-      referenceId: row.reference_id ? String(row.reference_id) : '',
-      createdAt: row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '',
-      movementAt: row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '',
-      date: String(row.created_at).slice(0, 10),
-      type: 'repayment',
-      amount: Math.abs(Number(row.amount || 0)),
-      repaymentMode: clean(row.repayment_method) || 'manual_cash',
-      status: 'recorded',
-      remainingAmount: Number(row.balance_after || 0),
-      note: clean(row.note),
-    }));
-    const rows = [...loanRows, ...repaymentRows].sort((a, b) => String(b.date).localeCompare(String(a.date)));
-    const allOpenLoans = await sql<{ remaining_amount: string | number; repayment_mode: string; status: string }>`
-      SELECT remaining_amount, repayment_mode, status
-      FROM hr_employee_loans
-      WHERE employee_id = ${employeeId}
-        AND status IN ('paid','partially_repaid')
+    const ledgerResult = await sql<Record<string, unknown>>`
+      SELECT
+        le.*,
+        e.display_name AS employee_name,
+        to_char(le.created_at, 'YYYY-MM-DD HH24:MI') AS movement_at_text
+      FROM hr_employee_ledger le
+      JOIN hr_employees e ON e.id = le.employee_id
+      WHERE le.employee_id = ${employeeId}
+        AND le.entry_type = 'loan_repayment'
+      ORDER BY le.id DESC
     `.execute(this.db);
-    const salaryDeductionDueResult = await sql<{ due_amount: string | number }>`
-      SELECT COALESCE(SUM(GREATEST(i.amount - i.paid_amount, 0)), 0) AS due_amount
-      FROM hr_employee_loan_installments i
-      JOIN hr_employee_loans l ON l.id = i.loan_id
-      WHERE l.employee_id = ${employeeId}
-        AND l.status IN ('paid','partially_repaid')
-        AND l.repayment_mode IN ('deduct_next_salary','monthly_salary_installment')
-        AND i.status <> 'paid'
-        AND i.due_date IS NOT NULL
-        AND i.due_date BETWEEN ${rangeFrom} AND ${rangeTo}
-    `.execute(this.db);
-    const salaryDeductionDue = Number(salaryDeductionDueResult.rows[0]?.due_amount || 0);
-    const remaining = allOpenLoans.rows.reduce((sum, row) => sum + Number(row.remaining_amount || 0), 0);
+
+    const movementDateForLoan = (row: Record<string, unknown>): string => {
+      const status = clean(row.status);
+      const issueDate = clean(row.issue_date_text) || (row.issue_date ? String(row.issue_date).slice(0, 10) : '');
+      const issueDateTime = issueDate ? `${issueDate} 00:00` : '';
+      const createdAt = clean(row.created_at_text);
+      const disbursedAt = clean(row.disbursed_at_text);
+      const paidAt = clean(row.paid_at_text);
+
+      if (['paid', 'disbursed', 'partially_repaid', 'repaid'].includes(status)) {
+        return paidAt || disbursedAt || issueDateTime || createdAt;
+      }
+
+      return issueDateTime || createdAt;
+    };
+
+    const isInsideRequestedPeriod = (movementAt: string): boolean => {
+      if (!movementAt) return false;
+      if (!fromDate && !toDate) return true;
+      const datePart = movementAt.slice(0, 10);
+      if (fromDate && datePart < fromDate) return false;
+      if (toDate && datePart > toDate) return false;
+      return true;
+    };
+
+    const allLoanRows = loanResult.rows.map((row) => {
+      const movementAt = movementDateForLoan(row);
+      return {
+        id: `loan-${String(row.id)}`,
+        loanId: String(row.id),
+        referenceId: String(row.id),
+        employeeId: String(row.employee_id),
+        employeeName: clean(row.employee_name),
+        movementAt,
+        date: movementAt,
+        type: clean(row.loan_type) === 'loan' ? 'loan' : 'advance',
+        amount: Number(row.principal_amount || 0),
+        repaymentMode: clean(row.repayment_mode) || 'manual_cash',
+        repaymentMethod: '',
+        status: clean(row.status) || 'draft',
+        remainingAmount: Number(row.remaining_amount || 0),
+        note: clean(row.notes),
+      };
+    });
+
+    const repaymentRows = ledgerResult.rows.map((row) => {
+      const movementAt = clean(row.movement_at_text);
+      const repaymentMethod = clean(row.repayment_method) || 'manual_cash';
+      return {
+        id: `ledger-${String(row.id)}`,
+        loanId: row.reference_id ? String(row.reference_id) : '',
+        referenceId: row.reference_id ? String(row.reference_id) : '',
+        employeeId: String(row.employee_id),
+        employeeName: clean(row.employee_name),
+        movementAt,
+        date: movementAt,
+        type: 'repayment',
+        amount: Math.abs(Number(row.amount || 0)),
+        repaymentMode: repaymentMethod,
+        repaymentMethod,
+        status: 'recorded',
+        remainingAmount: Number(row.balance_after || 0),
+        note: clean(row.note),
+      };
+    });
+
+    const rows = [...allLoanRows, ...repaymentRows]
+      .filter((row) => isInsideRequestedPeriod(row.movementAt))
+      .sort((a, b) => {
+        const byDate = String(b.movementAt || '').localeCompare(String(a.movementAt || ''));
+        if (byDate !== 0) return byDate;
+        return String(b.id).localeCompare(String(a.id));
+      });
+
+    const totalWithdrawals = Number(rows
+      .filter((row) => row.type !== 'repayment')
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0)
+      .toFixed(2));
+    const totalRepayments = Number(rows
+      .filter((row) => row.type === 'repayment')
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0)
+      .toFixed(2));
+    const totalManualCashRepayments = Number(rows
+      .filter((row) => row.type === 'repayment' && row.repaymentMethod === 'manual_cash')
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0)
+      .toFixed(2));
+    const totalSalaryDeductionRepayments = Number(rows
+      .filter((row) => row.type === 'repayment' && row.repaymentMethod === 'salary_deduction')
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0)
+      .toFixed(2));
+    const totalRemaining = Number(allLoanRows
+      .reduce((sum, row) => sum + Number(row.remainingAmount || 0), 0)
+      .toFixed(2));
+    const totalSalaryDeductionDue = Number(allLoanRows
+      .filter((row) => row.repaymentMode !== 'manual_cash')
+      .reduce((sum, row) => sum + Number(row.remainingAmount || 0), 0)
+      .toFixed(2));
+    const openLoanCount = allLoanRows.filter((row) => ['paid', 'disbursed', 'partially_repaid'].includes(String(row.status || '')) && Number(row.remainingAmount || 0) > 0).length;
+
+    const paged = paginateRows(rows, query, { defaultSize: 50 });
+
     return {
-      rows,
+      rows: paged.rows,
+      pagination: paged.pagination,
       summary: {
         employeeId: String(employeeId),
-        employeeName: employee.display_name,
-        from: rangeFrom,
-        to: rangeTo,
-        totalWithdrawals: Number(loanRows.reduce((sum, row) => sum + row.amount, 0).toFixed(2)),
-        totalManualCashRepayments: Number(repaymentRows.filter((row) => row.repaymentMode === 'manual_cash').reduce((sum, row) => sum + row.amount, 0).toFixed(2)),
-        totalSalaryDeductionDue: Number(salaryDeductionDue.toFixed(2)),
-        totalRemaining: Number(remaining.toFixed(2)),
-        openLoanCount: allOpenLoans.rows.length,
+        employeeName: clean(employee.display_name),
+        from: fromDate || '',
+        to: toDate || '',
+        totalWithdrawals,
+        withdrawalsAmount: totalWithdrawals,
+        withdrawnAmount: totalWithdrawals,
+        totalRepayments,
+        repaymentsAmount: totalRepayments,
+        repaidAmount: totalRepayments,
+        totalManualCashRepayments,
+        manualCashRepaymentsTotal: totalManualCashRepayments,
+        totalSalaryDeductionRepayments,
+        salaryDeductionRepaymentsTotal: totalSalaryDeductionRepayments,
+        totalSalaryDeductionDue,
+        totalRemaining,
+        remainingAmount: totalRemaining,
+        outstandingAmount: totalRemaining,
+        openLoanCount,
+        openLoans: openLoanCount,
       },
     };
   }

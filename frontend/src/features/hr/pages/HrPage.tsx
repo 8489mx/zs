@@ -50,7 +50,7 @@ function formatDateTimeStable(value?: string | null) {
   const match = text.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}):(\d{2})/);
   if (match) return `${match[1]} ${match[2]}:${match[3]}`;
   const dateOnly = normalizeDateInput(text);
-  return dateOnly || '—';
+  return dateOnly ? `${dateOnly} 00:00` : '—';
 }
 
 function addMonthsDateOnly(value: string, months: number) {

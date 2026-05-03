@@ -100,6 +100,11 @@ export interface HrLoan {
   issueDate: string;
   firstDueDate?: string;
   salaryDueDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  approvedAt?: string;
+  disbursedAt?: string;
+  paidAt?: string;
   branchId?: string;
   locationId?: string;
   notes?: string;
@@ -120,10 +125,16 @@ export interface HrLedgerEntry {
 
 export interface HrWithdrawalRow {
   id: string;
-  date: string;
+  movementAt: string | null;
+  date?: string | null;
+  employeeId?: string;
+  employeeName?: string;
+  loanId?: string;
+  referenceId?: string;
   type: string;
   amount: number;
   repaymentMode: string;
+  repaymentMethod?: string;
   status: string;
   remainingAmount: number;
   note?: string;
