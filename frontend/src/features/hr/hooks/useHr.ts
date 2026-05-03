@@ -25,6 +25,7 @@ export function useHrWorkspace(params: HrListParams) {
     positions: useQuery({ queryKey: queryKeys.hrMasterData('positions'), queryFn: () => hrApi.masterData('positions') }),
     loans: useQuery({ queryKey: queryKeys.hrLoans(key), queryFn: () => hrApi.loans(params), placeholderData: (previous) => previous }),
     withdrawals: useQuery({ queryKey: queryKeys.hrWithdrawals(key), queryFn: () => hrApi.withdrawals(params), enabled: Boolean(params.employeeId), placeholderData: (previous) => previous }),
+    payrollRuns: useQuery({ queryKey: queryKeys.hrPayrollRuns(key), queryFn: () => hrApi.payrollRuns(params), placeholderData: (previous) => previous }),
   };
 }
 
@@ -33,6 +34,14 @@ export function useHrProfile(employeeId?: string) {
     queryKey: queryKeys.hrProfile(employeeId || ''),
     queryFn: () => hrApi.profile(employeeId || ''),
     enabled: Boolean(employeeId),
+  });
+}
+
+export function useHrPayrollRun(runId?: string) {
+  return useQuery({
+    queryKey: queryKeys.hrPayrollRun(runId || ''),
+    queryFn: () => hrApi.payrollRun(runId || ''),
+    enabled: Boolean(runId),
   });
 }
 
@@ -53,5 +62,13 @@ export function useHrMutations() {
     approveLoan: useMutation({ mutationFn: (id: string) => hrApi.approveLoan(id), onSuccess: invalidate }),
     disburseLoan: useMutation({ mutationFn: (id: string) => hrApi.disburseLoan(id), onSuccess: invalidate }),
     repayLoan: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.repayLoan(id, payload), onSuccess: invalidate }),
+    createPayrollRun: useMutation({ mutationFn: (payload: unknown) => hrApi.createPayrollRun(payload), onSuccess: invalidate }),
+    recalculatePayrollRun: useMutation({ mutationFn: (id: string) => hrApi.recalculatePayrollRun(id), onSuccess: invalidate }),
+    reviewPayrollRun: useMutation({ mutationFn: (id: string) => hrApi.reviewPayrollRun(id), onSuccess: invalidate }),
+    approvePayrollRun: useMutation({ mutationFn: (id: string) => hrApi.approvePayrollRun(id), onSuccess: invalidate }),
+    cancelPayrollRun: useMutation({ mutationFn: (id: string) => hrApi.cancelPayrollRun(id), onSuccess: invalidate }),
+    updatePayrollRunItem: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.updatePayrollRunItem(id, payload), onSuccess: invalidate }),
+    createPayrollAdjustment: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.createPayrollAdjustment(id, payload), onSuccess: invalidate }),
+    deletePayrollAdjustment: useMutation({ mutationFn: (id: string) => hrApi.deletePayrollAdjustment(id), onSuccess: invalidate }),
   };
 }

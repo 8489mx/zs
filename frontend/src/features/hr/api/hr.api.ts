@@ -9,6 +9,7 @@ import type {
   HrLedgerEntry,
   HrLoan,
   HrMasterDataRecord,
+  HrPayrollRun,
   HrSummary,
   HrWithdrawalRow,
   HrWithdrawalSummary,
@@ -45,6 +46,15 @@ interface LoansResponse {
 interface WithdrawalsResponse {
   rows?: HrWithdrawalRow[];
   summary?: HrWithdrawalSummary;
+}
+
+interface PayrollRunsResponse {
+  runs?: HrPayrollRun[];
+  summary?: { totalItems?: number };
+}
+
+interface PayrollRunResponse {
+  run?: HrPayrollRun;
 }
 
 interface RowsResponse<T> {
@@ -164,4 +174,14 @@ export const hrApi = {
   disburseLoan: (id: string) => http(`/api/hr/loans/${id}/disburse`, { method: 'POST' }),
   repayLoan: (id: string, payload: unknown) => http(`/api/hr/loans/${id}/repayments`, { method: 'POST', body: JSON.stringify(payload) }),
   ledger: (employeeId: string) => http<RowsResponse<HrLedgerEntry>>(`/api/hr/employees/${employeeId}/ledger`),
+  payrollRuns: (params: HrListParams = {}) => http<PayrollRunsResponse>(`/api/hr/payroll-runs${buildQueryString({ month: params.month, page: params.page, pageSize: params.pageSize })}`),
+  createPayrollRun: (payload: unknown) => http<PayrollRunResponse>('/api/hr/payroll-runs', { method: 'POST', body: JSON.stringify(payload) }),
+  payrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}`),
+  recalculatePayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/recalculate`, { method: 'POST' }),
+  reviewPayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/review`, { method: 'POST' }),
+  approvePayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/approve`, { method: 'POST' }),
+  cancelPayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/cancel`, { method: 'POST' }),
+  updatePayrollRunItem: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  createPayrollAdjustment: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}/adjustments`, { method: 'POST', body: JSON.stringify(payload) }),
+  deletePayrollAdjustment: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-item-adjustments/${id}`, { method: 'DELETE' }),
 };

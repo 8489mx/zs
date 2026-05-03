@@ -7,15 +7,16 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
-import type { HrEmployee, HrLoan, HrMasterDataRecord, HrWithdrawalRow } from '@/types/domain';
-import { useHrMutations, useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
+import type { HrEmployee, HrLoan, HrMasterDataRecord, HrPayrollRun, HrPayrollRunItem, HrWithdrawalRow } from '@/types/domain';
+import { useHrMutations, useHrPayrollRun, useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
 
-type HrTab = 'employees' | 'withdrawals' | 'contracts' | 'documents' | 'settings';
+type HrTab = 'employees' | 'withdrawals' | 'payroll' | 'contracts' | 'documents' | 'settings';
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 
 const tabs: Array<{ key: HrTab; label: string }> = [
   { key: 'employees', label: 'الموظفين' },
   { key: 'withdrawals', label: 'مسحوبات الموظفين' },
+  { key: 'payroll', label: 'الرواتب' },
   { key: 'contracts', label: 'العقود والرواتب' },
   { key: 'documents', label: 'المستندات' },
   { key: 'settings', label: 'الإعدادات الأساسية' },
@@ -128,7 +129,9 @@ function statusLabel(status?: string) {
     deactivated: 'موقوف',
     terminated: 'منتهي',
     draft: 'مسودة',
+    reviewed: 'تمت المراجعة',
     approved: 'معتمد',
+    excluded: 'مستبعد',
     paid: 'مصروف',
     partially_repaid: 'سداد جزئي',
     repaid: 'مسدد',
@@ -258,8 +261,11 @@ export function HrPage() {
   const [search, setSearch] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [selectedLoanId, setSelectedLoanId] = useState('');
+  const [selectedPayrollRunId, setSelectedPayrollRunId] = useState('');
+  const [selectedPayrollItemId, setSelectedPayrollItemId] = useState('');
   const [employeeStatusFilter, setEmployeeStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const [loanFormMessage, setLoanFormMessage] = useState('');
+  const [payrollFormMessage, setPayrollFormMessage] = useState('');
   const [employeeFormMessage, setEmployeeFormMessage] = useState('');
   const [employeeHireDate, setEmployeeHireDate] = useState('');
   const [loanSettlementMode, setLoanSettlementMode] = useState('deduct_next_salary');
@@ -269,6 +275,7 @@ export function HrPage() {
   const [to, setTo] = useState('');
   const workspace = useHrWorkspace({ search, page: 1, pageSize: 50, employeeId: selectedEmployeeId, period, month, from, to });
   const profile = useHrProfile(selectedEmployeeId);
+  const payrollDetail = useHrPayrollRun(selectedPayrollRunId);
   const mutations = useHrMutations();
   const canManageSalary = useHasAnyPermission('hrSalaryManage');
   const canViewSalary = useHasAnyPermission(['hrSalaryView', 'hrSalaryManage']);
@@ -283,6 +290,12 @@ export function HrPage() {
   const jobTitles = useMemo(() => workspace.jobTitles.data?.rows || [], [workspace.jobTitles.data?.rows]);
   const positions = useMemo(() => workspace.positions.data?.rows || [], [workspace.positions.data?.rows]);
   const loans = useMemo(() => workspace.loans.data?.loans || [], [workspace.loans.data?.loans]);
+  const payrollRuns = useMemo(() => workspace.payrollRuns.data?.runs || [], [workspace.payrollRuns.data?.runs]);
+  const selectedPayrollRun = (payrollDetail.data?.run || payrollRuns.find((run) => run.id === selectedPayrollRunId)) as HrPayrollRun | undefined;
+  const payrollItems = selectedPayrollRun?.items || [];
+  const selectedPayrollItem = payrollItems.find((item) => item.id === selectedPayrollItemId);
+  const canManagePayroll = useHasAnyPermission('hrPayrollManage');
+  const canApprovePayroll = useHasAnyPermission('hrPayrollApprove');
   const selectedEmployee = profile.data?.employee;
   const summary = workspace.summary.data || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 };
   const employeeOptions = employees.map((employee) => ({ id: employee.id, label: `${employee.displayName}${employee.employeeNo ? ` - ${employee.employeeNo}` : ''}` }));
@@ -339,6 +352,68 @@ export function HrPage() {
     }
     setEmployeeHireDate(normalizeDateInput(selectedEmployee?.hireDate));
   }, [selectedEmployee?.hireDate, selectedEmployeeId]);
+
+  useEffect(() => {
+    if (selectedPayrollRunId && payrollRuns.some((run) => run.id === selectedPayrollRunId)) return;
+    setSelectedPayrollRunId(payrollRuns[0]?.id || '');
+    setSelectedPayrollItemId('');
+  }, [payrollRuns, selectedPayrollRunId]);
+
+  async function createPayrollRun(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPayrollFormMessage('');
+    const form = new FormData(event.currentTarget);
+    const periodMonth = formValue(form, 'periodMonth') || month;
+    try {
+      const response = await mutations.createPayrollRun.mutateAsync({
+        periodMonth,
+        notes: formValue(form, 'notes'),
+      });
+      const runId = String(response?.run?.id || '');
+      if (runId) setSelectedPayrollRunId(runId);
+    } catch (error) {
+      setPayrollFormMessage(`فشل إنشاء مسير الرواتب: ${errorMessage(error)}`);
+    }
+  }
+
+  async function updatePayrollItemNotes(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedPayrollItem) return;
+    setPayrollFormMessage('');
+    const form = new FormData(event.currentTarget);
+    try {
+      await mutations.updatePayrollRunItem.mutateAsync({
+        id: selectedPayrollItem.id,
+        payload: {
+          status: formValue(form, 'status') || selectedPayrollItem.status || 'draft',
+          notes: formValue(form, 'notes'),
+        },
+      });
+    } catch (error) {
+      setPayrollFormMessage(`فشل تحديث بند الراتب: ${errorMessage(error)}`);
+    }
+  }
+
+  async function addPayrollAdjustment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedPayrollItem) return;
+    setPayrollFormMessage('');
+    const form = new FormData(event.currentTarget);
+    try {
+      await mutations.createPayrollAdjustment.mutateAsync({
+        id: selectedPayrollItem.id,
+        payload: {
+          adjustmentType: formValue(form, 'adjustmentType') || 'allowance',
+          label: formValue(form, 'label'),
+          amount: Number(form.get('amount') || 0),
+          notes: formValue(form, 'notes'),
+        },
+      });
+      event.currentTarget.reset();
+    } catch (error) {
+      setPayrollFormMessage(`فشل إضافة التسوية: ${errorMessage(error)}`);
+    }
+  }
 
   async function saveEmployee(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -740,6 +815,124 @@ export function HrPage() {
               <div className="muted field-wide">السداد الكاش يدخل الخزينة، خصم الراتب يسجل في HR فقط بدون حركة خزينة.</div>
               <div className="actions compact-actions"><Button type="submit" disabled={mutations.repayLoan.isPending}>تسجيل سداد</Button></div>
             </form>
+          ) : null}
+        </Card>
+      ) : null}
+
+      {tab === 'payroll' ? (
+        <Card title="مسير الرواتب">
+          <form className="form-grid" onSubmit={createPayrollRun}>
+            <label className="field"><span>الشهر</span><input name="periodMonth" type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label>
+            <label className="field field-wide"><span>ملاحظات</span><input name="notes" /></label>
+            <div className="actions compact-actions">
+              <Button type="submit" disabled={!canManagePayroll || mutations.createPayrollRun.isPending}>إنشاء مسير رواتب</Button>
+              {selectedPayrollRun && ['draft', 'reviewed'].includes(selectedPayrollRun.status) ? (
+                <Button type="button" variant="secondary" disabled={!canManagePayroll || mutations.recalculatePayrollRun.isPending} onClick={() => mutations.recalculatePayrollRun.mutate(selectedPayrollRun.id)}>إعادة الحساب</Button>
+              ) : null}
+            </div>
+            {payrollFormMessage ? <div className="muted field-wide">{payrollFormMessage}</div> : null}
+          </form>
+
+          <DataTable<HrPayrollRun>
+            rows={payrollRuns}
+            rowKey={(row) => row.id}
+            onRowClick={(row) => {
+              setSelectedPayrollRunId(row.id);
+              setSelectedPayrollItemId('');
+            }}
+            rowClassName={(row) => row.id === selectedPayrollRunId ? 'table-row-selected' : undefined}
+            columns={[
+              { key: 'month', header: 'الشهر', cell: (row) => row.periodMonth },
+              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+              { key: 'base', header: 'إجمالي الأساسي', cell: (row) => formatHrMoney(row.totalBaseSalary) },
+              { key: 'allowance', header: 'إجمالي البدلات', cell: (row) => formatHrMoney(row.totalAllowanceAmount) },
+              { key: 'deduction', header: 'إجمالي الخصومات', cell: (row) => formatHrMoney(row.totalDeductionAmount) },
+              { key: 'loanDeduction', header: 'إجمالي خصم السلف', cell: (row) => formatHrMoney(row.totalLoanDeductionAmount) },
+              { key: 'net', header: 'صافي الرواتب', cell: (row) => formatHrMoney(row.totalNetPay) },
+              { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => <span dir="ltr">{formatDateTimeStable(row.createdAt)}</span> },
+              {
+                key: 'actions',
+                header: 'إجراءات',
+                cell: (row) => (
+                  <div className="actions compact-actions">
+                    <Button type="button" variant="secondary" onClick={() => setSelectedPayrollRunId(row.id)}>عرض</Button>
+                    {['draft', 'reviewed'].includes(row.status) ? <Button type="button" variant="secondary" disabled={!canManagePayroll} onClick={() => mutations.recalculatePayrollRun.mutate(row.id)}>إعادة الحساب</Button> : null}
+                  </div>
+                ),
+              },
+            ]}
+          />
+
+          {selectedPayrollRun ? (
+            <>
+              <div className="stats-grid">
+                <div><span className="muted">إجمالي الأساسي</span><strong>{formatHrMoney(selectedPayrollRun.totalBaseSalary)}</strong></div>
+                <div><span className="muted">إجمالي البدلات</span><strong>{formatHrMoney(selectedPayrollRun.totalAllowanceAmount)}</strong></div>
+                <div><span className="muted">إجمالي الخصومات</span><strong>{formatHrMoney(selectedPayrollRun.totalDeductionAmount)}</strong></div>
+                <div><span className="muted">إجمالي خصم السلف</span><strong>{formatHrMoney(selectedPayrollRun.totalLoanDeductionAmount)}</strong></div>
+                <div><span className="muted">صافي الرواتب</span><strong>{formatHrMoney(selectedPayrollRun.totalNetPay)}</strong></div>
+              </div>
+
+              <div className="actions compact-actions">
+                {selectedPayrollRun.status === 'draft' ? <Button type="button" disabled={!canManagePayroll || mutations.reviewPayrollRun.isPending} onClick={() => mutations.reviewPayrollRun.mutate(selectedPayrollRun.id)}>مراجعة</Button> : null}
+                {selectedPayrollRun.status === 'reviewed' ? <Button type="button" disabled={!canApprovePayroll || mutations.approvePayrollRun.isPending} onClick={() => mutations.approvePayrollRun.mutate(selectedPayrollRun.id)}>اعتماد</Button> : null}
+                {['draft', 'reviewed'].includes(selectedPayrollRun.status) ? <Button type="button" variant="secondary" disabled={!canManagePayroll || mutations.cancelPayrollRun.isPending} onClick={() => mutations.cancelPayrollRun.mutate(selectedPayrollRun.id)}>إلغاء</Button> : null}
+              </div>
+
+              <DataTable<HrPayrollRunItem>
+                rows={payrollItems}
+                rowKey={(row) => row.id}
+                onRowClick={(row) => setSelectedPayrollItemId(row.id)}
+                rowClassName={(row) => row.id === selectedPayrollItemId ? 'table-row-selected' : undefined}
+                columns={[
+                  { key: 'employee', header: 'الموظف', cell: (row) => row.employeeName || row.employeeNo || row.employeeId },
+                  { key: 'base', header: 'الأساسي', cell: (row) => formatHrMoney(row.baseSalary) },
+                  { key: 'allowance', header: 'البدلات', cell: (row) => formatHrMoney(row.allowanceAmount) },
+                  { key: 'deduction', header: 'الخصومات', cell: (row) => formatHrMoney(row.deductionAmount) },
+                  { key: 'loanDeduction', header: 'خصم السلف', cell: (row) => formatHrMoney(row.loanDeductionAmount) },
+                  { key: 'gross', header: 'الإجمالي', cell: (row) => formatHrMoney(row.grossPay) },
+                  { key: 'net', header: 'الصافي', cell: (row) => formatHrMoney(row.netPay) },
+                  { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+                  { key: 'notes', header: 'ملاحظات', cell: (row) => row.notes || '—' },
+                  {
+                    key: 'actions',
+                    header: 'إجراءات',
+                    cell: (row) => (
+                      <div className="actions compact-actions">
+                        {selectedPayrollRun.status === 'draft' ? <Button type="button" variant="secondary" onClick={() => setSelectedPayrollItemId(row.id)}>تعديل</Button> : null}
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+
+              {selectedPayrollRun.status === 'draft' && selectedPayrollItem ? (
+                <div className="two-column-grid">
+                  <form className="form-grid" onSubmit={updatePayrollItemNotes}>
+                    <label className="field"><span>حالة البند</span><select name="status" defaultValue={selectedPayrollItem.status}><option value="draft">مسودة</option><option value="excluded">مستبعد</option></select></label>
+                    <label className="field field-wide"><span>ملاحظات</span><textarea name="notes" rows={2} defaultValue={selectedPayrollItem.notes || ''} /></label>
+                    <div className="actions compact-actions"><Button type="submit" disabled={mutations.updatePayrollRunItem.isPending}>حفظ البند</Button></div>
+                  </form>
+                  <form className="form-grid" onSubmit={addPayrollAdjustment}>
+                    <label className="field"><span>النوع</span><select name="adjustmentType"><option value="allowance">بدل</option><option value="deduction">خصم</option></select></label>
+                    <label className="field"><span>البيان</span><input name="label" required /></label>
+                    <label className="field"><span>المبلغ</span><input name="amount" type="number" min="0.01" step="0.01" required /></label>
+                    <label className="field field-wide"><span>ملاحظات</span><input name="notes" /></label>
+                    <div className="actions compact-actions"><Button type="submit" disabled={mutations.createPayrollAdjustment.isPending}>إضافة تسوية</Button></div>
+                    {(selectedPayrollItem.adjustments || []).length ? (
+                      <div className="field-wide page-stack">
+                        {(selectedPayrollItem.adjustments || []).map((adjustment) => (
+                          <div key={adjustment.id} className="actions compact-actions">
+                            <span>{adjustment.label} - {statusLabel(adjustment.adjustmentType)} - {formatHrMoney(adjustment.amount)}</span>
+                            <Button type="button" variant="secondary" disabled={mutations.deletePayrollAdjustment.isPending} onClick={() => mutations.deletePayrollAdjustment.mutate(adjustment.id)}>حذف</Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </form>
+                </div>
+              ) : null}
+            </>
           ) : null}
         </Card>
       ) : null}

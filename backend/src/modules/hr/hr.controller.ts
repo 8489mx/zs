@@ -1,10 +1,13 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import {
+  CreatePayrollAdjustmentDto,
+  CreatePayrollRunDto,
   LoanRepaymentDto,
+  UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
   UpsertEmployeeDocumentDto,
@@ -30,6 +33,66 @@ export class HrController {
   @RequirePermissions('hrLoans')
   withdrawals(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
     return this.hr.withdrawals(query, req.authContext!);
+  }
+
+  @Get('payroll-runs')
+  @RequirePermissions('hrPayrollView')
+  listPayrollRuns(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listPayrollRuns(query, req.authContext!);
+  }
+
+  @Post('payroll-runs')
+  @RequirePermissions('hrPayrollManage')
+  createPayrollRun(@Body() payload: CreatePayrollRunDto, @Req() req: RequestWithAuth) {
+    return this.hr.createPayrollRun(payload, req.authContext!);
+  }
+
+  @Get('payroll-runs/:id')
+  @RequirePermissions('hrPayrollView')
+  getPayrollRun(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.getPayrollRun(id, req.authContext!);
+  }
+
+  @Post('payroll-runs/:id/recalculate')
+  @RequirePermissions('hrPayrollManage')
+  recalculatePayrollRun(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.recalculatePayrollRun(id, req.authContext!);
+  }
+
+  @Post('payroll-runs/:id/review')
+  @RequirePermissions('hrPayrollManage')
+  reviewPayrollRun(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.reviewPayrollRun(id, req.authContext!);
+  }
+
+  @Post('payroll-runs/:id/approve')
+  @RequirePermissions('hrPayrollApprove')
+  approvePayrollRun(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.approvePayrollRun(id, req.authContext!);
+  }
+
+  @Post('payroll-runs/:id/cancel')
+  @RequirePermissions('hrPayrollManage')
+  cancelPayrollRun(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.cancelPayrollRun(id, req.authContext!);
+  }
+
+  @Patch('payroll-run-items/:id')
+  @RequirePermissions('hrPayrollManage')
+  updatePayrollRunItem(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertPayrollItemDto, @Req() req: RequestWithAuth) {
+    return this.hr.updatePayrollRunItem(id, payload, req.authContext!);
+  }
+
+  @Post('payroll-run-items/:id/adjustments')
+  @RequirePermissions('hrPayrollManage')
+  createPayrollAdjustment(@Param('id', ParseIntPipe) id: number, @Body() payload: CreatePayrollAdjustmentDto, @Req() req: RequestWithAuth) {
+    return this.hr.createPayrollAdjustment(id, payload, req.authContext!);
+  }
+
+  @Delete('payroll-item-adjustments/:id')
+  @RequirePermissions('hrPayrollManage')
+  deletePayrollAdjustment(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.deletePayrollAdjustment(id, req.authContext!);
   }
 
   @Get('departments')

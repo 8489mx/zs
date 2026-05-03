@@ -9,7 +9,10 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import {
+  CreatePayrollAdjustmentDto,
+  CreatePayrollRunDto,
   LoanRepaymentDto,
+  UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
   UpsertEmployeeDocumentDto,
@@ -69,6 +72,29 @@ function addMonths(value: string, months: number): string {
   const [year, month, day] = normalized.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1 + months, day));
   return date.toISOString().slice(0, 10);
+}
+
+function normalizePayrollMonth(value: unknown): string {
+  const text = clean(value);
+  return /^\d{4}-\d{2}$/.test(text) ? text : '';
+}
+
+function monthRange(periodMonth: string): { from: string; to: string } {
+  const [year, month] = periodMonth.split('-').map(Number);
+  return {
+    from: `${periodMonth}-01`,
+    to: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10),
+  };
+}
+
+function money(value: unknown): number {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  return Number(amount.toFixed(2));
+}
+
+function combineNotes(...notes: Array<string | null | undefined>): string {
+  return notes.map((note) => clean(note)).filter(Boolean).join(' | ');
 }
 
 function canViewSalary(auth: AuthContext): boolean {
@@ -639,6 +665,457 @@ export class HrService {
   async listLedger(employeeId: number, _auth: AuthContext): Promise<Record<string, unknown>> {
     const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employee_ledger WHERE employee_id = ${employeeId} ORDER BY id DESC`.execute(this.db);
     return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), entryType: clean(row.entry_type), amount: Number(row.amount || 0), balanceAfter: Number(row.balance_after || 0), note: clean(row.note), repaymentMethod: clean(row.repayment_method), referenceType: clean(row.reference_type), referenceId: row.reference_id ? String(row.reference_id) : '', createdAt: String(row.created_at) })) };
+  }
+
+  private mapPayrollRun(row: Record<string, unknown>): Record<string, unknown> {
+    return {
+      id: String(row.id),
+      periodMonth: clean(row.period_month),
+      status: clean(row.status) || 'draft',
+      notes: clean(row.notes),
+      createdBy: row.created_by ? String(row.created_by) : '',
+      reviewedBy: row.reviewed_by ? String(row.reviewed_by) : '',
+      approvedBy: row.approved_by ? String(row.approved_by) : '',
+      createdAt: clean(row.created_at_text),
+      reviewedAt: clean(row.reviewed_at_text),
+      approvedAt: clean(row.approved_at_text),
+      updatedAt: clean(row.updated_at_text),
+      itemCount: Number(row.item_count || 0),
+      totalBaseSalary: Number(row.total_base_salary || 0),
+      totalAllowanceAmount: Number(row.total_allowance_amount || 0),
+      totalDeductionAmount: Number(row.total_deduction_amount || 0),
+      totalLoanDeductionAmount: Number(row.total_loan_deduction_amount || 0),
+      totalGrossPay: Number(row.total_gross_pay || 0),
+      totalNetPay: Number(row.total_net_pay || 0),
+    };
+  }
+
+  private mapPayrollItem(row: Record<string, unknown>): Record<string, unknown> {
+    return {
+      id: String(row.id),
+      runId: String(row.run_id),
+      employeeId: String(row.employee_id),
+      employeeName: clean(row.employee_name),
+      employeeNo: clean(row.employee_no),
+      contractId: row.contract_id ? String(row.contract_id) : '',
+      baseSalary: Number(row.base_salary || 0),
+      allowanceAmount: Number(row.allowance_amount || 0),
+      deductionAmount: Number(row.deduction_amount || 0),
+      loanDeductionAmount: Number(row.loan_deduction_amount || 0),
+      grossPay: Number(row.gross_pay || 0),
+      netPay: Number(row.net_pay || 0),
+      status: clean(row.status) || 'draft',
+      notes: clean(row.notes),
+      createdAt: clean(row.created_at_text),
+      updatedAt: clean(row.updated_at_text),
+    };
+  }
+
+  private mapPayrollAdjustment(row: Record<string, unknown>): Record<string, unknown> {
+    return {
+      id: String(row.id),
+      payrollItemId: String(row.payroll_item_id),
+      adjustmentType: clean(row.adjustment_type),
+      label: clean(row.label),
+      amount: Number(row.amount || 0),
+      notes: clean(row.notes),
+      createdAt: clean(row.created_at_text),
+    };
+  }
+
+  private async getPayrollRunStatus(db: Kysely<Database>, runId: number): Promise<string> {
+    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} LIMIT 1`.execute(db);
+    const status = clean(result.rows[0]?.status);
+    if (!status) throw new AppError('Payroll run not found', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
+    return status;
+  }
+
+  private async getPayrollItemRun(db: Kysely<Database>, itemId: number): Promise<{ runId: number; runStatus: string; itemStatus: string }> {
+    const result = await sql<{ run_id: number; run_status: string; item_status: string }>`
+      SELECT i.run_id, r.status AS run_status, i.status AS item_status
+      FROM hr_payroll_run_items i
+      JOIN hr_payroll_runs r ON r.id = i.run_id
+      WHERE i.id = ${itemId}
+      LIMIT 1
+    `.execute(db);
+    const row = result.rows[0];
+    if (!row) throw new AppError('Payroll item not found', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
+    return { runId: Number(row.run_id), runStatus: clean(row.run_status), itemStatus: clean(row.item_status) };
+  }
+
+  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number): Promise<{ amount: number; notes: string[] }> {
+    const result = await sql<Record<string, unknown>>`
+      SELECT id, repayment_mode, remaining_amount, principal_amount, installment_count, monthly_installment_amount
+      FROM hr_employee_loans
+      WHERE employee_id = ${employeeId}
+        AND repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
+        AND status IN ('paid', 'partially_repaid', 'disbursed')
+        AND remaining_amount > 0
+      ORDER BY id ASC
+    `.execute(db);
+    let total = 0;
+    const notes: string[] = [];
+    for (const loan of result.rows) {
+      const remaining = money(loan.remaining_amount);
+      if (!(remaining > 0)) continue;
+      const mode = clean(loan.repayment_mode);
+      let deduction = 0;
+      if (mode === 'deduct_next_salary') {
+        deduction = remaining;
+      } else if (mode === 'monthly_salary_installment') {
+        const monthly = money(loan.monthly_installment_amount);
+        const installmentCount = Number(loan.installment_count || 0);
+        const principal = money(loan.principal_amount);
+        if (monthly > 0) {
+          deduction = monthly;
+        } else if (principal > 0 && installmentCount > 0) {
+          deduction = Number((principal / installmentCount).toFixed(2));
+        } else {
+          notes.push(`Loan #${loan.id} has no monthly installment amount`);
+        }
+      }
+      const capped = Math.min(remaining, money(deduction));
+      if (capped > 0) total = Number((total + capped).toFixed(2));
+    }
+    return { amount: total, notes };
+  }
+
+  private async adjustmentTotals(db: Kysely<Database>, itemId: number): Promise<{ allowance: number; deduction: number }> {
+    const result = await sql<{ allowance: string; deduction: string }>`
+      SELECT
+        COALESCE(SUM(CASE WHEN adjustment_type = 'allowance' THEN amount ELSE 0 END), 0) AS allowance,
+        COALESCE(SUM(CASE WHEN adjustment_type = 'deduction' THEN amount ELSE 0 END), 0) AS deduction
+      FROM hr_payroll_item_adjustments
+      WHERE payroll_item_id = ${itemId}
+    `.execute(db);
+    return {
+      allowance: money(result.rows[0]?.allowance),
+      deduction: money(result.rows[0]?.deduction),
+    };
+  }
+
+  private async recalculatePayrollItemTotals(db: Kysely<Database>, itemId: number): Promise<void> {
+    const result = await sql<Record<string, unknown>>`
+      SELECT i.*, c.allowance_amount AS compensation_allowance, c.deduction_amount AS compensation_deduction
+      FROM hr_payroll_run_items i
+      LEFT JOIN LATERAL (
+        SELECT cp.allowance_amount, cp.deduction_amount
+        FROM hr_compensation_packages cp
+        WHERE cp.employee_id = i.employee_id
+          AND (i.contract_id IS NULL OR cp.contract_id IS NULL OR cp.contract_id = i.contract_id)
+        ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
+        LIMIT 1
+      ) c ON TRUE
+      WHERE i.id = ${itemId}
+      LIMIT 1
+    `.execute(db);
+    const item = result.rows[0];
+    if (!item) throw new AppError('Payroll item not found', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
+    const adjustments = await this.adjustmentTotals(db, itemId);
+    const baseSalary = money(item.base_salary);
+    const allowanceAmount = Number((money(item.compensation_allowance) + adjustments.allowance).toFixed(2));
+    const deductionAmount = Number((money(item.compensation_deduction) + adjustments.deduction).toFixed(2));
+    const loanDeductionAmount = money(item.loan_deduction_amount);
+    const grossPay = Number((baseSalary + allowanceAmount).toFixed(2));
+    const rawNetPay = Number((grossPay - deductionAmount - loanDeductionAmount).toFixed(2));
+    const capped = rawNetPay < 0;
+    const netPay = Math.max(0, rawNetPay);
+    const notes = capped && !clean(item.notes).includes('Net pay capped at zero')
+      ? combineNotes(clean(item.notes), 'Net pay capped at zero')
+      : clean(item.notes);
+    await sql`
+      UPDATE hr_payroll_run_items
+      SET allowance_amount = ${allowanceAmount}, deduction_amount = ${deductionAmount}, gross_pay = ${grossPay},
+          net_pay = ${netPay}, notes = ${notes}, updated_at = NOW()
+      WHERE id = ${itemId}
+    `.execute(db);
+  }
+
+  private async rebuildPayrollRunItems(db: Kysely<Database>, runId: number, runStatus: string): Promise<void> {
+    const runResult = await sql<{ period_month: string }>`SELECT period_month FROM hr_payroll_runs WHERE id = ${runId} LIMIT 1`.execute(db);
+    const periodMonth = normalizePayrollMonth(runResult.rows[0]?.period_month);
+    if (!periodMonth) throw new AppError('Payroll month is invalid', 'HR_PAYROLL_MONTH_INVALID', 400);
+    const range = monthRange(periodMonth);
+    const itemStatus = runStatus === 'reviewed' ? 'reviewed' : 'draft';
+    const employees = await sql<Record<string, unknown>>`
+      SELECT
+        e.id AS employee_id,
+        e.display_name,
+        c.id AS contract_id,
+        c.base_salary,
+        cp.allowance_amount,
+        cp.deduction_amount
+      FROM hr_employees e
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM hr_employment_contracts c
+        WHERE c.employee_id = e.id
+          AND c.status <> 'cancelled'
+        ORDER BY CASE WHEN c.status = 'active' THEN 0 WHEN c.status = 'draft' THEN 1 ELSE 2 END,
+                 c.start_date DESC NULLS LAST,
+                 c.id DESC
+        LIMIT 1
+      ) c ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM hr_compensation_packages cp
+        WHERE cp.employee_id = e.id
+          AND (cp.effective_from IS NULL OR cp.effective_from <= ${range.to})
+          AND (cp.effective_to IS NULL OR cp.effective_to >= ${range.from})
+        ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
+        LIMIT 1
+      ) cp ON TRUE
+      WHERE e.status = 'active'
+      ORDER BY e.id ASC
+    `.execute(db);
+
+    for (const employee of employees.rows) {
+      const employeeId = Number(employee.employee_id || 0);
+      if (!(employeeId > 0)) continue;
+      const existing = await sql<Record<string, unknown>>`
+        SELECT id, status, notes
+        FROM hr_payroll_run_items
+        WHERE run_id = ${runId} AND employee_id = ${employeeId}
+        LIMIT 1
+      `.execute(db);
+      const existingItem = existing.rows[0];
+      if (clean(existingItem?.status) === 'excluded' || clean(existingItem?.status) === 'approved') continue;
+      const itemId = Number(existingItem?.id || 0);
+      const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId) : { allowance: 0, deduction: 0 };
+      const baseSalary = money(employee.base_salary);
+      const compensationAllowance = money(employee.allowance_amount);
+      const compensationDeduction = money(employee.deduction_amount);
+      const loanDeduction = await this.calculateLoanDeduction(db, employeeId);
+      const allowanceAmount = Number((compensationAllowance + adjustments.allowance).toFixed(2));
+      const deductionAmount = Number((compensationDeduction + adjustments.deduction).toFixed(2));
+      const grossPay = Number((baseSalary + allowanceAmount).toFixed(2));
+      const rawNetPay = Number((grossPay - deductionAmount - loanDeduction.amount).toFixed(2));
+      const netPay = Math.max(0, rawNetPay);
+      const generatedNotes = [
+        baseSalary > 0 ? '' : 'Missing salary data',
+        ...loanDeduction.notes,
+        rawNetPay < 0 ? 'Net pay capped at zero' : '',
+      ].filter(Boolean);
+      const notes = combineNotes(clean(existingItem?.notes), ...generatedNotes);
+      if (itemId > 0) {
+        await sql`
+          UPDATE hr_payroll_run_items
+          SET contract_id = ${toId(employee.contract_id)}, base_salary = ${baseSalary}, allowance_amount = ${allowanceAmount},
+              deduction_amount = ${deductionAmount}, loan_deduction_amount = ${loanDeduction.amount}, gross_pay = ${grossPay},
+              net_pay = ${netPay}, status = ${itemStatus}, notes = ${notes}, updated_at = NOW()
+          WHERE id = ${itemId}
+        `.execute(db);
+      } else {
+        await sql`
+          INSERT INTO hr_payroll_run_items (
+            run_id, employee_id, contract_id, base_salary, allowance_amount, deduction_amount,
+            loan_deduction_amount, gross_pay, net_pay, status, notes
+          )
+          VALUES (
+            ${runId}, ${employeeId}, ${toId(employee.contract_id)}, ${baseSalary}, ${allowanceAmount}, ${deductionAmount},
+            ${loanDeduction.amount}, ${grossPay}, ${netPay}, ${itemStatus}, ${notes}
+          )
+        `.execute(db);
+      }
+    }
+    await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId}`.execute(db);
+  }
+
+  async listPayrollRuns(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const month = normalizePayrollMonth(query.month);
+    const result = await sql<Record<string, unknown>>`
+      SELECT
+        r.*,
+        to_char(r.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
+        to_char(r.reviewed_at, 'YYYY-MM-DD HH24:MI') AS reviewed_at_text,
+        to_char(r.approved_at, 'YYYY-MM-DD HH24:MI') AS approved_at_text,
+        to_char(r.updated_at, 'YYYY-MM-DD HH24:MI') AS updated_at_text,
+        COUNT(i.id) AS item_count,
+        COALESCE(SUM(i.base_salary), 0) AS total_base_salary,
+        COALESCE(SUM(i.allowance_amount), 0) AS total_allowance_amount,
+        COALESCE(SUM(i.deduction_amount), 0) AS total_deduction_amount,
+        COALESCE(SUM(i.loan_deduction_amount), 0) AS total_loan_deduction_amount,
+        COALESCE(SUM(i.gross_pay), 0) AS total_gross_pay,
+        COALESCE(SUM(i.net_pay), 0) AS total_net_pay
+      FROM hr_payroll_runs r
+      LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.status <> 'excluded'
+      WHERE (${month} = '' OR r.period_month = ${month})
+      GROUP BY r.id
+      ORDER BY r.period_month DESC, r.id DESC
+    `.execute(this.db);
+    const runs = result.rows.map((row) => this.mapPayrollRun(row));
+    const paged = paginateRows(runs, query, { defaultSize: 25 });
+    return { runs: paged.rows, pagination: paged.pagination, summary: { totalItems: runs.length } };
+  }
+
+  async getPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const runResult = await sql<Record<string, unknown>>`
+      SELECT
+        r.*,
+        to_char(r.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
+        to_char(r.reviewed_at, 'YYYY-MM-DD HH24:MI') AS reviewed_at_text,
+        to_char(r.approved_at, 'YYYY-MM-DD HH24:MI') AS approved_at_text,
+        to_char(r.updated_at, 'YYYY-MM-DD HH24:MI') AS updated_at_text,
+        COUNT(i.id) AS item_count,
+        COALESCE(SUM(i.base_salary), 0) AS total_base_salary,
+        COALESCE(SUM(i.allowance_amount), 0) AS total_allowance_amount,
+        COALESCE(SUM(i.deduction_amount), 0) AS total_deduction_amount,
+        COALESCE(SUM(i.loan_deduction_amount), 0) AS total_loan_deduction_amount,
+        COALESCE(SUM(i.gross_pay), 0) AS total_gross_pay,
+        COALESCE(SUM(i.net_pay), 0) AS total_net_pay
+      FROM hr_payroll_runs r
+      LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.status <> 'excluded'
+      WHERE r.id = ${id}
+      GROUP BY r.id
+      LIMIT 1
+    `.execute(this.db);
+    const run = runResult.rows[0];
+    if (!run) throw new AppError('Payroll run not found', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
+    const itemResult = await sql<Record<string, unknown>>`
+      SELECT
+        i.*,
+        e.display_name AS employee_name,
+        e.employee_no,
+        to_char(i.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
+        to_char(i.updated_at, 'YYYY-MM-DD HH24:MI') AS updated_at_text
+      FROM hr_payroll_run_items i
+      JOIN hr_employees e ON e.id = i.employee_id
+      WHERE i.run_id = ${id}
+      ORDER BY e.display_name ASC, i.id ASC
+    `.execute(this.db);
+    const itemIds = itemResult.rows.map((row) => Number(row.id || 0)).filter((itemId) => itemId > 0);
+    const adjustmentResult = itemIds.length
+      ? await sql<Record<string, unknown>>`
+          SELECT a.*, to_char(a.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
+          FROM hr_payroll_item_adjustments a
+          WHERE a.payroll_item_id IN (${sql.join(itemIds)})
+          ORDER BY a.id ASC
+        `.execute(this.db)
+      : { rows: [] };
+    const adjustmentsByItem = new Map<string, Record<string, unknown>[]>();
+    for (const adjustment of adjustmentResult.rows) {
+      const key = String(adjustment.payroll_item_id);
+      adjustmentsByItem.set(key, [...(adjustmentsByItem.get(key) || []), this.mapPayrollAdjustment(adjustment)]);
+    }
+    const items = itemResult.rows.map((row) => ({ ...this.mapPayrollItem(row), adjustments: adjustmentsByItem.get(String(row.id)) || [] }));
+    return { run: { ...this.mapPayrollRun(run), items } };
+  }
+
+  async createPayrollRun(payload: CreatePayrollRunDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const periodMonth = normalizePayrollMonth(payload.periodMonth);
+    if (!periodMonth) throw new AppError('Payroll month must use YYYY-MM format', 'HR_PAYROLL_MONTH_INVALID', 400);
+    let runId = 0;
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const existing = await sql<{ id: number }>`SELECT id FROM hr_payroll_runs WHERE period_month = ${periodMonth} AND status <> 'cancelled' ORDER BY id DESC LIMIT 1`.execute(trx);
+      runId = Number(existing.rows[0]?.id || 0);
+      if (!runId) {
+        const inserted = await sql<{ id: number }>`
+          INSERT INTO hr_payroll_runs (period_month, status, notes, created_by)
+          VALUES (${periodMonth}, 'draft', ${clean(payload.notes)}, ${auth.userId})
+          RETURNING id
+        `.execute(trx);
+        runId = Number(inserted.rows[0]?.id || 0);
+        await this.rebuildPayrollRunItems(trx, runId, 'draft');
+      }
+    });
+    await this.audit.log('Create HR payroll run', `Payroll run ${periodMonth} prepared by ${auth.username}`, auth);
+    return this.getPayrollRun(runId, auth);
+  }
+
+  async recalculatePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const status = await this.getPayrollRunStatus(trx, id);
+      if (!['draft', 'reviewed'].includes(status)) throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
+      await this.rebuildPayrollRunItems(trx, id, status);
+    });
+    await this.audit.log('Recalculate HR payroll run', `Payroll run #${id} recalculated by ${auth.username}`, auth);
+    return this.getPayrollRun(id, auth);
+  }
+
+  async reviewPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const status = await this.getPayrollRunStatus(trx, id);
+      if (status !== 'draft') throw new AppError('Only draft payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
+      await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft'`.execute(trx);
+      await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id}`.execute(trx);
+    });
+    await this.audit.log('Review HR payroll run', `Payroll run #${id} reviewed by ${auth.username}`, auth);
+    return this.getPayrollRun(id, auth);
+  }
+
+  async approvePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const status = await this.getPayrollRunStatus(trx, id);
+      if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
+      await sql`UPDATE hr_payroll_run_items SET status = 'approved', updated_at = NOW() WHERE run_id = ${id} AND status = 'reviewed'`.execute(trx);
+      await sql`UPDATE hr_payroll_runs SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_at = NOW() WHERE id = ${id}`.execute(trx);
+    });
+    await this.audit.log('Approve HR payroll run', `Payroll run #${id} approved by ${auth.username}`, auth);
+    return this.getPayrollRun(id, auth);
+  }
+
+  async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const status = await this.getPayrollRunStatus(this.db, id);
+    if (status === 'approved') throw new AppError('Approved payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
+    await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status <> 'approved'`.execute(this.db);
+    await this.audit.log('Cancel HR payroll run', `Payroll run #${id} cancelled by ${auth.username}`, auth);
+    return this.getPayrollRun(id, auth);
+  }
+
+  async updatePayrollRunItem(id: number, payload: UpsertPayrollItemDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const item = await this.getPayrollItemRun(this.db, id);
+    if (item.runStatus !== 'draft') throw new AppError('Payroll items can only be edited while the run is draft', 'HR_PAYROLL_ITEM_EDIT_LOCKED', 400);
+    const status = clean(payload.status);
+    if (status && !['draft', 'excluded'].includes(status)) throw new AppError('Payroll item status is invalid', 'HR_PAYROLL_ITEM_STATUS_INVALID', 400);
+    await sql`
+      UPDATE hr_payroll_run_items
+      SET status = ${status || item.itemStatus || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log('Update HR payroll item', `Payroll item #${id} updated by ${auth.username}`, auth);
+    return this.getPayrollRun(item.runId, auth);
+  }
+
+  async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const item = await this.getPayrollItemRun(this.db, id);
+    if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`
+        INSERT INTO hr_payroll_item_adjustments (payroll_item_id, adjustment_type, label, amount, notes)
+        VALUES (${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
+      `.execute(trx);
+      await this.recalculatePayrollItemTotals(trx, id);
+      await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${item.runId}`.execute(trx);
+    });
+    await this.audit.log('Create HR payroll adjustment', `Payroll item #${id} adjustment added by ${auth.username}`, auth);
+    return this.getPayrollRun(item.runId, auth);
+  }
+
+  async deletePayrollAdjustment(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    let runId = 0;
+    let itemId = 0;
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const result = await sql<{ payroll_item_id: number; run_id: number; run_status: string }>`
+        SELECT a.payroll_item_id, i.run_id, r.status AS run_status
+        FROM hr_payroll_item_adjustments a
+        JOIN hr_payroll_run_items i ON i.id = a.payroll_item_id
+        JOIN hr_payroll_runs r ON r.id = i.run_id
+        WHERE a.id = ${id}
+        LIMIT 1
+      `.execute(trx);
+      const row = result.rows[0];
+      if (!row) throw new AppError('Payroll adjustment not found', 'HR_PAYROLL_ADJUSTMENT_NOT_FOUND', 404);
+      if (clean(row.run_status) !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+      runId = Number(row.run_id || 0);
+      itemId = Number(row.payroll_item_id || 0);
+      await sql`DELETE FROM hr_payroll_item_adjustments WHERE id = ${id}`.execute(trx);
+      await this.recalculatePayrollItemTotals(trx, itemId);
+      await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId}`.execute(trx);
+    });
+    await this.audit.log('Delete HR payroll adjustment', `Payroll adjustment #${id} deleted by ${auth.username}`, auth);
+    return this.getPayrollRun(runId, auth);
   }
 
   async withdrawals(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {

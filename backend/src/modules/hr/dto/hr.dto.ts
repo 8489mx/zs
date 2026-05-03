@@ -300,3 +300,44 @@ export class LoanRepaymentDto {
   @IsIn(['manual_cash', 'salary_deduction'])
   repaymentMethod?: string;
 }
+
+export class CreatePayrollRunDto {
+  @IsString()
+  @MaxLength(7)
+  periodMonth!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class UpsertPayrollItemDto {
+  @IsOptional()
+  @IsIn(['draft', 'excluded'])
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class CreatePayrollAdjustmentDto {
+  @IsIn(['allowance', 'deduction'])
+  adjustmentType!: string;
+
+  @IsString()
+  @MaxLength(160)
+  label!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}

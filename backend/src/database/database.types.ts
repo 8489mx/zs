@@ -704,6 +704,47 @@ export interface HrEmployeeLedgerTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface HrPayrollRunTable {
+  id: Generated<number>;
+  period_month: string;
+  status: 'draft' | 'reviewed' | 'approved' | 'cancelled';
+  notes: string;
+  created_by: number | null;
+  reviewed_by: number | null;
+  approved_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  reviewed_at: Date | null;
+  approved_at: Date | null;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrPayrollRunItemTable {
+  id: Generated<number>;
+  run_id: number;
+  employee_id: number;
+  contract_id: number | null;
+  base_salary: number;
+  allowance_amount: number;
+  deduction_amount: number;
+  loan_deduction_amount: number;
+  gross_pay: number;
+  net_pay: number;
+  status: 'draft' | 'reviewed' | 'approved' | 'excluded';
+  notes: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrPayrollItemAdjustmentTable {
+  id: Generated<number>;
+  payroll_item_id: number;
+  adjustment_type: 'allowance' | 'deduction';
+  label: string;
+  amount: number;
+  notes: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface HrSettingsTable {
   key: string;
   value: string;
@@ -763,6 +804,9 @@ export interface Database {
   hr_employee_loans: HrEmployeeLoanTable;
   hr_employee_loan_installments: HrEmployeeLoanInstallmentTable;
   hr_employee_ledger: HrEmployeeLedgerTable;
+  hr_payroll_runs: HrPayrollRunTable;
+  hr_payroll_run_items: HrPayrollRunItemTable;
+  hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;
   hr_hr_settings: HrSettingsTable;
   price_change_runs: PriceChangeRunTable;
   price_change_items: PriceChangeItemTable;

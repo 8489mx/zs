@@ -71,6 +71,8 @@ export const queryKeys = {
   hrMasterData: (kind: string) => ['hr', 'master-data', kind] as const,
   hrLoans: (paramsKey: string) => ['hr', 'loans', paramsKey] as const,
   hrWithdrawals: (paramsKey: string) => ['hr', 'withdrawals', paramsKey] as const,
+  hrPayrollRuns: (paramsKey: string) => ['hr', 'payroll-runs', paramsKey] as const,
+  hrPayrollRun: (runId: string) => ['hr', 'payroll-run', runId] as const,
   auditLogs: ['audit-logs'] as const,
   auditLogsPage: (paramsKey: string) => ['audit-logs', 'page', paramsKey] as const,
   cashierShifts: ['cashier-shifts'] as const,
