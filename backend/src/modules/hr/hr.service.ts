@@ -721,9 +721,9 @@ export class HrService {
       const status = clean(row.status);
       const issueDate = clean(row.issue_date_text) || (row.issue_date ? String(row.issue_date).slice(0, 10) : '');
       const issueDateTime = issueDate ? `${issueDate} 00:00` : '';
-      const createdAt = clean(row.created_at_text);
-      const disbursedAt = clean(row.disbursed_at_text);
-      const paidAt = clean(row.paid_at_text);
+      const createdAt = clean(row.created_at_text) || (row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '');
+      const disbursedAt = clean(row.disbursed_at_text) || (row.disbursed_at ? String(row.disbursed_at).replace('T', ' ').slice(0, 16) : '');
+      const paidAt = clean(row.paid_at_text) || (row.paid_at ? String(row.paid_at).replace('T', ' ').slice(0, 16) : '') || (row.latest_paid_at ? String(row.latest_paid_at).replace('T', ' ').slice(0, 16) : '');
 
       if (['paid', 'disbursed', 'partially_repaid', 'repaid'].includes(status)) {
         return paidAt || disbursedAt || issueDateTime || createdAt;
@@ -762,7 +762,7 @@ export class HrService {
     });
 
     const repaymentRows = ledgerResult.rows.map((row) => {
-      const movementAt = clean(row.movement_at_text);
+      const movementAt = clean(row.movement_at_text) || (row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '');
       const repaymentMethod = clean(row.repayment_method) || 'manual_cash';
       return {
         id: `ledger-${String(row.id)}`,

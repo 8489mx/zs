@@ -8,6 +8,10 @@ function paramsKey(params: HrListParams) {
     pageSize: params.pageSize || 25,
     search: params.search || '',
     employeeId: params.employeeId || '',
+    period: params.period || '',
+    month: params.month || '',
+    from: params.from || '',
+    to: params.to || '',
   });
 }
 

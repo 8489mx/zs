@@ -53,6 +53,40 @@ function formatDateTimeStable(value?: string | null) {
   return dateOnly ? `${dateOnly} 00:00` : '—';
 }
 
+
+function pickRowText(row: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = String(row[key] || '').trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+function movementDateValue(row: HrWithdrawalRow | Record<string, unknown>) {
+  return pickRowText(row as Record<string, unknown>, [
+    'movementAt',
+    'movement_at',
+    'movement_at_text',
+    'date',
+    'paidAt',
+    'paid_at',
+    'paid_at_text',
+    'disbursedAt',
+    'disbursed_at',
+    'disbursed_at_text',
+    'createdAt',
+    'created_at',
+    'created_at_text',
+    'issueDate',
+    'issue_date',
+    'issue_date_text',
+  ]);
+}
+
+function loanDateValue(loan: HrLoan | Record<string, unknown> | undefined, keys: string[]) {
+  return loan ? pickRowText(loan as Record<string, unknown>, keys) : '';
+}
+
 function addMonthsDateOnly(value: string, months: number) {
   const normalized = normalizeDateInput(value);
   if (!normalized) return '';
@@ -480,7 +514,6 @@ export function HrPage() {
     { key: 'outstanding', label: 'رصيد السلف', value: formatHrMoney(summary.outstandingAmount) },
   ];
 
-
   return (
     <div className="page-stack page-shell hr-page">
       <PageHeader title="الموارد البشرية" description="الملف الأساسي للموظفين والعقود والمسحوبات بدون حضور أو تشغيل رواتب." badge={<span className="nav-pill">HR Phase 1</span>} />
@@ -595,7 +628,7 @@ export function HrPage() {
               if (loanId) setSelectedLoanId(loanId);
             }}
             columns={[
-              { key: 'date', header: 'التاريخ والوقت', cell: (row) => formatDateTimeStable((row as HrWithdrawalRow & { movementAt?: string; issueDate?: string; createdAt?: string; approvedAt?: string; disbursedAt?: string; paidAt?: string; updatedAt?: string }).movementAt || (row as HrWithdrawalRow & { disbursedAt?: string; paidAt?: string; issueDate?: string; createdAt?: string }).disbursedAt || (row as HrWithdrawalRow & { paidAt?: string }).paidAt || row.date || (row as HrWithdrawalRow & { issueDate?: string }).issueDate || (row as HrWithdrawalRow & { createdAt?: string }).createdAt) },
+              { key: 'date', header: 'التاريخ والوقت', cell: (row) => formatDateTimeStable(movementDateValue(row)) },
               { key: 'type', header: 'النوع', cell: (row) => withdrawalTypeLabel(row.type) },
               { key: 'amount', header: 'المبلغ', cell: (row) => formatHrMoney(row.amount) },
               { key: 'method', header: 'طريقة التسوية / السداد', cell: (row) => row.type === 'repayment' ? repaymentMethodLabel((row as HrWithdrawalRow & { repaymentMethod?: string }).repaymentMethod || row.repaymentMode) : repaymentModeLabel(row.repaymentMode) },
@@ -662,7 +695,7 @@ export function HrPage() {
                 <div><span className="muted">المتبقي</span><strong>{formatHrMoney(selectedLoan.remainingAmount)}</strong></div>
                 <div><span className="muted">طريقة التسوية / الخصم</span><strong>{repaymentModeLabel(selectedLoan.repaymentMode)}</strong></div>
                 <div><span className="muted">الحالة</span><strong>{statusLabel(selectedLoan.status)}</strong></div>
-                <div><span className="muted">تاريخ الإصدار</span><strong>{formatDateOnly(selectedLoan.issueDate)}</strong></div>
+                <div><span className="muted">تاريخ الإصدار</span><strong>{formatDateOnly(loanDateValue(selectedLoan, ['issueDate', 'issue_date', 'issue_date_text']))}</strong></div>
                 <div><span className="muted">تاريخ الاعتماد</span><strong>{formatDateTimeStable((selectedLoan as HrLoan & { approvedAt?: string }).approvedAt)}</strong></div>
                 <div><span className="muted">تاريخ الصرف</span><strong>{formatDateTimeStable((selectedLoan as HrLoan & { disbursedAt?: string; paidAt?: string }).disbursedAt || (selectedLoan as HrLoan & { paidAt?: string }).paidAt)}</strong></div>
               </div>
@@ -688,7 +721,7 @@ export function HrPage() {
                 rows={selectedLoanRepayments}
                 rowKey={(row) => row.id}
                 columns={[
-                  { key: 'date', header: 'التاريخ والوقت', cell: (row) => formatDateTimeStable((row as HrWithdrawalRow & { movementAt?: string; createdAt?: string }).movementAt || row.date || (row as HrWithdrawalRow & { createdAt?: string }).createdAt) },
+                  { key: 'date', header: 'التاريخ والوقت', cell: (row) => formatDateTimeStable(movementDateValue(row)) },
                   { key: 'method', header: 'طريقة السداد', cell: (row) => repaymentMethodLabel((row as HrWithdrawalRow & { repaymentMethod?: string }).repaymentMethod || row.repaymentMode) },
                   { key: 'amount', header: 'المبلغ', cell: (row) => formatHrMoney(row.amount) },
                   { key: 'note', header: 'ملاحظة', cell: (row) => movementNote(row) },
