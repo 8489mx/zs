@@ -1,6 +1,7 @@
 export * from './domain-models/catalog';
 export * from './domain-models/inventory';
 export * from './domain-models/reports';
+export * from './domain-models/hr';
 export type {
   TreasuryTransaction,
   ServiceRecord,

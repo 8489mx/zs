@@ -544,6 +544,169 @@ export interface SupplierLedgerTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface HrDepartmentTable {
+  id: Generated<number>;
+  name: string;
+  code: string;
+  description: string;
+  is_active: boolean;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrJobTitleTable extends HrDepartmentTable {}
+
+export interface HrPositionTable extends HrDepartmentTable {
+  department_id: number | null;
+  job_title_id: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+}
+
+export interface HrEmployeeTable {
+  id: Generated<number>;
+  employee_no: string;
+  user_id: number | null;
+  first_name: string;
+  last_name: string;
+  display_name: string;
+  status: 'active' | 'inactive' | 'deactivated' | 'terminated';
+  department_id: number | null;
+  job_title_id: number | null;
+  position_id: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  hire_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  notes: string;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrEmployeeContactTable {
+  id: Generated<number>;
+  employee_id: number;
+  contact_type: string;
+  value: string;
+  label: string;
+  is_primary: boolean;
+  notes: string;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrEmployeeDocumentTable {
+  id: Generated<number>;
+  employee_id: number;
+  title: string;
+  document_type: string;
+  file_url: string;
+  expiry_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  notes: string;
+  uploaded_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrEmploymentContractTable {
+  id: Generated<number>;
+  employee_id: number;
+  contract_no: string;
+  contract_type: string;
+  status: 'draft' | 'active' | 'ended' | 'cancelled';
+  start_date: ColumnType<string, string | undefined, string | undefined>;
+  end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  base_salary: number;
+  currency: string;
+  notes: string;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrCompensationPackageTable {
+  id: Generated<number>;
+  employee_id: number;
+  contract_id: number | null;
+  package_name: string;
+  allowance_amount: number;
+  deduction_amount: number;
+  effective_from: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  effective_to: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  notes: string;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrEmployeeLoanTable {
+  id: Generated<number>;
+  employee_id: number;
+  loan_no: string;
+  loan_type: 'advance' | 'loan';
+  principal_amount: number;
+  paid_amount: number;
+  remaining_amount: number;
+  installment_count: number;
+  installment_amount: number;
+  status: 'draft' | 'approved' | 'paid' | 'partially_repaid' | 'repaid' | 'cancelled';
+  issue_date: ColumnType<string, string | undefined, string | undefined>;
+  first_due_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  branch_id: number | null;
+  location_id: number | null;
+  notes: string;
+  approved_by: number | null;
+  approved_at: Date | null;
+  disbursed_by: number | null;
+  disbursed_at: Date | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrEmployeeLoanInstallmentTable {
+  id: Generated<number>;
+  loan_id: number;
+  installment_no: number;
+  due_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  amount: number;
+  paid_amount: number;
+  status: 'pending' | 'partial' | 'paid' | 'cancelled';
+  paid_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrEmployeeLedgerTable {
+  id: Generated<number>;
+  employee_id: number;
+  entry_type: string;
+  amount: number;
+  balance_after: number;
+  note: string;
+  reference_type: string | null;
+  reference_id: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface HrSettingsTable {
+  key: string;
+  value: string;
+  updated_by: number | null;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface Database {
   _phase1_bootstrap: Phase1BootstrapTable;
   sessions: SessionTable;
@@ -585,6 +748,18 @@ export interface Database {
   purchase_items: PurchaseItemTable;
   supplier_payments: SupplierPaymentTable;
   supplier_ledger: SupplierLedgerTable;
+  hr_departments: HrDepartmentTable;
+  hr_job_titles: HrJobTitleTable;
+  hr_positions: HrPositionTable;
+  hr_employees: HrEmployeeTable;
+  hr_employee_contacts: HrEmployeeContactTable;
+  hr_employee_documents: HrEmployeeDocumentTable;
+  hr_employment_contracts: HrEmploymentContractTable;
+  hr_compensation_packages: HrCompensationPackageTable;
+  hr_employee_loans: HrEmployeeLoanTable;
+  hr_employee_loan_installments: HrEmployeeLoanInstallmentTable;
+  hr_employee_ledger: HrEmployeeLedgerTable;
+  hr_hr_settings: HrSettingsTable;
   price_change_runs: PriceChangeRunTable;
   price_change_items: PriceChangeItemTable;
 }
