@@ -237,6 +237,10 @@ export class UpsertEmployeeLoanDto {
   @IsIn(['advance', 'loan'])
   loanType?: string;
 
+  @IsOptional()
+  @IsIn(['deduct_next_salary', 'monthly_salary_installment', 'manual_cash'])
+  repaymentMode?: string;
+
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
@@ -248,12 +252,22 @@ export class UpsertEmployeeLoanDto {
   @Min(1)
   installmentCount?: number;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  monthlyInstallmentAmount?: number;
+
   @IsDateString()
   issueDate!: string;
 
   @IsOptional()
   @IsDateString()
   firstDueDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  salaryDueDate?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -281,4 +295,8 @@ export class LoanRepaymentDto {
   @IsString()
   @MaxLength(500)
   note?: string;
+
+  @IsOptional()
+  @IsIn(['manual_cash', 'salary_deduction'])
+  repaymentMethod?: string;
 }

@@ -656,6 +656,9 @@ export interface HrEmployeeLoanTable {
   remaining_amount: number;
   installment_count: number;
   installment_amount: number;
+  repayment_mode: 'deduct_next_salary' | 'monthly_salary_installment' | 'manual_cash';
+  monthly_installment_amount: number | null;
+  salary_due_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   status: 'draft' | 'approved' | 'paid' | 'partially_repaid' | 'repaid' | 'cancelled';
   issue_date: ColumnType<string, string | undefined, string | undefined>;
   first_due_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
@@ -692,6 +695,7 @@ export interface HrEmployeeLedgerTable {
   amount: number;
   balance_after: number;
   note: string;
+  repayment_method: string | null;
   reference_type: string | null;
   reference_id: number | null;
   branch_id: number | null;

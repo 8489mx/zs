@@ -70,6 +70,7 @@ export const queryKeys = {
   hrProfile: (employeeId: string) => ['hr', 'employee', employeeId] as const,
   hrMasterData: (kind: string) => ['hr', 'master-data', kind] as const,
   hrLoans: (paramsKey: string) => ['hr', 'loans', paramsKey] as const,
+  hrWithdrawals: (paramsKey: string) => ['hr', 'withdrawals', paramsKey] as const,
   auditLogs: ['audit-logs'] as const,
   auditLogsPage: (paramsKey: string) => ['audit-logs', 'page', paramsKey] as const,
   cashierShifts: ['cashier-shifts'] as const,

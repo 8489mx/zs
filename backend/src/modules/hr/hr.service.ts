@@ -41,6 +41,36 @@ function clean(value: unknown): string {
   return String(value || '').trim();
 }
 
+function normalizeDateOnly(value: unknown): string | null {
+  const text = clean(value);
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const usMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (usMatch) {
+    const month = Number(usMatch[1]);
+    const day = Number(usMatch[2]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${usMatch[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+  return null;
+}
+
+function nextMonthDate(value?: string | null): string {
+  const normalized = normalizeDateOnly(value);
+  if (normalized) return addMonths(normalized, 1);
+  const now = new Date();
+  return addMonths(`${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`, 1);
+}
+
+function addMonths(value: string, months: number): string {
+  const normalized = normalizeDateOnly(value);
+  if (!normalized) return nextMonthDate();
+  const [year, month, day] = normalized.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1 + months, day));
+  return date.toISOString().slice(0, 10);
+}
+
 function canViewSalary(auth: AuthContext): boolean {
   return auth.role === 'super_admin' || auth.permissions.includes('hrSalaryView') || auth.permissions.includes('hrSalaryManage');
 }
@@ -67,6 +97,62 @@ export class HrService {
     return masked;
   }
 
+  private async generateNumber(db: Kysely<Database>, table: string, prefix: string): Promise<string> {
+    const result = await sql<{ next_no: string }>`
+      SELECT ${sql.lit(prefix)} || '-' || LPAD((COALESCE(MAX(id), 0) + 1)::TEXT, 4, '0') AS next_no
+      FROM ${sql.table(table)}
+    `.execute(db);
+    return result.rows[0]?.next_no || `${prefix}-0001`;
+  }
+
+  private normalizeRepaymentPlan(payload: UpsertEmployeeLoanDto, amount: number): {
+    repaymentMode: string;
+    installmentCount: number;
+    installmentAmount: number;
+    monthlyInstallmentAmount: number | null;
+    firstDueDate: string | null;
+    salaryDueDate: string | null;
+  } {
+    const repaymentMode = ['deduct_next_salary', 'monthly_salary_installment', 'manual_cash'].includes(clean(payload.repaymentMode))
+      ? clean(payload.repaymentMode)
+      : 'manual_cash';
+    const issueDate = normalizeDateOnly(payload.issueDate);
+    const salaryDueDate = normalizeDateOnly(payload.salaryDueDate);
+    const firstDueDate = normalizeDateOnly(payload.firstDueDate) || salaryDueDate || (repaymentMode === 'manual_cash' ? issueDate : nextMonthDate(issueDate));
+    const monthlyAmount = Number(payload.monthlyInstallmentAmount || 0);
+    if (repaymentMode === 'deduct_next_salary') {
+      return {
+        repaymentMode,
+        installmentCount: 1,
+        installmentAmount: amount,
+        monthlyInstallmentAmount: null,
+        firstDueDate,
+        salaryDueDate,
+      };
+    }
+    if (repaymentMode === 'monthly_salary_installment' && monthlyAmount > 0) {
+      const installmentAmount = Math.min(monthlyAmount, amount);
+      return {
+        repaymentMode,
+        installmentCount: Math.max(1, Math.ceil(amount / installmentAmount)),
+        installmentAmount,
+        monthlyInstallmentAmount: installmentAmount,
+        firstDueDate,
+        salaryDueDate,
+      };
+    }
+    const installmentCount = Math.max(1, Math.floor(Number(payload.installmentCount || 1)));
+    const installmentAmount = Math.min(amount, Number((amount / installmentCount).toFixed(2)));
+    return {
+      repaymentMode,
+      installmentCount,
+      installmentAmount,
+      monthlyInstallmentAmount: null,
+      firstDueDate,
+      salaryDueDate,
+    };
+  }
+
   async listMasterData(kind: MasterKind, query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const config = masterConfig[kind];
@@ -88,6 +174,8 @@ export class HrService {
     const search = clean(query.search).toLowerCase();
     let rows = result.rows.map((row) => ({
       id: String(row.id),
+      loanId: row.reference_id ? String(row.reference_id) : '',
+      referenceId: row.reference_id ? String(row.reference_id) : '',
       name: clean(row.name),
       code: clean(row.code),
       description: clean(row.description),
@@ -159,6 +247,7 @@ export class HrService {
     requireTenantScope(auth);
     const result = await sql<Record<string, unknown>>`
       SELECT e.*, d.name AS department_name, j.name AS job_title_name, p.name AS position_name, b.name AS branch_name, l.name AS location_name, u.username AS username
+      , to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date_text
       FROM hr_employees e
       LEFT JOIN hr_departments d ON d.id = e.department_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
@@ -188,7 +277,7 @@ export class HrService {
       branchName: clean(row.branch_name),
       locationId: row.location_id ? String(row.location_id) : '',
       locationName: clean(row.location_name),
-      hireDate: row.hire_date ? String(row.hire_date).slice(0, 10) : '',
+      hireDate: clean(row.hire_date_text),
       notes: clean(row.notes),
     }));
     if (search) {
@@ -239,21 +328,34 @@ export class HrService {
     const firstName = clean(payload.firstName);
     const lastName = clean(payload.lastName);
     const displayName = `${firstName} ${lastName}`.trim();
+    const employeeNo = clean(payload.employeeNo);
+    const hireDate = normalizeDateOnly(payload.hireDate);
     if (!firstName) throw new AppError('Employee first name is required', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (id) {
       await sql`
         UPDATE hr_employees
-        SET employee_no = ${clean(payload.employeeNo)}, user_id = ${toId(payload.userId)}, first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName},
+        SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no), user_id = ${toId(payload.userId)}, first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName},
             status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
-            branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${payload.hireDate || null}, notes = ${clean(payload.notes)},
+            branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
             updated_by = ${auth.userId}, updated_at = NOW()
         WHERE id = ${id}
       `.execute(this.db);
     } else {
-      await sql`
-        INSERT INTO hr_employees (employee_no, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, created_by, updated_by)
-        VALUES (${clean(payload.employeeNo)}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${payload.hireDate || null}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
-      `.execute(this.db);
+      await this.tx.runInTransaction(this.db, async (trx) => {
+        const inserted = await sql<{ id: number }>`
+          INSERT INTO hr_employees (employee_no, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, created_by, updated_by)
+          VALUES (${employeeNo}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+          RETURNING id
+        `.execute(trx);
+        const employeeId = Number(inserted.rows[0]?.id || 0);
+        if (!employeeNo && employeeId > 0) {
+          await sql`
+            UPDATE hr_employees
+            SET employee_no = ${`EMP-${String(employeeId).padStart(4, '0')}`}, updated_at = NOW()
+            WHERE id = ${employeeId}
+          `.execute(trx);
+        }
+      });
     }
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employee`, `Employee ${displayName} saved by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
@@ -301,10 +403,11 @@ export class HrService {
   }
 
   async upsertContract(employeeId: number, id: number | null, payload: UpsertEmploymentContractDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const contractNo = clean(payload.contractNo) || (!id ? await this.generateNumber(this.db, 'hr_employment_contracts', 'CON') : '');
     if (id) {
       await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${clean(payload.currency) || 'EGP'}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
     } else {
-      await sql`INSERT INTO hr_employment_contracts (employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${employeeId}, ${clean(payload.contractNo)}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
+      await sql`INSERT INTO hr_employment_contracts (employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${employeeId}, ${contractNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
     }
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employment contract`, `Employee #${employeeId} contract saved by ${auth.username}`, auth);
     return this.listContracts(employeeId, auth);
@@ -346,9 +449,17 @@ export class HrService {
       remainingAmount: Number(row.remaining_amount || 0),
       installmentCount: Number(row.installment_count || 1),
       installmentAmount: Number(row.installment_amount || 0),
+      repaymentMode: clean(row.repayment_mode) || 'manual_cash',
+      monthlyInstallmentAmount: row.monthly_installment_amount ? Number(row.monthly_installment_amount) : null,
       status: clean(row.status),
       issueDate: String(row.issue_date).slice(0, 10),
       firstDueDate: row.first_due_date ? String(row.first_due_date).slice(0, 10) : '',
+      salaryDueDate: row.salary_due_date ? String(row.salary_due_date).slice(0, 10) : '',
+      createdAt: row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '',
+      updatedAt: row.updated_at ? String(row.updated_at).replace('T', ' ').slice(0, 16) : '',
+      approvedAt: row.approved_at ? String(row.approved_at).replace('T', ' ').slice(0, 16) : '',
+      disbursedAt: row.disbursed_at ? String(row.disbursed_at).replace('T', ' ').slice(0, 16) : '',
+      paidAt: row.paid_at ? String(row.paid_at).replace('T', ' ').slice(0, 16) : '',
       branchId: row.branch_id ? String(row.branch_id) : '',
       locationId: row.location_id ? String(row.location_id) : '',
       notes: clean(row.notes),
@@ -358,18 +469,35 @@ export class HrService {
   }
 
   async createLoan(payload: UpsertEmployeeLoanDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const employeeId = toId(payload.employeeId);
+    const amount = Number(payload.principalAmount || 0);
+    const issueDate = normalizeDateOnly(payload.issueDate);
+    const repaymentMode = clean(payload.repaymentMode) || 'manual_cash';
+    if (!employeeId) throw new AppError('Employee is required', 'HR_LOAN_EMPLOYEE_REQUIRED', 400);
+    if (!(amount > 0)) throw new AppError('Loan amount must be greater than zero', 'HR_LOAN_AMOUNT_INVALID', 400);
+    if (!issueDate) throw new AppError('Loan issue date is required', 'HR_LOAN_ISSUE_DATE_REQUIRED', 400);
+    if (!['deduct_next_salary', 'monthly_salary_installment', 'manual_cash'].includes(repaymentMode)) {
+      throw new AppError('Loan repayment mode is invalid', 'HR_LOAN_REPAYMENT_MODE_INVALID', 400);
+    }
+    if (repaymentMode === 'monthly_salary_installment' && !(Number(payload.monthlyInstallmentAmount || 0) > 0) && !(Number(payload.installmentCount || 0) > 0)) {
+      throw new AppError('Monthly installment amount or installment count is required', 'HR_LOAN_INSTALLMENT_REQUIRED', 400);
+    }
+
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const amount = Number(payload.principalAmount || 0);
-      const count = Math.max(1, Math.floor(Number(payload.installmentCount || 1)));
-      const installmentAmount = Number((amount / count).toFixed(2));
+      const plan = this.normalizeRepaymentPlan({ ...payload, employeeId, principalAmount: amount, issueDate, repaymentMode }, amount);
+      const loanNo = clean(payload.loanNo) || await this.generateNumber(trx, 'hr_employee_loans', 'LOAN');
       const insert = await sql<{ id: number }>`
-        INSERT INTO hr_employee_loans (employee_id, loan_no, loan_type, principal_amount, paid_amount, remaining_amount, installment_count, installment_amount, status, issue_date, first_due_date, branch_id, location_id, notes, created_by, updated_by)
-        VALUES (${payload.employeeId}, ${clean(payload.loanNo)}, ${clean(payload.loanType) || 'advance'}, ${amount}, 0, ${amount}, ${count}, ${installmentAmount}, 'draft', ${payload.issueDate}, ${payload.firstDueDate || null}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+        INSERT INTO hr_employee_loans (employee_id, loan_no, loan_type, principal_amount, paid_amount, remaining_amount, installment_count, installment_amount, repayment_mode, monthly_installment_amount, status, issue_date, first_due_date, salary_due_date, branch_id, location_id, notes, created_by, updated_by)
+        VALUES (${employeeId}, ${loanNo}, ${clean(payload.loanType) || 'advance'}, ${amount}, 0, ${amount}, ${plan.installmentCount}, ${plan.installmentAmount}, ${plan.repaymentMode}, ${plan.monthlyInstallmentAmount}, 'draft', ${issueDate}, ${plan.firstDueDate}, ${plan.salaryDueDate}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
         RETURNING id
       `.execute(trx);
       const loanId = Number(insert.rows[0]?.id || 0);
-      for (let i = 1; i <= count; i += 1) {
-        await sql`INSERT INTO hr_employee_loan_installments (loan_id, installment_no, due_date, amount) VALUES (${loanId}, ${i}, ${payload.firstDueDate || null}, ${i === count ? Number((amount - installmentAmount * (count - 1)).toFixed(2)) : installmentAmount})`.execute(trx);
+      for (let i = 1; i <= plan.installmentCount; i += 1) {
+        const dueDate = plan.firstDueDate ? addMonths(plan.firstDueDate, i - 1) : null;
+        const installmentValue = i === plan.installmentCount
+          ? Math.max(0, Number((amount - plan.installmentAmount * (plan.installmentCount - 1)).toFixed(2)))
+          : plan.installmentAmount;
+        await sql`INSERT INTO hr_employee_loan_installments (loan_id, installment_no, due_date, amount) VALUES (${loanId}, ${i}, ${dueDate}, ${installmentValue})`.execute(trx);
       }
     });
     await this.audit.log('Create HR employee loan', `Employee loan created by ${auth.username}`, auth);
@@ -382,25 +510,30 @@ export class HrService {
     if (existing.rows[0].status !== 'draft') throw new AppError('Only draft loans can be edited', 'HR_LOAN_EDIT_LOCKED', 400);
 
     const amount = Number(payload.principalAmount || 0);
-    const count = Math.max(1, Math.floor(Number(payload.installmentCount || 1)));
-    const installmentAmount = Number((amount / count).toFixed(2));
+    const issueDate = normalizeDateOnly(payload.issueDate);
+    if (!issueDate) throw new AppError('Loan issue date is required', 'HR_LOAN_ISSUE_DATE_REQUIRED', 400);
+    const plan = this.normalizeRepaymentPlan({ ...payload, issueDate }, amount);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`
         UPDATE hr_employee_loans
         SET loan_no = ${clean(payload.loanNo)}, loan_type = ${clean(payload.loanType) || 'advance'}, principal_amount = ${amount},
-            remaining_amount = ${amount}, installment_count = ${count}, installment_amount = ${installmentAmount},
-            issue_date = ${payload.issueDate}, first_due_date = ${payload.firstDueDate || null}, branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)},
+            remaining_amount = ${amount}, installment_count = ${plan.installmentCount}, installment_amount = ${plan.installmentAmount},
+            repayment_mode = ${plan.repaymentMode}, monthly_installment_amount = ${plan.monthlyInstallmentAmount},
+            issue_date = ${issueDate}, first_due_date = ${plan.firstDueDate}, salary_due_date = ${plan.salaryDueDate}, branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)},
             notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW()
         WHERE id = ${id}
       `.execute(trx);
 
       await sql`DELETE FROM hr_employee_loan_installments WHERE loan_id = ${id}`.execute(trx);
-      for (let i = 1; i <= count; i += 1) {
-        const installmentValue = i === count ? Number((amount - installmentAmount * (count - 1)).toFixed(2)) : installmentAmount;
+      for (let i = 1; i <= plan.installmentCount; i += 1) {
+        const installmentValue = i === plan.installmentCount
+          ? Math.max(0, Number((amount - plan.installmentAmount * (plan.installmentCount - 1)).toFixed(2)))
+          : plan.installmentAmount;
+        const dueDate = plan.firstDueDate ? addMonths(plan.firstDueDate, i - 1) : null;
         await sql`
           INSERT INTO hr_employee_loan_installments (loan_id, installment_no, due_date, amount)
-          VALUES (${id}, ${i}, ${payload.firstDueDate || null}, ${installmentValue})
+          VALUES (${id}, ${i}, ${dueDate}, ${installmentValue})
         `.execute(trx);
       }
     });
@@ -445,6 +578,7 @@ export class HrService {
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
       if (!['paid', 'partially_repaid'].includes(clean(loan.status))) throw new AppError('Loan must be disbursed before repayment', 'HR_LOAN_REPAYMENT_STATUS_INVALID', 400);
       const amount = Math.min(Number(payload.amount || 0), Number(loan.remaining_amount || 0));
+      const repaymentMethod = clean(payload.repaymentMethod) === 'salary_deduction' ? 'salary_deduction' : 'manual_cash';
       if (!(amount > 0)) throw new AppError('Loan has no remaining balance', 'HR_LOAN_NO_BALANCE', 400);
       const paid = Number(loan.paid_amount || 0) + amount;
       const remaining = Math.max(0, Number(loan.remaining_amount || 0) - amount);
@@ -474,12 +608,14 @@ export class HrService {
         remainingRepayment = Number((remainingRepayment - applied).toFixed(2));
       }
       const ledger = await sql<{ id: number }>`
-        INSERT INTO hr_employee_ledger (employee_id, entry_type, amount, balance_after, note, reference_type, reference_id, branch_id, location_id, created_by)
-        VALUES (${loan.employee_id}, 'loan_repayment', ${-amount}, ${remaining}, ${clean(payload.note) || 'Employee loan repayment'}, 'hr_employee_loan', ${id}, ${toId(loan.branch_id)}, ${toId(loan.location_id)}, ${auth.userId})
+        INSERT INTO hr_employee_ledger (employee_id, entry_type, amount, balance_after, note, repayment_method, reference_type, reference_id, branch_id, location_id, created_by)
+        VALUES (${loan.employee_id}, 'loan_repayment', ${-amount}, ${remaining}, ${clean(payload.note) || 'Employee loan repayment'}, ${repaymentMethod}, 'hr_employee_loan', ${id}, ${toId(loan.branch_id)}, ${toId(loan.location_id)}, ${auth.userId})
         RETURNING id
       `.execute(trx);
       const ledgerId = Number(ledger.rows[0]?.id || 0);
-      await this.treasury.recordLoanRepayment(trx, { ledgerId, loanId: id, amount, employeeName: clean(loan.employee_name), branchId: toId(loan.branch_id), locationId: toId(loan.location_id) }, auth);
+      if (repaymentMethod === 'manual_cash') {
+        await this.treasury.recordLoanRepayment(trx, { ledgerId, loanId: id, amount, employeeName: clean(loan.employee_name), branchId: toId(loan.branch_id), locationId: toId(loan.location_id) }, auth);
+      }
     });
     await this.audit.log('Repay HR employee loan', `Employee loan #${id} repayment recorded by ${auth.username}`, auth);
     return { ok: true, ...(await this.listLoans({}, auth)) };
@@ -487,7 +623,125 @@ export class HrService {
 
   async listLedger(employeeId: number, _auth: AuthContext): Promise<Record<string, unknown>> {
     const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employee_ledger WHERE employee_id = ${employeeId} ORDER BY id DESC`.execute(this.db);
-    return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), entryType: clean(row.entry_type), amount: Number(row.amount || 0), balanceAfter: Number(row.balance_after || 0), note: clean(row.note), referenceType: clean(row.reference_type), referenceId: row.reference_id ? String(row.reference_id) : '', createdAt: String(row.created_at) })) };
+    return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), entryType: clean(row.entry_type), amount: Number(row.amount || 0), balanceAfter: Number(row.balance_after || 0), note: clean(row.note), repaymentMethod: clean(row.repayment_method), referenceType: clean(row.reference_type), referenceId: row.reference_id ? String(row.reference_id) : '', createdAt: String(row.created_at) })) };
+  }
+
+  async withdrawals(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const employeeId = toId(query.employeeId);
+    if (!employeeId) throw new AppError('Employee is required', 'HR_WITHDRAWALS_EMPLOYEE_REQUIRED', 400);
+
+    const period = clean(query.period) || 'current_month';
+    const month = clean(query.month);
+    const from = clean(query.from);
+    const to = clean(query.to);
+    const employeeResult = await sql<{ hire_date_text: string | null; display_name: string }>`
+      SELECT to_char(hire_date, 'YYYY-MM-DD') AS hire_date_text, display_name FROM hr_employees WHERE id = ${employeeId} LIMIT 1
+    `.execute(this.db);
+    const employee = employeeResult.rows[0];
+    if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
+
+    const now = new Date();
+    let rangeFrom = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    let rangeTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    if (period === 'month' && month) {
+      rangeFrom = `${month.slice(0, 7)}-01`;
+      const monthDate = new Date(`${rangeFrom}T00:00:00`);
+      rangeTo = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).toISOString().slice(0, 10);
+    } else if (period === 'since_hire') {
+      rangeFrom = employee.hire_date_text ? String(employee.hire_date_text).slice(0, 10) : '1900-01-01';
+      rangeTo = now.toISOString().slice(0, 10);
+    } else if (period === 'custom') {
+      rangeFrom = from || rangeFrom;
+      rangeTo = to || rangeTo;
+    }
+
+    const loanResult = await sql<Record<string, unknown>>`
+      SELECT *
+      FROM hr_employee_loans
+      WHERE employee_id = ${employeeId}
+        AND issue_date BETWEEN ${rangeFrom} AND ${rangeTo}
+      ORDER BY issue_date DESC, id DESC
+    `.execute(this.db);
+    const repaymentResult = await sql<Record<string, unknown>>`
+      SELECT *
+      FROM hr_employee_ledger
+      WHERE employee_id = ${employeeId}
+        AND entry_type = 'loan_repayment'
+        AND created_at::DATE BETWEEN ${rangeFrom} AND ${rangeTo}
+      ORDER BY created_at DESC, id DESC
+    `.execute(this.db);
+
+    const loanRows = loanResult.rows.map((row) => ({
+      id: `loan-${row.id}`,
+      loanId: String(row.id),
+      referenceId: String(row.id),
+      loanNo: clean(row.loan_no),
+      issueDate: row.issue_date ? String(row.issue_date).slice(0, 10) : '',
+      createdAt: row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '',
+      approvedAt: row.approved_at ? String(row.approved_at).replace('T', ' ').slice(0, 16) : '',
+      disbursedAt: row.disbursed_at ? String(row.disbursed_at).replace('T', ' ').slice(0, 16) : '',
+      paidAt: row.paid_at ? String(row.paid_at).replace('T', ' ').slice(0, 16) : '',
+      updatedAt: row.updated_at ? String(row.updated_at).replace('T', ' ').slice(0, 16) : '',
+      movementAt: ['paid', 'disbursed', 'partially_repaid', 'repaid'].includes(clean(row.status))
+        ? clean(row.disbursed_at ? String(row.disbursed_at).replace('T', ' ').slice(0, 16) : row.paid_at ? String(row.paid_at).replace('T', ' ').slice(0, 16) : row.issue_date ? String(row.issue_date).slice(0, 10) : row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '')
+        : clean(row.issue_date ? String(row.issue_date).slice(0, 10) : row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : ''),
+      date: String(row.issue_date).slice(0, 10),
+      type: clean(row.loan_type) === 'loan' ? 'loan' : 'advance',
+      amount: Number(row.principal_amount || 0),
+      repaymentMode: clean(row.repayment_mode) || 'manual_cash',
+      status: clean(row.status),
+      remainingAmount: Number(row.remaining_amount || 0),
+      note: clean(row.notes),
+    }));
+    const repaymentRows = repaymentResult.rows.map((row) => ({
+      id: `ledger-${row.id}`,
+      loanId: row.reference_id ? String(row.reference_id) : '',
+      referenceId: row.reference_id ? String(row.reference_id) : '',
+      createdAt: row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '',
+      movementAt: row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 16) : '',
+      date: String(row.created_at).slice(0, 10),
+      type: 'repayment',
+      amount: Math.abs(Number(row.amount || 0)),
+      repaymentMode: clean(row.repayment_method) || 'manual_cash',
+      status: 'recorded',
+      remainingAmount: Number(row.balance_after || 0),
+      note: clean(row.note),
+    }));
+    const rows = [...loanRows, ...repaymentRows].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const allOpenLoans = await sql<{ remaining_amount: string | number; repayment_mode: string; status: string }>`
+      SELECT remaining_amount, repayment_mode, status
+      FROM hr_employee_loans
+      WHERE employee_id = ${employeeId}
+        AND status IN ('paid','partially_repaid')
+    `.execute(this.db);
+    const salaryDeductionDueResult = await sql<{ due_amount: string | number }>`
+      SELECT COALESCE(SUM(GREATEST(i.amount - i.paid_amount, 0)), 0) AS due_amount
+      FROM hr_employee_loan_installments i
+      JOIN hr_employee_loans l ON l.id = i.loan_id
+      WHERE l.employee_id = ${employeeId}
+        AND l.status IN ('paid','partially_repaid')
+        AND l.repayment_mode IN ('deduct_next_salary','monthly_salary_installment')
+        AND i.status <> 'paid'
+        AND i.due_date IS NOT NULL
+        AND i.due_date BETWEEN ${rangeFrom} AND ${rangeTo}
+    `.execute(this.db);
+    const salaryDeductionDue = Number(salaryDeductionDueResult.rows[0]?.due_amount || 0);
+    const remaining = allOpenLoans.rows.reduce((sum, row) => sum + Number(row.remaining_amount || 0), 0);
+    return {
+      rows,
+      summary: {
+        employeeId: String(employeeId),
+        employeeName: employee.display_name,
+        from: rangeFrom,
+        to: rangeTo,
+        totalWithdrawals: Number(loanRows.reduce((sum, row) => sum + row.amount, 0).toFixed(2)),
+        totalManualCashRepayments: Number(repaymentRows.filter((row) => row.repaymentMode === 'manual_cash').reduce((sum, row) => sum + row.amount, 0).toFixed(2)),
+        totalSalaryDeductionDue: Number(salaryDeductionDue.toFixed(2)),
+        totalRemaining: Number(remaining.toFixed(2)),
+        openLoanCount: allOpenLoans.rows.length,
+      },
+    };
   }
 
   async summary(auth: AuthContext): Promise<Record<string, unknown>> {

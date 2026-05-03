@@ -94,9 +94,12 @@ export interface HrLoan {
   remainingAmount: number;
   installmentCount: number;
   installmentAmount: number;
+  repaymentMode?: 'deduct_next_salary' | 'monthly_salary_installment' | 'manual_cash' | string;
+  monthlyInstallmentAmount?: number | null;
   status: string;
   issueDate: string;
   firstDueDate?: string;
+  salaryDueDate?: string;
   branchId?: string;
   locationId?: string;
   notes?: string;
@@ -109,9 +112,33 @@ export interface HrLedgerEntry {
   amount: number;
   balanceAfter: number;
   note?: string;
+  repaymentMethod?: string;
   referenceType?: string;
   referenceId?: string;
   createdAt: string;
+}
+
+export interface HrWithdrawalRow {
+  id: string;
+  date: string;
+  type: string;
+  amount: number;
+  repaymentMode: string;
+  status: string;
+  remainingAmount: number;
+  note?: string;
+}
+
+export interface HrWithdrawalSummary {
+  employeeId: string;
+  employeeName: string;
+  from: string;
+  to: string;
+  totalWithdrawals: number;
+  totalManualCashRepayments: number;
+  totalSalaryDeductionDue: number;
+  totalRemaining: number;
+  openLoanCount: number;
 }
 
 export interface HrSummary {

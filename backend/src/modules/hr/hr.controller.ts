@@ -26,6 +26,12 @@ export class HrController {
     return this.hr.summary(req.authContext!);
   }
 
+  @Get('withdrawals')
+  @RequirePermissions('hrLoans')
+  withdrawals(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.withdrawals(query, req.authContext!);
+  }
+
   @Get('departments')
   @RequirePermissions('hr')
   listDepartments(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {

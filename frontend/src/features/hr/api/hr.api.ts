@@ -10,6 +10,8 @@ import type {
   HrLoan,
   HrMasterDataRecord,
   HrSummary,
+  HrWithdrawalRow,
+  HrWithdrawalSummary,
 } from '@/types/domain';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
@@ -19,6 +21,10 @@ export interface HrListParams {
   pageSize?: number;
   search?: string;
   employeeId?: string | number;
+  period?: string;
+  month?: string;
+  from?: string;
+  to?: string;
 }
 
 interface MasterResponse {
@@ -34,6 +40,11 @@ interface EmployeesResponse {
 interface LoansResponse {
   loans?: HrLoan[];
   summary?: { totalItems?: number; outstandingAmount?: number };
+}
+
+interface WithdrawalsResponse {
+  rows?: HrWithdrawalRow[];
+  summary?: HrWithdrawalSummary;
 }
 
 interface RowsResponse<T> {
@@ -52,6 +63,7 @@ interface ProfileResponse {
 
 export const hrApi = {
   summary: async () => (await http<{ summary?: HrSummary }>('/api/hr/summary')).summary || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 },
+  withdrawals: (params: HrListParams = {}) => http<WithdrawalsResponse>(`/api/hr/withdrawals${buildQueryString(params)}`),
   masterData: async (kind: MasterKind, params: HrListParams = {}) => http<MasterResponse>(`/api/hr/${kind}${buildQueryString(params)}`),
   saveMasterData: (kind: MasterKind, payload: unknown, id?: string) => http(`/api/hr/${kind}${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   deactivateMasterData: (kind: MasterKind, id: string) => http(`/api/hr/${kind}/${id}`, { method: 'DELETE' }),
