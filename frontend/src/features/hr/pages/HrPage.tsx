@@ -10,24 +10,16 @@ import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { HrEmployee, HrLoan, HrMasterDataRecord, HrPayrollRun, HrPayrollRunItem, HrWithdrawalRow } from '@/types/domain';
 import { useHrMutations, useHrPayrollRun, useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
 
-type HrTab = 'employees' | 'withdrawals' | 'payroll' | 'settings';
-type EmployeeProfileSection = 'basic' | 'contract' | 'salary' | 'documents' | 'loans' | 'ledger';
+type HrTab = 'employees' | 'withdrawals' | 'payroll' | 'contracts' | 'documents' | 'settings';
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 
 const tabs: Array<{ key: HrTab; label: string }> = [
-  { key: 'employees', label: 'الموظفون' },
-  { key: 'withdrawals', label: 'السلف والمسحوبات' },
+  { key: 'employees', label: 'الموظفين' },
+  { key: 'withdrawals', label: 'مسحوبات الموظفين' },
   { key: 'payroll', label: 'الرواتب' },
-  { key: 'settings', label: 'الإعدادات' },
-];
-
-const employeeProfileSections: Array<{ key: EmployeeProfileSection; label: string }> = [
-  { key: 'basic', label: 'البيانات الأساسية' },
-  { key: 'contract', label: 'الوظيفة والعقد' },
-  { key: 'salary', label: 'الراتب والبدلات' },
+  { key: 'contracts', label: 'العقود والرواتب' },
   { key: 'documents', label: 'المستندات' },
-  { key: 'loans', label: 'السلف' },
-  { key: 'ledger', label: 'السجل' },
+  { key: 'settings', label: 'الإعدادات الأساسية' },
 ];
 
 function formValue(form: FormData, key: string) {
@@ -107,41 +99,6 @@ function addMonthsDateOnly(value: string, months: number) {
 function formatHrMoney(value: unknown) {
   const amount = Number(value || 0);
   return `${amount.toFixed(2)} ج.م`;
-}
-
-function formatVisibleNote(value?: string | null) {
-  const text = String(value || '').trim();
-  if (!text) return '—';
-  return text
-    .split('|')
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => {
-      const labels: Record<string, string> = {
-        'Missing salary data': 'لا توجد بيانات راتب',
-        'Net pay capped at zero': 'تم تصفير صافي الراتب لأنه أصبح بالسالب',
-      };
-      return labels[part] || part;
-    })
-    .filter((part, index, all) => all.indexOf(part) === index)
-    .join(' | ') || '—';
-}
-
-function splitDisplayName(value: string) {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return { firstName: '', lastName: '' };
-  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
-}
-
-function formatPayrollVisibleNote(value?: string | null) {
-  const normalized = formatVisibleNote(value);
-  const parts = (normalized === '—' ? '' : normalized)
-    .replaceAll('Missing salary data', 'لا توجد بيانات راتب')
-    .replaceAll('Net pay capped at zero', 'تم تصفير صافي الراتب لأنه أصبح بالسالب')
-    .split('|')
-    .map((part) => part.trim())
-    .filter(Boolean);
-  return Array.from(new Set(parts)).join(' | ') || '—';
 }
 
 function numericFormValue(form: FormData, key: string) {
@@ -306,12 +263,9 @@ export function HrPage() {
   const [selectedLoanId, setSelectedLoanId] = useState('');
   const [selectedPayrollRunId, setSelectedPayrollRunId] = useState('');
   const [selectedPayrollItemId, setSelectedPayrollItemId] = useState('');
-  const [employeeProfileSection, setEmployeeProfileSection] = useState<EmployeeProfileSection>('basic');
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [employeeStatusFilter, setEmployeeStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const [loanFormMessage, setLoanFormMessage] = useState('');
   const [payrollFormMessage, setPayrollFormMessage] = useState('');
-  const [onboardingMessage, setOnboardingMessage] = useState('');
   const [employeeFormMessage, setEmployeeFormMessage] = useState('');
   const [employeeHireDate, setEmployeeHireDate] = useState('');
   const [loanSettlementMode, setLoanSettlementMode] = useState('deduct_next_salary');
@@ -343,8 +297,6 @@ export function HrPage() {
   const canManagePayroll = useHasAnyPermission('hrPayrollManage');
   const canApprovePayroll = useHasAnyPermission('hrPayrollApprove');
   const selectedEmployee = profile.data?.employee;
-  const currentContract = (profile.data?.contracts || []).find((contract) => contract.status === 'active') || (profile.data?.contracts || [])[0];
-  const currentCompensation = (profile.data?.compensation || [])[0];
   const summary = workspace.summary.data || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 };
   const employeeOptions = employees.map((employee) => ({ id: employee.id, label: `${employee.displayName}${employee.employeeNo ? ` - ${employee.employeeNo}` : ''}` }));
   const selectedEmployeeLoans = selectedEmployeeId ? loans.filter((loan) => String(loan.employeeId) === String(selectedEmployeeId)) : loans;
@@ -353,7 +305,6 @@ export function HrPage() {
   const withdrawals = workspace.withdrawals.data;
   const withdrawalSummary = (withdrawals?.summary || {}) as Record<string, unknown>;
   const actualOpenLoans = selectedEmployeeLoans.filter((loan) => ['paid', 'disbursed', 'partially_repaid'].includes(String(loan.status || '')));
-  const selectedEmployeeOpenLoansTotal = actualOpenLoans.reduce((sum, loan) => sum + Number(loan.remainingAmount || 0), 0);
   const manualCashRepaymentsTotal = (withdrawals?.rows || [])
     .filter((row) => row.type === 'repayment' && String((row as HrWithdrawalRow & { repaymentMethod?: string }).repaymentMethod || row.repaymentMode || 'manual_cash') === 'manual_cash')
     .reduce((sum, row) => sum + Number(row.amount || 0), 0);
@@ -407,114 +358,6 @@ export function HrPage() {
     setSelectedPayrollRunId(payrollRuns[0]?.id || '');
     setSelectedPayrollItemId('');
   }, [payrollRuns, selectedPayrollRunId]);
-
-  async function saveEmployeeOnboarding(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    setOnboardingMessage('');
-
-    const displayName = formValue(form, 'displayName');
-    const fallbackName = splitDisplayName(displayName);
-    const firstName = formValue(form, 'firstName') || fallbackName.firstName;
-    const lastName = formValue(form, 'lastName') || fallbackName.lastName;
-    if (!firstName) {
-      setOnboardingMessage('أدخل اسم الموظف أولًا.');
-      return;
-    }
-
-    try {
-      const employeeNo = formValue(form, 'employeeNo');
-      const hireDate = formValue(form, 'hireDate');
-      const employeeResponse = await mutations.saveEmployee.mutateAsync({
-        payload: {
-          employeeNo,
-          firstName,
-          lastName,
-          status: formValue(form, 'status') || 'active',
-          departmentId: numericFormValue(form, 'departmentId'),
-          jobTitleId: numericFormValue(form, 'jobTitleId'),
-          positionId: numericFormValue(form, 'positionId'),
-          hireDate: hireDate || undefined,
-          notes: formValue(form, 'notes'),
-        },
-      }) as { employees?: HrEmployee[] };
-      const createdEmployee = (employeeResponse.employees || []).find((employee) => employeeNo && employee.employeeNo === employeeNo)
-        || (employeeResponse.employees || [])[0];
-      const employeeId = String(createdEmployee?.id || '');
-      if (!employeeId) throw new Error('تعذر تحديد الموظف الجديد بعد الحفظ.');
-
-      const phone = formValue(form, 'phone');
-      if (phone) {
-        await mutations.saveContact.mutateAsync({
-          employeeId,
-          payload: { contactType: 'phone', value: phone, label: 'الهاتف', isPrimary: true },
-        });
-      }
-
-      const contractStartDate = formValue(form, 'contractStartDate') || hireDate || new Date().toISOString().slice(0, 10);
-      const hasContractData = ['contractType', 'contractEndDate', 'contractStatus', 'baseSalary', 'currency', 'salaryNotes'].some((key) => formValue(form, key));
-      const baseSalary = Number(form.get('baseSalary') || 0);
-      let contractId = '';
-      if (hasContractData || baseSalary > 0) {
-        const contractResponse = await mutations.saveContract.mutateAsync({
-          employeeId,
-          payload: {
-            contractType: formValue(form, 'contractType') || 'standard',
-            status: formValue(form, 'contractStatus') || 'active',
-            startDate: contractStartDate,
-            endDate: formValue(form, 'contractEndDate') || undefined,
-            baseSalary,
-            currency: formValue(form, 'currency') || 'EGP',
-            notes: formValue(form, 'salaryNotes'),
-          },
-        }) as { rows?: Array<{ id?: string }> };
-        contractId = String(contractResponse.rows?.[0]?.id || '');
-      }
-
-      const allowanceAmount = Number(form.get('allowanceAmount') || 0);
-      const deductionAmount = Number(form.get('deductionAmount') || 0);
-      const salaryNotes = formValue(form, 'salaryNotes');
-      if (allowanceAmount > 0 || deductionAmount > 0 || salaryNotes) {
-        await mutations.saveCompensation.mutateAsync({
-          employeeId,
-          payload: {
-            contractId: contractId ? Number(contractId) : undefined,
-            packageName: 'إعداد الموظف',
-            allowanceAmount,
-            deductionAmount,
-            effectiveFrom: contractStartDate,
-            notes: salaryNotes,
-          },
-        });
-      }
-
-      const documentType = formValue(form, 'documentType');
-      const documentNumber = formValue(form, 'documentNumber');
-      const issueDate = formValue(form, 'documentIssueDate');
-      const expiryDate = formValue(form, 'documentExpiryDate');
-      const documentNotes = formValue(form, 'documentNotes');
-      if (documentType || documentNumber || issueDate || expiryDate || documentNotes) {
-        await mutations.saveDocument.mutateAsync({
-          employeeId,
-          payload: {
-            title: documentNumber || documentType || 'مستند موظف',
-            documentType: documentType || undefined,
-            expiryDate: expiryDate || undefined,
-            notes: [`رقم المستند: ${documentNumber}`, `تاريخ الإصدار: ${issueDate}`, documentNotes].filter((part) => !part.endsWith(': ')).join(' | '),
-          },
-        });
-      }
-
-      setSelectedEmployeeId(employeeId);
-      setEmployeeProfileSection('basic');
-      setShowOnboarding(false);
-      setOnboardingMessage('تم إنشاء الموظف وفتح ملفه بنجاح.');
-      formElement.reset();
-    } catch (error) {
-      setOnboardingMessage(`فشل إنشاء الموظف: ${errorMessage(error)}`);
-    }
-  }
 
   async function createPayrollRun(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -751,7 +594,7 @@ export function HrPage() {
       <PageHeader title="الموارد البشرية" description="الملف الأساسي للموظفين والعقود والمسحوبات بدون حضور أو تشغيل رواتب." badge={<span className="nav-pill">HR Phase 1</span>} />
       <StatsGrid items={dashboardStats} />
 
-      {tab === 'withdrawals' ? <Card title="اختيار الموظف">
+      <Card title="اختيار الموظف">
         <div className="form-grid">
           <div className="field">
             <span>الموظف المحدد</span>
@@ -761,7 +604,7 @@ export function HrPage() {
             </select>
           </div>
         </div>
-      </Card> : null}
+      </Card>
 
       <div className="filter-chip-row">
         {tabs.map((item) => (
@@ -830,13 +673,7 @@ export function HrPage() {
         </>
       ) : null}
 
-      {tab === 'withdrawals' && !selectedEmployeeId ? (
-        <Card title="السلف والمسحوبات">
-          <div className="muted">اختر موظفًا لعرض السلف والمسحوبات</div>
-        </Card>
-      ) : null}
-
-      {tab === 'withdrawals' && selectedEmployeeId ? (
+      {tab === 'withdrawals' ? (
         <Card title="حركات المسحوبات والسداد">
           <EmployeeRequired selected={Boolean(selectedEmployeeId)} />
           <div className="form-grid">
@@ -982,167 +819,6 @@ export function HrPage() {
         </Card>
       ) : null}
 
-      {tab === 'employees' ? (
-        <Card title="الموظفون">
-          <label className="field" style={{ maxWidth: 420 }}>
-            <span>بحث</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث بالاسم أو رقم الموظف" />
-          </label>
-          <div className="actions compact-actions">
-            <Button type="button" onClick={() => {
-              setShowOnboarding((value) => !value);
-              setOnboardingMessage('');
-            }}>إضافة موظف جديد</Button>
-            <label className="field" style={{ maxWidth: 220 }}>
-              <span>الحالة</span>
-              <select value={employeeStatusFilter} onChange={(event) => setEmployeeStatusFilter(event.target.value as 'active' | 'inactive' | 'all')}>
-                <option value="active">النشطون</option>
-                <option value="inactive">غير النشطين</option>
-                <option value="all">الكل</option>
-              </select>
-            </label>
-          </div>
-
-          {onboardingMessage ? <div className="muted">{onboardingMessage}</div> : null}
-
-          {showOnboarding ? (
-            <form className="form-grid" onSubmit={saveEmployeeOnboarding}>
-              <h3 className="field-wide">البيانات الأساسية</h3>
-              <label className="field"><span>رقم الموظف</span><input name="employeeNo" /></label>
-              <label className="field"><span>اسم الموظف</span><input name="displayName" required /></label>
-              <label className="field"><span>الاسم الأول</span><input name="firstName" /></label>
-              <label className="field"><span>اسم العائلة</span><input name="lastName" /></label>
-              <label className="field"><span>الحالة</span><select name="status" defaultValue="active"><option value="active">نشط</option><option value="inactive">غير نشط</option></select></label>
-              <label className="field"><span>تاريخ التعيين</span><input name="hireDate" type="date" /></label>
-              <label className="field"><span>الهاتف</span><input name="phone" /></label>
-              <label className="field field-wide"><span>ملاحظات</span><textarea name="notes" rows={2} /></label>
-
-              <h3 className="field-wide">الوظيفة والعقد</h3>
-              <SelectField name="departmentId" label="القسم" options={departments.map((row) => ({ id: row.id, label: row.name }))} />
-              <SelectField name="jobTitleId" label="المسمى الوظيفي" options={jobTitles.map((row) => ({ id: row.id, label: row.name }))} />
-              <SelectField name="positionId" label="الوظيفة" options={positions.map((row) => ({ id: row.id, label: row.name }))} />
-              <label className="field"><span>نوع العقد</span><input name="contractType" /></label>
-              <label className="field"><span>بداية العقد</span><input name="contractStartDate" type="date" /></label>
-              <label className="field"><span>نهاية العقد</span><input name="contractEndDate" type="date" /></label>
-              <label className="field"><span>حالة العقد</span><select name="contractStatus" defaultValue="active"><option value="active">نشط</option><option value="draft">مسودة</option><option value="ended">منتهي</option><option value="cancelled">ملغي</option></select></label>
-
-              <h3 className="field-wide">الراتب</h3>
-              <label className="field"><span>الراتب الأساسي</span><input name="baseSalary" type="number" min="0" step="0.01" /></label>
-              <label className="field"><span>العملة</span><input name="currency" defaultValue="EGP" /></label>
-              <label className="field"><span>بدلات ثابتة</span><input name="allowanceAmount" type="number" min="0" step="0.01" /></label>
-              <label className="field"><span>خصومات ثابتة</span><input name="deductionAmount" type="number" min="0" step="0.01" /></label>
-              <label className="field field-wide"><span>ملاحظات الراتب</span><textarea name="salaryNotes" rows={2} /></label>
-
-              <h3 className="field-wide">المستندات</h3>
-              <label className="field"><span>نوع المستند</span><input name="documentType" /></label>
-              <label className="field"><span>رقم المستند</span><input name="documentNumber" /></label>
-              <label className="field"><span>تاريخ الإصدار</span><input name="documentIssueDate" type="date" /></label>
-              <label className="field"><span>تاريخ الانتهاء</span><input name="documentExpiryDate" type="date" /></label>
-              <label className="field field-wide"><span>ملاحظات المستند</span><textarea name="documentNotes" rows={2} /></label>
-
-              <div className="actions compact-actions field-wide">
-                <Button type="submit" disabled={mutations.saveEmployee.isPending}>حفظ الموظف</Button>
-                <Button type="button" variant="secondary" onClick={() => setShowOnboarding(false)}>إلغاء</Button>
-              </div>
-            </form>
-          ) : null}
-
-          <DataTable<HrEmployee>
-            rows={visibleEmployees}
-            rowKey={(row) => row.id}
-            onRowClick={(row) => {
-              setSelectedEmployeeId(row.id);
-              setEmployeeProfileSection('basic');
-            }}
-            rowClassName={(row) => row.id === selectedEmployeeId ? 'table-row-selected' : undefined}
-            columns={[
-              { key: 'employeeNo', header: 'رقم الموظف', cell: (row) => row.employeeNo || '—' },
-              { key: 'name', header: 'الموظف', cell: (row) => row.displayName },
-              { key: 'department', header: 'القسم', cell: (row) => row.departmentName || '—' },
-              { key: 'jobTitle', header: 'المسمى', cell: (row) => row.jobTitleName || row.positionName || '—' },
-              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-              { key: 'hireDate', header: 'تاريخ التعيين', cell: (row) => <span dir="ltr">{formatDateOnly(row.hireDate)}</span> },
-              {
-                key: 'actions',
-                header: 'إجراءات',
-                cell: (row) => (
-                  <div className="actions compact-actions">
-                    <Button type="button" variant="secondary" onClick={(event) => {
-                      event.stopPropagation();
-                      setSelectedEmployeeId(row.id);
-                      setEmployeeProfileSection('basic');
-                    }}>عرض</Button>
-                    {row.status === 'active' ? (
-                      <Button type="button" variant="secondary" onClick={(event) => {
-                        event.stopPropagation();
-                        void deactivateEmployee(row);
-                      }}>تعطيل</Button>
-                    ) : null}
-                  </div>
-                ),
-              },
-            ]}
-          />
-
-          {selectedEmployee ? (
-            <>
-              <div className="stats-grid">
-                <div><span className="muted">الموظف</span><strong>{selectedEmployee.displayName}</strong></div>
-                <div><span className="muted">رقم الموظف</span><strong>{selectedEmployee.employeeNo || '—'}</strong></div>
-                <div><span className="muted">الحالة</span><strong>{statusLabel(selectedEmployee.status)}</strong></div>
-                <div><span className="muted">القسم</span><strong>{selectedEmployee.departmentName || '—'}</strong></div>
-                <div><span className="muted">المسمى</span><strong>{selectedEmployee.jobTitleName || selectedEmployee.positionName || '—'}</strong></div>
-                <div><span className="muted">تاريخ التعيين</span><strong dir="ltr">{formatDateOnly(selectedEmployee.hireDate)}</strong></div>
-                <div><span className="muted">الراتب الحالي</span><strong>{canViewSalary && currentContract ? formatHrMoney(currentContract.baseSalary) : '—'}</strong></div>
-                <div><span className="muted">البدلات الثابتة</span><strong>{canViewSalary && currentCompensation ? formatHrMoney(currentCompensation.allowanceAmount) : '—'}</strong></div>
-                <div><span className="muted">إجمالي السلف المفتوحة</span><strong>{formatHrMoney(selectedEmployeeOpenLoansTotal)}</strong></div>
-              </div>
-              <div className="actions compact-actions">
-                {employeeProfileSections.map((section) => (
-                  <Button
-                    key={section.key}
-                    type="button"
-                    variant={employeeProfileSection === section.key ? undefined : 'secondary'}
-                    onClick={() => setEmployeeProfileSection(section.key)}
-                  >
-                    {section.label}
-                  </Button>
-                ))}
-              </div>
-              {employeeProfileSection === 'loans' ? (
-                <DataTable
-                  rows={selectedEmployeeLoans}
-                  rowKey={(row) => row.id}
-                  columns={[
-                    { key: 'loanNo', header: 'رقم السلفة', cell: (row) => row.loanNo || '—' },
-                    { key: 'amount', header: 'المبلغ', cell: (row) => formatHrMoney(row.principalAmount) },
-                    { key: 'remaining', header: 'المتبقي', cell: (row) => formatHrMoney(row.remainingAmount) },
-                    { key: 'mode', header: 'طريقة السداد', cell: (row) => repaymentModeLabel(row.repaymentMode) },
-                    { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                    { key: 'issueDate', header: 'تاريخ السلفة', cell: (row) => <span dir="ltr">{formatDateOnly(row.issueDate)}</span> },
-                  ]}
-                />
-              ) : null}
-              {employeeProfileSection === 'ledger' ? (
-                <DataTable
-                  rows={profile.data?.ledger || []}
-                  rowKey={(row) => row.id}
-                  columns={[
-                    { key: 'entryType', header: 'الحركة', cell: (row) => statusLabel(row.entryType) },
-                    { key: 'amount', header: 'المبلغ', cell: (row) => formatHrMoney(row.amount) },
-                    { key: 'balance', header: 'الرصيد بعد الحركة', cell: (row) => formatHrMoney(row.balanceAfter) },
-                    { key: 'date', header: 'التاريخ', cell: (row) => <span dir="ltr">{formatDateTimeStable(row.createdAt)}</span> },
-                    { key: 'note', header: 'ملاحظات', cell: (row) => row.note || '—' },
-                  ]}
-                />
-              ) : null}
-            </>
-          ) : (
-            <div className="muted">اختر موظفًا لعرض ملفه.</div>
-          )}
-        </Card>
-      ) : null}
-
       {tab === 'payroll' ? (
         <Card title="مسير الرواتب">
           <form className="form-grid" onSubmit={createPayrollRun}>
@@ -1217,7 +893,7 @@ export function HrPage() {
                   { key: 'gross', header: 'الإجمالي', cell: (row) => formatHrMoney(row.grossPay) },
                   { key: 'net', header: 'الصافي', cell: (row) => formatHrMoney(row.netPay) },
                   { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                  { key: 'notes', header: 'ملاحظات', cell: (row) => formatPayrollVisibleNote(row.notes) },
+                  { key: 'notes', header: 'ملاحظات', cell: (row) => row.notes || '—' },
                   {
                     key: 'actions',
                     header: 'إجراءات',
@@ -1261,7 +937,7 @@ export function HrPage() {
         </Card>
       ) : null}
 
-      {tab === 'employees' && ['contract', 'salary'].includes(employeeProfileSection) ? (
+      {tab === 'contracts' ? (
         <Card title="بيانات العقد والراتب">
           <EmployeeRequired selected={Boolean(selectedEmployeeId)} />
           <div className="muted">سجل العقد والراتب الأساسي للموظف عند الحاجة. اترك تاريخ النهاية فارغًا للعقود المفتوحة.</div>
@@ -1298,7 +974,7 @@ export function HrPage() {
         </Card>
       ) : null}
 
-      {tab === 'employees' && employeeProfileSection === 'documents' ? (
+      {tab === 'documents' ? (
         <Card title={selectedEmployee ? `مستندات الموظف: ${selectedEmployee.displayName} - ${selectedEmployee.employeeNo || '—'}` : 'المستندات'} description="يتم حفظ بيانات المستند فقط، وليس الملف نفسه.">
           <EmployeeRequired selected={Boolean(selectedEmployeeId)} />
           <form className="form-grid" onSubmit={saveDocument}>
@@ -1315,14 +991,14 @@ export function HrPage() {
             columns={[
               { key: 'title', header: 'المستند', cell: (row) => row.title },
               { key: 'type', header: 'النوع', cell: (row) => row.documentType || '—' },
-              { key: 'expiry', header: 'انتهاء', cell: (row) => <span dir="ltr">{formatDateOnly(row.expiryDate)}</span> },
+              { key: 'expiry', header: 'انتهاء', cell: (row) => row.expiryDate || '—' },
             ]}
           />
         </Card>
       ) : null}
 
       {tab === 'settings' ? (
-        <Card title="الإعدادات">
+        <Card title="الإعدادات الأساسية">
           <div className="three-column-grid">
             <MasterDataForm title="قسم جديد" kind="departments" departments={departments} jobTitles={jobTitles} />
             <MasterDataForm title="مسمى وظيفي جديد" kind="job-titles" departments={departments} jobTitles={jobTitles} />
