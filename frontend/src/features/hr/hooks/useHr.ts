@@ -55,6 +55,7 @@ export function useHrMutations() {
     saveEmployee: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveEmployee(payload, id), onSuccess: invalidate }),
     deactivateEmployee: useMutation({ mutationFn: (id: string) => hrApi.deactivateEmployee(id), onSuccess: invalidate }),
     saveMasterData: useMutation({ mutationFn: ({ kind, id, payload }: { kind: 'departments' | 'job-titles' | 'positions'; id?: string; payload: unknown }) => hrApi.saveMasterData(kind, payload, id), onSuccess: invalidate }),
+    saveContact: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveContact(employeeId, payload, id), onSuccess: invalidate }),
     saveDocument: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveDocument(employeeId, payload, id), onSuccess: invalidate }),
     saveContract: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveContract(employeeId, payload, id), onSuccess: invalidate }),
     saveCompensation: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveCompensation(employeeId, payload, id), onSuccess: invalidate }),
