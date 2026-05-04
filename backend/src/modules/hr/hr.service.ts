@@ -94,7 +94,14 @@ function money(value: unknown): number {
 }
 
 function combineNotes(...notes: Array<string | null | undefined>): string {
-  return notes.map((note) => clean(note)).filter(Boolean).join(' | ');
+  const unique: string[] = [];
+  for (const note of notes) {
+    for (const part of clean(note).split('|')) {
+      const value = part.trim();
+      if (value && !unique.includes(value)) unique.push(value);
+    }
+  }
+  return unique.join(' | ');
 }
 
 function canViewSalary(auth: AuthContext): boolean {
