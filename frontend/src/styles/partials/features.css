@@ -1847,3 +1847,11 @@
     animation: none;
   }
 }
+
+/* HR employee form hints */
+.hr-page .field-hint {
+  color: var(--text-muted, #64748b);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  margin-top: 0.25rem;
+}

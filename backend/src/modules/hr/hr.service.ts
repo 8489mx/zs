@@ -44,6 +44,25 @@ function clean(value: unknown): string {
   return String(value || '').trim();
 }
 
+function normalizeEmployeeNo(value: unknown): string {
+  const raw = clean(value);
+  if (!raw) return '';
+  const withoutLegacyPrefix = raw.replace(/^EMP-?/i, '');
+  if (!/^\d+$/.test(withoutLegacyPrefix)) return '';
+  const numeric = Number(withoutLegacyPrefix);
+  if (!Number.isSafeInteger(numeric) || numeric <= 0) return '';
+  return String(numeric).padStart(3, '0');
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: unknown; constraint?: unknown; detail?: unknown; message?: unknown };
+  return candidate.code === '23505'
+    || String(candidate.constraint || '').includes('hr_employees_employee_no')
+    || String(candidate.detail || '').includes('employee_no')
+    || String(candidate.message || '').includes('idx_hr_employees_employee_no_unique');
+}
+
 function normalizeDateOnly(value: unknown): string | null {
   const text = clean(value);
   const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -136,6 +155,37 @@ export class HrService {
       FROM ${sql.table(table)}
     `.execute(db);
     return result.rows[0]?.next_no || `${prefix}-0001`;
+  }
+
+  private async nextAvailableEmployeeNo(db: Kysely<Database>): Promise<string> {
+    const result = await sql<{ employee_no: string }>`
+      SELECT employee_no
+      FROM hr_employees
+      WHERE employee_no ~ '^[0-9]+$'
+      ORDER BY LENGTH(employee_no), employee_no
+    `.execute(db);
+    const used = new Set<number>();
+    for (const row of result.rows) {
+      const numeric = Number(row.employee_no);
+      if (Number.isSafeInteger(numeric) && numeric > 0) used.add(numeric);
+    }
+    let next = 1;
+    while (used.has(next)) next += 1;
+    return String(next).padStart(3, '0');
+  }
+
+  private async ensureEmployeeNoAvailable(db: Kysely<Database>, employeeNo: string, excludeEmployeeId: number | null): Promise<void> {
+    if (!employeeNo) return;
+    const duplicate = await sql<{ id: number }>`
+      SELECT id
+      FROM hr_employees
+      WHERE employee_no = ${employeeNo}
+        AND (${excludeEmployeeId}::BIGINT IS NULL OR id <> ${excludeEmployeeId})
+      LIMIT 1
+    `.execute(db);
+    if (duplicate.rows.length > 0) {
+      throw new AppError('رقم الموظف مستخدم بالفعل', 'HR_EMPLOYEE_NO_EXISTS', 409);
+    }
   }
 
   private normalizeRepaymentPlan(payload: UpsertEmployeeLoanDto, amount: number): {
@@ -361,35 +411,46 @@ export class HrService {
     const firstName = clean(payload.firstName);
     const lastName = clean(payload.lastName);
     const displayName = `${firstName} ${lastName}`.trim();
-    const employeeNo = clean(payload.employeeNo);
+    const rawEmployeeNo = clean(payload.employeeNo);
+    const employeeNo = normalizeEmployeeNo(payload.employeeNo);
     const hireDate = normalizeDateOnly(payload.hireDate);
-    if (!firstName) throw new AppError('Employee first name is required', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
-    if (id) {
-      await sql`
-        UPDATE hr_employees
-        SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no), user_id = ${toId(payload.userId)}, first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName},
-            status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
-            branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
-            updated_by = ${auth.userId}, updated_at = NOW()
-        WHERE id = ${id}
-      `.execute(this.db);
-    } else {
-      await this.tx.runInTransaction(this.db, async (trx) => {
-        const inserted = await sql<{ id: number }>`
-          INSERT INTO hr_employees (employee_no, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, created_by, updated_by)
-          VALUES (${employeeNo}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
-          RETURNING id
-        `.execute(trx);
-        const employeeId = Number(inserted.rows[0]?.id || 0);
-        if (!employeeNo && employeeId > 0) {
-          await sql`
-            UPDATE hr_employees
-            SET employee_no = ${`EMP-${String(employeeId).padStart(4, '0')}`}, updated_at = NOW()
-            WHERE id = ${employeeId}
-          `.execute(trx);
-        }
-      });
+
+    if (!firstName) throw new AppError('اسم الموظف مطلوب', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
+    if (rawEmployeeNo && !employeeNo) {
+      throw new AppError('رقم الموظف يجب أن يكون أرقامًا فقط مثل 001', 'HR_EMPLOYEE_NO_INVALID', 400);
     }
+
+    try {
+      if (id) {
+        if (employeeNo) {
+          await this.ensureEmployeeNoAvailable(this.db, employeeNo, id);
+        }
+        await sql`
+          UPDATE hr_employees
+          SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no), user_id = ${toId(payload.userId)}, first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName},
+              status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
+              branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
+              updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${id}
+        `.execute(this.db);
+      } else {
+        await this.tx.runInTransaction(this.db, async (trx) => {
+          const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx);
+          await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null);
+          await sql<{ id: number }>`
+            INSERT INTO hr_employees (employee_no, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, created_by, updated_by)
+            VALUES (${nextEmployeeNo}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+            RETURNING id
+          `.execute(trx);
+        });
+      }
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new AppError('رقم الموظف مستخدم بالفعل', 'HR_EMPLOYEE_NO_EXISTS', 409);
+      }
+      throw error;
+    }
+
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employee`, `Employee ${displayName} saved by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }

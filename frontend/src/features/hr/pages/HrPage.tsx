@@ -26,6 +26,16 @@ function formValue(form: FormData, key: string) {
   return String(form.get(key) || '').trim();
 }
 
+function normalizeEmployeeNoInput(value?: string | null) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const withoutLegacyPrefix = raw.replace(/^EMP-?/i, '');
+  if (!/^\d+$/.test(withoutLegacyPrefix)) return '';
+  const numeric = Number(withoutLegacyPrefix);
+  if (!Number.isSafeInteger(numeric) || numeric <= 0) return '';
+  return String(numeric).padStart(3, '0');
+}
+
 function normalizeDateInput(value?: string | null) {
   const text = String(value || '').trim();
   const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -267,6 +277,7 @@ export function HrPage() {
   const [loanFormMessage, setLoanFormMessage] = useState('');
   const [payrollFormMessage, setPayrollFormMessage] = useState('');
   const [employeeFormMessage, setEmployeeFormMessage] = useState('');
+  const [employeeFormKey, setEmployeeFormKey] = useState(0);
   const [employeeHireDate, setEmployeeHireDate] = useState('');
   const [loanSettlementMode, setLoanSettlementMode] = useState('deduct_next_salary');
   const [period, setPeriod] = useState('current_month');
@@ -420,24 +431,129 @@ export function HrPage() {
     const formElement = event.currentTarget;
     setEmployeeFormMessage('');
     const form = new FormData(formElement);
+    const employeePayload = {
+      employeeNo: normalizeEmployeeNoInput(formValue(form, 'employeeNo')),
+      firstName: formValue(form, 'firstName'),
+      lastName: formValue(form, 'lastName'),
+      status: formValue(form, 'status') || 'active',
+      departmentId: numericFormValue(form, 'departmentId'),
+      jobTitleId: numericFormValue(form, 'jobTitleId'),
+      positionId: numericFormValue(form, 'positionId'),
+      hireDate: employeeHireDate || undefined,
+      notes: formValue(form, 'notes'),
+    };
+
     try {
-      await mutations.saveEmployee.mutateAsync({
+      const response = await mutations.saveEmployee.mutateAsync({
         id: selectedEmployeeId || undefined,
-        payload: {
-          employeeNo: formValue(form, 'employeeNo'),
-          firstName: formValue(form, 'firstName'),
-          lastName: formValue(form, 'lastName'),
-          status: formValue(form, 'status') || 'active',
-          departmentId: numericFormValue(form, 'departmentId'),
-          jobTitleId: numericFormValue(form, 'jobTitleId'),
-          positionId: numericFormValue(form, 'positionId'),
-          hireDate: employeeHireDate || undefined,
-          notes: formValue(form, 'notes'),
-        },
+        payload: employeePayload,
       });
+
       if (!selectedEmployeeId) {
+        const responseEmployees = ((response as { employees?: HrEmployee[] })?.employees || []) as HrEmployee[];
+        const createdEmployee = responseEmployees.find((employee) => (
+          employeePayload.employeeNo && employee.employeeNo === employeePayload.employeeNo
+        )) || responseEmployees.find((employee) => (
+          employee.firstName === employeePayload.firstName && String(employee.lastName || '') === String(employeePayload.lastName || '')
+        )) || responseEmployees[0];
+        const createdEmployeeId = String(createdEmployee?.id || '');
+        const optionalMessages: string[] = [];
+
+        if (createdEmployeeId) {
+          const phone = formValue(form, 'phone');
+          if (phone) {
+            await mutations.saveContact.mutateAsync({
+              employeeId: createdEmployeeId,
+              payload: {
+                contactType: 'phone',
+                value: phone,
+                label: 'الهاتف الأساسي',
+                isPrimary: true,
+              },
+            });
+          }
+
+          const rawContractType = formValue(form, 'contractType');
+          const contractType = rawContractType && rawContractType !== 'standard' ? rawContractType : '';
+          const rawContractStartDate = normalizeDateInput(formValue(form, 'contractStartDate'));
+          const contractStartDate = rawContractStartDate || employeeHireDate;
+          const contractEndDate = normalizeDateInput(formValue(form, 'contractEndDate'));
+          const contractStatus = formValue(form, 'contractStatus') || 'draft';
+          const baseSalary = Number(form.get('baseSalary') || 0);
+          const allowanceAmount = Number(form.get('allowanceAmount') || 0);
+          const deductionAmount = Number(form.get('deductionAmount') || 0);
+          const salaryNotes = formValue(form, 'salaryNotes');
+          const wantsContract = Boolean(
+            rawContractStartDate || contractType || contractEndDate || salaryNotes || baseSalary > 0 || allowanceAmount > 0 || deductionAmount > 0
+          );
+
+          if (wantsContract && contractStartDate) {
+            const contractResponse = await mutations.saveContract.mutateAsync({
+              employeeId: createdEmployeeId,
+              payload: {
+                contractType: rawContractType || 'standard',
+                status: contractStatus,
+                startDate: contractStartDate,
+                endDate: contractEndDate || undefined,
+                baseSalary: baseSalary > 0 ? baseSalary : 0,
+                currency: formValue(form, 'currency') || 'EGP',
+                notes: salaryNotes,
+              },
+            });
+            const contractRows = ((contractResponse as { rows?: Array<{ id?: string }> })?.rows || []) as Array<{ id?: string }>;
+            const contractId = String(contractRows[0]?.id || '');
+
+            if (allowanceAmount > 0 || deductionAmount > 0 || salaryNotes) {
+              await mutations.saveCompensation.mutateAsync({
+                employeeId: createdEmployeeId,
+                payload: {
+                  contractId: contractId ? Number(contractId) : undefined,
+                  packageName: 'الحزمة الأساسية',
+                  allowanceAmount: allowanceAmount > 0 ? allowanceAmount : 0,
+                  deductionAmount: deductionAmount > 0 ? deductionAmount : 0,
+                  effectiveFrom: contractStartDate,
+                  notes: salaryNotes,
+                },
+              });
+            }
+          } else if (wantsContract) {
+            optionalMessages.push('لم يتم حفظ العقد والراتب لأن بداية العقد مطلوبة.');
+          }
+
+          const documentType = formValue(form, 'documentType');
+          const documentNumber = formValue(form, 'documentNumber');
+          const documentIssueDate = normalizeDateInput(formValue(form, 'documentIssueDate'));
+          const documentExpiryDate = normalizeDateInput(formValue(form, 'documentExpiryDate'));
+          const documentNotes = formValue(form, 'documentNotes');
+          const wantsDocument = Boolean(documentType || documentNumber || documentIssueDate || documentExpiryDate || documentNotes);
+          if (wantsDocument) {
+            const documentExtraNotes = [
+              documentNumber ? `رقم المستند: ${documentNumber}` : '',
+              documentIssueDate ? `تاريخ الإصدار: ${documentIssueDate}` : '',
+              documentNotes,
+            ].filter(Boolean).join(' | ');
+            await mutations.saveDocument.mutateAsync({
+              employeeId: createdEmployeeId,
+              payload: {
+                title: [documentType || 'مستند أساسي', documentNumber].filter(Boolean).join(' - '),
+                documentType: documentType || 'basic',
+                expiryDate: documentExpiryDate || undefined,
+                notes: documentExtraNotes,
+              },
+            });
+          }
+
+          setSelectedEmployeeId(createdEmployeeId);
+        } else {
+          optionalMessages.push('تم حفظ الموظف، لكن لم أستطع تحديد رقمه الداخلي لحفظ البيانات الاختيارية.');
+        }
+
         formElement.reset();
         setEmployeeHireDate('');
+        setEmployeeFormKey((key) => key + 1);
+        setEmployeeFormMessage(optionalMessages.length ? optionalMessages.join(' ') : 'تم حفظ الموظف بنجاح.');
+      } else {
+        setEmployeeFormMessage('تم حفظ التعديل بنجاح.');
       }
     } catch (error) {
       console.error('[HR] save employee failed', error);
@@ -594,17 +710,19 @@ export function HrPage() {
       <PageHeader title="الموارد البشرية" description="الملف الأساسي للموظفين والعقود والمسحوبات بدون حضور أو تشغيل رواتب." badge={<span className="nav-pill">HR Phase 1</span>} />
       <StatsGrid items={dashboardStats} />
 
-      <Card title="اختيار الموظف">
-        <div className="form-grid">
-          <div className="field">
-            <span>الموظف المحدد</span>
-            <select value={selectedEmployeeId} onChange={(event) => setSelectedEmployeeId(event.target.value)}>
-              <option value="">اختر موظف أولًا</option>
-              {employeeOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-            </select>
+      {tab !== 'employees' ? (
+        <Card title="اختيار الموظف">
+          <div className="form-grid">
+            <div className="field">
+              <span>الموظف المحدد</span>
+              <select value={selectedEmployeeId} onChange={(event) => setSelectedEmployeeId(event.target.value)}>
+                <option value="">اختر موظف أولًا</option>
+                {employeeOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+              </select>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      ) : null}
 
       <div className="filter-chip-row">
         {tabs.map((item) => (
@@ -616,7 +734,100 @@ export function HrPage() {
 
       {tab === 'employees' ? (
         <>
-          <Card title="الموظفين">
+          <Card title="إضافة / تعديل موظف">
+            <form
+              key={selectedEmployeeId ? `edit-${selectedEmployeeId}-${selectedEmployee?.id || 'loading'}` : `new-${employeeFormKey}`}
+              className="form-grid"
+              onSubmit={saveEmployee}
+            >
+              <label className="field"><span>رقم الموظف</span><input name="employeeNo" inputMode="numeric" pattern="[0-9]*" placeholder="تلقائي إذا تركته فارغًا: 001" defaultValue={selectedEmployee?.employeeNo || ''} /><small className="field-hint">اتركه فارغًا ليأخذ أول رقم متاح تلقائيًا. لو كتبت رقم مكرر سيظهر تنبيه واضح.</small></label>
+              <label className="field"><span>الاسم الأول</span><input name="firstName" defaultValue={selectedEmployee?.firstName || ''} required /></label>
+              <label className="field"><span>اسم العائلة</span><input name="lastName" defaultValue={selectedEmployee?.lastName || ''} /></label>
+              <label className="field">
+                <span>الحالة</span>
+                <select name="status" defaultValue={selectedEmployee?.status || 'active'}>
+                  <option value="active">نشط</option>
+                  <option value="inactive">غير نشط</option>
+                  <option value="deactivated">موقوف</option>
+                  <option value="terminated">منتهي</option>
+                </select>
+              </label>
+              <SelectField name="departmentId" label="القسم" options={departments.map((row) => ({ id: row.id, label: row.name }))} defaultValue={selectedEmployee?.departmentId || ''} />
+              <SelectField name="jobTitleId" label="المسمى الوظيفي" options={jobTitles.map((row) => ({ id: row.id, label: row.name }))} defaultValue={selectedEmployee?.jobTitleId || ''} />
+              <SelectField name="positionId" label="الوظيفة / Position" options={positions.map((row) => ({ id: row.id, label: row.name }))} defaultValue={selectedEmployee?.positionId || ''} />
+              <label className="field"><span>تاريخ التعيين</span><input type="date" value={employeeHireDate} onChange={(event) => setEmployeeHireDate(event.target.value)} /></label>
+              {!selectedEmployeeId ? (
+                <label className="field"><span>الهاتف</span><input name="phone" placeholder="اختياري" /></label>
+              ) : null}
+              <label className="field field-wide"><span>ملاحظات</span><textarea name="notes" rows={2} defaultValue={selectedEmployee?.notes || ''} /></label>
+
+              {!selectedEmployeeId ? (
+                <>
+                  <div className="field field-wide">
+                    <strong>العقد والراتب</strong>
+                    <span className="muted">اختياري عند إضافة موظف جديد فقط</span>
+                  </div>
+                  <label className="field">
+                    <span>نوع العقد</span>
+                    <select name="contractType" defaultValue="standard">
+                      <option value="standard">قياسي</option>
+                      <option value="full_time">دوام كامل</option>
+                      <option value="part_time">دوام جزئي</option>
+                      <option value="temporary">مؤقت</option>
+                    </select>
+                  </label>
+                  <label className="field"><span>بداية العقد</span><input name="contractStartDate" type="date" /></label>
+                  <label className="field"><span>نهاية العقد</span><input name="contractEndDate" type="date" /></label>
+                  <label className="field">
+                    <span>حالة العقد</span>
+                    <select name="contractStatus" defaultValue="draft">
+                      <option value="draft">مسودة</option>
+                      <option value="active">نشط</option>
+                      <option value="ended">منتهي</option>
+                      <option value="cancelled">ملغي</option>
+                    </select>
+                  </label>
+                  <label className="field"><span>الراتب الأساسي</span><input name="baseSalary" type="number" min="0" step="0.01" /></label>
+                  <label className="field"><span>العملة</span><input name="currency" defaultValue="EGP" /></label>
+                  <label className="field"><span>بدلات ثابتة</span><input name="allowanceAmount" type="number" min="0" step="0.01" /></label>
+                  <label className="field"><span>خصومات ثابتة</span><input name="deductionAmount" type="number" min="0" step="0.01" /></label>
+                  <label className="field field-wide"><span>ملاحظات الراتب</span><textarea name="salaryNotes" rows={2} /></label>
+
+                  <div className="field field-wide">
+                    <strong>مستند أساسي</strong>
+                    <span className="muted">اختياري عند إضافة موظف جديد فقط</span>
+                  </div>
+                  <label className="field"><span>نوع المستند</span><input name="documentType" placeholder="بطاقة / جواز / رخصة" /></label>
+                  <label className="field"><span>رقم المستند</span><input name="documentNumber" /></label>
+                  <label className="field"><span>تاريخ الإصدار</span><input name="documentIssueDate" type="date" /></label>
+                  <label className="field"><span>تاريخ الانتهاء</span><input name="documentExpiryDate" type="date" /></label>
+                  <label className="field field-wide"><span>ملاحظات المستند</span><textarea name="documentNotes" rows={2} /></label>
+                </>
+              ) : null}
+
+              <div className="actions compact-actions field-wide">
+                <Button type="submit" disabled={mutations.saveEmployee.isPending || mutations.saveContact.isPending || mutations.saveContract.isPending || mutations.saveCompensation.isPending || mutations.saveDocument.isPending}>
+                  {selectedEmployeeId ? 'حفظ التعديل' : 'حفظ الموظف'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setSelectedEmployeeId('');
+                    setSelectedLoanId('');
+                    setEmployeeHireDate('');
+                    setEmployeeFormMessage('');
+                    setEmployeeFormKey((key) => key + 1);
+                  }}
+                >
+                  جديد
+                </Button>
+              </div>
+              {employeeFormMessage ? <div className="muted field-wide">{employeeFormMessage}</div> : null}
+            </form>
+          </Card>
+
+          <Card title="الموظفون">
             <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="بحث بالاسم أو رقم الموظف أو القسم" />
             <div className="filter-chip-row">
               <Button type="button" variant={employeeStatusFilter === 'active' ? 'primary' : 'secondary'} onClick={() => setEmployeeStatusFilter('active')}>نشط</Button>
@@ -627,52 +838,33 @@ export function HrPage() {
               <DataTable<HrEmployee>
                 rows={visibleEmployees}
                 rowKey={(row) => row.id}
-                onRowClick={(row) => setSelectedEmployeeId(row.id)}
                 rowClassName={(row) => row.id === selectedEmployeeId ? 'table-row-selected' : undefined}
                 columns={[
                   { key: 'employeeNo', header: 'رقم', cell: (row) => row.employeeNo || '—' },
-                  { key: 'name', header: 'الموظف', cell: (row) => row.displayName },
-                  { key: 'department', header: 'القسم', cell: (row) => row.departmentName || '—' },
-                  { key: 'job', header: 'المسمى', cell: (row) => row.jobTitleName || '—' },
+                  { key: 'name', header: 'الاسم', cell: (row) => row.displayName || `${row.firstName} ${row.lastName || ''}`.trim() },
                   { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+                  { key: 'department', header: 'القسم', cell: (row) => row.departmentName || '—' },
+                  { key: 'jobTitle', header: 'المسمى', cell: (row) => row.jobTitleName || '—' },
+                  { key: 'position', header: 'الوظيفة', cell: (row) => row.positionName || '—' },
                   { key: 'hireDate', header: 'تاريخ التعيين', cell: (row) => formatDateOnly(row.hireDate) },
                   {
                     key: 'actions',
                     header: 'إجراءات',
-                    cell: (row) => row.status === 'active'
-                      ? <Button type="button" variant="danger" onClick={(event) => { event.stopPropagation(); void deactivateEmployee(row); }}>تعطيل الموظف</Button>
-                      : '—'
+                    cell: (row) => (
+                      <div className="actions compact-actions">
+                        <Button type="button" variant="secondary" onClick={() => setSelectedEmployeeId(row.id)}>عرض</Button>
+                        {row.status === 'active' ? (
+                          <Button type="button" variant="secondary" disabled={mutations.deactivateEmployee.isPending} onClick={() => deactivateEmployee(row)}>تعطيل</Button>
+                        ) : null}
+                      </div>
+                    ),
                   },
                 ]}
               />
             </QueryFeedback>
           </Card>
-
-          <Card title={selectedEmployee ? `ملف: ${selectedEmployee.displayName}` : 'إضافة موظف'}>
-            <form key={selectedEmployeeId || 'new'} className="form-grid" onSubmit={saveEmployee}>
-              <label className="field"><span>رقم الموظف</span><input name="employeeNo" defaultValue={selectedEmployee?.employeeNo || ''} placeholder="تلقائي عند تركه فارغًا" /></label>
-              <label className="field"><span>الاسم الأول</span><input name="firstName" required defaultValue={selectedEmployee?.firstName || ''} /></label>
-              <label className="field"><span>اسم العائلة</span><input name="lastName" defaultValue={selectedEmployee?.lastName || ''} /></label>
-              <label className="field"><span>الحالة</span><select name="status" defaultValue={selectedEmployee?.status || 'active'}><option value="active">نشط</option><option value="inactive">غير نشط</option><option value="deactivated">موقوف</option><option value="terminated">منتهي</option></select></label>
-              <SelectField name="departmentId" label="القسم" options={departments.map((row) => ({ id: row.id, label: row.name }))} defaultValue={selectedEmployee?.departmentId || ''} />
-              <SelectField name="jobTitleId" label="المسمى الوظيفي" options={jobTitles.map((row) => ({ id: row.id, label: row.name }))} defaultValue={selectedEmployee?.jobTitleId || ''} />
-              <details className="field field-wide">
-                <summary className="muted">خيارات متقدمة</summary>
-                <SelectField name="positionId" label="الوظيفة" options={positions.map((row) => ({ id: row.id, label: row.name }))} defaultValue={selectedEmployee?.positionId || ''} />
-              </details>
-              <label className="field"><span>تاريخ التعيين</span><input name="hireDate" type="date" value={employeeHireDate} onChange={(event) => setEmployeeHireDate(normalizeDateInput(event.target.value))} /></label>
-              <label className="field field-wide"><span>ملاحظات</span><textarea name="notes" rows={2} defaultValue={selectedEmployee?.notes || ''} /></label>
-              {employeeFormMessage ? <div className="muted field-wide">{employeeFormMessage}</div> : null}
-              <div className="actions compact-actions">
-                <Button type="submit" disabled={mutations.saveEmployee.isPending}>حفظ الموظف</Button>
-                {selectedEmployeeId ? <Button type="button" variant="secondary" onClick={() => setSelectedEmployeeId('')}>جديد</Button> : null}
-                {selectedEmployeeId && selectedEmployee?.status === 'active' ? <Button type="button" variant="danger" onClick={() => void deactivateEmployee(selectedEmployee)} disabled={mutations.deactivateEmployee.isPending}>تعطيل الموظف</Button> : null}
-              </div>
-            </form>
-          </Card>
         </>
       ) : null}
-
       {tab === 'withdrawals' ? (
         <Card title="حركات المسحوبات والسداد">
           <EmployeeRequired selected={Boolean(selectedEmployeeId)} />
