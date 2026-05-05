@@ -10,16 +10,15 @@ import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { HrEmployee, HrLoan, HrMasterDataRecord, HrPayrollRun, HrPayrollRunItem, HrWithdrawalRow } from '@/types/domain';
 import { useHrMutations, useHrPayrollRun, useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
 
-type HrTab = 'employees' | 'withdrawals' | 'payroll' | 'contracts' | 'documents' | 'settings';
+type HrTab = 'employees' | 'withdrawals' | 'payroll' | 'documents' | 'settings';
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 
 const tabs: Array<{ key: HrTab; label: string }> = [
   { key: 'employees', label: 'الموظفين' },
-  { key: 'withdrawals', label: 'مسحوبات الموظفين' },
-  { key: 'payroll', label: 'الرواتب' },
-  { key: 'contracts', label: 'العقود والرواتب' },
-  { key: 'documents', label: 'المستندات' },
-  { key: 'settings', label: 'الإعدادات الأساسية' },
+  { key: 'withdrawals', label: 'السلف والسداد' },
+  { key: 'payroll', label: 'مسير الرواتب' },
+  { key: 'documents', label: 'مستندات الموظفين' },
+  { key: 'settings', label: 'الإعدادات' },
 ];
 
 function formValue(form: FormData, key: string) {
@@ -316,8 +315,8 @@ export function HrPage() {
   const primaryPhoneContact = selectedContacts.find((contact) => (
     String(contact.contactType || contact.contact_type || '') === 'phone' && contact.isPrimary === true
   )) || selectedContacts.find((contact) => String(contact.contactType || contact.contact_type || '') === 'phone') || selectedContacts[0];
-  const currentContract = selectedContracts[0];
-  const currentCompensation = selectedCompensationPackages[0];
+  const currentContract = canViewSalary ? selectedContracts[0] : undefined;
+  const currentCompensation = canViewSalary ? selectedCompensationPackages[0] : undefined;
   const currentDocument = selectedDocuments[0];
   const summary = workspace.summary.data || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 };
   const employeeOptions = employees.map((employee) => ({ id: employee.id, label: `${employee.displayName}${employee.employeeNo ? ` - ${employee.employeeNo}` : ''}` }));
@@ -494,7 +493,7 @@ export function HrPage() {
           const allowanceAmount = Number(form.get('allowanceAmount') || 0);
           const deductionAmount = Number(form.get('deductionAmount') || 0);
           const salaryNotes = formValue(form, 'salaryNotes');
-          const wantsContract = Boolean(
+          const wantsContract = canManageSalary && Boolean(
             rawContractStartDate || contractType || contractEndDate || salaryNotes || baseSalary > 0 || allowanceAmount > 0 || deductionAmount > 0
           );
 
@@ -592,7 +591,7 @@ export function HrPage() {
         const deductionAmount = Number(form.get('deductionAmount') || 0);
         const salaryNotes = formValue(form, 'salaryNotes');
         const currentContractId = currentContract?.id ? String(currentContract.id) : '';
-        const wantsContract = Boolean(
+        const wantsContract = canManageSalary && Boolean(
           currentContractId || rawContractStartDate || contractType || contractEndDate || salaryNotes || baseSalary > 0 || allowanceAmount > 0 || deductionAmount > 0
         );
 
@@ -699,43 +698,7 @@ export function HrPage() {
     event.currentTarget.reset();
   }
 
-  async function saveContract(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedEmployeeId) return;
-    const form = new FormData(event.currentTarget);
-    await mutations.saveContract.mutateAsync({
-      employeeId: selectedEmployeeId,
-      payload: {
-        contractNo: formValue(form, 'contractNo'),
-        status: formValue(form, 'status') || 'draft',
-        startDate: formValue(form, 'startDate'),
-        endDate: formValue(form, 'endDate') || undefined,
-        baseSalary: Number(form.get('baseSalary') || 0),
-        currency: formValue(form, 'currency') || 'EGP',
-        notes: formValue(form, 'notes'),
-      },
-    });
-    event.currentTarget.reset();
-  }
 
-  async function saveCompensation(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedEmployeeId) return;
-    const form = new FormData(event.currentTarget);
-    await mutations.saveCompensation.mutateAsync({
-      employeeId: selectedEmployeeId,
-      payload: {
-        contractId: numericFormValue(form, 'contractId'),
-        packageName: formValue(form, 'packageName'),
-        allowanceAmount: Number(form.get('allowanceAmount') || 0),
-        deductionAmount: Number(form.get('deductionAmount') || 0),
-        effectiveFrom: formValue(form, 'effectiveFrom') || undefined,
-        effectiveTo: formValue(form, 'effectiveTo') || undefined,
-        notes: formValue(form, 'notes'),
-      },
-    });
-    event.currentTarget.reset();
-  }
 
   async function saveLoan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -869,33 +832,33 @@ export function HrPage() {
               <>
                   <div className="field field-wide">
                     <strong>العقد والراتب</strong>
-                    <span className="muted">{selectedEmployeeId ? 'بيانات الموظف المحفوظة ويمكن تعديلها من هنا' : 'اختياري عند إضافة موظف جديد'}</span>
+                    <span className="muted">{!canViewSalary ? 'بيانات العقد والراتب محجوبة حسب صلاحيات المستخدم' : selectedEmployeeId ? 'بيانات الموظف المحفوظة ويمكن تعديلها من هنا' : 'اختياري عند إضافة موظف جديد'}</span>
                   </div>
                   <label className="field">
                     <span>نوع العقد</span>
-                    <select name="contractType" defaultValue={String(currentContract?.contractType || 'standard')}>
+                    <select name="contractType" defaultValue={String(currentContract?.contractType || 'standard')} disabled={!canManageSalary}>
                       <option value="standard">قياسي</option>
                       <option value="full_time">دوام كامل</option>
                       <option value="part_time">دوام جزئي</option>
                       <option value="temporary">مؤقت</option>
                     </select>
                   </label>
-                  <label className="field"><span>بداية العقد</span><input name="contractStartDate" type="date" defaultValue={normalizeDateInput(String(currentContract?.startDate || ''))} /></label>
-                  <label className="field"><span>نهاية العقد</span><input name="contractEndDate" type="date" defaultValue={normalizeDateInput(String(currentContract?.endDate || ''))} /></label>
+                  <label className="field"><span>بداية العقد</span><input name="contractStartDate" type="date" defaultValue={normalizeDateInput(String(currentContract?.startDate || ''))} disabled={!canManageSalary} /></label>
+                  <label className="field"><span>نهاية العقد</span><input name="contractEndDate" type="date" defaultValue={normalizeDateInput(String(currentContract?.endDate || ''))} disabled={!canManageSalary} /></label>
                   <label className="field">
                     <span>حالة العقد</span>
-                    <select name="contractStatus" defaultValue={String(currentContract?.status || 'draft')}>
+                    <select name="contractStatus" defaultValue={String(currentContract?.status || 'draft')} disabled={!canManageSalary}>
                       <option value="draft">مسودة</option>
                       <option value="active">نشط</option>
                       <option value="ended">منتهي</option>
                       <option value="cancelled">ملغي</option>
                     </select>
                   </label>
-                  <label className="field"><span>الراتب الأساسي</span><input name="baseSalary" type="number" min="0" step="0.01" defaultValue={String(currentContract?.baseSalary || '')} /></label>
-                  <label className="field"><span>العملة</span><input name="currency" defaultValue={String(currentContract?.currency || 'EGP')} /></label>
-                  <label className="field"><span>بدلات ثابتة</span><input name="allowanceAmount" type="number" min="0" step="0.01" defaultValue={String(currentCompensation?.allowanceAmount || '')} /></label>
-                  <label className="field"><span>خصومات ثابتة</span><input name="deductionAmount" type="number" min="0" step="0.01" defaultValue={String(currentCompensation?.deductionAmount || '')} /></label>
-                  <label className="field field-wide"><span>ملاحظات الراتب</span><textarea name="salaryNotes" rows={2} defaultValue={String(currentCompensation?.notes || currentContract?.notes || '')} /></label>
+                  <label className="field"><span>الراتب الأساسي</span><input name="baseSalary" type="number" min="0" step="0.01" defaultValue={String(currentContract?.baseSalary || '')} disabled={!canManageSalary} /></label>
+                  <label className="field"><span>العملة</span><input name="currency" defaultValue={String(currentContract?.currency || 'EGP')} disabled={!canManageSalary} /></label>
+                  <label className="field"><span>بدلات ثابتة</span><input name="allowanceAmount" type="number" min="0" step="0.01" defaultValue={String(currentCompensation?.allowanceAmount || '')} disabled={!canManageSalary} /></label>
+                  <label className="field"><span>خصومات ثابتة</span><input name="deductionAmount" type="number" min="0" step="0.01" defaultValue={String(currentCompensation?.deductionAmount || '')} disabled={!canManageSalary} /></label>
+                  <label className="field field-wide"><span>ملاحظات الراتب</span><textarea name="salaryNotes" rows={2} defaultValue={String(currentCompensation?.notes || currentContract?.notes || '')} disabled={!canManageSalary} /></label>
 
                   <div className="field field-wide">
                     <strong>مستند أساسي</strong>
@@ -1232,42 +1195,6 @@ export function HrPage() {
         </Card>
       ) : null}
 
-      {tab === 'contracts' ? (
-        <Card title="بيانات العقد والراتب">
-          <EmployeeRequired selected={Boolean(selectedEmployeeId)} />
-          <div className="muted">سجل العقد والراتب الأساسي للموظف عند الحاجة. اترك تاريخ النهاية فارغًا للعقود المفتوحة.</div>
-          <form className="form-grid" onSubmit={saveContract}>
-            <label className="field"><span>رقم العقد</span><input name="contractNo" placeholder="تلقائي عند تركه فارغًا" disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <label className="field"><span>الحالة</span><select name="status" disabled={!selectedEmployeeId || !canManageSalary}><option value="draft">مسودة</option><option value="active">نشط</option><option value="ended">منتهي</option><option value="cancelled">ملغي</option></select></label>
-            <label className="field"><span>من تاريخ</span><input name="startDate" type="date" required disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <label className="field"><span>إلى تاريخ</span><input name="endDate" type="date" disabled={!selectedEmployeeId || !canManageSalary} /><small className="muted">اتركه فارغًا لو العقد مفتوح وغير محدد المدة</small></label>
-            <label className="field"><span>الراتب الأساسي</span><input name="baseSalary" type="number" min="0" step="0.01" disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <label className="field"><span>العملة</span><input name="currency" defaultValue="EGP" disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <label className="field field-wide"><span>ملاحظات</span><textarea name="notes" rows={2} disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <div className="actions compact-actions"><Button type="submit" disabled={!selectedEmployeeId || !canManageSalary || mutations.saveContract.isPending}>حفظ العقد</Button></div>
-          </form>
-          <DataTable
-            rows={profile.data?.contracts || []}
-            rowKey={(row) => row.id}
-            columns={[
-              { key: 'contract', header: 'العقد', cell: (row) => row.contractNo || '—' },
-              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-              { key: 'salary', header: 'الراتب', cell: (row) => canViewSalary && typeof row.baseSalary === 'number' ? formatHrMoney(row.baseSalary) : 'محجوب' },
-            ]}
-          />
-          <h3>بدلات وخصومات ثابتة شهرية - اختياري</h3>
-          <div className="muted">الجزاءات والتأخير والغياب ليست هنا، سيتم تسجيلها لاحقًا في الخصومات والجزاءات.</div>
-          <form className="form-grid" onSubmit={saveCompensation}>
-            <SelectField name="contractId" label="العقد" disabled={!selectedEmployeeId || !canManageSalary} options={(profile.data?.contracts || []).map((row) => ({ id: row.id, label: row.contractNo || row.startDate }))} />
-            <label className="field"><span>تفاصيل الراتب</span><input name="packageName" disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <label className="field"><span>بدلات</span><input name="allowanceAmount" type="number" min="0" step="0.01" disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <label className="field"><span>خصومات</span><input name="deductionAmount" type="number" min="0" step="0.01" disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <label className="field"><span>من</span><input name="effectiveFrom" type="date" disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <label className="field"><span>إلى</span><input name="effectiveTo" type="date" disabled={!selectedEmployeeId || !canManageSalary} /></label>
-            <div className="actions compact-actions"><Button type="submit" disabled={!selectedEmployeeId || !canManageSalary || mutations.saveCompensation.isPending}>حفظ التعويض</Button></div>
-          </form>
-        </Card>
-      ) : null}
 
       {tab === 'documents' ? (
         <Card title={selectedEmployee ? `مستندات الموظف: ${selectedEmployee.displayName} - ${selectedEmployee.employeeNo || '—'}` : 'المستندات'} description="يتم حفظ بيانات المستند فقط، وليس الملف نفسه.">
