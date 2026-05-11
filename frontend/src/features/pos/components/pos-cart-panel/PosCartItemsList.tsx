@@ -23,6 +23,9 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
           const isRecent = lastAddedLineKey === item.lineKey;
           const lineTotal = item.qty * item.price;
           const itemCode = String(item.itemCode || '').trim();
+          const isWeightedLine = item.isWeighted === true;
+          const minQty = isWeightedLine ? 0.001 : 1;
+          const inputStep = isWeightedLine ? 0.001 : 1;
 
           return (
             <div
@@ -50,19 +53,20 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                     onFocus={() => onSelectLine(item.lineKey)}
                     onClick={(event) => {
                       event.stopPropagation();
-                      onQtyChange(item.lineKey, Math.min(Number(item.stockLimit || item.qty + 1), Number(item.qty || 1) + 1));
+                      onQtyChange(item.lineKey, Math.min(Number(item.stockLimit || item.qty + 1), Number(item.qty || minQty) + 1));
                     }}
                   >
                     +
                   </button>
                   <input
                     type="number"
-                    min={1}
+                    min={minQty}
+                    step={inputStep}
                     max={item.stockLimit}
                     value={item.qty}
                     onFocus={() => onSelectLine(item.lineKey)}
                     onClick={(event) => event.stopPropagation()}
-                    onChange={(event) => onQtyChange(item.lineKey, Number(event.target.value || 1))}
+                    onChange={(event) => onQtyChange(item.lineKey, Number(event.target.value || minQty))}
                   />
                   <button
                     type="button"
@@ -71,7 +75,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                     onFocus={() => onSelectLine(item.lineKey)}
                     onClick={(event) => {
                       event.stopPropagation();
-                      onQtyChange(item.lineKey, Math.max(1, Number(item.qty || 1) - 1));
+                      onQtyChange(item.lineKey, Math.max(minQty, Number(item.qty || minQty) - 1));
                     }}
                   >
                     −

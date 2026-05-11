@@ -34,6 +34,28 @@ function roundMoney(value: number) {
   return Number(Number(value || 0).toFixed(2));
 }
 
+function roundQuantity(value: number) {
+  return Number(Number(value || 0).toFixed(3));
+}
+
+function getMinimumSaleQuantity(isWeighted?: boolean) {
+  return isWeighted ? 0.001 : 1;
+}
+
+function normalizeSaleQuantity(value: number, isWeighted?: boolean) {
+  const numericValue = Number(value || 0);
+  if (isWeighted) {
+    return roundQuantity(Math.max(getMinimumSaleQuantity(true), numericValue));
+  }
+  return Math.max(1, Math.round(numericValue || 1));
+}
+
+function getResolvedStockLimit(product: Product, unit: ProductUnit, allowDecimal: boolean) {
+  const multiplier = Math.max(Number(unit.multiplier || 1), 1);
+  const rawLimit = Number(product.stock || 0) / multiplier;
+  return allowDecimal ? roundQuantity(rawLimit) : Math.floor(rawLimit);
+}
+
 function todayLocalIsoDate() {
   const today = new Date();
   const year = today.getFullYear();
@@ -92,7 +114,7 @@ export function getSaleUnit(product: Product): ProductUnit {
 }
 
 export function getStockLimit(product: Product, unit: ProductUnit = getSaleUnit(product)) {
-  return Math.floor(Number(product.stock || 0) / Math.max(Number(unit.multiplier || 1), 1));
+  return getResolvedStockLimit(product, unit, false);
 }
 
 const UNBOUNDED_STOCK_LIMIT = Number.MAX_SAFE_INTEGER;
@@ -134,21 +156,34 @@ interface AddPosItemOptions {
   priceType: PosPriceType;
   unitId?: string;
   allowNegativeStockSales?: boolean;
+  quantity?: number;
+  isWeighted?: boolean;
+  sourceBarcode?: string;
 }
 
 export function addPosItem(cart: PosItem[], product: Product, options: AddPosItemOptions) {
   const unit = safeUnits(product).find((entry) => entry.id === options.unitId) || getSaleUnit(product);
-  const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getStockLimit(product, unit);
-  if (stockLimit <= 0) {
+  const isWeighted = options.isWeighted === true;
+  const minQty = getMinimumSaleQuantity(isWeighted);
+  const requestedQty = normalizeSaleQuantity(options.quantity ?? 1, isWeighted);
+  const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getResolvedStockLimit(product, unit, isWeighted);
+  if (stockLimit < minQty) {
     throw new Error('الصنف غير متاح للبيع حاليًا');
   }
   const priceType = options.priceType;
   const lineKey = `${product.id}::${unit.id || unit.name}::${priceType}`;
   const existing = cart.find((item) => item.lineKey === lineKey);
   if (existing) {
-    const nextQty = existing.qty + 1;
+    const nextQty = roundQuantity(Number(existing.qty || 0) + requestedQty);
     if (nextQty > stockLimit) throw new Error('الكمية المطلوبة أكبر من المخزون المتاح');
-    return cart.map((item) => item.lineKey === lineKey ? repriceCartLine(item, product, nextQty) : item);
+    return cart.map((item) => item.lineKey === lineKey
+      ? repriceCartLine({
+          ...item,
+          isWeighted: item.isWeighted === true || isWeighted ? true : undefined,
+          sourceBarcode: options.sourceBarcode || item.sourceBarcode,
+          stockLimit,
+        }, product, nextQty)
+      : item);
   }
   return [{
     lineKey,
@@ -158,21 +193,25 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     unitId: unit.id,
     unitName: unit.name,
     unitMultiplier: Math.max(Number(unit.multiplier || 1), 1),
-    price: getProductPrice(product, priceType, 1),
-    qty: 1,
+    price: getProductPrice(product, priceType, requestedQty),
+    qty: requestedQty,
     stockLimit,
     currentStock: Number(product.stock || 0),
     minStock: Number(product.minStock || 0),
     priceType,
+    isWeighted: isWeighted ? true : undefined,
+    sourceBarcode: options.sourceBarcode || undefined,
   }, ...cart];
 }
 
 export function updatePosItemQty(cart: PosItem[], lineKey: string, qty: number, products: Product[]) {
   return cart.map((item) => {
     if (item.lineKey !== lineKey) return item;
+    const isWeighted = item.isWeighted === true;
+    const normalizedQty = normalizeSaleQuantity(qty, isWeighted);
+    const nextQty = Math.min(normalizedQty, item.stockLimit);
     const product = products.find((entry) => String(entry.id) === String(item.productId));
-    if (!product) return { ...item, qty: Math.max(1, Math.min(qty, item.stockLimit)) };
-    const nextQty = Math.max(1, Math.min(qty, item.stockLimit));
+    if (!product) return { ...item, qty: nextQty };
     return repriceCartLine(item, product, nextQty);
   });
 }
@@ -186,9 +225,11 @@ export function updatePosItemQtyWithOptions(
 ) {
   return cart.map((item) => {
     if (item.lineKey !== lineKey) return item;
+    const isWeighted = item.isWeighted === true;
+    const normalizedQty = normalizeSaleQuantity(qty, isWeighted);
+    const nextQty = options.allowNegativeStockSales ? normalizedQty : Math.min(normalizedQty, item.stockLimit);
     const product = products.find((entry) => String(entry.id) === String(item.productId));
-    if (!product) return { ...item, qty: Math.max(1, options.allowNegativeStockSales ? qty : Math.min(qty, item.stockLimit)) };
-    const nextQty = Math.max(1, options.allowNegativeStockSales ? qty : Math.min(qty, item.stockLimit));
+    if (!product) return { ...item, qty: nextQty };
     return repriceCartLine(item, product, nextQty);
   });
 }
@@ -206,14 +247,17 @@ export function syncPosCartStock(cart: PosItem[], products: Product[], options: 
     const product = products.find((entry) => String(entry.id) === String(item.productId));
     if (!product) return [item];
     const unit = safeUnits(product).find((entry) => String(entry.id || '') === String(item.unitId || '') || String(entry.name || '') === String(item.unitName || '')) || getSaleUnit(product);
-    const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getStockLimit(product, unit);
-    if (stockLimit <= 0) {
+    const isWeighted = item.isWeighted === true;
+    const minQty = getMinimumSaleQuantity(isWeighted);
+    const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getResolvedStockLimit(product, unit, isWeighted);
+    if (stockLimit < minQty) {
       changed = true;
       removedCount += 1;
       return [];
     }
 
-    const nextQty = Math.max(1, Math.min(Number(item.qty || 1), stockLimit));
+    const normalizedQty = normalizeSaleQuantity(Number(item.qty || minQty), isWeighted);
+    const nextQty = Math.min(normalizedQty, stockLimit);
     const nextItem = {
       ...item,
       unitId: String(unit.id || item.unitId || ''),

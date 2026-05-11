@@ -14,6 +14,8 @@ export type ReturnListRow = {
   refundMethod: string;
   createdAt: unknown;
   date: unknown;
+  createdBy?: string;
+  createdByName?: string;
 };
 
 export function mapReturnRows(rows: Array<Record<string, unknown>>): ReturnListRow[] {
@@ -33,19 +35,23 @@ export function mapReturnRows(rows: Array<Record<string, unknown>>): ReturnListR
     refundMethod: String(row.refund_method || ''),
     createdAt: row.created_at,
     date: row.created_at,
+    createdBy: row.created_by ? String(row.created_by) : '',
+    createdByName: String(row.created_by_name || ''),
   }));
 }
 
 export function filterReturnRows(rows: ReturnListRow[], query: Record<string, unknown>, today: string): ReturnListRow[] {
   const q = String(query.search || query.q || '').trim().toLowerCase();
   const filter = String(query.filter || query.view || 'all').trim();
+  const employee = String(query.employee || query.employeeName || '').trim().toLowerCase();
 
   return rows.filter((row) => {
     if (filter === 'sales' && row.returnType !== 'sale') return false;
     if (filter === 'purchase' && row.returnType !== 'purchase') return false;
     if (filter === 'today' && String(row.createdAt || '').slice(0, 10) !== today) return false;
+    if (employee && !String(row.createdByName || '').toLowerCase().includes(employee)) return false;
     if (!q) return true;
-    return [row.docNo, row.productName, row.note, row.returnType].some((value) => String(value || '').toLowerCase().includes(q));
+    return [row.docNo, row.productName, row.note, row.returnType, row.createdByName].some((value) => String(value || '').toLowerCase().includes(q));
   });
 }
 

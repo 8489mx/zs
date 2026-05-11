@@ -46,6 +46,7 @@ export interface PosCartPanelProps {
   isDiscountAuthorizationPending?: boolean;
   hasDiscountPermissionViolation?: boolean;
   hasPricePermissionViolation?: boolean;
+  allowNegativeStockSales?: boolean;
   canSubmitSale: boolean;
   canSubmitHint: string;
   lastAddedLineKey?: string;

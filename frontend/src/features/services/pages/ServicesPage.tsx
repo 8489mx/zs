@@ -19,11 +19,16 @@ import { useServicesPage } from '@/features/services/hooks/useServicesPage';
 import { useServicesPageActions } from '@/features/services/hooks/useServicesPageActions';
 import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
 
+function formatServicePaymentChannel(channel?: string) {
+  return channel === 'card' ? 'فيزا' : 'نقدي';
+}
+
 function printServiceReceipt(service: ServiceRecord) {
   printHtmlDocument(`إيصال خدمة ${service.name}`, `
     <h1>إيصال خدمة</h1>
     <div class="meta">الخدمة: ${escapeHtml(service.name)} · التاريخ: ${escapeHtml(formatDate(service.serviceDate))}</div>
     <div class="section"><strong>القيمة:</strong> ${formatCurrency(service.amount)}</div>
+    <div class="section"><strong>طريقة التحصيل:</strong> ${escapeHtml(formatServicePaymentChannel(service.paymentChannel))}</div>
     <div class="section"><strong>الملاحظات:</strong> ${escapeHtml(service.notes || '—')}</div>
     <div class="section"><strong>المنفذ:</strong> ${escapeHtml(service.createdByName || '—')}</div>
   `);
@@ -73,6 +78,8 @@ export function ServicesPage() {
   const insights = useMemo(() => ({
     totalItems: Number(summary?.totalItems || 0),
     totalAmount: Number(summary?.totalAmount || 0),
+    cashAmount: Number(summary?.cashAmount || 0),
+    cardAmount: Number(summary?.cardAmount || 0),
     todayCount: Number(summary?.todayCount || 0),
     averageAmount: Number(summary?.averageAmount || 0),
     highestAmount: Number(summary?.highestAmount || 0),
@@ -83,6 +90,8 @@ export function ServicesPage() {
   const stats = [
     { key: 'count', label: 'عدد الخدمات', value: insights.totalItems },
     { key: 'amount', label: 'إجمالي القيمة', value: formatCurrency(insights.totalAmount) },
+    { key: 'cash', label: 'خدمات نقدي', value: formatCurrency(insights.cashAmount) },
+    { key: 'card', label: 'خدمات فيزا', value: formatCurrency(insights.cardAmount) },
     { key: 'today', label: 'خدمات اليوم', value: insights.todayCount },
     { key: 'avg', label: 'متوسط الخدمة', value: formatCurrency(insights.averageAmount) },
   ] as const;
@@ -120,6 +129,7 @@ export function ServicesPage() {
             columns={[
               { key: 'name', header: 'الخدمة', cell: (row) => row.name },
               { key: 'amount', header: 'القيمة', cell: (row) => formatCurrency(row.amount) },
+              { key: 'payment', header: 'التحصيل', cell: (row) => formatServicePaymentChannel(row.paymentChannel) },
               { key: 'notes', header: 'ملاحظات', cell: (row) => row.notes || '—' },
               { key: 'user', header: 'المنفذ', cell: (row) => row.createdByName || '—' },
               { key: 'date', header: 'التاريخ', cell: (row) => formatDate(row.serviceDate) },

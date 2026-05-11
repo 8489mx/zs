@@ -33,10 +33,16 @@ function normalizeCustomerId(value: string) {
   return String(value || '').trim();
 }
 
+function normalizeCartQty(item: PosItem) {
+  const qty = Number(item.qty || 0);
+  if (item.isWeighted === true) return Number(Math.max(0.001, qty).toFixed(3));
+  return Math.max(1, Math.round(qty));
+}
+
 function normalizeCart(items: PosItem[]) {
   return items.map((item) => ({
     productId: item.productId,
-    qty: Math.max(1, Number(item.qty || 0)),
+    qty: normalizeCartQty(item),
     unitName: item.unitName,
     unitMultiplier: Math.max(1, Number(item.unitMultiplier || 1)),
     price: normalizeMoney(Number(item.price || 0)),

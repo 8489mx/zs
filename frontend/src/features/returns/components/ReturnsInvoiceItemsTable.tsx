@@ -7,11 +7,13 @@ export function ReturnsInvoiceItemsTable({
   selectedItems,
   onToggleItem,
   onSetItemQty,
+  returnedQtyByProduct = {},
 }: {
   invoiceItems: Array<SaleItem | PurchaseItem>;
   selectedItems: Record<string, string>;
   onToggleItem: (productId: string, checked: boolean) => void;
   onSetItemQty: (productId: string, value: string) => void;
+  returnedQtyByProduct?: Record<string, number>;
 }) {
   if (!invoiceItems.length) {
     return <EmptyState title="اختر فاتورة أولًا" hint="بعد اختيار الفاتورة ستظهر البنود لتحديد أكثر من بند في نفس المرتجع." />;
@@ -37,16 +39,22 @@ export function ReturnsInvoiceItemsTable({
               const isSelected = Number(selectedItems[productId] || 0) > 0;
               const qty = Number(selectedItems[productId] || 0);
               const baseQty = Number(item.qty || 0);
+              const alreadyReturnedQty = Number(returnedQtyByProduct[productId] || 0);
+              const remainingQty = Math.max(0, baseQty - alreadyReturnedQty);
+              const isFullyReturned = remainingQty <= 0.000001;
               const lineTotal = qty > 0 ? qty * (baseQty > 0 ? Number(item.total || 0) / baseQty : 0) : 0;
               return (
-                <tr key={productId || item.id}>
+                <tr key={productId || item.id} className={isFullyReturned ? 'muted' : ''} style={isFullyReturned ? { opacity: 0.58 } : undefined}>
                   <td>
-                    <input type="checkbox" checked={isSelected} onChange={(e) => onToggleItem(productId, e.target.checked)} />
+                    <input type="checkbox" checked={isSelected} onChange={(e) => onToggleItem(productId, e.target.checked)} disabled={isFullyReturned} title={isFullyReturned ? 'هذا الصنف تم إرجاعه بالكامل ولا يمكن إرجاعه مرة أخرى.' : undefined} />
                   </td>
-                  <td>{item.name || '—'}</td>
+                  <td>
+                    <div>{item.name || '—'}</div>
+                    {isFullyReturned ? <span className="status-pill danger">تم إرجاعه بالكامل</span> : alreadyReturnedQty > 0 ? <span className="status-pill warning">متبقي للإرجاع: {remainingQty}</span> : null}
+                  </td>
                   <td>{baseQty}</td>
                   <td>
-                    <input type="number" min="0" step="0.001" value={selectedItems[productId] || ''} onChange={(e) => onSetItemQty(productId, e.target.value)} disabled={!isSelected} />
+                    <input type="number" min="0" max={remainingQty || undefined} step="0.001" value={selectedItems[productId] || ''} onChange={(e) => onSetItemQty(productId, e.target.value)} disabled={!isSelected || isFullyReturned} />
                   </td>
                   <td>{isSelected ? formatCurrency(lineTotal) : '—'}</td>
                 </tr>

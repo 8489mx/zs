@@ -14,4 +14,6 @@ export interface PosItem {
   currentStock: number;
   minStock: number;
   priceType: PosPriceType;
+  isWeighted?: boolean;
+  sourceBarcode?: string;
 }

@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
+import { writeCheckoutIntent } from '@/features/pos/lib/pos-checkout-integrity';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
@@ -85,6 +86,10 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   }, [props.customers, query, recentCustomerIds]);
 
   useEffect(() => {
+    writeCheckoutIntent({ customerId: String(props.customerId || '').trim() });
+  }, [props.customerId]);
+
+  useEffect(() => {
     if (pickerMode !== 'search') return;
     const frame = window.requestAnimationFrame(() => searchInputRef.current?.focus());
     return () => window.cancelAnimationFrame(frame);
@@ -133,11 +138,13 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   }
 
   function selectCustomer(id: string) {
+    const normalizedId = String(id || '').trim();
+    writeCheckoutIntent({ customerId: normalizedId });
     flushSync(() => {
-      props.onCustomerChange(id);
+      props.onCustomerChange(normalizedId);
     });
-    if (id) {
-      const nextRecentIds = [id, ...recentCustomerIds.filter((recentId) => recentId !== id)].slice(0, 5);
+    if (normalizedId) {
+      const nextRecentIds = [normalizedId, ...recentCustomerIds.filter((recentId) => recentId !== normalizedId)].slice(0, 5);
       setRecentCustomerIds(nextRecentIds);
       storeRecentCustomerIds(nextRecentIds);
     }
@@ -145,6 +152,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   }
 
   function removeCustomer() {
+    writeCheckoutIntent({ customerId: '' });
     flushSync(() => {
       props.onCustomerChange('');
     });

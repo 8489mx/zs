@@ -28,6 +28,19 @@ interface CashDrawerShiftsCardProps {
   onPageSizeChange: (value: number) => void;
 }
 
+function getDisplaySaleReturnCashRefundTotal(row: CashierShift): number {
+  const rawTotal = Number(row.saleReturnCashRefundTotal || 0);
+  if (rawTotal > 0) return rawTotal;
+
+  const inferredTotal = Number(row.openingCash || 0)
+    + Number(row.cashSalesTotal || 0)
+    + Number(row.serviceCashTotal || 0)
+    + Number(row.cashDrawerMovementTotal || 0)
+    - Number(row.expectedCash || 0);
+
+  return Math.max(0, Number(inferredTotal.toFixed(2)));
+}
+
 export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
   return (
     <Card
@@ -87,7 +100,14 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
             ...(!SINGLE_STORE_MODE ? [{ key: 'branch', header: 'الفرع', cell: (row: CashierShift) => row.branchName || '—' }] : []),
             { key: 'location', header: SINGLE_STORE_MODE ? 'المخزن' : 'المخزن', cell: (row: CashierShift) => row.locationName || '—' },
             { key: 'opening', header: 'رصيد الفتح', cell: (row: CashierShift) => formatCurrency(row.openingCash) },
-            { key: 'expected', header: 'المتوقع', cell: (row: CashierShift) => formatCurrency(row.expectedCash) },
+            { key: 'cashSales', header: 'مبيعات نقدي', cell: (row: CashierShift) => formatCurrency(row.cashSalesTotal || 0) },
+            { key: 'cardSales', header: 'مبيعات فيزا', cell: (row: CashierShift) => formatCurrency(row.cardSalesTotal || 0) },
+            { key: 'serviceCash', header: 'خدمات نقدي', cell: (row: CashierShift) => formatCurrency(row.serviceCashTotal || 0) },
+            { key: 'serviceCard', header: 'خدمات فيزا', cell: (row: CashierShift) => formatCurrency(row.serviceCardTotal || 0) },
+            { key: 'saleReturnCash', header: 'مرتجعات نقدي', cell: (row: CashierShift) => formatCurrency(getDisplaySaleReturnCashRefundTotal(row)) },
+            { key: 'saleReturnCard', header: 'مرتجعات فيزا', cell: (row: CashierShift) => formatCurrency(row.saleReturnCardRefundTotal || 0) },
+            { key: 'salesTotal', header: 'إجمالي المبيعات', cell: (row: CashierShift) => formatCurrency(row.shiftSalesTotal || 0) },
+            { key: 'expected', header: 'نقدية متوقعة', cell: (row: CashierShift) => formatCurrency(row.expectedCash) },
             { key: 'counted', header: 'المعدود', cell: (row: CashierShift) => formatCurrency(row.countedCash || 0) },
             { key: 'variance', header: 'الفرق', cell: (row: CashierShift) => formatCurrency(row.variance) },
             { key: 'openBy', header: 'فتح بواسطة', cell: (row: CashierShift) => row.openedByName || '—' },

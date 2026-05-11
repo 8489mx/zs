@@ -21,6 +21,11 @@ export interface ServiceRecord {
   amount: number;
   notes: string;
   serviceDate: string;
+  paymentChannel?: 'cash' | 'card' | string;
+  branchId?: string;
+  branchName?: string;
+  locationId?: string;
+  locationName?: string;
   createdByName?: string;
 }
 
@@ -42,6 +47,19 @@ export interface CashierShift {
   openingCash: number;
   expectedCash: number;
   countedCash: number;
+  cashSalesTotal?: number;
+  cardSalesTotal?: number;
+  creditSalesTotal?: number;
+  shiftSalesTotal?: number;
+  saleCount?: number;
+  mixedSalesCount?: number;
+  cashDrawerMovementTotal?: number;
+  serviceCashTotal?: number;
+  serviceCardTotal?: number;
+  serviceTotal?: number;
+  saleReturnCashRefundTotal?: number;
+  saleReturnCardRefundTotal?: number;
+  saleReturnTotal?: number;
   variance: number;
   openingNote?: string;
   closeNote?: string;
@@ -109,6 +127,11 @@ export interface AppSettings {
   defaultPosMode?: 'scanner' | 'touch' | string;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
+  weightedBarcodeEnabled?: boolean;
+  weightedBarcodePrefix?: string;
+  weightedBarcodeProductCodeLength?: number;
+  weightedBarcodeWeightDigits?: number;
+  weightedBarcodeWeightDecimals?: number;
   theme?: string;
 }
 

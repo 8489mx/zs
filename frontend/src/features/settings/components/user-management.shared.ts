@@ -2,7 +2,7 @@ import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','audit','treasury','services','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','cashDrawer'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','audit','treasury','services','hr','hrEmployees','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','cashDrawer'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
   'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageSettings'
@@ -37,6 +37,15 @@ export const PERMISSION_LABELS: Record<string, string> = {
   audit: 'سجل المراجعة',
   treasury: 'الخزينة',
   services: 'الخدمات',
+  hr: 'الموارد البشرية',
+  hrEmployees: 'ملفات الموظفين',
+  hrContracts: 'العقود',
+  hrLoans: 'السلف والقروض',
+  hrPayrollView: 'عرض مسير الرواتب',
+  hrPayrollManage: 'إدارة مسير الرواتب',
+  hrPayrollApprove: 'اعتماد مسير الرواتب',
+  hrSalaryView: 'عرض بيانات الراتب',
+  hrSalaryManage: 'إدارة بيانات الراتب',
   canDelete: 'الحذف',
 };
 
@@ -46,9 +55,10 @@ export function getPermissionLabel(permission: string) {
 
 export const USER_PERMISSION_GROUPS = [
   { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'reports', 'pricingCenterView'] },
+  { title: 'الموارد البشرية', items: ['hr', 'hrEmployees', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove'] },
   { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory', 'pricingCenterManage'] },
   { title: 'إدارة النظام', items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups'] },
-  { title: 'بيانات حساسة', items: ['canViewProfit', 'audit', 'treasury', 'services', 'canDelete'] }
+  { title: 'بيانات حساسة', items: ['canViewProfit', 'hrSalaryView', 'hrSalaryManage', 'audit', 'treasury', 'services', 'canDelete'] }
 ] as const;
 
 export const USER_ROLE_TEMPLATES = {

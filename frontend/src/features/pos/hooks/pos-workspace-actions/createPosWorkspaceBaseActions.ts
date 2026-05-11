@@ -2,6 +2,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { downloadCsvFile } from '@/lib/browser';
 import { addPosItem, getProductPrice, isNegativeStockSalesAllowed, removePosItem, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
 import { buildSaleLineKey, computeDraftTotal, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
+import { formatWeightedBarcodeQuantity, matchProductByWeightedCode, parseWeightedBarcode } from '@/features/pos/lib/weighted-barcode';
 import { clearDraftSnapshot } from '@/features/pos/lib/pos.persistence';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product } from '@/types/domain';
@@ -9,6 +10,20 @@ import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorksp
 
 function toMoney(value: number) {
   return Number(Number(value || 0).toFixed(2));
+}
+
+function getAddProductErrorMessage(error: unknown, product: Product) {
+  const message = error instanceof Error ? error.message : '';
+
+  if (message.includes('غير متاح للبيع') || message.includes('المخزون')) {
+    return `مخزون "${product.name}" نافذ ولا يمكن إضافته للسلة.`;
+  }
+
+  if (message.includes('الكمية المطلوبة أكبر')) {
+    return `المخزون المتاح من "${product.name}" لا يكفي الكمية المطلوبة.`;
+  }
+
+  return message || `تعذر إضافة "${product.name}" إلى السلة.`;
 }
 
 export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) {
@@ -52,11 +67,18 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.requestBarcodeFocus();
   }
 
-  function handleAddProduct(product: Product, unitId?: string) {
+  function handleAddProduct(product: Product, unitId?: string, options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string } = {}) {
     try {
       const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
       const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
-      params.setCart((current) => addPosItem(current, product, { priceType: params.priceType, unitId, allowNegativeStockSales }));
+      params.setCart((currentCart) => addPosItem(currentCart, product, {
+        priceType: params.priceType,
+        unitId,
+        allowNegativeStockSales,
+        quantity: options.quantity,
+        isWeighted: options.isWeighted,
+        sourceBarcode: options.sourceBarcode,
+      }));
       params.setSelectedLineKey(lineKey);
       params.setLastAddedLineKey(lineKey);
       registerRecentProduct(product.id);
@@ -64,9 +86,13 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.setSubmitMessage('');
       params.setPostSaleSaleKey('');
       params.requestBarcodeFocus();
+      return true;
     } catch (error) {
-      params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر إضافة الصنف');
+      const friendlyMessage = getAddProductErrorMessage(error, product);
+      params.setSubmitMessage(friendlyMessage);
+      params.setScannerMessage(friendlyMessage);
       params.requestBarcodeFocus();
+      return false;
     }
   }
 
@@ -79,6 +105,30 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       return false;
     }
     if (result.status === 'not-found') {
+      const weightedBarcode = parseWeightedBarcode(code, params.settings);
+      if (weightedBarcode) {
+        const weightedResult = matchProductByWeightedCode(productsOverride || params.products || [], weightedBarcode.productCode);
+        if (weightedResult.status === 'matched') {
+          const added = handleAddProduct(
+            weightedResult.match.product,
+            weightedResult.match.kind === 'unit' ? weightedResult.match.unitId : undefined,
+            { quantity: weightedBarcode.quantity, isWeighted: true, sourceBarcode: weightedBarcode.rawCode },
+          );
+          if (!added) return false;
+          params.setSearch('');
+          params.setQuickAddCode('');
+          params.setScannerMessage(`تمت إضافة ${weightedResult.match.product.name} بوزن ${formatWeightedBarcodeQuantity(weightedBarcode.quantity)}.`);
+          return true;
+        }
+        if (weightedResult.status === 'ambiguous') {
+          params.setScannerMessage(`كود الميزان ${weightedBarcode.productCode} مرتبط بأكثر من صنف أو وحدة. راجع كود الصنف أولًا.`);
+          params.requestBarcodeFocus();
+          return false;
+        }
+        params.setScannerMessage(`باركود ميزان: لم يتم العثور على كود الصنف ${weightedBarcode.productCode}.`);
+        params.requestBarcodeFocus();
+        return false;
+      }
       params.setScannerMessage('لا يوجد صنف أو وحدة بهذا الباركود.');
       params.requestBarcodeFocus();
       return false;
@@ -88,7 +138,8 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.requestBarcodeFocus();
       return false;
     }
-    handleAddProduct(result.match.product, result.match.kind === 'unit' ? result.match.unitId : undefined);
+    const added = handleAddProduct(result.match.product, result.match.kind === 'unit' ? result.match.unitId : undefined);
+    if (!added) return false;
     params.setSearch('');
     params.setQuickAddCode('');
     params.setScannerMessage(result.match.kind === 'unit' && result.match.unitName ? `تمت إضافة ${result.match.product.name} بوحدة ${result.match.unitName}.` : `تمت إضافة ${result.match.product.name} إلى السلة.`);
@@ -131,11 +182,20 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   }
 
   function setQty(lineKey: string, qty: number) {
-    params.setSelectedLineKey(lineKey);
-    params.setCart((current) => updatePosItemQtyWithOptions(current, lineKey, qty, params.products || [], {
-      allowNegativeStockSales: isNegativeStockSalesAllowed(params.settings),
-    }));
-    params.setPostSaleSaleKey('');
+    try {
+      const nextCart = updatePosItemQtyWithOptions(params.cart, lineKey, qty, params.products || [], {
+        allowNegativeStockSales: isNegativeStockSalesAllowed(params.settings),
+      });
+
+      params.setSelectedLineKey(lineKey);
+      params.setCart(nextCart);
+      params.setSubmitMessage('');
+      params.setPostSaleSaleKey('');
+      // Do not force barcode focus here. Quantity editing happens inside the cart, and the
+      // cashier must be able to type multi-digit quantities or press +/- repeatedly.
+    } catch (error) {
+      params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر تعديل الكمية.');
+    }
   }
 
   function removeItem(lineKey: string) {
@@ -190,7 +250,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   function changeSelectedQty(delta: number) {
     const selectedItem = params.cart.find((item) => item.lineKey === params.selectedLineKey);
     if (!selectedItem) return false;
-    setQty(selectedItem.lineKey, Math.max(1, selectedItem.qty + delta));
+    const minQty = selectedItem.isWeighted === true ? 0.001 : 1;
+    const nextQty = selectedItem.isWeighted === true ? Number((Number(selectedItem.qty || 0) + delta).toFixed(3)) : Number(selectedItem.qty || 1) + delta;
+    setQty(selectedItem.lineKey, Math.max(minQty, nextQty));
     return true;
   }
 
@@ -202,11 +264,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     const nextQty = Number(rawValue || 0);
     if (!Number.isFinite(nextQty) || nextQty <= 0) {
       params.setSubmitMessage('الكمية يجب أن تكون أكبر من صفر.');
-      params.requestBarcodeFocus();
       return false;
     }
-    setQty(selectedItem.lineKey, Math.round(nextQty));
-    params.requestBarcodeFocus();
+    setQty(selectedItem.lineKey, selectedItem.isWeighted === true ? Number(nextQty.toFixed(3)) : Math.round(nextQty));
     return true;
   }
 

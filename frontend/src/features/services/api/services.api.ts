@@ -21,6 +21,8 @@ export interface ServicesListResponse {
   summary?: {
     totalItems: number;
     totalAmount: number;
+    cashAmount?: number;
+    cardAmount?: number;
     todayCount: number;
     averageAmount: number;
     highestAmount: number;

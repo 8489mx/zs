@@ -191,6 +191,7 @@ export class ReturnsService {
     const rows = await this.db
       .selectFrom('return_items as ri')
       .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
+      .leftJoin('users as u', 'u.id', 'rd.created_by')
       .select([
         'ri.id',
         'rd.id as return_document_id',
@@ -205,6 +206,8 @@ export class ReturnsService {
         'rd.settlement_mode',
         'rd.refund_method',
         'rd.created_at',
+        'rd.created_by',
+        'u.username as created_by_name',
       ])
       .orderBy('rd.id desc')
       .orderBy('ri.id asc')

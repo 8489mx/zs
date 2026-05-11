@@ -90,18 +90,79 @@
   padding-block: 2px;
 }
 
-/* Payment row: clearer preset buttons and no cramped label. */
+/* Cashier-only payment row: one adaptive row across 14/15/17/22 inch screens.
+   This override is intentionally scoped to POS sale modes only and does not affect other pages. */
 .pos-workspace.pos-sale-mode-scanner .pos-payment-strip,
 .pos-workspace.pos-sale-mode-touch .pos-payment-strip {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 0.9fr) !important;
-  gap: 6px;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.38fr)
+    minmax(0, 1.18fr)
+    minmax(0, 0.82fr)
+    minmax(0, 0.92fr)
+    minmax(0, 1fr) !important;
+  gap: clamp(3px, 0.42vw, 6px);
   align-items: stretch;
+  overflow: hidden;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-strip-field,
+.pos-workspace.pos-sale-mode-touch .pos-strip-field,
+.pos-workspace.pos-sale-mode-scanner .pos-strip-field-inline,
+.pos-workspace.pos-sale-mode-touch .pos-strip-field-inline {
+  min-width: 0 !important;
+  max-width: 100%;
+  min-height: clamp(32px, 3vw, 38px);
+  height: clamp(32px, 3vw, 38px);
+  padding-block: 3px;
+  padding-inline: clamp(5px, 0.58vw, 10px);
+  gap: clamp(3px, 0.42vw, 7px);
+  overflow: hidden;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-strip-field > span,
+.pos-workspace.pos-sale-mode-touch .pos-strip-field > span {
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+  font-size: clamp(10px, 0.72vw, 13px);
+  line-height: 1;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-strip-field input,
+.pos-workspace.pos-sale-mode-touch .pos-strip-field input {
+  min-width: 0 !important;
+  width: 100%;
+  height: clamp(26px, 2.45vw, 32px);
+  padding-block: 1px;
+  padding-inline: clamp(4px, 0.48vw, 8px);
+  font-size: clamp(12px, 0.86vw, 15px);
+  line-height: 1;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-strip-field strong,
+.pos-workspace.pos-sale-mode-touch .pos-strip-field strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(12px, 0.92vw, 15px);
+  line-height: 1;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-strip-input-shell,
+.pos-workspace.pos-sale-mode-touch .pos-strip-input-shell {
+  min-width: 0;
+  width: 100%;
+  gap: clamp(3px, 0.38vw, 6px);
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-strip-presets,
 .pos-workspace.pos-sale-mode-touch .pos-strip-presets {
-  grid-column: 1 / -1;
+  grid-column: auto !important;
   grid-template-columns: minmax(0, 1fr) !important;
+  align-content: center;
+  min-width: 0 !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-strip-presets > span,
@@ -118,17 +179,63 @@
 .pos-workspace.pos-sale-mode-touch .pos-payment-preset-row-inline {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: clamp(3px, 0.38vw, 6px);
+  min-width: 0;
+  width: 100%;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-payment-preset-row-inline .btn,
 .pos-workspace.pos-sale-mode-touch .pos-payment-preset-row-inline .btn {
-  min-height: 38px;
-  height: 38px;
-  padding-inline: 10px;
-  border-radius: 12px;
-  font-size: 13px;
+  min-width: 0 !important;
+  min-height: clamp(28px, 2.55vw, 34px);
+  height: clamp(28px, 2.55vw, 34px);
+  padding-block: 1px;
+  padding-inline: clamp(4px, 0.48vw, 8px);
+  border-radius: clamp(9px, 0.8vw, 12px);
+  font-size: clamp(10px, 0.78vw, 13px);
   font-weight: 800;
+  white-space: nowrap;
+}
+
+.pos-workspace.pos-sale-mode-scanner .pos-payment-fill-inline,
+.pos-workspace.pos-sale-mode-touch .pos-payment-fill-inline {
+  flex: 0 0 auto;
+  min-width: clamp(34px, 3.2vw, 48px) !important;
+  height: clamp(23px, 2.2vw, 28px);
+  padding-inline: clamp(4px, 0.45vw, 7px);
+  border-radius: 9px;
+  font-size: clamp(9px, 0.68vw, 11px);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Extra compression for narrow 14-inch-like layouts while keeping one row. */
+@media (max-width: 1320px) {
+  .pos-workspace.pos-sale-mode-scanner .pos-payment-strip,
+  .pos-workspace.pos-sale-mode-touch .pos-payment-strip {
+    grid-template-columns:
+      minmax(0, 1.26fr)
+      minmax(0, 1.04fr)
+      minmax(0, 0.74fr)
+      minmax(0, 0.82fr)
+      minmax(0, 0.86fr) !important;
+    gap: 4px;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-strip-field,
+  .pos-workspace.pos-sale-mode-touch .pos-strip-field,
+  .pos-workspace.pos-sale-mode-scanner .pos-strip-field-inline,
+  .pos-workspace.pos-sale-mode-touch .pos-strip-field-inline {
+    padding-inline: 5px;
+  }
+}
+
+/* Very narrow fallback only. It should not trigger on normal 14/15/17/22 inch cashier layouts. */
+@media (max-width: 760px) {
+  .pos-workspace.pos-sale-mode-scanner .pos-payment-strip,
+  .pos-workspace.pos-sale-mode-touch .pos-payment-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 /* Cart rows: keep 55% cart side useful without horizontal overflow. */
@@ -180,13 +287,6 @@
   background: #fef3c7 !important;
 }
 
-@media (max-width: 1320px) {
-  .pos-workspace.pos-sale-mode-scanner .pos-payment-strip,
-  .pos-workspace.pos-sale-mode-touch .pos-payment-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
 @media (max-width: 1080px) {
   .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
   .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
@@ -196,9 +296,7 @@
 
 @media (max-width: 920px) {
   .pos-workspace.pos-sale-mode-scanner .pos-meta-grid-aux,
-  .pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux,
-  .pos-workspace.pos-sale-mode-scanner .pos-payment-strip,
-  .pos-workspace.pos-sale-mode-touch .pos-payment-strip {
+  .pos-workspace.pos-sale-mode-touch .pos-meta-grid-aux {
     grid-template-columns: 1fr !important;
   }
 

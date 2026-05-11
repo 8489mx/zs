@@ -174,7 +174,7 @@ export class SalesWriteService {
         }
       }
 
-      const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal);
+      const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
       const paidAmount = calculatePaidAmount(payments);
       if (normalized.paymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) {
         throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);

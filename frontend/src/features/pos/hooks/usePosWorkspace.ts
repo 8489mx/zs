@@ -44,7 +44,7 @@ export function usePosWorkspace() {
     ? 0
     : Number((Number(state.cashAmount || 0) + Number(state.cardAmount || 0)).toFixed(2));
 
-  const { saleProducts, catalogProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search, state.locationId);
+  const { saleProducts, catalogProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search, state.locationId, state.productFilter);
   const createSale = usePosSaleMutation();
   const queryClient = useQueryClient();
   const authUser = useAuthStore((entry) => entry.user);

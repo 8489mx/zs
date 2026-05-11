@@ -19,6 +19,7 @@ import { CashDrawerModule } from './modules/cash-drawer/cash-drawer.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 import { TreasuryModule } from './modules/treasury/treasury.module';
 import { ServicesModule } from './modules/services/services.module';
+import { HrModule } from './modules/hr/hr.module';
 import { ActivationModule } from './modules/activation/activation.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { ManagerActionsModule } from './modules/manager-actions/manager-actions.module';
@@ -49,6 +50,7 @@ import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit
     ReturnsModule,
     TreasuryModule,
     ServicesModule,
+    HrModule,
     ActivationModule,
     PricingModule,
     ManagerActionsModule,

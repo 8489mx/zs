@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
-import { getProductPrice } from '@/features/pos/lib/pos.domain';
+import { getProductPrice, isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import { mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
 import type { PaymentChannel, PaymentType, PosProductFilter } from '@/features/pos/hooks/usePosWorkspace';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
@@ -18,7 +18,7 @@ interface PosWorkspaceDerivedParams {
   openShiftRows: Array<{ id: string | number; docNo?: string; openedById?: string | number; openedByName?: string }>;
   authUserId?: string | number | null;
   authPermissions?: string[];
-  settings?: { taxRate?: number | string; taxMode?: string } | null;
+  settings?: { taxRate?: number | string; taxMode?: string; allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown } | null;
   heldDrafts: Array<unknown>;
   recentProductIds: string[];
   productFilter: PosProductFilter;
@@ -146,7 +146,11 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const requiresCashierShift = params.paymentType !== 'credit';
   const hasZeroPriceLine = params.cart.some((item) => Number(item.price || 0) <= 0);
   const hasCreditWithoutCustomer = params.paymentType === 'credit' && !params.customerId;
-  const hasUnderpaidSale = params.paymentType !== 'credit' && Number(params.paidAmount || 0) < Number(totals.total || 0);
+  const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
+  const shouldAssumeFullCashPayment = allowNegativeStockSales && params.paymentType !== 'credit' && Number(params.paidAmount || 0) <= 0.0001;
+  const hasUnderpaidSale = params.paymentType !== 'credit'
+    && Number(params.paidAmount || 0) < Number(totals.total || 0)
+    && !shouldAssumeFullCashPayment;
   const hasDiscountPermissionViolation = !canApplyDiscount && Math.abs(Number(params.discount || 0)) > 0.0001;
   const hasPricePermissionViolation = !canEditPrice && params.cart.some((item) => {
     const baselinePrice = item.priceType === 'retail' && Number(item.qty || 0) === 1

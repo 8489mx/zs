@@ -1,6 +1,7 @@
 import { flushSync } from 'react-dom';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { writeCheckoutIntent } from '@/features/pos/lib/pos-checkout-integrity';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 function isPresetActive(
@@ -27,6 +28,7 @@ function getBalanceState(props: Pick<PosCartPanelProps, 'paymentType' | 'amountD
 
 export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
   'paymentType' | 'paymentChannel' | 'cashAmount' | 'cardAmount' | 'discount' | 'amountDue' | 'changeAmount' |
+  'customerId' |
   'canApplyDiscount' | 'discountApprovalGranted' | 'isDiscountAuthorizationPending' | 'hasDiscountPermissionViolation' |
   'onPaymentPresetChange' | 'onCashAmountChange' | 'onCardAmountChange' | 'onDiscountChange' | 'onFillPaidAmount' | 'onRequestDiscountAuthorization'
 >) {
@@ -35,6 +37,11 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
   const isDiscountLocked = !props.canApplyDiscount;
 
   function selectPaymentPreset(preset: 'cash' | 'card' | 'credit') {
+    writeCheckoutIntent({
+      customerId: props.customerId || '',
+      paymentType: preset === 'credit' ? 'credit' : 'cash',
+      paymentChannel: preset,
+    });
     flushSync(() => {
       props.onPaymentPresetChange(preset);
     });

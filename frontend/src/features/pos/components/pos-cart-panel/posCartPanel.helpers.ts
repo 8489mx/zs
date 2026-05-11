@@ -6,7 +6,7 @@ export function getLowStockLines(cart: PosItem[]) {
 }
 
 export function getAlertMessages(props: PosCartPanelProps) {
-  const lowStockLines = getLowStockLines(props.cart);
+  const lowStockLines = props.allowNegativeStockSales ? [] : getLowStockLines(props.cart);
   const hasZeroPriceLine = props.cart.some((item) => Number(item.price || 0) <= 0);
   return [
     props.paymentType !== 'credit' && !props.hasOpenShift ? 'افتح وردية كاشير أولًا قبل تسجيل فاتورة نقدية أو بطاقة.' : '',

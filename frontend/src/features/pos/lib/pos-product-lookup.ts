@@ -1,7 +1,7 @@
 import type { Product } from '@/types/domain';
 
-export const POS_PRODUCT_LOOKUP_LIMIT = 30;
-export const POS_PRODUCT_CACHE_LIMIT = 180;
+export const POS_PRODUCT_LOOKUP_LIMIT = 240;
+export const POS_PRODUCT_CACHE_LIMIT = 600;
 
 export function isLikelyBarcodeQuery(value: string) {
   const trimmed = String(value || '').trim();

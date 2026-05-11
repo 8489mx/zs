@@ -11,6 +11,7 @@ export function useReportsWorkspaceMetrics({ currentSection, submittedRange, rep
   const executiveRows = useMemo<[string, number][]>(() => ([
     ['إجمالي البيع', report?.sales.total || 0],
     ['صافي البيع', report?.sales.netSales || 0],
+    ['إيراد الخدمات', report?.services?.total || 0],
     ['إجمالي الشراء', report?.purchases.total || 0],
     ['صافي الشراء', report?.purchases.netPurchases || 0],
     ['إجمالي المصروفات', report?.expenses.total || 0],
@@ -59,7 +60,7 @@ export function useReportsWorkspaceMetrics({ currentSection, submittedRange, rep
   const spotlightCards = useMemo(() => ([
     {
       label: 'صافي البيع',
-      helper: 'بعد الخصومات والضرائب',
+      helper: 'بعد الخصومات والخدمات',
       value: report?.sales.netSales || 0,
       tone: 'primary' as const,
       formatter: formatCurrency,
@@ -94,6 +95,7 @@ export function useReportsWorkspaceMetrics({ currentSection, submittedRange, rep
 
   const movementBars = useMemo(() => ([
     { label: 'البيع', value: report?.sales.netSales || 0, tone: 'primary' as const },
+    { label: 'الخدمات', value: report?.services?.total || 0, tone: 'success' as const },
     { label: 'الشراء', value: report?.purchases.netPurchases || 0, tone: 'warning' as const },
     { label: 'المصروفات', value: report?.expenses.total || 0, tone: 'danger' as const },
     { label: 'المرتجعات', value: report?.returns.total || 0, tone: 'danger' as const },

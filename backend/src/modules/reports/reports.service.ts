@@ -46,6 +46,7 @@ export class ReportsService {
     const [
       rawSalesRows,
       rawPurchasesRows,
+      rawServicesRows,
       rawExpensesRows,
       rawReturnsRows,
       rawTreasuryRows,
@@ -64,6 +65,19 @@ export class ReportsService {
         .where('status', '=', 'posted')
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
+        .execute(),
+      (this.db as any)
+        .selectFrom('services')
+        .select([
+          'id',
+          'amount as total',
+          'branch_id',
+          'location_id',
+          'service_date as created_at',
+        ])
+        .where('is_active', '=', true)
+        .where('service_date', '>=', fromDate!)
+        .where('service_date', '<=', toDate!)
         .execute(),
       this.db
         .selectFrom('expenses')
@@ -103,6 +117,13 @@ export class ReportsService {
     ]);
 
     const salesRows = filterScope(rawSalesRows, query);
+    const normalizedServicesRows = rawServicesRows.map((row: any) => ({
+      ...row,
+      total: Number(row.total || 0),
+      branch_id: row.branch_id == null ? null : Number(row.branch_id),
+      location_id: row.location_id == null ? null : Number(row.location_id),
+    }));
+    const servicesRows = filterScope(normalizedServicesRows, query) as typeof normalizedServicesRows;
     const purchasesRows = filterScope(rawPurchasesRows, query);
     const expensesRows = filterScope(rawExpensesRows, query);
     const returnsRows = filterScope(rawReturnsRows, query);
@@ -113,6 +134,7 @@ export class ReportsService {
       range,
       ...buildReportSummaryPayload({
         salesRows,
+        servicesRows,
         purchasesRows,
         expensesRows,
         returnsRows,

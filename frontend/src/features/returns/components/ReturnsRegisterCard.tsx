@@ -18,6 +18,8 @@ type Props = {
   onSearchChange: (value: string) => void;
   onReset: () => void;
   onFilterChange: (value: 'all' | 'sales' | 'purchase' | 'today') => void;
+  employeeFilter: string;
+  onEmployeeFilterChange: (value: string) => void;
   onSelectReturn: (id: string) => void;
   onPrintReturn: (row: ReturnRecord) => void;
   onPageChange: (page: number) => void;
@@ -36,6 +38,8 @@ export function ReturnsRegisterCard({
   onSearchChange,
   onReset,
   onFilterChange,
+  employeeFilter,
+  onEmployeeFilterChange,
   onSelectReturn,
   onPrintReturn,
   onPageChange,
@@ -47,6 +51,12 @@ export function ReturnsRegisterCard({
         <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
       </SearchToolbar>
       <div className="filter-chip-row">
+        <input
+          value={employeeFilter}
+          onChange={(event) => onEmployeeFilterChange(event.target.value)}
+          placeholder="فلترة باسم منفذ المرتجع"
+          style={{ minWidth: 220 }}
+        />
         <Button variant={viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onFilterChange('all')}>الكل</Button>
         <Button variant={viewFilter === 'sales' ? 'primary' : 'secondary'} onClick={() => onFilterChange('sales')}>مرتجع بيع</Button>
         <Button variant={viewFilter === 'purchase' ? 'primary' : 'secondary'} onClick={() => onFilterChange('purchase')}>مرتجع شراء</Button>
@@ -75,6 +85,7 @@ export function ReturnsRegisterCard({
             { key: 'total', header: 'الإجمالي', cell: (row) => formatCurrency(row.total) },
             { key: 'note', header: 'ملاحظات', cell: (row) => row.note || '—' },
             { key: 'date', header: 'التاريخ', cell: (row) => formatDate(getReturnDateValue(row)) },
+            { key: 'createdBy', header: 'منفذ المرتجع', cell: (row) => row.createdByName || row.createdBy || '—' },
             { key: 'actions', header: 'إجراءات', cell: (row) => <Button variant="secondary" onClick={(event) => { event.stopPropagation(); onPrintReturn(row); }}>طباعة</Button> }
           ]}
         />

@@ -73,6 +73,7 @@ function arePropsEqual(prev: PosCartPanelProps, next: PosCartPanelProps) {
     && prev.isDiscountAuthorizationPending === next.isDiscountAuthorizationPending
     && prev.hasDiscountPermissionViolation === next.hasDiscountPermissionViolation
     && prev.hasPricePermissionViolation === next.hasPricePermissionViolation
+    && prev.allowNegativeStockSales === next.allowNegativeStockSales
     && prev.canSubmitSale === next.canSubmitSale
     && prev.canSubmitHint === next.canSubmitHint
     && prev.lastAddedLineKey === next.lastAddedLineKey
