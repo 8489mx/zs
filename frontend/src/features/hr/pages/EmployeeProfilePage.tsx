@@ -1,11 +1,26 @@
-import { useMemo } from 'react';
+﻿import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
+import { getErrorMessage } from '@/lib/errors';
 import type { HrContact, HrContract, HrDocument, HrEmployee, HrLedgerEntry, HrLoan } from '@/types/domain';
-import { useHrProfile } from '@/features/hr/hooks/useHr';
+import { useHrMutations, useHrProfile } from '@/features/hr/hooks/useHr';
+
+interface DocumentDraft {
+  title: string;
+  documentType: string;
+  expiryDate: string;
+  notes: string;
+}
+
+const initialDocumentDraft: DocumentDraft = {
+  title: '',
+  documentType: '',
+  expiryDate: '',
+  notes: '',
+};
 
 function fallbackText(value: unknown) {
   return String(value || '').trim() || '—';
@@ -48,6 +63,10 @@ export function EmployeeProfilePage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const profile = useHrProfile(id);
+  const mutations = useHrMutations();
+
+  const [documentDraft, setDocumentDraft] = useState<DocumentDraft>(initialDocumentDraft);
+  const [documentError, setDocumentError] = useState('');
 
   const employee = (profile.data?.employee || undefined) as HrEmployee | undefined;
   const contacts = useMemo(() => (profile.data?.contacts || []) as HrContact[], [profile.data?.contacts]);
@@ -63,6 +82,39 @@ export function EmployeeProfilePage() {
   const basicComplete = Boolean(String(employee?.firstName || '').trim() && String(employee?.hireDate || '').trim());
   const nationalIdComplete = Boolean(String(employee?.nationalId || '').trim());
   const mobileComplete = primaryPhone !== 'غير مسجل';
+
+  async function handleAddDocument(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setDocumentError('');
+
+    const title = String(documentDraft.title || '').trim();
+    if (!title) {
+      setDocumentError('اسم المستند مطلوب.');
+      return;
+    }
+    if (!id) {
+      setDocumentError('تعذر تحديد الموظف.');
+      return;
+    }
+
+    try {
+      await mutations.saveDocument.mutateAsync({
+        employeeId: id,
+        payload: {
+          title,
+          documentType: String(documentDraft.documentType || '').trim() || undefined,
+          expiryDate: String(documentDraft.expiryDate || '').trim() || undefined,
+          notes: String(documentDraft.notes || '').trim() || undefined,
+        },
+      });
+      setDocumentDraft(initialDocumentDraft);
+      void profile.refetch();
+    } catch (error) {
+      setDocumentError(getErrorMessage(error, 'تعذر حفظ المستند.'));
+    }
+  }
+
+  const isSavingDocument = mutations.saveDocument.isPending;
 
   return (
     <div className="page-stack page-shell" dir="rtl">
@@ -157,15 +209,44 @@ export function EmployeeProfilePage() {
           ) : <p className="muted">لا يوجد عقد مسجل حتى الآن.</p>}
         </Card>
 
-        <Card title="المستندات">
+        <Card
+          title="المستندات"
+          actions={<Button variant="secondary" onClick={() => navigate('/hr/documents')}>عرض كل المستندات</Button>}
+        >
+          <form onSubmit={(event) => { void handleAddDocument(event); }}>
+            <div className="form-grid">
+              <div className="field">
+                <span>اسم المستند</span>
+                <input value={documentDraft.title} onChange={(e) => setDocumentDraft((current) => ({ ...current, title: e.target.value }))} />
+              </div>
+              <div className="field">
+                <span>نوع المستند</span>
+                <input value={documentDraft.documentType} onChange={(e) => setDocumentDraft((current) => ({ ...current, documentType: e.target.value }))} />
+              </div>
+              <div className="field">
+                <span>تاريخ الانتهاء</span>
+                <input type="date" value={documentDraft.expiryDate} onChange={(e) => setDocumentDraft((current) => ({ ...current, expiryDate: e.target.value }))} />
+              </div>
+              <div className="field field-wide">
+                <span>ملاحظات</span>
+                <input value={documentDraft.notes} onChange={(e) => setDocumentDraft((current) => ({ ...current, notes: e.target.value }))} />
+              </div>
+            </div>
+            {documentError ? <div className="error-box" style={{ marginTop: 12 }}>{documentError}</div> : null}
+            <div className="actions compact-actions" style={{ marginTop: 12 }}>
+              <Button type="submit" disabled={isSavingDocument}>{isSavingDocument ? 'جاري الحفظ...' : 'إضافة مستند'}</Button>
+            </div>
+          </form>
+
           {documents.length ? (
-            <div className="table-wrap">
+            <div className="table-wrap" style={{ marginTop: 12 }}>
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>المستند</th>
-                    <th>النوع</th>
+                    <th>اسم المستند</th>
+                    <th>نوع المستند</th>
                     <th>تاريخ الانتهاء</th>
+                    <th>ملاحظات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -174,12 +255,13 @@ export function EmployeeProfilePage() {
                       <td>{fallbackText(row.title)}</td>
                       <td>{fallbackText(row.documentType)}</td>
                       <td>{fallbackText(row.expiryDate)}</td>
+                      <td>{fallbackText(row.notes)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : <p className="muted">لا توجد مستندات مسجلة.</p>}
+          ) : <p className="muted">لا توجد مستندات مسجلة</p>}
         </Card>
 
         <Card title="السلف والخصومات">
