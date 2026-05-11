@@ -1,4 +1,4 @@
-﻿import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
@@ -11,8 +11,6 @@ interface EmployeeDraft {
   firstName: string;
   lastName: string;
   mobile: string;
-  nationalId: string;
-  branchId: string;
   departmentId: string;
   jobTitleId: string;
   positionId: string;
@@ -20,7 +18,6 @@ interface EmployeeDraft {
   status: 'active' | 'inactive';
   contractType: string;
   baseSalary: string;
-  salaryMethod: string;
   notes: string;
 }
 
@@ -29,8 +26,6 @@ const initialDraft: EmployeeDraft = {
   firstName: '',
   lastName: '',
   mobile: '',
-  nationalId: '',
-  branchId: '',
   departmentId: '',
   jobTitleId: '',
   positionId: '',
@@ -38,13 +33,29 @@ const initialDraft: EmployeeDraft = {
   status: 'active',
   contractType: '',
   baseSalary: '',
-  salaryMethod: '',
   notes: '',
 };
 
 function toId(value: string) {
   const numeric = Number(value || 0);
   return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined;
+}
+
+function getCreatedEmployeeId(
+  result: unknown,
+  draft: EmployeeDraft,
+  firstName: string,
+) {
+  const responseRows = ((result as { employees?: Array<{ id?: string | number; firstName?: string; lastName?: string; employeeNo?: string }> })?.employees || []);
+  const lastName = String(draft.lastName || '').trim();
+  const employeeNo = String(draft.employeeNo || '').trim();
+  const matched = responseRows.find((row) => {
+    const sameFirst = String(row.firstName || '').trim() === firstName;
+    const sameLast = String(row.lastName || '').trim() === lastName;
+    const sameNo = employeeNo && String(row.employeeNo || '').trim() === employeeNo;
+    return sameNo || (sameFirst && sameLast);
+  });
+  return matched?.id != null ? String(matched.id) : '';
 }
 
 export function EmployeeCreatePage() {
@@ -66,6 +77,8 @@ export function EmployeeCreatePage() {
     const firstName = String(draft.firstName || '').trim();
     const mobile = String(draft.mobile || '').trim();
     const hireDate = String(draft.hireDate || '').trim();
+    const contractType = String(draft.contractType || '').trim();
+    const baseSalary = Number(draft.baseSalary || 0);
 
     if (!firstName) {
       setSubmitError('الاسم الأول مطلوب.');
@@ -86,7 +99,6 @@ export function EmployeeCreatePage() {
         firstName,
         lastName: String(draft.lastName || '').trim() || undefined,
         status: draft.status,
-        branchId: toId(draft.branchId),
         departmentId: toId(draft.departmentId),
         jobTitleId: toId(draft.jobTitleId),
         positionId: toId(draft.positionId),
@@ -95,14 +107,7 @@ export function EmployeeCreatePage() {
       };
 
       const result = await mutations.saveEmployee.mutateAsync({ payload: employeePayload });
-      const responseRows = ((result as { employees?: Array<{ id?: string | number; firstName?: string; lastName?: string; employeeNo?: string }> })?.employees || []);
-      const matched = responseRows.find((row) => {
-        const sameFirst = String(row.firstName || '').trim() === firstName;
-        const sameLast = String(row.lastName || '').trim() === String(draft.lastName || '').trim();
-        const sameNo = String(row.employeeNo || '').trim() === String(draft.employeeNo || '').trim();
-        return sameNo || (sameFirst && sameLast);
-      });
-      const createdEmployeeId = matched?.id != null ? String(matched.id) : '';
+      const createdEmployeeId = getCreatedEmployeeId(result, draft, firstName);
 
       if (createdEmployeeId) {
         await mutations.saveContact.mutateAsync({
@@ -115,6 +120,20 @@ export function EmployeeCreatePage() {
             notes: '',
           },
         });
+
+        if (contractType || baseSalary > 0) {
+          await mutations.saveContract.mutateAsync({
+            employeeId: createdEmployeeId,
+            payload: {
+              contractType: contractType || 'standard',
+              status: 'active',
+              startDate: hireDate,
+              baseSalary: baseSalary > 0 ? baseSalary : 0,
+              currency: 'EGP',
+              notes: 'تم إنشاؤه من صفحة إضافة موظف.',
+            },
+          });
+        }
       }
 
       navigate('/hr/employees');
@@ -123,7 +142,7 @@ export function EmployeeCreatePage() {
     }
   }
 
-  const isBusy = mutations.saveEmployee.isPending || mutations.saveContact.isPending;
+  const isBusy = mutations.saveEmployee.isPending || mutations.saveContact.isPending || mutations.saveContract.isPending;
 
   return (
     <div className="page-stack page-shell" dir="rtl">
@@ -150,10 +169,6 @@ export function EmployeeCreatePage() {
             <div className="field">
               <span>الموبايل *</span>
               <input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} required />
-            </div>
-            <div className="field">
-              <span>الرقم القومي</span>
-              <input value={draft.nationalId} onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))} />
             </div>
           </div>
         </Card>
@@ -182,10 +197,6 @@ export function EmployeeCreatePage() {
               </select>
             </div>
             <div className="field">
-              <span>الفرع</span>
-              <input value={draft.branchId} onChange={(e) => setDraft((current) => ({ ...current, branchId: e.target.value }))} placeholder="اختياري" />
-            </div>
-            <div className="field">
               <span>تاريخ التعيين *</span>
               <input type="date" value={draft.hireDate} onChange={(e) => setDraft((current) => ({ ...current, hireDate: e.target.value }))} required />
             </div>
@@ -199,7 +210,7 @@ export function EmployeeCreatePage() {
           </div>
         </Card>
 
-        <Card title="العقد والمرتب" description="بيانات اختيارية مبدئية، وسيتم استكمال تفاصيل العقد والمرتب داخل ملف الموظف لاحقًا.">
+        <Card title="العقد والمرتب" description="اختياري. لو أدخلت نوع التعاقد أو المرتب الأساسي سيتم إنشاء عقد مبدئي للموظف، ويمكن استكمال التفاصيل داخل ملف الموظف لاحقًا.">
           <div className="form-grid">
             <div className="field">
               <span>نوع التعاقد</span>
@@ -208,10 +219,6 @@ export function EmployeeCreatePage() {
             <div className="field">
               <span>المرتب الأساسي</span>
               <input type="number" min="0" step="0.01" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
-            </div>
-            <div className="field">
-              <span>طريقة صرف المرتب</span>
-              <input value={draft.salaryMethod} onChange={(e) => setDraft((current) => ({ ...current, salaryMethod: e.target.value }))} placeholder="اختياري" />
             </div>
           </div>
         </Card>
