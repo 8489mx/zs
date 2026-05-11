@@ -21,8 +21,9 @@
   - `/hr`
   - `/hr/employees`
   - `/hr/employees/new`
-- المسار التالي المخطط:
   - `/hr/employees/:id`
+- المسار التالي المخطط:
+  - `/hr/settings`
 
 ## مراحل التنفيذ
 1. التأسيس

@@ -68,6 +68,9 @@ export function EmployeesPage() {
           <DataTable
             rows={rows}
             rowKey={(row) => String(row.id)}
+            onRowClick={(row) => {
+              if (row?.id) navigate(`/hr/employees/${row.id}`);
+            }}
             density="compact"
             pagination={{
               page,

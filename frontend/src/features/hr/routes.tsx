@@ -1,4 +1,4 @@
-import { createLazyRoute } from '@/app/router/lazy-route';
+﻿import { createLazyRoute } from '@/app/router/lazy-route';
 import type { FeatureRouteModule } from '@/app/router/types';
 
 export const hrRouteModule: FeatureRouteModule = {
@@ -6,6 +6,7 @@ export const hrRouteModule: FeatureRouteModule = {
     { path: 'hr', element: createLazyRoute(() => import('@/features/hr/pages/HrComingSoonPage').then((module) => ({ default: module.HrComingSoonPage }))) },
     { path: 'hr/employees', element: createLazyRoute(() => import('@/features/hr/pages/EmployeesPage').then((module) => ({ default: module.EmployeesPage }))) },
     { path: 'hr/employees/new', element: createLazyRoute(() => import('@/features/hr/pages/EmployeeCreatePage').then((module) => ({ default: module.EmployeeCreatePage }))) },
+    { path: 'hr/employees/:id', element: createLazyRoute(() => import('@/features/hr/pages/EmployeeProfilePage').then((module) => ({ default: module.EmployeeProfilePage }))) },
   ],
   navigation: [{ key: 'hr', label: 'الموارد البشرية', to: '/hr' }],
 };
