@@ -66,13 +66,19 @@ export class ReportsService {
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
         .execute(),
-      sql<{ id?: number | string | null; total?: number | string | null; branch_id?: number | string | null; location_id?: number | string | null; created_at?: Date | string | null }>`
-        SELECT id, amount AS total, branch_id, location_id, service_date AS created_at
-        FROM services
-        WHERE is_active = TRUE
-          AND service_date >= ${fromDate!}
-          AND service_date <= ${toDate!}
-      `.execute(this.db),
+      (this.db as any)
+        .selectFrom('services')
+        .select([
+          'id',
+          'amount as total',
+          'branch_id',
+          'location_id',
+          'service_date as created_at',
+        ])
+        .where('is_active', '=', true)
+        .where('service_date', '>=', fromDate!)
+        .where('service_date', '<=', toDate!)
+        .execute(),
       this.db
         .selectFrom('expenses')
         .select(['id', 'amount', 'branch_id', 'location_id', 'expense_date'])
@@ -111,7 +117,7 @@ export class ReportsService {
     ]);
 
     const salesRows = filterScope(rawSalesRows, query);
-    const normalizedServicesRows = (rawServicesRows.rows || []).map((row) => ({
+    const normalizedServicesRows = rawServicesRows.map((row: any) => ({
       ...row,
       total: Number(row.total || 0),
       branch_id: row.branch_id == null ? null : Number(row.branch_id),

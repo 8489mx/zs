@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -59,7 +59,7 @@ export function PosSaleSuccessDialog({
     }
   }
 
-  function openWhatsapp(phone: string) {
+  const openWhatsapp = useCallback((phone: string) => {
     if (!sale) return;
     setWhatsappError('');
     const normalizedPhone = normalizeWhatsappPhone(phone);
@@ -69,15 +69,15 @@ export function PosSaleSuccessDialog({
     }
     const url = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(buildWhatsappMessage(sale, settings))}`;
     window.open(url, '_blank', 'noopener,noreferrer');
-  }
+  }, [sale, settings]);
 
-  function triggerWhatsapp() {
+  const triggerWhatsapp = useCallback(() => {
     if (customerPhone) {
       openWhatsapp(customerPhone);
       return;
     }
     openWhatsapp(manualPhone);
-  }
+  }, [customerPhone, manualPhone, openWhatsapp]);
 
   useEffect(() => {
     if (!open || !sale) return undefined;
@@ -121,7 +121,7 @@ export function PosSaleSuccessDialog({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleShortcut, true);
     };
-  }, [customerPhone, manualPhone, onClose, onNewSale, onPrintA4, onPrintReceipt, open, sale, settings]);
+  }, [onClose, onNewSale, onPrintA4, onPrintReceipt, open, sale, triggerWhatsapp]);
 
   if (!open || !sale) return null;
 

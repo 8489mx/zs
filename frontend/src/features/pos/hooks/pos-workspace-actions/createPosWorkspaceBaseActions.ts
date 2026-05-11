@@ -71,16 +71,14 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     try {
       const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
       const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
-      const nextCart = addPosItem(params.cart, product, {
+      params.setCart((currentCart) => addPosItem(currentCart, product, {
         priceType: params.priceType,
         unitId,
         allowNegativeStockSales,
         quantity: options.quantity,
         isWeighted: options.isWeighted,
         sourceBarcode: options.sourceBarcode,
-      });
-
-      params.setCart(nextCart);
+      }));
       params.setSelectedLineKey(lineKey);
       params.setLastAddedLineKey(lineKey);
       registerRecentProduct(product.id);
