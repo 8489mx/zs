@@ -5,5 +5,5 @@ export const hrRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'hr', element: createLazyRoute(() => import('@/features/hr/pages/HrComingSoonPage').then((module) => ({ default: module.HrComingSoonPage }))) },
   ],
-  navigation: [{ key: 'hr', label: '??????? ???????', to: '/hr' }],
+  navigation: [{ key: 'hr', label: 'الموارد البشرية', to: '/hr' }],
 };
