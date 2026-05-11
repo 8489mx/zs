@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+﻿import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
@@ -11,6 +11,7 @@ interface EmployeeDraft {
   firstName: string;
   lastName: string;
   mobile: string;
+  nationalId: string;
   departmentId: string;
   jobTitleId: string;
   positionId: string;
@@ -26,6 +27,7 @@ const initialDraft: EmployeeDraft = {
   firstName: '',
   lastName: '',
   mobile: '',
+  nationalId: '',
   departmentId: '',
   jobTitleId: '',
   positionId: '',
@@ -76,6 +78,7 @@ export function EmployeeCreatePage() {
 
     const firstName = String(draft.firstName || '').trim();
     const mobile = String(draft.mobile || '').trim();
+    const nationalId = String(draft.nationalId || '').trim();
     const hireDate = String(draft.hireDate || '').trim();
     const contractType = String(draft.contractType || '').trim();
     const baseSalary = Number(draft.baseSalary || 0);
@@ -92,12 +95,17 @@ export function EmployeeCreatePage() {
       setSubmitError('تاريخ التعيين مطلوب.');
       return;
     }
+    if (nationalId && !/^\d{14}$/.test(nationalId)) {
+      setSubmitError('الرقم القومي يجب أن يكون 14 رقمًا.');
+      return;
+    }
 
     try {
       const employeePayload = {
         employeeNo: String(draft.employeeNo || '').trim() || undefined,
         firstName,
         lastName: String(draft.lastName || '').trim() || undefined,
+        nationalId: nationalId || undefined,
         status: draft.status,
         departmentId: toId(draft.departmentId),
         jobTitleId: toId(draft.jobTitleId),
@@ -169,6 +177,16 @@ export function EmployeeCreatePage() {
             <div className="field">
               <span>الموبايل *</span>
               <input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} required />
+            </div>
+            <div className="field">
+              <span>الرقم القومي</span>
+              <input
+                value={draft.nationalId}
+                onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))}
+                inputMode="numeric"
+                maxLength={14}
+                placeholder="اختياري"
+              />
             </div>
           </div>
         </Card>

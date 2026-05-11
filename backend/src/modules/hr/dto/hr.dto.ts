@@ -56,6 +56,11 @@ export class UpsertEmployeeDto {
   employeeNo?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(14)
+  nationalId?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   userId?: number;

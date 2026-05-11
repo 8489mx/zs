@@ -344,6 +344,7 @@ export class HrService {
     let rows = result.rows.map((row) => ({
       id: String(row.id),
       employeeNo: clean(row.employee_no),
+      nationalId: clean(row.national_id),
       firstName: clean(row.first_name),
       lastName: clean(row.last_name),
       displayName: clean(row.display_name) || `${clean(row.first_name)} ${clean(row.last_name)}`.trim(),
@@ -413,11 +414,15 @@ export class HrService {
     const displayName = `${firstName} ${lastName}`.trim();
     const rawEmployeeNo = clean(payload.employeeNo);
     const employeeNo = normalizeEmployeeNo(payload.employeeNo);
+    const nationalId = clean(payload.nationalId);
     const hireDate = normalizeDateOnly(payload.hireDate);
 
     if (!firstName) throw new AppError('اسم الموظف مطلوب', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (rawEmployeeNo && !employeeNo) {
       throw new AppError('رقم الموظف يجب أن يكون أرقامًا فقط مثل 001', 'HR_EMPLOYEE_NO_INVALID', 400);
+    }
+    if (nationalId && !/^\d{14}$/.test(nationalId)) {
+      throw new AppError('الرقم القومي يجب أن يكون 14 رقمًا.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
     }
 
     try {
@@ -428,6 +433,7 @@ export class HrService {
         await sql`
           UPDATE hr_employees
           SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no), user_id = ${toId(payload.userId)}, first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName},
+              national_id = ${nationalId || null},
               status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
               branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
               updated_by = ${auth.userId}, updated_at = NOW()
@@ -438,8 +444,8 @@ export class HrService {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null);
           await sql<{ id: number }>`
-            INSERT INTO hr_employees (employee_no, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, created_by, updated_by)
-            VALUES (${nextEmployeeNo}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_employees (employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, created_by, updated_by)
+            VALUES (${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
         });

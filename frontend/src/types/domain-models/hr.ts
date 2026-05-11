@@ -17,6 +17,7 @@ export interface HrMasterDataRecord {
 export interface HrEmployee {
   id: string;
   employeeNo?: string;
+  nationalId?: string;
   firstName: string;
   lastName?: string;
   displayName: string;

@@ -144,6 +144,14 @@ function normalizeHrWithdrawalRow(row: HrWithdrawalRow | HrApiDateRecord): HrWit
   };
 }
 
+function normalizeHrEmployeeRow(row: HrEmployee | HrApiDateRecord): HrEmployee {
+  const source = row as HrApiDateRecord;
+  return {
+    ...(row as HrEmployee),
+    nationalId: apiPick(source, ['nationalId', 'national_id']) || (row as HrEmployee).nationalId || '',
+  };
+}
+
 export const hrApi = {
   summary: async () => (await http<{ summary?: HrSummary }>('/api/hr/summary')).summary || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 },
   withdrawals: async (params: HrListParams = {}) => {
@@ -153,10 +161,16 @@ export const hrApi = {
   masterData: async (kind: MasterKind, params: HrListParams = {}) => http<MasterResponse>(`/api/hr/${kind}${buildQueryString(params)}`),
   saveMasterData: (kind: MasterKind, payload: unknown, id?: string) => http(`/api/hr/${kind}${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   deactivateMasterData: (kind: MasterKind, id: string) => http(`/api/hr/${kind}/${id}`, { method: 'DELETE' }),
-  employees: async (params: HrListParams = {}) => http<EmployeesResponse>(`/api/hr/employees${buildQueryString(params)}`),
+  employees: async (params: HrListParams = {}) => {
+    const response = await http<EmployeesResponse>(`/api/hr/employees${buildQueryString(params)}`);
+    return { ...response, employees: (response.employees || []).map(normalizeHrEmployeeRow) };
+  },
   saveEmployee: (payload: unknown, id?: string) => http(`/api/hr/employees${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   deactivateEmployee: (id: string) => http(`/api/hr/employees/${id}`, { method: 'DELETE' }),
-  profile: (id: string) => http<ProfileResponse>(`/api/hr/employees/${id}`),
+  profile: async (id: string) => {
+    const response = await http<ProfileResponse>(`/api/hr/employees/${id}`);
+    return { ...response, employee: response.employee ? normalizeHrEmployeeRow(response.employee) : response.employee };
+  },
   contacts: (employeeId: string) => http<RowsResponse<HrContact>>(`/api/hr/employees/${employeeId}/contacts`),
   saveContact: (employeeId: string, payload: unknown, id?: string) => http(`/api/hr/employees/${employeeId}/contacts${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   documents: (employeeId: string) => http<RowsResponse<HrDocument>>(`/api/hr/employees/${employeeId}/documents`),

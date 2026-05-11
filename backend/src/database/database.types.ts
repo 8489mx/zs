@@ -568,6 +568,7 @@ export interface HrPositionTable extends HrDepartmentTable {
 export interface HrEmployeeTable {
   id: Generated<number>;
   employee_no: string;
+  national_id: string | null;
   user_id: number | null;
   first_name: string;
   last_name: string;
