@@ -220,7 +220,6 @@ export function createPosWorkspaceAsyncActions(
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
         cashAmount: params.cashAmount,
         cardAmount: params.cardAmount,
-        managerPin: params.discountApprovalSecret || undefined,
         items: params.cart,
       });
       base.resetPosDraft();

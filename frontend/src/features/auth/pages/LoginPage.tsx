@@ -20,10 +20,10 @@ export function LoginPage() {
             <p className="login-subtitle muted">نظام إدارة وتشغيل الأعمال</p>
           </div>
           <Field label="اسم المستخدم" error={form.formState.errors.username?.message}>
-            <input {...form.register('username')} autoComplete="username" />
+            <input {...form.register('username')} autoComplete="off" />
           </Field>
           <Field label="كلمة المرور" error={form.formState.errors.password?.message}>
-            <input {...form.register('password')} type="password" autoComplete="current-password" />
+            <input {...form.register('password')} type="password" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
           </Field>
           {submitError ? <div className="error-box">{submitError}</div> : null}
           <Button type="submit" className="full-width" disabled={isSubmitting}>

@@ -19,7 +19,7 @@ export function FirstRunSetupPage() {
             <Field label="كود المخزن (اختياري)"><input value={form.locationCode} onChange={(event) => updateField('locationCode', event.target.value)} /></Field>
             <Field label="اسم مسؤول النظام"><input value={form.adminDisplayName} onChange={(event) => updateField('adminDisplayName', event.target.value)} /></Field>
             <Field label="اسم المستخدم"><input value={form.adminUsername} onChange={(event) => updateField('adminUsername', event.target.value)} /></Field>
-            <Field label="كلمة المرور"><input type="password" value={form.adminPassword} onChange={(event) => updateField('adminPassword', event.target.value)} /></Field>
+            <Field label="كلمة المرور"><input type="password" value={form.adminPassword} onChange={(event) => updateField('adminPassword', event.target.value)} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>
           </div>
           {error ? <ErrorState title="فشل التهيئة" hint={error} /> : null}
           <div className="inline-actions inline-actions-end">

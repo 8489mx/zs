@@ -31,6 +31,7 @@ export function PosManagerPasswordDialog({ open, isPending = false, onClose, onA
       await onApprove(password);
       setPassword('');
     } catch (error) {
+      setPassword('');
       setSubmitError(getErrorMessage(error, 'تعذر اعتماد الخصم بكلمة مرور المدير.'));
     }
   }
@@ -49,12 +50,18 @@ export function PosManagerPasswordDialog({ open, isPending = false, onClose, onA
               <input
                 data-autofocus
                 type="password"
+                id="discountApprovalSecret"
+                name="discountApprovalSecret"
                 value={password}
                 onChange={(event) => {
                   setPassword(event.target.value);
                   if (submitError) setSubmitError('');
                 }}
                 placeholder="أدخل كلمة المرور"
+                autoComplete="new-password"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 disabled={isPending}
               />
             </label>

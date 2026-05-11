@@ -370,14 +370,22 @@ export function PosWorkspace() {
         managerPinLabel="رمز المدير أو كلمة المرور"
         managerPinHint="سيتم إخفاء القيمة أثناء الكتابة، ولن يظل الاعتماد مفتوحًا إلا للفواتير الحالية فقط."
         isBusy={Boolean(pos.discountAuthorizationMutation.isPending)}
-        onCancel={() => setDiscountApprovalDialogOpen(false)}
-        onConfirm={async ({ managerPin }) => {
-          await pos.discountAuthorizationMutation.mutateAsync(managerPin);
-          pos.setDiscountApprovalGranted(true);
-          pos.setDiscountApprovalSecret(managerPin);
-          pos.setSubmitMessage('تم اعتماد الخصم لهذه الفاتورة فقط.');
+        onCancel={() => {
+          pos.setDiscountApprovalSecret('');
           setDiscountApprovalDialogOpen(false);
-          focusBarcodeEntry();
+        }}
+        onConfirm={async ({ managerPin }) => {
+          try {
+            await pos.discountAuthorizationMutation.mutateAsync(managerPin);
+            pos.setDiscountApprovalGranted(true);
+            pos.setDiscountApprovalSecret(managerPin);
+            pos.setSubmitMessage('?? ?????? ????? ???? ???????? ???.');
+            setDiscountApprovalDialogOpen(false);
+            focusBarcodeEntry();
+          } catch (error) {
+            pos.setDiscountApprovalSecret('');
+            throw error;
+          }
         }}
       />
 
@@ -441,3 +449,4 @@ export function PosWorkspace() {
     </div>
   );
 }
+

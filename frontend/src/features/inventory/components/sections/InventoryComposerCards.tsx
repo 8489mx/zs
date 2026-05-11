@@ -160,7 +160,7 @@ export function StockCountComposerCard({
           <input value={form.reason} onChange={(e) => onFormChange({ reason: e.target.value })} placeholder="مثال: جرد دوري / كسر / فقد" />
         </Field>
         <Field label="رمز اعتماد المدير">
-          <input type="password" value={form.managerPin} onChange={(e) => onFormChange({ managerPin: e.target.value })} />
+          <input type="password" value={form.managerPin} onChange={(e) => onFormChange({ managerPin: e.target.value })} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
         </Field>
         <Field label="ملاحظة العنصر">
           <textarea rows={2} value={form.itemNote} onChange={(e) => onFormChange({ itemNote: e.target.value })} />
@@ -199,3 +199,4 @@ export function StockCountComposerCard({
     </Card>
   );
 }
+
