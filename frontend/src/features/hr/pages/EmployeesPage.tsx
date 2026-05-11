@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -10,15 +10,15 @@ import type { HrEmployee } from '@/types/domain';
 import { useHrWorkspace } from '@/features/hr/hooks/useHr';
 
 function statusLabel(status: string) {
-  if (status === 'active') return '???';
-  if (status === 'inactive') return '??? ???';
-  if (status === 'deactivated') return '??? ???';
-  if (status === 'terminated') return '??? ???';
-  return '??? ??? ?????';
+  if (status === 'active') return 'نشط';
+  if (status === 'inactive') return 'غير نشط';
+  if (status === 'deactivated') return 'موقوف';
+  if (status === 'terminated') return 'منتهي الخدمة';
+  return 'ملف غير مكتمل';
 }
 
 function fallbackText(value?: string) {
-  return String(value || '').trim() || '�';
+  return String(value || '').trim() || '—';
 }
 
 function pickMobile(row: HrEmployee) {
@@ -40,9 +40,9 @@ export function EmployeesPage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="????????"
-        description="????? ?????? ???????? ???????? ????????? ?????? ???? ??????."
-        actions={<Button onClick={() => navigate('/hr/employees/new')}>????? ????</Button>}
+        title="الموظفين"
+        description="إدارة بيانات الموظفين الأساسية والانتقال السريع لملف الموظف."
+        actions={<Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>}
       />
 
       <Card>
@@ -52,8 +52,8 @@ export function EmployeesPage() {
             setSearch(value);
             setPage(1);
           }}
-          searchPlaceholder="??? ?????? ?? ??? ?????? ?? ????????"
-          inputAriaLabel="??? ????????"
+          searchPlaceholder="بحث بالاسم أو كود الموظف أو الموبايل"
+          inputAriaLabel="بحث الموظفين"
         />
 
         <QueryFeedback
@@ -61,9 +61,9 @@ export function EmployeesPage() {
           isError={workspace.employees.isError}
           error={workspace.employees.error}
           isEmpty={!rows.length}
-          loadingText="???? ????? ?????? ????????..."
-          errorTitle="???? ????? ?????? ????????"
-          emptyTitle="?? ???? ?????? ??? ????. ???? ?????? ??? ????."
+          loadingText="جاري تحميل بيانات الموظفين..."
+          errorTitle="تعذر تحميل بيانات الموظفين"
+          emptyTitle="لا يوجد موظفين حتى الآن. ابدأ بإضافة أول موظف."
         >
           <DataTable
             rows={rows}
@@ -78,16 +78,16 @@ export function EmployeesPage() {
                 setPageSize(next);
                 setPage(1);
               },
-              itemLabel: '????',
+              itemLabel: 'موظف',
             }}
             columns={[
-              { key: 'employeeNo', header: '??? ??????', cell: (row) => fallbackText(row.employeeNo) },
-              { key: 'name', header: '?????', cell: (row) => fallbackText(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim()) },
-              { key: 'mobile', header: '????????', cell: (row) => pickMobile(row) },
-              { key: 'department', header: '?????', cell: (row) => fallbackText(row.departmentName) },
-              { key: 'jobTitle', header: '?????? ???????', cell: (row) => fallbackText(row.jobTitleName) },
-              { key: 'hireDate', header: '????? ???????', cell: (row) => fallbackText(row.hireDate) },
-              { key: 'status', header: '??????', cell: (row) => statusLabel(String(row.status || '')) },
+              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => fallbackText(row.employeeNo) },
+              { key: 'name', header: 'الاسم', cell: (row) => fallbackText(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim()) },
+              { key: 'mobile', header: 'الموبايل', cell: (row) => pickMobile(row) },
+              { key: 'department', header: 'القسم', cell: (row) => fallbackText(row.departmentName) },
+              { key: 'jobTitle', header: 'المسمى الوظيفي', cell: (row) => fallbackText(row.jobTitleName) },
+              { key: 'hireDate', header: 'تاريخ التعيين', cell: (row) => fallbackText(row.hireDate) },
+              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(String(row.status || '')) },
             ]}
           />
         </QueryFeedback>

@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+﻿import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
@@ -68,15 +68,15 @@ export function EmployeeCreatePage() {
     const hireDate = String(draft.hireDate || '').trim();
 
     if (!firstName) {
-      setSubmitError('????? ????? ?????.');
+      setSubmitError('الاسم الأول مطلوب.');
       return;
     }
     if (!mobile) {
-      setSubmitError('???????? ?????.');
+      setSubmitError('الموبايل مطلوب.');
       return;
     }
     if (!hireDate) {
-      setSubmitError('????? ??????? ?????.');
+      setSubmitError('تاريخ التعيين مطلوب.');
       return;
     }
 
@@ -110,7 +110,7 @@ export function EmployeeCreatePage() {
           payload: {
             contactType: 'phone',
             value: mobile,
-            label: '????????',
+            label: 'الموبايل',
             isPrimary: true,
             notes: '',
           },
@@ -119,7 +119,7 @@ export function EmployeeCreatePage() {
 
       navigate('/hr/employees');
     } catch (error) {
-      setSubmitError(getErrorMessage(error, '???? ??? ?????? ??????.'));
+      setSubmitError(getErrorMessage(error, 'تعذر حفظ الموظف.'));
     }
   }
 
@@ -128,105 +128,105 @@ export function EmployeeCreatePage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="????? ????"
-        description="????? ???? ???? ????????? ????????? ?? ??????? ???????? ???????? ?? ??????? ???????."
+        title="إضافة موظف"
+        description="إضافة موظف جديد ببيانات أساسية واضحة، مع إمكانية استكمال باقي الملف لاحقًا."
       />
 
       <form onSubmit={(event) => { void handleSubmit(event); }}>
-        <Card title="???????? ????????" description="???? ??? ?????? ?????? ???? ??? ??????.">
+        <Card title="البيانات الأساسية" description="أدخل بيانات التعريف الأساسية للموظف.">
           <div className="form-grid">
             <div className="field">
-              <span>??? ??????</span>
+              <span>كود الموظف</span>
               <input value={draft.employeeNo} onChange={(e) => setDraft((current) => ({ ...current, employeeNo: e.target.value }))} />
             </div>
             <div className="field">
-              <span>????? ????? *</span>
+              <span>الاسم الأول *</span>
               <input value={draft.firstName} onChange={(e) => setDraft((current) => ({ ...current, firstName: e.target.value }))} required />
             </div>
             <div className="field">
-              <span>??? ???????</span>
+              <span>اسم العائلة</span>
               <input value={draft.lastName} onChange={(e) => setDraft((current) => ({ ...current, lastName: e.target.value }))} />
             </div>
             <div className="field">
-              <span>???????? *</span>
+              <span>الموبايل *</span>
               <input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} required />
             </div>
             <div className="field">
-              <span>????? ??????</span>
+              <span>الرقم القومي</span>
               <input value={draft.nationalId} onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))} />
             </div>
           </div>
         </Card>
 
-        <Card title="?????? ?????" description="????? ????? ??????? ??????? ???????.">
+        <Card title="بيانات الشغل" description="حدد القسم والمسمى الوظيفي وتاريخ التعيين.">
           <div className="form-grid">
             <div className="field">
-              <span>?????</span>
+              <span>القسم</span>
               <select value={draft.departmentId} onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}>
-                <option value="">???? ?????</option>
+                <option value="">اختيار</option>
                 {departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
               </select>
             </div>
             <div className="field">
-              <span>?????? ???????</span>
+              <span>المسمى الوظيفي</span>
               <select value={draft.jobTitleId} onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}>
-                <option value="">???? ?????</option>
+                <option value="">اختيار</option>
                 {jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
               </select>
             </div>
             <div className="field">
-              <span>???????/??????</span>
+              <span>الوظيفة/المنصب</span>
               <select value={draft.positionId} onChange={(e) => setDraft((current) => ({ ...current, positionId: e.target.value }))}>
-                <option value="">???? ?????</option>
+                <option value="">اختيار</option>
                 {positions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
               </select>
             </div>
             <div className="field">
-              <span>?????</span>
-              <input value={draft.branchId} onChange={(e) => setDraft((current) => ({ ...current, branchId: e.target.value }))} placeholder="???????" />
+              <span>الفرع</span>
+              <input value={draft.branchId} onChange={(e) => setDraft((current) => ({ ...current, branchId: e.target.value }))} placeholder="اختياري" />
             </div>
             <div className="field">
-              <span>????? ??????? *</span>
+              <span>تاريخ التعيين *</span>
               <input type="date" value={draft.hireDate} onChange={(e) => setDraft((current) => ({ ...current, hireDate: e.target.value }))} required />
             </div>
             <div className="field">
-              <span>??????</span>
+              <span>الحالة</span>
               <select value={draft.status} onChange={(e) => setDraft((current) => ({ ...current, status: e.target.value === 'inactive' ? 'inactive' : 'active' }))}>
-                <option value="active">???</option>
-                <option value="inactive">??? ???</option>
+                <option value="active">نشط</option>
+                <option value="inactive">غير نشط</option>
               </select>
             </div>
           </div>
         </Card>
 
-        <Card title="????? ???????" description="?????? ???????? ???????? ????? ??????? ??????? ?? ???? ?????? ?????????.">
+        <Card title="العقد والمرتب" description="بيانات اختيارية مبدئية، وسيتم استكمال تفاصيل العقد والمرتب داخل ملف الموظف لاحقًا.">
           <div className="form-grid">
             <div className="field">
-              <span>??? ???????</span>
-              <input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="???????" />
+              <span>نوع التعاقد</span>
+              <input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="اختياري" />
             </div>
             <div className="field">
-              <span>?????? ???????</span>
-              <input type="number" min="0" step="0.01" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="???????" />
+              <span>المرتب الأساسي</span>
+              <input type="number" min="0" step="0.01" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
             </div>
             <div className="field">
-              <span>????? ??? ??????</span>
-              <input value={draft.salaryMethod} onChange={(e) => setDraft((current) => ({ ...current, salaryMethod: e.target.value }))} placeholder="???????" />
+              <span>طريقة صرف المرتب</span>
+              <input value={draft.salaryMethod} onChange={(e) => setDraft((current) => ({ ...current, salaryMethod: e.target.value }))} placeholder="اختياري" />
             </div>
           </div>
         </Card>
 
-        <Card title="???????" description="?? ??????? ??????? ??? ??? ??????.">
+        <Card title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف.">
           <div className="field field-wide">
-            <span>???????</span>
+            <span>ملاحظات</span>
             <textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} />
           </div>
 
           {submitError ? <div className="error-box" style={{ marginTop: 12 }}>{submitError}</div> : null}
 
           <div className="actions compact-actions" style={{ marginTop: 16 }}>
-            <Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>?????</Button>
-            <Button type="submit" disabled={isBusy}>{isBusy ? '???? ?????...' : '??? ??????'}</Button>
+            <Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>إلغاء</Button>
+            <Button type="submit" disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ الموظف'}</Button>
           </div>
         </Card>
       </form>
