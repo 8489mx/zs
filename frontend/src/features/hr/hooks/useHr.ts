@@ -83,6 +83,15 @@ export function useHrEmployeeAssets(params: HrListParams = {}) {
   });
 }
 
+export function useHrReportsSummary(params: HrListParams = {}) {
+  const key = paramsKey(params);
+  return useQuery({
+    queryKey: ['hr', 'reports-summary', key],
+    queryFn: () => hrApi.reportsSummary(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
 export function useHrMutations() {
   const queryClient = useQueryClient();
   const invalidate = async () => {

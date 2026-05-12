@@ -2066,4 +2066,117 @@ export class HrService {
       },
     };
   }
+
+  async reportsSummary(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const month = normalizePayrollMonth(query.month);
+    const range = month
+      ? monthRange(month)
+      : {
+          from: normalizeDateOnly(query.from) || `${todayUtcDate().slice(0, 7)}-01`,
+          to: normalizeDateOnly(query.to) || todayUtcDate(),
+        };
+    const fromMonth = range.from.slice(0, 7);
+    const toMonth = range.to.slice(0, 7);
+
+    const [employees, attendance, leaves, loans, assets, payroll] = await Promise.all([
+      sql<{ employee_count: string; active_count: string }>`
+        SELECT
+          COUNT(*) AS employee_count,
+          COUNT(*) FILTER (WHERE status = 'active') AS active_count
+        FROM hr_employees
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COALESCE(SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END), 0) AS present_count,
+          COALESCE(SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_count,
+          COALESCE(SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END), 0) AS late_count,
+          COALESCE(SUM(CASE WHEN status = 'half_day' THEN 1 ELSE 0 END), 0) AS half_day_count,
+          COALESCE(SUM(CASE WHEN status = 'leave' THEN 1 ELSE 0 END), 0) AS leave_count
+        FROM hr_attendance_records
+        WHERE work_date >= ${range.from}::date
+          AND work_date <= ${range.to}::date
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COALESCE(SUM(CASE WHEN lr.status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count,
+          COALESCE(SUM(CASE WHEN lr.status = 'approved' THEN 1 ELSE 0 END), 0) AS approved_count,
+          COALESCE(SUM(CASE WHEN lr.status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected_count,
+          COALESCE(SUM(CASE WHEN lr.status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_count,
+          COALESCE(SUM(CASE WHEN lr.status = 'approved' AND (COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid') THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
+        FROM hr_leave_requests lr
+        LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
+        WHERE lr.start_date <= ${range.to}::date
+          AND lr.end_date >= ${range.from}::date
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COALESCE(SUM(CASE WHEN status IN ('paid', 'partially_repaid', 'disbursed') AND remaining_amount > 0 THEN 1 ELSE 0 END), 0) AS open_loan_count,
+          COALESCE(SUM(CASE WHEN status IN ('paid', 'partially_repaid', 'disbursed') THEN remaining_amount ELSE 0 END), 0) AS outstanding_amount
+        FROM hr_employee_loans
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COALESCE(SUM(CASE WHEN status = 'assigned' THEN 1 ELSE 0 END), 0) AS assigned_count,
+          COALESCE(SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END), 0) AS returned_count,
+          COALESCE(SUM(CASE WHEN status = 'lost' THEN 1 ELSE 0 END), 0) AS lost_count,
+          COALESCE(SUM(CASE WHEN status = 'damaged' THEN 1 ELSE 0 END), 0) AS damaged_count
+        FROM hr_employee_assets
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COUNT(DISTINCT r.id) AS run_count,
+          COUNT(DISTINCT r.id) FILTER (WHERE r.status = 'approved') AS approved_run_count,
+          COALESCE(SUM(i.net_pay), 0) AS total_net_pay
+        FROM hr_payroll_runs r
+        LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.status <> 'excluded'
+        WHERE r.period_month >= ${fromMonth}
+          AND r.period_month <= ${toMonth}
+      `.execute(this.db),
+    ]);
+
+    const employeeRow = employees.rows[0] || { employee_count: '0', active_count: '0' };
+    const attendanceRow = attendance.rows[0] || {};
+    const leavesRow = leaves.rows[0] || {};
+    const loansRow = loans.rows[0] || {};
+    const assetsRow = assets.rows[0] || {};
+    const payrollRow = payroll.rows[0] || {};
+
+    return {
+      period: { from: range.from, to: range.to, month: month || '' },
+      summary: {
+        employeeCount: Number(employeeRow.employee_count || 0),
+        activeEmployeeCount: Number(employeeRow.active_count || 0),
+        attendance: {
+          presentCount: Number(attendanceRow.present_count || 0),
+          absentCount: Number(attendanceRow.absent_count || 0),
+          lateCount: Number(attendanceRow.late_count || 0),
+          halfDayCount: Number(attendanceRow.half_day_count || 0),
+          leaveCount: Number(attendanceRow.leave_count || 0),
+        },
+        leaves: {
+          pendingCount: Number(leavesRow.pending_count || 0),
+          approvedCount: Number(leavesRow.approved_count || 0),
+          rejectedCount: Number(leavesRow.rejected_count || 0),
+          cancelledCount: Number(leavesRow.cancelled_count || 0),
+          unpaidLeaveDays: Number(leavesRow.unpaid_leave_days || 0),
+        },
+        loans: {
+          openLoanCount: Number(loansRow.open_loan_count || 0),
+          outstandingAmount: Number(loansRow.outstanding_amount || 0),
+        },
+        assets: {
+          assignedCount: Number(assetsRow.assigned_count || 0),
+          returnedCount: Number(assetsRow.returned_count || 0),
+          lostCount: Number(assetsRow.lost_count || 0),
+          damagedCount: Number(assetsRow.damaged_count || 0),
+        },
+        payroll: {
+          runCount: Number(payrollRow.run_count || 0),
+          approvedRunCount: Number(payrollRow.approved_run_count || 0),
+          totalNetPay: Number(payrollRow.total_net_pay || 0),
+        },
+      },
+    };
+  }
 }

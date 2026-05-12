@@ -14,6 +14,7 @@ export const hrRouteModule: FeatureRouteModule = {
     { path: 'hr/attendance', element: createLazyRoute(() => import('@/features/hr/pages/HrAttendancePage').then((module) => ({ default: module.HrAttendancePage }))) },
     { path: 'hr/leaves', element: createLazyRoute(() => import('@/features/hr/pages/HrLeavesPage').then((module) => ({ default: module.HrLeavesPage }))) },
     { path: 'hr/assets', element: createLazyRoute(() => import('@/features/hr/pages/HrAssetsPage').then((module) => ({ default: module.HrAssetsPage }))) },
+    { path: 'hr/reports', element: createLazyRoute(() => import('@/features/hr/pages/HrReportsPage').then((module) => ({ default: module.HrReportsPage }))) },
   ],
   navigation: [{ key: 'hr', label: 'الموارد البشرية', to: '/hr' }],
 };

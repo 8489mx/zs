@@ -36,6 +36,12 @@ export class HrController {
     return this.hr.summary(req.authContext!);
   }
 
+  @Get('reports/summary')
+  @RequirePermissions('hr')
+  reportsSummary(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.reportsSummary(query, req.authContext!);
+  }
+
   @Get('attendance')
   @RequirePermissions('hrEmployees')
   listAttendance(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {

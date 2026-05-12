@@ -101,6 +101,43 @@ interface EmployeeAssetsResponse {
   };
 }
 
+interface HrReportsSummaryResponse {
+  period?: { from?: string; to?: string; month?: string };
+  summary?: {
+    employeeCount?: number;
+    activeEmployeeCount?: number;
+    attendance?: {
+      presentCount?: number;
+      absentCount?: number;
+      lateCount?: number;
+      halfDayCount?: number;
+      leaveCount?: number;
+    };
+    leaves?: {
+      pendingCount?: number;
+      approvedCount?: number;
+      rejectedCount?: number;
+      cancelledCount?: number;
+      unpaidLeaveDays?: number;
+    };
+    loans?: {
+      openLoanCount?: number;
+      outstandingAmount?: number;
+    };
+    assets?: {
+      assignedCount?: number;
+      returnedCount?: number;
+      lostCount?: number;
+      damagedCount?: number;
+    };
+    payroll?: {
+      runCount?: number;
+      approvedRunCount?: number;
+      totalNetPay?: number;
+    };
+  };
+}
+
 interface RowsResponse<T> {
   rows?: T[];
 }
@@ -353,4 +390,5 @@ export const hrApi = {
   updatePayrollRunItem: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   createPayrollAdjustment: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}/adjustments`, { method: 'POST', body: JSON.stringify(payload) }),
   deletePayrollAdjustment: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-item-adjustments/${id}`, { method: 'DELETE' }),
+  reportsSummary: (params: HrListParams = {}) => http<HrReportsSummaryResponse>(`/api/hr/reports/summary${buildQueryString({ from: params.from, to: params.to, month: params.month })}`),
 };
