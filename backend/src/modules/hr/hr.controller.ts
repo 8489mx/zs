@@ -9,7 +9,9 @@ import {
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
   DecideLeaveRequestDto,
+  EmployeeAssetActionDto,
   LoanRepaymentDto,
+  UpsertEmployeeAssetDto,
   UpsertLeaveTypeDto,
   UpsertAttendanceRecordDto,
   UpsertPayrollItemDto,
@@ -98,6 +100,48 @@ export class HrController {
   @RequirePermissions('hrEmployees')
   cancelLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideLeaveRequestDto, @Req() req: RequestWithAuth) {
     return this.hr.cancelLeaveRequest(id, payload, req.authContext!);
+  }
+
+  @Get('assets')
+  @RequirePermissions('hrEmployees')
+  listEmployeeAssets(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listEmployeeAssets(query, req.authContext!);
+  }
+
+  @Post('assets')
+  @RequirePermissions('hrEmployees')
+  createEmployeeAsset(@Body() payload: UpsertEmployeeAssetDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertEmployeeAsset(null, payload, req.authContext!);
+  }
+
+  @Put('assets/:id')
+  @RequirePermissions('hrEmployees')
+  updateEmployeeAsset(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertEmployeeAssetDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertEmployeeAsset(id, payload, req.authContext!);
+  }
+
+  @Post('assets/:id/return')
+  @RequirePermissions('hrEmployees')
+  returnEmployeeAsset(@Param('id', ParseIntPipe) id: number, @Body() payload: EmployeeAssetActionDto, @Req() req: RequestWithAuth) {
+    return this.hr.returnEmployeeAsset(id, payload, req.authContext!);
+  }
+
+  @Post('assets/:id/lost')
+  @RequirePermissions('hrEmployees')
+  markEmployeeAssetLost(@Param('id', ParseIntPipe) id: number, @Body() payload: EmployeeAssetActionDto, @Req() req: RequestWithAuth) {
+    return this.hr.markEmployeeAssetLost(id, payload, req.authContext!);
+  }
+
+  @Post('assets/:id/damaged')
+  @RequirePermissions('hrEmployees')
+  markEmployeeAssetDamaged(@Param('id', ParseIntPipe) id: number, @Body() payload: EmployeeAssetActionDto, @Req() req: RequestWithAuth) {
+    return this.hr.markEmployeeAssetDamaged(id, payload, req.authContext!);
+  }
+
+  @Post('assets/:id/cancel')
+  @RequirePermissions('hrEmployees')
+  cancelEmployeeAsset(@Param('id', ParseIntPipe) id: number, @Body() payload: EmployeeAssetActionDto, @Req() req: RequestWithAuth) {
+    return this.hr.cancelEmployeeAsset(id, payload, req.authContext!);
   }
 
   @Get('withdrawals')

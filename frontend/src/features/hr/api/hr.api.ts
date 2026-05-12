@@ -7,6 +7,7 @@ import type {
   HrContract,
   HrDocument,
   HrEmployee,
+  HrEmployeeAsset,
   HrLedgerEntry,
   HrLeaveRequest,
   HrLeaveType,
@@ -86,6 +87,17 @@ interface LeaveRequestsResponse {
     approvedCount?: number;
     rejectedCount?: number;
     cancelledCount?: number;
+  };
+}
+
+interface EmployeeAssetsResponse {
+  assets?: HrEmployeeAsset[];
+  summary?: {
+    totalItems?: number;
+    assignedCount?: number;
+    returnedCount?: number;
+    lostCount?: number;
+    damagedCount?: number;
   };
 }
 
@@ -244,6 +256,29 @@ function normalizeHrLeaveRequestRow(row: HrLeaveRequest | HrApiDateRecord): HrLe
   };
 }
 
+function normalizeHrEmployeeAssetRow(row: HrEmployeeAsset | HrApiDateRecord): HrEmployeeAsset {
+  const source = row as HrApiDateRecord;
+  return {
+    ...(row as HrEmployeeAsset),
+    id: apiPick(source, ['id']) || (row as HrEmployeeAsset).id || '',
+    employeeId: apiPick(source, ['employeeId', 'employee_id']) || (row as HrEmployeeAsset).employeeId || '',
+    employeeNo: apiPick(source, ['employeeNo', 'employee_no']) || (row as HrEmployeeAsset).employeeNo || '',
+    employeeName: apiPick(source, ['employeeName', 'employee_name']) || (row as HrEmployeeAsset).employeeName || '',
+    departmentName: apiPick(source, ['departmentName', 'department_name']) || (row as HrEmployeeAsset).departmentName || '',
+    jobTitleName: apiPick(source, ['jobTitleName', 'job_title_name']) || (row as HrEmployeeAsset).jobTitleName || '',
+    assetType: apiPick(source, ['assetType', 'asset_type']) || (row as HrEmployeeAsset).assetType || '',
+    assetName: apiPick(source, ['assetName', 'asset_name']) || (row as HrEmployeeAsset).assetName || '',
+    assetCode: apiPick(source, ['assetCode', 'asset_code']) || (row as HrEmployeeAsset).assetCode || '',
+    serialNo: apiPick(source, ['serialNo', 'serial_no']) || (row as HrEmployeeAsset).serialNo || '',
+    assignedAt: normalizeApiDateOnly(apiPick(source, ['assignedAt', 'assigned_at', 'assigned_at_text'])) || (row as HrEmployeeAsset).assignedAt || '',
+    returnedAt: normalizeApiDateOnly(apiPick(source, ['returnedAt', 'returned_at', 'returned_at_text'])) || (row as HrEmployeeAsset).returnedAt || '',
+    status: apiPick(source, ['status']) || (row as HrEmployeeAsset).status || '',
+    notes: apiPick(source, ['notes']) || (row as HrEmployeeAsset).notes || '',
+    returnNotes: apiPick(source, ['returnNotes', 'return_notes']) || (row as HrEmployeeAsset).returnNotes || '',
+    createdAt: normalizeApiDateTime(apiPick(source, ['createdAt', 'created_at', 'created_at_text'])) || (row as HrEmployeeAsset).createdAt || '',
+  };
+}
+
 export const hrApi = {
   summary: async () => (await http<{ summary?: HrSummary }>('/api/hr/summary')).summary || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 },
   withdrawals: async (params: HrListParams = {}) => {
@@ -276,6 +311,15 @@ export const hrApi = {
   approveLeaveRequest: (id: string, payload: unknown = {}) => http<LeaveRequestsResponse>(`/api/hr/leave-requests/${id}/approve`, { method: 'POST', body: JSON.stringify(payload) }),
   rejectLeaveRequest: (id: string, payload: unknown = {}) => http<LeaveRequestsResponse>(`/api/hr/leave-requests/${id}/reject`, { method: 'POST', body: JSON.stringify(payload) }),
   cancelLeaveRequest: (id: string, payload: unknown = {}) => http<LeaveRequestsResponse>(`/api/hr/leave-requests/${id}/cancel`, { method: 'POST', body: JSON.stringify(payload) }),
+  employeeAssets: async (params: HrListParams = {}) => {
+    const response = await http<EmployeeAssetsResponse>(`/api/hr/assets${buildQueryString(params)}`);
+    return { ...response, assets: (response.assets || []).map(normalizeHrEmployeeAssetRow) };
+  },
+  saveEmployeeAsset: (payload: unknown, id?: string) => http<EmployeeAssetsResponse>(`/api/hr/assets${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
+  returnEmployeeAsset: (id: string, payload: unknown = {}) => http<EmployeeAssetsResponse>(`/api/hr/assets/${id}/return`, { method: 'POST', body: JSON.stringify(payload) }),
+  markEmployeeAssetLost: (id: string, payload: unknown = {}) => http<EmployeeAssetsResponse>(`/api/hr/assets/${id}/lost`, { method: 'POST', body: JSON.stringify(payload) }),
+  markEmployeeAssetDamaged: (id: string, payload: unknown = {}) => http<EmployeeAssetsResponse>(`/api/hr/assets/${id}/damaged`, { method: 'POST', body: JSON.stringify(payload) }),
+  cancelEmployeeAsset: (id: string, payload: unknown = {}) => http<EmployeeAssetsResponse>(`/api/hr/assets/${id}/cancel`, { method: 'POST', body: JSON.stringify(payload) }),
   saveEmployee: (payload: unknown, id?: string) => http(`/api/hr/employees${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   deactivateEmployee: (id: string) => http(`/api/hr/employees/${id}`, { method: 'DELETE' }),
   profile: async (id: string) => {

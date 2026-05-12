@@ -6,4 +6,5 @@ export * from './hr/loans';
 export * from './hr/payroll';
 export * from './hr/attendance';
 export * from './hr/leaves';
+export * from './hr/assets';
 export * from './hr/summary';

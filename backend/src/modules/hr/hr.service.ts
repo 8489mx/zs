@@ -14,7 +14,9 @@ import {
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
   DecideLeaveRequestDto,
+  EmployeeAssetActionDto,
   LoanRepaymentDto,
+  UpsertEmployeeAssetDto,
   UpsertLeaveTypeDto,
   UpsertAttendanceRecordDto,
   UpsertPayrollItemDto,
@@ -1594,6 +1596,136 @@ export class HrService {
     `.execute(this.db);
     await this.audit.log('Cancel HR leave request', `Leave request #${id} cancelled by ${auth.username}`, auth);
     return this.listLeaveRequests({}, auth);
+  }
+
+  async listEmployeeAssets(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const search = clean(query.search).toLowerCase();
+    const employeeId = toId(query.employeeId);
+    const status = clean(query.status).toLowerCase();
+    const result = await sql<Record<string, unknown>>`
+      SELECT
+        a.*,
+        e.employee_no,
+        e.display_name AS employee_name,
+        d.name AS department_name,
+        j.name AS job_title_name,
+        to_char(a.assigned_at, 'YYYY-MM-DD') AS assigned_at_text,
+        to_char(a.returned_at, 'YYYY-MM-DD') AS returned_at_text,
+        to_char(a.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
+      FROM hr_employee_assets a
+      JOIN hr_employees e ON e.id = a.employee_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
+      ORDER BY a.created_at DESC, a.id DESC
+    `.execute(this.db);
+
+    let rows = result.rows.map((row) => ({
+      id: String(row.id),
+      employeeId: String(row.employee_id),
+      employeeNo: clean(row.employee_no),
+      employeeName: clean(row.employee_name),
+      departmentName: clean(row.department_name),
+      jobTitleName: clean(row.job_title_name),
+      assetType: clean(row.asset_type),
+      assetName: clean(row.asset_name),
+      assetCode: clean(row.asset_code),
+      serialNo: clean(row.serial_no),
+      assignedAt: clean(row.assigned_at_text),
+      returnedAt: clean(row.returned_at_text),
+      status: clean(row.status),
+      notes: clean(row.notes),
+      returnNotes: clean(row.return_notes),
+      createdAt: clean(row.created_at_text),
+    }));
+
+    if (employeeId) rows = rows.filter((row) => row.employeeId === String(employeeId));
+    if (status) rows = rows.filter((row) => row.status === status);
+    if (search) {
+      rows = rows.filter((row) => [row.employeeNo, row.employeeName, row.departmentName, row.jobTitleName, row.assetType, row.assetName, row.assetCode, row.serialNo].some((value) => value.toLowerCase().includes(search)));
+    }
+
+    const summary = rows.reduce((acc, row) => {
+      acc.totalItems += 1;
+      if (row.status === 'assigned') acc.assignedCount += 1;
+      if (row.status === 'returned') acc.returnedCount += 1;
+      if (row.status === 'lost') acc.lostCount += 1;
+      if (row.status === 'damaged') acc.damagedCount += 1;
+      return acc;
+    }, { totalItems: 0, assignedCount: 0, returnedCount: 0, lostCount: 0, damagedCount: 0 });
+
+    const paged = paginateRows(rows, query, { defaultSize: 25 });
+    return { assets: paged.rows, pagination: paged.pagination, summary };
+  }
+
+  async upsertEmployeeAsset(id: number | null, payload: UpsertEmployeeAssetDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const employeeId = toId(payload.employeeId);
+    if (!employeeId) throw new AppError('Employee is required', 'HR_ASSET_EMPLOYEE_REQUIRED', 400);
+    const assetType = clean(payload.assetType);
+    if (!assetType) throw new AppError('Asset type is required', 'HR_ASSET_TYPE_REQUIRED', 400);
+    const assetName = clean(payload.assetName);
+    if (!assetName) throw new AppError('Asset name is required', 'HR_ASSET_NAME_REQUIRED', 400);
+    const assignedAt = normalizeDateOnly(payload.assignedAt) || todayUtcDate();
+
+    if (id) {
+      await sql`
+        UPDATE hr_employee_assets
+        SET employee_id = ${employeeId},
+            asset_type = ${assetType},
+            asset_name = ${assetName},
+            asset_code = ${clean(payload.assetCode) || null},
+            serial_no = ${clean(payload.serialNo) || null},
+            assigned_at = ${assignedAt}::date,
+            notes = ${clean(payload.notes) || null},
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+        WHERE id = ${id}
+      `.execute(this.db);
+    } else {
+      await sql`
+        INSERT INTO hr_employee_assets (employee_id, asset_type, asset_name, asset_code, serial_no, assigned_at, status, notes, created_by, updated_by, created_at, updated_at)
+        VALUES (${employeeId}, ${assetType}, ${assetName}, ${clean(payload.assetCode) || null}, ${clean(payload.serialNo) || null}, ${assignedAt}::date, 'assigned', ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+      `.execute(this.db);
+    }
+
+    await this.audit.log(`${id ? 'Update' : 'Create'} HR employee asset`, `Asset custody ${id ? 'updated' : 'created'} by ${auth.username}`, auth);
+    return this.listEmployeeAssets({}, auth);
+  }
+
+  private async setEmployeeAssetStatus(id: number, status: 'returned' | 'lost' | 'damaged' | 'cancelled', payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_employee_assets WHERE id = ${id} LIMIT 1`.execute(this.db);
+    if (!clean(current.rows[0]?.status)) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
+    const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayUtcDate()) : null;
+    await sql`
+      UPDATE hr_employee_assets
+      SET status = ${status},
+          returned_at = CASE WHEN ${returnedAt}::text IS NULL THEN returned_at ELSE ${returnedAt}::date END,
+          notes = ${clean(payload.notes) || null},
+          return_notes = ${clean(payload.returnNotes) || null},
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log(`Mark HR employee asset ${status}`, `Asset #${id} marked as ${status} by ${auth.username}`, auth);
+    return this.listEmployeeAssets({}, auth);
+  }
+
+  async returnEmployeeAsset(id: number, payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.setEmployeeAssetStatus(id, 'returned', payload, auth);
+  }
+
+  async markEmployeeAssetLost(id: number, payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.setEmployeeAssetStatus(id, 'lost', payload, auth);
+  }
+
+  async markEmployeeAssetDamaged(id: number, payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.setEmployeeAssetStatus(id, 'damaged', payload, auth);
+  }
+
+  async cancelEmployeeAsset(id: number, payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.setEmployeeAssetStatus(id, 'cancelled', payload, auth);
   }
 
   async withdrawals(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {

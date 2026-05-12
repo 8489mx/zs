@@ -456,3 +456,52 @@ export class DecideLeaveRequestDto {
   @MaxLength(1000)
   notes?: string;
 }
+
+export class UpsertEmployeeAssetDto {
+  @Type(() => Number)
+  @IsNumber()
+  employeeId!: number;
+
+  @IsString()
+  @MaxLength(80)
+  assetType!: string;
+
+  @IsString()
+  @MaxLength(160)
+  assetName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  assetCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  serialNo?: string;
+
+  @IsOptional()
+  @IsDateString()
+  assignedAt?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class EmployeeAssetActionDto {
+  @IsOptional()
+  @IsDateString()
+  returnedAt?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  returnNotes?: string;
+}

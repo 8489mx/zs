@@ -753,6 +753,24 @@ export interface HrLeaveRequestTable {
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
+export interface HrEmployeeAssetTable {
+  id: Generated<number>;
+  employee_id: number;
+  asset_type: string;
+  asset_name: string;
+  asset_code: string | null;
+  serial_no: string | null;
+  assigned_at: ColumnType<string, string | undefined, string | undefined>;
+  returned_at: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  status: 'assigned' | 'returned' | 'lost' | 'damaged' | 'cancelled';
+  notes: string | null;
+  return_notes: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface HrPayrollRunTable {
   id: Generated<number>;
   period_month: string;
@@ -856,6 +874,7 @@ export interface Database {
   hr_attendance_records: HrAttendanceRecordTable;
   hr_leave_types: HrLeaveTypeTable;
   hr_leave_requests: HrLeaveRequestTable;
+  hr_employee_assets: HrEmployeeAssetTable;
   hr_payroll_runs: HrPayrollRunTable;
   hr_payroll_run_items: HrPayrollRunItemTable;
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;

@@ -74,6 +74,15 @@ export function useHrLeaveRequests(params: HrListParams = {}) {
   });
 }
 
+export function useHrEmployeeAssets(params: HrListParams = {}) {
+  const key = paramsKey(params);
+  return useQuery({
+    queryKey: ['hr', 'employee-assets', key],
+    queryFn: () => hrApi.employeeAssets(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
 export function useHrMutations() {
   const queryClient = useQueryClient();
   const invalidate = async () => {
@@ -95,6 +104,11 @@ export function useHrMutations() {
     approveLeaveRequest: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.approveLeaveRequest(id, payload || {}), onSuccess: invalidate }),
     rejectLeaveRequest: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.rejectLeaveRequest(id, payload || {}), onSuccess: invalidate }),
     cancelLeaveRequest: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.cancelLeaveRequest(id, payload || {}), onSuccess: invalidate }),
+    saveEmployeeAsset: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveEmployeeAsset(payload, id), onSuccess: invalidate }),
+    returnEmployeeAsset: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.returnEmployeeAsset(id, payload || {}), onSuccess: invalidate }),
+    markEmployeeAssetLost: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.markEmployeeAssetLost(id, payload || {}), onSuccess: invalidate }),
+    markEmployeeAssetDamaged: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.markEmployeeAssetDamaged(id, payload || {}), onSuccess: invalidate }),
+    cancelEmployeeAsset: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.cancelEmployeeAsset(id, payload || {}), onSuccess: invalidate }),
     saveLoan: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveLoan(payload, id), onSuccess: invalidate }),
     approveLoan: useMutation({ mutationFn: (id: string) => hrApi.approveLoan(id), onSuccess: invalidate }),
     disburseLoan: useMutation({ mutationFn: (id: string) => hrApi.disburseLoan(id), onSuccess: invalidate }),
