@@ -140,6 +140,17 @@ function hasHrPermission(auth: AuthContext, permission: string): boolean {
 
 const attendanceStatuses = ['present', 'absent', 'late', 'half_day', 'leave', 'excused', 'early_leave'] as const;
 type AttendanceStatus = (typeof attendanceStatuses)[number];
+type PayrollOperationalReview = {
+  attendanceAbsentDays: number;
+  attendanceLateDays: number;
+  attendanceHalfDays: number;
+  attendanceEarlyLeaveDays: number;
+  approvedLeaveDays: number;
+  unpaidLeaveDays: number;
+  suggestedAttendanceDeductionAmount: number;
+  suggestedLeaveDeductionAmount: number;
+  payrollReviewNotes: string;
+};
 
 function normalizeAttendanceStatus(value: unknown): AttendanceStatus | 'unmarked' {
   const status = clean(value);
@@ -1027,6 +1038,84 @@ export class HrService {
     await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId}`.execute(db);
   }
 
+  private async calculatePayrollOperationalReview(
+    db: Kysely<Database>,
+    periodMonth: string,
+    employeeIds: number[],
+    baseSalaryByEmployeeId: Map<number, number>,
+  ): Promise<Map<number, PayrollOperationalReview>> {
+    const reviewByEmployeeId = new Map<number, PayrollOperationalReview>();
+    if (!employeeIds.length) return reviewByEmployeeId;
+    const range = monthRange(periodMonth);
+
+    const attendanceResult = await sql<Record<string, unknown>>`
+      SELECT
+        employee_id,
+        COALESCE(SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_days,
+        COALESCE(SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END), 0) AS late_days,
+        COALESCE(SUM(CASE WHEN status = 'half_day' THEN 1 ELSE 0 END), 0) AS half_days,
+        COALESCE(SUM(CASE WHEN status = 'early_leave' THEN 1 ELSE 0 END), 0) AS early_leave_days
+      FROM hr_attendance_records
+      WHERE employee_id IN (${sql.join(employeeIds)})
+        AND work_date >= ${range.from}::date
+        AND work_date <= ${range.to}::date
+      GROUP BY employee_id
+    `.execute(db);
+
+    const leaveResult = await sql<Record<string, unknown>>`
+      SELECT
+        lr.employee_id,
+        COALESCE(SUM(lr.days_count), 0) AS approved_leave_days,
+        COALESCE(SUM(CASE WHEN COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid' THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
+      FROM hr_leave_requests lr
+      LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
+      WHERE lr.employee_id IN (${sql.join(employeeIds)})
+        AND lr.status = 'approved'
+        AND lr.start_date <= ${range.to}::date
+        AND lr.end_date >= ${range.from}::date
+      GROUP BY lr.employee_id
+    `.execute(db);
+
+    const attendanceByEmployee = new Map<number, Record<string, unknown>>();
+    for (const row of attendanceResult.rows) {
+      attendanceByEmployee.set(Number(row.employee_id || 0), row);
+    }
+
+    const leaveByEmployee = new Map<number, Record<string, unknown>>();
+    for (const row of leaveResult.rows) {
+      leaveByEmployee.set(Number(row.employee_id || 0), row);
+    }
+
+    for (const employeeId of employeeIds) {
+      const attendance = attendanceByEmployee.get(employeeId) || {};
+      const leave = leaveByEmployee.get(employeeId) || {};
+      const attendanceAbsentDays = Number(attendance.absent_days || 0);
+      const attendanceLateDays = Number(attendance.late_days || 0);
+      const attendanceHalfDays = Number(attendance.half_days || 0);
+      const attendanceEarlyLeaveDays = Number(attendance.early_leave_days || 0);
+      const approvedLeaveDays = Number(leave.approved_leave_days || 0);
+      const unpaidLeaveDays = Number(leave.unpaid_leave_days || 0);
+      const baseSalary = Number(baseSalaryByEmployeeId.get(employeeId) || 0);
+      const dailyRate = baseSalary > 0 ? Number((baseSalary / 30).toFixed(2)) : 0;
+      const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + (dailyRate * 0.5 * attendanceHalfDays)).toFixed(2));
+      const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
+      const payrollReviewNotes = `مراجعة مقترحة: غياب ${attendanceAbsentDays} يوم، إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
+      reviewByEmployeeId.set(employeeId, {
+        attendanceAbsentDays,
+        attendanceLateDays,
+        attendanceHalfDays,
+        attendanceEarlyLeaveDays,
+        approvedLeaveDays,
+        unpaidLeaveDays,
+        suggestedAttendanceDeductionAmount,
+        suggestedLeaveDeductionAmount,
+        payrollReviewNotes,
+      });
+    }
+
+    return reviewByEmployeeId;
+  }
+
   async listPayrollRuns(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const month = normalizePayrollMonth(query.month);
@@ -1091,6 +1180,15 @@ export class HrService {
       WHERE i.run_id = ${id}
       ORDER BY e.display_name ASC, i.id ASC
     `.execute(this.db);
+    const periodMonth = clean(run.period_month);
+    const employeeIds = itemResult.rows.map((row) => Number(row.employee_id || 0)).filter((value) => value > 0);
+    const baseSalaryByEmployeeId = new Map<number, number>();
+    for (const row of itemResult.rows) {
+      const employeeId = Number(row.employee_id || 0);
+      if (!(employeeId > 0)) continue;
+      baseSalaryByEmployeeId.set(employeeId, Number(row.base_salary || 0));
+    }
+    const reviewByEmployeeId = await this.calculatePayrollOperationalReview(this.db, periodMonth, employeeIds, baseSalaryByEmployeeId);
     const itemIds = itemResult.rows.map((row) => Number(row.id || 0)).filter((itemId) => itemId > 0);
     const adjustmentResult = itemIds.length
       ? await sql<Record<string, unknown>>`
@@ -1105,7 +1203,23 @@ export class HrService {
       const key = String(adjustment.payroll_item_id);
       adjustmentsByItem.set(key, [...(adjustmentsByItem.get(key) || []), this.mapPayrollAdjustment(adjustment)]);
     }
-    const items = itemResult.rows.map((row) => ({ ...this.mapPayrollItem(row), adjustments: adjustmentsByItem.get(String(row.id)) || [] }));
+    const items = itemResult.rows.map((row) => {
+      const employeeId = Number(row.employee_id || 0);
+      const review = reviewByEmployeeId.get(employeeId);
+      return {
+        ...this.mapPayrollItem(row),
+        attendanceAbsentDays: review?.attendanceAbsentDays ?? 0,
+        attendanceLateDays: review?.attendanceLateDays ?? 0,
+        attendanceHalfDays: review?.attendanceHalfDays ?? 0,
+        attendanceEarlyLeaveDays: review?.attendanceEarlyLeaveDays ?? 0,
+        approvedLeaveDays: review?.approvedLeaveDays ?? 0,
+        unpaidLeaveDays: review?.unpaidLeaveDays ?? 0,
+        suggestedAttendanceDeductionAmount: review?.suggestedAttendanceDeductionAmount ?? 0,
+        suggestedLeaveDeductionAmount: review?.suggestedLeaveDeductionAmount ?? 0,
+        payrollReviewNotes: review?.payrollReviewNotes || '',
+        adjustments: adjustmentsByItem.get(String(row.id)) || [],
+      };
+    });
     return { run: { ...this.mapPayrollRun(run), items } };
   }
 

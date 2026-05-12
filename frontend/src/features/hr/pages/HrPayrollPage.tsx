@@ -39,6 +39,14 @@ function statusLabel(value: unknown) {
   return 'غير محدد';
 }
 
+function reviewAttendanceText(row: HrPayrollRunItem) {
+  return `غياب ${Number(row.attendanceAbsentDays || 0)} / تأخير ${Number(row.attendanceLateDays || 0)} / نصف يوم ${Number(row.attendanceHalfDays || 0)} / انصراف مبكر ${Number(row.attendanceEarlyLeaveDays || 0)}`;
+}
+
+function reviewLeavesText(row: HrPayrollRunItem) {
+  return `معتمدة ${Number(row.approvedLeaveDays || 0)} / بدون مرتب ${Number(row.unpaidLeaveDays || 0)}`;
+}
+
 export function HrPayrollPage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
@@ -178,22 +186,35 @@ export function HrPayrollPage() {
             {!selectedRun ? (
               <p className="muted">تفاصيل الكشف غير متاحة من الواجهة الحالية.</p>
             ) : runItems.length ? (
-              <DataTable
-                rows={runItems}
-                rowKey={(row) => String(row.id)}
-                density="compact"
-                columns={[
-                  { key: 'employeeName', header: 'الموظف', cell: (row) => text(row.employeeName) },
-                  { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
-                  { key: 'baseSalary', header: 'الأساسي', cell: (row) => money(row.baseSalary) },
-                  { key: 'allowanceAmount', header: 'الإضافات', cell: (row) => money(row.allowanceAmount) },
-                  { key: 'deductionAmount', header: 'الخصومات', cell: (row) => money(row.deductionAmount) },
-                  { key: 'loanDeductionAmount', header: 'خصم السلف', cell: (row) => money(row.loanDeductionAmount) },
-                  { key: 'netPay', header: 'الصافي', cell: (row) => money(row.netPay) },
-                  { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                  { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes) },
-                ]}
-              />
+              <>
+                <p className="muted" style={{ marginTop: 0, marginBottom: 12 }}>
+                  الخصومات المقترحة للمراجعة فقط ولا يتم تطبيقها تلقائيًا إلا بعد اعتماد المسؤول.
+                </p>
+                <DataTable
+                  rows={runItems}
+                  rowKey={(row) => String(row.id)}
+                  density="compact"
+                  columns={[
+                    { key: 'employeeName', header: 'الموظف', cell: (row) => text(row.employeeName) },
+                    { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
+                    { key: 'baseSalary', header: 'الأساسي', cell: (row) => money(row.baseSalary) },
+                    { key: 'allowanceAmount', header: 'الإضافات', cell: (row) => money(row.allowanceAmount) },
+                    { key: 'deductionAmount', header: 'الخصومات', cell: (row) => money(row.deductionAmount) },
+                    { key: 'loanDeductionAmount', header: 'خصم السلف', cell: (row) => money(row.loanDeductionAmount) },
+                    { key: 'netPay', header: 'الصافي', cell: (row) => money(row.netPay) },
+                    { key: 'attendanceReview', header: 'الحضور', cell: (row) => reviewAttendanceText(row) },
+                    { key: 'leaveReview', header: 'الإجازات', cell: (row) => reviewLeavesText(row) },
+                    {
+                      key: 'suggestedDeduction',
+                      header: 'خصم مقترح',
+                      cell: (row) => money(Number(row.suggestedAttendanceDeductionAmount || 0) + Number(row.suggestedLeaveDeductionAmount || 0)),
+                    },
+                    { key: 'payrollReviewNotes', header: 'ملاحظات المراجعة', cell: (row) => text(row.payrollReviewNotes) },
+                    { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+                    { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes) },
+                  ]}
+                />
+              </>
             ) : (
               <p className="muted">لا توجد تفاصيل لهذا الكشف.</p>
             )}

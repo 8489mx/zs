@@ -23,6 +23,15 @@ export interface HrPayrollRunItem {
   netPay: number;
   status: string;
   notes?: string;
+  attendanceAbsentDays?: number;
+  attendanceLateDays?: number;
+  attendanceHalfDays?: number;
+  attendanceEarlyLeaveDays?: number;
+  approvedLeaveDays?: number;
+  unpaidLeaveDays?: number;
+  suggestedAttendanceDeductionAmount?: number;
+  suggestedLeaveDeductionAmount?: number;
+  payrollReviewNotes?: string;
   createdAt?: string;
   updatedAt?: string;
   adjustments?: HrPayrollAdjustment[];
