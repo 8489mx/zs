@@ -5,8 +5,18 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { getErrorMessage } from '@/lib/errors';
-import type { HrContact, HrContract, HrDocument, HrEmployee, HrLedgerEntry, HrLoan } from '@/types/domain';
-import { useHrMutations, useHrProfile } from '@/features/hr/hooks/useHr';
+import type { HrContact, HrContract, HrDocument, HrEmployee, HrEmployeeAsset, HrLedgerEntry, HrLeaveRequest, HrLoan } from '@/types/domain';
+import { useHrEmployeeAssets, useHrLeaveRequests, useHrMutations, useHrProfile } from '@/features/hr/hooks/useHr';
+import { ContactsSection, LedgerSection } from '@/features/hr/pages/employee-profile/EmployeeProfileSections';
+import {
+  employeeName,
+  fallbackText,
+  maskNationalId,
+  money,
+  normalizeDateOnly,
+  pickPrimaryPhone,
+  statusLabel,
+} from '@/features/hr/pages/employee-profile/employee-profile.helpers';
 
 interface DocumentDraft {
   title: string;
@@ -22,47 +32,12 @@ const initialDocumentDraft: DocumentDraft = {
   notes: '',
 };
 
-function fallbackText(value: unknown) {
-  return String(value || '').trim() || '—';
-}
-
-function money(value: unknown) {
-  const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return '—';
-  return `${amount.toFixed(2)} ج.م`;
-}
-
-function statusLabel(status: unknown) {
-  const value = String(status || '').trim();
-  if (value === 'active') return 'نشط';
-  if (value === 'inactive') return 'غير نشط';
-  if (value === 'deactivated') return 'موقوف';
-  if (value === 'terminated') return 'منتهي الخدمة';
-  return 'غير محدد';
-}
-
-function maskNationalId(nationalId: unknown) {
-  const value = String(nationalId || '').trim();
-  if (!/^\d{14}$/.test(value)) return 'غير مسجل';
-  return `**********${value.slice(-4)}`;
-}
-
-function pickPrimaryPhone(contacts: HrContact[]) {
-  const phone = contacts.find((entry) => String(entry.contactType || '').toLowerCase() === 'phone' && entry.isPrimary)
-    || contacts.find((entry) => String(entry.contactType || '').toLowerCase() === 'phone')
-    || contacts[0];
-  return phone ? fallbackText(phone.value) : 'غير مسجل';
-}
-
-function employeeName(employee?: HrEmployee) {
-  if (!employee) return 'ملف الموظف';
-  return fallbackText(employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim()) || 'ملف الموظف';
-}
-
 export function EmployeeProfilePage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const profile = useHrProfile(id);
+  const leaveRequestsQuery = useHrLeaveRequests({ employeeId: id || '', page: 1, pageSize: 200 });
+  const assetsQuery = useHrEmployeeAssets({ employeeId: id || '', page: 1, pageSize: 200 });
   const mutations = useHrMutations();
 
   const [documentDraft, setDocumentDraft] = useState<DocumentDraft>(initialDocumentDraft);
@@ -74,6 +49,8 @@ export function EmployeeProfilePage() {
   const contracts = useMemo(() => (profile.data?.contracts || []) as HrContract[], [profile.data?.contracts]);
   const loans = useMemo(() => (profile.data?.loans || []) as HrLoan[], [profile.data?.loans]);
   const ledger = useMemo(() => (profile.data?.ledger || []) as HrLedgerEntry[], [profile.data?.ledger]);
+  const leaveRequests = useMemo(() => (leaveRequestsQuery.data?.requests || []) as HrLeaveRequest[], [leaveRequestsQuery.data?.requests]);
+  const employeeAssets = useMemo(() => (assetsQuery.data?.assets || []) as HrEmployeeAsset[], [assetsQuery.data?.assets]);
 
   const latestContract = contracts[0];
   const primaryPhone = pickPrimaryPhone(contacts);
@@ -82,6 +59,27 @@ export function EmployeeProfilePage() {
   const basicComplete = Boolean(String(employee?.firstName || '').trim() && String(employee?.hireDate || '').trim());
   const nationalIdComplete = Boolean(String(employee?.nationalId || '').trim());
   const mobileComplete = primaryPhone !== 'غير مسجل';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const documentsExpirySummary = documents.reduce((acc, row) => {
+    const expiryDate = normalizeDateOnly(row.expiryDate);
+    if (!expiryDate) return acc;
+    const expiry = new Date(`${expiryDate}T00:00:00`);
+    if (Number.isNaN(expiry.getTime())) return acc;
+    const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+    if (diffDays < 0) acc.expired += 1;
+    if (diffDays >= 0 && diffDays <= 30) acc.nearExpiry += 1;
+    return acc;
+  }, { expired: 0, nearExpiry: 0 });
+
+  const openLoans = loans.filter((row) => Number(row.remainingAmount || 0) > 0);
+  const openLoansCount = openLoans.length;
+  const openLoansRemaining = openLoans.reduce((sum, row) => sum + Number(row.remainingAmount || 0), 0);
+
+  const pendingLeavesCount = leaveRequests.filter((row) => String(row.status || '').trim() === 'pending').length;
+  const approvedLeavesCount = leaveRequests.filter((row) => String(row.status || '').trim() === 'approved').length;
+  const assignedAssetsCount = employeeAssets.filter((row) => String(row.status || '').trim() === 'assigned').length;
 
   async function handleAddDocument(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,6 +143,46 @@ export function EmployeeProfilePage() {
           </div>
         </Card>
 
+        <Card
+          title="ملخص تشغيل الموظف"
+          actions={(
+            <div className="compact-actions">
+              <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>عرض الحضور والانصراف</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/leaves')}>عرض الإجازات</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/assets')}>عرض العُهد</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>عرض المرتبات</Button>
+            </div>
+          )}
+        >
+          <div className="form-grid">
+            <div className="field">
+              <span>المستندات</span>
+              <strong>{documents.length} مستند</strong>
+              <small className="muted">منتهي: {documentsExpirySummary.expired} | قريب الانتهاء: {documentsExpirySummary.nearExpiry}</small>
+            </div>
+            <div className="field">
+              <span>السلف والخصومات</span>
+              <strong>{openLoansCount} سلفة مفتوحة</strong>
+              <small className="muted">إجمالي المتبقي: {money(openLoansRemaining)}</small>
+            </div>
+            <div className="field">
+              <span>الحضور والانصراف</span>
+              <strong>متاح من الصفحة المختصة</strong>
+              <small className="muted">لأن ملخص الحضور للموظف غير متاح مباشرة في بيانات الملف الحالية.</small>
+            </div>
+            <div className="field">
+              <span>الإجازات</span>
+              <strong>قيد المراجعة: {pendingLeavesCount}</strong>
+              <small className="muted">معتمدة: {approvedLeavesCount}</small>
+            </div>
+            <div className="field">
+              <span>العُهد</span>
+              <strong>عُهد مسلّمة: {assignedAssetsCount}</strong>
+              <small className="muted">إجمالي السجلات: {employeeAssets.length}</small>
+            </div>
+          </div>
+        </Card>
+
         <Card title="اكتمال الملف">
           <div className="form-grid">
             <div className="field"><span>البيانات الأساسية</span><strong>{basicComplete ? 'مكتمل' : 'ناقص'}</strong></div>
@@ -153,6 +191,9 @@ export function EmployeeProfilePage() {
             <div className="field"><span>العقد</span><strong>{contracts.length > 0 ? 'مكتمل' : 'ناقص'}</strong></div>
             <div className="field"><span>المستندات</span><strong>{documents.length > 0 ? 'مكتمل' : 'ناقص'}</strong></div>
             <div className="field"><span>السلف</span><strong>{loans.length > 0 ? 'يوجد سجل' : 'لا يوجد'}</strong></div>
+            <div className="field"><span>الحضور</span><strong>متاح من الصفحة المختصة</strong></div>
+            <div className="field"><span>الإجازات</span><strong>{leaveRequests.length > 0 ? 'يوجد سجل' : 'لا يوجد'}</strong></div>
+            <div className="field"><span>العُهد</span><strong>{employeeAssets.length > 0 ? 'يوجد سجل' : 'لا يوجد'}</strong></div>
           </div>
         </Card>
 
@@ -170,33 +211,10 @@ export function EmployeeProfilePage() {
         </Card>
 
         <Card title="التواصل">
-          {contacts.length ? (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>البيان</th>
-                    <th>النوع</th>
-                    <th>القيمة</th>
-                    <th>أساسي</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contacts.map((row) => (
-                    <tr key={String(row.id)}>
-                      <td>{fallbackText(row.label)}</td>
-                      <td>{fallbackText(row.contactType)}</td>
-                      <td>{fallbackText(row.value)}</td>
-                      <td>{row.isPrimary ? 'نعم' : 'لا'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : <p className="muted">لا توجد بيانات تواصل مسجلة.</p>}
+          <ContactsSection contacts={contacts} />
         </Card>
 
-        <Card title="العقد والمرتب">
+        <Card title="العقد والمرتب" actions={<Button variant="secondary" onClick={() => navigate('/hr/payroll')}>عرض المرتبات</Button>}>
           {latestContract ? (
             <div className="form-grid">
               <div className="field"><span>نوع التعاقد</span><strong>{fallbackText(latestContract.contractType)}</strong></div>
@@ -302,30 +320,7 @@ export function EmployeeProfilePage() {
         </Card>
 
         <Card title="السجل">
-          {ledger.length ? (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>نوع الحركة</th>
-                    <th>القيمة</th>
-                    <th>الرصيد بعد الحركة</th>
-                    <th>التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ledger.map((row) => (
-                    <tr key={String(row.id)}>
-                      <td>{fallbackText(row.entryType)}</td>
-                      <td>{money(row.amount)}</td>
-                      <td>{money(row.balanceAfter)}</td>
-                      <td>{fallbackText(row.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : <p className="muted">لا توجد حركات مسجلة.</p>}
+          <LedgerSection ledger={ledger} />
         </Card>
       </QueryFeedback>
     </div>
