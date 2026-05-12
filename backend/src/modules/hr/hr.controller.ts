@@ -5,9 +5,12 @@ import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import {
   BulkSaveAttendanceDto,
+  CreateLeaveRequestDto,
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
+  DecideLeaveRequestDto,
   LoanRepaymentDto,
+  UpsertLeaveTypeDto,
   UpsertAttendanceRecordDto,
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
@@ -47,6 +50,54 @@ export class HrController {
   @RequirePermissions('hrEmployees')
   saveAttendanceRecord(@Body() payload: UpsertAttendanceRecordDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertAttendanceRecord(payload, req.authContext!);
+  }
+
+  @Get('leave-types')
+  @RequirePermissions('hrEmployees')
+  listLeaveTypes(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listLeaveTypes(query, req.authContext!);
+  }
+
+  @Post('leave-types')
+  @RequirePermissions('hrEmployees')
+  createLeaveType(@Body() payload: UpsertLeaveTypeDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertLeaveType(null, payload, req.authContext!);
+  }
+
+  @Put('leave-types/:id')
+  @RequirePermissions('hrEmployees')
+  updateLeaveType(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertLeaveTypeDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertLeaveType(id, payload, req.authContext!);
+  }
+
+  @Get('leave-requests')
+  @RequirePermissions('hrEmployees')
+  listLeaveRequests(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listLeaveRequests(query, req.authContext!);
+  }
+
+  @Post('leave-requests')
+  @RequirePermissions('hrEmployees')
+  createLeaveRequest(@Body() payload: CreateLeaveRequestDto, @Req() req: RequestWithAuth) {
+    return this.hr.createLeaveRequest(payload, req.authContext!);
+  }
+
+  @Post('leave-requests/:id/approve')
+  @RequirePermissions('hrEmployees')
+  approveLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideLeaveRequestDto, @Req() req: RequestWithAuth) {
+    return this.hr.approveLeaveRequest(id, payload, req.authContext!);
+  }
+
+  @Post('leave-requests/:id/reject')
+  @RequirePermissions('hrEmployees')
+  rejectLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideLeaveRequestDto, @Req() req: RequestWithAuth) {
+    return this.hr.rejectLeaveRequest(id, payload, req.authContext!);
+  }
+
+  @Post('leave-requests/:id/cancel')
+  @RequirePermissions('hrEmployees')
+  cancelLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideLeaveRequestDto, @Req() req: RequestWithAuth) {
+    return this.hr.cancelLeaveRequest(id, payload, req.authContext!);
   }
 
   @Get('withdrawals')

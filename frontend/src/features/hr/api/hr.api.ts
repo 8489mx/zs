@@ -8,6 +8,8 @@ import type {
   HrDocument,
   HrEmployee,
   HrLedgerEntry,
+  HrLeaveRequest,
+  HrLeaveType,
   HrLoan,
   HrMasterDataRecord,
   HrPayrollRun,
@@ -27,6 +29,7 @@ export interface HrListParams {
   month?: string;
   from?: string;
   to?: string;
+  status?: string;
 }
 
 interface MasterResponse {
@@ -67,6 +70,22 @@ interface AttendanceResponse {
     lateCount?: number;
     leaveCount?: number;
     unmarkedCount?: number;
+  };
+}
+
+interface LeaveTypesResponse {
+  rows?: HrLeaveType[];
+  summary?: { totalItems?: number; activeCount?: number };
+}
+
+interface LeaveRequestsResponse {
+  requests?: HrLeaveRequest[];
+  summary?: {
+    totalItems?: number;
+    pendingCount?: number;
+    approvedCount?: number;
+    rejectedCount?: number;
+    cancelledCount?: number;
   };
 }
 
@@ -184,6 +203,47 @@ function normalizeHrAttendanceRow(row: HrAttendanceRecord | HrApiDateRecord): Hr
   };
 }
 
+function normalizeHrLeaveTypeRow(row: HrLeaveType | HrApiDateRecord): HrLeaveType {
+  const source = row as HrApiDateRecord;
+  const isPaidValue = source.is_paid ?? source.isPaid ?? (row as HrLeaveType).isPaid;
+  const isActiveValue = source.is_active ?? source.isActive ?? (row as HrLeaveType).isActive;
+  return {
+    ...(row as HrLeaveType),
+    id: apiPick(source, ['id']) || (row as HrLeaveType).id || '',
+    name: apiPick(source, ['name']) || (row as HrLeaveType).name || '',
+    code: apiPick(source, ['code']) || (row as HrLeaveType).code || '',
+    description: apiPick(source, ['description']) || (row as HrLeaveType).description || '',
+    isPaid: isPaidValue === undefined ? true : Boolean(isPaidValue),
+    isActive: isActiveValue === undefined ? true : Boolean(isActiveValue),
+  };
+}
+
+function normalizeHrLeaveRequestRow(row: HrLeaveRequest | HrApiDateRecord): HrLeaveRequest {
+  const source = row as HrApiDateRecord;
+  return {
+    ...(row as HrLeaveRequest),
+    id: apiPick(source, ['id']) || (row as HrLeaveRequest).id || '',
+    employeeId: apiPick(source, ['employeeId', 'employee_id']) || (row as HrLeaveRequest).employeeId || '',
+    employeeNo: apiPick(source, ['employeeNo', 'employee_no']) || (row as HrLeaveRequest).employeeNo || '',
+    employeeName: apiPick(source, ['employeeName', 'employee_name']) || (row as HrLeaveRequest).employeeName || '',
+    departmentName: apiPick(source, ['departmentName', 'department_name']) || (row as HrLeaveRequest).departmentName || '',
+    jobTitleName: apiPick(source, ['jobTitleName', 'job_title_name']) || (row as HrLeaveRequest).jobTitleName || '',
+    leaveTypeId: apiPick(source, ['leaveTypeId', 'leave_type_id']) || (row as HrLeaveRequest).leaveTypeId || '',
+    leaveTypeName: apiPick(source, ['leaveTypeName', 'leave_type_name']) || (row as HrLeaveRequest).leaveTypeName || '',
+    leaveType: apiPick(source, ['leaveType', 'leave_type']) || (row as HrLeaveRequest).leaveType || '',
+    startDate: normalizeApiDateOnly(apiPick(source, ['startDate', 'start_date', 'start_date_text'])) || (row as HrLeaveRequest).startDate || '',
+    endDate: normalizeApiDateOnly(apiPick(source, ['endDate', 'end_date', 'end_date_text'])) || (row as HrLeaveRequest).endDate || '',
+    daysCount: Number(source.days_count ?? source.daysCount ?? (row as HrLeaveRequest).daysCount ?? 0),
+    status: apiPick(source, ['status']) || (row as HrLeaveRequest).status || '',
+    reason: apiPick(source, ['reason']) || (row as HrLeaveRequest).reason || '',
+    notes: apiPick(source, ['notes']) || (row as HrLeaveRequest).notes || '',
+    decisionNotes: apiPick(source, ['decisionNotes', 'decision_notes']) || (row as HrLeaveRequest).decisionNotes || '',
+    decidedBy: apiPick(source, ['decidedBy', 'decided_by']) || (row as HrLeaveRequest).decidedBy || '',
+    decidedAt: normalizeApiDateTime(apiPick(source, ['decidedAt', 'decided_at', 'decided_at_text'])) || (row as HrLeaveRequest).decidedAt || '',
+    createdAt: normalizeApiDateTime(apiPick(source, ['createdAt', 'created_at', 'created_at_text'])) || (row as HrLeaveRequest).createdAt || '',
+  };
+}
+
 export const hrApi = {
   summary: async () => (await http<{ summary?: HrSummary }>('/api/hr/summary')).summary || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 },
   withdrawals: async (params: HrListParams = {}) => {
@@ -203,6 +263,19 @@ export const hrApi = {
   },
   saveAttendanceDay: (payload: unknown) => http<AttendanceResponse>('/api/hr/attendance', { method: 'POST', body: JSON.stringify(payload) }),
   saveAttendanceRecord: (payload: unknown) => http<AttendanceResponse>('/api/hr/attendance/record', { method: 'POST', body: JSON.stringify(payload) }),
+  leaveTypes: async (params: HrListParams = {}) => {
+    const response = await http<LeaveTypesResponse>(`/api/hr/leave-types${buildQueryString(params)}`);
+    return { ...response, rows: (response.rows || []).map(normalizeHrLeaveTypeRow) };
+  },
+  saveLeaveType: (payload: unknown, id?: string) => http<LeaveTypesResponse>(`/api/hr/leave-types${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
+  leaveRequests: async (params: HrListParams = {}) => {
+    const response = await http<LeaveRequestsResponse>(`/api/hr/leave-requests${buildQueryString(params)}`);
+    return { ...response, requests: (response.requests || []).map(normalizeHrLeaveRequestRow) };
+  },
+  createLeaveRequest: (payload: unknown) => http<LeaveRequestsResponse>('/api/hr/leave-requests', { method: 'POST', body: JSON.stringify(payload) }),
+  approveLeaveRequest: (id: string, payload: unknown = {}) => http<LeaveRequestsResponse>(`/api/hr/leave-requests/${id}/approve`, { method: 'POST', body: JSON.stringify(payload) }),
+  rejectLeaveRequest: (id: string, payload: unknown = {}) => http<LeaveRequestsResponse>(`/api/hr/leave-requests/${id}/reject`, { method: 'POST', body: JSON.stringify(payload) }),
+  cancelLeaveRequest: (id: string, payload: unknown = {}) => http<LeaveRequestsResponse>(`/api/hr/leave-requests/${id}/cancel`, { method: 'POST', body: JSON.stringify(payload) }),
   saveEmployee: (payload: unknown, id?: string) => http(`/api/hr/employees${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   deactivateEmployee: (id: string) => http(`/api/hr/employees/${id}`, { method: 'DELETE' }),
   profile: async (id: string) => {

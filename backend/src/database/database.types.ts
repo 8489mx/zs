@@ -720,6 +720,39 @@ export interface HrAttendanceRecordTable {
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
+export interface HrLeaveTypeTable {
+  id: Generated<number>;
+  name: string;
+  code: string | null;
+  description: string | null;
+  is_paid: boolean;
+  is_active: boolean;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrLeaveRequestTable {
+  id: Generated<number>;
+  employee_id: number;
+  leave_type_id: number | null;
+  leave_type: string | null;
+  start_date: ColumnType<string, string | undefined, string | undefined>;
+  end_date: ColumnType<string, string | undefined, string | undefined>;
+  days_count: number;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  reason: string | null;
+  notes: string | null;
+  decision_notes: string | null;
+  decided_by: number | null;
+  decided_at: Date | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface HrPayrollRunTable {
   id: Generated<number>;
   period_month: string;
@@ -821,6 +854,8 @@ export interface Database {
   hr_employee_loan_installments: HrEmployeeLoanInstallmentTable;
   hr_employee_ledger: HrEmployeeLedgerTable;
   hr_attendance_records: HrAttendanceRecordTable;
+  hr_leave_types: HrLeaveTypeTable;
+  hr_leave_requests: HrLeaveRequestTable;
   hr_payroll_runs: HrPayrollRunTable;
   hr_payroll_run_items: HrPayrollRunItemTable;
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;

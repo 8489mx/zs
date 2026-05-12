@@ -384,3 +384,75 @@ export class BulkSaveAttendanceDto {
   @IsArray()
   rows!: UpsertAttendanceRecordDto[];
 }
+
+export class UpsertLeaveTypeDto {
+  @IsString()
+  @MaxLength(120)
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @IsOptional()
+  isPaid?: boolean;
+
+  @IsOptional()
+  isActive?: boolean;
+}
+
+export class CreateLeaveRequestDto {
+  @Type(() => Number)
+  @IsNumber()
+  employeeId!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  leaveTypeId?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  leaveType?: string;
+
+  @IsDateString()
+  startDate!: string;
+
+  @IsDateString()
+  endDate!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  daysCount?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class DecideLeaveRequestDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  decisionNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}

@@ -10,9 +10,12 @@ import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import {
   BulkSaveAttendanceDto,
+  CreateLeaveRequestDto,
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
+  DecideLeaveRequestDto,
   LoanRepaymentDto,
+  UpsertLeaveTypeDto,
   UpsertAttendanceRecordDto,
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
@@ -149,6 +152,13 @@ function normalizeAttendanceSource(value: unknown): 'manual' | 'import' {
 function todayUtcDate(): string {
   const now = new Date();
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+}
+
+function inclusiveDaysBetween(from: string, to: string): number {
+  const fromDate = new Date(`${from}T00:00:00Z`);
+  const toDate = new Date(`${to}T00:00:00Z`);
+  const diffMs = toDate.getTime() - fromDate.getTime();
+  return Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
 }
 
 @Injectable()
@@ -1373,6 +1383,217 @@ export class HrService {
 
     await this.audit.log('Upsert HR attendance record', `Attendance record saved for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
     return this.listAttendance({ date: workDate }, auth);
+  }
+
+  async listLeaveTypes(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const result = await sql<Record<string, unknown>>`
+      SELECT *
+      FROM hr_leave_types
+      ORDER BY is_active DESC, name ASC, id ASC
+    `.execute(this.db);
+    const search = clean(query.search).toLowerCase();
+    let rows = result.rows.map((row) => ({
+      id: String(row.id),
+      name: clean(row.name),
+      code: clean(row.code),
+      description: clean(row.description),
+      isPaid: row.is_paid !== false,
+      isActive: row.is_active !== false,
+    }));
+    if (search) {
+      rows = rows.filter((row) => [row.name, row.code, row.description].some((value) => value.toLowerCase().includes(search)));
+    }
+    const paged = paginateRows(rows, query, { defaultSize: 50 });
+    return {
+      rows: paged.rows,
+      pagination: paged.pagination,
+      summary: {
+        totalItems: rows.length,
+        activeCount: rows.filter((row) => row.isActive).length,
+      },
+    };
+  }
+
+  async upsertLeaveType(id: number | null, payload: UpsertLeaveTypeDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const name = clean(payload.name);
+    if (!name) throw new AppError('Leave type name is required', 'HR_LEAVE_TYPE_NAME_REQUIRED', 400);
+    const code = clean(payload.code).toLowerCase();
+    const description = clean(payload.description);
+    const isPaid = payload.isPaid !== false;
+    const isActive = payload.isActive !== false;
+    if (id) {
+      await sql`
+        UPDATE hr_leave_types
+        SET name = ${name}, code = ${code || null}, description = ${description || null}, is_paid = ${isPaid}, is_active = ${isActive}, updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id}
+      `.execute(this.db);
+    } else {
+      await sql`
+        INSERT INTO hr_leave_types (name, code, description, is_paid, is_active, created_by, updated_by, created_at, updated_at)
+        VALUES (${name}, ${code || null}, ${description || null}, ${isPaid}, ${isActive}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+      `.execute(this.db);
+    }
+    await this.audit.log(`${id ? 'Update' : 'Create'} HR leave type`, `Leave type ${name} saved by ${auth.username}`, auth);
+    return this.listLeaveTypes({}, auth);
+  }
+
+  async listLeaveRequests(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const search = clean(query.search).toLowerCase();
+    const status = clean(query.status).toLowerCase();
+    const employeeId = toId(query.employeeId);
+    const from = normalizeDateOnly(query.from);
+    const to = normalizeDateOnly(query.to);
+    const result = await sql<Record<string, unknown>>`
+      SELECT
+        r.*,
+        e.employee_no,
+        e.display_name AS employee_name,
+        d.name AS department_name,
+        j.name AS job_title_name,
+        t.name AS leave_type_name,
+        to_char(r.start_date, 'YYYY-MM-DD') AS start_date_text,
+        to_char(r.end_date, 'YYYY-MM-DD') AS end_date_text,
+        to_char(r.decided_at, 'YYYY-MM-DD HH24:MI') AS decided_at_text,
+        to_char(r.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
+      FROM hr_leave_requests r
+      JOIN hr_employees e ON e.id = r.employee_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
+      LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id
+      ORDER BY r.created_at DESC, r.id DESC
+    `.execute(this.db);
+
+    let rows = result.rows.map((row) => ({
+      id: String(row.id),
+      employeeId: String(row.employee_id),
+      employeeNo: clean(row.employee_no),
+      employeeName: clean(row.employee_name),
+      departmentName: clean(row.department_name),
+      jobTitleName: clean(row.job_title_name),
+      leaveTypeId: row.leave_type_id ? String(row.leave_type_id) : '',
+      leaveTypeName: clean(row.leave_type_name),
+      leaveType: clean(row.leave_type),
+      startDate: clean(row.start_date_text),
+      endDate: clean(row.end_date_text),
+      daysCount: Number(row.days_count || 0),
+      status: clean(row.status),
+      reason: clean(row.reason),
+      notes: clean(row.notes),
+      decisionNotes: clean(row.decision_notes),
+      decidedBy: row.decided_by ? String(row.decided_by) : '',
+      decidedAt: clean(row.decided_at_text),
+      createdAt: clean(row.created_at_text),
+    }));
+
+    if (employeeId) rows = rows.filter((row) => row.employeeId === String(employeeId));
+    if (status) rows = rows.filter((row) => row.status === status);
+    if (from) rows = rows.filter((row) => row.endDate >= from);
+    if (to) rows = rows.filter((row) => row.startDate <= to);
+    if (search) {
+      rows = rows.filter((row) => [row.employeeNo, row.employeeName, row.departmentName, row.jobTitleName, row.leaveTypeName, row.leaveType].some((value) => value.toLowerCase().includes(search)));
+    }
+
+    const summary = rows.reduce((acc, row) => {
+      acc.totalItems += 1;
+      if (row.status === 'pending') acc.pendingCount += 1;
+      if (row.status === 'approved') acc.approvedCount += 1;
+      if (row.status === 'rejected') acc.rejectedCount += 1;
+      if (row.status === 'cancelled') acc.cancelledCount += 1;
+      return acc;
+    }, { totalItems: 0, pendingCount: 0, approvedCount: 0, rejectedCount: 0, cancelledCount: 0 });
+
+    const paged = paginateRows(rows, query, { defaultSize: 25 });
+    return { requests: paged.rows, pagination: paged.pagination, summary };
+  }
+
+  async createLeaveRequest(payload: CreateLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const employeeId = toId(payload.employeeId);
+    if (!employeeId) throw new AppError('Employee is required', 'HR_LEAVE_EMPLOYEE_REQUIRED', 400);
+    const startDate = normalizeDateOnly(payload.startDate);
+    if (!startDate) throw new AppError('Leave start date is required', 'HR_LEAVE_START_DATE_REQUIRED', 400);
+    const endDate = normalizeDateOnly(payload.endDate);
+    if (!endDate) throw new AppError('Leave end date is required', 'HR_LEAVE_END_DATE_REQUIRED', 400);
+    if (endDate < startDate) throw new AppError('Leave end date must be after start date', 'HR_LEAVE_DATE_RANGE_INVALID', 400);
+    const leaveTypeId = toId(payload.leaveTypeId);
+    const leaveType = clean(payload.leaveType);
+    const computedDays = inclusiveDaysBetween(startDate, endDate);
+    const daysCount = Number(payload.daysCount || computedDays);
+    if (!Number.isFinite(daysCount) || daysCount <= 0) throw new AppError('Leave days count is invalid', 'HR_LEAVE_DAYS_COUNT_INVALID', 400);
+
+    await sql`
+      INSERT INTO hr_leave_requests (employee_id, leave_type_id, leave_type, start_date, end_date, days_count, status, reason, notes, created_by, updated_by, created_at, updated_at)
+      VALUES (${employeeId}, ${leaveTypeId}, ${leaveType || null}, ${startDate}::date, ${endDate}::date, ${Number(daysCount.toFixed(2))}, 'pending', ${clean(payload.reason) || null}, ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+    `.execute(this.db);
+
+    await this.audit.log('Create HR leave request', `Leave request created for employee #${employeeId} by ${auth.username}`, auth);
+    return this.listLeaveRequests({}, auth);
+  }
+
+  async approveLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const status = clean(current.rows[0]?.status);
+    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+    if (['cancelled', 'rejected'].includes(status)) throw new AppError('Cannot approve this leave request', 'HR_LEAVE_APPROVE_LOCKED', 400);
+    await sql`
+      UPDATE hr_leave_requests
+      SET status = 'approved',
+          decision_notes = ${clean(payload.decisionNotes) || null},
+          notes = ${clean(payload.notes) || null},
+          decided_by = ${auth.userId},
+          decided_at = NOW(),
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log('Approve HR leave request', `Leave request #${id} approved by ${auth.username}`, auth);
+    return this.listLeaveRequests({}, auth);
+  }
+
+  async rejectLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const status = clean(current.rows[0]?.status);
+    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+    if (['cancelled', 'approved'].includes(status)) throw new AppError('Cannot reject this leave request', 'HR_LEAVE_REJECT_LOCKED', 400);
+    await sql`
+      UPDATE hr_leave_requests
+      SET status = 'rejected',
+          decision_notes = ${clean(payload.decisionNotes) || null},
+          notes = ${clean(payload.notes) || null},
+          decided_by = ${auth.userId},
+          decided_at = NOW(),
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log('Reject HR leave request', `Leave request #${id} rejected by ${auth.username}`, auth);
+    return this.listLeaveRequests({}, auth);
+  }
+
+  async cancelLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const status = clean(current.rows[0]?.status);
+    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+    if (status === 'cancelled') return this.listLeaveRequests({}, auth);
+    await sql`
+      UPDATE hr_leave_requests
+      SET status = 'cancelled',
+          decision_notes = ${clean(payload.decisionNotes) || null},
+          notes = ${clean(payload.notes) || null},
+          decided_by = ${auth.userId},
+          decided_at = NOW(),
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log('Cancel HR leave request', `Leave request #${id} cancelled by ${auth.username}`, auth);
+    return this.listLeaveRequests({}, auth);
   }
 
   async withdrawals(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
