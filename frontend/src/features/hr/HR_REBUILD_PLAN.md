@@ -24,8 +24,9 @@
   - `/hr/employees/:id`
   - `/hr/settings`
   - `/hr/documents`
-- المسار التالي المخطط:
   - `/hr/loans`
+- المسار التالي المخطط:
+  - `/hr/payroll`
 
 ## مراحل التنفيذ
 1. التأسيس

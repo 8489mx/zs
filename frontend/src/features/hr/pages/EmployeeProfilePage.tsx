@@ -264,7 +264,7 @@ export function EmployeeProfilePage() {
           ) : <p className="muted">لا توجد مستندات مسجلة</p>}
         </Card>
 
-        <Card title="السلف والخصومات">
+        <Card title="السلف والخصومات" actions={<Button variant="secondary" onClick={() => navigate('/hr/loans')}>إدارة السلف</Button>}>
           {loans.length ? (
             <div className="table-wrap">
               <table className="data-table">
