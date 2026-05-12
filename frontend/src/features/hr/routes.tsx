@@ -12,9 +12,11 @@ export const hrRouteModule: FeatureRouteModule = {
     { path: 'hr/loans', element: createLazyRoute(() => import('@/features/hr/pages/HrLoansPage').then((module) => ({ default: module.HrLoansPage }))) },
     { path: 'hr/payroll', element: createLazyRoute(() => import('@/features/hr/pages/HrPayrollPage').then((module) => ({ default: module.HrPayrollPage }))) },
     { path: 'hr/attendance', element: createLazyRoute(() => import('@/features/hr/pages/HrAttendancePage').then((module) => ({ default: module.HrAttendancePage }))) },
+    { path: 'hr/leaves', element: createLazyRoute(() => import('@/features/hr/pages/HrLeavesPage').then((module) => ({ default: module.HrLeavesPage }))) },
   ],
   navigation: [{ key: 'hr', label: 'الموارد البشرية', to: '/hr' }],
 };
+
 
 
 

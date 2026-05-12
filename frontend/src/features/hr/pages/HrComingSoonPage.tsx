@@ -31,6 +31,7 @@ export function HrComingSoonPage() {
             <Button variant="secondary" onClick={() => navigate('/hr/loans')}>السلف والخصومات</Button>
             <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>المرتبات</Button>
             <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>الحضور والانصراف</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/leaves')}>الإجازات</Button>
           </div>
         )}
       />
