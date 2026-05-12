@@ -9,9 +9,11 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import {
+  BulkSaveAttendanceDto,
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
   LoanRepaymentDto,
+  UpsertAttendanceRecordDto,
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
@@ -129,6 +131,24 @@ function canViewSalary(auth: AuthContext): boolean {
 
 function hasHrPermission(auth: AuthContext, permission: string): boolean {
   return auth.role === 'super_admin' || auth.permissions.includes(permission);
+}
+
+const attendanceStatuses = ['present', 'absent', 'late', 'half_day', 'leave', 'excused', 'early_leave'] as const;
+type AttendanceStatus = (typeof attendanceStatuses)[number];
+
+function normalizeAttendanceStatus(value: unknown): AttendanceStatus | 'unmarked' {
+  const status = clean(value);
+  if (!status) return 'unmarked';
+  return attendanceStatuses.includes(status as AttendanceStatus) ? (status as AttendanceStatus) : 'unmarked';
+}
+
+function normalizeAttendanceSource(value: unknown): 'manual' | 'import' {
+  return clean(value) === 'import' ? 'import' : 'manual';
+}
+
+function todayUtcDate(): string {
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
 }
 
 @Injectable()
@@ -1190,6 +1210,169 @@ export class HrService {
     });
     await this.audit.log('Delete HR payroll adjustment', `Payroll adjustment #${id} deleted by ${auth.username}`, auth);
     return this.getPayrollRun(runId, auth);
+  }
+
+  async listAttendance(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate) || todayUtcDate();
+    if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
+    const search = clean(query.search).toLowerCase();
+
+    const result = await sql<Record<string, unknown>>`
+      SELECT
+        e.id AS employee_id,
+        e.employee_no,
+        e.display_name AS employee_name,
+        d.name AS department_name,
+        j.name AS job_title_name,
+        a.id AS attendance_id,
+        to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text,
+        a.status,
+        to_char(a.check_in_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS check_in_at_text,
+        to_char(a.check_out_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS check_out_at_text,
+        a.source,
+        a.notes
+      FROM hr_employees e
+      LEFT JOIN hr_departments d ON d.id = e.department_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
+      LEFT JOIN hr_attendance_records a ON a.employee_id = e.id AND a.work_date = ${workDate}::date
+      WHERE e.status IN ('active', 'inactive')
+      ORDER BY e.display_name ASC, e.id ASC
+    `.execute(this.db);
+
+    let rows = result.rows.map((row) => {
+      const status = normalizeAttendanceStatus(row.status);
+      return {
+        id: row.attendance_id ? String(row.attendance_id) : '',
+        employeeId: String(row.employee_id),
+        employeeNo: clean(row.employee_no),
+        employeeName: clean(row.employee_name),
+        departmentName: clean(row.department_name),
+        jobTitleName: clean(row.job_title_name),
+        workDate,
+        status: status === 'unmarked' ? '' : status,
+        checkInAt: clean(row.check_in_at_text),
+        checkOutAt: clean(row.check_out_at_text),
+        source: normalizeAttendanceSource(row.source),
+        notes: clean(row.notes),
+      };
+    });
+
+    if (search) {
+      rows = rows.filter((row) => [row.employeeNo, row.employeeName, row.departmentName, row.jobTitleName].some((value) => value.toLowerCase().includes(search)));
+    }
+
+    const summary = rows.reduce(
+      (acc, row) => {
+        const status = normalizeAttendanceStatus(row.status);
+        acc.totalItems += 1;
+        if (status === 'present') acc.presentCount += 1;
+        else if (status === 'absent') acc.absentCount += 1;
+        else if (status === 'late') acc.lateCount += 1;
+        else if (status === 'leave') acc.leaveCount += 1;
+        else if (status === 'unmarked') acc.unmarkedCount += 1;
+        return acc;
+      },
+      { totalItems: 0, presentCount: 0, absentCount: 0, lateCount: 0, leaveCount: 0, unmarkedCount: 0 },
+    );
+
+    const paged = paginateRows(rows, query, { defaultSize: 50 });
+    return { rows: paged.rows, pagination: paged.pagination, summary };
+  }
+
+  async bulkSaveAttendance(payload: BulkSaveAttendanceDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const workDate = normalizeDateOnly(payload.workDate);
+    if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
+    if (!Array.isArray(payload.rows) || payload.rows.length === 0) {
+      throw new AppError('Attendance rows are required', 'HR_ATTENDANCE_ROWS_REQUIRED', 400);
+    }
+
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      for (const row of payload.rows) {
+        const employeeId = toId(row.employeeId);
+        if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
+        const status = normalizeAttendanceStatus(row.status);
+        if (status === 'unmarked') throw new AppError('Attendance status is invalid', 'HR_ATTENDANCE_STATUS_INVALID', 400);
+        const checkInAt = row.checkInAt ? new Date(row.checkInAt) : null;
+        const checkOutAt = row.checkOutAt ? new Date(row.checkOutAt) : null;
+        if ((checkInAt && Number.isNaN(checkInAt.getTime())) || (checkOutAt && Number.isNaN(checkOutAt.getTime()))) {
+          throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
+        }
+        await sql`
+          INSERT INTO hr_attendance_records (employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
+          VALUES (
+            ${employeeId},
+            ${workDate}::date,
+            ${status},
+            ${checkInAt ? checkInAt.toISOString() : null},
+            ${checkOutAt ? checkOutAt.toISOString() : null},
+            ${normalizeAttendanceSource(row.source)},
+            ${clean(row.notes) || null},
+            ${auth.userId},
+            ${auth.userId},
+            NOW(),
+            NOW()
+          )
+          ON CONFLICT (employee_id, work_date) DO UPDATE
+          SET
+            status = EXCLUDED.status,
+            check_in_at = EXCLUDED.check_in_at,
+            check_out_at = EXCLUDED.check_out_at,
+            source = EXCLUDED.source,
+            notes = EXCLUDED.notes,
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+        `.execute(trx);
+      }
+    });
+
+    await this.audit.log('Save HR attendance day', `Attendance saved for ${workDate} by ${auth.username}`, auth);
+    return this.listAttendance({ date: workDate }, auth);
+  }
+
+  async upsertAttendanceRecord(payload: UpsertAttendanceRecordDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const workDate = normalizeDateOnly(payload.workDate);
+    if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
+    const employeeId = toId(payload.employeeId);
+    if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
+    const status = normalizeAttendanceStatus(payload.status);
+    if (status === 'unmarked') throw new AppError('Attendance status is invalid', 'HR_ATTENDANCE_STATUS_INVALID', 400);
+    const checkInAt = payload.checkInAt ? new Date(payload.checkInAt) : null;
+    const checkOutAt = payload.checkOutAt ? new Date(payload.checkOutAt) : null;
+    if ((checkInAt && Number.isNaN(checkInAt.getTime())) || (checkOutAt && Number.isNaN(checkOutAt.getTime()))) {
+      throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
+    }
+
+    await sql`
+      INSERT INTO hr_attendance_records (employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
+      VALUES (
+        ${employeeId},
+        ${workDate}::date,
+        ${status},
+        ${checkInAt ? checkInAt.toISOString() : null},
+        ${checkOutAt ? checkOutAt.toISOString() : null},
+        ${normalizeAttendanceSource(payload.source)},
+        ${clean(payload.notes) || null},
+        ${auth.userId},
+        ${auth.userId},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (employee_id, work_date) DO UPDATE
+      SET
+        status = EXCLUDED.status,
+        check_in_at = EXCLUDED.check_in_at,
+        check_out_at = EXCLUDED.check_out_at,
+        source = EXCLUDED.source,
+        notes = EXCLUDED.notes,
+        updated_by = ${auth.userId},
+        updated_at = NOW()
+    `.execute(this.db);
+
+    await this.audit.log('Upsert HR attendance record', `Attendance record saved for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
+    return this.listAttendance({ date: workDate }, auth);
   }
 
   async withdrawals(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {

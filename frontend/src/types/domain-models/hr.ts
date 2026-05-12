@@ -4,4 +4,5 @@ export * from './hr/documents';
 export * from './hr/contracts';
 export * from './hr/loans';
 export * from './hr/payroll';
+export * from './hr/attendance';
 export * from './hr/summary';

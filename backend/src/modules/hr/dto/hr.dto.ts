@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class UpsertHrMasterDataDto {
   @IsString()
@@ -345,4 +345,42 @@ export class CreatePayrollAdjustmentDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+}
+
+export class UpsertAttendanceRecordDto {
+  @Type(() => Number)
+  @IsNumber()
+  employeeId!: number;
+
+  @IsDateString()
+  workDate!: string;
+
+  @IsOptional()
+  @IsIn(['present', 'absent', 'late', 'half_day', 'leave', 'excused', 'early_leave'])
+  status?: string;
+
+  @IsOptional()
+  @IsDateString()
+  checkInAt?: string;
+
+  @IsOptional()
+  @IsDateString()
+  checkOutAt?: string;
+
+  @IsOptional()
+  @IsIn(['manual', 'import'])
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class BulkSaveAttendanceDto {
+  @IsDateString()
+  workDate!: string;
+
+  @IsArray()
+  rows!: UpsertAttendanceRecordDto[];
 }

@@ -4,9 +4,11 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import {
+  BulkSaveAttendanceDto,
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
   LoanRepaymentDto,
+  UpsertAttendanceRecordDto,
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
@@ -27,6 +29,24 @@ export class HrController {
   @RequirePermissions('hr')
   summary(@Req() req: RequestWithAuth) {
     return this.hr.summary(req.authContext!);
+  }
+
+  @Get('attendance')
+  @RequirePermissions('hrEmployees')
+  listAttendance(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listAttendance(query, req.authContext!);
+  }
+
+  @Post('attendance')
+  @RequirePermissions('hrEmployees')
+  saveAttendanceDay(@Body() payload: BulkSaveAttendanceDto, @Req() req: RequestWithAuth) {
+    return this.hr.bulkSaveAttendance(payload, req.authContext!);
+  }
+
+  @Post('attendance/record')
+  @RequirePermissions('hrEmployees')
+  saveAttendanceRecord(@Body() payload: UpsertAttendanceRecordDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertAttendanceRecord(payload, req.authContext!);
   }
 
   @Get('withdrawals')

@@ -705,6 +705,21 @@ export interface HrEmployeeLedgerTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface HrAttendanceRecordTable {
+  id: Generated<number>;
+  employee_id: number;
+  work_date: ColumnType<string, string | undefined, string | undefined>;
+  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'excused' | 'early_leave';
+  check_in_at: Date | null;
+  check_out_at: Date | null;
+  source: 'manual' | 'import';
+  notes: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface HrPayrollRunTable {
   id: Generated<number>;
   period_month: string;
@@ -805,6 +820,7 @@ export interface Database {
   hr_employee_loans: HrEmployeeLoanTable;
   hr_employee_loan_installments: HrEmployeeLoanInstallmentTable;
   hr_employee_ledger: HrEmployeeLedgerTable;
+  hr_attendance_records: HrAttendanceRecordTable;
   hr_payroll_runs: HrPayrollRunTable;
   hr_payroll_run_items: HrPayrollRunItemTable;
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;

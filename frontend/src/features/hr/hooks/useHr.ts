@@ -45,6 +45,16 @@ export function useHrPayrollRun(runId?: string) {
   });
 }
 
+export function useHrAttendance(params: HrListParams & { date?: string; workDate?: string }) {
+  const key = paramsKey(params);
+  const dateKey = String(params.date || params.workDate || '');
+  return useQuery({
+    queryKey: ['hr', 'attendance', dateKey, key],
+    queryFn: () => hrApi.attendance(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
 export function useHrMutations() {
   const queryClient = useQueryClient();
   const invalidate = async () => {
@@ -59,6 +69,8 @@ export function useHrMutations() {
     saveDocument: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveDocument(employeeId, payload, id), onSuccess: invalidate }),
     saveContract: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveContract(employeeId, payload, id), onSuccess: invalidate }),
     saveCompensation: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveCompensation(employeeId, payload, id), onSuccess: invalidate }),
+    saveAttendanceDay: useMutation({ mutationFn: (payload: unknown) => hrApi.saveAttendanceDay(payload), onSuccess: invalidate }),
+    saveAttendanceRecord: useMutation({ mutationFn: (payload: unknown) => hrApi.saveAttendanceRecord(payload), onSuccess: invalidate }),
     saveLoan: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveLoan(payload, id), onSuccess: invalidate }),
     approveLoan: useMutation({ mutationFn: (id: string) => hrApi.approveLoan(id), onSuccess: invalidate }),
     disburseLoan: useMutation({ mutationFn: (id: string) => hrApi.disburseLoan(id), onSuccess: invalidate }),

@@ -1,23 +1,23 @@
 ﻿# جرد Backend الحضور قبل التنفيذ
 
 ## 1) هل يوجد backend للحضور حاليًا؟
-**النتيجة: غير موجود حاليًا (بالنسبة للحضور).**
+**النتيجة: تم تنفيذ MVP للحضور.**
 
 بناءً على الفحص:
-- `hr.controller.ts`: لا توجد endpoints للحضور والانصراف (لا list attendance، لا save attendance، لا check-in/check-out).
-- `hr.service.ts`: لا توجد service methods خاصة بالحضور اليومي.
-- `hr.dto.ts`: لا توجد DTOs مخصصة للحضور.
-- `database.types.ts`: لا يوجد جدول HR attendance واضح ضمن جداول الموارد البشرية الحالية.
-- `migrations`: لا توجد migration مخصصة للحضور حتى الآن.
-- `frontend hr.api.ts` و `useHr.ts`: لا توجد دوال/هوكس حقيقية لقراءة/حفظ سجلات الحضور.
+- `hr.controller.ts`: تمت إضافة endpoints للحضور (`GET /attendance`, `POST /attendance`, `POST /attendance/record`).
+- `hr.service.ts`: تمت إضافة list/save/upsert للحضور اليومي.
+- `hr.dto.ts`: تمت إضافة DTOs مخصصة للحضور.
+- `database.types.ts`: تمت إضافة جدول `hr_attendance_records`.
+- `migrations`: تمت إضافة migration للحضور.
+- `frontend hr.api.ts` و `useHr.ts`: تمت إضافة دوال/هوكس فعلية لقراءة/حفظ سجلات الحضور.
 
 ## 2) الوضع الحالي لصفحة /hr/attendance
-الصفحة الحالية **readiness/shell** وليست متصلة ببيانات حضور فعلية.
+الصفحة الحالية متصلة ببيانات حضور فعلية عبر API.
 
 تفصيلاً:
-- تستخدم بيانات الموظفين الحقيقية عبر `useHrWorkspace`.
-- تعرض رسالة واضحة أن تسجيل الحضور يحتاج ربط API قبل الاستخدام الفعلي.
-- لا تعرض سجلات حضور فعلية، ولا تنفذ حفظ حضور/انصراف من backend.
+- تستخدم API الحضور لعرض حالة كل موظف في اليوم المحدد.
+- تدعم حفظ اليوم بشكل bulk.
+- تدعم تعديل حالة/مواعيد/ملاحظات لكل موظف.
 
 ## 3) نطاق الحضور المطلوب
 الاتجاه المعتمد:

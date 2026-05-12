@@ -2,6 +2,7 @@ import { http } from '@/lib/http';
 import { buildQueryString } from '@/lib/query-string';
 import type {
   HrCompensationPackage,
+  HrAttendanceRecord,
   HrContact,
   HrContract,
   HrDocument,
@@ -55,6 +56,18 @@ interface PayrollRunsResponse {
 
 interface PayrollRunResponse {
   run?: HrPayrollRun;
+}
+
+interface AttendanceResponse {
+  rows?: HrAttendanceRecord[];
+  summary?: {
+    totalItems?: number;
+    presentCount?: number;
+    absentCount?: number;
+    lateCount?: number;
+    leaveCount?: number;
+    unmarkedCount?: number;
+  };
 }
 
 interface RowsResponse<T> {
@@ -152,6 +165,25 @@ function normalizeHrEmployeeRow(row: HrEmployee | HrApiDateRecord): HrEmployee {
   };
 }
 
+function normalizeHrAttendanceRow(row: HrAttendanceRecord | HrApiDateRecord): HrAttendanceRecord {
+  const source = row as HrApiDateRecord;
+  return {
+    ...(row as HrAttendanceRecord),
+    id: apiPick(source, ['id']) || (row as HrAttendanceRecord).id || '',
+    employeeId: apiPick(source, ['employeeId', 'employee_id']) || (row as HrAttendanceRecord).employeeId || '',
+    employeeNo: apiPick(source, ['employeeNo', 'employee_no']) || (row as HrAttendanceRecord).employeeNo || '',
+    employeeName: apiPick(source, ['employeeName', 'employee_name']) || (row as HrAttendanceRecord).employeeName || '',
+    departmentName: apiPick(source, ['departmentName', 'department_name']) || (row as HrAttendanceRecord).departmentName || '',
+    jobTitleName: apiPick(source, ['jobTitleName', 'job_title_name']) || (row as HrAttendanceRecord).jobTitleName || '',
+    workDate: normalizeApiDateOnly(apiPick(source, ['workDate', 'work_date', 'work_date_text'])) || (row as HrAttendanceRecord).workDate || '',
+    status: apiPick(source, ['status']) || (row as HrAttendanceRecord).status || '',
+    checkInAt: normalizeApiDateTime(apiPick(source, ['checkInAt', 'check_in_at', 'check_in_at_text'])) || (row as HrAttendanceRecord).checkInAt || '',
+    checkOutAt: normalizeApiDateTime(apiPick(source, ['checkOutAt', 'check_out_at', 'check_out_at_text'])) || (row as HrAttendanceRecord).checkOutAt || '',
+    source: apiPick(source, ['source']) || (row as HrAttendanceRecord).source || '',
+    notes: apiPick(source, ['notes']) || (row as HrAttendanceRecord).notes || '',
+  };
+}
+
 export const hrApi = {
   summary: async () => (await http<{ summary?: HrSummary }>('/api/hr/summary')).summary || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 },
   withdrawals: async (params: HrListParams = {}) => {
@@ -165,6 +197,12 @@ export const hrApi = {
     const response = await http<EmployeesResponse>(`/api/hr/employees${buildQueryString(params)}`);
     return { ...response, employees: (response.employees || []).map(normalizeHrEmployeeRow) };
   },
+  attendance: async (params: HrListParams & { date?: string; workDate?: string } = {}) => {
+    const response = await http<AttendanceResponse>(`/api/hr/attendance${buildQueryString(params)}`);
+    return { ...response, rows: (response.rows || []).map(normalizeHrAttendanceRow) };
+  },
+  saveAttendanceDay: (payload: unknown) => http<AttendanceResponse>('/api/hr/attendance', { method: 'POST', body: JSON.stringify(payload) }),
+  saveAttendanceRecord: (payload: unknown) => http<AttendanceResponse>('/api/hr/attendance/record', { method: 'POST', body: JSON.stringify(payload) }),
   saveEmployee: (payload: unknown, id?: string) => http(`/api/hr/employees${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   deactivateEmployee: (id: string) => http(`/api/hr/employees/${id}`, { method: 'DELETE' }),
   profile: async (id: string) => {
