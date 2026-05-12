@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -31,12 +31,23 @@ function toId(value: string) {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined;
 }
 
-function fallbackText(value: unknown) {
+function text(value: unknown) {
   return String(value || '').trim() || '—';
 }
 
-function activeLabel(isActive: unknown) {
-  return isActive === false ? 'غير نشط' : 'نشط';
+function isActiveValue(value: unknown) {
+  return value !== false;
+}
+
+function statusLabel(isActive: unknown) {
+  return isActiveValue(isActive) ? 'نشط' : 'غير نشط';
+}
+
+function stats(rows: Array<{ isActive?: boolean }>) {
+  const total = rows.length;
+  const active = rows.filter((row) => isActiveValue(row.isActive)).length;
+  const inactive = Math.max(0, total - active);
+  return { total, active, inactive };
 }
 
 export function HrSettingsPage() {
@@ -44,6 +55,7 @@ export function HrSettingsPage() {
   const workspace = useHrWorkspace({ page: 1, pageSize: 200 });
   const mutations = useHrMutations();
 
+  const [settingsSearch, setSettingsSearch] = useState('');
   const [departmentDraft, setDepartmentDraft] = useState<MasterDraft>(initialDraft);
   const [jobTitleDraft, setJobTitleDraft] = useState<MasterDraft>(initialDraft);
   const [positionDraft, setPositionDraft] = useState<MasterDraft>(initialDraft);
@@ -57,6 +69,34 @@ export function HrSettingsPage() {
   const jobTitles = useMemo(() => workspace.jobTitles.data?.rows || [], [workspace.jobTitles.data?.rows]);
   const positions = useMemo(() => workspace.positions.data?.rows || [], [workspace.positions.data?.rows]);
 
+  const searchValue = settingsSearch.trim().toLowerCase();
+
+  const filteredDepartments = useMemo(
+    () => departments.filter((row) => !searchValue
+      || String(row.name || '').toLowerCase().includes(searchValue)
+      || String(row.code || '').toLowerCase().includes(searchValue)
+      || String(row.description || '').toLowerCase().includes(searchValue)),
+    [departments, searchValue],
+  );
+
+  const filteredJobTitles = useMemo(
+    () => jobTitles.filter((row) => !searchValue
+      || String(row.name || '').toLowerCase().includes(searchValue)
+      || String(row.code || '').toLowerCase().includes(searchValue)
+      || String(row.description || '').toLowerCase().includes(searchValue)),
+    [jobTitles, searchValue],
+  );
+
+  const filteredPositions = useMemo(
+    () => positions.filter((row) => !searchValue
+      || String(row.name || '').toLowerCase().includes(searchValue)
+      || String(row.code || '').toLowerCase().includes(searchValue)
+      || String(row.departmentName || '').toLowerCase().includes(searchValue)
+      || String(row.jobTitleName || '').toLowerCase().includes(searchValue)
+      || String(row.description || '').toLowerCase().includes(searchValue)),
+    [positions, searchValue],
+  );
+
   async function saveKind(kind: MasterKind) {
     const draft = kind === 'departments' ? departmentDraft : kind === 'job-titles' ? jobTitleDraft : positionDraft;
     const name = String(draft.name || '').trim();
@@ -64,6 +104,7 @@ export function HrSettingsPage() {
       setErrors((current) => ({ ...current, [kind]: 'الاسم مطلوب.' }));
       return;
     }
+
     setErrors((current) => ({ ...current, [kind]: '' }));
 
     const payload: Record<string, unknown> = {
@@ -88,14 +129,30 @@ export function HrSettingsPage() {
   }
 
   const isBusy = mutations.saveMasterData.isPending;
+  const departmentStats = stats(departments);
+  const jobTitleStats = stats(jobTitles);
+  const positionStats = stats(positions);
 
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="إعدادات الموارد البشرية"
-        description="إدارة البيانات الأساسية التي يعتمد عليها ملف الموظف."
+        description="إدارة بيانات الأساس التي يعتمد عليها ملف الموظف والتقارير داخل الموارد البشرية."
         actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>}
       />
+
+      <Card>
+        <div className="form-grid">
+          <label className="field">
+            <span>بحث في الإعدادات</span>
+            <input
+              value={settingsSearch}
+              onChange={(event) => setSettingsSearch(event.target.value)}
+              placeholder="بحث في الإعدادات"
+            />
+          </label>
+        </div>
+      </Card>
 
       <QueryFeedback
         isLoading={workspace.departments.isLoading || workspace.jobTitles.isLoading || workspace.positions.isLoading}
@@ -105,10 +162,19 @@ export function HrSettingsPage() {
         loadingText="جاري تحميل إعدادات الموارد البشرية..."
         errorTitle="تعذر تحميل إعدادات الموارد البشرية"
       >
-        <Card title="الأقسام">
+        <Card title="الأقسام" description="الأقسام التي يتم ربط الموظفين بها داخل الشركة.">
+          <p className="muted" style={{ marginTop: 0 }}>
+            استخدم كودًا قصيرًا اختياريًا مثل SALES أو OPS لو الشركة بتعتمد على الأكواد.
+          </p>
+          {departments.length ? (
+            <div className="muted" style={{ marginBottom: 12 }}>
+              إجمالي: {departmentStats.total} | نشط: {departmentStats.active} | غير نشط: {departmentStats.inactive}
+            </div>
+          ) : null}
+
           <div className="form-grid">
             <div className="field">
-              <span>الاسم</span>
+              <span>الاسم *</span>
               <input value={departmentDraft.name} onChange={(e) => setDepartmentDraft((current) => ({ ...current, name: e.target.value }))} />
             </div>
             <div className="field">
@@ -125,25 +191,34 @@ export function HrSettingsPage() {
             <Button onClick={() => { void saveKind('departments'); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ'}</Button>
           </div>
 
-          {departments.length ? (
+          {filteredDepartments.length ? (
             <DataTable
-              rows={departments}
+              rows={filteredDepartments}
               rowKey={(row) => String(row.id)}
               density="compact"
               columns={[
-                { key: 'name', header: 'الاسم', cell: (row) => fallbackText(row.name) },
-                { key: 'code', header: 'الكود', cell: (row) => fallbackText(row.code) },
-                { key: 'description', header: 'الوصف', cell: (row) => fallbackText(row.description) },
-                { key: 'status', header: 'الحالة', cell: (row) => activeLabel(row.isActive) },
+                { key: 'name', header: 'الاسم', cell: (row) => text(row.name) },
+                { key: 'code', header: 'الكود', cell: (row) => text(row.code) },
+                { key: 'description', header: 'الوصف', cell: (row) => text(row.description) },
+                { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) },
               ]}
             />
-          ) : <p className="muted">لا توجد أقسام مسجلة.</p>}
+          ) : <p className="muted">لا توجد أقسام مسجلة. ابدأ بإضافة أول قسم.</p>}
         </Card>
 
-        <Card title="المسميات الوظيفية">
+        <Card title="المسميات الوظيفية" description="المسميات التي تظهر في ملف الموظف والتقارير.">
+          <p className="muted" style={{ marginTop: 0 }}>
+            استخدم كودًا قصيرًا اختياريًا مثل SALES أو OPS لو الشركة بتعتمد على الأكواد.
+          </p>
+          {jobTitles.length ? (
+            <div className="muted" style={{ marginBottom: 12 }}>
+              إجمالي: {jobTitleStats.total} | نشط: {jobTitleStats.active} | غير نشط: {jobTitleStats.inactive}
+            </div>
+          ) : null}
+
           <div className="form-grid">
             <div className="field">
-              <span>الاسم</span>
+              <span>الاسم *</span>
               <input value={jobTitleDraft.name} onChange={(e) => setJobTitleDraft((current) => ({ ...current, name: e.target.value }))} />
             </div>
             <div className="field">
@@ -160,25 +235,34 @@ export function HrSettingsPage() {
             <Button onClick={() => { void saveKind('job-titles'); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ'}</Button>
           </div>
 
-          {jobTitles.length ? (
+          {filteredJobTitles.length ? (
             <DataTable
-              rows={jobTitles}
+              rows={filteredJobTitles}
               rowKey={(row) => String(row.id)}
               density="compact"
               columns={[
-                { key: 'name', header: 'الاسم', cell: (row) => fallbackText(row.name) },
-                { key: 'code', header: 'الكود', cell: (row) => fallbackText(row.code) },
-                { key: 'description', header: 'الوصف', cell: (row) => fallbackText(row.description) },
-                { key: 'status', header: 'الحالة', cell: (row) => activeLabel(row.isActive) },
+                { key: 'name', header: 'الاسم', cell: (row) => text(row.name) },
+                { key: 'code', header: 'الكود', cell: (row) => text(row.code) },
+                { key: 'description', header: 'الوصف', cell: (row) => text(row.description) },
+                { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) },
               ]}
             />
-          ) : <p className="muted">لا توجد مسميات وظيفية مسجلة.</p>}
+          ) : <p className="muted">لا توجد مسميات وظيفية مسجلة. ابدأ بإضافة أول مسمى.</p>}
         </Card>
 
-        <Card title="الوظائف/المناصب">
+        <Card title="الوظائف/المناصب" description="الوظائف التفصيلية المرتبطة بالقسم والمسمى الوظيفي.">
+          <p className="muted" style={{ marginTop: 0 }}>
+            استخدم كودًا قصيرًا اختياريًا مثل SALES أو OPS لو الشركة بتعتمد على الأكواد.
+          </p>
+          {positions.length ? (
+            <div className="muted" style={{ marginBottom: 12 }}>
+              إجمالي: {positionStats.total} | نشط: {positionStats.active} | غير نشط: {positionStats.inactive}
+            </div>
+          ) : null}
+
           <div className="form-grid">
             <div className="field">
-              <span>الاسم</span>
+              <span>الاسم *</span>
               <input value={positionDraft.name} onChange={(e) => setPositionDraft((current) => ({ ...current, name: e.target.value }))} />
             </div>
             <div className="field">
@@ -209,20 +293,20 @@ export function HrSettingsPage() {
             <Button onClick={() => { void saveKind('positions'); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ'}</Button>
           </div>
 
-          {positions.length ? (
+          {filteredPositions.length ? (
             <DataTable
-              rows={positions}
+              rows={filteredPositions}
               rowKey={(row) => String(row.id)}
               density="compact"
               columns={[
-                { key: 'name', header: 'الاسم', cell: (row) => fallbackText(row.name) },
-                { key: 'code', header: 'الكود', cell: (row) => fallbackText(row.code) },
-                { key: 'department', header: 'القسم', cell: (row) => fallbackText(row.departmentName) },
-                { key: 'jobTitle', header: 'المسمى الوظيفي', cell: (row) => fallbackText(row.jobTitleName) },
-                { key: 'status', header: 'الحالة', cell: (row) => activeLabel(row.isActive) },
+                { key: 'name', header: 'الاسم', cell: (row) => text(row.name) },
+                { key: 'code', header: 'الكود', cell: (row) => text(row.code) },
+                { key: 'department', header: 'القسم', cell: (row) => text(row.departmentName) },
+                { key: 'jobTitle', header: 'المسمى الوظيفي', cell: (row) => text(row.jobTitleName) },
+                { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) },
               ]}
             />
-          ) : <p className="muted">لا توجد وظائف أو مناصب مسجلة.</p>}
+          ) : <p className="muted">لا توجد وظائف أو مناصب مسجلة. ابدأ بإضافة أول وظيفة.</p>}
         </Card>
       </QueryFeedback>
     </div>
