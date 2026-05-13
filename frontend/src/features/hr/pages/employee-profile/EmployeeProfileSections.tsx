@@ -1,5 +1,5 @@
 import type { HrContact, HrLedgerEntry } from '@/types/domain';
-import { fallbackText, money } from './employee-profile.helpers';
+import { fallbackText, money } from '@/features/hr/utils/employee-profile.helpers';
 
 interface ContactsSectionProps {
   contacts: HrContact[];

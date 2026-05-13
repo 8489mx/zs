@@ -16,7 +16,7 @@ import {
   normalizeDateOnly,
   pickPrimaryPhone,
   statusLabel,
-} from '@/features/hr/pages/employee-profile/employee-profile.helpers';
+} from '@/features/hr/utils/employee-profile.helpers';
 
 interface DocumentDraft {
   title: string;
