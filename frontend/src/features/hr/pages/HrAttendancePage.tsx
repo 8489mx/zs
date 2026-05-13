@@ -6,7 +6,7 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { getErrorMessage } from '@/shared/lib/error';
+import { getErrorMessage } from '@/lib/errors';
 import type { HrAttendanceRecord } from '@/types/domain';
 import { useHrAttendance, useHrMutations } from '@/features/hr/hooks/useHr';
 
@@ -190,7 +190,7 @@ export function HrAttendancePage() {
       <Card title="إجراءات سريعة">
         <div className="actions compact-actions">
           <Button type="button" variant="secondary" onClick={markAllVisiblePresent}>تحديد الكل حاضر</Button>
-          {hasPendingChanges ? <Button type="button" variant="ghost" onClick={resetDraft}>مسح التعديلات غير المحفوظة</Button> : null}
+          {hasPendingChanges ? <Button type="button" variant="secondary" onClick={resetDraft}>مسح التعديلات غير المحفوظة</Button> : null}
           <Button type="button" onClick={saveDay} disabled={mutations.saveAttendanceDay.isPending}>
             {mutations.saveAttendanceDay.isPending ? 'جاري الحفظ...' : 'حفظ اليوم'}
           </Button>
@@ -283,3 +283,5 @@ export function HrAttendancePage() {
     </div>
   );
 }
+
+

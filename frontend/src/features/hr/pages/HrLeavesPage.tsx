@@ -6,7 +6,7 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { getErrorMessage } from '@/shared/lib/error';
+import { getErrorMessage } from '@/lib/errors';
 import type { HrEmployee, HrLeaveRequest, HrLeaveType } from '@/types/domain';
 import { useHrLeaveRequests, useHrLeaveTypes, useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
 
@@ -332,3 +332,4 @@ export function HrLeavesPage() {
     </div>
   );
 }
+
