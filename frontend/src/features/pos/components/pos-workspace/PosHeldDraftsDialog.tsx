@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -10,6 +10,8 @@ interface PosHeldDraftsDialogProps {
   open: boolean;
   heldDrafts: HeldPosDraftSummary[];
   hasActiveCart: boolean;
+  requestedRecallDraftId?: string;
+  onRequestedRecallHandled?: () => void;
   onClose: () => void;
   onRecall: (draftId: string) => Promise<void>;
   onDelete: (draftId: string) => Promise<void>;
@@ -20,6 +22,8 @@ export function PosHeldDraftsDialog({
   open,
   heldDrafts,
   hasActiveCart,
+  requestedRecallDraftId = '',
+  onRequestedRecallHandled,
   onClose,
   onRecall,
   onDelete,
@@ -27,6 +31,7 @@ export function PosHeldDraftsDialog({
 }: PosHeldDraftsDialogProps) {
   const [pendingRecallId, setPendingRecallId] = useState('');
   const [confirmReplaceId, setConfirmReplaceId] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const replaceDraft = useMemo(
     () => heldDrafts.find((entry) => entry.id === confirmReplaceId) || null,
@@ -44,6 +49,63 @@ export function PosHeldDraftsDialog({
     onClose();
   }
 
+  useEffect(() => {
+    if (!open) return;
+    setSelectedIndex((current) => {
+      if (!heldDrafts.length) return 0;
+      return Math.min(current, heldDrafts.length - 1);
+    });
+  }, [heldDrafts, open]);
+
+  useEffect(() => {
+    if (!open || !requestedRecallDraftId) return;
+    const exists = heldDrafts.some((entry) => entry.id === requestedRecallDraftId);
+    if (!exists) {
+      onRequestedRecallHandled?.();
+      return;
+    }
+    void requestRecall(requestedRecallDraftId);
+    onRequestedRecallHandled?.();
+  }, [heldDrafts, onRequestedRecallHandled, open, requestedRecallDraftId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTypingTarget = Boolean(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable));
+      if (isTypingTarget) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (!heldDrafts.length) return;
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSelectedIndex((current) => Math.min(current + 1, heldDrafts.length - 1));
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSelectedIndex((current) => Math.max(current - 1, 0));
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const draft = heldDrafts[selectedIndex];
+        if (draft) void requestRecall(draft.id);
+        return;
+      }
+      if (event.key === 'Delete') {
+        event.preventDefault();
+        const draft = heldDrafts[selectedIndex];
+        if (draft) void onDelete(draft.id);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [heldDrafts, onClose, onDelete, open, selectedIndex]);
+
   if (!open) return null;
 
   return (
@@ -53,7 +115,11 @@ export function PosHeldDraftsDialog({
           {heldDrafts.length ? (
             <div className="list-stack">
               {heldDrafts.map((draft) => (
-                <div key={draft.id} className="list-row pos-held-draft-dialog-row">
+                <div
+                  key={draft.id}
+                  className={`list-row pos-held-draft-dialog-row ${heldDrafts[selectedIndex]?.id === draft.id ? 'is-selected' : ''}`.trim()}
+                  onClick={() => setSelectedIndex(heldDrafts.findIndex((entry) => entry.id === draft.id))}
+                >
                   <div className="pos-held-draft-dialog-copy">
                     <strong>{draft.label || 'عميل نقدي'}</strong>
                     <small className="muted">عدد العناصر: {draft.itemsCount}</small>

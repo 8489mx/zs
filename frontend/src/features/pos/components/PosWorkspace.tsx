@@ -32,6 +32,7 @@ export function PosWorkspace() {
   const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
+  const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
   const allowNegativeStockSales = isNegativeStockSalesAllowed(pos.settingsQuery.data);
@@ -103,6 +104,17 @@ export function PosWorkspace() {
     if (pos.createSale.isPending) return;
     setCheckoutDialogOpen(true);
   }, [pos.createSale.isPending]);
+
+  const requestRecallHeldDraftByIndex = useCallback((index: number) => {
+    const targetDraft = pos.heldDraftSummaries[index];
+    if (!targetDraft) return;
+    if (!pos.cart.length) {
+      void pos.recallDraft(targetDraft.id);
+      return;
+    }
+    setShortcutRecallDraftId(targetDraft.id);
+    setHeldDraftsDialogOpen(true);
+  }, [pos]);
 
   const handleQuickAddSubmit = useCallback((rawCode?: string) => {
     const code = String(rawCode ?? pos.quickAddCode).trim();
@@ -236,6 +248,8 @@ export function PosWorkspace() {
     onRequestClearCart: requestClearCart,
     onRequestLineDelete: requestLineDelete,
     onRequestCheckout: requestCheckoutDialog,
+    onOpenHeldDrafts: () => setHeldDraftsDialogOpen(true),
+    onRecallHeldDraftByIndex: requestRecallHeldDraftByIndex,
   });
 
   return (
@@ -290,7 +304,12 @@ export function PosWorkspace() {
         open={heldDraftsDialogOpen}
         heldDrafts={pos.heldDraftSummaries}
         hasActiveCart={pos.cart.length > 0}
-        onClose={() => setHeldDraftsDialogOpen(false)}
+        requestedRecallDraftId={shortcutRecallDraftId}
+        onRequestedRecallHandled={() => setShortcutRecallDraftId('')}
+        onClose={() => {
+          setHeldDraftsDialogOpen(false);
+          setShortcutRecallDraftId('');
+        }}
         onRecall={async (draftId) => { await pos.recallDraft(draftId); }}
         onDelete={async (draftId) => { await pos.deleteDraft(draftId); }}
         onClearAll={async () => { await pos.clearHeldDrafts(); }}

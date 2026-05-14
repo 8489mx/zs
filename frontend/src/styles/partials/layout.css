@@ -69,6 +69,26 @@
 .brand-title { width: 100%; font-size: 15px; font-weight: 800; line-height: 1.15; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-sub { width: 100%; font-size: 10px; color: var(--muted); line-height: 1.25; text-align: center; }
 .sidebar-nav { display:flex; flex-direction:column; gap:5px; flex:1 1 auto; min-height:0; overflow:auto; padding-left:2px; scrollbar-width:thin; }
+.sidebar-group { display: grid; gap: 6px; }
+.sidebar-group-trigger {
+  position: relative;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #1e293b;
+  background: transparent;
+  cursor: pointer;
+}
+.sidebar-group-trigger:hover { background: rgba(255,255,255,.86); border-color: var(--sidebar-border); box-shadow: 0 10px 22px rgba(148, 163, 184, 0.10); transform: translateY(-1px); }
+.sidebar-group.is-active .sidebar-group-trigger { border-color: var(--icon-border, #bfdbfe); color: var(--icon-fg, #1d4ed8); background: rgba(255,255,255,.76); }
+.sidebar-group-chevron { margin-inline-start: auto; color: #64748b; font-size: 13px; }
+.sidebar-group-items { display: grid; gap: 5px; padding-inline-start: 14px; }
+.sidebar-link-sub { padding-block: 10px; }
 .sidebar-link {
   position: relative;
   padding: 12px 14px;
@@ -132,18 +152,19 @@
   .sidebar-fixed { width:100%; height:auto; position:static; border-left:none; border-bottom:1px solid var(--sidebar-border); padding-bottom: 12px; }
   .brand { min-height: 70px; padding: 8px 10px; margin-bottom: 8px; }
   .sidebar-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
     gap: 8px;
     padding: 4px 2px 2px;
     scrollbar-width: thin;
   }
   .sidebar-link {
-    flex: 0 0 auto;
-    min-width: 148px;
+    min-width: 0;
     padding: 10px 12px;
   }
+  .sidebar-group-trigger { min-width: 0; padding: 10px 12px; }
+  .sidebar-group-items { padding-inline-start: 10px; }
   .sidebar-label { font-size: 14px; }
   .sidebar-footer {
     display: flex;

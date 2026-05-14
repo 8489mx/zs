@@ -40,7 +40,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
               <div className="pos-cart-col pos-cart-col-product">
                 <div className="pos-cart-product-inline" title={itemCode ? `${item.name} - ${itemCode}` : item.name}>
                   <strong className="pos-cart-product-name">{item.name}</strong>
-                  {itemCode ? <span className="pos-cart-product-code">{itemCode}</span> : null}
+                  {itemCode ? <span className="pos-cart-product-code">#{itemCode}</span> : null}
                 </div>
               </div>
 
