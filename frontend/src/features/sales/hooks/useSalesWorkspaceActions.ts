@@ -15,9 +15,8 @@ export function useSalesWorkspaceActions(params: {
   setViewFilter: (value: 'all' | 'cash' | 'credit' | 'cancelled') => void;
   setSelectedSaleId: (value: string) => void;
   setSaleToCancel: (value: Sale | null) => void;
-  setSaleToEdit: (value: Sale | null) => void;
 }) {
-  const { search, viewFilter, totalItems, summary, topCustomers, setPage, setPageSize, setSearch, setViewFilter, setSelectedSaleId, setSaleToCancel, setSaleToEdit } = params;
+  const { search, viewFilter, totalItems, summary, topCustomers, setPage, setPageSize, setSearch, setViewFilter, setSelectedSaleId, setSaleToCancel } = params;
 
   async function exportSalesCsv() {
     const result = await salesApi.listAll({ search, filter: viewFilter });
@@ -45,7 +44,6 @@ export function useSalesWorkspaceActions(params: {
     setViewFilter('all');
     setSelectedSaleId('');
     setSaleToCancel(null);
-    setSaleToEdit(null);
   }
 
   async function copySalesSummary() {

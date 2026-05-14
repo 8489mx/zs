@@ -659,7 +659,7 @@
 
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(even),
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even {
-  background: #fef3c7;
+  background: #fde68a;
 }
 
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
@@ -1697,11 +1697,11 @@
 /* Stronger but still soft row separation color */
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(even),
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even {
-  background: #fde68a;
+  background: #f9dc75;
 }
 
 .content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even {
-  background: #fde68a;
+  background: #f9dc75;
 }
 
 /* Allow wrapping only on very narrow screens */

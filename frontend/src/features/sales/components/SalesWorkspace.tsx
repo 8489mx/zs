@@ -10,7 +10,6 @@ import { useSalesWorkspaceActions } from '@/features/sales/hooks/useSalesWorkspa
 import { SalesWorkspaceHeader } from '@/features/sales/components/SalesWorkspaceHeader';
 import { SalesRegisterCard } from '@/features/sales/components/SalesRegisterCard';
 import { SalesSidePanel } from '@/features/sales/components/SalesSidePanel';
-import { SaleEditDialog } from '@/features/sales/components/SaleEditDialog';
 import {
   getSaleCancelDescription,
   getSalesNextStep,
@@ -26,12 +25,11 @@ export function SalesWorkspace() {
   const [viewFilter, setViewFilter] = useState<'all' | 'cash' | 'credit' | 'cancelled'>('all');
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
-  const [saleToEdit, setSaleToEdit] = useState<Sale | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
 
   const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter });
-  const { saleDetailQuery, cancelMutation, updateMutation } = useSaleActions(selectedSaleId);
+  const { saleDetailQuery, cancelMutation } = useSaleActions(selectedSaleId);
   const settingsQuery = useSettingsQuery();
 
   const hasSellableProducts = availableProducts.length > 0;
@@ -75,7 +73,6 @@ export function SalesWorkspace() {
     setViewFilter,
     setSelectedSaleId,
     setSaleToCancel,
-    setSaleToEdit,
   });
 
   const handleViewFilterChange = (value: 'all' | 'cash' | 'credit' | 'cancelled') => {
@@ -120,7 +117,6 @@ export function SalesWorkspace() {
           onViewFilterChange={handleViewFilterChange}
           onReset={resetSalesView}
           onSelectSale={setSelectedSaleId}
-          onEditSale={(sale) => { setSelectedSaleId(sale.id); setSaleToEdit(sale); }}
           onCancelSale={setSaleToCancel}
           onExportCsv={exportSalesCsv}
           onPrintRegister={printSalesRegister}
@@ -138,24 +134,9 @@ export function SalesWorkspace() {
           onExportTopCustomers={exportTopCustomersCsv}
           onPrintTopCustomers={printTopCustomers}
           onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, 'receipt') : undefined}
-          onEditSale={() => selectedSale ? setSaleToEdit(selectedSale) : undefined}
           onCancelSale={() => selectedSale ? setSaleToCancel(selectedSale) : undefined}
         />
       </div>
-
-      <SaleEditDialog
-        open={Boolean(saleToEdit)}
-        sale={saleToEdit || undefined}
-        isBusy={updateMutation.isPending}
-        errorMessage={updateMutation.isError ? (updateMutation.error instanceof Error ? updateMutation.error.message : 'تعذر حفظ التعديل') : ''}
-        onCancel={() => { setSaleToEdit(null); updateMutation.reset(); }}
-        onSave={async (payload) => {
-          if (!saleToEdit) return;
-          await updateMutation.mutateAsync({ sale: saleToEdit, payload });
-          setSelectedSaleId(saleToEdit.id);
-          setSaleToEdit(null);
-        }}
-      />
 
       <ActionConfirmDialog
         open={Boolean(saleToCancel)}
