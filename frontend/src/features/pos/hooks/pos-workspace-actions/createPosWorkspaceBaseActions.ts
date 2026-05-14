@@ -51,6 +51,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.setDiscountApprovalSecret('');
     params.setCashAmount(0);
     params.setCardAmount(0);
+    params.setTransferAmount(0);
     params.setPaymentType('cash');
     params.setPaymentChannel('cash');
     params.setNote('');
@@ -207,22 +208,31 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   function fillPaidAmount() {
     if (params.paymentType === 'credit') return;
     const total = toMoney(params.totals.total);
+    if (params.paymentChannel === 'wallet' || params.paymentChannel === 'instapay') {
+      params.setCashAmount(0);
+      params.setCardAmount(0);
+      params.setTransferAmount(total);
+      return;
+    }
     if (params.paymentChannel === 'card') {
       params.setCashAmount(0);
       params.setCardAmount(total);
+      params.setTransferAmount(0);
       return;
     }
     if (params.paymentChannel === 'mixed' && Number(params.cardAmount || 0) > 0) {
       const nextCardAmount = Math.min(total, Math.max(0, toMoney(params.cardAmount)));
       params.setCardAmount(nextCardAmount);
       params.setCashAmount(toMoney(total - nextCardAmount));
+      params.setTransferAmount(0);
       return;
     }
     params.setCashAmount(total);
     params.setCardAmount(0);
+    params.setTransferAmount(0);
   }
 
-  function setPaymentPreset(preset: 'cash' | 'card' | 'credit') {
+  function setPaymentPreset(preset: 'cash' | 'card' | 'wallet' | 'instapay' | 'credit') {
     params.setSubmitMessage('');
     params.setPostSaleSaleKey('');
     if (preset === 'credit') {
@@ -230,15 +240,22 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.setPaymentChannel('credit');
       params.setCashAmount(0);
       params.setCardAmount(0);
+      params.setTransferAmount(0);
       params.requestBarcodeFocus();
       return;
     }
     const total = toMoney(params.totals.total);
     params.setPaymentType('cash');
+    params.setTransferAmount(0);
     if (preset === 'card') {
       params.setPaymentChannel('card');
       params.setCashAmount(0);
       params.setCardAmount(total);
+    } else if (preset === 'wallet' || preset === 'instapay') {
+      params.setPaymentChannel(preset);
+      params.setCashAmount(0);
+      params.setCardAmount(0);
+      params.setTransferAmount(total);
     } else {
       params.setPaymentChannel('cash');
       params.setCashAmount(total);

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
+import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import type { AppSettings, Customer, Sale } from '@/types/domain';
 
 interface PosSaleSuccessDialogProps {
@@ -170,6 +171,7 @@ export function PosSaleSuccessDialog({
           <span><b>رقم الفاتورة</b>{sale.docNo || sale.id}</span>
           <span><b>الإجمالي</b>{formatCurrency(Number(sale.total || 0))}</span>
           <span><b>المدفوع</b>{formatCurrency(Number(sale.paidAmount || 0))}</span>
+          <span><b>طريقة الدفع</b>{paymentLabel((sale.paymentType === 'credit' ? 'credit' : 'cash'), String(sale.paymentChannel || 'cash'))}</span>
           <span><b>{changeOrRemainLabel}</b>{formatCurrency(changeOrRemain)}</span>
           <span><b>العميل</b>{sale.customerName || customer?.name || 'عميل نقدي'}</span>
         </div>

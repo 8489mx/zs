@@ -89,7 +89,10 @@ export function createPosWorkspaceAsyncActions(
     const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
     const initialCashAmount = Number(params.cashAmount || 0);
     const initialCardAmount = Number(params.cardAmount || 0);
-    const initialPaidAmount = Number((initialCashAmount + initialCardAmount).toFixed(2));
+    const initialTransferAmount = Number(params.transferAmount || 0);
+    const initialPaidAmount = params.paymentChannel === 'wallet' || params.paymentChannel === 'instapay'
+      ? Number(initialTransferAmount.toFixed(2))
+      : Number((initialCashAmount + initialCardAmount).toFixed(2));
 
     // F2 is a fast-cash shortcut only while the current invoice is NOT explicitly credit.
     // If the cashier selected "آجل", the sale must remain credit and must stay attached to the selected customer.
@@ -111,8 +114,16 @@ export function createPosWorkspaceAsyncActions(
       && initialPaidAmount <= 0.0001
       && total > 0;
 
+    const shouldAssumeFullTransferPayment = !forceFastCash
+      && allowNegativeStockSales
+      && params.paymentType !== 'credit'
+      && (params.paymentChannel === 'wallet' || params.paymentChannel === 'instapay')
+      && initialPaidAmount <= 0.0001
+      && total > 0;
+
     const settleAsCash = forceFastCash || shouldAssumeFullCashPayment;
     const settleAsCard = shouldAssumeFullCardPayment;
+    const settleAsTransfer = shouldAssumeFullTransferPayment;
 
     if (params.hasCreditWithoutCustomer && !settleAsCash) {
       params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يحتاج حساب عميل.');
@@ -121,17 +132,32 @@ export function createPosWorkspaceAsyncActions(
     }
 
     const effectivePaymentType = settleAsCash || settleAsCard ? 'cash' : params.paymentType;
-    const effectivePaymentChannel = settleAsCash ? 'cash' : (settleAsCard ? 'card' : params.paymentChannel);
-    const effectiveCustomerId = settleAsCash || settleAsCard ? '' : String(params.customerId || '').trim();
+    const effectivePaymentChannel = settleAsCash
+      ? 'cash'
+      : settleAsCard
+        ? 'card'
+        : (params.paymentChannel === 'wallet' || params.paymentChannel === 'instapay')
+          ? params.paymentChannel
+          : params.paymentChannel;
+    const effectiveCustomerId = settleAsCash || settleAsCard || settleAsTransfer ? '' : String(params.customerId || '').trim();
     const effectiveCashAmount = effectivePaymentType === 'credit'
       ? 0
       : (effectivePaymentChannel === 'card' ? 0 : (settleAsCash ? total : initialCashAmount));
     const effectiveCardAmount = effectivePaymentType === 'credit'
       ? 0
       : (effectivePaymentChannel === 'card' ? total : (settleAsCard ? total : initialCardAmount));
+    const effectiveTransferAmount = effectivePaymentType === 'credit'
+      ? 0
+      : (effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay')
+        ? (settleAsTransfer ? total : initialTransferAmount)
+        : 0;
     const effectivePaidAmount = effectivePaymentType === 'credit'
       ? 0
-      : Number((effectiveCashAmount + effectiveCardAmount).toFixed(2));
+      : Number((
+        effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay'
+          ? effectiveTransferAmount
+          : effectiveCashAmount + effectiveCardAmount
+      ).toFixed(2));
     const isUnderpaid = effectivePaymentType !== 'credit' && effectivePaidAmount < total;
 
     if (effectivePaymentType === 'credit' && !effectiveCustomerId) {
@@ -151,11 +177,18 @@ export function createPosWorkspaceAsyncActions(
       params.setPaymentChannel('cash');
       params.setCashAmount(total);
       params.setCardAmount(0);
+      params.setTransferAmount(0);
     } else if (settleAsCard) {
       params.setPaymentType('cash');
       params.setPaymentChannel('card');
       params.setCashAmount(0);
       params.setCardAmount(total);
+      params.setTransferAmount(0);
+    } else if (settleAsTransfer) {
+      params.setPaymentType('cash');
+      params.setCashAmount(0);
+      params.setCardAmount(0);
+      params.setTransferAmount(total);
     }
 
     params.setPostSaleSaleKey('');
@@ -169,10 +202,14 @@ export function createPosWorkspaceAsyncActions(
         discount: params.totals.discountValue,
         note: params.note,
         paidAmount: effectivePaidAmount,
-        payments: effectivePaymentType === 'credit' ? [] : [
-          ...(effectiveCashAmount > 0 ? [{ paymentChannel: 'cash' as const, amount: effectiveCashAmount }] : []),
-          ...(effectiveCardAmount > 0 ? [{ paymentChannel: 'card' as const, amount: effectiveCardAmount }] : []),
-        ],
+        payments: effectivePaymentType === 'credit'
+          ? []
+          : (effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay')
+            ? [{ paymentChannel: effectivePaymentChannel, amount: effectiveTransferAmount }]
+            : [
+              ...(effectiveCashAmount > 0 ? [{ paymentChannel: 'cash' as const, amount: effectiveCashAmount }] : []),
+              ...(effectiveCardAmount > 0 ? [{ paymentChannel: 'card' as const, amount: effectiveCardAmount }] : []),
+            ],
         taxRate: params.totals.taxRate,
         pricesIncludeTax: params.totals.pricesIncludeTax,
         expectedTotal: total,
@@ -229,6 +266,8 @@ export function createPosWorkspaceAsyncActions(
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
         cashAmount: params.cashAmount,
         cardAmount: params.cardAmount,
+        transferAmount: params.transferAmount,
+        paymentChannel: params.paymentChannel,
         items: sanitizedItems,
       });
       base.resetPosDraft();
@@ -248,6 +287,14 @@ export function createPosWorkspaceAsyncActions(
     params.setDiscount(Number(draft.discount || 0));
     params.setCashAmount(Number(draft.cashAmount || 0));
     params.setCardAmount(Number(draft.cardAmount || 0));
+    params.setTransferAmount(
+      Number(
+        draft.transferAmount
+        || ((draft.paymentChannel === 'wallet' || draft.paymentChannel === 'instapay')
+          ? draft.paidAmount || 0
+          : 0),
+      ),
+    );
     params.setPaymentType(draft.paymentType);
     params.setPaymentChannel(draft.paymentChannel);
     params.setNote(draft.note);

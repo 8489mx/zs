@@ -155,12 +155,21 @@ export function resolveSalePayments(
   paymentType: 'cash' | 'credit',
   payments: NormalizedSalePayload['payments'],
   collectibleTotal: number,
-  fallbackPaymentChannel: 'cash' | 'card' | 'mixed' | 'credit' = 'cash',
-): Array<{ paymentChannel: 'cash' | 'card'; amount: number }> {
+  fallbackPaymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = 'cash',
+): Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }> {
   if (paymentType === 'credit') return [];
   if (payments.length) return payments;
   if (collectibleTotal > 0) {
-    return [{ paymentChannel: fallbackPaymentChannel === 'card' ? 'card' : 'cash', amount: collectibleTotal }];
+    return [{
+      paymentChannel: fallbackPaymentChannel === 'card'
+        ? 'card'
+        : fallbackPaymentChannel === 'wallet'
+          ? 'wallet'
+          : fallbackPaymentChannel === 'instapay'
+            ? 'instapay'
+            : 'cash',
+      amount: collectibleTotal,
+    }];
   }
   return [];
 }
@@ -171,8 +180,8 @@ export function calculatePaidAmount(payments: Array<{ amount: number }>): number
 
 export function resolvePostedSalePaymentChannel(
   paymentType: 'cash' | 'credit',
-  payments: Array<{ paymentChannel: 'cash' | 'card' }>,
-): 'cash' | 'card' | 'mixed' | 'credit' {
+  payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' }>,
+): 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' {
   if (paymentType === 'credit') return 'credit';
   if (payments.length > 1) return 'mixed';
   return payments[0]?.paymentChannel || 'cash';

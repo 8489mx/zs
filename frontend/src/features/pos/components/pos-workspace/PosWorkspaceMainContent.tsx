@@ -92,6 +92,7 @@ export function PosWorkspaceMainContent({
             paidAmount={pos.paidAmount}
             cashAmount={pos.cashAmount}
             cardAmount={pos.cardAmount}
+            transferAmount={pos.transferAmount}
             discount={pos.discount}
             note={pos.note}
             submitMessage={pos.submitMessage}
@@ -129,6 +130,7 @@ export function PosWorkspaceMainContent({
             onPaymentPresetChange={pos.setPaymentPreset}
             onCashAmountChange={pos.setCashAmount}
             onCardAmountChange={pos.setCardAmount}
+            onTransferAmountChange={pos.setTransferAmount}
             onDiscountChange={pos.setDiscount}
             onRequestDiscountAuthorization={onRequestDiscountAuthorization}
             onNoteChange={pos.setNote}

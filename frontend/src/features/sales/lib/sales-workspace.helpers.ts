@@ -21,7 +21,9 @@ export function getSalePaymentLabel(sale?: Sale | null) {
   if (!sale) return '—';
   if (sale.paymentType === 'credit') return 'آجل';
   if (sale.paymentChannel === 'mixed') return 'مختلط';
-  if (sale.paymentChannel === 'card') return 'بطاقة';
+  if (sale.paymentChannel === 'card') return 'فيزا';
+  if (sale.paymentChannel === 'wallet') return 'محفظة إلكترونية';
+  if (sale.paymentChannel === 'instapay') return 'InstaPay';
   return 'نقدي';
 }
 

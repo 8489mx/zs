@@ -1,10 +1,10 @@
 import type { PosItem } from '@/features/pos/types/pos.types';
 
 export type PaymentType = 'cash' | 'credit';
-export type PaymentChannel = 'cash' | 'card' | 'credit' | 'mixed';
+export type PaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit' | 'mixed';
 
 export interface PosPaymentInput {
-  paymentChannel: 'cash' | 'card';
+  paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay';
   amount: number;
 }
 
@@ -78,7 +78,13 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     payments: (input.payments || [])
       .filter((entry) => Number(entry.amount || 0) > 0)
       .map((entry) => ({
-        paymentChannel: entry.paymentChannel === 'card' ? 'card' : 'cash',
+        paymentChannel: entry.paymentChannel === 'card'
+          ? 'card'
+          : entry.paymentChannel === 'wallet'
+            ? 'wallet'
+            : entry.paymentChannel === 'instapay'
+              ? 'instapay'
+              : 'cash',
         amount: normalizeMoney(Number(entry.amount || 0))
       })),
     storeCreditUsed: 0,
@@ -96,10 +102,20 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
 
   const customerId = normalizeCustomerId(input.customerId);
   const normalizedItems = normalizeCart(input.cart);
-  const simplePaymentChannel =
+  const positivePayments = (input.payments || []).filter((entry) => Number(entry.amount || 0) > 0);
+  const uniqueChannels = Array.from(new Set(positivePayments.map((entry) => entry.paymentChannel)));
+  const simplePaymentChannel: PaymentChannel =
     input.paymentType === 'credit'
       ? 'credit'
-      : ((input.payments || []).length === 1 && input.payments[0].paymentChannel === 'card' ? 'card' : 'cash');
+      : uniqueChannels.length > 1
+        ? 'mixed'
+        : uniqueChannels[0] === 'instapay'
+          ? 'instapay'
+          : uniqueChannels[0] === 'wallet'
+            ? 'wallet'
+            : uniqueChannels[0] === 'card'
+              ? 'card'
+              : 'cash';
 
   return {
     customerId: customerId || null,

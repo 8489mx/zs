@@ -24,6 +24,8 @@ export interface PosWorkspaceActionParams {
   setCashAmount: Dispatch<SetStateAction<number>>;
   cardAmount: number;
   setCardAmount: Dispatch<SetStateAction<number>>;
+  transferAmount: number;
+  setTransferAmount: Dispatch<SetStateAction<number>>;
   paymentType: PaymentType;
   setPaymentType: Dispatch<SetStateAction<PaymentType>>;
   paymentChannel: PaymentChannel;

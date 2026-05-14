@@ -32,7 +32,7 @@ interface PosWorkspaceActions {
   removeItem: (lineKey: string) => void;
   fillPaidAmount: () => void;
   setPriceType: (nextPriceType: PosPriceType) => void;
-  setPaymentPreset: (preset: 'cash' | 'card' | 'credit') => void;
+  setPaymentPreset: (preset: 'cash' | 'card' | 'wallet' | 'instapay' | 'credit') => void;
   selectCartLine: (lineKey: string) => void;
   changeSelectedQty: (delta: number) => boolean;
   editSelectedQty: () => boolean;
@@ -57,6 +57,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
         paidAmount: params.paidAmount,
         cashAmount: params.cashAmount,
         cardAmount: params.cardAmount,
+        transferAmount: params.transferAmount,
         paymentType: params.paymentType,
         paymentChannel: params.paymentChannel,
         note: params.note,
@@ -86,6 +87,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
         paidAmount: params.paidAmount,
         cashAmount: params.cashAmount,
         cardAmount: params.cardAmount,
+        transferAmount: params.transferAmount,
         paymentType: params.paymentType,
         paymentChannel: params.paymentChannel,
         note: params.note,

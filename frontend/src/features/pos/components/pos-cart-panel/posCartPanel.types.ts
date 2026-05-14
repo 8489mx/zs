@@ -4,7 +4,7 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import type { PosItem } from '@/features/pos/types/pos.types';
 
 export type PaymentType = 'cash' | 'credit';
-export type PaymentChannel = 'cash' | 'card' | 'credit' | 'mixed';
+export type PaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit' | 'mixed';
 
 export interface HeldPosDraftSummary {
   id: string;
@@ -26,6 +26,7 @@ export interface PosCartPanelProps {
   paidAmount: number;
   cashAmount: number;
   cardAmount: number;
+  transferAmount: number;
   discount: number;
   note: string;
   submitMessage: string;
@@ -60,9 +61,10 @@ export interface PosCartPanelProps {
   onBranchChange: (value: string) => void;
   onLocationChange: (value: string) => void;
   onPaymentTypeChange: (value: PaymentType) => void;
-  onPaymentPresetChange: (value: 'cash' | 'card' | 'credit') => void;
+  onPaymentPresetChange: (value: 'cash' | 'card' | 'wallet' | 'instapay' | 'credit') => void;
   onCashAmountChange: (value: number) => void;
   onCardAmountChange: (value: number) => void;
+  onTransferAmountChange: (value: number) => void;
   onDiscountChange: (value: number) => void;
   onRequestDiscountAuthorization: () => void;
   onNoteChange: (value: string) => void;

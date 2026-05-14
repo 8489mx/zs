@@ -27,13 +27,25 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
 
   const requestedPaymentChannel = payload.paymentChannel === 'card'
     ? 'card'
-    : payload.paymentChannel === 'mixed'
-      ? 'mixed'
-      : 'cash';
+    : payload.paymentChannel === 'wallet'
+      ? 'wallet'
+      : payload.paymentChannel === 'instapay'
+        ? 'instapay'
+        : payload.paymentChannel === 'mixed'
+          ? 'mixed'
+          : 'cash';
 
   const normalizedPayments = (Array.isArray(payload.payments) ? payload.payments : [])
     .map((entry) => ({
-      paymentChannel: (entry.paymentChannel === 'card' ? 'card' : 'cash') as 'cash' | 'card',
+      paymentChannel: (
+        entry.paymentChannel === 'card'
+          ? 'card'
+          : entry.paymentChannel === 'wallet'
+            ? 'wallet'
+            : entry.paymentChannel === 'instapay'
+              ? 'instapay'
+              : 'cash'
+      ) as 'cash' | 'card' | 'wallet' | 'instapay',
       amount: Number(entry.amount || 0),
     }))
     .filter((entry) => entry.amount > 0);
@@ -43,13 +55,26 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
   // selected channel and keep the sale out of the cash drawer.
   const correctedPayments = paymentType === 'credit'
     ? []
-    : (requestedPaymentChannel === 'card' && normalizedPayments.length > 0 && normalizedPayments.every((entry) => entry.paymentChannel === 'cash')
-      ? normalizedPayments.map((entry) => ({ ...entry, paymentChannel: 'card' as const }))
-      : normalizedPayments);
+    : (
+      ['card', 'wallet', 'instapay'].includes(requestedPaymentChannel)
+      && normalizedPayments.length > 0
+      && normalizedPayments.every((entry) => entry.paymentChannel === 'cash')
+        ? normalizedPayments.map((entry) => ({
+          ...entry,
+          paymentChannel: requestedPaymentChannel as 'card' | 'wallet' | 'instapay',
+        }))
+        : normalizedPayments
+    );
 
-  const fallbackChannel = requestedPaymentChannel === 'card' ? 'card' : 'cash';
+  const fallbackChannel = requestedPaymentChannel === 'card'
+    ? 'card'
+    : requestedPaymentChannel === 'wallet'
+      ? 'wallet'
+      : requestedPaymentChannel === 'instapay'
+        ? 'instapay'
+        : 'cash';
   const payments = paymentType === 'credit' ? [] : correctedPayments;
-  const paymentChannel: 'cash' | 'card' | 'mixed' | 'credit' = paymentType === 'credit'
+  const paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = paymentType === 'credit'
     ? 'credit'
     : (requestedPaymentChannel === 'mixed'
       ? (payments.length ? 'mixed' : fallbackChannel)

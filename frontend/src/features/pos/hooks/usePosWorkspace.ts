@@ -10,7 +10,7 @@ import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import { useAuthStore } from '@/stores/auth-store';
 
 export type PaymentType = 'cash' | 'credit';
-export type PaymentChannel = 'cash' | 'card' | 'credit' | 'mixed';
+export type PaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit' | 'mixed';
 export type PosProductFilter = 'all' | 'offers' | 'priced' | 'low' | 'recent';
 
 export interface PosDraftSnapshot {
@@ -20,6 +20,7 @@ export interface PosDraftSnapshot {
   paidAmount: number;
   cashAmount: number;
   cardAmount: number;
+  transferAmount: number;
   paymentType: PaymentType;
   paymentChannel: PaymentChannel;
   note: string;
@@ -42,7 +43,11 @@ export function usePosWorkspace() {
   const state = usePosWorkspaceState();
   const paidAmount = state.paymentType === 'credit'
     ? 0
-    : Number((Number(state.cashAmount || 0) + Number(state.cardAmount || 0)).toFixed(2));
+    : Number((
+      state.paymentChannel === 'wallet' || state.paymentChannel === 'instapay'
+        ? Number(state.transferAmount || 0)
+        : Number(state.cashAmount || 0) + Number(state.cardAmount || 0)
+    ).toFixed(2));
 
   const { saleProducts, catalogProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search, state.locationId, state.productFilter);
   const createSale = usePosSaleMutation();
@@ -62,6 +67,8 @@ export function usePosWorkspace() {
     setCashAmount: state.setCashAmount,
     cardAmount: state.cardAmount,
     setCardAmount: state.setCardAmount,
+    transferAmount: state.transferAmount,
+    setTransferAmount: state.setTransferAmount,
     paymentType: state.paymentType,
     paymentChannel: state.paymentChannel,
     setPaymentChannel: state.setPaymentChannel,
@@ -131,6 +138,8 @@ export function usePosWorkspace() {
     setCashAmount: state.setCashAmount,
     cardAmount: state.cardAmount,
     setCardAmount: state.setCardAmount,
+    transferAmount: state.transferAmount,
+    setTransferAmount: state.setTransferAmount,
     paymentType: state.paymentType,
     setPaymentType: state.setPaymentType,
     paymentChannel: state.paymentChannel,
@@ -212,6 +221,8 @@ export function usePosWorkspace() {
     setCashAmount: state.setCashAmount,
     cardAmount: state.cardAmount,
     setCardAmount: state.setCardAmount,
+    transferAmount: state.transferAmount,
+    setTransferAmount: state.setTransferAmount,
     paymentType: state.paymentType,
     setPaymentType: state.setPaymentType,
     paymentChannel: state.paymentChannel,

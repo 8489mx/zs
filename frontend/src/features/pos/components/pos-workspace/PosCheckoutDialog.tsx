@@ -3,6 +3,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import { PosCartPaymentSection } from '@/features/pos/components/pos-cart-panel/PosCartPaymentSection';
 import { PosCustomerPickerDialog } from '@/features/pos/components/pos-cart-panel/PosCustomerPickerDialog';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
@@ -58,7 +59,7 @@ export function PosCheckoutDialog({
   );
   const itemsCount = pos.cart.length;
   const balance = getBalancePreview(pos);
-  const paidAmount = pos.paymentType === 'credit' ? 0 : Number(pos.paidAmount || 0);
+  const paidAmount = Number(pos.paidAmount || 0);
   const needsCreditCustomer = pos.paymentType === 'credit' && !String(pos.customerId || '').trim();
 
   async function handleQuickCustomerSubmit(event: FormEvent<HTMLFormElement>) {
@@ -142,6 +143,7 @@ export function PosCheckoutDialog({
                 paymentChannel={pos.paymentChannel}
                 cashAmount={pos.cashAmount}
                 cardAmount={pos.cardAmount}
+                transferAmount={pos.transferAmount}
                 discount={pos.discount}
                 amountDue={pos.amountDue}
                 changeAmount={pos.changeAmount}
@@ -153,12 +155,17 @@ export function PosCheckoutDialog({
                 onPaymentPresetChange={pos.setPaymentPreset}
                 onCashAmountChange={pos.setCashAmount}
                 onCardAmountChange={pos.setCardAmount}
+                onTransferAmountChange={pos.setTransferAmount}
                 onDiscountChange={pos.setDiscount}
                 onFillPaidAmount={pos.fillPaidAmount}
                 onRequestDiscountAuthorization={onRequestDiscountAuthorization}
               />
 
               <div className="pos-checkout-dialog-summary">
+                <div className="pos-checkout-dialog-chip">
+                  <span>طريقة الدفع</span>
+                  <strong>{paymentLabel(pos.paymentType, pos.paymentChannel)}</strong>
+                </div>
                 <div className="pos-checkout-dialog-chip">
                   <span>المطلوب دفعه</span>
                   <strong className="is-primary">{formatCurrency(pos.totals.total)}</strong>

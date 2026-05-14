@@ -291,7 +291,7 @@ export interface SalesTable {
   customer_id: number | null;
   customer_name: string | null;
   payment_type: 'cash' | 'credit';
-  payment_channel: 'cash' | 'card' | 'mixed' | 'credit';
+  payment_channel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
   subtotal: number;
   discount: number;
   tax_rate: number;
@@ -329,7 +329,7 @@ export interface SaleItemTable {
 export interface SalePaymentTable {
   id: Generated<number>;
   sale_id: number;
-  payment_channel: 'cash' | 'card';
+  payment_channel: 'cash' | 'card' | 'wallet' | 'instapay';
   amount: number;
   created_at: ColumnType<Date, string | undefined, never>;
 }
@@ -338,7 +338,7 @@ export interface HeldSaleTable {
   id: Generated<number>;
   customer_id: number | null;
   payment_type: 'cash' | 'credit';
-  payment_channel: 'cash' | 'card' | 'mixed' | 'credit';
+  payment_channel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
   paid_amount: number;
   cash_amount: number;
   card_amount: number;

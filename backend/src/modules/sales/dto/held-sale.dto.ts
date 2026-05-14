@@ -47,6 +47,10 @@ export class HeldSaleDto {
   @IsIn(['cash', 'credit'])
   paymentType?: 'cash' | 'credit';
 
+  @IsOptional()
+  @IsIn(['cash', 'card', 'wallet', 'instapay', 'mixed', 'credit'])
+  paymentChannel?: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
+
   @Type(() => Number)
   @IsOptional()
   @IsNumber()
@@ -58,6 +62,12 @@ export class HeldSaleDto {
   @IsNumber()
   @Min(0)
   cardAmount?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  transferAmount?: number;
 
   @Type(() => Number)
   @IsOptional()

@@ -1,6 +1,7 @@
 import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import { salesApi } from '@/features/sales/api/sales.api';
+import { getSalePaymentLabel } from '@/features/sales/lib/sales-workspace.helpers';
 import type { Sale } from '@/types/domain';
 
 export function useSalesWorkspaceActions(params: {
@@ -24,7 +25,7 @@ export function useSalesWorkspaceActions(params: {
       sale.docNo || sale.id,
       sale.customerName || 'عميل نقدي',
       sale.status || '',
-      sale.paymentType || '',
+      getSalePaymentLabel(sale),
       sale.total || 0,
       sale.paidAmount || 0,
       sale.date || '',
@@ -87,7 +88,7 @@ export function useSalesWorkspaceActions(params: {
       </div>
       <table>
         <thead><tr><th>الفاتورة</th><th>العميل</th><th>الحالة</th><th>الدفع</th><th>الإجمالي</th><th>التاريخ</th></tr></thead>
-        <tbody>${result.rows.map((sale) => `<tr><td>${escapeHtml(sale.docNo || sale.id)}</td><td>${escapeHtml(sale.customerName || 'عميل نقدي')}</td><td>${escapeHtml(sale.status || '')}</td><td>${escapeHtml(sale.paymentType || '')}</td><td>${formatCurrency(sale.total || 0)}</td><td>${escapeHtml(sale.date || '')}</td></tr>`).join('')}</tbody>
+        <tbody>${result.rows.map((sale) => `<tr><td>${escapeHtml(sale.docNo || sale.id)}</td><td>${escapeHtml(sale.customerName || 'عميل نقدي')}</td><td>${escapeHtml(sale.status || '')}</td><td>${escapeHtml(getSalePaymentLabel(sale))}</td><td>${formatCurrency(sale.total || 0)}</td><td>${escapeHtml(sale.date || '')}</td></tr>`).join('')}</tbody>
       </table>
     `, { subtitle: 'نتائج سجل المبيعات الحالية', pageSize: 'A4' });
   }

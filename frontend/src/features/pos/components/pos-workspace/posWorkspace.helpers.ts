@@ -64,7 +64,17 @@ export function printCurrentPosDraft(pos: PosWorkspaceState, customerName: strin
   printPosDraftPreview({
     title: 'معاينة فاتورة الكاشير',
     customerName,
-    paymentLabel: pos.paymentType === 'credit' ? 'آجل' : pos.paymentChannel === 'mixed' ? 'مختلط' : pos.paymentChannel === 'card' ? 'شبكة' : 'نقدي',
+    paymentLabel: pos.paymentType === 'credit'
+      ? 'آجل'
+      : pos.paymentChannel === 'mixed'
+        ? 'مختلط'
+        : pos.paymentChannel === 'wallet'
+          ? 'محفظة إلكترونية'
+          : pos.paymentChannel === 'instapay'
+            ? 'InstaPay'
+            : pos.paymentChannel === 'card'
+              ? 'فيزا'
+              : 'نقدي',
     branchName: SINGLE_STORE_MODE ? 'المتجر الرئيسي' : (pos.currentBranch?.name || 'الرئيسي'),
     locationName: pos.currentLocation?.name || 'المخزن الأساسي',
     items: pos.cart,

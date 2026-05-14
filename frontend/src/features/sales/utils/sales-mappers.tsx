@@ -1,6 +1,7 @@
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Sale } from '@/types/domain';
 import { matchTransactionSearch } from '@/lib/domain/transactions';
+import { getSalePaymentLabel } from '@/features/sales/lib/sales-workspace.helpers';
 
 export function filterSalesRows(rows: Sale[], search: string) {
   return rows.filter((sale) => matchTransactionSearch(sale, search));
@@ -11,7 +12,7 @@ export function getSalesTableColumns() {
     { key: 'docNo', header: 'الرقم', cell: (sale: Sale) => sale.docNo || '—' },
     { key: 'customer', header: 'العميل', cell: (sale: Sale) => sale.customerName || 'عميل نقدي' },
     { key: 'status', header: 'الحالة', cell: (sale: Sale) => <span className={`status-badge ${sale.status === 'posted' ? 'status-posted' : 'status-draft'}`}>{sale.status || 'draft'}</span> },
-    { key: 'payment', header: 'الدفع', cell: (sale: Sale) => sale.paymentType || 'cash' },
+    { key: 'payment', header: 'الدفع', cell: (sale: Sale) => getSalePaymentLabel(sale) },
     { key: 'total', header: 'الإجمالي', cell: (sale: Sale) => formatCurrency(sale.total) },
     { key: 'date', header: 'التاريخ', cell: (sale: Sale) => formatDate(sale.date) }
   ];

@@ -58,6 +58,7 @@ export function buildDraftState(initial?: Partial<PosDraftSnapshot>): PosDraftSn
     paidAmount: Number(initial?.paidAmount || 0),
     cashAmount: Number(initial?.cashAmount || 0),
     cardAmount: Number(initial?.cardAmount || 0),
+    transferAmount: Number(initial?.transferAmount || 0),
     paymentType: initial?.paymentType || 'cash',
     paymentChannel: initial?.paymentChannel || 'cash',
     note: initial?.note || '',

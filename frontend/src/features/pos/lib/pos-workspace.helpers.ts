@@ -2,8 +2,15 @@ import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product } from '@/types/domain';
 import type { PaymentChannel, PaymentType, PosDraftSnapshot } from '@/features/pos/hooks/usePosWorkspace';
 
-export function normalizePaymentChannel(paymentType: PaymentType, cashAmount: number, cardAmount: number): PaymentChannel {
+export function normalizePaymentChannel(
+  paymentType: PaymentType,
+  cashAmount: number,
+  cardAmount: number,
+  _transferAmount: number,
+  currentChannel?: PaymentChannel,
+): PaymentChannel {
   if (paymentType === 'credit') return 'credit';
+  if (currentChannel === 'wallet' || currentChannel === 'instapay') return currentChannel;
   const hasCash = Number(cashAmount || 0) > 0;
   const hasCard = Number(cardAmount || 0) > 0;
   if (hasCash && hasCard) return 'mixed' as PaymentChannel;
@@ -14,7 +21,9 @@ export function normalizePaymentChannel(paymentType: PaymentType, cashAmount: nu
 export function paymentLabel(paymentType: PaymentType, paymentChannel: string) {
   if (paymentType === 'credit') return 'Ø¢Ø¬Ù„';
   if (paymentChannel === 'mixed') return 'Ù…Ø®ØªÙ„Ø·';
-  if (paymentChannel === 'card') return 'ÙÙŠØ²Ø§';
+  if (paymentChannel === 'wallet') return 'ãÍÝÙÉ ÅáßÊÑæäíÉ';
+  if (paymentChannel === 'instapay') return 'InstaPay';
+  if (paymentChannel === 'card') return 'ÝíÒÇ';
   return 'Ù†Ù‚Ø¯ÙŠ';
 }
 
@@ -49,3 +58,4 @@ export function buildSaleLineKey(product: Product, priceType: PosPriceType) {
   const saleUnit = product.units?.find((entry) => entry.isSaleUnit) || product.units?.[0];
   return `${product.id}::${saleUnit?.id || saleUnit?.name || ''}::${priceType}`;
 }
+

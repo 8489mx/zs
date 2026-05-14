@@ -53,6 +53,7 @@ function arePropsEqual(prev: PosCartPanelProps, next: PosCartPanelProps) {
     && prev.paidAmount === next.paidAmount
     && prev.cashAmount === next.cashAmount
     && prev.cardAmount === next.cardAmount
+    && prev.transferAmount === next.transferAmount
     && prev.discount === next.discount
     && prev.note === next.note
     && prev.submitMessage === next.submitMessage

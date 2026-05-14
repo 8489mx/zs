@@ -26,7 +26,15 @@ export function buildSaleUpdatePayload(sale: Sale, payload: {
   return {
     customerId: sale.customerId ? Number(sale.customerId) : null,
     paymentType: payload.paymentType === 'credit' ? 'credit' : 'cash',
-    paymentChannel: payload.paymentType === 'credit' ? 'credit' : (payload.paymentChannel === 'card' ? 'card' : 'cash'),
+    paymentChannel: payload.paymentType === 'credit'
+      ? 'credit'
+      : payload.paymentChannel === 'card'
+        ? 'card'
+        : payload.paymentChannel === 'wallet'
+          ? 'wallet'
+          : payload.paymentChannel === 'instapay'
+            ? 'instapay'
+            : 'cash',
     discount,
     note: payload.note || '',
     paidAmount: Number(payload.paidAmount || 0),

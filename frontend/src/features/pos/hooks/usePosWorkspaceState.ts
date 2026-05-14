@@ -13,6 +13,14 @@ export function usePosWorkspaceState() {
   const [discount, setDiscount] = useState(Number(storedDraft?.discount || 0));
   const [cashAmount, setCashAmount] = useState(Number(storedDraft?.cashAmount ?? (storedDraft?.paymentChannel === 'cash' ? storedDraft?.paidAmount || 0 : 0)));
   const [cardAmount, setCardAmount] = useState(Number(storedDraft?.cardAmount ?? (storedDraft?.paymentChannel === 'card' ? storedDraft?.paidAmount || 0 : 0)));
+  const [transferAmount, setTransferAmount] = useState(
+    Number(
+      storedDraft?.transferAmount
+      ?? ((storedDraft?.paymentChannel === 'wallet' || storedDraft?.paymentChannel === 'instapay')
+        ? storedDraft?.paidAmount || 0
+        : 0),
+    ),
+  );
   const [paymentType, setPaymentType] = useState<PaymentType>(storedDraft?.paymentType || 'cash');
   const [paymentChannel, setPaymentChannel] = useState<PaymentChannel>(storedDraft?.paymentChannel || 'cash');
   const [note, setNote] = useState(storedDraft?.note || '');
@@ -47,6 +55,8 @@ export function usePosWorkspaceState() {
     setCashAmount,
     cardAmount,
     setCardAmount,
+    transferAmount,
+    setTransferAmount,
     paymentType,
     setPaymentType,
     paymentChannel,
