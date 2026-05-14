@@ -14,9 +14,8 @@ interface PosWorkspaceMainContentProps {
   catalogsError: unknown;
   allowNegativeStockSales: boolean;
   searchInputRef: RefObject<HTMLInputElement | null>;
-  selectedCustomerName: string;
-  paymentModeLabel: string;
   cartPiecesCount: number;
+  cartItemsCount: number;
   onSubmitFirstSearchResult: () => boolean;
   onRequestDiscountAuthorization: () => void;
   onRequestLineDelete: (lineKey: string) => void;
@@ -24,6 +23,9 @@ interface PosWorkspaceMainContentProps {
   onRequestHeldDelete: (draftId: string) => void;
   onRequestClearHeldDrafts: () => void;
   onRequestClearCart: () => void;
+  onRequestCheckout: () => void;
+  heldDraftsCount: number;
+  onOpenHeldDrafts: () => void;
   onPrintCurrentDraft: () => void;
   onFocusBarcodeEntry: () => void;
 }
@@ -35,9 +37,8 @@ export function PosWorkspaceMainContent({
   catalogsError,
   allowNegativeStockSales,
   searchInputRef,
-  selectedCustomerName,
-  paymentModeLabel,
   cartPiecesCount,
+  cartItemsCount,
   onSubmitFirstSearchResult,
   onRequestDiscountAuthorization,
   onRequestLineDelete,
@@ -45,6 +46,9 @@ export function PosWorkspaceMainContent({
   onRequestHeldDelete,
   onRequestClearHeldDrafts,
   onRequestClearCart,
+  onRequestCheckout,
+  heldDraftsCount,
+  onOpenHeldDrafts,
   onPrintCurrentDraft,
   onFocusBarcodeEntry,
 }: PosWorkspaceMainContentProps) {
@@ -53,10 +57,10 @@ export function PosWorkspaceMainContent({
       isLoading={catalogsLoading}
       isError={Boolean(catalogsError)}
       error={catalogsError}
-      loadingText="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظƒط§ط´ظٹط±..."
-      errorTitle="طھط¹ط°ط± طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظƒط§ط´ظٹط±"
-      errorHint="طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط«ظ… ط£ط¹ط¯ ط§ظ„ظ…ط­ط§ظˆظ„ط©."
-      errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©</Button>}
+      loadingText="جارٍ تحميل بيانات الكاشير..."
+      errorTitle="تعذر تحميل بيانات الكاشير"
+      errorHint="تحقق من الاتصال ثم أعد المحاولة."
+      errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
     >
       <div className="pos-grid-premium">
         <PosProductsPanel
@@ -146,26 +150,25 @@ export function PosWorkspaceMainContent({
             onPrintA4Now={pos.printA4Now}
             onExportPdfNow={pos.exportPdfNow}
             onExportHeldDrafts={pos.exportHeldDrafts}
-            onSubmit={() => void pos.handleSubmit()}
+            showPaymentSection={false}
+            showMetaSection={false}
+            showHeldDraftsInline={false}
+            onSubmit={onRequestCheckout}
           />
 
           <PosWorkspaceDock
-            selectedCustomerName={selectedCustomerName}
-            paymentModeLabel={paymentModeLabel}
             piecesCount={cartPiecesCount}
+            itemsCount={cartItemsCount}
             total={pos.totals.total}
-            amountDue={pos.paymentType === 'credit' ? pos.totals.total : pos.amountDue}
-            paidAmount={pos.paidAmount}
-            changeAmount={pos.changeAmount}
-            isCredit={pos.paymentType === 'credit'}
             canSubmitSale={pos.canSubmitSale}
-            canSubmitHint={pos.canSubmitHint}
             isPending={pos.createSale.isPending}
+            heldDraftsCount={heldDraftsCount}
             onFocusSearch={onFocusBarcodeEntry}
             onPrintPreview={onPrintCurrentDraft}
             onResetDraft={onRequestClearCart}
             onHoldDraft={() => { void pos.holdDraft(); }}
-            onSubmit={() => { void pos.handleSubmit(); }}
+            onOpenHeldDrafts={onOpenHeldDrafts}
+            onSubmit={onRequestCheckout}
           />
         </div>
       </div>

@@ -10,7 +10,6 @@ interface PosWorkspaceKeyboardShortcutsParams {
     selectAdjacentCartLine: (direction: 'next' | 'prev') => void;
     changeSelectedQty: (delta: number) => void;
     printReceiptNow: () => void;
-    handleSubmit: (options?: { fastCash?: boolean }) => void | Promise<void>;
     holdDraft: () => void | Promise<void>;
     reprintLastSale: () => void;
     printA4Now: () => void;
@@ -19,6 +18,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
   printCurrentDraft: () => void;
   onRequestClearCart: () => void;
   onRequestLineDelete: (lineKey: string) => void;
+  onRequestCheckout: () => void;
 }
 
 export function usePosWorkspaceKeyboardShortcuts({
@@ -27,6 +27,7 @@ export function usePosWorkspaceKeyboardShortcuts({
   printCurrentDraft,
   onRequestClearCart,
   onRequestLineDelete,
+  onRequestCheckout,
 }: PosWorkspaceKeyboardShortcutsParams) {
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -79,7 +80,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         if (pos.canShowLastSaleActions) {
           pos.printReceiptNow();
         } else {
-          void pos.handleSubmit(pos.paymentType === 'credit' ? undefined : { fastCash: true });
+          onRequestCheckout();
         }
       } else if (event.key === 'F4') {
         event.preventDefault();
@@ -100,5 +101,5 @@ export function usePosWorkspaceKeyboardShortcuts({
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [focusBarcodeEntry, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
+  }, [focusBarcodeEntry, onRequestCheckout, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
 }

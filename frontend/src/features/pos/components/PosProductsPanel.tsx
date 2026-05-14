@@ -433,29 +433,11 @@ function PosProductsPanelComponent({
           >
             الكل
           </Button>
-          <Button type="button" variant={shelf === 'choices' ? 'primary' : 'secondary'} onClick={() => { setShelf('choices'); onProductFilterChange('all'); setSelectedIndex(0); }}>
-            بها اختيارات
-          </Button>
-          <Button type="button" variant={shelf === 'direct' ? 'primary' : 'secondary'} onClick={() => { setShelf('direct'); onProductFilterChange('all'); setSelectedIndex(0); }}>
-            مباشرة
-          </Button>
           <Button type="button" variant={shelf === 'favorites' ? 'primary' : 'secondary'} onClick={() => { setShelf('favorites'); onProductFilterChange('all'); setSelectedIndex(0); }}>
             المفضلة
           </Button>
-          <Button type="button" variant={shelf === 'recent' ? 'primary' : 'secondary'} onClick={() => { setShelf('recent'); onProductFilterChange('all'); setSelectedIndex(0); }}>
-            آخر استخدام
-          </Button>
           <Button type="button" variant={productFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => { onProductFilterChange('offers'); setShelf('all'); setSelectedIndex(0); }}>
             بعروض
-          </Button>
-          <Button type="button" variant={productFilter === 'priced' ? 'primary' : 'secondary'} onClick={() => { onProductFilterChange('priced'); setShelf('all'); setSelectedIndex(0); }}>
-            أسعار خاصة
-          </Button>
-          <Button type="button" variant={productFilter === 'low' ? 'primary' : 'secondary'} onClick={() => { onProductFilterChange('low'); setShelf('all'); setSelectedIndex(0); }}>
-            منخفضة
-          </Button>
-          <Button type="button" variant={productFilter === 'recent' ? 'primary' : 'secondary'} onClick={() => { onProductFilterChange('recent'); setShelf('all'); setSelectedIndex(0); }}>
-            الأحدث
           </Button>
         </div>
 

@@ -1644,3 +1644,25 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* POS pass: keep product code fully visible in cart rows */
+.pos-workspace .pos-cart-product-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.pos-workspace .pos-cart-product-name {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.pos-workspace .pos-cart-product-code {
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-all;
+}

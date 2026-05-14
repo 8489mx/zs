@@ -209,6 +209,15 @@ export function createPosWorkspaceAsyncActions(
       return;
     }
     try {
+      const sanitizedItems = params.cart.map((item) => ({
+        productId: Number(item.productId || 0),
+        qty: Number(item.qty || 0),
+        price: Number(item.price || 0),
+        name: String(item.name || '').trim(),
+        unitName: String(item.unitName || '').trim(),
+        unitMultiplier: Number(item.unitMultiplier || 1),
+        priceType: item.priceType === 'wholesale' ? 'wholesale' : 'retail',
+      }));
       await params.saveHeldDraftMutation.mutateAsync({
         customerId: params.customerId || null,
         paymentType: params.paymentType,
@@ -220,7 +229,7 @@ export function createPosWorkspaceAsyncActions(
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
         cashAmount: params.cashAmount,
         cardAmount: params.cardAmount,
-        items: params.cart,
+        items: sanitizedItems,
       });
       base.resetPosDraft();
       params.setSubmitMessage('تم تعليق الفاتورة الحالية ويمكن استرجاعها لاحقًا');

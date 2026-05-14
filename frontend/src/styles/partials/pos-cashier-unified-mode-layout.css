@@ -1,7 +1,7 @@
 /* POS cashier unified scanner/touch layout
-   Goal: scanner and touch modes share the same safe 45/55 layout:
-   - products/scanner side: 45%
-   - cart/checkout side: 55%
+   - touch mode keeps a balanced 45/55 split
+   - scanner mode uses an explicit RTL-safe 25/75 split:
+     right column = products/scanner, left column = cart/checkout
    This file is imported after pos-step4-cashier-tune.css to override late POS CSS safely. */
 
 @media (min-width: 1080px) {
@@ -12,6 +12,24 @@
     max-width: 100%;
     min-width: 0;
     align-items: start;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-grid-premium {
+    /* Explicit scanner mapping for RTL:
+       right column = products (25%), left column = cart (75%). */
+    direction: rtl !important;
+    grid-template-columns: minmax(0, 0.25fr) minmax(0, 0.75fr) !important;
+    grid-template-areas: "products cart" !important;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-products-card {
+    grid-column: 1 / 2 !important;
+    grid-area: products !important;
+  }
+
+  .pos-workspace.pos-sale-mode-scanner .pos-checkout-column {
+    grid-column: 2 / 3 !important;
+    grid-area: cart !important;
   }
 }
 

@@ -85,4 +85,7 @@ export interface PosCartPanelProps {
   onExportPdfNow: () => void;
   onExportHeldDrafts: () => void;
   onSubmit: () => void;
+  showPaymentSection?: boolean;
+  showMetaSection?: boolean;
+  showHeldDraftsInline?: boolean;
 }

@@ -5,6 +5,8 @@ import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/Po
 import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import { PosWorkspaceDiscountDialog } from '@/features/pos/components/pos-workspace/PosWorkspaceDiscountDialog';
 import { PosWorkspaceMainContent } from '@/features/pos/components/pos-workspace/PosWorkspaceMainContent';
+import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCheckoutDialog';
+import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/PosHeldDraftsDialog';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -13,7 +15,7 @@ import { posApi } from '@/features/pos/api/pos.api';
 import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
-import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
+import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import { parseWeightedBarcode } from '@/features/pos/lib/weighted-barcode';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
@@ -28,6 +30,8 @@ export function PosWorkspace() {
   const [heldDeleteConfirmId, setHeldDeleteConfirmId] = useState('');
   const [clearHeldConfirmOpen, setClearHeldConfirmOpen] = useState(false);
   const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
   const allowNegativeStockSales = isNegativeStockSalesAllowed(pos.settingsQuery.data);
@@ -41,8 +45,8 @@ export function PosWorkspace() {
     if (!customerId) return null;
     return (pos.customersQuery.data || []).find((customer) => String(customer.id) === customerId) || null;
   }, [pos.customerId, pos.customersQuery.data, pos.lastSale?.customerId]);
-  const paymentModeLabel = useMemo(() => paymentLabel(pos.paymentType, pos.paymentChannel), [pos.paymentChannel, pos.paymentType]);
   const cartPiecesCount = useMemo(() => pos.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0), [pos.cart]);
+  const cartItemsCount = pos.cart.length;
   const lineDeleteConfirmItem = useMemo(
     () => pos.cart.find((item) => item.lineKey === lineDeleteConfirmKey) || null,
     [lineDeleteConfirmKey, pos.cart],
@@ -94,6 +98,11 @@ export function PosWorkspace() {
     if (!pos.heldDraftSummaries.length) return;
     setClearHeldConfirmOpen(true);
   }, [pos.heldDraftSummaries.length]);
+
+  const requestCheckoutDialog = useCallback(() => {
+    if (pos.createSale.isPending) return;
+    setCheckoutDialogOpen(true);
+  }, [pos.createSale.isPending]);
 
   const handleQuickAddSubmit = useCallback((rawCode?: string) => {
     const code = String(rawCode ?? pos.quickAddCode).trim();
@@ -226,6 +235,7 @@ export function PosWorkspace() {
     printCurrentDraft,
     onRequestClearCart: requestClearCart,
     onRequestLineDelete: requestLineDelete,
+    onRequestCheckout: requestCheckoutDialog,
   });
 
   return (
@@ -241,9 +251,8 @@ export function PosWorkspace() {
         catalogsError={catalogsError}
         allowNegativeStockSales={allowNegativeStockSales}
         searchInputRef={searchInputRef}
-        selectedCustomerName={selectedCustomerName}
-        paymentModeLabel={paymentModeLabel}
         cartPiecesCount={cartPiecesCount}
+        cartItemsCount={cartItemsCount}
         onSubmitFirstSearchResult={submitFirstSearchResult}
         onRequestDiscountAuthorization={requestDiscountAuthorization}
         onRequestLineDelete={requestLineDelete}
@@ -251,8 +260,23 @@ export function PosWorkspace() {
         onRequestHeldDelete={requestHeldDelete}
         onRequestClearHeldDrafts={requestClearHeldDrafts}
         onRequestClearCart={requestClearCart}
+        onRequestCheckout={requestCheckoutDialog}
+        heldDraftsCount={pos.heldDraftSummaries.length}
+        onOpenHeldDrafts={() => setHeldDraftsDialogOpen(true)}
         onPrintCurrentDraft={printCurrentDraft}
         onFocusBarcodeEntry={focusBarcodeEntry}
+      />
+
+      <PosCheckoutDialog
+        open={checkoutDialogOpen}
+        pos={pos}
+        selectedCustomerName={selectedCustomerName}
+        onClose={() => setCheckoutDialogOpen(false)}
+        onRequestDiscountAuthorization={requestDiscountAuthorization}
+        onConfirmSale={() => {
+          setCheckoutDialogOpen(false);
+          void pos.handleSubmit();
+        }}
       />
 
       <PosWorkspaceDiscountDialog
@@ -260,6 +284,16 @@ export function PosWorkspace() {
         pos={pos}
         onClose={() => setDiscountApprovalDialogOpen(false)}
         onFocusBarcodeEntry={focusBarcodeEntry}
+      />
+
+      <PosHeldDraftsDialog
+        open={heldDraftsDialogOpen}
+        heldDrafts={pos.heldDraftSummaries}
+        hasActiveCart={pos.cart.length > 0}
+        onClose={() => setHeldDraftsDialogOpen(false)}
+        onRecall={async (draftId) => { await pos.recallDraft(draftId); }}
+        onDelete={async (draftId) => { await pos.deleteDraft(draftId); }}
+        onClearAll={async () => { await pos.clearHeldDrafts(); }}
       />
 
       <PosWorkspaceConfirmDialogs
