@@ -392,7 +392,6 @@ function PosProductsPanelComponent({
               </div>
 
               <div className="field pos-price-toggle-field">
-                <span>نوع السعر</span>
                 <div className="pos-price-toggle-buttons">
                   <Button type="button" variant={priceType === 'retail' ? 'primary' : 'secondary'} onClick={() => onPriceTypeChange('retail')}>قطاعي</Button>
                   <Button type="button" variant={priceType === 'wholesale' ? 'primary' : 'secondary'} onClick={() => onPriceTypeChange('wholesale')}>جملة</Button>
@@ -400,7 +399,6 @@ function PosProductsPanelComponent({
               </div>
 
               <div className="field pos-products-reset-field">
-                <span>إجراء</span>
                 <Button
                   type="button"
                   variant="secondary"
@@ -438,6 +436,9 @@ function PosProductsPanelComponent({
           </Button>
           <Button type="button" variant={productFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => { onProductFilterChange('offers'); setShelf('all'); setSelectedIndex(0); }}>
             بعروض
+          </Button>
+          <Button type="button" variant={shelf === 'recent' ? 'primary' : 'secondary'} onClick={() => { setShelf('recent'); onProductFilterChange('all'); setSelectedIndex(0); }}>
+            آخر استخدام
           </Button>
         </div>
 

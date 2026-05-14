@@ -7,6 +7,22 @@
    - give price/action buttons clear spacing
 */
 
+/* Keep barcode/search full width across all POS modes (scanner, touch, default). */
+.pos-workspace .pos-products-unified-search-field {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+.pos-workspace .pos-products-unified-search-field .field {
+  width: 100%;
+  margin: 0;
+}
+
+.pos-workspace .pos-products-unified-search-field input {
+  width: 100%;
+}
+
 .pos-workspace.pos-sale-mode-scanner .pos-products-top-row-unified,
 .pos-workspace.pos-sale-mode-touch .pos-products-top-row-unified {
   grid-template-columns: minmax(0, 1fr) minmax(120px, auto) !important;
@@ -21,6 +37,8 @@
 .pos-workspace.pos-sale-mode-scanner .pos-products-reset-field,
 .pos-workspace.pos-sale-mode-touch .pos-products-reset-field {
   min-width: 0;
+  display: flex;
+  align-items: stretch;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-products-unified-search-field .field,
@@ -58,23 +76,12 @@
   font-weight: 800;
 }
 
-.pos-workspace.pos-sale-mode-scanner .pos-price-toggle-field > span,
-.pos-workspace.pos-sale-mode-touch .pos-price-toggle-field > span,
-.pos-workspace.pos-sale-mode-scanner .pos-products-reset-field > span,
-.pos-workspace.pos-sale-mode-touch .pos-products-reset-field > span {
-  display: block;
-  margin-bottom: 8px;
-  color: #0f172a;
-  font-size: 12px;
-  font-weight: 900;
-  text-align: center;
-}
-
 .pos-workspace.pos-sale-mode-scanner .pos-price-toggle-buttons,
 .pos-workspace.pos-sale-mode-touch .pos-price-toggle-buttons {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px !important;
+  width: 100%;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-price-toggle-buttons .btn,
@@ -168,10 +175,4 @@
     grid-column: 1 / -1;
   }
 
-  .pos-workspace.pos-sale-mode-scanner .pos-price-toggle-field > span,
-  .pos-workspace.pos-sale-mode-touch .pos-price-toggle-field > span,
-  .pos-workspace.pos-sale-mode-scanner .pos-products-reset-field > span,
-  .pos-workspace.pos-sale-mode-touch .pos-products-reset-field > span {
-    text-align: right;
-  }
 }
