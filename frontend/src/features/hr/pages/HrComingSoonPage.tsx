@@ -436,15 +436,6 @@ export function HrComingSoonPage() {
               </div>
             </Card>
           </QueryFeedback>
-          <Card title="اختصارات التشغيل">
-            <div className="grid-3" style={{ gap: 10 }}>
-              <div className="card" style={{ padding: 12 }}><strong>الموظفون</strong><p className="muted small">إدارة ملفات الموظفين الأساسية.</p><Button variant="secondary" onClick={() => setActiveTab('employees')}>فتح داخل الصفحة</Button></div>
-              <div className="card" style={{ padding: 12 }}><strong>الحضور والانصراف</strong><p className="muted small">متابعة حضور وانصراف اليوم.</p><Button variant="secondary" onClick={() => setActiveTab('attendance')}>فتح داخل الصفحة</Button></div>
-              <div className="card" style={{ padding: 12 }}><strong>الإجازات</strong><p className="muted small">متابعة طلبات الإجازات واعتمادها.</p><Button variant="secondary" onClick={() => setActiveTab('leaves')}>فتح داخل الصفحة</Button></div>
-              <div className="card" style={{ padding: 12 }}><strong>المرتبات والسلف</strong><p className="muted small">مراجعة المرتبات والسلف والخصومات.</p><Button variant="secondary" onClick={() => setActiveTab('payroll-loans')}>فتح داخل الصفحة</Button></div>
-              <div className="card" style={{ padding: 12 }}><strong>العهد</strong><p className="muted small">تسجيل وتسليم واسترداد العهد.</p><Button variant="secondary" onClick={() => setActiveTab('assets')}>فتح داخل الصفحة</Button></div>
-            </div>
-          </Card>
         </>
       ) : null}
 
