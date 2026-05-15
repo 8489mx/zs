@@ -175,7 +175,7 @@ export function SettingsBackupImportSection({
               <input type="time" value={backupTimeDraft || '03:00'} onChange={(event) => setBackupTimeDraft(event.target.value || '03:00')} disabled={backupBusy || !canManageBackups} />
             </Field>
             {backupFrequencyDraft === 'weekly' ? (
-              <Field label="يوم التنفيذ">
+              <Field label="يوم النسخ الأسبوعي">
                 <select value={backupWeeklyDayDraft} onChange={(event) => setBackupWeeklyDayDraft(Number(event.target.value || 0))} disabled={backupBusy || !canManageBackups}>
                   {weeklyDays.map((label, index) => <option key={label} value={index}>{label}</option>)}
                 </select>

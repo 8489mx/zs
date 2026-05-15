@@ -27,7 +27,7 @@ async function fetchBackupBlob() {
   const response = await fetch(settingsApi.backupDownloadUrl(), { credentials: 'include' });
   if (!response.ok) {
     const payload = await response.text();
-    throw new Error(payload || 'تعذر تنزيل النسخة الاحتياطية');
+    throw new Error(payload || 'تعذر تنزيل النسخة الاحتياطية.');
   }
   return await response.blob();
 }
@@ -106,7 +106,7 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
       setBackupMessage('تم تنزيل النسخة الاحتياطية بنجاح.');
       setBackupMessageKind('success');
     } catch (error) {
-      setBackupMessage(error instanceof Error ? error.message : 'تعذر تنزيل النسخة الاحتياطية');
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر تنزيل النسخة الاحتياطية.');
       setBackupMessageKind('error');
     } finally {
       setBackupBusy(false);
@@ -116,7 +116,7 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
   const handleBackupFile = async (file: File, mode: 'verify' | 'restore') => {
     setBackupBusy(true);
     setBackupSelectedFileName(file.name || 'backup.json');
-    setBackupMessage(mode === 'restore' ? 'جاري فحص الملف ثم تنفيذ الاسترجاع...' : 'جاري فحص الملف...');
+    setBackupMessage(mode === 'restore' ? 'جارٍ فحص الملف ثم تنفيذ الاسترداد...' : 'جارٍ فحص الملف...');
     setBackupMessageKind('success');
     try {
       const payload = JSON.parse(await readTextFile(file));
@@ -130,15 +130,15 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
         try {
           await refreshAdminQueries();
         } catch {
-          // لا نجعل تحديثات الواجهة اللاحقة تبدو كأن الاسترجاع نفسه فشل
+          // لا نجعل فشل تحديث الواجهة اللاحق يظهر كأنه فشل في الاسترداد نفسه.
         }
-        setBackupMessage('تمت استعادة النسخة الاحتياطية بعد اجتياز التحقق.');
+        setBackupMessage('تمت استعادة النسخة الاحتياطية بعد التحقق بنجاح.');
       } else {
         setBackupMessage(`تم التحقق من الملف: ${file.name}`);
       }
       setBackupMessageKind('success');
     } catch (error) {
-      setBackupMessage(error instanceof Error ? error.message : 'تعذر فحص ملف النسخة الاحتياطية');
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر فحص ملف النسخة الاحتياطية.');
       setBackupMessageKind('error');
     } finally {
       setBackupBusy(false);
@@ -165,10 +165,10 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
       try {
         await refreshAdminQueries();
       } catch {
-        // لا نجعل تحديثات الواجهة اللاحقة تبدو كأن الاسترجاع نفسه فشل
+        // لا نجعل فشل تحديث الواجهة اللاحق يظهر كأنه فشل في الاسترداد نفسه.
       }
     } catch (error) {
-      setBackupMessage(error instanceof Error ? error.message : 'تعذر استعادة النسخة التلقائية');
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر استعادة النسخة التلقائية.');
       setBackupMessageKind('error');
     } finally {
       setRestoreSnapshotId('');
@@ -197,11 +197,11 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
         },
       });
       setBackupFolderPathDraft(String(response.folderPath || response.defaultFolderPath || backupFolderPathDraft || 'D:\\ZS Backups'));
-      setBackupMessage('تم حفظ إعدادات النسخ الاحتياطية بنجاح.');
+      setBackupMessage('تم حفظ إعدادات النسخ الاحتياطي بنجاح.');
       setBackupMessageKind('success');
       await refreshBackupConfig();
     } catch (error) {
-      setBackupMessage(error instanceof Error ? error.message : 'تعذر حفظ إعدادات النسخ الاحتياطية.');
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر حفظ إعدادات النسخ الاحتياطي.');
       setBackupMessageKind('error');
     } finally {
       setBackupBusy(false);
@@ -214,11 +214,15 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     setBackupMessageKind('success');
     try {
       const result = await settingsApi.testBackupFolder({ folderPath: backupFolderPathDraft });
-      const message = String(result.message || `تم اختبار المسار بنجاح: ${backupFolderPathDraft || 'D:\\ZS Backups'}`);
-      setBackupMessage(message);
-      setBackupMessageKind(result.ok === false ? 'error' : 'success');
+      if (result.ok === false) {
+        setBackupMessage('تعذر الوصول إلى المجلد أو لا توجد صلاحية كتابة.');
+        setBackupMessageKind('error');
+      } else {
+        setBackupMessage('تم اختبار المسار بنجاح.');
+        setBackupMessageKind('success');
+      }
     } catch (error) {
-      setBackupMessage(error instanceof Error ? error.message : 'تعذر اختبار المسار.');
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر الوصول إلى المجلد أو لا توجد صلاحية كتابة.');
       setBackupMessageKind('error');
     } finally {
       setBackupBusy(false);
@@ -231,7 +235,8 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     setBackupMessageKind('success');
     try {
       const result = await settingsApi.saveBackupFileToFolder();
-      setBackupMessage(String(result.message || 'تم حفظ النسخة الاحتياطية في المجلد المحدد.'));
+      const savedPath = String(result.filePath || result.path || '').trim();
+      setBackupMessage(savedPath ? `تم حفظ النسخة في: ${savedPath}` : 'تم حفظ النسخة بنجاح.');
       setBackupMessageKind('success');
       await refreshBackupConfig();
     } catch (error) {
