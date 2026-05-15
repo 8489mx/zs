@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -38,7 +38,7 @@ export function PosHeldDraftsDialog({
     [confirmReplaceId, heldDrafts],
   );
 
-  async function requestRecall(draftId: string) {
+  const requestRecall = useCallback(async (draftId: string) => {
     if (hasActiveCart) {
       setConfirmReplaceId(draftId);
       return;
@@ -47,7 +47,7 @@ export function PosHeldDraftsDialog({
     await onRecall(draftId);
     setPendingRecallId('');
     onClose();
-  }
+  }, [hasActiveCart, onClose, onRecall]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,7 +66,7 @@ export function PosHeldDraftsDialog({
     }
     void requestRecall(requestedRecallDraftId);
     onRequestedRecallHandled?.();
-  }, [heldDrafts, onRequestedRecallHandled, open, requestedRecallDraftId]);
+  }, [heldDrafts, onRequestedRecallHandled, open, requestRecall, requestedRecallDraftId]);
 
   useEffect(() => {
     if (!open) return;
@@ -104,7 +104,7 @@ export function PosHeldDraftsDialog({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [heldDrafts, onClose, onDelete, open, selectedIndex]);
+  }, [heldDrafts, onClose, onDelete, open, requestRecall, selectedIndex]);
 
   if (!open) return null;
 

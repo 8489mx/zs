@@ -1,27 +1,27 @@
-import type { HrContact, HrEmployee } from '@/types/domain';
+﻿import type { HrContact, HrEmployee } from '@/types/domain';
 
 export function fallbackText(value: unknown) {
-  return String(value || '').trim() || 'â€”';
+  return String(value || '').trim() || '—';
 }
 
 export function money(value: unknown) {
   const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return 'â€”';
-  return `${amount.toFixed(2)} ط¬.ظ…`;
+  if (!Number.isFinite(amount)) return '—';
+  return `${amount.toFixed(2)} ج.م`;
 }
 
 export function statusLabel(status: unknown) {
   const value = String(status || '').trim();
-  if (value === 'active') return 'ظ†ط´ط·';
-  if (value === 'inactive') return 'ط؛ظٹط± ظ†ط´ط·';
-  if (value === 'deactivated') return 'ظ…ظˆظ‚ظˆظپ';
-  if (value === 'terminated') return 'ظ…ظ†طھظ‡ظٹ ط§ظ„ط®ط¯ظ…ط©';
-  return 'ط؛ظٹط± ظ…ط­ط¯ط¯';
+  if (value === 'active') return 'نشط';
+  if (value === 'inactive') return 'غير نشط';
+  if (value === 'deactivated') return 'موقوف';
+  if (value === 'terminated') return 'منتهي الخدمة';
+  return 'غير محدد';
 }
 
 export function maskNationalId(nationalId: unknown) {
   const value = String(nationalId || '').trim();
-  if (!/^\d{14}$/.test(value)) return 'ط؛ظٹط± ظ…ط³ط¬ظ„';
+  if (!/^\d{14}$/.test(value)) return 'غير مسجل';
   return `**********${value.slice(-4)}`;
 }
 
@@ -29,12 +29,12 @@ export function pickPrimaryPhone(contacts: HrContact[]) {
   const phone = contacts.find((entry) => String(entry.contactType || '').toLowerCase() === 'phone' && entry.isPrimary)
     || contacts.find((entry) => String(entry.contactType || '').toLowerCase() === 'phone')
     || contacts[0];
-  return phone ? fallbackText(phone.value) : 'ط؛ظٹط± ظ…ط³ط¬ظ„';
+  return phone ? fallbackText(phone.value) : 'غير مسجل';
 }
 
 export function employeeName(employee?: HrEmployee) {
-  if (!employee) return 'ظ…ظ„ظپ ط§ظ„ظ…ظˆط¸ظپ';
-  return fallbackText(employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim()) || 'ظ…ظ„ظپ ط§ظ„ظ…ظˆط¸ظپ';
+  if (!employee) return 'ملف الموظف';
+  return fallbackText(employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim()) || 'ملف الموظف';
 }
 
 export function normalizeDateOnly(value: unknown) {

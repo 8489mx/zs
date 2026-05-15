@@ -104,7 +104,10 @@ export function PosCheckoutDialog({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onConfirmSale, open, pos.canSubmitSale, pos.createSale.isPending]);
 
-  const customers = pos.customersQuery.data || [];
+  const customers = useMemo(
+    () => (Array.isArray(pos.customersQuery.data) ? pos.customersQuery.data : []),
+    [pos.customersQuery.data],
+  );
   const selectedCustomer = useMemo(
     () => customers.find((customer) => String(customer.id) === String(pos.customerId)) || null,
     [pos.customerId, customers],
