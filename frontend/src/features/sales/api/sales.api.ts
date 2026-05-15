@@ -1,4 +1,4 @@
-import { http } from '@/lib/http';
+﻿import { http } from '@/lib/http';
 import { unwrapArray, unwrapEntity, type PaginationMeta } from '@/lib/api/contracts';
 import type { Product, Sale } from '@/types/domain';
 import { buildQueryString } from '@/lib/query-string';
@@ -17,11 +17,13 @@ export interface SalesListSummary {
   topCustomers: Array<{ name: string; total: number; count: number }>;
 }
 
+export type SalesListFilter = 'all' | 'cash' | 'card' | 'credit' | 'wallet' | 'instapay' | 'mixed' | 'cancelled';
+
 export interface SalesListParams {
   page?: number;
   pageSize?: number;
   search?: string;
-  filter?: 'all' | 'cash' | 'credit' | 'cancelled';
+  filter?: SalesListFilter;
 }
 
 interface SalesListResponse {
@@ -29,7 +31,6 @@ interface SalesListResponse {
   pagination?: PaginationMeta;
   summary?: SalesListSummary;
 }
-
 
 const defaultSummary: SalesListSummary = {
   totalItems: 0,

@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+﻿import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -6,11 +6,14 @@ import { PaginationControls } from '@/shared/components/pagination-controls';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { formatCurrency } from '@/lib/format';
 import { SalesTable } from '@/features/sales/components/SalesTable';
+import type { SalesListFilter } from '@/features/sales/api/sales.api';
 import type { Sale } from '@/types/domain';
+
+export type SalesPaymentFilter = SalesListFilter;
 
 type Props = {
   search: string;
-  viewFilter: 'all' | 'cash' | 'credit' | 'cancelled';
+  viewFilter: SalesPaymentFilter;
   activeFilterLabel: string;
   totalItems: number;
   rangeStart: number;
@@ -28,7 +31,7 @@ type Props = {
   canPrint: boolean;
   canEditInvoices: boolean;
   onSearchChange: (value: string) => void;
-  onViewFilterChange: (value: 'all' | 'cash' | 'credit' | 'cancelled') => void;
+  onViewFilterChange: (value: SalesPaymentFilter) => void;
   onReset: () => void;
   onSelectSale: (saleId: string) => void;
   onCancelSale: (sale: Sale) => void;
@@ -95,10 +98,18 @@ export function SalesRegisterCard(props: Props) {
         resetLabel="تفريغ"
       >
         <div className="filter-chip-row toolbar-chip-row">
-          <Button variant={viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onViewFilterChange('all')}>الكل</Button>
-          <Button variant={viewFilter === 'cash' ? 'primary' : 'secondary'} onClick={() => onViewFilterChange('cash')}>نقدي</Button>
-          <Button variant={viewFilter === 'credit' ? 'primary' : 'secondary'} onClick={() => onViewFilterChange('credit')}>آجل</Button>
-          <Button variant={viewFilter === 'cancelled' ? 'primary' : 'secondary'} onClick={() => onViewFilterChange('cancelled')}>ملغاة</Button>
+          <div className="field sales-payment-filter-field">
+            <span>طريقة الدفع</span>
+            <select value={viewFilter} onChange={(event) => onViewFilterChange(event.target.value as SalesPaymentFilter)}>
+              <option value="all">الكل</option>
+              <option value="cash">نقدي</option>
+              <option value="card">فيزا</option>
+              <option value="credit">آجل</option>
+              <option value="wallet">محفظة إلكترونية</option>
+              <option value="instapay">InstaPay</option>
+              <option value="mixed">مختلط</option>
+            </select>
+          </div>
         </div>
       </SearchToolbar>
 

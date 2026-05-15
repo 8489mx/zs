@@ -1,19 +1,19 @@
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+﻿import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
-import { salesApi } from '@/features/sales/api/sales.api';
+import { salesApi, type SalesListFilter } from '@/features/sales/api/sales.api';
 import { getSalePaymentLabel } from '@/features/sales/lib/sales-workspace.helpers';
 import type { Sale } from '@/types/domain';
 
 export function useSalesWorkspaceActions(params: {
   search: string;
-  viewFilter: 'all' | 'cash' | 'credit' | 'cancelled';
+  viewFilter: SalesListFilter;
   totalItems: number;
   summary?: { totalSales?: number; creditTotal?: number; cancelledCount?: number } | null;
   topCustomers: Array<{ name: string; count: number; total: number }>;
   setPage: (value: number) => void;
   setPageSize: (value: number) => void;
   setSearch: (value: string) => void;
-  setViewFilter: (value: 'all' | 'cash' | 'credit' | 'cancelled') => void;
+  setViewFilter: (value: SalesListFilter) => void;
   setSelectedSaleId: (value: string) => void;
   setSaleToCancel: (value: Sale | null) => void;
 }) {

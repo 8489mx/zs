@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -8,7 +8,7 @@ import { useSalesPage } from '@/features/sales/hooks/useSalesPage';
 import { useSaleActions } from '@/features/sales/hooks/useSaleActions';
 import { useSalesWorkspaceActions } from '@/features/sales/hooks/useSalesWorkspaceActions';
 import { SalesWorkspaceHeader } from '@/features/sales/components/SalesWorkspaceHeader';
-import { SalesRegisterCard } from '@/features/sales/components/SalesRegisterCard';
+import { SalesRegisterCard, type SalesPaymentFilter } from '@/features/sales/components/SalesRegisterCard';
 import { SalesSidePanel } from '@/features/sales/components/SalesSidePanel';
 import {
   getSaleCancelDescription,
@@ -22,7 +22,7 @@ import type { Sale } from '@/types/domain';
 
 export function SalesWorkspace() {
   const [search, setSearch] = useState('');
-  const [viewFilter, setViewFilter] = useState<'all' | 'cash' | 'credit' | 'cancelled'>('all');
+  const [viewFilter, setViewFilter] = useState<SalesPaymentFilter>('all');
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
   const [page, setPage] = useState(1);
@@ -75,7 +75,7 @@ export function SalesWorkspace() {
     setSaleToCancel,
   });
 
-  const handleViewFilterChange = (value: 'all' | 'cash' | 'credit' | 'cancelled') => {
+  const handleViewFilterChange = (value: SalesPaymentFilter) => {
     setViewFilter(value);
     setPage(1);
   };

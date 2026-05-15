@@ -75,11 +75,34 @@ export function mapSaleRows(
 
 export function filterSales(rows: SaleRow[], query: Record<string, unknown>): SaleRow[] {
   const q = String(query.search || query.q || '').toLowerCase();
-  const filter = String(query.filter || query.view || 'all');
+  const filter = String(query.paymentChannel || query.filter || query.view || 'all');
+
+  const paymentChannelMatches = (row: SaleRow) => {
+    const channel = String(row.paymentChannel || '').toLowerCase();
+    const paymentType = String(row.paymentType || '').toLowerCase();
+
+    switch (filter) {
+      case 'cash':
+        return channel === 'cash' || (paymentType === 'cash' && !channel);
+      case 'card':
+        return channel === 'card';
+      case 'credit':
+        return paymentType === 'credit' || channel === 'credit';
+      case 'wallet':
+        return channel === 'wallet';
+      case 'instapay':
+        return channel === 'instapay';
+      case 'mixed':
+        return channel === 'mixed';
+      case 'cancelled':
+        return String(row.status || '') === 'cancelled';
+      default:
+        return true;
+    }
+  };
+
   return rows.filter((row) => {
-    if (filter === 'cash' && row.paymentType !== 'cash') return false;
-    if (filter === 'credit' && row.paymentType !== 'credit') return false;
-    if (filter === 'cancelled' && row.status !== 'cancelled') return false;
+    if (!paymentChannelMatches(row)) return false;
     if (!q) return true;
     return [row.docNo, row.customerName, row.note, row.status].some((x) => String(x || '').toLowerCase().includes(q));
   });
