@@ -486,15 +486,25 @@ export function AppShell({ children }: PropsWithChildren) {
 
             const isOpen = Boolean(expandedSidebarGroups[group.key]);
             const isActive = activeSidebarGroupKey === group.key;
+            const groupIconItemKey = groupItems[0]?.key || 'settings';
+            const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
+            const toneStyle = {
+              '--icon-bg': tone.bg,
+              '--icon-border': tone.border,
+              '--icon-fg': tone.fg,
+              '--icon-glow': tone.glow,
+            } as CSSProperties;
 
             return (
-              <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''}`.trim()}>
+              <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>
                 <button
                   type="button"
                   className="sidebar-group-trigger"
                   aria-expanded={isOpen}
                   onClick={() => toggleSidebarGroup(group.key)}
+                  style={toneStyle}
                 >
+                  <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
                   <span className="sidebar-label">{group.label}</span>
                   <span className="sidebar-group-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
                 </button>
