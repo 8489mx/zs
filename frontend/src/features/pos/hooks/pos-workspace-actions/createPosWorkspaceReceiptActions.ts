@@ -31,6 +31,12 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     }
   }
 
+  function reprintLastSaleReceipt() {
+    if (!printLastSaleAs('receipt')) {
+      reprintLastSale();
+    }
+  }
+
   function printReceiptNow() {
     if (!hasFreshLastSale() || !params.lastSale) return;
     printLastSaleAs('receipt');
@@ -57,6 +63,7 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
 
   return {
     reprintLastSale,
+    reprintLastSaleReceipt,
     printReceiptNow,
     printA4Now,
     exportPdfNow,

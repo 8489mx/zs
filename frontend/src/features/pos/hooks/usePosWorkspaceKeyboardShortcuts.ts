@@ -13,6 +13,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
     printReceiptNow: () => void;
     holdDraft: () => void | Promise<void>;
     reprintLastSale: () => void;
+    reprintLastSaleReceipt: () => void;
     printA4Now: () => void;
   };
   focusBarcodeEntry: () => void;
@@ -111,7 +112,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         printCurrentDraft();
       } else if (event.key === 'F9') {
         event.preventDefault();
-        pos.reprintLastSale();
+        pos.reprintLastSaleReceipt();
       } else if (event.key === 'F12') {
         event.preventDefault();
         if (pos.canShowLastSaleActions) pos.printA4Now();

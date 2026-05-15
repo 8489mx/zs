@@ -24,6 +24,7 @@ interface PosWorkspaceActions {
   deleteDraft: (draftId: string) => Promise<void>;
   clearHeldDrafts: () => Promise<void>;
   reprintLastSale: () => void;
+  reprintLastSaleReceipt: () => void;
   printReceiptNow: () => void;
   printA4Now: () => void;
   exportPdfNow: () => void;
@@ -134,6 +135,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     deleteDraft: asyncActions.deleteDraft,
     clearHeldDrafts: asyncActions.clearHeldDrafts,
     reprintLastSale: receiptActions.reprintLastSale,
+    reprintLastSaleReceipt: receiptActions.reprintLastSaleReceipt,
     printReceiptNow: receiptActions.printReceiptNow,
     printA4Now: receiptActions.printA4Now,
     exportPdfNow: receiptActions.exportPdfNow,

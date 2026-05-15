@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -54,6 +54,55 @@ export function PosCheckoutDialog({
 }: PosCheckoutDialogProps) {
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
+  const cashAmountInputRef = useRef<HTMLInputElement | null>(null);
+  const openedOnceRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  const createSalePendingRef = useRef(Boolean(pos.createSale.isPending));
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    createSalePendingRef.current = Boolean(pos.createSale.isPending);
+  }, [pos.createSale.isPending]);
+
+  const stableOnClose = useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
+  const handleDialogClose = useCallback(() => {
+    if (createSalePendingRef.current) return;
+    stableOnClose();
+  }, [stableOnClose]);
+
+  useEffect(() => {
+    if (!open) {
+      openedOnceRef.current = false;
+      return;
+    }
+    if (openedOnceRef.current) return;
+    openedOnceRef.current = true;
+    const frameId = window.requestAnimationFrame(() => {
+      if (customerPickerOpen) return;
+      cashAmountInputRef.current?.focus();
+      cashAmountInputRef.current?.select();
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [customerPickerOpen, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'F2') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!pos.canSubmitSale || pos.createSale.isPending) return;
+      onConfirmSale();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onConfirmSale, open, pos.canSubmitSale, pos.createSale.isPending]);
 
   const customers = pos.customersQuery.data || [];
   const selectedCustomer = useMemo(
@@ -100,7 +149,7 @@ export function PosCheckoutDialog({
   return (
     <DialogShell
       open={open}
-      onClose={pos.createSale.isPending ? () => {} : onClose}
+      onClose={handleDialogClose}
       width="min(980px, calc(100vw - 32px))"
       zIndex={86}
       ariaLabel="مراجعة وإتمام البيع"
@@ -227,6 +276,8 @@ export function PosCheckoutDialog({
               <label className="field">
                 <span>نقدي</span>
                 <input
+                  ref={cashAmountInputRef}
+                  data-autofocus={!customerPickerOpen ? true : undefined}
                   type="number"
                   step="0.01"
                   value={pos.cashAmount}
@@ -322,7 +373,7 @@ export function PosCheckoutDialog({
           </section>
 
           <div className="actions compact-actions pos-checkout-dialog-actions">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={pos.createSale.isPending}>
+            <Button type="button" variant="secondary" onClick={handleDialogClose} disabled={pos.createSale.isPending}>
               رجوع للسلة
             </Button>
             <Button
@@ -331,7 +382,7 @@ export function PosCheckoutDialog({
               onClick={onConfirmSale}
               disabled={pos.createSale.isPending || !pos.canSubmitSale}
             >
-              {pos.createSale.isPending ? 'جاري الحفظ...' : 'تأكيد البيع'}
+              {pos.createSale.isPending ? 'جاري الحفظ...' : 'تأكيد البيع (F2)'}
             </Button>
           </div>
         </div>
