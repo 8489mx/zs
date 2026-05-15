@@ -38,8 +38,26 @@ const initialDraft: EmployeeDraft = {
   notes: '',
 };
 
+function normalizeArabicDigits(value: string) {
+  return String(value || '')
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
+}
+
+function normalizeNumberText(value: string) {
+  return normalizeArabicDigits(value).replace(/[،,]/g, '.').trim();
+}
+
+function normalizeDigitsOnly(value: string) {
+  return normalizeArabicDigits(value).replace(/\D/g, '');
+}
+
+function normalizePhone(value: string) {
+  return normalizeArabicDigits(value).replace(/\s+/g, '').trim();
+}
+
 function toId(value: string) {
-  const numeric = Number(value || 0);
+  const numeric = Number(normalizeDigitsOnly(value || ''));
   return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined;
 }
 
@@ -72,16 +90,31 @@ export function EmployeeCreatePage() {
   const jobTitles = useMemo(() => workspace.jobTitles.data?.rows || [], [workspace.jobTitles.data?.rows]);
   const positions = useMemo(() => workspace.positions.data?.rows || [], [workspace.positions.data?.rows]);
 
+  const reviewWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    const salaryText = normalizeNumberText(draft.baseSalary);
+    const nationalId = normalizeDigitsOnly(draft.nationalId);
+    if (!String(draft.firstName || '').trim()) warnings.push('الاسم الأول مطلوب قبل الحفظ.');
+    if (!normalizePhone(draft.mobile)) warnings.push('الموبايل مطلوب قبل الحفظ.');
+    if (!String(draft.hireDate || '').trim()) warnings.push('تاريخ التعيين مطلوب قبل الحفظ.');
+    if (nationalId && nationalId.length !== 14) warnings.push('الرقم القومي يجب أن يكون 14 رقمًا إذا تم إدخاله.');
+    if (!draft.departmentId) warnings.push('القسم غير محدد ويمكن استكماله لاحقًا.');
+    if (!draft.jobTitleId) warnings.push('المسمى الوظيفي غير محدد ويمكن استكماله لاحقًا.');
+    if (salaryText && Number.isNaN(Number(salaryText))) warnings.push('المرتب الأساسي يجب أن يكون رقمًا صحيحًا.');
+    return warnings;
+  }, [draft]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError('');
 
     const firstName = String(draft.firstName || '').trim();
-    const mobile = String(draft.mobile || '').trim();
-    const nationalId = String(draft.nationalId || '').trim();
+    const mobile = normalizePhone(draft.mobile);
+    const nationalId = normalizeDigitsOnly(draft.nationalId);
     const hireDate = String(draft.hireDate || '').trim();
     const contractType = String(draft.contractType || '').trim();
-    const baseSalary = Number(draft.baseSalary || 0);
+    const baseSalaryText = normalizeNumberText(draft.baseSalary);
+    const baseSalary = baseSalaryText ? Number(baseSalaryText) : 0;
 
     if (!firstName) {
       setSubmitError('الاسم الأول مطلوب.');
@@ -99,10 +132,14 @@ export function EmployeeCreatePage() {
       setSubmitError('الرقم القومي يجب أن يكون 14 رقمًا.');
       return;
     }
+    if (Number.isNaN(baseSalary)) {
+      setSubmitError('المرتب الأساسي يجب أن يكون رقمًا صحيحًا.');
+      return;
+    }
 
     try {
       const employeePayload = {
-        employeeNo: String(draft.employeeNo || '').trim() || undefined,
+        employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined,
         firstName,
         lastName: String(draft.lastName || '').trim() || undefined,
         nationalId: nationalId || undefined,
@@ -156,7 +193,7 @@ export function EmployeeCreatePage() {
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="إضافة موظف"
-        description="إضافة موظف جديد ببيانات أساسية واضحة، مع إمكانية استكمال باقي الملف لاحقًا."
+        description="إضافة موظف جديد ببيانات واضحة، مع مراجعة سريعة للحقول الناقصة قبل الحفظ."
       />
 
       <form onSubmit={(event) => { void handleSubmit(event); }}>
@@ -176,7 +213,7 @@ export function EmployeeCreatePage() {
             </div>
             <div className="field">
               <span>الموبايل *</span>
-              <input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} required />
+              <input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} inputMode="tel" required />
             </div>
             <div className="field">
               <span>الرقم القومي</span>
@@ -191,7 +228,7 @@ export function EmployeeCreatePage() {
           </div>
         </Card>
 
-        <Card title="بيانات الشغل" description="حدد القسم والمسمى الوظيفي وتاريخ التعيين.">
+        <Card title="البيانات الوظيفية" description="حدد القسم والمسمى الوظيفي وتاريخ التعيين.">
           <div className="form-grid">
             <div className="field">
               <span>القسم</span>
@@ -236,9 +273,17 @@ export function EmployeeCreatePage() {
             </div>
             <div className="field">
               <span>المرتب الأساسي</span>
-              <input type="number" min="0" step="0.01" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
+              <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
             </div>
           </div>
+        </Card>
+
+        <Card title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">
+          {reviewWarnings.length ? (
+            <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>
+              {reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+            </ul>
+          ) : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}
         </Card>
 
         <Card title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف.">
