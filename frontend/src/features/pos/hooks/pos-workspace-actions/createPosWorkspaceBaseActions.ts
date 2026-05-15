@@ -1,10 +1,20 @@
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { downloadCsvFile } from '@/lib/browser';
-import { addPosItem, getProductPrice, isNegativeStockSalesAllowed, removePosItem, updatePosItemQtyWithOptions } from '@/features/pos/lib/pos.domain';
+import {
+  addPosItem,
+  getProductPrice,
+  isNegativeStockSalesAllowed,
+  removePosItem,
+  updatePosItemQtyWithOptions,
+} from '@/features/pos/lib/pos.domain';
 import { buildSaleLineKey, computeDraftTotal, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
-import { formatWeightedBarcodeQuantity, matchProductByWeightedCode, parseWeightedBarcode } from '@/features/pos/lib/weighted-barcode';
+import {
+  formatWeightedBarcodeQuantity,
+  matchProductByWeightedCode,
+  parseWeightedBarcode,
+} from '@/features/pos/lib/weighted-barcode';
 import { clearDraftSnapshot } from '@/features/pos/lib/pos.persistence';
-import type { PosPriceType } from '@/features/pos/types/pos.types';
+import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product } from '@/types/domain';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 
@@ -12,15 +22,57 @@ function toMoney(value: number) {
   return Number(Number(value || 0).toFixed(2));
 }
 
-function getAddProductErrorMessage(error: unknown, product: Product) {
+function formatQty(value: number, isWeighted = false) {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: isWeighted ? 3 : 0,
+  }).format(Number(value || 0));
+}
+
+function resolveSaleUnit(product: Product, unitId?: string) {
+  return product.units?.find((entry) => String(entry.id || '') === String(unitId || ''))
+    || product.units?.find((entry) => entry.isSaleUnit)
+    || product.units?.[0];
+}
+
+function resolveAvailableQty(product: Product, unitMultiplier: number, isWeighted = false) {
+  const raw = Number(product.stock || 0) / Math.max(unitMultiplier || 1, 1);
+  return isWeighted ? Number(raw.toFixed(3)) : Math.floor(raw);
+}
+
+function findLineQty(cart: PosItem[], lineKey: string) {
+  return Number(cart.find((item) => item.lineKey === lineKey)?.qty || 0);
+}
+
+function getAddProductErrorMessage(
+  error: unknown,
+  product: Product,
+  context: { availableQty?: number; currentQty?: number; requestedQty?: number; isWeighted?: boolean } = {},
+) {
   const message = error instanceof Error ? error.message : '';
+  const availableQty = Number(context.availableQty || 0);
+  const currentQty = Number(context.currentQty || 0);
+  const requestedQty = Number(context.requestedQty || 0);
+  const isWeighted = context.isWeighted === true;
+
+  if (availableQty <= 0) {
+    return 'المخزون غير متاح لهذا الصنف.';
+  }
+
+  if (currentQty > 0 && currentQty >= availableQty) {
+    return `لا يمكن إضافة كمية أكبر. المتاح من الصنف ${formatQty(availableQty, isWeighted)}، والموجود في السلة ${formatQty(currentQty, isWeighted)}.`;
+  }
+
+  if (requestedQty > 0 && requestedQty > availableQty) {
+    return `الكمية المطلوبة أكبر من المخزون المتاح. المتاح حاليًا: ${formatQty(availableQty, isWeighted)}.`;
+  }
 
   if (message.includes('غير متاح للبيع') || message.includes('المخزون')) {
-    return `مخزون "${product.name}" نافذ ولا يمكن إضافته للسلة.`;
+    return 'المخزون غير متاح لهذا الصنف.';
   }
 
   if (message.includes('الكمية المطلوبة أكبر')) {
-    return `المخزون المتاح من "${product.name}" لا يكفي الكمية المطلوبة.`;
+    return `الكمية المطلوبة أكبر من المخزون المتاح. المتاح حاليًا: ${formatQty(availableQty, isWeighted)}.`;
   }
 
   return message || `تعذر إضافة "${product.name}" إلى السلة.`;
@@ -28,9 +80,7 @@ function getAddProductErrorMessage(error: unknown, product: Product) {
 
 export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) {
   function resolveUnitLineKey(product: Product, unitId?: string) {
-    const unit = product.units?.find((entry) => String(entry.id || '') === String(unitId || ''))
-      || product.units?.find((entry) => entry.isSaleUnit)
-      || product.units?.[0];
+    const unit = resolveSaleUnit(product, unitId);
     return `${product.id}::${unit?.id || unit?.name || ''}::${params.priceType}`;
   }
 
@@ -68,18 +118,78 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.requestBarcodeFocus();
   }
 
-  function handleAddProduct(product: Product, unitId?: string, options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string } = {}) {
+  function handleAddProduct(
+    product: Product,
+    unitId?: string,
+    options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string } = {},
+  ) {
+    const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
+    const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
+    const unit = resolveSaleUnit(product, unitId);
+    const isWeighted = options.isWeighted === true;
+    const availableQty = allowNegativeStockSales
+      ? Number.MAX_SAFE_INTEGER
+      : resolveAvailableQty(product, Number(unit?.multiplier || 1), isWeighted);
+    const requestedQty = Number(options.quantity ?? 1);
+    const currentQty = findLineQty(params.cart, lineKey);
+
+    if (!allowNegativeStockSales && availableQty <= 0) {
+      const friendlyMessage = getAddProductErrorMessage(null, product, {
+        availableQty,
+        currentQty,
+        requestedQty,
+        isWeighted,
+      });
+      params.setSubmitMessage(friendlyMessage);
+      params.setScannerMessage(friendlyMessage);
+      params.requestBarcodeFocus();
+      return false;
+    }
+
+    if (!allowNegativeStockSales && currentQty > 0 && currentQty >= availableQty) {
+      const friendlyMessage = getAddProductErrorMessage(null, product, {
+        availableQty,
+        currentQty,
+        requestedQty,
+        isWeighted,
+      });
+      params.setSubmitMessage(friendlyMessage);
+      params.setScannerMessage(friendlyMessage);
+      params.requestBarcodeFocus();
+      return false;
+    }
+
     try {
-      const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
-      const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
-      params.setCart((currentCart) => addPosItem(currentCart, product, {
-        priceType: params.priceType,
-        unitId,
-        allowNegativeStockSales,
-        quantity: options.quantity,
-        isWeighted: options.isWeighted,
-        sourceBarcode: options.sourceBarcode,
-      }));
+      let caughtError: unknown = null;
+      params.setCart((currentCart) => {
+        try {
+          return addPosItem(currentCart, product, {
+            priceType: params.priceType,
+            unitId,
+            allowNegativeStockSales,
+            quantity: options.quantity,
+            isWeighted: options.isWeighted,
+            sourceBarcode: options.sourceBarcode,
+          });
+        } catch (error) {
+          caughtError = error;
+          return currentCart;
+        }
+      });
+
+      if (caughtError) {
+        const friendlyMessage = getAddProductErrorMessage(caughtError, product, {
+          availableQty,
+          currentQty,
+          requestedQty,
+          isWeighted,
+        });
+        params.setSubmitMessage(friendlyMessage);
+        params.setScannerMessage(friendlyMessage);
+        params.requestBarcodeFocus();
+        return false;
+      }
+
       params.setSelectedLineKey(lineKey);
       params.setLastAddedLineKey(lineKey);
       registerRecentProduct(product.id);
@@ -89,7 +199,12 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.requestBarcodeFocus();
       return true;
     } catch (error) {
-      const friendlyMessage = getAddProductErrorMessage(error, product);
+      const friendlyMessage = getAddProductErrorMessage(error, product, {
+        availableQty,
+        currentQty,
+        requestedQty,
+        isWeighted,
+      });
       params.setSubmitMessage(friendlyMessage);
       params.setScannerMessage(friendlyMessage);
       params.requestBarcodeFocus();
@@ -143,7 +258,11 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     if (!added) return false;
     params.setSearch('');
     params.setQuickAddCode('');
-    params.setScannerMessage(result.match.kind === 'unit' && result.match.unitName ? `تمت إضافة ${result.match.product.name} بوحدة ${result.match.unitName}.` : `تمت إضافة ${result.match.product.name} إلى السلة.`);
+    params.setScannerMessage(
+      result.match.kind === 'unit' && result.match.unitName
+        ? `تمت إضافة ${result.match.product.name} بوحدة ${result.match.unitName}.`
+        : `تمت إضافة ${result.match.product.name} إلى السلة.`,
+    );
     return true;
   }
 
@@ -268,7 +387,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     const selectedItem = params.cart.find((item) => item.lineKey === params.selectedLineKey);
     if (!selectedItem) return false;
     const minQty = selectedItem.isWeighted === true ? 0.001 : 1;
-    const nextQty = selectedItem.isWeighted === true ? Number((Number(selectedItem.qty || 0) + delta).toFixed(3)) : Number(selectedItem.qty || 1) + delta;
+    const nextQty = selectedItem.isWeighted === true
+      ? Number((Number(selectedItem.qty || 0) + delta).toFixed(3))
+      : Number(selectedItem.qty || 1) + delta;
     setQty(selectedItem.lineKey, Math.max(minQty, nextQty));
     return true;
   }

@@ -16,6 +16,20 @@ interface SubmitOptions {
   fastCash?: boolean;
 }
 
+function getSubmitSaleErrorMessage(error: unknown) {
+  const raw = error instanceof Error ? String(error.message || '').trim() : '';
+  const normalized = raw.toLowerCase();
+  if (
+    normalized.includes('الكمية المطلوبة أكبر من المخزون المتاح')
+    || normalized.includes('insufficient stock')
+    || normalized.includes('stock')
+    || normalized.includes('inventory')
+  ) {
+    return 'الكمية المطلوبة أكبر من المخزون المتاح. راجع الكميات في السلة قبل إتمام البيع.';
+  }
+  return raw || 'تعذر حفظ الفاتورة';
+}
+
 function matchesCreatedCustomer(customer: Customer, name: string, phone: string) {
   const customerName = String(customer.name || '').trim();
   const customerPhone = String(customer.phone || '').trim();
@@ -225,7 +239,7 @@ export function createPosWorkspaceAsyncActions(
       params.setSubmitMessage(`تم حفظ فاتورة البيع بنجاح${(createdSale as Sale)?.docNo ? `: ${(createdSale as Sale).docNo}` : ''}. ${getPostSalePrintHint(postSalePrintMode)}`);
       params.requestBarcodeFocus();
     } catch (error) {
-      params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر حفظ الفاتورة');
+      params.setSubmitMessage(getSubmitSaleErrorMessage(error));
       params.requestBarcodeFocus();
     }
   }
