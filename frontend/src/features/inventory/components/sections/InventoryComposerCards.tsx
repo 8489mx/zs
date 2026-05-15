@@ -4,6 +4,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
+import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
 import type { Branch, Location, Product, StockCountItem, StockTransferItem } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
@@ -55,10 +56,13 @@ export function StockTransferComposerCard({
           </select>
         </Field>
         <Field label="الصنف">
-          <select value={form.productId} onChange={(e) => onFormChange({ productId: e.target.value })}>
-            <option value="">اختر الصنف</option>
-            {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-          </select>
+          <InventoryProductPicker
+            products={products}
+            value={form.productId}
+            onChange={(productId) => onFormChange({ productId })}
+            showStock
+            showPrice={false}
+          />
         </Field>
         <Field label="الكمية">
           <input type="number" min="0.001" step="0.001" value={form.qty} onChange={(e) => onFormChange({ qty: e.target.value })} />
@@ -148,10 +152,14 @@ export function StockCountComposerCard({
           </select>
         </Field>
         <Field label="الصنف">
-          <select value={form.productId} onChange={(e) => onFormChange({ productId: e.target.value })}>
-            <option value="">اختر الصنف</option>
-            {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-          </select>
+          <InventoryProductPicker
+            products={products}
+            value={form.productId}
+            onChange={(productId) => onFormChange({ productId })}
+            showStock
+            showPrice={false}
+            helperText="تم تجهيز الصنف المحدد لعملية الجرد أو التسوية السريعة."
+          />
         </Field>
         <Field label="الكمية المعدودة">
           <input type="number" min="0" step="0.001" value={form.countedQty} onChange={(e) => onFormChange({ countedQty: e.target.value })} />

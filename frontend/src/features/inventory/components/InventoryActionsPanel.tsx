@@ -11,6 +11,7 @@ import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import type { Branch, Location, Product } from '@/types/domain';
 import { useDamagedStockMutation, useInventoryAdjustmentMutation } from '@/features/inventory/hooks/useInventoryMutations';
+import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import {
   damagedStockSchema,
@@ -74,7 +75,6 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
   const locationList = useMemo(() => (Array.isArray(locations) ? locations : []), [locations]);
   const productById = useMemo(() => new Map(productList.map((product) => [String(product.id), product])), [productList]);
   const locationById = useMemo(() => new Map(locationList.map((location) => [String(location.id), location.name])), [locationList]);
-  const productOptions = useMemo(() => productList.map((product) => ({ id: product.id, name: product.name })), [productList]);
 
   const adjustmentForm = useForm<InventoryAdjustmentInput, undefined, InventoryAdjustmentOutput>({
     resolver: zodResolver(inventoryAdjustmentSchema),
@@ -84,6 +84,11 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
     resolver: zodResolver(damagedStockSchema),
     defaultValues: buildDamagedDefaults(locationList)
   });
+  const adjustmentProductId = adjustmentForm.watch('productId');
+  const selectedAdjustmentProduct = useMemo(
+    () => productById.get(String(adjustmentProductId)) || null,
+    [adjustmentProductId, productById],
+  );
 
   const resetAdjustmentDefaults = useCallback(() => adjustmentForm.reset(ADJUSTMENT_DEFAULTS), [adjustmentForm]);
   const resetDamagedDefaults = useCallback(() => damagedForm.reset(buildDamagedDefaults(locationList)), [damagedForm, locationList]);
@@ -202,11 +207,18 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
             </summary>
             <form className="form-grid inventory-action-form" onSubmit={adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))}>
               <Field label="الصنف" error={adjustmentForm.formState.errors.productId?.message}>
-                <select {...adjustmentForm.register('productId')} disabled={adjustmentMutation.isPending || !canManageInventory}>
-                  <option value="">اختر الصنف</option>
-                  {productOptions.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-                </select>
-                {selectedProduct ? <div className="muted small">تم تجهيز الصنف المحدد من جدول المتابعة لعمل تسوية أو إضافة/خصم سريع مباشرة.</div> : null}
+                <InventoryProductPicker
+                  products={productList}
+                  value={adjustmentProductId}
+                  onChange={(productId) => adjustmentForm.setValue('productId', productId, {
+                    shouldDirty: true,
+                    shouldValidate: true
+                  })}
+                  disabled={adjustmentMutation.isPending || !canManageInventory}
+                  showStock
+                  showPrice={false}
+                />
+                {selectedAdjustmentProduct ? <div className="muted small">تم تجهيز الصنف المحدد من جدول المتابعة لعمل تسوية أو إضافة/خصم سريع مباشرة.</div> : null}
               </Field>
               <Field label="نوع الحركة">
                 <select {...adjustmentForm.register('actionType')} disabled={adjustmentMutation.isPending || !canManageInventory}>
@@ -244,10 +256,17 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
             </summary>
             <form className="form-grid inventory-action-form" onSubmit={damagedForm.handleSubmit((values) => damagedMutation.mutate(values))}>
               <Field label="الصنف" error={damagedForm.formState.errors.productId?.message}>
-                <select {...damagedForm.register('productId')} disabled={damagedMutation.isPending || !canManageInventory}>
-                  <option value="">اختر الصنف</option>
-                  {productOptions.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-                </select>
+                <InventoryProductPicker
+                  products={productList}
+                  value={damagedProductId}
+                  onChange={(productId) => damagedForm.setValue('productId', productId, {
+                    shouldDirty: true,
+                    shouldValidate: true
+                  })}
+                  disabled={damagedMutation.isPending || !canManageInventory}
+                  showStock
+                  showPrice={false}
+                />
               </Field>
               <Field label="الكمية" error={damagedForm.formState.errors.qty?.message}><input type="number" min="0.001" step="0.001" {...damagedForm.register('qty')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
               <Field label="السبب" error={damagedForm.formState.errors.reason?.message}><input {...damagedForm.register('reason')} disabled={damagedMutation.isPending || !canManageInventory} placeholder="مثال: كسر أثناء النقل / تلف صلاحية" /></Field>
