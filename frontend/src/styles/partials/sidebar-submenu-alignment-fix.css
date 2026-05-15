@@ -1,0 +1,70 @@
+/* Sidebar submenu alignment fix
+   Keeps parent groups and chevrons unchanged while forcing submenu rows
+   to render as compact RTL bullet items instead of centered labels. */
+.sidebar-link.sidebar-link-sub {
+  grid-template-columns: minmax(0, 1fr) auto 8px;
+  column-gap: 6px;
+  justify-content: stretch;
+  justify-items: stretch;
+  padding: 7px 10px 7px 8px;
+  min-height: 34px;
+  text-align: right;
+}
+
+.sidebar-link.sidebar-link-sub .sidebar-icon {
+  grid-area: icon;
+  grid-column: 3;
+  justify-self: end;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.55);
+  color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.sidebar-link.sidebar-link-sub .sidebar-icon svg {
+  display: none;
+}
+
+.sidebar-link.sidebar-link-sub .sidebar-label {
+  grid-area: label;
+  grid-column: 2;
+  justify-self: end;
+  align-self: center;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  direction: rtl;
+  text-align: right;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.sidebar-link.sidebar-link-sub .sidebar-link-chevron-spacer {
+  grid-area: chevron;
+  grid-column: 1;
+  justify-self: stretch;
+  width: auto;
+  min-width: 0;
+  height: 1px;
+}
+
+.sidebar-link.sidebar-link-sub.active .sidebar-label {
+  font-weight: 600;
+}
+
+.sidebar-link.sidebar-link-sub:hover .sidebar-icon,
+.sidebar-link.sidebar-link-sub.active .sidebar-icon {
+  background: var(--icon-fg, #1d4ed8);
+  box-shadow: none;
+  transform: none;
+}
