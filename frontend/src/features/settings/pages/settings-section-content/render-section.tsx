@@ -5,6 +5,7 @@ import {
   SettingsReferenceSection,
   SettingsBackupImportSection,
 } from '@/features/settings/components/SettingsWorkspaceSections';
+import type { BackupConfigQueryState } from '@/features/settings/components/workspace-sections/SettingsBackupImportSection';
 import type { Branch, Location, AppSettings } from '@/types/domain';
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 
@@ -36,12 +37,26 @@ export interface SharedSettingsSectionProps {
   canManageSettings: boolean;
   canManageBackups: boolean;
   backupBusy: boolean;
+  backupConfigQuery: BackupConfigQueryState;
+  backupFolderPathDraft: string;
+  setBackupFolderPathDraft: (value: string) => void;
+  backupAutoEnabledDraft: boolean;
+  setBackupAutoEnabledDraft: (value: boolean) => void;
+  backupFrequencyDraft: 'daily' | 'weekly';
+  setBackupFrequencyDraft: (value: 'daily' | 'weekly') => void;
+  backupTimeDraft: string;
+  setBackupTimeDraft: (value: string) => void;
+  backupWeeklyDayDraft: number;
+  setBackupWeeklyDayDraft: (value: number) => void;
   backupSelectedFileName: string;
   backupMessage: string;
   backupMessageKind: 'success' | 'error';
   backupResult: unknown;
   restoreSnapshotId: string;
   handleBackupDownload: () => Promise<void>;
+  saveBackupConfig: () => Promise<void>;
+  testBackupFolder: () => Promise<void>;
+  saveBackupFileToFolderNow: () => Promise<void>;
   handleBackupFile: (file: File, mode: 'verify' | 'restore') => Promise<void>;
   handleSnapshotDownload: (snapshot: BackupSnapshotRecord) => void;
   onRequestRestoreFile: (file: File) => void;
@@ -139,12 +154,26 @@ export function renderBackupSection(props: SharedSettingsSectionProps) {
       autoBackupEnabled={props.settings?.autoBackup !== 'off'}
       canManageBackups={props.canManageBackups}
       backupBusy={props.backupBusy}
+      backupConfigQuery={props.backupConfigQuery}
+      backupFolderPathDraft={props.backupFolderPathDraft}
+      setBackupFolderPathDraft={props.setBackupFolderPathDraft}
+      backupAutoEnabledDraft={props.backupAutoEnabledDraft}
+      setBackupAutoEnabledDraft={props.setBackupAutoEnabledDraft}
+      backupFrequencyDraft={props.backupFrequencyDraft}
+      setBackupFrequencyDraft={props.setBackupFrequencyDraft}
+      backupTimeDraft={props.backupTimeDraft}
+      setBackupTimeDraft={props.setBackupTimeDraft}
+      backupWeeklyDayDraft={props.backupWeeklyDayDraft}
+      setBackupWeeklyDayDraft={props.setBackupWeeklyDayDraft}
       backupSelectedFileName={props.backupSelectedFileName}
       backupMessage={props.backupMessage}
       backupMessageKind={props.backupMessageKind}
       backupResult={props.backupResult}
       restoreSnapshotId={props.restoreSnapshotId}
       handleBackupDownload={props.handleBackupDownload}
+      saveBackupConfig={props.saveBackupConfig}
+      testBackupFolder={props.testBackupFolder}
+      saveBackupFileToFolderNow={props.saveBackupFileToFolderNow}
       handleBackupFile={props.handleBackupFile}
       handleSnapshotDownload={props.handleSnapshotDownload}
       onRequestRestoreFile={props.onRequestRestoreFile}

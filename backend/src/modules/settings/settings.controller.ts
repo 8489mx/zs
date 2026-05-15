@@ -2,6 +2,7 @@ import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe,
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { SettingsService } from './settings.service';
+import { SettingsBackupService } from './services/settings-backup.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { BranchPayloadDto } from './dto/branch-payload.dto';
 import { LocationPayloadDto } from './dto/location-payload.dto';
@@ -9,7 +10,10 @@ import { LocationPayloadDto } from './dto/location-payload.dto';
 @Controller('api')
 @UseGuards(SessionAuthGuard)
 export class SettingsController {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly backupService: SettingsBackupService,
+  ) {}
 
   private assertSettingsPermission(req: RequestWithAuth): void {
     const permissions = req.authContext?.permissions ?? [];
@@ -19,7 +23,8 @@ export class SettingsController {
   }
 
   @Get('settings')
-  getSettings(): Promise<Record<string, unknown>> {
+  async getSettings(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    await this.backupService.runAutoBackupIfDue(req.authContext).catch(() => undefined);
     return this.settingsService.getSettings();
   }
 

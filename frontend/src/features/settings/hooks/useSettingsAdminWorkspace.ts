@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateAdminWorkspaceQueries, invalidateImportedReferenceData, invalidatePurchasesDomain, invalidateSalesDomain, invalidateSettingsReferenceDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
@@ -46,14 +46,21 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
   const operationalQuery = useQuery({ queryKey: queryKeys.adminOperational, queryFn: settingsApi.operationalReadiness, enabled: needsDiagnostics });
   const supportQuery = useQuery({ queryKey: queryKeys.adminSupport, queryFn: settingsApi.supportSnapshot, enabled: needsReadiness });
   const backupSnapshotsQuery = useQuery({ queryKey: queryKeys.backupSnapshots, queryFn: settingsApi.backupSnapshots, enabled: needsBackup });
+  const backupConfigQuery = useQuery({ queryKey: ['backup-config'], queryFn: settingsApi.backupConfig, enabled: needsBackup });
 
   const [backupResult, setBackupResult] = useState<Record<string, unknown> | null>(null);
   const [backupMessage, setBackupMessage] = useState('');
   const [backupMessageKind, setBackupMessageKind] = useState<BackupMessageKind>('success');
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupSelectedFileName, setBackupSelectedFileName] = useState('');
+  const [backupFolderPathDraft, setBackupFolderPathDraft] = useState('');
+  const [backupAutoEnabledDraft, setBackupAutoEnabledDraft] = useState(true);
+  const [backupFrequencyDraft, setBackupFrequencyDraft] = useState<'daily' | 'weekly'>('daily');
+  const [backupTimeDraft, setBackupTimeDraft] = useState('03:00');
+  const [backupWeeklyDayDraft, setBackupWeeklyDayDraft] = useState(0);
   const [supportCopyStatus, setSupportCopyStatus] = useState('');
   const [restoreSnapshotId, setRestoreSnapshotId] = useState('');
+  const backupConfigData = backupConfigQuery.data;
 
   const refreshAdminQueries = async () => {
     await Promise.all([
@@ -79,6 +86,15 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
   const importCustomersMutation = useMutation({ mutationFn: settingsApi.importCustomers, onSuccess: refreshImportedDataQueries });
   const importSuppliersMutation = useMutation({ mutationFn: settingsApi.importSuppliers, onSuccess: refreshImportedDataQueries });
   const importOpeningStockMutation = useMutation({ mutationFn: settingsApi.importOpeningStock, onSuccess: refreshImportedDataQueries });
+
+  useEffect(() => {
+    if (!backupConfigData) return;
+    setBackupFolderPathDraft(String(backupConfigData.folderPath || backupConfigData.defaultFolderPath || 'D:\\ZS Backups'));
+    setBackupAutoEnabledDraft(Boolean(backupConfigData.automation?.enabled));
+    setBackupFrequencyDraft(backupConfigData.automation?.frequency === 'weekly' ? 'weekly' : 'daily');
+    setBackupTimeDraft(String(backupConfigData.automation?.time || '03:00'));
+    setBackupWeeklyDayDraft(Number(backupConfigData.automation?.weeklyDay ?? 0));
+  }, [backupConfigData]);
 
   const handleBackupDownload = async () => {
     setBackupBusy(true);
@@ -159,6 +175,73 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     }
   };
 
+  const refreshBackupConfig = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['backup-config'] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.backupSnapshots }),
+    ]);
+  };
+
+  const saveBackupConfig = async () => {
+    setBackupBusy(true);
+    setBackupMessage('');
+    setBackupMessageKind('success');
+    try {
+      const response = await settingsApi.saveBackupConfig({
+        folderPath: backupFolderPathDraft,
+        automation: {
+          enabled: backupAutoEnabledDraft,
+          frequency: backupFrequencyDraft,
+          time: backupTimeDraft,
+          weeklyDay: backupWeeklyDayDraft,
+        },
+      });
+      setBackupFolderPathDraft(String(response.folderPath || response.defaultFolderPath || backupFolderPathDraft || 'D:\\ZS Backups'));
+      setBackupMessage('تم حفظ إعدادات النسخ الاحتياطية بنجاح.');
+      setBackupMessageKind('success');
+      await refreshBackupConfig();
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر حفظ إعدادات النسخ الاحتياطية.');
+      setBackupMessageKind('error');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const testBackupFolder = async () => {
+    setBackupBusy(true);
+    setBackupMessage('');
+    setBackupMessageKind('success');
+    try {
+      const result = await settingsApi.testBackupFolder({ folderPath: backupFolderPathDraft });
+      const message = String(result.message || `تم اختبار المسار بنجاح: ${backupFolderPathDraft || 'D:\\ZS Backups'}`);
+      setBackupMessage(message);
+      setBackupMessageKind(result.ok === false ? 'error' : 'success');
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر اختبار المسار.');
+      setBackupMessageKind('error');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const saveBackupFileToFolderNow = async () => {
+    setBackupBusy(true);
+    setBackupMessage('');
+    setBackupMessageKind('success');
+    try {
+      const result = await settingsApi.saveBackupFileToFolder();
+      setBackupMessage(String(result.message || 'تم حفظ النسخة الاحتياطية في المجلد المحدد.'));
+      setBackupMessageKind('success');
+      await refreshBackupConfig();
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر حفظ نسخة في المجلد المحدد.');
+      setBackupMessageKind('error');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
   const handleCopySupportSnapshot = async () => {
     try {
       await navigator.clipboard?.writeText(JSON.stringify(supportQuery.data || {}, null, 2));
@@ -179,6 +262,7 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     operationalQuery,
     supportQuery,
     backupSnapshotsQuery,
+    backupConfigQuery,
     cleanupMutation,
     reconcileAllMutation,
     reconcileCustomersMutation,
@@ -192,12 +276,25 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     backupMessageKind,
     backupBusy,
     backupSelectedFileName,
+    backupFolderPathDraft,
+    setBackupFolderPathDraft,
+    backupAutoEnabledDraft,
+    setBackupAutoEnabledDraft,
+    backupFrequencyDraft,
+    setBackupFrequencyDraft,
+    backupTimeDraft,
+    setBackupTimeDraft,
+    backupWeeklyDayDraft,
+    setBackupWeeklyDayDraft,
     supportCopyStatus,
     restoreSnapshotId,
     handleBackupDownload,
     handleBackupFile,
     handleSnapshotDownload,
     handleSnapshotRestore,
-    handleCopySupportSnapshot
+    handleCopySupportSnapshot,
+    saveBackupConfig,
+    testBackupFolder,
+    saveBackupFileToFolderNow,
   };
 }

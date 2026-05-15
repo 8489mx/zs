@@ -248,12 +248,26 @@ describe('app ui coverage', () => {
         autoBackupEnabled={false}
         canManageBackups={true}
         backupBusy={false}
+        backupConfigQuery={{ isLoading: false, isError: false, data: { ok: true, defaultFolderPath: 'D:\\ZS Backups', folderPath: 'D:\\ZS Backups', automation: { enabled: true, frequency: 'daily', time: '03:00', weeklyDay: 0 } } }}
+        backupFolderPathDraft="D:\\ZS Backups"
+        setBackupFolderPathDraft={() => undefined}
+        backupAutoEnabledDraft={true}
+        setBackupAutoEnabledDraft={() => undefined}
+        backupFrequencyDraft="daily"
+        setBackupFrequencyDraft={() => undefined}
+        backupTimeDraft="03:00"
+        setBackupTimeDraft={() => undefined}
+        backupWeeklyDayDraft={0}
+        setBackupWeeklyDayDraft={() => undefined}
         backupSelectedFileName=""
         backupMessage=""
         backupMessageKind="success"
         backupResult={null}
         restoreSnapshotId=""
         handleBackupDownload={() => undefined}
+        saveBackupConfig={async () => undefined}
+        testBackupFolder={async () => undefined}
+        saveBackupFileToFolderNow={async () => undefined}
         handleBackupFile={() => undefined}
         handleSnapshotDownload={() => undefined}
         onRequestRestoreFile={() => undefined}
