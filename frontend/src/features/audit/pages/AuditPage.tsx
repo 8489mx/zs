@@ -13,6 +13,7 @@ import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatDate } from '@/lib/format';
 import { useAuditLogs } from '@/features/audit/hooks/useAuditLogs';
 import { useAuditPageActions } from '@/features/audit/hooks/useAuditPageActions';
+import { formatAuditDetails } from '@/features/audit/lib/audit-details-format';
 import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { AuditLog } from '@/types/domain';
 
@@ -109,7 +110,7 @@ export function AuditPage() {
           {selectedUserLabel ? <div className="muted small">عرض نشاط الموظف: <strong>{selectedUserLabel}</strong></div> : null}
           <DataTable rows={rows} columns={[
             { key: 'action', header: 'الإجراء', cell: (row) => row.action },
-            { key: 'details', header: 'التفاصيل', cell: (row: AuditLog) => row.detailsSummary || row.details || '—' },
+            { key: 'details', header: 'التفاصيل', cell: (row: AuditLog) => formatAuditDetails(row) },
             { key: 'user', header: 'المنفذ', cell: (row) => row.createdByName || '—' },
             { key: 'date', header: 'التاريخ والوقت', cell: (row) => formatDate(row.createdAt || row.created_at || '') }
           ]} />
