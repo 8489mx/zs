@@ -218,7 +218,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [storeName]);
   const isPosRoute = location.pathname.startsWith('/pos');
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
-  const [expandedSidebarGroups, setExpandedSidebarGroups] = useState<Record<string, boolean>>({});
+  const [expandedSidebarGroupKey, setExpandedSidebarGroupKey] = useState<string | null>(null);
 
   const visibleNavigationItems = useMemo(() => {
     const hiddenKeys = new Set<string>([]);
@@ -302,12 +302,11 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [location.pathname, navigationMap, sidebarGroups]);
 
   useEffect(() => {
-    if (!activeSidebarGroupKey) return;
-    setExpandedSidebarGroups((current) => current[activeSidebarGroupKey] ? current : { ...current, [activeSidebarGroupKey]: true });
+    setExpandedSidebarGroupKey(activeSidebarGroupKey);
   }, [activeSidebarGroupKey]);
 
   function toggleSidebarGroup(groupKey: string) {
-    setExpandedSidebarGroups((current) => ({ ...current, [groupKey]: !current[groupKey] }));
+    setExpandedSidebarGroupKey((current) => current === groupKey ? null : groupKey);
   }
 
   useEffect(() => {
@@ -484,7 +483,7 @@ export function AppShell({ children }: PropsWithChildren) {
               .filter((item): item is NonNullable<typeof item> => Boolean(item));
             if (!groupItems.length) return null;
 
-            const isOpen = Boolean(expandedSidebarGroups[group.key]);
+            const isOpen = expandedSidebarGroupKey === group.key;
             const isActive = activeSidebarGroupKey === group.key;
             const groupIconItemKey = groupItems[0]?.key || 'settings';
             const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
