@@ -1,5 +1,6 @@
 ﻿import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -18,6 +19,7 @@ import {
 } from '@/features/sales/lib/sales-workspace.helpers';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { Sale } from '@/types/domain';
 
 export function SalesWorkspace() {
@@ -31,6 +33,7 @@ export function SalesWorkspace() {
 
   const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter, cashier: cashierFilter });
   const { saleDetailQuery, cancelMutation } = useSaleActions(selectedSaleId);
+  const usersQuery = useQuery({ queryKey: ['sales-cashier-filter-users'], queryFn: userDirectoryApi.users, staleTime: 60_000 });
   const settingsQuery = useSettingsQuery();
 
   const hasSellableProducts = availableProducts.length > 0;
@@ -43,6 +46,24 @@ export function SalesWorkspace() {
   const rangeStart = pagination?.rangeStart || 0;
   const rangeEnd = pagination?.rangeEnd || 0;
   const printSettings = settingsQuery.data || null;
+  const cashierOptions = useMemo(() => {
+    const userOptions = (usersQuery.data || [])
+      .map((user) => {
+        const id = String(user.id || '').trim();
+        if (!id) return null;
+        const role = String(user.role || '').trim();
+        const displayName = String(user.name || user.username || 'مستخدم').trim();
+        return { id, label: role ? `${role} — ${displayName}` : displayName };
+      })
+      .filter((entry): entry is { id: string; label: string } => Boolean(entry));
+
+    if (userOptions.length) return userOptions;
+
+    return (summary?.cashiers || []).map((cashierName) => ({
+      id: String(cashierName),
+      label: String(cashierName),
+    }));
+  }, [summary?.cashiers, usersQuery.data]);
 
   useEffect(() => {
     setPage(1);
@@ -101,7 +122,7 @@ export function SalesWorkspace() {
           search={search}
           viewFilter={viewFilter}
           cashierFilter={cashierFilter}
-          cashierOptions={summary?.cashiers || []}
+          cashierOptions={cashierOptions}
           activeFilterLabel={activeFilterLabel}
           totalItems={totalItems}
           rangeStart={rangeStart}

@@ -7,6 +7,7 @@ interface SearchToolbarProps {
   search: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
+  searchLabel?: string;
   children?: ReactNode;
   title?: string;
   description?: string;
@@ -23,6 +24,7 @@ export function SearchToolbar({
   search,
   onSearchChange,
   searchPlaceholder = 'ابحث...',
+  searchLabel = 'بحث سريع',
   children,
   title,
   description,
@@ -54,7 +56,7 @@ export function SearchToolbar({
       {meta ? <div className="toolbar-meta-row">{meta}</div> : null}
 
       <div className="toolbar-grid compact-toolbar">
-        <Field label="بحث سريع">
+        <Field label={searchLabel}>
           <input
             ref={inputRef}
             value={search}

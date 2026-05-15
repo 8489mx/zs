@@ -25,7 +25,7 @@ export class SalesQueryService {
       .select([
         's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 's.customer_name', 's.payment_type', 's.payment_channel',
         's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.store_credit_used',
-        's.status', 's.note', 's.branch_id', 's.location_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
+        's.status', 's.note', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
       ])
       .orderBy('s.id desc')
       .execute() as unknown as Array<Record<string, unknown>>;
@@ -35,6 +35,7 @@ export class SalesQueryService {
     return sales.map((sale) => ({
       id: String(sale.id),
       docNo: sale.doc_no || `S-${sale.id}`,
+      createdById: sale.created_by_id ? String(sale.created_by_id) : '',
       customerId: sale.customer_id ? String(sale.customer_id) : '',
       customerName: sale.customer_name_ref || sale.customer_name || 'عميل نقدي',
       paymentType: sale.payment_type || 'cash',
@@ -49,7 +50,8 @@ export class SalesQueryService {
       storeCreditUsed: Number(sale.store_credit_used || 0),
       status: sale.status || 'posted',
       note: sale.note || '',
-      createdBy: sale.created_by_name || '',
+      createdBy: sale.created_by_name || sale.created_by_username || '',
+      createdByUsername: sale.created_by_username || '',
       date: sale.created_at,
       branchId: sale.branch_id ? String(sale.branch_id) : '',
       locationId: sale.location_id ? String(sale.location_id) : '',
@@ -126,7 +128,7 @@ export class SalesQueryService {
       .select([
         's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 's.customer_name', 's.payment_type', 's.payment_channel',
         's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.store_credit_used',
-        's.status', 's.note', 's.branch_id', 's.location_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
+        's.status', 's.note', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
       ])
       .where('s.id', '=', id)
       .executeTakeFirst();

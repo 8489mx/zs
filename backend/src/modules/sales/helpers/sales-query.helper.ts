@@ -49,6 +49,7 @@ export function mapSaleRows(
   return sales.map((sale) => ({
     id: String(sale.id),
     docNo: sale.doc_no || `S-${sale.id}`,
+    createdById: sale.created_by_id ? String(sale.created_by_id) : '',
     customerId: sale.customer_id ? String(sale.customer_id) : '',
     customerName: sale.customer_name_ref || sale.customer_name || 'عميل نقدي',
     paymentType: sale.payment_type || 'cash',
@@ -64,6 +65,7 @@ export function mapSaleRows(
     status: sale.status || 'posted',
     note: sale.note || '',
     createdBy: sale.created_by_name || '',
+    createdByUsername: sale.created_by_username || '',
     date: sale.created_at,
     branchId: sale.branch_id ? String(sale.branch_id) : '',
     locationId: sale.location_id ? String(sale.location_id) : '',
@@ -77,7 +79,8 @@ export function mapSaleRows(
 export function filterSales(rows: SaleRow[], query: Record<string, unknown>): SaleRow[] {
   const q = String(query.search || query.q || '').toLowerCase();
   const filter = String(query.paymentChannel || query.filter || query.view || 'all');
-  const cashier = String(query.cashier || query.createdBy || 'all').trim().toLowerCase();
+  const cashier = String(query.cashier || query.createdBy || 'all').trim();
+  const cashierLower = cashier.toLowerCase();
 
   const paymentChannelMatches = (row: SaleRow) => {
     const channel = String(row.paymentChannel || '').toLowerCase();
@@ -105,7 +108,12 @@ export function filterSales(rows: SaleRow[], query: Record<string, unknown>): Sa
 
   return rows.filter((row) => {
     if (!paymentChannelMatches(row)) return false;
-    if (cashier !== 'all' && String(row.createdBy || '').trim().toLowerCase() !== cashier) return false;
+    if (cashierLower !== 'all') {
+      const createdById = String(row.createdById || '').trim();
+      const createdByName = String(row.createdBy || '').trim().toLowerCase();
+      const createdByUsername = String(row.createdByUsername || '').trim().toLowerCase();
+      if (createdById !== cashier && createdByName !== cashierLower && createdByUsername !== cashierLower) return false;
+    }
     if (!q) return true;
     return [row.docNo, row.customerName, row.note, row.status].some((x) => String(x || '').toLowerCase().includes(q));
   });

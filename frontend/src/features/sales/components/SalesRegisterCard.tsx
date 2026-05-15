@@ -11,11 +11,16 @@ import type { Sale } from '@/types/domain';
 
 export type SalesPaymentFilter = SalesListFilter;
 
+type CashierFilterOption = {
+  id: string;
+  label: string;
+};
+
 type Props = {
   search: string;
   viewFilter: SalesPaymentFilter;
   cashierFilter: string;
-  cashierOptions: string[];
+  cashierOptions: CashierFilterOption[];
   activeFilterLabel: string;
   totalItems: number;
   rangeStart: number;
@@ -90,6 +95,7 @@ export function SalesRegisterCard(props: Props) {
       <SearchToolbar
         search={search}
         onSearchChange={onSearchChange}
+        searchLabel="بحث الفواتير"
         searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث بالرقم أو العميل أو الحالة أو المخزن' : 'ابحث بالرقم أو العميل أو الحالة أو الفرع'}
         actions={<span className="nav-pill">{activeFilterLabel}</span>}
         meta={(
@@ -119,9 +125,9 @@ export function SalesRegisterCard(props: Props) {
           <div className="field sales-toolbar-filter-field">
             <span>الموظف / الكاشير</span>
             <select value={cashierFilter} onChange={(event) => onCashierFilterChange(event.target.value)}>
-              <option value="all">الكل</option>
-              {cashierOptions.map((cashierName) => (
-                <option key={cashierName} value={cashierName}>{cashierName}</option>
+              <option value="all">كل الموظفين</option>
+              {cashierOptions.map((option) => (
+                <option key={option.id} value={option.id}>{option.label}</option>
               ))}
             </select>
           </div>

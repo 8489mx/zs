@@ -9,20 +9,15 @@
   margin-bottom: 0 !important;
 }
 
-.sales-workspace .sales-register-card .toolbar-grid > .field > span,
-.sales-workspace .sales-register-card .toolbar-grid > .field > label {
-  display: none !important;
-}
-
 .sales-workspace .sales-register-card .toolbar-grid > .field input {
   margin-top: 0 !important;
 }
 
 .sales-workspace .sales-register-card .toolbar-extra {
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-end !important;
   gap: 8px !important;
-  min-height: 44px !important;
+  min-height: 66px !important;
 }
 
 .sales-workspace .sales-register-card .toolbar-chip-row {
@@ -36,10 +31,13 @@
 .sales-workspace .sales-register-card .sales-register-toolbar-filters {
   align-items: flex-end !important;
   width: 100% !important;
+  justify-content: flex-start !important;
 }
 
 .sales-workspace .sales-register-card .sales-toolbar-filter-field {
   min-width: 170px;
+  max-width: 230px;
+  flex: 1 1 190px;
   margin-bottom: 0 !important;
 }
 
