@@ -20,14 +20,29 @@ interface MovementValues {
 interface CloseShiftValues {
   shiftId: string;
   countedCash: number;
+  cardDeclaredTotal?: number;
+  cardOperationCount?: number;
+  walletDeclaredTotal?: number;
+  walletOperationCount?: number;
+  instapayDeclaredTotal?: number;
+  instapayOperationCount?: number;
+  cardDetails?: Array<{ amount: number; reference?: string }>;
+  walletDetails?: Array<{ amount: number; reference?: string }>;
+  instapayDetails?: Array<{ amount: number; reference?: string }>;
   note: string;
   managerPin?: string;
+}
+
+interface ReviewShiftValues {
+  shiftId: string;
+  note?: string;
 }
 
 export function useCashDrawerMutations(actions?: {
   onOpenSuccess?: () => void;
   onMovementSuccess?: () => void;
   onCloseSuccess?: () => void;
+  onReviewSuccess?: () => void;
 }) {
   const queryClient = useQueryClient();
 
@@ -67,6 +82,15 @@ export function useCashDrawerMutations(actions?: {
     mutationFn: (values: CloseShiftValues) =>
       cashDrawerApi.close(values.shiftId, {
         countedCash: Number(values.countedCash || 0),
+        cardDeclaredTotal: Number(values.cardDeclaredTotal || 0),
+        cardOperationCount: Number(values.cardOperationCount || 0),
+        walletDeclaredTotal: Number(values.walletDeclaredTotal || 0),
+        walletOperationCount: Number(values.walletOperationCount || 0),
+        instapayDeclaredTotal: Number(values.instapayDeclaredTotal || 0),
+        instapayOperationCount: Number(values.instapayOperationCount || 0),
+        cardDetails: Array.isArray(values.cardDetails) ? values.cardDetails : [],
+        walletDetails: Array.isArray(values.walletDetails) ? values.walletDetails : [],
+        instapayDetails: Array.isArray(values.instapayDetails) ? values.instapayDetails : [],
         note: values.note || '',
         managerPin: values.managerPin || ''
       }),
@@ -76,5 +100,16 @@ export function useCashDrawerMutations(actions?: {
     }
   });
 
-  return { openMutation, movementMutation, closeMutation };
+  const reviewMutation = useMutation({
+    mutationFn: (values: ReviewShiftValues) =>
+      cashDrawerApi.reviewClose(values.shiftId, {
+        note: String(values.note || '').trim(),
+      }),
+    onSuccess: async () => {
+      await refreshAll();
+      actions?.onReviewSuccess?.();
+    }
+  });
+
+  return { openMutation, movementMutation, closeMutation, reviewMutation };
 }

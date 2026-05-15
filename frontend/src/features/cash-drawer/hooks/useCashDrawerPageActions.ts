@@ -4,7 +4,7 @@ import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
-export function useCashDrawerPageActions(params: { search: string; shiftFilter: 'all' | 'open' | 'closed' | 'variance' | 'today'; totalItems: number; openShiftCount: number; totalVariance: number; }) {
+export function useCashDrawerPageActions(params: { search: string; shiftFilter: 'all' | 'open' | 'closed' | 'pending_review' | 'variance' | 'today'; totalItems: number; openShiftCount: number; totalVariance: number; }) {
   const { search, shiftFilter, totalItems, openShiftCount, totalVariance } = params;
 
   const exportShiftRows = useCallback(async () => {

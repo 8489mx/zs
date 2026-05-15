@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency } from '@/lib/format';
 import { useCashierShifts } from '@/features/cash-drawer/hooks/useCashierShifts';
@@ -6,6 +6,8 @@ import { useCashDrawerCatalog } from '@/features/cash-drawer/hooks/useCashDrawer
 import { useCashDrawerMutations } from '@/features/cash-drawer/hooks/useCashDrawerMutations';
 import { useCashDrawerPageActions } from '@/features/cash-drawer/hooks/useCashDrawerPageActions';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
+import { useAuthStore } from '@/stores/auth-store';
+import type { CashierShift } from '@/types/domain';
 
 export interface OpenShiftValues {
   openingCash: number;
@@ -25,6 +27,15 @@ export interface MovementValues {
 export interface CloseShiftValues {
   shiftId: string;
   countedCash: number;
+  cardDeclaredTotal: number;
+  cardOperationCount: number;
+  walletDeclaredTotal: number;
+  walletOperationCount: number;
+  instapayDeclaredTotal: number;
+  instapayOperationCount: number;
+  cardDetails: Array<{ amount: number; reference?: string }>;
+  walletDetails: Array<{ amount: number; reference?: string }>;
+  instapayDetails: Array<{ amount: number; reference?: string }>;
   note: string;
   managerPin?: string;
 }
@@ -34,27 +45,73 @@ export type CashDrawerConfirmAction =
   | { kind: 'close-shift'; values: CloseShiftValues };
 
 export function useCashDrawerPageController() {
+  const currentUser = useAuthStore((state) => state.user);
+  const userRole = String(currentUser?.role || '').trim();
+  const isBlindCloseUser = userRole === 'cashier';
+  const isManagerReviewer = ['admin', 'super_admin', 'manager'].includes(userRole);
+  const canViewSensitiveTotals = !isBlindCloseUser;
+
   const [search, setSearch] = useState('');
-  const [shiftFilter, setShiftFilter] = useState<'all' | 'open' | 'closed' | 'variance' | 'today'>('all');
+  const [shiftFilter, setShiftFilter] = useState<'all' | 'open' | 'closed' | 'pending_review' | 'variance' | 'today'>('all');
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [shiftPage, setShiftPage] = useState(1);
   const [shiftPageSize, setShiftPageSize] = useState(20);
   const [confirmAction, setConfirmAction] = useState<CashDrawerConfirmAction | null>(null);
+  const [reviewTargetShift, setReviewTargetShift] = useState<CashierShift | null>(null);
+  const [reviewManagerNote, setReviewManagerNote] = useState('');
+
   const query = useCashierShifts({ page: shiftPage, pageSize: shiftPageSize, search, filter: shiftFilter });
   const openShiftOptionsQuery = useCashierShifts({ page: 1, pageSize: 100, filter: 'open' });
   const { branches, locations } = useCashDrawerCatalog();
   const rows = query.data?.rows || [];
   const pagination = query.data?.pagination;
-  const summary = query.data?.summary || { totalItems: 0, openShiftCount: 0, openShiftDocNo: '', totalVariance: 0 };
+  const summary = query.data?.summary || { totalItems: 0, openShiftCount: 0, pendingReviewCount: 0, openShiftDocNo: '', totalVariance: 0 };
 
   const openForm = useForm<OpenShiftValues>({ defaultValues: { openingCash: 0, note: '', branchId: '', locationId: '' } });
   const movementForm = useForm<MovementValues>({ defaultValues: { shiftId: '', type: 'cash_in', amount: 0, note: '' } });
-  const closeForm = useForm<CloseShiftValues>({ defaultValues: { shiftId: '', countedCash: 0, note: '' } });
+  const closeForm = useForm<CloseShiftValues>({
+    defaultValues: {
+      shiftId: '',
+      countedCash: 0,
+      cardDeclaredTotal: 0,
+      cardOperationCount: 0,
+      walletDeclaredTotal: 0,
+      walletOperationCount: 0,
+      instapayDeclaredTotal: 0,
+      instapayOperationCount: 0,
+      cardDetails: [],
+      walletDetails: [],
+      instapayDetails: [],
+      note: '',
+    },
+  });
 
-  const { openMutation, movementMutation, closeMutation } = useCashDrawerMutations({
-    onOpenSuccess: () => openForm.reset({ openingCash: 0, note: '', branchId: SINGLE_STORE_MODE ? (branches[0]?.id || '') : '', locationId: SINGLE_STORE_MODE ? (locations[0]?.id || '') : '' }),
+  const { openMutation, movementMutation, closeMutation, reviewMutation } = useCashDrawerMutations({
+    onOpenSuccess: () => openForm.reset({
+      openingCash: 0,
+      note: '',
+      branchId: SINGLE_STORE_MODE ? (branches[0]?.id || '') : '',
+      locationId: SINGLE_STORE_MODE ? (locations[0]?.id || '') : '',
+    }),
     onMovementSuccess: () => movementForm.reset({ shiftId: '', type: 'cash_in', amount: 0, note: '' }),
-    onCloseSuccess: () => closeForm.reset({ shiftId: '', countedCash: 0, note: '' })
+    onCloseSuccess: () => closeForm.reset({
+      shiftId: '',
+      countedCash: 0,
+      cardDeclaredTotal: 0,
+      cardOperationCount: 0,
+      walletDeclaredTotal: 0,
+      walletOperationCount: 0,
+      instapayDeclaredTotal: 0,
+      instapayOperationCount: 0,
+      cardDetails: [],
+      walletDetails: [],
+      instapayDetails: [],
+      note: '',
+    }),
+    onReviewSuccess: () => {
+      setReviewManagerNote('');
+      setReviewTargetShift(null);
+    },
   });
 
   useEffect(() => {
@@ -83,9 +140,12 @@ export function useCashDrawerPageController() {
   const closeCountedCash = Number(closeForm.watch('countedCash') || 0);
   const closeVariancePreview = Number((closeCountedCash - closeExpectedCash).toFixed(2));
   const closeNoteValue = String(closeForm.watch('note') || '').trim();
+
   const openShift = openOptions[0] || (summary.openShiftDocNo ? { docNo: summary.openShiftDocNo } : null);
   const openShiftCount = summary.openShiftCount;
+  const pendingReviewCount = Number(summary.pendingReviewCount || 0);
   const totalVariance = Number(summary.totalVariance || 0);
+
   const { exportShiftRows, printShiftRows } = useCashDrawerPageActions({ search, shiftFilter, totalItems: summary.totalItems, openShiftCount, totalVariance });
 
   const resetShiftView = () => {
@@ -100,9 +160,11 @@ export function useCashDrawerPageController() {
       'ملخص الورديات والدرج النقدي',
       `عدد الورديات المطابقة: ${summary.totalItems}`,
       `الورديات المفتوحة: ${openShiftCount}`,
+      `في انتظار مراجعة المدير: ${pendingReviewCount}`,
       `الوردية النشطة: ${openShift?.openedByName || openShift?.docNo || 'لا يوجد'}`,
-      `إجمالي الفروقات: ${formatCurrency(totalVariance)}`
+      `إجمالي الفروقات: ${formatCurrency(totalVariance)}`,
     ];
+
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
       setCopyFeedback({ kind: 'success', text: 'تم نسخ ملخص الورديات بنجاح.' });
@@ -136,7 +198,31 @@ export function useCashDrawerPageController() {
     setConfirmAction({ kind: 'close-shift', values });
   });
 
+  const openReviewDialog = (shift: CashierShift) => {
+    setReviewManagerNote('');
+    setReviewTargetShift(shift);
+  };
+
+  const closeReviewDialog = () => {
+    setReviewManagerNote('');
+    setReviewTargetShift(null);
+  };
+
+  const submitPendingReview = async () => {
+    if (!reviewTargetShift?.id) return;
+    try {
+      await reviewMutation.mutateAsync({ shiftId: String(reviewTargetShift.id), note: reviewManagerNote });
+    } catch {
+      // mutation hook exposes the error state for the dialog.
+    }
+  };
+
   return {
+    currentUser,
+    userRole,
+    isBlindCloseUser,
+    isManagerReviewer,
+    canViewSensitiveTotals,
     search,
     shiftFilter,
     copyFeedback,
@@ -153,6 +239,7 @@ export function useCashDrawerPageController() {
     openMutation,
     movementMutation,
     closeMutation,
+    reviewMutation,
     branches,
     locations,
     openOptions,
@@ -161,12 +248,16 @@ export function useCashDrawerPageController() {
     closeNoteValue,
     openShift,
     openShiftCount,
+    pendingReviewCount,
     totalVariance,
+    reviewTargetShift,
+    reviewManagerNote,
     setSearch,
     setShiftFilter,
     setShiftPage,
     setShiftPageSize,
     setConfirmAction,
+    setReviewManagerNote,
     exportShiftRows,
     printShiftRows,
     resetShiftView,
@@ -174,5 +265,8 @@ export function useCashDrawerPageController() {
     performConfirmedAction,
     handleMovementSubmit,
     handleCloseSubmit,
+    openReviewDialog,
+    closeReviewDialog,
+    submitPendingReview,
   };
 }
