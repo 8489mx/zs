@@ -8,6 +8,7 @@ type SaleListSummary = {
   cashTotal: number;
   creditTotal: number;
   cancelledCount: number;
+  cashiers: string[];
   topCustomers: Array<{ name: string; total: number; count: number }>;
 };
 
@@ -76,6 +77,7 @@ export function mapSaleRows(
 export function filterSales(rows: SaleRow[], query: Record<string, unknown>): SaleRow[] {
   const q = String(query.search || query.q || '').toLowerCase();
   const filter = String(query.paymentChannel || query.filter || query.view || 'all');
+  const cashier = String(query.cashier || query.createdBy || 'all').trim().toLowerCase();
 
   const paymentChannelMatches = (row: SaleRow) => {
     const channel = String(row.paymentChannel || '').toLowerCase();
@@ -103,6 +105,7 @@ export function filterSales(rows: SaleRow[], query: Record<string, unknown>): Sa
 
   return rows.filter((row) => {
     if (!paymentChannelMatches(row)) return false;
+    if (cashier !== 'all' && String(row.createdBy || '').trim().toLowerCase() !== cashier) return false;
     if (!q) return true;
     return [row.docNo, row.customerName, row.note, row.status].some((x) => String(x || '').toLowerCase().includes(q));
   });
@@ -124,6 +127,11 @@ export function paginateRows(rows: SaleRow[], query: Record<string, unknown>, de
 export function summarizeSales(rows: SaleRow[]): SaleListSummary {
   const today = new Date().toISOString().slice(0, 10);
   const todayRows = rows.filter((row) => String(row.date || '').slice(0, 10) === today);
+  const cashiers = [...new Set(
+    rows
+      .map((row) => String(row.createdBy || '').trim())
+      .filter((name) => Boolean(name)),
+  )].sort((a, b) => a.localeCompare(b, 'ar'));
   const topCustomersMap = new Map<string, { name: string; total: number; count: number }>();
   for (const row of rows) {
     const key = String(row.customerId || row.customerName || 'cash');
@@ -141,6 +149,7 @@ export function summarizeSales(rows: SaleRow[]): SaleListSummary {
     cashTotal: Number(rows.filter((row) => row.paymentType === 'cash').reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
     creditTotal: Number(rows.filter((row) => row.paymentType === 'credit').reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
     cancelledCount: rows.filter((row) => row.status === 'cancelled').length,
+    cashiers,
     topCustomers: [...topCustomersMap.values()].sort((a, b) => b.total - a.total).slice(0, 5),
   };
 }

@@ -7,6 +7,7 @@ import type { Sale } from '@/types/domain';
 export function useSalesWorkspaceActions(params: {
   search: string;
   viewFilter: SalesListFilter;
+  cashierFilter: string;
   totalItems: number;
   summary?: { totalSales?: number; creditTotal?: number; cancelledCount?: number } | null;
   topCustomers: Array<{ name: string; count: number; total: number }>;
@@ -14,13 +15,14 @@ export function useSalesWorkspaceActions(params: {
   setPageSize: (value: number) => void;
   setSearch: (value: string) => void;
   setViewFilter: (value: SalesListFilter) => void;
+  setCashierFilter: (value: string) => void;
   setSelectedSaleId: (value: string) => void;
   setSaleToCancel: (value: Sale | null) => void;
 }) {
-  const { search, viewFilter, totalItems, summary, topCustomers, setPage, setPageSize, setSearch, setViewFilter, setSelectedSaleId, setSaleToCancel } = params;
+  const { search, viewFilter, cashierFilter, totalItems, summary, topCustomers, setPage, setPageSize, setSearch, setViewFilter, setCashierFilter, setSelectedSaleId, setSaleToCancel } = params;
 
   async function exportSalesCsv() {
-    const result = await salesApi.listAll({ search, filter: viewFilter });
+    const result = await salesApi.listAll({ search, filter: viewFilter, cashier: cashierFilter });
     downloadCsvFile('sales-register-results.csv', ['docNo', 'customer', 'status', 'paymentType', 'total', 'paidAmount', 'date', 'branch', 'location'], result.rows.map((sale) => [
       sale.docNo || sale.id,
       sale.customerName || 'عميل نقدي',
@@ -43,6 +45,7 @@ export function useSalesWorkspaceActions(params: {
     setPageSize(30);
     setSearch('');
     setViewFilter('all');
+    setCashierFilter('all');
     setSelectedSaleId('');
     setSaleToCancel(null);
   }
@@ -80,7 +83,7 @@ export function useSalesWorkspaceActions(params: {
 
   async function printSalesRegister() {
     if (!totalItems) return;
-    const result = await salesApi.listAll({ search, filter: viewFilter });
+    const result = await salesApi.listAll({ search, filter: viewFilter, cashier: cashierFilter });
     printHtmlDocument('سجل المبيعات', `
       <div class="meta-grid">
         <div class="meta-box"><strong>عدد الفواتير</strong><span>${result.rows.length}</span></div>

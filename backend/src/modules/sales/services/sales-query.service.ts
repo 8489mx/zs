@@ -95,6 +95,9 @@ export class SalesQueryService {
     const baseSales = await this.fetchSaleBaseRows();
     const shells = this.mapSaleShells(baseSales);
     const filtered = filterSales(shells, query);
+    const summary = summarizeSales(filtered);
+    const allCashiers = summarizeSales(shells).cashiers;
+    summary.cashiers = allCashiers;
     const paged = paginateRows(filtered, query);
     const baseById = new Map(baseSales.map((sale) => [String(sale.id), sale]));
     const pagedBaseSales = paged.rows
@@ -105,7 +108,7 @@ export class SalesQueryService {
     return {
       sales: hydratedSales,
       pagination: paged.pagination,
-      summary: summarizeSales(filtered),
+      summary,
       scope,
     };
   }

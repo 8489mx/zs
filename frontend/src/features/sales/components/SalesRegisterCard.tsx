@@ -14,6 +14,8 @@ export type SalesPaymentFilter = SalesListFilter;
 type Props = {
   search: string;
   viewFilter: SalesPaymentFilter;
+  cashierFilter: string;
+  cashierOptions: string[];
   activeFilterLabel: string;
   totalItems: number;
   rangeStart: number;
@@ -32,6 +34,7 @@ type Props = {
   canEditInvoices: boolean;
   onSearchChange: (value: string) => void;
   onViewFilterChange: (value: SalesPaymentFilter) => void;
+  onCashierFilterChange: (value: string) => void;
   onReset: () => void;
   onSelectSale: (saleId: string) => void;
   onCancelSale: (sale: Sale) => void;
@@ -46,6 +49,8 @@ export function SalesRegisterCard(props: Props) {
   const {
     search,
     viewFilter,
+    cashierFilter,
+    cashierOptions,
     activeFilterLabel,
     totalItems,
     rangeStart,
@@ -64,6 +69,7 @@ export function SalesRegisterCard(props: Props) {
     canEditInvoices,
     onSearchChange,
     onViewFilterChange,
+    onCashierFilterChange,
     onReset,
     onSelectSale,
     onCancelSale,
@@ -97,8 +103,8 @@ export function SalesRegisterCard(props: Props) {
         onReset={onReset}
         resetLabel="تفريغ"
       >
-        <div className="filter-chip-row toolbar-chip-row">
-          <div className="field sales-payment-filter-field">
+        <div className="filter-chip-row toolbar-chip-row sales-register-toolbar-filters">
+          <div className="field sales-toolbar-filter-field">
             <span>طريقة الدفع</span>
             <select value={viewFilter} onChange={(event) => onViewFilterChange(event.target.value as SalesPaymentFilter)}>
               <option value="all">الكل</option>
@@ -108,6 +114,15 @@ export function SalesRegisterCard(props: Props) {
               <option value="wallet">محفظة إلكترونية</option>
               <option value="instapay">InstaPay</option>
               <option value="mixed">مختلط</option>
+            </select>
+          </div>
+          <div className="field sales-toolbar-filter-field">
+            <span>الموظف / الكاشير</span>
+            <select value={cashierFilter} onChange={(event) => onCashierFilterChange(event.target.value)}>
+              <option value="all">الكل</option>
+              {cashierOptions.map((cashierName) => (
+                <option key={cashierName} value={cashierName}>{cashierName}</option>
+              ))}
             </select>
           </div>
         </div>

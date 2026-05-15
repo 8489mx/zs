@@ -33,6 +33,23 @@
   align-items: center !important;
 }
 
+.sales-workspace .sales-register-card .sales-register-toolbar-filters {
+  align-items: flex-end !important;
+  width: 100% !important;
+}
+
+.sales-workspace .sales-register-card .sales-toolbar-filter-field {
+  min-width: 170px;
+  margin-bottom: 0 !important;
+}
+
+.sales-workspace .sales-register-card .sales-toolbar-filter-field > span,
+.sales-workspace .sales-register-card .sales-toolbar-filter-field > label {
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--muted-text, #6b7280);
+}
+
 .sales-workspace .sales-register-card .toolbar-chip-row .btn,
 .sales-workspace .sales-register-card .toolbar-chip-row .button {
   white-space: nowrap;

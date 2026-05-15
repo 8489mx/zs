@@ -23,12 +23,13 @@ import type { Sale } from '@/types/domain';
 export function SalesWorkspace() {
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState<SalesPaymentFilter>('all');
+  const [cashierFilter, setCashierFilter] = useState('all');
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
 
-  const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter });
+  const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter, cashier: cashierFilter });
   const { saleDetailQuery, cancelMutation } = useSaleActions(selectedSaleId);
   const settingsQuery = useSettingsQuery();
 
@@ -45,7 +46,7 @@ export function SalesWorkspace() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, viewFilter]);
+  }, [search, viewFilter, cashierFilter]);
 
   const cancelDescription = getSaleCancelDescription(saleToCancel);
   const totalSales = summary?.totalSales || 0;
@@ -64,6 +65,7 @@ export function SalesWorkspace() {
   } = useSalesWorkspaceActions({
     search,
     viewFilter,
+    cashierFilter,
     totalItems,
     summary,
     topCustomers,
@@ -71,6 +73,7 @@ export function SalesWorkspace() {
     setPageSize,
     setSearch,
     setViewFilter,
+    setCashierFilter,
     setSelectedSaleId,
     setSaleToCancel,
   });
@@ -97,6 +100,8 @@ export function SalesWorkspace() {
         <SalesRegisterCard
           search={search}
           viewFilter={viewFilter}
+          cashierFilter={cashierFilter}
+          cashierOptions={summary?.cashiers || []}
           activeFilterLabel={activeFilterLabel}
           totalItems={totalItems}
           rangeStart={rangeStart}
@@ -115,6 +120,7 @@ export function SalesWorkspace() {
           canEditInvoices={canEditInvoices}
           onSearchChange={setSearch}
           onViewFilterChange={handleViewFilterChange}
+          onCashierFilterChange={(value) => { setCashierFilter(value); setPage(1); }}
           onReset={resetSalesView}
           onSelectSale={setSelectedSaleId}
           onCancelSale={setSaleToCancel}

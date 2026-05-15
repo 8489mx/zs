@@ -10,6 +10,7 @@ function makeParamsKey(params: SalesListParams) {
     pageSize: params.pageSize || 30,
     search: params.search || '',
     filter: params.filter || 'all',
+    cashier: params.cashier || 'all',
   });
 }
 

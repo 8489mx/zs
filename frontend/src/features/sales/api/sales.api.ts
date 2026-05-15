@@ -14,6 +14,7 @@ export interface SalesListSummary {
   cashTotal: number;
   creditTotal: number;
   cancelledCount: number;
+  cashiers: string[];
   topCustomers: Array<{ name: string; total: number; count: number }>;
 }
 
@@ -24,6 +25,7 @@ export interface SalesListParams {
   pageSize?: number;
   search?: string;
   filter?: SalesListFilter;
+  cashier?: string;
 }
 
 interface SalesListResponse {
@@ -40,6 +42,7 @@ const defaultSummary: SalesListSummary = {
   cashTotal: 0,
   creditTotal: 0,
   cancelledCount: 0,
+  cashiers: [],
   topCustomers: [],
 };
 
