@@ -473,6 +473,7 @@ export function AppShell({ children }: PropsWithChildren) {
               >
                 <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
                 <span className="sidebar-label">{item.label}</span>
+                <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
               </NavLink>
             );
           })}
@@ -530,6 +531,7 @@ export function AppShell({ children }: PropsWithChildren) {
                         >
                           <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
                           <span className="sidebar-label">{item.label}</span>
+                          <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
                         </NavLink>
                       );
                     })}
