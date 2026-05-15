@@ -2,23 +2,24 @@
    Keeps parent groups and chevrons unchanged while forcing submenu rows
    to render as compact RTL bullet items instead of centered labels. */
 .sidebar-link.sidebar-link-sub {
-  grid-template-columns: minmax(0, 1fr) auto 8px;
-  column-gap: 6px;
-  justify-content: stretch;
-  justify-items: stretch;
+  display: flex;
+  flex-direction: row;
+  direction: rtl;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
   padding: 7px 10px 7px 8px;
   min-height: 34px;
   text-align: right;
 }
 
 .sidebar-link.sidebar-link-sub .sidebar-icon {
-  grid-area: icon;
-  grid-column: 3;
-  justify-self: end;
-  align-self: center;
   width: 7px;
   height: 7px;
   flex: 0 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 999px;
   background: rgba(100, 116, 139, 0.55);
@@ -32,13 +33,11 @@
 }
 
 .sidebar-link.sidebar-link-sub .sidebar-label {
-  grid-area: label;
-  grid-column: 2;
-  justify-self: end;
-  align-self: center;
+  display: inline-block;
   width: auto;
-  max-width: 100%;
+  max-width: calc(100% - 16px);
   min-width: 0;
+  flex: 0 1 auto;
   direction: rtl;
   text-align: right;
   white-space: nowrap;
@@ -50,12 +49,7 @@
 }
 
 .sidebar-link.sidebar-link-sub .sidebar-link-chevron-spacer {
-  grid-area: chevron;
-  grid-column: 1;
-  justify-self: stretch;
-  width: auto;
-  min-width: 0;
-  height: 1px;
+  display: none;
 }
 
 .sidebar-link.sidebar-link-sub.active .sidebar-label {
