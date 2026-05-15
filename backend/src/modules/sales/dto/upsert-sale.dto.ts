@@ -2,8 +2,8 @@ import { Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 class SalePaymentDto {
-  @IsIn(['cash', 'card'])
-  paymentChannel!: 'cash' | 'card';
+  @IsIn(['cash', 'card', 'wallet', 'instapay'])
+  paymentChannel!: 'cash' | 'card' | 'wallet' | 'instapay';
 
   @Type(() => Number)
   @IsNumber()
@@ -54,8 +54,8 @@ export class UpsertSaleDto {
   paymentType?: 'cash' | 'credit';
 
   @IsOptional()
-  @IsIn(['cash', 'card', 'mixed', 'credit'])
-  paymentChannel?: 'cash' | 'card' | 'mixed' | 'credit';
+  @IsIn(['cash', 'card', 'wallet', 'instapay', 'mixed', 'credit'])
+  paymentChannel?: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
 
   @Type(() => Number)
   @IsOptional()
@@ -115,7 +115,7 @@ export class UpsertSaleDto {
 export type NormalizedSalePayload = {
   customerId: number | null;
   paymentType: 'cash' | 'credit';
-  paymentChannel: 'cash' | 'card' | 'mixed' | 'credit';
+  paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
   discount: number;
   taxRate: number;
   pricesIncludeTax: boolean;
@@ -125,5 +125,5 @@ export type NormalizedSalePayload = {
   branchId: number | null;
   locationId: number | null;
   items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale' }>;
-  payments: Array<{ paymentChannel: 'cash' | 'card'; amount: number }>;
+  payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }>;
 };

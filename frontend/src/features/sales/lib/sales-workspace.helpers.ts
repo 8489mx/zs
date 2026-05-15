@@ -1,15 +1,23 @@
-import { printPostedSaleReceipt } from '@/lib/pos-printing';
+﻿import { printPostedSaleReceipt } from '@/lib/pos-printing';
 import { formatCurrency } from '@/lib/format';
 import type { AppSettings, Sale } from '@/types/domain';
 
-export type SalesViewFilter = 'all' | 'cash' | 'credit' | 'cancelled';
+export type SalesViewFilter = 'all' | 'cash' | 'card' | 'credit' | 'wallet' | 'instapay' | 'mixed' | 'cancelled';
 
 export function getSalesViewFilterLabel(filter: SalesViewFilter) {
   switch (filter) {
     case 'cash':
-      return 'فواتير نقدية';
+      return 'فواتير نقدي';
+    case 'card':
+      return 'فواتير فيزا';
     case 'credit':
-      return 'فواتير آجلة';
+      return 'فواتير آجل';
+    case 'wallet':
+      return 'فواتير محفظة إلكترونية';
+    case 'instapay':
+      return 'فواتير InstaPay';
+    case 'mixed':
+      return 'فواتير مختلطة';
     case 'cancelled':
       return 'فواتير ملغاة';
     default:
@@ -21,7 +29,9 @@ export function getSalePaymentLabel(sale?: Sale | null) {
   if (!sale) return '—';
   if (sale.paymentType === 'credit') return 'آجل';
   if (sale.paymentChannel === 'mixed') return 'مختلط';
-  if (sale.paymentChannel === 'card') return 'بطاقة';
+  if (sale.paymentChannel === 'card') return 'فيزا';
+  if (sale.paymentChannel === 'wallet') return 'محفظة إلكترونية';
+  if (sale.paymentChannel === 'instapay') return 'InstaPay';
   return 'نقدي';
 }
 
@@ -42,7 +52,7 @@ export function getSalesNextStep(params: {
   if (selectedSale) {
     if (selectedSale.status === 'cancelled') return 'الفاتورة ملغاة. استخدم الطباعة أو راجع السجل فقط.';
     return canEditInvoices
-      ? 'يمكنك الآن تعديل الفاتورة أو إلغاؤها أو طباعتها من اللوحة اليمنى.'
+      ? 'يمكنك الآن إلغاء الفاتورة أو طباعتها من اللوحة اليمنى.'
       : 'الفاتورة محددة. راجع التفاصيل أو اطبعها من اللوحة اليمنى.';
   }
   return totalItems

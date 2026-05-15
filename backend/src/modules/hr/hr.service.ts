@@ -9,9 +9,16 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import {
+  BulkSaveAttendanceDto,
+  CreateLeaveRequestDto,
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
+  DecideLeaveRequestDto,
+  EmployeeAssetActionDto,
   LoanRepaymentDto,
+  UpsertEmployeeAssetDto,
+  UpsertLeaveTypeDto,
+  UpsertAttendanceRecordDto,
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
@@ -129,6 +136,42 @@ function canViewSalary(auth: AuthContext): boolean {
 
 function hasHrPermission(auth: AuthContext, permission: string): boolean {
   return auth.role === 'super_admin' || auth.permissions.includes(permission);
+}
+
+const attendanceStatuses = ['present', 'absent', 'late', 'half_day', 'leave', 'excused', 'early_leave'] as const;
+type AttendanceStatus = (typeof attendanceStatuses)[number];
+type PayrollOperationalReview = {
+  attendanceAbsentDays: number;
+  attendanceLateDays: number;
+  attendanceHalfDays: number;
+  attendanceEarlyLeaveDays: number;
+  approvedLeaveDays: number;
+  unpaidLeaveDays: number;
+  suggestedAttendanceDeductionAmount: number;
+  suggestedLeaveDeductionAmount: number;
+  payrollReviewNotes: string;
+};
+
+function normalizeAttendanceStatus(value: unknown): AttendanceStatus | 'unmarked' {
+  const status = clean(value);
+  if (!status) return 'unmarked';
+  return attendanceStatuses.includes(status as AttendanceStatus) ? (status as AttendanceStatus) : 'unmarked';
+}
+
+function normalizeAttendanceSource(value: unknown): 'manual' | 'import' {
+  return clean(value) === 'import' ? 'import' : 'manual';
+}
+
+function todayUtcDate(): string {
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+}
+
+function inclusiveDaysBetween(from: string, to: string): number {
+  const fromDate = new Date(`${from}T00:00:00Z`);
+  const toDate = new Date(`${to}T00:00:00Z`);
+  const diffMs = toDate.getTime() - fromDate.getTime();
+  return Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
 }
 
 @Injectable()
@@ -344,6 +387,7 @@ export class HrService {
     let rows = result.rows.map((row) => ({
       id: String(row.id),
       employeeNo: clean(row.employee_no),
+      nationalId: clean(row.national_id),
       firstName: clean(row.first_name),
       lastName: clean(row.last_name),
       displayName: clean(row.display_name) || `${clean(row.first_name)} ${clean(row.last_name)}`.trim(),
@@ -413,11 +457,15 @@ export class HrService {
     const displayName = `${firstName} ${lastName}`.trim();
     const rawEmployeeNo = clean(payload.employeeNo);
     const employeeNo = normalizeEmployeeNo(payload.employeeNo);
+    const nationalId = clean(payload.nationalId);
     const hireDate = normalizeDateOnly(payload.hireDate);
 
     if (!firstName) throw new AppError('اسم الموظف مطلوب', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (rawEmployeeNo && !employeeNo) {
       throw new AppError('رقم الموظف يجب أن يكون أرقامًا فقط مثل 001', 'HR_EMPLOYEE_NO_INVALID', 400);
+    }
+    if (nationalId && !/^\d{14}$/.test(nationalId)) {
+      throw new AppError('الرقم القومي يجب أن يكون 14 رقمًا.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
     }
 
     try {
@@ -428,6 +476,7 @@ export class HrService {
         await sql`
           UPDATE hr_employees
           SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no), user_id = ${toId(payload.userId)}, first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName},
+              national_id = ${nationalId || null},
               status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
               branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
               updated_by = ${auth.userId}, updated_at = NOW()
@@ -438,8 +487,8 @@ export class HrService {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null);
           await sql<{ id: number }>`
-            INSERT INTO hr_employees (employee_no, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, created_by, updated_by)
-            VALUES (${nextEmployeeNo}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_employees (employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, created_by, updated_by)
+            VALUES (${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
         });
@@ -989,6 +1038,84 @@ export class HrService {
     await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId}`.execute(db);
   }
 
+  private async calculatePayrollOperationalReview(
+    db: Kysely<Database>,
+    periodMonth: string,
+    employeeIds: number[],
+    baseSalaryByEmployeeId: Map<number, number>,
+  ): Promise<Map<number, PayrollOperationalReview>> {
+    const reviewByEmployeeId = new Map<number, PayrollOperationalReview>();
+    if (!employeeIds.length) return reviewByEmployeeId;
+    const range = monthRange(periodMonth);
+
+    const attendanceResult = await sql<Record<string, unknown>>`
+      SELECT
+        employee_id,
+        COALESCE(SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_days,
+        COALESCE(SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END), 0) AS late_days,
+        COALESCE(SUM(CASE WHEN status = 'half_day' THEN 1 ELSE 0 END), 0) AS half_days,
+        COALESCE(SUM(CASE WHEN status = 'early_leave' THEN 1 ELSE 0 END), 0) AS early_leave_days
+      FROM hr_attendance_records
+      WHERE employee_id IN (${sql.join(employeeIds)})
+        AND work_date >= ${range.from}::date
+        AND work_date <= ${range.to}::date
+      GROUP BY employee_id
+    `.execute(db);
+
+    const leaveResult = await sql<Record<string, unknown>>`
+      SELECT
+        lr.employee_id,
+        COALESCE(SUM(lr.days_count), 0) AS approved_leave_days,
+        COALESCE(SUM(CASE WHEN COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid' THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
+      FROM hr_leave_requests lr
+      LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
+      WHERE lr.employee_id IN (${sql.join(employeeIds)})
+        AND lr.status = 'approved'
+        AND lr.start_date <= ${range.to}::date
+        AND lr.end_date >= ${range.from}::date
+      GROUP BY lr.employee_id
+    `.execute(db);
+
+    const attendanceByEmployee = new Map<number, Record<string, unknown>>();
+    for (const row of attendanceResult.rows) {
+      attendanceByEmployee.set(Number(row.employee_id || 0), row);
+    }
+
+    const leaveByEmployee = new Map<number, Record<string, unknown>>();
+    for (const row of leaveResult.rows) {
+      leaveByEmployee.set(Number(row.employee_id || 0), row);
+    }
+
+    for (const employeeId of employeeIds) {
+      const attendance = attendanceByEmployee.get(employeeId) || {};
+      const leave = leaveByEmployee.get(employeeId) || {};
+      const attendanceAbsentDays = Number(attendance.absent_days || 0);
+      const attendanceLateDays = Number(attendance.late_days || 0);
+      const attendanceHalfDays = Number(attendance.half_days || 0);
+      const attendanceEarlyLeaveDays = Number(attendance.early_leave_days || 0);
+      const approvedLeaveDays = Number(leave.approved_leave_days || 0);
+      const unpaidLeaveDays = Number(leave.unpaid_leave_days || 0);
+      const baseSalary = Number(baseSalaryByEmployeeId.get(employeeId) || 0);
+      const dailyRate = baseSalary > 0 ? Number((baseSalary / 30).toFixed(2)) : 0;
+      const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + (dailyRate * 0.5 * attendanceHalfDays)).toFixed(2));
+      const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
+      const payrollReviewNotes = `مراجعة مقترحة: غياب ${attendanceAbsentDays} يوم، إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
+      reviewByEmployeeId.set(employeeId, {
+        attendanceAbsentDays,
+        attendanceLateDays,
+        attendanceHalfDays,
+        attendanceEarlyLeaveDays,
+        approvedLeaveDays,
+        unpaidLeaveDays,
+        suggestedAttendanceDeductionAmount,
+        suggestedLeaveDeductionAmount,
+        payrollReviewNotes,
+      });
+    }
+
+    return reviewByEmployeeId;
+  }
+
   async listPayrollRuns(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const month = normalizePayrollMonth(query.month);
@@ -1053,6 +1180,15 @@ export class HrService {
       WHERE i.run_id = ${id}
       ORDER BY e.display_name ASC, i.id ASC
     `.execute(this.db);
+    const periodMonth = clean(run.period_month);
+    const employeeIds = itemResult.rows.map((row) => Number(row.employee_id || 0)).filter((value) => value > 0);
+    const baseSalaryByEmployeeId = new Map<number, number>();
+    for (const row of itemResult.rows) {
+      const employeeId = Number(row.employee_id || 0);
+      if (!(employeeId > 0)) continue;
+      baseSalaryByEmployeeId.set(employeeId, Number(row.base_salary || 0));
+    }
+    const reviewByEmployeeId = await this.calculatePayrollOperationalReview(this.db, periodMonth, employeeIds, baseSalaryByEmployeeId);
     const itemIds = itemResult.rows.map((row) => Number(row.id || 0)).filter((itemId) => itemId > 0);
     const adjustmentResult = itemIds.length
       ? await sql<Record<string, unknown>>`
@@ -1067,7 +1203,23 @@ export class HrService {
       const key = String(adjustment.payroll_item_id);
       adjustmentsByItem.set(key, [...(adjustmentsByItem.get(key) || []), this.mapPayrollAdjustment(adjustment)]);
     }
-    const items = itemResult.rows.map((row) => ({ ...this.mapPayrollItem(row), adjustments: adjustmentsByItem.get(String(row.id)) || [] }));
+    const items = itemResult.rows.map((row) => {
+      const employeeId = Number(row.employee_id || 0);
+      const review = reviewByEmployeeId.get(employeeId);
+      return {
+        ...this.mapPayrollItem(row),
+        attendanceAbsentDays: review?.attendanceAbsentDays ?? 0,
+        attendanceLateDays: review?.attendanceLateDays ?? 0,
+        attendanceHalfDays: review?.attendanceHalfDays ?? 0,
+        attendanceEarlyLeaveDays: review?.attendanceEarlyLeaveDays ?? 0,
+        approvedLeaveDays: review?.approvedLeaveDays ?? 0,
+        unpaidLeaveDays: review?.unpaidLeaveDays ?? 0,
+        suggestedAttendanceDeductionAmount: review?.suggestedAttendanceDeductionAmount ?? 0,
+        suggestedLeaveDeductionAmount: review?.suggestedLeaveDeductionAmount ?? 0,
+        payrollReviewNotes: review?.payrollReviewNotes || '',
+        adjustments: adjustmentsByItem.get(String(row.id)) || [],
+      };
+    });
     return { run: { ...this.mapPayrollRun(run), items } };
   }
 
@@ -1184,6 +1336,510 @@ export class HrService {
     });
     await this.audit.log('Delete HR payroll adjustment', `Payroll adjustment #${id} deleted by ${auth.username}`, auth);
     return this.getPayrollRun(runId, auth);
+  }
+
+  async listAttendance(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate) || todayUtcDate();
+    if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
+    const search = clean(query.search).toLowerCase();
+
+    const result = await sql<Record<string, unknown>>`
+      SELECT
+        e.id AS employee_id,
+        e.employee_no,
+        e.display_name AS employee_name,
+        d.name AS department_name,
+        j.name AS job_title_name,
+        a.id AS attendance_id,
+        to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text,
+        a.status,
+        to_char(a.check_in_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS check_in_at_text,
+        to_char(a.check_out_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS check_out_at_text,
+        a.source,
+        a.notes
+      FROM hr_employees e
+      LEFT JOIN hr_departments d ON d.id = e.department_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
+      LEFT JOIN hr_attendance_records a ON a.employee_id = e.id AND a.work_date = ${workDate}::date
+      WHERE e.status IN ('active', 'inactive')
+      ORDER BY e.display_name ASC, e.id ASC
+    `.execute(this.db);
+
+    let rows = result.rows.map((row) => {
+      const status = normalizeAttendanceStatus(row.status);
+      return {
+        id: row.attendance_id ? String(row.attendance_id) : '',
+        employeeId: String(row.employee_id),
+        employeeNo: clean(row.employee_no),
+        employeeName: clean(row.employee_name),
+        departmentName: clean(row.department_name),
+        jobTitleName: clean(row.job_title_name),
+        workDate,
+        status: status === 'unmarked' ? '' : status,
+        checkInAt: clean(row.check_in_at_text),
+        checkOutAt: clean(row.check_out_at_text),
+        source: normalizeAttendanceSource(row.source),
+        notes: clean(row.notes),
+      };
+    });
+
+    if (search) {
+      rows = rows.filter((row) => [row.employeeNo, row.employeeName, row.departmentName, row.jobTitleName].some((value) => value.toLowerCase().includes(search)));
+    }
+
+    const summary = rows.reduce(
+      (acc, row) => {
+        const status = normalizeAttendanceStatus(row.status);
+        acc.totalItems += 1;
+        if (status === 'present') acc.presentCount += 1;
+        else if (status === 'absent') acc.absentCount += 1;
+        else if (status === 'late') acc.lateCount += 1;
+        else if (status === 'leave') acc.leaveCount += 1;
+        else if (status === 'unmarked') acc.unmarkedCount += 1;
+        return acc;
+      },
+      { totalItems: 0, presentCount: 0, absentCount: 0, lateCount: 0, leaveCount: 0, unmarkedCount: 0 },
+    );
+
+    const paged = paginateRows(rows, query, { defaultSize: 50 });
+    return { rows: paged.rows, pagination: paged.pagination, summary };
+  }
+
+  async bulkSaveAttendance(payload: BulkSaveAttendanceDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const workDate = normalizeDateOnly(payload.workDate);
+    if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
+    if (!Array.isArray(payload.rows) || payload.rows.length === 0) {
+      throw new AppError('Attendance rows are required', 'HR_ATTENDANCE_ROWS_REQUIRED', 400);
+    }
+
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      for (const row of payload.rows) {
+        const employeeId = toId(row.employeeId);
+        if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
+        const status = normalizeAttendanceStatus(row.status);
+        if (status === 'unmarked') throw new AppError('Attendance status is invalid', 'HR_ATTENDANCE_STATUS_INVALID', 400);
+        const checkInAt = row.checkInAt ? new Date(row.checkInAt) : null;
+        const checkOutAt = row.checkOutAt ? new Date(row.checkOutAt) : null;
+        if ((checkInAt && Number.isNaN(checkInAt.getTime())) || (checkOutAt && Number.isNaN(checkOutAt.getTime()))) {
+          throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
+        }
+        await sql`
+          INSERT INTO hr_attendance_records (employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
+          VALUES (
+            ${employeeId},
+            ${workDate}::date,
+            ${status},
+            ${checkInAt ? checkInAt.toISOString() : null},
+            ${checkOutAt ? checkOutAt.toISOString() : null},
+            ${normalizeAttendanceSource(row.source)},
+            ${clean(row.notes) || null},
+            ${auth.userId},
+            ${auth.userId},
+            NOW(),
+            NOW()
+          )
+          ON CONFLICT (employee_id, work_date) DO UPDATE
+          SET
+            status = EXCLUDED.status,
+            check_in_at = EXCLUDED.check_in_at,
+            check_out_at = EXCLUDED.check_out_at,
+            source = EXCLUDED.source,
+            notes = EXCLUDED.notes,
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+        `.execute(trx);
+      }
+    });
+
+    await this.audit.log('Save HR attendance day', `Attendance saved for ${workDate} by ${auth.username}`, auth);
+    return this.listAttendance({ date: workDate }, auth);
+  }
+
+  async upsertAttendanceRecord(payload: UpsertAttendanceRecordDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const workDate = normalizeDateOnly(payload.workDate);
+    if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
+    const employeeId = toId(payload.employeeId);
+    if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
+    const status = normalizeAttendanceStatus(payload.status);
+    if (status === 'unmarked') throw new AppError('Attendance status is invalid', 'HR_ATTENDANCE_STATUS_INVALID', 400);
+    const checkInAt = payload.checkInAt ? new Date(payload.checkInAt) : null;
+    const checkOutAt = payload.checkOutAt ? new Date(payload.checkOutAt) : null;
+    if ((checkInAt && Number.isNaN(checkInAt.getTime())) || (checkOutAt && Number.isNaN(checkOutAt.getTime()))) {
+      throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
+    }
+
+    await sql`
+      INSERT INTO hr_attendance_records (employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
+      VALUES (
+        ${employeeId},
+        ${workDate}::date,
+        ${status},
+        ${checkInAt ? checkInAt.toISOString() : null},
+        ${checkOutAt ? checkOutAt.toISOString() : null},
+        ${normalizeAttendanceSource(payload.source)},
+        ${clean(payload.notes) || null},
+        ${auth.userId},
+        ${auth.userId},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (employee_id, work_date) DO UPDATE
+      SET
+        status = EXCLUDED.status,
+        check_in_at = EXCLUDED.check_in_at,
+        check_out_at = EXCLUDED.check_out_at,
+        source = EXCLUDED.source,
+        notes = EXCLUDED.notes,
+        updated_by = ${auth.userId},
+        updated_at = NOW()
+    `.execute(this.db);
+
+    await this.audit.log('Upsert HR attendance record', `Attendance record saved for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
+    return this.listAttendance({ date: workDate }, auth);
+  }
+
+  async listLeaveTypes(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const result = await sql<Record<string, unknown>>`
+      SELECT *
+      FROM hr_leave_types
+      ORDER BY is_active DESC, name ASC, id ASC
+    `.execute(this.db);
+    const search = clean(query.search).toLowerCase();
+    let rows = result.rows.map((row) => ({
+      id: String(row.id),
+      name: clean(row.name),
+      code: clean(row.code),
+      description: clean(row.description),
+      isPaid: row.is_paid !== false,
+      isActive: row.is_active !== false,
+    }));
+    if (search) {
+      rows = rows.filter((row) => [row.name, row.code, row.description].some((value) => value.toLowerCase().includes(search)));
+    }
+    const paged = paginateRows(rows, query, { defaultSize: 50 });
+    return {
+      rows: paged.rows,
+      pagination: paged.pagination,
+      summary: {
+        totalItems: rows.length,
+        activeCount: rows.filter((row) => row.isActive).length,
+      },
+    };
+  }
+
+  async upsertLeaveType(id: number | null, payload: UpsertLeaveTypeDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const name = clean(payload.name);
+    if (!name) throw new AppError('Leave type name is required', 'HR_LEAVE_TYPE_NAME_REQUIRED', 400);
+    const code = clean(payload.code).toLowerCase();
+    const description = clean(payload.description);
+    const isPaid = payload.isPaid !== false;
+    const isActive = payload.isActive !== false;
+    if (id) {
+      await sql`
+        UPDATE hr_leave_types
+        SET name = ${name}, code = ${code || null}, description = ${description || null}, is_paid = ${isPaid}, is_active = ${isActive}, updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id}
+      `.execute(this.db);
+    } else {
+      await sql`
+        INSERT INTO hr_leave_types (name, code, description, is_paid, is_active, created_by, updated_by, created_at, updated_at)
+        VALUES (${name}, ${code || null}, ${description || null}, ${isPaid}, ${isActive}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+      `.execute(this.db);
+    }
+    await this.audit.log(`${id ? 'Update' : 'Create'} HR leave type`, `Leave type ${name} saved by ${auth.username}`, auth);
+    return this.listLeaveTypes({}, auth);
+  }
+
+  async listLeaveRequests(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const search = clean(query.search).toLowerCase();
+    const status = clean(query.status).toLowerCase();
+    const employeeId = toId(query.employeeId);
+    const from = normalizeDateOnly(query.from);
+    const to = normalizeDateOnly(query.to);
+    const result = await sql<Record<string, unknown>>`
+      SELECT
+        r.*,
+        e.employee_no,
+        e.display_name AS employee_name,
+        d.name AS department_name,
+        j.name AS job_title_name,
+        t.name AS leave_type_name,
+        to_char(r.start_date, 'YYYY-MM-DD') AS start_date_text,
+        to_char(r.end_date, 'YYYY-MM-DD') AS end_date_text,
+        to_char(r.decided_at, 'YYYY-MM-DD HH24:MI') AS decided_at_text,
+        to_char(r.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
+      FROM hr_leave_requests r
+      JOIN hr_employees e ON e.id = r.employee_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
+      LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id
+      ORDER BY r.created_at DESC, r.id DESC
+    `.execute(this.db);
+
+    let rows = result.rows.map((row) => ({
+      id: String(row.id),
+      employeeId: String(row.employee_id),
+      employeeNo: clean(row.employee_no),
+      employeeName: clean(row.employee_name),
+      departmentName: clean(row.department_name),
+      jobTitleName: clean(row.job_title_name),
+      leaveTypeId: row.leave_type_id ? String(row.leave_type_id) : '',
+      leaveTypeName: clean(row.leave_type_name),
+      leaveType: clean(row.leave_type),
+      startDate: clean(row.start_date_text),
+      endDate: clean(row.end_date_text),
+      daysCount: Number(row.days_count || 0),
+      status: clean(row.status),
+      reason: clean(row.reason),
+      notes: clean(row.notes),
+      decisionNotes: clean(row.decision_notes),
+      decidedBy: row.decided_by ? String(row.decided_by) : '',
+      decidedAt: clean(row.decided_at_text),
+      createdAt: clean(row.created_at_text),
+    }));
+
+    if (employeeId) rows = rows.filter((row) => row.employeeId === String(employeeId));
+    if (status) rows = rows.filter((row) => row.status === status);
+    if (from) rows = rows.filter((row) => row.endDate >= from);
+    if (to) rows = rows.filter((row) => row.startDate <= to);
+    if (search) {
+      rows = rows.filter((row) => [row.employeeNo, row.employeeName, row.departmentName, row.jobTitleName, row.leaveTypeName, row.leaveType].some((value) => value.toLowerCase().includes(search)));
+    }
+
+    const summary = rows.reduce((acc, row) => {
+      acc.totalItems += 1;
+      if (row.status === 'pending') acc.pendingCount += 1;
+      if (row.status === 'approved') acc.approvedCount += 1;
+      if (row.status === 'rejected') acc.rejectedCount += 1;
+      if (row.status === 'cancelled') acc.cancelledCount += 1;
+      return acc;
+    }, { totalItems: 0, pendingCount: 0, approvedCount: 0, rejectedCount: 0, cancelledCount: 0 });
+
+    const paged = paginateRows(rows, query, { defaultSize: 25 });
+    return { requests: paged.rows, pagination: paged.pagination, summary };
+  }
+
+  async createLeaveRequest(payload: CreateLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const employeeId = toId(payload.employeeId);
+    if (!employeeId) throw new AppError('Employee is required', 'HR_LEAVE_EMPLOYEE_REQUIRED', 400);
+    const startDate = normalizeDateOnly(payload.startDate);
+    if (!startDate) throw new AppError('Leave start date is required', 'HR_LEAVE_START_DATE_REQUIRED', 400);
+    const endDate = normalizeDateOnly(payload.endDate);
+    if (!endDate) throw new AppError('Leave end date is required', 'HR_LEAVE_END_DATE_REQUIRED', 400);
+    if (endDate < startDate) throw new AppError('Leave end date must be after start date', 'HR_LEAVE_DATE_RANGE_INVALID', 400);
+    const leaveTypeId = toId(payload.leaveTypeId);
+    const leaveType = clean(payload.leaveType);
+    const computedDays = inclusiveDaysBetween(startDate, endDate);
+    const daysCount = Number(payload.daysCount || computedDays);
+    if (!Number.isFinite(daysCount) || daysCount <= 0) throw new AppError('Leave days count is invalid', 'HR_LEAVE_DAYS_COUNT_INVALID', 400);
+
+    await sql`
+      INSERT INTO hr_leave_requests (employee_id, leave_type_id, leave_type, start_date, end_date, days_count, status, reason, notes, created_by, updated_by, created_at, updated_at)
+      VALUES (${employeeId}, ${leaveTypeId}, ${leaveType || null}, ${startDate}::date, ${endDate}::date, ${Number(daysCount.toFixed(2))}, 'pending', ${clean(payload.reason) || null}, ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+    `.execute(this.db);
+
+    await this.audit.log('Create HR leave request', `Leave request created for employee #${employeeId} by ${auth.username}`, auth);
+    return this.listLeaveRequests({}, auth);
+  }
+
+  async approveLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const status = clean(current.rows[0]?.status);
+    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+    if (['cancelled', 'rejected'].includes(status)) throw new AppError('Cannot approve this leave request', 'HR_LEAVE_APPROVE_LOCKED', 400);
+    await sql`
+      UPDATE hr_leave_requests
+      SET status = 'approved',
+          decision_notes = ${clean(payload.decisionNotes) || null},
+          notes = ${clean(payload.notes) || null},
+          decided_by = ${auth.userId},
+          decided_at = NOW(),
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log('Approve HR leave request', `Leave request #${id} approved by ${auth.username}`, auth);
+    return this.listLeaveRequests({}, auth);
+  }
+
+  async rejectLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const status = clean(current.rows[0]?.status);
+    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+    if (['cancelled', 'approved'].includes(status)) throw new AppError('Cannot reject this leave request', 'HR_LEAVE_REJECT_LOCKED', 400);
+    await sql`
+      UPDATE hr_leave_requests
+      SET status = 'rejected',
+          decision_notes = ${clean(payload.decisionNotes) || null},
+          notes = ${clean(payload.notes) || null},
+          decided_by = ${auth.userId},
+          decided_at = NOW(),
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log('Reject HR leave request', `Leave request #${id} rejected by ${auth.username}`, auth);
+    return this.listLeaveRequests({}, auth);
+  }
+
+  async cancelLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const status = clean(current.rows[0]?.status);
+    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+    if (status === 'cancelled') return this.listLeaveRequests({}, auth);
+    await sql`
+      UPDATE hr_leave_requests
+      SET status = 'cancelled',
+          decision_notes = ${clean(payload.decisionNotes) || null},
+          notes = ${clean(payload.notes) || null},
+          decided_by = ${auth.userId},
+          decided_at = NOW(),
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log('Cancel HR leave request', `Leave request #${id} cancelled by ${auth.username}`, auth);
+    return this.listLeaveRequests({}, auth);
+  }
+
+  async listEmployeeAssets(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const search = clean(query.search).toLowerCase();
+    const employeeId = toId(query.employeeId);
+    const status = clean(query.status).toLowerCase();
+    const result = await sql<Record<string, unknown>>`
+      SELECT
+        a.*,
+        e.employee_no,
+        e.display_name AS employee_name,
+        d.name AS department_name,
+        j.name AS job_title_name,
+        to_char(a.assigned_at, 'YYYY-MM-DD') AS assigned_at_text,
+        to_char(a.returned_at, 'YYYY-MM-DD') AS returned_at_text,
+        to_char(a.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
+      FROM hr_employee_assets a
+      JOIN hr_employees e ON e.id = a.employee_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
+      ORDER BY a.created_at DESC, a.id DESC
+    `.execute(this.db);
+
+    let rows = result.rows.map((row) => ({
+      id: String(row.id),
+      employeeId: String(row.employee_id),
+      employeeNo: clean(row.employee_no),
+      employeeName: clean(row.employee_name),
+      departmentName: clean(row.department_name),
+      jobTitleName: clean(row.job_title_name),
+      assetType: clean(row.asset_type),
+      assetName: clean(row.asset_name),
+      assetCode: clean(row.asset_code),
+      serialNo: clean(row.serial_no),
+      assignedAt: clean(row.assigned_at_text),
+      returnedAt: clean(row.returned_at_text),
+      status: clean(row.status),
+      notes: clean(row.notes),
+      returnNotes: clean(row.return_notes),
+      createdAt: clean(row.created_at_text),
+    }));
+
+    if (employeeId) rows = rows.filter((row) => row.employeeId === String(employeeId));
+    if (status) rows = rows.filter((row) => row.status === status);
+    if (search) {
+      rows = rows.filter((row) => [row.employeeNo, row.employeeName, row.departmentName, row.jobTitleName, row.assetType, row.assetName, row.assetCode, row.serialNo].some((value) => value.toLowerCase().includes(search)));
+    }
+
+    const summary = rows.reduce((acc, row) => {
+      acc.totalItems += 1;
+      if (row.status === 'assigned') acc.assignedCount += 1;
+      if (row.status === 'returned') acc.returnedCount += 1;
+      if (row.status === 'lost') acc.lostCount += 1;
+      if (row.status === 'damaged') acc.damagedCount += 1;
+      return acc;
+    }, { totalItems: 0, assignedCount: 0, returnedCount: 0, lostCount: 0, damagedCount: 0 });
+
+    const paged = paginateRows(rows, query, { defaultSize: 25 });
+    return { assets: paged.rows, pagination: paged.pagination, summary };
+  }
+
+  async upsertEmployeeAsset(id: number | null, payload: UpsertEmployeeAssetDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const employeeId = toId(payload.employeeId);
+    if (!employeeId) throw new AppError('Employee is required', 'HR_ASSET_EMPLOYEE_REQUIRED', 400);
+    const assetType = clean(payload.assetType);
+    if (!assetType) throw new AppError('Asset type is required', 'HR_ASSET_TYPE_REQUIRED', 400);
+    const assetName = clean(payload.assetName);
+    if (!assetName) throw new AppError('Asset name is required', 'HR_ASSET_NAME_REQUIRED', 400);
+    const assignedAt = normalizeDateOnly(payload.assignedAt) || todayUtcDate();
+
+    if (id) {
+      await sql`
+        UPDATE hr_employee_assets
+        SET employee_id = ${employeeId},
+            asset_type = ${assetType},
+            asset_name = ${assetName},
+            asset_code = ${clean(payload.assetCode) || null},
+            serial_no = ${clean(payload.serialNo) || null},
+            assigned_at = ${assignedAt}::date,
+            notes = ${clean(payload.notes) || null},
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+        WHERE id = ${id}
+      `.execute(this.db);
+    } else {
+      await sql`
+        INSERT INTO hr_employee_assets (employee_id, asset_type, asset_name, asset_code, serial_no, assigned_at, status, notes, created_by, updated_by, created_at, updated_at)
+        VALUES (${employeeId}, ${assetType}, ${assetName}, ${clean(payload.assetCode) || null}, ${clean(payload.serialNo) || null}, ${assignedAt}::date, 'assigned', ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+      `.execute(this.db);
+    }
+
+    await this.audit.log(`${id ? 'Update' : 'Create'} HR employee asset`, `Asset custody ${id ? 'updated' : 'created'} by ${auth.username}`, auth);
+    return this.listEmployeeAssets({}, auth);
+  }
+
+  private async setEmployeeAssetStatus(id: number, status: 'returned' | 'lost' | 'damaged' | 'cancelled', payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_employee_assets WHERE id = ${id} LIMIT 1`.execute(this.db);
+    if (!clean(current.rows[0]?.status)) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
+    const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayUtcDate()) : null;
+    await sql`
+      UPDATE hr_employee_assets
+      SET status = ${status},
+          returned_at = CASE WHEN ${returnedAt}::text IS NULL THEN returned_at ELSE ${returnedAt}::date END,
+          notes = ${clean(payload.notes) || null},
+          return_notes = ${clean(payload.returnNotes) || null},
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `.execute(this.db);
+    await this.audit.log(`Mark HR employee asset ${status}`, `Asset #${id} marked as ${status} by ${auth.username}`, auth);
+    return this.listEmployeeAssets({}, auth);
+  }
+
+  async returnEmployeeAsset(id: number, payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.setEmployeeAssetStatus(id, 'returned', payload, auth);
+  }
+
+  async markEmployeeAssetLost(id: number, payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.setEmployeeAssetStatus(id, 'lost', payload, auth);
+  }
+
+  async markEmployeeAssetDamaged(id: number, payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.setEmployeeAssetStatus(id, 'damaged', payload, auth);
+  }
+
+  async cancelEmployeeAsset(id: number, payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.setEmployeeAssetStatus(id, 'cancelled', payload, auth);
   }
 
   async withdrawals(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -1407,6 +2063,119 @@ export class HrService {
         activeCount: Number(row?.active_count || 0),
         openLoans: canSeeLoans ? Number(row?.open_loans || 0) : 0,
         outstandingAmount: canSeeLoans ? Number(row?.outstanding_amount || 0) : 0,
+      },
+    };
+  }
+
+  async reportsSummary(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const month = normalizePayrollMonth(query.month);
+    const range = month
+      ? monthRange(month)
+      : {
+          from: normalizeDateOnly(query.from) || `${todayUtcDate().slice(0, 7)}-01`,
+          to: normalizeDateOnly(query.to) || todayUtcDate(),
+        };
+    const fromMonth = range.from.slice(0, 7);
+    const toMonth = range.to.slice(0, 7);
+
+    const [employees, attendance, leaves, loans, assets, payroll] = await Promise.all([
+      sql<{ employee_count: string; active_count: string }>`
+        SELECT
+          COUNT(*) AS employee_count,
+          COUNT(*) FILTER (WHERE status = 'active') AS active_count
+        FROM hr_employees
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COALESCE(SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END), 0) AS present_count,
+          COALESCE(SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_count,
+          COALESCE(SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END), 0) AS late_count,
+          COALESCE(SUM(CASE WHEN status = 'half_day' THEN 1 ELSE 0 END), 0) AS half_day_count,
+          COALESCE(SUM(CASE WHEN status = 'leave' THEN 1 ELSE 0 END), 0) AS leave_count
+        FROM hr_attendance_records
+        WHERE work_date >= ${range.from}::date
+          AND work_date <= ${range.to}::date
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COALESCE(SUM(CASE WHEN lr.status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count,
+          COALESCE(SUM(CASE WHEN lr.status = 'approved' THEN 1 ELSE 0 END), 0) AS approved_count,
+          COALESCE(SUM(CASE WHEN lr.status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected_count,
+          COALESCE(SUM(CASE WHEN lr.status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_count,
+          COALESCE(SUM(CASE WHEN lr.status = 'approved' AND (COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid') THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
+        FROM hr_leave_requests lr
+        LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
+        WHERE lr.start_date <= ${range.to}::date
+          AND lr.end_date >= ${range.from}::date
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COALESCE(SUM(CASE WHEN status IN ('paid', 'partially_repaid', 'disbursed') AND remaining_amount > 0 THEN 1 ELSE 0 END), 0) AS open_loan_count,
+          COALESCE(SUM(CASE WHEN status IN ('paid', 'partially_repaid', 'disbursed') THEN remaining_amount ELSE 0 END), 0) AS outstanding_amount
+        FROM hr_employee_loans
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COALESCE(SUM(CASE WHEN status = 'assigned' THEN 1 ELSE 0 END), 0) AS assigned_count,
+          COALESCE(SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END), 0) AS returned_count,
+          COALESCE(SUM(CASE WHEN status = 'lost' THEN 1 ELSE 0 END), 0) AS lost_count,
+          COALESCE(SUM(CASE WHEN status = 'damaged' THEN 1 ELSE 0 END), 0) AS damaged_count
+        FROM hr_employee_assets
+      `.execute(this.db),
+      sql<Record<string, unknown>>`
+        SELECT
+          COUNT(DISTINCT r.id) AS run_count,
+          COUNT(DISTINCT r.id) FILTER (WHERE r.status = 'approved') AS approved_run_count,
+          COALESCE(SUM(i.net_pay), 0) AS total_net_pay
+        FROM hr_payroll_runs r
+        LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.status <> 'excluded'
+        WHERE r.period_month >= ${fromMonth}
+          AND r.period_month <= ${toMonth}
+      `.execute(this.db),
+    ]);
+
+    const employeeRow = employees.rows[0] || { employee_count: '0', active_count: '0' };
+    const attendanceRow = attendance.rows[0] || {};
+    const leavesRow = leaves.rows[0] || {};
+    const loansRow = loans.rows[0] || {};
+    const assetsRow = assets.rows[0] || {};
+    const payrollRow = payroll.rows[0] || {};
+
+    return {
+      period: { from: range.from, to: range.to, month: month || '' },
+      summary: {
+        employeeCount: Number(employeeRow.employee_count || 0),
+        activeEmployeeCount: Number(employeeRow.active_count || 0),
+        attendance: {
+          presentCount: Number(attendanceRow.present_count || 0),
+          absentCount: Number(attendanceRow.absent_count || 0),
+          lateCount: Number(attendanceRow.late_count || 0),
+          halfDayCount: Number(attendanceRow.half_day_count || 0),
+          leaveCount: Number(attendanceRow.leave_count || 0),
+        },
+        leaves: {
+          pendingCount: Number(leavesRow.pending_count || 0),
+          approvedCount: Number(leavesRow.approved_count || 0),
+          rejectedCount: Number(leavesRow.rejected_count || 0),
+          cancelledCount: Number(leavesRow.cancelled_count || 0),
+          unpaidLeaveDays: Number(leavesRow.unpaid_leave_days || 0),
+        },
+        loans: {
+          openLoanCount: Number(loansRow.open_loan_count || 0),
+          outstandingAmount: Number(loansRow.outstanding_amount || 0),
+        },
+        assets: {
+          assignedCount: Number(assetsRow.assigned_count || 0),
+          returnedCount: Number(assetsRow.returned_count || 0),
+          lostCount: Number(assetsRow.lost_count || 0),
+          damagedCount: Number(assetsRow.damaged_count || 0),
+        },
+        payroll: {
+          runCount: Number(payrollRow.run_count || 0),
+          approvedRunCount: Number(payrollRow.approved_run_count || 0),
+          totalNetPay: Number(payrollRow.total_net_pay || 0),
+        },
       },
     };
   }

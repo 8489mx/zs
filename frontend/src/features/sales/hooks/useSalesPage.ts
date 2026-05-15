@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { isSellableProduct } from '@/lib/domain/inventory';
@@ -10,6 +10,7 @@ function makeParamsKey(params: SalesListParams) {
     pageSize: params.pageSize || 30,
     search: params.search || '',
     filter: params.filter || 'all',
+    cashier: params.cashier || 'all',
   });
 }
 

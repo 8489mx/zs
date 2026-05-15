@@ -69,6 +69,17 @@ export function SettingsPage() {
           canManageBackups={page.canManageBackups}
           canManageMaintenance={page.canManageMaintenance}
           backupBusy={page.backupBusy}
+          backupConfigQuery={page.backupConfigQuery}
+          backupFolderPathDraft={page.backupFolderPathDraft}
+          setBackupFolderPathDraft={page.setBackupFolderPathDraft}
+          backupAutoEnabledDraft={page.backupAutoEnabledDraft}
+          setBackupAutoEnabledDraft={page.setBackupAutoEnabledDraft}
+          backupFrequencyDraft={page.backupFrequencyDraft}
+          setBackupFrequencyDraft={page.setBackupFrequencyDraft}
+          backupTimeDraft={page.backupTimeDraft}
+          setBackupTimeDraft={page.setBackupTimeDraft}
+          backupWeeklyDayDraft={page.backupWeeklyDayDraft}
+          setBackupWeeklyDayDraft={page.setBackupWeeklyDayDraft}
           backupSelectedFileName={page.backupSelectedFileName}
           backupMessage={page.backupMessage}
           backupMessageKind={page.backupMessageKind}
@@ -93,6 +104,9 @@ export function SettingsPage() {
           importSuppliersPending={page.importSuppliersMutation.isPending}
           importOpeningStockPending={page.importOpeningStockMutation.isPending}
           handleBackupDownload={page.handleBackupDownload}
+          saveBackupConfig={page.saveBackupConfig}
+          testBackupFolder={page.testBackupFolder}
+          saveBackupFileToFolderNow={page.saveBackupFileToFolderNow}
           handleSnapshotDownload={(snapshot: BackupSnapshotRecord) => Promise.resolve(page.handleSnapshotDownload(snapshot))}
           handleCopySupportSnapshot={page.handleCopySupportSnapshot}
           onRequestRestoreFile={(file: File) => page.setConfirmAction({ kind: 'restore-file', file })}

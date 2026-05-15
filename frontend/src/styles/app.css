@@ -28,8 +28,10 @@
 @import './partials/pos-cashier-unified-mode-layout.css';
 @import './partials/pos-cashier-product-picker-cleanup.css';
 @import './partials/pos-cashier-vertical-fill.css';
+@import './partials/pos-checkout-dialog-polish.css';
 @import './partials/global-dialog-shell.css';
 @import './partials/sales-invoice-detail-responsive.css';
 @import './partials/global-responsive-foundation.css';
 @import './partials/dashboard-priority-layout.css';
 @import './partials/reports-executive-summary-pairs.css';
+@import './partials/sidebar-submenu-alignment-fix.css';

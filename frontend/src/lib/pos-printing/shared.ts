@@ -6,6 +6,8 @@ export function paymentLabel(value?: string) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'cash') return 'نقدي';
   if (normalized === 'card') return 'بطاقة / فيزا';
+  if (normalized === 'wallet') return 'محفظة إلكترونية';
+  if (normalized === 'instapay') return 'InstaPay';
   if (normalized === 'credit') return 'آجل';
   if (normalized === 'mixed') return 'مختلط';
   return value || 'نقدي';

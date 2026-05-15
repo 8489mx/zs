@@ -20,6 +20,12 @@ import {
   readPosShellPreference,
 } from '@/features/pos/lib/pos-shell';
 
+type SidebarGroupDefinition = {
+  key: string;
+  label: string;
+  itemKeys: string[];
+};
+
 function SideIcon({ children }: { children: ReactNode }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -212,6 +218,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [storeName]);
   const isPosRoute = location.pathname.startsWith('/pos');
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
+  const [expandedSidebarGroupKey, setExpandedSidebarGroupKey] = useState<string | null>(null);
 
   const visibleNavigationItems = useMemo(() => {
     const hiddenKeys = new Set<string>([]);
@@ -261,6 +268,46 @@ export function AppShell({ children }: PropsWithChildren) {
         return safeA - safeB;
       });
   }, [user]);
+
+  const navigationMap = useMemo(() => {
+    return new Map(visibleNavigationItems.map((item) => [item.key, item]));
+  }, [visibleNavigationItems]);
+
+  const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer', 'sales'], []);
+
+  const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
+    { key: 'sales-group', label: 'المبيعات', itemKeys: ['sales', 'returns', 'customers', 'reports'] },
+    { key: 'purchases-group', label: 'المشتريات والموردين', itemKeys: ['purchases', 'suppliers'] },
+    { key: 'inventory-group', label: 'المخزون والأصناف', itemKeys: ['inventory', 'products', 'treasury'] },
+    { key: 'services-group', label: 'الخدمات والحسابات', itemKeys: ['services', 'accounts', 'pricing-center'] },
+    { key: 'admin-group', label: 'الإدارة', itemKeys: ['hr', 'audit', 'settings'] },
+  ]), []);
+
+  const visiblePrimaryNavigationItems = useMemo(
+    () => primaryNavigationKeys
+      .map((key) => navigationMap.get(key))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item)),
+    [navigationMap, primaryNavigationKeys],
+  );
+
+  const activeSidebarGroupKey = useMemo(() => {
+    return sidebarGroups.find((group) => {
+      return group.itemKeys.some((itemKey) => {
+        const navItem = navigationMap.get(itemKey);
+        if (!navItem) return false;
+        if (navItem.end) return location.pathname === navItem.to;
+        return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`);
+      });
+    })?.key ?? null;
+  }, [location.pathname, navigationMap, sidebarGroups]);
+
+  useEffect(() => {
+    setExpandedSidebarGroupKey(activeSidebarGroupKey);
+  }, [activeSidebarGroupKey]);
+
+  function toggleSidebarGroup(groupKey: string) {
+    setExpandedSidebarGroupKey((current) => current === groupKey ? null : groupKey);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -406,7 +453,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
         </div>
         <nav className="sidebar-nav">
-          {visibleNavigationItems.map((item) => {
+          {visiblePrimaryNavigationItems.map((item) => {
             const tone = iconToneMap[item.key] || iconToneMap.settings;
             const toneStyle = {
               '--icon-bg': tone.bg,
@@ -417,7 +464,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
             return (
               <NavLink
-                key={item.key}
+                key={`primary-${item.key}`}
                 to={item.to}
                 end={item.end}
                 data-key={item.key}
@@ -426,7 +473,71 @@ export function AppShell({ children }: PropsWithChildren) {
               >
                 <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
                 <span className="sidebar-label">{item.label}</span>
+                <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
               </NavLink>
+            );
+          })}
+
+          {sidebarGroups.map((group) => {
+            const groupItems = group.itemKeys
+              .map((key) => navigationMap.get(key))
+              .filter((item): item is NonNullable<typeof item> => Boolean(item));
+            if (!groupItems.length) return null;
+
+            const isOpen = expandedSidebarGroupKey === group.key;
+            const isActive = activeSidebarGroupKey === group.key;
+            const groupIconItemKey = groupItems[0]?.key || 'settings';
+            const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
+            const toneStyle = {
+              '--icon-bg': tone.bg,
+              '--icon-border': tone.border,
+              '--icon-fg': tone.fg,
+              '--icon-glow': tone.glow,
+            } as CSSProperties;
+
+            return (
+              <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>
+                <button
+                  type="button"
+                  className="sidebar-group-trigger"
+                  aria-expanded={isOpen}
+                  onClick={() => toggleSidebarGroup(group.key)}
+                  style={toneStyle}
+                >
+                  <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
+                  <span className="sidebar-label">{group.label}</span>
+                  <span className="sidebar-group-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
+                </button>
+
+                {isOpen ? (
+                  <div className="sidebar-group-items">
+                    {groupItems.map((item) => {
+                      const tone = iconToneMap[item.key] || iconToneMap.settings;
+                      const toneStyle = {
+                        '--icon-bg': tone.bg,
+                        '--icon-border': tone.border,
+                        '--icon-fg': tone.fg,
+                        '--icon-glow': tone.glow,
+                      } as CSSProperties;
+
+                      return (
+                        <NavLink
+                          key={`group-${group.key}-${item.key}`}
+                          to={item.to}
+                          end={item.end}
+                          data-key={item.key}
+                          style={toneStyle}
+                          className={({ isActive: isItemActive }) => `sidebar-link sidebar-link-sub ${isItemActive ? 'active' : ''}`.trim()}
+                        >
+                          <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
+                          <span className="sidebar-label">{item.label}</span>
+                          <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </nav>

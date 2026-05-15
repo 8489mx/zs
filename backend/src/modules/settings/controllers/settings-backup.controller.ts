@@ -20,6 +20,26 @@ export class SettingsBackupController {
     return this.backupService.listSnapshots();
   }
 
+  @Get('backup/config')
+  getBackupConfig(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.backupService.getBackupConfig(req.authContext!);
+  }
+
+  @Post('backup/config')
+  saveBackupConfig(@Body() payload: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.backupService.saveBackupConfig(payload, req.authContext!);
+  }
+
+  @Post('backup/folder/test')
+  testBackupFolder(@Body() payload: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.backupService.testBackupFolder(payload, req.authContext!);
+  }
+
+  @Post('backup/save-file')
+  saveBackupToConfiguredFolder(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.backupService.saveBackupToConfiguredFolder(req.authContext!);
+  }
+
   @Post('backup/verify')
   verifyBackup(@Body() payload: BackupEnvelopeDto, @Req() _req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.backupService.verifyBackup(payload);

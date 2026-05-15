@@ -46,6 +46,26 @@ export interface BackupSnapshotRecord {
   payload?: Record<string, unknown>;
 }
 
+export interface BackupAutomationConfig {
+  enabled: boolean;
+  frequency: 'daily' | 'weekly';
+  time: string;
+  weeklyDay: number;
+  lastSuccessAt?: string;
+  lastAttemptAt?: string;
+  lastAttemptStatus?: 'success' | 'failed' | '';
+  lastError?: string;
+  lastScheduledFor?: string;
+  lastSavedPath?: string;
+}
+
+export interface BackupConfigResponse {
+  ok: boolean;
+  defaultFolderPath: string;
+  folderPath: string;
+  automation: BackupAutomationConfig;
+}
+
 interface ManagedUsersResponse {
   users?: ManagedUserRecord[];
   pagination?: PaginationMeta;
@@ -92,6 +112,10 @@ export const settingsApi = {
   reconcileSuppliers: () => http<Record<string, unknown>>('/api/admin/maintenance/reconcile-suppliers', { method: 'POST' }),
   verifyBackup: (payload: unknown) => http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', body: JSON.stringify(payload) }),
   restoreBackup: (payload: unknown, dryRun = false) => http<Record<string, unknown>>(`/api/backup/restore${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: JSON.stringify(payload), timeoutMs: BACKUP_RESTORE_TIMEOUT_MS }),
+  backupConfig: () => http<BackupConfigResponse>('/api/backup/config'),
+  saveBackupConfig: (payload: unknown) => http<BackupConfigResponse>('/api/backup/config', { method: 'POST', body: JSON.stringify(payload) }),
+  testBackupFolder: (payload: unknown) => http<Record<string, unknown>>('/api/backup/folder/test', { method: 'POST', body: JSON.stringify(payload) }),
+  saveBackupFileToFolder: () => http<Record<string, unknown>>('/api/backup/save-file', { method: 'POST' }),
   importProducts: (rows: unknown) => http<Record<string, unknown>>('/api/import/products', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),
   importCustomers: (rows: unknown) => http<Record<string, unknown>>('/api/import/customers', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),
   importSuppliers: (rows: unknown) => http<Record<string, unknown>>('/api/import/suppliers', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),

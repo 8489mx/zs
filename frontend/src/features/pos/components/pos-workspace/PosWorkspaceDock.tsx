@@ -2,54 +2,38 @@ import { formatCurrency } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
 
 interface PosWorkspaceDockProps {
-  selectedCustomerName: string;
-  paymentModeLabel: string;
   piecesCount: number;
+  itemsCount: number;
   total: number;
-  paidAmount: number;
-  changeAmount: number;
-  amountDue: number;
-  isCredit: boolean;
   canSubmitSale: boolean;
-  canSubmitHint: string;
   isPending: boolean;
+  heldDraftsCount: number;
   onFocusSearch: () => void;
   onPrintPreview: () => void;
   onResetDraft: () => void;
   onHoldDraft: () => void;
+  onOpenHeldDrafts: () => void;
   onSubmit: () => void;
 }
 
 export function PosWorkspaceDock({
-  selectedCustomerName,
-  paymentModeLabel,
   piecesCount,
+  itemsCount,
   total,
-  paidAmount,
-  changeAmount,
-  amountDue,
-  isCredit,
   canSubmitSale,
-  canSubmitHint,
   isPending,
+  heldDraftsCount,
   onFocusSearch,
   onPrintPreview,
   onResetDraft,
   onHoldDraft,
+  onOpenHeldDrafts,
   onSubmit,
 }: PosWorkspaceDockProps) {
   const summaryItems = [
-    { key: 'customer', label: 'العميل', value: selectedCustomerName || 'عميل نقدي', tone: 'surface' },
     { key: 'pieces', label: 'عدد القطع', value: String(piecesCount), tone: 'surface' },
-    { key: 'payment', label: 'الدفع', value: paymentModeLabel, tone: 'surface' },
-    { key: 'total', label: 'المطلوب دفعه', value: formatCurrency(total), tone: 'danger' },
-    { key: 'paid', label: 'المدفوع', value: formatCurrency(isCredit ? 0 : paidAmount), tone: 'success' },
-    {
-      key: 'change',
-      label: isCredit ? 'المتبقي على العميل' : 'الباقي للعميل',
-      value: formatCurrency(isCredit ? amountDue : changeAmount),
-      tone: 'warning',
-    },
+    { key: 'items', label: 'عدد العناصر', value: String(itemsCount), tone: 'surface' },
+    { key: 'total', label: 'المطلوب دفعه', value: formatCurrency(total), tone: 'primary' },
   ];
 
   return (
@@ -64,15 +48,12 @@ export function PosWorkspaceDock({
           ))}
         </div>
 
-        <div className={`pos-workspace-dock-hint pos-workspace-dock-hint-inline ${canSubmitSale ? 'is-ready' : 'is-warning'}`.trim()}>
-          {canSubmitSale ? 'جاهز للإتمام الآن.' : (canSubmitHint || 'أكمل البيانات المطلوبة قبل إتمام البيع.')}
-        </div>
-
         <div className="pos-workspace-dock-actions pos-workspace-dock-actions-inline">
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
           <Button type="button" variant="secondary" onClick={onPrintPreview} disabled={!piecesCount}>معاينة</Button>
           <Button type="button" variant="secondary" onClick={onResetDraft} disabled={isPending}>تفريغ</Button>
           <Button type="button" variant="secondary" onClick={onHoldDraft} disabled={!piecesCount || isPending}>تعليق F4</Button>
+          <Button type="button" variant="secondary" onClick={onOpenHeldDrafts}>الفواتير المعلقة ({heldDraftsCount})</Button>
           <Button type="button" variant="success" onClick={onSubmit} disabled={isPending || !canSubmitSale}>
             {isPending ? 'جارٍ الحفظ...' : 'إتمام البيع F2'}
           </Button>

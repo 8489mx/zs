@@ -1,6 +1,8 @@
+﻿import { useEffect, useMemo, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { Card } from '@/shared/ui/card';
 import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { formatCurrency } from '@/lib/format';
@@ -28,12 +30,28 @@ interface CashDrawerFormsPanelProps {
   closeExpectedCash: number;
   closeVariancePreview: number;
   closeNoteValue: string;
+  isBlindCloseMode?: boolean;
   onMovementSubmit: () => void;
   onCloseSubmit: () => void;
 }
 
+type DetailChannel = 'cardDetails' | 'walletDetails' | 'instapayDetails';
+const EMPTY_DETAIL_ROWS: Array<{ amount?: number }> = [];
+
+function normalizeCount(value: unknown): number {
+  const parsed = Number(value || 0);
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return Math.floor(parsed);
+}
+
+function summarizeDetails(rows: Array<{ amount?: number }>): number {
+  return Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
+}
+
 export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const locationList = Array.isArray(props.locations) ? props.locations : [];
+  const isBlindCloseMode = props.isBlindCloseMode === true;
+
   const selectedCloseShift = props.openOptions.find((shift) => String(shift.id) === String(props.closeForm.watch('shiftId'))) || null;
   const closeCashSalesTotal = Number(selectedCloseShift?.cashSalesTotal || 0);
   const closeCardSalesTotal = Number(selectedCloseShift?.cardSalesTotal || 0);
@@ -48,6 +66,55 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
     : 0;
   const closeSaleReturnCashRefundTotal = rawCloseSaleReturnCashRefundTotal > 0 ? rawCloseSaleReturnCashRefundTotal : inferredCloseSaleReturnCashRefundTotal;
   const closeSaleReturnCardRefundTotal = Number(selectedCloseShift?.saleReturnCardRefundTotal || 0);
+
+  const cardOperationCount = normalizeCount(props.closeForm.watch('cardOperationCount'));
+  const walletOperationCount = normalizeCount(props.closeForm.watch('walletOperationCount'));
+  const instapayOperationCount = normalizeCount(props.closeForm.watch('instapayOperationCount'));
+
+  const [showCardDetails, setShowCardDetails] = useState(false);
+  const [showWalletDetails, setShowWalletDetails] = useState(false);
+  const [showInstapayDetails, setShowInstapayDetails] = useState(false);
+
+  const ensureDetailsLength = (field: DetailChannel, size: number) => {
+    const current = props.closeForm.getValues(field) || [];
+    const next = [...current];
+    if (next.length > size) next.length = size;
+    while (next.length < size) {
+      next.push({ amount: 0, reference: '' });
+    }
+    props.closeForm.setValue(field, next, { shouldDirty: false });
+  };
+
+  useEffect(() => {
+    ensureDetailsLength('cardDetails', cardOperationCount);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardOperationCount]);
+
+  useEffect(() => {
+    ensureDetailsLength('walletDetails', walletOperationCount);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletOperationCount]);
+
+  useEffect(() => {
+    ensureDetailsLength('instapayDetails', instapayOperationCount);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instapayOperationCount]);
+
+  const cardDeclaredTotal = Number(props.closeForm.watch('cardDeclaredTotal') || 0);
+  const walletDeclaredTotal = Number(props.closeForm.watch('walletDeclaredTotal') || 0);
+  const instapayDeclaredTotal = Number(props.closeForm.watch('instapayDeclaredTotal') || 0);
+
+  const cardDetailsRows = props.closeForm.watch('cardDetails') ?? EMPTY_DETAIL_ROWS;
+  const walletDetailsRows = props.closeForm.watch('walletDetails') ?? EMPTY_DETAIL_ROWS;
+  const instapayDetailsRows = props.closeForm.watch('instapayDetails') ?? EMPTY_DETAIL_ROWS;
+
+  const cardDetailsTotal = useMemo(() => summarizeDetails(cardDetailsRows), [cardDetailsRows]);
+  const walletDetailsTotal = useMemo(() => summarizeDetails(walletDetailsRows), [walletDetailsRows]);
+  const instapayDetailsTotal = useMemo(() => summarizeDetails(instapayDetailsRows), [instapayDetailsRows]);
+
+  const cardDetailsDiff = Number((cardDetailsTotal - cardDeclaredTotal).toFixed(2));
+  const walletDetailsDiff = Number((walletDetailsTotal - walletDeclaredTotal).toFixed(2));
+  const instapayDetailsDiff = Number((instapayDetailsTotal - instapayDeclaredTotal).toFixed(2));
 
   return (
     <div className="three-column-grid panel-grid cash-drawer-forms-grid">
@@ -101,64 +168,126 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               {props.openOptions.map((shift) => <option key={shift.id} value={shift.id}>{shift.openedByName || 'وردية'}{shift.docNo ? ` — ${shift.docNo}` : ''}</option>)}
             </select>
           </Field>
-          <Field label="النقدية المتوقعة"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
-          {selectedCloseShift ? (
-            <div className="muted small" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
-              <span>
-                مبيعات نقدي:
-                {' '}<strong>{formatCurrency(closeCashSalesTotal)}</strong>
-              </span>
-              <span>
-                مبيعات فيزا:
-                {' '}<strong>{formatCurrency(closeCardSalesTotal)}</strong>
-              </span>
-              {closeServiceCashTotal > 0 ? (
-                <span>
-                  خدمات نقدي:
-                  {' '}<strong>{formatCurrency(closeServiceCashTotal)}</strong>
-                </span>
+
+          {isBlindCloseMode ? (
+            <>
+              <Field label="النقدية المعدودة في الدرج">
+                <input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+              </Field>
+
+              <Field label="إجمالي الفيزا حسب ماكينة الدفع">
+                <input type="number" min="0" step="0.01" {...props.closeForm.register('cardDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+              </Field>
+              <Field label="عدد عمليات الفيزا">
+                <input type="number" min="0" step="1" {...props.closeForm.register('cardOperationCount', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+              </Field>
+
+              <Field label="إجمالي محفظة إلكترونية">
+                <input type="number" min="0" step="0.01" {...props.closeForm.register('walletDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+              </Field>
+              <Field label="عدد عمليات محفظة إلكترونية">
+                <input type="number" min="0" step="1" {...props.closeForm.register('walletOperationCount', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+              </Field>
+
+              <Field label="إجمالي InstaPay">
+                <input type="number" min="0" step="0.01" {...props.closeForm.register('instapayDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+              </Field>
+              <Field label="عدد عمليات InstaPay">
+                <input type="number" min="0" step="1" {...props.closeForm.register('instapayOperationCount', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+              </Field>
+
+              <div className="actions compact-actions" style={{ gridColumn: '1 / -1' }}>
+                <Button type="button" variant="secondary" onClick={() => setShowCardDetails((value) => !value)} disabled={props.closeMutation.isPending}>تفاصيل الفيزا</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowWalletDetails((value) => !value)} disabled={props.closeMutation.isPending}>تفاصيل المحافظ</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowInstapayDetails((value) => !value)} disabled={props.closeMutation.isPending}>تفاصيل InstaPay</Button>
+              </div>
+
+              {showCardDetails ? (
+                <div className="card" style={{ gridColumn: '1 / -1', padding: 10 }}>
+                  <strong style={{ display: 'block', marginBottom: 8 }}>تفاصيل الفيزا</strong>
+                  {cardOperationCount ? cardDetailsRows.map((_, index) => (
+                    <div key={`card-detail-${index}`} className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                      <Field label={`عملية ${index + 1} - مبلغ`}><input type="number" min="0" step="0.01" {...props.closeForm.register(`cardDetails.${index}.amount` as const, { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
+                      <Field label={`عملية ${index + 1} - رقم العملية`}><input {...props.closeForm.register(`cardDetails.${index}.reference` as const)} disabled={props.closeMutation.isPending} /></Field>
+                    </div>
+                  )) : <div className="muted small">أدخل عدد عمليات الفيزا أولًا لعرض التفاصيل.</div>}
+                  <div className="muted small">
+                    إجمالي التفاصيل: <strong>{formatCurrency(cardDetailsTotal)}</strong> — الإجمالي المعلن: <strong>{formatCurrency(cardDeclaredTotal)}</strong> — فرق التفاصيل: <strong>{formatCurrency(cardDetailsDiff)}</strong>
+                  </div>
+                </div>
               ) : null}
-              {closeServiceCardTotal > 0 ? (
-                <span>
-                  خدمات فيزا:
-                  {' '}<strong>{formatCurrency(closeServiceCardTotal)}</strong>
-                </span>
+
+              {showWalletDetails ? (
+                <div className="card" style={{ gridColumn: '1 / -1', padding: 10 }}>
+                  <strong style={{ display: 'block', marginBottom: 8 }}>تفاصيل المحافظ</strong>
+                  {walletOperationCount ? walletDetailsRows.map((_, index) => (
+                    <div key={`wallet-detail-${index}`} className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                      <Field label={`عملية ${index + 1} - مبلغ`}><input type="number" min="0" step="0.01" {...props.closeForm.register(`walletDetails.${index}.amount` as const, { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
+                      <Field label={`عملية ${index + 1} - رقم العملية`}><input {...props.closeForm.register(`walletDetails.${index}.reference` as const)} disabled={props.closeMutation.isPending} /></Field>
+                    </div>
+                  )) : <div className="muted small">أدخل عدد عمليات المحافظ أولًا لعرض التفاصيل.</div>}
+                  <div className="muted small">
+                    إجمالي التفاصيل: <strong>{formatCurrency(walletDetailsTotal)}</strong> — الإجمالي المعلن: <strong>{formatCurrency(walletDeclaredTotal)}</strong> — فرق التفاصيل: <strong>{formatCurrency(walletDetailsDiff)}</strong>
+                  </div>
+                </div>
               ) : null}
-              {closeCreditSalesTotal > 0 ? (
-                <span>
-                  مبيعات آجل:
-                  {' '}<strong>{formatCurrency(closeCreditSalesTotal)}</strong>
-                </span>
+
+              {showInstapayDetails ? (
+                <div className="card" style={{ gridColumn: '1 / -1', padding: 10 }}>
+                  <strong style={{ display: 'block', marginBottom: 8 }}>تفاصيل InstaPay</strong>
+                  {instapayOperationCount ? instapayDetailsRows.map((_, index) => (
+                    <div key={`instapay-detail-${index}`} className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                      <Field label={`عملية ${index + 1} - مبلغ`}><input type="number" min="0" step="0.01" {...props.closeForm.register(`instapayDetails.${index}.amount` as const, { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
+                      <Field label={`عملية ${index + 1} - رقم العملية`}><input {...props.closeForm.register(`instapayDetails.${index}.reference` as const)} disabled={props.closeMutation.isPending} /></Field>
+                    </div>
+                  )) : <div className="muted small">أدخل عدد عمليات InstaPay أولًا لعرض التفاصيل.</div>}
+                  <div className="muted small">
+                    إجمالي التفاصيل: <strong>{formatCurrency(instapayDetailsTotal)}</strong> — الإجمالي المعلن: <strong>{formatCurrency(instapayDeclaredTotal)}</strong> — فرق التفاصيل: <strong>{formatCurrency(instapayDetailsDiff)}</strong>
+                  </div>
+                </div>
               ) : null}
-              <span>
-                مرتجعات نقدي:
-                {' '}<strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong>
-              </span>
-              {closeSaleReturnCardRefundTotal > 0 ? (
-                <span>
-                  مرتجعات فيزا:
-                  {' '}<strong>{formatCurrency(closeSaleReturnCardRefundTotal)}</strong>
-                </span>
+
+              <Field label="ملاحظات الإغلاق">
+                <textarea rows={2} placeholder="اختياري" {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} />
+              </Field>
+
+              <div className="muted small" style={{ gridColumn: '1 / -1' }}>
+                سيتم تسجيل الإقرار وإرسال الوردية في انتظار مراجعة المدير.
+              </div>
+            </>
+          ) : (
+            <>
+              <Field label="النقدية المتوقعة"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
+              {selectedCloseShift ? (
+                <div className="muted small" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+                  <span>مبيعات نقدي: <strong>{formatCurrency(closeCashSalesTotal)}</strong></span>
+                  <span>مبيعات فيزا: <strong>{formatCurrency(closeCardSalesTotal)}</strong></span>
+                  {closeServiceCashTotal > 0 ? <span>خدمات نقدي: <strong>{formatCurrency(closeServiceCashTotal)}</strong></span> : null}
+                  {closeServiceCardTotal > 0 ? <span>خدمات فيزا: <strong>{formatCurrency(closeServiceCardTotal)}</strong></span> : null}
+                  {closeCreditSalesTotal > 0 ? <span>مبيعات آجل: <strong>{formatCurrency(closeCreditSalesTotal)}</strong></span> : null}
+                  <span>مرتجعات نقدي: <strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong></span>
+                  {closeSaleReturnCardRefundTotal > 0 ? <span>مرتجعات فيزا: <strong>{formatCurrency(closeSaleReturnCardRefundTotal)}</strong></span> : null}
+                  <span>حركات الدرج: <strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong></span>
+                  <span>إجمالي مبيعات الوردية: <strong>{formatCurrency(closeShiftSalesTotal)}</strong></span>
+                  <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات النقدي + خدمات النقدي - مرتجعات النقدي + حركات الدرج فقط.</span>
+                </div>
               ) : null}
-              <span>
-                حركات الدرج:
-                {' '}<strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong>
-              </span>
-              <span>
-                إجمالي مبيعات الوردية:
-                {' '}<strong>{formatCurrency(closeShiftSalesTotal)}</strong>
-              </span>
-              <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات النقدي + خدمات النقدي - مرتجعات النقدي + حركات الدرج فقط. مبيعات/خدمات الفيزا ومرتجعات الفيزا تظهر للمتابعة ولا تدخل في المبلغ المعدود.</span>
-            </div>
-          ) : null}
-          <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
-          <Field label="ملاحظة الإغلاق"><textarea rows={2} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل الإغلاق' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
-          <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>
-            الفرق المتوقع بعد الإغلاق: <strong>{formatCurrency(props.closeVariancePreview)}</strong>
-            {Math.abs(props.closeVariancePreview) >= 0.01 ? ' — يلزم كتابة ملاحظة قبل إغلاق الوردية مع وجود فرق.' : ''}
-          </div>
+              <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
+              <Field label="ملاحظة الإغلاق"><textarea rows={2} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل الإغلاق' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
+              <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>
+                الفرق المتوقع بعد الإغلاق: <strong>{formatCurrency(props.closeVariancePreview)}</strong>
+                {Math.abs(props.closeVariancePreview) >= 0.01 ? ' — يلزم كتابة ملاحظة قبل إغلاق الوردية مع وجود فرق.' : ''}
+              </div>
+            </>
+          )}
+
           <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق الوردية" successText="تم إغلاق الوردية بنجاح." />
-          <SubmitButton type="submit" disabled={props.closeMutation.isPending || !props.closeForm.watch('shiftId') || (Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue)} idleText="إغلاق الوردية" pendingText="جارٍ الإغلاق..." />
+          <SubmitButton
+            type="submit"
+            disabled={props.closeMutation.isPending || !props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue)}
+            idleText={isBlindCloseMode ? 'إرسال إقرار الإغلاق' : 'إغلاق الوردية'}
+            pendingText="جارٍ الإغلاق..."
+          />
         </form>
       </Card>
     </div>

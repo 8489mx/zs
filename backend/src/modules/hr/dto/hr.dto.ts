@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class UpsertHrMasterDataDto {
   @IsString()
@@ -54,6 +54,11 @@ export class UpsertEmployeeDto {
   @IsString()
   @MaxLength(80)
   employeeNo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(14)
+  nationalId?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -340,4 +345,163 @@ export class CreatePayrollAdjustmentDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+}
+
+export class UpsertAttendanceRecordDto {
+  @Type(() => Number)
+  @IsNumber()
+  employeeId!: number;
+
+  @IsDateString()
+  workDate!: string;
+
+  @IsOptional()
+  @IsIn(['present', 'absent', 'late', 'half_day', 'leave', 'excused', 'early_leave'])
+  status?: string;
+
+  @IsOptional()
+  @IsDateString()
+  checkInAt?: string;
+
+  @IsOptional()
+  @IsDateString()
+  checkOutAt?: string;
+
+  @IsOptional()
+  @IsIn(['manual', 'import'])
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class BulkSaveAttendanceDto {
+  @IsDateString()
+  workDate!: string;
+
+  @IsArray()
+  rows!: UpsertAttendanceRecordDto[];
+}
+
+export class UpsertLeaveTypeDto {
+  @IsString()
+  @MaxLength(120)
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @IsOptional()
+  isPaid?: boolean;
+
+  @IsOptional()
+  isActive?: boolean;
+}
+
+export class CreateLeaveRequestDto {
+  @Type(() => Number)
+  @IsNumber()
+  employeeId!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  leaveTypeId?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  leaveType?: string;
+
+  @IsDateString()
+  startDate!: string;
+
+  @IsDateString()
+  endDate!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  daysCount?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class DecideLeaveRequestDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  decisionNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class UpsertEmployeeAssetDto {
+  @Type(() => Number)
+  @IsNumber()
+  employeeId!: number;
+
+  @IsString()
+  @MaxLength(80)
+  assetType!: string;
+
+  @IsString()
+  @MaxLength(160)
+  assetName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  assetCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  serialNo?: string;
+
+  @IsOptional()
+  @IsDateString()
+  assignedAt?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
+
+export class EmployeeAssetActionDto {
+  @IsOptional()
+  @IsDateString()
+  returnedAt?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  returnNotes?: string;
 }

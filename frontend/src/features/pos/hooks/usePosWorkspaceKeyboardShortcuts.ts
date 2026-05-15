@@ -7,18 +7,22 @@ interface PosWorkspaceKeyboardShortcutsParams {
     selectedLineKey: string;
     paymentType: 'cash' | 'credit';
     canShowLastSaleActions: boolean;
+    heldDraftSummaries: Array<{ id: string }>;
     selectAdjacentCartLine: (direction: 'next' | 'prev') => void;
     changeSelectedQty: (delta: number) => void;
     printReceiptNow: () => void;
-    handleSubmit: (options?: { fastCash?: boolean }) => void | Promise<void>;
     holdDraft: () => void | Promise<void>;
     reprintLastSale: () => void;
+    reprintLastSaleReceipt: () => void;
     printA4Now: () => void;
   };
   focusBarcodeEntry: () => void;
   printCurrentDraft: () => void;
   onRequestClearCart: () => void;
   onRequestLineDelete: (lineKey: string) => void;
+  onRequestCheckout: () => void;
+  onOpenHeldDrafts: () => void;
+  onRecallHeldDraftByIndex: (index: number) => void;
 }
 
 export function usePosWorkspaceKeyboardShortcuts({
@@ -27,6 +31,9 @@ export function usePosWorkspaceKeyboardShortcuts({
   printCurrentDraft,
   onRequestClearCart,
   onRequestLineDelete,
+  onRequestCheckout,
+  onOpenHeldDrafts,
+  onRecallHeldDraftByIndex,
 }: PosWorkspaceKeyboardShortcutsParams) {
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -43,6 +50,15 @@ export function usePosWorkspaceKeyboardShortcuts({
         if (pos.cart.length) {
           event.preventDefault();
           onRequestClearCart();
+        }
+        return;
+      }
+      if (isPosModalOpen()) return;
+      if (!isTypingTarget && event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && ['1', '2', '3'].includes(event.key)) {
+        const targetIndex = Number(event.key) - 1;
+        if (targetIndex >= 0 && targetIndex < pos.heldDraftSummaries.length) {
+          event.preventDefault();
+          onRecallHeldDraftByIndex(targetIndex);
         }
         return;
       }
@@ -79,11 +95,15 @@ export function usePosWorkspaceKeyboardShortcuts({
         if (pos.canShowLastSaleActions) {
           pos.printReceiptNow();
         } else {
-          void pos.handleSubmit(pos.paymentType === 'credit' ? undefined : { fastCash: true });
+          onRequestCheckout();
         }
       } else if (event.key === 'F4') {
         event.preventDefault();
-        void pos.holdDraft();
+        if (event.shiftKey) {
+          onOpenHeldDrafts();
+        } else {
+          void pos.holdDraft();
+        }
       } else if (event.key === 'F6') {
         event.preventDefault();
         pos.reprintLastSale();
@@ -92,7 +112,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         printCurrentDraft();
       } else if (event.key === 'F9') {
         event.preventDefault();
-        pos.reprintLastSale();
+        pos.reprintLastSaleReceipt();
       } else if (event.key === 'F12') {
         event.preventDefault();
         if (pos.canShowLastSaleActions) pos.printA4Now();
@@ -100,5 +120,5 @@ export function usePosWorkspaceKeyboardShortcuts({
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [focusBarcodeEntry, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
+  }, [focusBarcodeEntry, onOpenHeldDrafts, onRecallHeldDraftByIndex, onRequestCheckout, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
 }

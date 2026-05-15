@@ -2,8 +2,15 @@ import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product } from '@/types/domain';
 import type { PaymentChannel, PaymentType, PosDraftSnapshot } from '@/features/pos/hooks/usePosWorkspace';
 
-export function normalizePaymentChannel(paymentType: PaymentType, cashAmount: number, cardAmount: number): PaymentChannel {
+export function normalizePaymentChannel(
+  paymentType: PaymentType,
+  cashAmount: number,
+  cardAmount: number,
+  _transferAmount: number,
+  currentChannel?: PaymentChannel,
+): PaymentChannel {
   if (paymentType === 'credit') return 'credit';
+  if (currentChannel === 'wallet' || currentChannel === 'instapay') return currentChannel;
   const hasCash = Number(cashAmount || 0) > 0;
   const hasCard = Number(cardAmount || 0) > 0;
   if (hasCash && hasCard) return 'mixed' as PaymentChannel;
@@ -14,6 +21,8 @@ export function normalizePaymentChannel(paymentType: PaymentType, cashAmount: nu
 export function paymentLabel(paymentType: PaymentType, paymentChannel: string) {
   if (paymentType === 'credit') return 'آجل';
   if (paymentChannel === 'mixed') return 'مختلط';
+  if (paymentChannel === 'wallet') return 'محفظة إلكترونية';
+  if (paymentChannel === 'instapay') return 'InstaPay';
   if (paymentChannel === 'card') return 'فيزا';
   return 'نقدي';
 }

@@ -41,7 +41,7 @@ export function UserManagementEditorCard({
             {currentUserRole === 'super_admin' ? <option value="super_admin">سوبر أدمن</option> : null}
           </select>
         </Field>
-        <Field label="كلمة المرور الجديدة / الأولى"><input type="password" value={draft.password || ''} onChange={(e) => onDraftChange((current) => ({ ...current, password: e.target.value }))} placeholder={draft.id ? 'اتركها فارغة إن لم ترد التغيير' : 'مطلوبة للمستخدم الجديد'} /></Field>
+        <Field label="كلمة المرور الجديدة / الأولى"><input type="password" value={draft.password || ''} onChange={(e) => onDraftChange((current) => ({ ...current, password: e.target.value }))} placeholder={draft.id ? 'اتركها فارغة إن لم ترد التغيير' : 'مطلوبة للمستخدم الجديد'} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>
         <div className="muted small" style={{ gridColumn: '1 / -1', marginTop: -6 }}>{PASSWORD_MIN_LENGTH_HINT}</div>
         {!SINGLE_STORE_MODE ? <Field label="الفرع الافتراضي">
           <select value={draft.defaultBranchId} onChange={(e) => onDraftChange((current) => ({ ...current, defaultBranchId: e.target.value }))}>
@@ -60,3 +60,4 @@ export function UserManagementEditorCard({
     </>
   );
 }
+

@@ -90,6 +90,7 @@ export function ActionConfirmDialog({
         reason: trimmedReason,
       });
     } catch (error) {
+      setManagerPin('');
       setSubmitError(getErrorMessage(error, 'تعذر تنفيذ العملية المطلوبة.'));
     }
   }
@@ -154,8 +155,14 @@ export function ActionConfirmDialog({
                   if (submitError) setSubmitError('');
                 }}
                 type="password"
+                id="managerApprovalSecret"
+                name="managerApprovalSecret"
                 placeholder="أدخل الرمز"
                 inputMode="numeric"
+                autoComplete="new-password"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 autoFocus={managerPinRequired && !requiresKeyword}
                 disabled={isBusy}
               />

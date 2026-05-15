@@ -4,14 +4,22 @@ import { formatCurrency } from '@/lib/format';
 import { writeCheckoutIntent } from '@/features/pos/lib/pos-checkout-integrity';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
+type PaymentPreset = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit';
+
 function isPresetActive(
   paymentType: PosCartPanelProps['paymentType'],
   paymentChannel: PosCartPanelProps['paymentChannel'],
-  preset: 'cash' | 'card' | 'credit',
+  preset: PaymentPreset,
 ) {
   if (preset === 'credit') return paymentType === 'credit';
-  if (preset === 'card') return paymentType !== 'credit' && paymentChannel === 'card';
-  return paymentType !== 'credit' && paymentChannel === 'cash';
+  if (paymentType === 'credit') return false;
+  if (preset === 'wallet' || preset === 'instapay') return paymentChannel === preset;
+  if (preset === 'card') return paymentChannel === 'card';
+  return paymentChannel === 'cash';
+}
+
+function isTransferPreset(paymentType: PosCartPanelProps['paymentType'], paymentChannel: PosCartPanelProps['paymentChannel']) {
+  return paymentType !== 'credit' && (paymentChannel === 'wallet' || paymentChannel === 'instapay');
 }
 
 function getBalanceState(props: Pick<PosCartPanelProps, 'paymentType' | 'amountDue' | 'changeAmount'>) {
@@ -27,16 +35,17 @@ function getBalanceState(props: Pick<PosCartPanelProps, 'paymentType' | 'amountD
 }
 
 export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
-  'paymentType' | 'paymentChannel' | 'cashAmount' | 'cardAmount' | 'discount' | 'amountDue' | 'changeAmount' |
+  'paymentType' | 'paymentChannel' | 'cashAmount' | 'cardAmount' | 'transferAmount' | 'discount' | 'amountDue' | 'changeAmount' |
   'customerId' |
   'canApplyDiscount' | 'discountApprovalGranted' | 'isDiscountAuthorizationPending' | 'hasDiscountPermissionViolation' |
-  'onPaymentPresetChange' | 'onCashAmountChange' | 'onCardAmountChange' | 'onDiscountChange' | 'onFillPaidAmount' | 'onRequestDiscountAuthorization'
+  'onPaymentPresetChange' | 'onCashAmountChange' | 'onCardAmountChange' | 'onTransferAmountChange' | 'onDiscountChange' | 'onFillPaidAmount' | 'onRequestDiscountAuthorization'
 >) {
   const balance = getBalanceState(props);
   const isCreditSale = props.paymentType === 'credit';
   const isDiscountLocked = !props.canApplyDiscount;
+  const transferSelected = isTransferPreset(props.paymentType, props.paymentChannel);
 
-  function selectPaymentPreset(preset: 'cash' | 'card' | 'credit') {
+  function selectPaymentPreset(preset: PaymentPreset) {
     writeCheckoutIntent({
       customerId: props.customerId || '',
       paymentType: preset === 'credit' ? 'credit' : 'cash',
@@ -55,8 +64,15 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
           <div className="actions compact-actions pos-payment-preset-row pos-payment-preset-row-inline">
             <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'cash') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('cash')}>نقدي</Button>
             <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'card') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('card')}>فيزا</Button>
+            <Button type="button" variant={transferSelected ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset(props.paymentChannel === 'instapay' ? 'instapay' : 'wallet')}>تحويلات</Button>
             <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'credit') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('credit')}>آجل</Button>
           </div>
+          {transferSelected ? (
+            <div className="actions compact-actions pos-payment-preset-row pos-payment-preset-row-inline" style={{ marginTop: 8 }}>
+              <Button type="button" variant={props.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('wallet')}>محفظة إلكترونية</Button>
+              <Button type="button" variant={props.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('instapay')}>InstaPay</Button>
+            </div>
+          ) : null}
         </div>
 
         <label className="pos-strip-field pos-strip-field-inline pos-strip-field-input pos-strip-field-cash">
@@ -67,7 +83,7 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
               step="0.01"
               value={props.cashAmount}
               onChange={(event) => props.onCashAmountChange(Number(event.target.value || 0))}
-              disabled={isCreditSale}
+              disabled={isCreditSale || transferSelected}
             />
             <Button
               type="button"
@@ -88,9 +104,22 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
             step="0.01"
             value={props.cardAmount}
             onChange={(event) => props.onCardAmountChange(Number(event.target.value || 0))}
-            disabled={isCreditSale}
+            disabled={isCreditSale || transferSelected}
           />
         </label>
+
+        {transferSelected ? (
+          <label className="pos-strip-field pos-strip-field-inline pos-strip-field-input pos-strip-field-card">
+            <span>{props.paymentChannel === 'instapay' ? 'مدفوع InstaPay' : 'مدفوع محفظة'}</span>
+            <input
+              type="number"
+              step="0.01"
+              value={props.transferAmount}
+              onChange={(event) => props.onTransferAmountChange(Number(event.target.value || 0))}
+              disabled={isCreditSale}
+            />
+          </label>
+        ) : null}
 
         <label className="pos-strip-field pos-strip-field-inline pos-strip-field-input pos-strip-field-discount">
           <span>الخصم</span>
@@ -110,7 +139,7 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
                 onClick={props.onRequestDiscountAuthorization}
                 disabled={props.isDiscountAuthorizationPending}
               >
-                {props.isDiscountAuthorizationPending ? 'جارٍ التحقق...' : (props.discountApprovalGranted ? 'معتمد' : 'اعتماد المدير')}
+                {props.isDiscountAuthorizationPending ? 'جاري التحقق...' : (props.discountApprovalGranted ? 'معتمد' : 'اعتماد المدير')}
               </Button>
             ) : null}
           </div>

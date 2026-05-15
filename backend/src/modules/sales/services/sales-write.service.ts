@@ -390,11 +390,34 @@ export class SalesWriteService {
         this.assertUnitPriceChangeAllowed(auth, item.unitPrice, allowedUnitPrice);
       }
 
-      const cashAmount = Math.max(0, Number(payload.cashAmount || 0));
-      const cardAmount = Math.max(0, Number(payload.cardAmount || 0));
-      const paidAmount = Number((cashAmount + cardAmount).toFixed(2));
+      type SalePaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
+      const rawRequestedChannel = String(payload.paymentChannel || '').trim();
+      const requestedChannel: SalePaymentChannel | '' = (['cash', 'card', 'wallet', 'instapay', 'mixed', 'credit'] as const)
+        .includes(rawRequestedChannel as SalePaymentChannel)
+        ? (rawRequestedChannel as SalePaymentChannel)
+        : '';
       const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
-      const paymentChannel = paymentType === 'credit' ? 'credit' : ((cashAmount > 0 && cardAmount > 0) ? 'mixed' : (cardAmount > 0 ? 'card' : 'cash'));
+      const cashAmount = paymentType === 'credit' ? 0 : Math.max(0, Number(payload.cashAmount || 0));
+      const cardAmount = paymentType === 'credit' ? 0 : Math.max(0, Number(payload.cardAmount || 0));
+      const transferAmount = paymentType === 'credit' ? 0 : Math.max(0, Number(payload.transferAmount || 0));
+      const paidAmount = paymentType === 'credit'
+        ? 0
+        : Number((cashAmount + cardAmount + transferAmount).toFixed(2));
+
+      const paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = paymentType === 'credit'
+        ? 'credit'
+        : (() => {
+          if (requestedChannel === 'wallet' || requestedChannel === 'instapay') return requestedChannel;
+          const hasCash = cashAmount > 0.0001;
+          const hasCard = cardAmount > 0.0001;
+          const hasTransfer = transferAmount > 0.0001;
+
+          if ((hasCash && hasCard) || (hasCash && hasTransfer) || (hasCard && hasTransfer)) return 'mixed';
+          if (hasCard) return 'card';
+          if (hasTransfer) return 'wallet';
+          if (requestedChannel === 'card') return 'card';
+          return 'cash';
+        })();
 
       const heldInsert = await trx
         .insertInto('held_sales')

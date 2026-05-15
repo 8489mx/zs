@@ -1,31 +1,33 @@
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+﻿import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
-import { salesApi } from '@/features/sales/api/sales.api';
+import { salesApi, type SalesListFilter } from '@/features/sales/api/sales.api';
+import { getSalePaymentLabel } from '@/features/sales/lib/sales-workspace.helpers';
 import type { Sale } from '@/types/domain';
 
 export function useSalesWorkspaceActions(params: {
   search: string;
-  viewFilter: 'all' | 'cash' | 'credit' | 'cancelled';
+  viewFilter: SalesListFilter;
+  cashierFilter: string;
   totalItems: number;
   summary?: { totalSales?: number; creditTotal?: number; cancelledCount?: number } | null;
   topCustomers: Array<{ name: string; count: number; total: number }>;
   setPage: (value: number) => void;
   setPageSize: (value: number) => void;
   setSearch: (value: string) => void;
-  setViewFilter: (value: 'all' | 'cash' | 'credit' | 'cancelled') => void;
+  setViewFilter: (value: SalesListFilter) => void;
+  setCashierFilter: (value: string) => void;
   setSelectedSaleId: (value: string) => void;
   setSaleToCancel: (value: Sale | null) => void;
-  setSaleToEdit: (value: Sale | null) => void;
 }) {
-  const { search, viewFilter, totalItems, summary, topCustomers, setPage, setPageSize, setSearch, setViewFilter, setSelectedSaleId, setSaleToCancel, setSaleToEdit } = params;
+  const { search, viewFilter, cashierFilter, totalItems, summary, topCustomers, setPage, setPageSize, setSearch, setViewFilter, setCashierFilter, setSelectedSaleId, setSaleToCancel } = params;
 
   async function exportSalesCsv() {
-    const result = await salesApi.listAll({ search, filter: viewFilter });
+    const result = await salesApi.listAll({ search, filter: viewFilter, cashier: cashierFilter });
     downloadCsvFile('sales-register-results.csv', ['docNo', 'customer', 'status', 'paymentType', 'total', 'paidAmount', 'date', 'branch', 'location'], result.rows.map((sale) => [
       sale.docNo || sale.id,
       sale.customerName || 'عميل نقدي',
       sale.status || '',
-      sale.paymentType || '',
+      getSalePaymentLabel(sale),
       sale.total || 0,
       sale.paidAmount || 0,
       sale.date || '',
@@ -43,9 +45,9 @@ export function useSalesWorkspaceActions(params: {
     setPageSize(30);
     setSearch('');
     setViewFilter('all');
+    setCashierFilter('all');
     setSelectedSaleId('');
     setSaleToCancel(null);
-    setSaleToEdit(null);
   }
 
   async function copySalesSummary() {
@@ -81,7 +83,7 @@ export function useSalesWorkspaceActions(params: {
 
   async function printSalesRegister() {
     if (!totalItems) return;
-    const result = await salesApi.listAll({ search, filter: viewFilter });
+    const result = await salesApi.listAll({ search, filter: viewFilter, cashier: cashierFilter });
     printHtmlDocument('سجل المبيعات', `
       <div class="meta-grid">
         <div class="meta-box"><strong>عدد الفواتير</strong><span>${result.rows.length}</span></div>
@@ -89,7 +91,7 @@ export function useSalesWorkspaceActions(params: {
       </div>
       <table>
         <thead><tr><th>الفاتورة</th><th>العميل</th><th>الحالة</th><th>الدفع</th><th>الإجمالي</th><th>التاريخ</th></tr></thead>
-        <tbody>${result.rows.map((sale) => `<tr><td>${escapeHtml(sale.docNo || sale.id)}</td><td>${escapeHtml(sale.customerName || 'عميل نقدي')}</td><td>${escapeHtml(sale.status || '')}</td><td>${escapeHtml(sale.paymentType || '')}</td><td>${formatCurrency(sale.total || 0)}</td><td>${escapeHtml(sale.date || '')}</td></tr>`).join('')}</tbody>
+        <tbody>${result.rows.map((sale) => `<tr><td>${escapeHtml(sale.docNo || sale.id)}</td><td>${escapeHtml(sale.customerName || 'عميل نقدي')}</td><td>${escapeHtml(sale.status || '')}</td><td>${escapeHtml(getSalePaymentLabel(sale))}</td><td>${formatCurrency(sale.total || 0)}</td><td>${escapeHtml(sale.date || '')}</td></tr>`).join('')}</tbody>
       </table>
     `, { subtitle: 'نتائج سجل المبيعات الحالية', pageSize: 'A4' });
   }

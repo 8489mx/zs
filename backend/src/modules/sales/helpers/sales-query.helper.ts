@@ -8,6 +8,7 @@ type SaleListSummary = {
   cashTotal: number;
   creditTotal: number;
   cancelledCount: number;
+  cashiers: string[];
   topCustomers: Array<{ name: string; total: number; count: number }>;
 };
 
@@ -48,6 +49,7 @@ export function mapSaleRows(
   return sales.map((sale) => ({
     id: String(sale.id),
     docNo: sale.doc_no || `S-${sale.id}`,
+    createdById: sale.created_by_id ? String(sale.created_by_id) : '',
     customerId: sale.customer_id ? String(sale.customer_id) : '',
     customerName: sale.customer_name_ref || sale.customer_name || 'عميل نقدي',
     paymentType: sale.payment_type || 'cash',
@@ -63,6 +65,7 @@ export function mapSaleRows(
     status: sale.status || 'posted',
     note: sale.note || '',
     createdBy: sale.created_by_name || '',
+    createdByUsername: sale.created_by_username || '',
     date: sale.created_at,
     branchId: sale.branch_id ? String(sale.branch_id) : '',
     locationId: sale.location_id ? String(sale.location_id) : '',
@@ -75,11 +78,42 @@ export function mapSaleRows(
 
 export function filterSales(rows: SaleRow[], query: Record<string, unknown>): SaleRow[] {
   const q = String(query.search || query.q || '').toLowerCase();
-  const filter = String(query.filter || query.view || 'all');
+  const filter = String(query.paymentChannel || query.filter || query.view || 'all');
+  const cashier = String(query.cashier || query.createdBy || 'all').trim();
+  const cashierLower = cashier.toLowerCase();
+
+  const paymentChannelMatches = (row: SaleRow) => {
+    const channel = String(row.paymentChannel || '').toLowerCase();
+    const paymentType = String(row.paymentType || '').toLowerCase();
+
+    switch (filter) {
+      case 'cash':
+        return channel === 'cash' || (paymentType === 'cash' && !channel);
+      case 'card':
+        return channel === 'card';
+      case 'credit':
+        return paymentType === 'credit' || channel === 'credit';
+      case 'wallet':
+        return channel === 'wallet';
+      case 'instapay':
+        return channel === 'instapay';
+      case 'mixed':
+        return channel === 'mixed';
+      case 'cancelled':
+        return String(row.status || '') === 'cancelled';
+      default:
+        return true;
+    }
+  };
+
   return rows.filter((row) => {
-    if (filter === 'cash' && row.paymentType !== 'cash') return false;
-    if (filter === 'credit' && row.paymentType !== 'credit') return false;
-    if (filter === 'cancelled' && row.status !== 'cancelled') return false;
+    if (!paymentChannelMatches(row)) return false;
+    if (cashierLower !== 'all') {
+      const createdById = String(row.createdById || '').trim();
+      const createdByName = String(row.createdBy || '').trim().toLowerCase();
+      const createdByUsername = String(row.createdByUsername || '').trim().toLowerCase();
+      if (createdById !== cashier && createdByName !== cashierLower && createdByUsername !== cashierLower) return false;
+    }
     if (!q) return true;
     return [row.docNo, row.customerName, row.note, row.status].some((x) => String(x || '').toLowerCase().includes(q));
   });
@@ -101,6 +135,11 @@ export function paginateRows(rows: SaleRow[], query: Record<string, unknown>, de
 export function summarizeSales(rows: SaleRow[]): SaleListSummary {
   const today = new Date().toISOString().slice(0, 10);
   const todayRows = rows.filter((row) => String(row.date || '').slice(0, 10) === today);
+  const cashiers = [...new Set(
+    rows
+      .map((row) => String(row.createdBy || '').trim())
+      .filter((name) => Boolean(name)),
+  )].sort((a, b) => a.localeCompare(b, 'ar'));
   const topCustomersMap = new Map<string, { name: string; total: number; count: number }>();
   for (const row of rows) {
     const key = String(row.customerId || row.customerName || 'cash');
@@ -118,6 +157,7 @@ export function summarizeSales(rows: SaleRow[]): SaleListSummary {
     cashTotal: Number(rows.filter((row) => row.paymentType === 'cash').reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
     creditTotal: Number(rows.filter((row) => row.paymentType === 'credit').reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
     cancelledCount: rows.filter((row) => row.status === 'cancelled').length,
+    cashiers,
     topCustomers: [...topCustomersMap.values()].sort((a, b) => b.total - a.total).slice(0, 5),
   };
 }

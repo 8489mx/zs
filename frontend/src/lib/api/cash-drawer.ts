@@ -7,12 +7,13 @@ export interface CashDrawerListParams {
   page?: number;
   pageSize?: number;
   search?: string;
-  filter?: 'all' | 'open' | 'closed' | 'variance' | 'today';
+  filter?: 'all' | 'open' | 'closed' | 'pending_review' | 'variance' | 'today';
 }
 
 export interface CashDrawerSummary {
   totalItems: number;
   openShiftCount: number;
+  pendingReviewCount?: number;
   openShiftDocNo: string;
   totalVariance: number;
 }
@@ -38,7 +39,7 @@ export const cashDrawerApi = {
         rangeStart: Array.isArray(response.cashierShifts) && response.cashierShifts.length ? 1 : 0,
         rangeEnd: Array.isArray(response.cashierShifts) ? response.cashierShifts.length : 0,
       },
-      summary: response.summary || { totalItems: 0, openShiftCount: 0, openShiftDocNo: '', totalVariance: 0 },
+      summary: response.summary || { totalItems: 0, openShiftCount: 0, pendingReviewCount: 0, openShiftDocNo: '', totalVariance: 0 },
     };
   },
   listAll: async (params: Omit<CashDrawerListParams, 'page' | 'pageSize'> = {}) => {
@@ -53,5 +54,6 @@ export const cashDrawerApi = {
   },
   open: (payload: unknown) => http<{ ok: boolean; cashierShifts: CashierShift[] }>('/api/cashier-shifts/open', { method: 'POST', body: JSON.stringify(payload) }),
   movement: (id: string, payload: unknown) => http<{ ok: boolean; cashierShifts: CashierShift[] }>(`/api/cashier-shifts/${id}/cash-movement`, { method: 'POST', body: JSON.stringify(payload) }),
-  close: (id: string, payload: unknown) => http<{ ok: boolean; cashierShifts: CashierShift[] }>(`/api/cashier-shifts/${id}/close`, { method: 'POST', body: JSON.stringify(payload) })
+  close: (id: string, payload: unknown) => http<{ ok: boolean; cashierShifts: CashierShift[] }>(`/api/cashier-shifts/${id}/close`, { method: 'POST', body: JSON.stringify(payload) }),
+  reviewClose: (id: string, payload: unknown) => http<{ ok: boolean; cashierShifts: CashierShift[] }>(`/api/cashier-shifts/${id}/review-close`, { method: 'POST', body: JSON.stringify(payload) })
 };

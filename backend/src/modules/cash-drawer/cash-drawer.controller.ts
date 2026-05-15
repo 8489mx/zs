@@ -7,6 +7,7 @@ import { CashDrawerService } from './cash-drawer.service';
 import { CashMovementDto } from './dto/cash-movement.dto';
 import { CloseCashierShiftDto } from './dto/close-cashier-shift.dto';
 import { OpenCashierShiftDto } from './dto/open-cashier-shift.dto';
+import { ReviewCashierShiftDto } from './dto/review-cashier-shift.dto';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -46,5 +47,15 @@ export class CashDrawerController {
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     return this.cashDrawerService.closeCashierShift(id, payload, req.authContext!);
+  }
+
+  @Post('cashier-shifts/:id/review-close')
+  @RequirePermissions('cashDrawer')
+  reviewClose(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: ReviewCashierShiftDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.cashDrawerService.reviewCashierShiftClose(id, payload, req.authContext!);
   }
 }

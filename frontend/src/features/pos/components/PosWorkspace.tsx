@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Button } from '@/shared/ui/button';
-import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
-import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
-import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
-import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWorkspaceDock';
 import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
 import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
+import { PosWorkspaceDiscountDialog } from '@/features/pos/components/pos-workspace/PosWorkspaceDiscountDialog';
+import { PosWorkspaceMainContent } from '@/features/pos/components/pos-workspace/PosWorkspaceMainContent';
+import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCheckoutDialog';
+import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/PosHeldDraftsDialog';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -17,7 +15,7 @@ import { posApi } from '@/features/pos/api/pos.api';
 import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
-import { matchProductByCode, paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
+import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import { parseWeightedBarcode } from '@/features/pos/lib/weighted-barcode';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
@@ -32,6 +30,9 @@ export function PosWorkspace() {
   const [heldDeleteConfirmId, setHeldDeleteConfirmId] = useState('');
   const [clearHeldConfirmOpen, setClearHeldConfirmOpen] = useState(false);
   const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
+  const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
   const allowNegativeStockSales = isNegativeStockSalesAllowed(pos.settingsQuery.data);
@@ -45,8 +46,8 @@ export function PosWorkspace() {
     if (!customerId) return null;
     return (pos.customersQuery.data || []).find((customer) => String(customer.id) === customerId) || null;
   }, [pos.customerId, pos.customersQuery.data, pos.lastSale?.customerId]);
-  const paymentModeLabel = useMemo(() => paymentLabel(pos.paymentType, pos.paymentChannel), [pos.paymentChannel, pos.paymentType]);
   const cartPiecesCount = useMemo(() => pos.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0), [pos.cart]);
+  const cartItemsCount = pos.cart.length;
   const lineDeleteConfirmItem = useMemo(
     () => pos.cart.find((item) => item.lineKey === lineDeleteConfirmKey) || null,
     [lineDeleteConfirmKey, pos.cart],
@@ -98,6 +99,22 @@ export function PosWorkspace() {
     if (!pos.heldDraftSummaries.length) return;
     setClearHeldConfirmOpen(true);
   }, [pos.heldDraftSummaries.length]);
+
+  const requestCheckoutDialog = useCallback(() => {
+    if (pos.createSale.isPending) return;
+    setCheckoutDialogOpen(true);
+  }, [pos.createSale.isPending]);
+
+  const requestRecallHeldDraftByIndex = useCallback((index: number) => {
+    const targetDraft = pos.heldDraftSummaries[index];
+    if (!targetDraft) return;
+    if (!pos.cart.length) {
+      void pos.recallDraft(targetDraft.id);
+      return;
+    }
+    setShortcutRecallDraftId(targetDraft.id);
+    setHeldDraftsDialogOpen(true);
+  }, [pos]);
 
   const handleQuickAddSubmit = useCallback((rawCode?: string) => {
     const code = String(rawCode ?? pos.quickAddCode).trim();
@@ -206,6 +223,20 @@ export function PosWorkspace() {
   }, [focusBarcodeEntry, handleQuickAddSubmit, pos, resolveRemoteBarcodeMatch]);
 
   useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    event.preventDefault();
+    event.returnValue = ' ';
+    return ' ';
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  useEffect(() => {
     if (catalogsLoading) return;
     const activeElement = document.activeElement as HTMLElement | null;
     const isTypingTarget = Boolean(activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT' || activeElement.isContentEditable));
@@ -230,155 +261,72 @@ export function PosWorkspace() {
     printCurrentDraft,
     onRequestClearCart: requestClearCart,
     onRequestLineDelete: requestLineDelete,
+    onRequestCheckout: requestCheckoutDialog,
+    onOpenHeldDrafts: () => setHeldDraftsDialogOpen(true),
+    onRecallHeldDraftByIndex: requestRecallHeldDraftByIndex,
   });
 
   return (
     <div className={`page-stack page-shell pos-workspace pos-premium-shell pos-sale-mode-${posMode}`.trim()}>
       <PosWorkspaceHeader pos={pos} posMode={posMode} onModeChange={setPosMode} onFocusSearch={focusBarcodeEntry} onPrintDraft={printCurrentDraft} />
 
-      <QueryFeedback
-        isLoading={catalogsLoading}
-        isError={Boolean(catalogsError)}
-        error={catalogsError}
-        loadingText="جاري تحميل بيانات الكاشير..."
-        errorTitle="تعذر تحميل بيانات الكاشير"
-        errorHint="تحقق من الاتصال ثم أعد المحاولة."
-        errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
-      >
-        <PosWorkspaceStartupIssues pos={pos} />
+      <PosWorkspaceStartupIssues pos={pos} />
 
-        <div className="pos-grid-premium">
-          <PosProductsPanel
-            search={pos.search}
-            onSearchChange={pos.setSearch}
-            onSearchSubmitFirstResult={submitFirstSearchResult}
-            priceType={pos.priceType}
-            onPriceTypeChange={pos.setPriceType}
-            products={pos.filteredSaleProducts}
-            recentProducts={pos.recentProducts}
-            productFilter={pos.productFilter}
-            onProductFilterChange={pos.setProductFilter}
-            onAddProduct={pos.handleAddProduct}
-            searchInputRef={searchInputRef}
-            posMode={posMode}
-          />
+      <PosWorkspaceMainContent
+        pos={pos}
+        posMode={posMode}
+        catalogsLoading={catalogsLoading}
+        catalogsError={catalogsError}
+        allowNegativeStockSales={allowNegativeStockSales}
+        searchInputRef={searchInputRef}
+        cartPiecesCount={cartPiecesCount}
+        cartItemsCount={cartItemsCount}
+        onSubmitFirstSearchResult={submitFirstSearchResult}
+        onRequestDiscountAuthorization={requestDiscountAuthorization}
+        onRequestLineDelete={requestLineDelete}
+        onRequestSelectedLineDelete={requestSelectedLineDelete}
+        onRequestHeldDelete={requestHeldDelete}
+        onRequestClearHeldDrafts={requestClearHeldDrafts}
+        onRequestClearCart={requestClearCart}
+        onRequestCheckout={requestCheckoutDialog}
+        heldDraftsCount={pos.heldDraftSummaries.length}
+        onOpenHeldDrafts={() => setHeldDraftsDialogOpen(true)}
+        onPrintCurrentDraft={printCurrentDraft}
+        onFocusBarcodeEntry={focusBarcodeEntry}
+      />
 
-          <div className="pos-checkout-column">
-            <PosCartPanel
-              cart={pos.cart}
-              customers={pos.customersQuery.data || []}
-              branches={pos.branchesQuery.data || []}
-              locations={pos.locationsQuery.data || []}
-              customerId={pos.customerId}
-              branchId={pos.branchId}
-              locationId={pos.locationId}
-              paymentType={pos.paymentType}
-              paymentChannel={pos.paymentChannel}
-              paidAmount={pos.paidAmount}
-              cashAmount={pos.cashAmount}
-              cardAmount={pos.cardAmount}
-              discount={pos.discount}
-              note={pos.note}
-              submitMessage={pos.submitMessage}
-              lastSaleDocNo={pos.lastSale?.docNo || pos.lastSale?.id || ''}
-              canShowLastSaleActions={pos.canShowLastSaleActions}
-              quickCustomerName={pos.quickCustomerName}
-              quickCustomerPhone={pos.quickCustomerPhone}
-              isQuickCustomerPending={pos.quickCustomerMutation.isPending}
-              heldDrafts={pos.heldDraftSummaries}
-              isError={pos.createSale.isError}
-              isPending={pos.createSale.isPending}
-              totals={pos.totals}
-              changeAmount={pos.changeAmount}
-              amountDue={pos.amountDue}
-              hasOpenShift={Boolean(pos.ownOpenShift)}
-              canApplyDiscount={pos.canApplyDiscount}
-              discountApprovalGranted={pos.discountApprovalGranted}
-              isDiscountAuthorizationPending={pos.discountAuthorizationMutation.isPending}
-              hasDiscountPermissionViolation={pos.hasDiscountPermissionViolation}
-              hasPricePermissionViolation={pos.hasPricePermissionViolation}
-              allowNegativeStockSales={allowNegativeStockSales}
-              canSubmitSale={pos.canSubmitSale}
-              canSubmitHint={pos.canSubmitHint}
-              lastAddedLineKey={pos.lastAddedLineKey}
-              selectedLineKey={pos.selectedLineKey}
-              posMode={posMode}
-              preferredPrintPageSize={pos.settingsQuery.data?.paperSize === 'receipt' ? 'receipt' : 'a4'}
-              onCustomerChange={pos.setCustomerId}
-              onQuickCustomerNameChange={pos.setQuickCustomerName}
-              onQuickCustomerPhoneChange={pos.setQuickCustomerPhone}
-              onQuickCustomerSubmit={pos.handleQuickCustomerSubmit}
-              onBranchChange={pos.setBranchId}
-              onLocationChange={pos.setLocationId}
-              onPaymentTypeChange={pos.setPaymentType}
-              onPaymentPresetChange={pos.setPaymentPreset}
-              onCashAmountChange={pos.setCashAmount}
-              onCardAmountChange={pos.setCardAmount}
-              onDiscountChange={pos.setDiscount}
-              onRequestDiscountAuthorization={requestDiscountAuthorization}
-              onNoteChange={pos.setNote}
-              onQtyChange={pos.setQty}
-              onRemoveItem={requestLineDelete}
-              onSelectLine={pos.selectCartLine}
-              onFillPaidAmount={pos.fillPaidAmount}
-              onChangeSelectedQty={pos.changeSelectedQty}
-              onEditSelectedQty={pos.editSelectedQty}
-              onRemoveSelectedItem={requestSelectedLineDelete}
-              onHoldDraft={pos.holdDraft}
-              onRecallDraft={pos.recallDraft}
-              onDeleteDraft={requestHeldDelete}
-              onClearHeldDrafts={requestClearHeldDrafts}
-              onResetDraft={requestClearCart}
-              onPrintPreview={printCurrentDraft}
-              onReprintLastSale={pos.reprintLastSale}
-              onPrintReceiptNow={pos.printReceiptNow}
-              onPrintA4Now={pos.printA4Now}
-              onExportPdfNow={pos.exportPdfNow}
-              onExportHeldDrafts={pos.exportHeldDrafts}
-              onSubmit={() => void pos.handleSubmit()}
-            />
-
-            <PosWorkspaceDock
-              selectedCustomerName={selectedCustomerName}
-              paymentModeLabel={paymentModeLabel}
-              piecesCount={cartPiecesCount}
-              total={pos.totals.total}
-              amountDue={pos.paymentType === 'credit' ? pos.totals.total : pos.amountDue}
-              paidAmount={pos.paidAmount}
-              changeAmount={pos.changeAmount}
-              isCredit={pos.paymentType === 'credit'}
-              canSubmitSale={pos.canSubmitSale}
-              canSubmitHint={pos.canSubmitHint}
-              isPending={pos.createSale.isPending}
-              onFocusSearch={focusBarcodeEntry}
-              onPrintPreview={printCurrentDraft}
-              onResetDraft={requestClearCart}
-              onHoldDraft={() => { void pos.holdDraft(); }}
-              onSubmit={() => { void pos.handleSubmit(); }}
-            />
-          </div>
-        </div>
-      </QueryFeedback>
-
-      <ActionConfirmDialog
-        open={discountApprovalDialogOpen}
-        title="اعتماد خصم الفاتورة"
-        description="أدخل رمز المدير أو كلمة مرور حساب المدير لفتح الخصم لهذه الفاتورة فقط. سيتم قفل الخصم تلقائيًا مع أي فاتورة جديدة."
-        confirmLabel="اعتماد الخصم"
-        confirmVariant="primary"
-        managerPinRequired
-        managerPinLabel="رمز المدير أو كلمة المرور"
-        managerPinHint="سيتم إخفاء القيمة أثناء الكتابة، ولن يظل الاعتماد مفتوحًا إلا للفواتير الحالية فقط."
-        isBusy={Boolean(pos.discountAuthorizationMutation.isPending)}
-        onCancel={() => setDiscountApprovalDialogOpen(false)}
-        onConfirm={async ({ managerPin }) => {
-          await pos.discountAuthorizationMutation.mutateAsync(managerPin);
-          pos.setDiscountApprovalGranted(true);
-          pos.setDiscountApprovalSecret(managerPin);
-          pos.setSubmitMessage('تم اعتماد الخصم لهذه الفاتورة فقط.');
-          setDiscountApprovalDialogOpen(false);
-          focusBarcodeEntry();
+      <PosCheckoutDialog
+        open={checkoutDialogOpen}
+        pos={pos}
+        selectedCustomerName={selectedCustomerName}
+        onClose={() => setCheckoutDialogOpen(false)}
+        onRequestDiscountAuthorization={requestDiscountAuthorization}
+        onConfirmSale={() => {
+          setCheckoutDialogOpen(false);
+          void pos.handleSubmit();
         }}
+      />
+
+      <PosWorkspaceDiscountDialog
+        open={discountApprovalDialogOpen}
+        pos={pos}
+        onClose={() => setDiscountApprovalDialogOpen(false)}
+        onFocusBarcodeEntry={focusBarcodeEntry}
+      />
+
+      <PosHeldDraftsDialog
+        open={heldDraftsDialogOpen}
+        heldDrafts={pos.heldDraftSummaries}
+        hasActiveCart={pos.cart.length > 0}
+        requestedRecallDraftId={shortcutRecallDraftId}
+        onRequestedRecallHandled={() => setShortcutRecallDraftId('')}
+        onClose={() => {
+          setHeldDraftsDialogOpen(false);
+          setShortcutRecallDraftId('');
+        }}
+        onRecall={async (draftId) => { await pos.recallDraft(draftId); }}
+        onDelete={async (draftId) => { await pos.deleteDraft(draftId); }}
+        onClearAll={async () => { await pos.clearHeldDrafts(); }}
       />
 
       <PosWorkspaceConfirmDialogs

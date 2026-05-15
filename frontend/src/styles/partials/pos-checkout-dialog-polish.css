@@ -1,0 +1,345 @@
+.pos-checkout-dialog-card {
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+}
+
+.pos-checkout-dialog-card > .card-body,
+.pos-checkout-dialog-card .card-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pos-checkout-dialog {
+  display: grid;
+  gap: 14px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-inline-end: 4px;
+  scrollbar-gutter: stable;
+}
+
+.pos-checkout-dialog-section {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+}
+
+.pos-checkout-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pos-checkout-section-head h4,
+.pos-checkout-dialog-section h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.pos-checkout-section-head > strong {
+  min-width: 0;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.pos-checkout-summary-section {
+  gap: 8px;
+}
+
+.pos-checkout-dialog-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.pos-checkout-dialog-summary-main {
+  align-items: stretch;
+}
+
+.pos-checkout-dialog-chip {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+}
+
+.pos-checkout-dialog-chip span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pos-checkout-dialog-chip strong {
+  min-width: 0;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.pos-checkout-dialog-chip.is-total {
+  border-color: rgba(37, 99, 235, 0.26);
+  background: linear-gradient(180deg, #ffffff, #eff6ff);
+}
+
+.pos-checkout-dialog-chip .is-primary,
+.pos-checkout-dialog-chip strong.is-primary {
+  color: #2563eb;
+}
+
+.pos-checkout-dialog-chip strong.is-success {
+  color: #16a34a;
+}
+
+.pos-checkout-dialog-chip strong.is-danger {
+  color: #dc2626;
+}
+
+.pos-checkout-customer-section {
+  overflow: hidden;
+}
+
+.pos-checkout-customer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.pos-checkout-customer-actions .btn {
+  min-height: 36px;
+  border-radius: 12px;
+}
+
+.pos-checkout-customer-picker {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.pos-checkout-customer-picker .field {
+  margin: 0;
+}
+
+.pos-checkout-customer-results {
+  display: grid;
+  gap: 8px;
+  max-height: min(260px, 32vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-inline-end: 4px;
+}
+
+.pos-checkout-customer-result {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  background: #fff;
+  text-align: right;
+  cursor: pointer;
+}
+
+.pos-checkout-customer-result strong {
+  min-width: 0;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pos-checkout-customer-result span {
+  flex: 0 0 auto;
+}
+
+.pos-checkout-customer-result.is-selected {
+  border-color: rgba(37, 99, 235, 0.38);
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+}
+
+.pos-checkout-quick-customer-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+}
+
+.pos-checkout-quick-customer-form .field {
+  margin: 0;
+  min-width: 0;
+}
+
+.pos-checkout-quick-customer-form .btn {
+  min-height: 42px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.pos-checkout-payment-section {
+  gap: 12px;
+}
+
+.pos-checkout-payment-methods,
+.pos-checkout-transfer-methods {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.pos-checkout-transfer-methods {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 10px;
+  border: 1px dashed rgba(37, 99, 235, 0.24);
+  border-radius: 16px;
+  background: #eff6ff;
+}
+
+.pos-checkout-payment-methods .btn,
+.pos-checkout-transfer-methods .btn {
+  min-width: 0;
+  min-height: 42px;
+  border-radius: 14px;
+  white-space: nowrap;
+}
+
+.pos-checkout-payment-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+}
+
+.pos-checkout-payment-inputs .field {
+  margin: 0;
+  min-width: 0;
+}
+
+.pos-checkout-payment-inputs .btn {
+  min-height: 42px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.pos-checkout-payment-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pos-checkout-payment-summary .pos-checkout-dialog-chip {
+  min-height: 58px;
+}
+
+.pos-checkout-dialog .error-box {
+  margin: 0;
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.pos-checkout-dialog .pos-payment-strip-notes {
+  margin: 0;
+}
+
+.pos-checkout-dialog .field-wide {
+  margin: 0;
+}
+
+.pos-checkout-dialog-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), #fff 55%);
+}
+
+.pos-checkout-dialog-actions .btn {
+  min-height: 40px;
+  border-radius: 12px;
+}
+
+@media (max-width: 860px) {
+  .pos-checkout-dialog {
+    max-height: calc(100vh - 120px);
+  }
+
+  .pos-checkout-dialog-summary,
+  .pos-checkout-payment-summary,
+  .pos-checkout-payment-methods,
+  .pos-checkout-transfer-methods,
+  .pos-checkout-quick-customer-form {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-checkout-section-head {
+    display: grid;
+  }
+
+  .pos-checkout-section-head > strong {
+    max-width: 100%;
+  }
+
+  .pos-checkout-dialog-actions {
+    justify-content: stretch;
+  }
+
+  .pos-checkout-dialog-actions .btn {
+    flex: 1 1 140px;
+  }
+}
+
+@media (max-width: 560px) {
+  .pos-checkout-dialog-card {
+    max-height: calc(100vh - 18px);
+  }
+
+  .pos-checkout-dialog {
+    gap: 10px;
+    max-height: calc(100vh - 96px);
+    padding-inline-end: 0;
+  }
+
+  .pos-checkout-dialog-section {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .pos-checkout-payment-inputs {
+    grid-template-columns: 1fr;
+  }
+}

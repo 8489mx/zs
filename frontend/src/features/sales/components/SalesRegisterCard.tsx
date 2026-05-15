@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+﻿import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -6,11 +6,21 @@ import { PaginationControls } from '@/shared/components/pagination-controls';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { formatCurrency } from '@/lib/format';
 import { SalesTable } from '@/features/sales/components/SalesTable';
+import type { SalesListFilter } from '@/features/sales/api/sales.api';
 import type { Sale } from '@/types/domain';
+
+export type SalesPaymentFilter = SalesListFilter;
+
+type CashierFilterOption = {
+  id: string;
+  label: string;
+};
 
 type Props = {
   search: string;
-  viewFilter: 'all' | 'cash' | 'credit' | 'cancelled';
+  viewFilter: SalesPaymentFilter;
+  cashierFilter: string;
+  cashierOptions: CashierFilterOption[];
   activeFilterLabel: string;
   totalItems: number;
   rangeStart: number;
@@ -28,10 +38,10 @@ type Props = {
   canPrint: boolean;
   canEditInvoices: boolean;
   onSearchChange: (value: string) => void;
-  onViewFilterChange: (value: 'all' | 'cash' | 'credit' | 'cancelled') => void;
+  onViewFilterChange: (value: SalesPaymentFilter) => void;
+  onCashierFilterChange: (value: string) => void;
   onReset: () => void;
   onSelectSale: (saleId: string) => void;
-  onEditSale: (sale: Sale) => void;
   onCancelSale: (sale: Sale) => void;
   onExportCsv: () => void | Promise<void>;
   onPrintRegister: () => void | Promise<void>;
@@ -44,6 +54,8 @@ export function SalesRegisterCard(props: Props) {
   const {
     search,
     viewFilter,
+    cashierFilter,
+    cashierOptions,
     activeFilterLabel,
     totalItems,
     rangeStart,
@@ -62,9 +74,9 @@ export function SalesRegisterCard(props: Props) {
     canEditInvoices,
     onSearchChange,
     onViewFilterChange,
+    onCashierFilterChange,
     onReset,
     onSelectSale,
-    onEditSale,
     onCancelSale,
     onExportCsv,
     onPrintRegister,
@@ -83,6 +95,7 @@ export function SalesRegisterCard(props: Props) {
       <SearchToolbar
         search={search}
         onSearchChange={onSearchChange}
+        searchLabel="بحث الفواتير"
         searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث بالرقم أو العميل أو الحالة أو المخزن' : 'ابحث بالرقم أو العميل أو الحالة أو الفرع'}
         actions={<span className="nav-pill">{activeFilterLabel}</span>}
         meta={(
@@ -96,11 +109,28 @@ export function SalesRegisterCard(props: Props) {
         onReset={onReset}
         resetLabel="تفريغ"
       >
-        <div className="filter-chip-row toolbar-chip-row">
-          <Button variant={viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onViewFilterChange('all')}>الكل</Button>
-          <Button variant={viewFilter === 'cash' ? 'primary' : 'secondary'} onClick={() => onViewFilterChange('cash')}>نقدي</Button>
-          <Button variant={viewFilter === 'credit' ? 'primary' : 'secondary'} onClick={() => onViewFilterChange('credit')}>آجل</Button>
-          <Button variant={viewFilter === 'cancelled' ? 'primary' : 'secondary'} onClick={() => onViewFilterChange('cancelled')}>ملغاة</Button>
+        <div className="filter-chip-row toolbar-chip-row sales-register-toolbar-filters">
+          <div className="field sales-toolbar-filter-field">
+            <span>طريقة الدفع</span>
+            <select value={viewFilter} onChange={(event) => onViewFilterChange(event.target.value as SalesPaymentFilter)}>
+              <option value="all">الكل</option>
+              <option value="cash">نقدي</option>
+              <option value="card">فيزا</option>
+              <option value="credit">آجل</option>
+              <option value="wallet">محفظة إلكترونية</option>
+              <option value="instapay">InstaPay</option>
+              <option value="mixed">مختلط</option>
+            </select>
+          </div>
+          <div className="field sales-toolbar-filter-field">
+            <span>الموظف / الكاشير</span>
+            <select value={cashierFilter} onChange={(event) => onCashierFilterChange(event.target.value)}>
+              <option value="all">كل الموظفين</option>
+              {cashierOptions.map((option) => (
+                <option key={option.id} value={option.id}>{option.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </SearchToolbar>
 
@@ -117,7 +147,6 @@ export function SalesRegisterCard(props: Props) {
           rows={rows}
           selectedId={selectedSaleId}
           onSelect={(sale) => onSelectSale(sale.id)}
-          onEdit={canEditInvoices ? onEditSale : undefined}
           onCancel={canEditInvoices ? onCancelSale : undefined}
           onPrint={canPrint ? onPrintSale : undefined}
         />

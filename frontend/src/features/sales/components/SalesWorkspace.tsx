@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -8,9 +9,8 @@ import { useSalesPage } from '@/features/sales/hooks/useSalesPage';
 import { useSaleActions } from '@/features/sales/hooks/useSaleActions';
 import { useSalesWorkspaceActions } from '@/features/sales/hooks/useSalesWorkspaceActions';
 import { SalesWorkspaceHeader } from '@/features/sales/components/SalesWorkspaceHeader';
-import { SalesRegisterCard } from '@/features/sales/components/SalesRegisterCard';
+import { SalesRegisterCard, type SalesPaymentFilter } from '@/features/sales/components/SalesRegisterCard';
 import { SalesSidePanel } from '@/features/sales/components/SalesSidePanel';
-import { SaleEditDialog } from '@/features/sales/components/SaleEditDialog';
 import {
   getSaleCancelDescription,
   getSalesNextStep,
@@ -19,19 +19,21 @@ import {
 } from '@/features/sales/lib/sales-workspace.helpers';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { Sale } from '@/types/domain';
 
 export function SalesWorkspace() {
   const [search, setSearch] = useState('');
-  const [viewFilter, setViewFilter] = useState<'all' | 'cash' | 'credit' | 'cancelled'>('all');
+  const [viewFilter, setViewFilter] = useState<SalesPaymentFilter>('all');
+  const [cashierFilter, setCashierFilter] = useState('all');
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
-  const [saleToEdit, setSaleToEdit] = useState<Sale | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
 
-  const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter });
-  const { saleDetailQuery, cancelMutation, updateMutation } = useSaleActions(selectedSaleId);
+  const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter, cashier: cashierFilter });
+  const { saleDetailQuery, cancelMutation } = useSaleActions(selectedSaleId);
+  const usersQuery = useQuery({ queryKey: ['sales-cashier-filter-users'], queryFn: userDirectoryApi.users, staleTime: 60_000 });
   const settingsQuery = useSettingsQuery();
 
   const hasSellableProducts = availableProducts.length > 0;
@@ -44,10 +46,28 @@ export function SalesWorkspace() {
   const rangeStart = pagination?.rangeStart || 0;
   const rangeEnd = pagination?.rangeEnd || 0;
   const printSettings = settingsQuery.data || null;
+  const cashierOptions = useMemo(() => {
+    const userOptions = (usersQuery.data || [])
+      .map((user) => {
+        const id = String(user.id || '').trim();
+        if (!id) return null;
+        const role = String(user.role || '').trim();
+        const displayName = String(user.name || user.username || 'مستخدم').trim();
+        return { id, label: role ? `${role} — ${displayName}` : displayName };
+      })
+      .filter((entry): entry is { id: string; label: string } => Boolean(entry));
+
+    if (userOptions.length) return userOptions;
+
+    return (summary?.cashiers || []).map((cashierName) => ({
+      id: String(cashierName),
+      label: String(cashierName),
+    }));
+  }, [summary?.cashiers, usersQuery.data]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, viewFilter]);
+  }, [search, viewFilter, cashierFilter]);
 
   const cancelDescription = getSaleCancelDescription(saleToCancel);
   const totalSales = summary?.totalSales || 0;
@@ -66,6 +86,7 @@ export function SalesWorkspace() {
   } = useSalesWorkspaceActions({
     search,
     viewFilter,
+    cashierFilter,
     totalItems,
     summary,
     topCustomers,
@@ -73,12 +94,12 @@ export function SalesWorkspace() {
     setPageSize,
     setSearch,
     setViewFilter,
+    setCashierFilter,
     setSelectedSaleId,
     setSaleToCancel,
-    setSaleToEdit,
   });
 
-  const handleViewFilterChange = (value: 'all' | 'cash' | 'credit' | 'cancelled') => {
+  const handleViewFilterChange = (value: SalesPaymentFilter) => {
     setViewFilter(value);
     setPage(1);
   };
@@ -100,6 +121,8 @@ export function SalesWorkspace() {
         <SalesRegisterCard
           search={search}
           viewFilter={viewFilter}
+          cashierFilter={cashierFilter}
+          cashierOptions={cashierOptions}
           activeFilterLabel={activeFilterLabel}
           totalItems={totalItems}
           rangeStart={rangeStart}
@@ -118,9 +141,9 @@ export function SalesWorkspace() {
           canEditInvoices={canEditInvoices}
           onSearchChange={setSearch}
           onViewFilterChange={handleViewFilterChange}
+          onCashierFilterChange={(value) => { setCashierFilter(value); setPage(1); }}
           onReset={resetSalesView}
           onSelectSale={setSelectedSaleId}
-          onEditSale={(sale) => { setSelectedSaleId(sale.id); setSaleToEdit(sale); }}
           onCancelSale={setSaleToCancel}
           onExportCsv={exportSalesCsv}
           onPrintRegister={printSalesRegister}
@@ -138,24 +161,9 @@ export function SalesWorkspace() {
           onExportTopCustomers={exportTopCustomersCsv}
           onPrintTopCustomers={printTopCustomers}
           onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, 'receipt') : undefined}
-          onEditSale={() => selectedSale ? setSaleToEdit(selectedSale) : undefined}
           onCancelSale={() => selectedSale ? setSaleToCancel(selectedSale) : undefined}
         />
       </div>
-
-      <SaleEditDialog
-        open={Boolean(saleToEdit)}
-        sale={saleToEdit || undefined}
-        isBusy={updateMutation.isPending}
-        errorMessage={updateMutation.isError ? (updateMutation.error instanceof Error ? updateMutation.error.message : 'تعذر حفظ التعديل') : ''}
-        onCancel={() => { setSaleToEdit(null); updateMutation.reset(); }}
-        onSave={async (payload) => {
-          if (!saleToEdit) return;
-          await updateMutation.mutateAsync({ sale: saleToEdit, payload });
-          setSelectedSaleId(saleToEdit.id);
-          setSaleToEdit(null);
-        }}
-      />
 
       <ActionConfirmDialog
         open={Boolean(saleToCancel)}

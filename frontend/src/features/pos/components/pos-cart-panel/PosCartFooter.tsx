@@ -7,6 +7,7 @@ export function PosCartFooter(props: Pick<PosCartPanelProps,
   'cart' | 'heldDrafts' | 'isPending' |
   'onReprintLastSale' | 'onPrintReceiptNow' | 'onPrintA4Now' |
   'onExportHeldDrafts' | 'onClearHeldDrafts' | 'onRecallDraft' | 'onDeleteDraft' | 'onResetDraft'
+  | 'showHeldDraftsInline'
 >) {
   const shouldShowSubmitMessage = Boolean(props.submitMessage) && (props.isError || !props.canShowLastSaleActions);
 
@@ -18,7 +19,7 @@ export function PosCartFooter(props: Pick<PosCartPanelProps,
         </div>
       ) : null}
 
-      {props.heldDrafts.length ? (
+      {props.showHeldDraftsInline === false ? null : props.heldDrafts.length ? (
         <>
           <div className="divider" />
           <div className="list-stack">

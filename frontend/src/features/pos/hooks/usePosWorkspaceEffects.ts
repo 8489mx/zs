@@ -16,6 +16,8 @@ export function usePosWorkspaceEffects({
   setCashAmount,
   cardAmount,
   setCardAmount,
+  transferAmount,
+  setTransferAmount,
   paymentType,
   paymentChannel,
   setPaymentChannel,
@@ -49,6 +51,8 @@ export function usePosWorkspaceEffects({
   setCashAmount: (value: number) => void;
   cardAmount: number;
   setCardAmount: (value: number) => void;
+  transferAmount: number;
+  setTransferAmount: (value: number) => void;
   paymentType: PaymentType;
   paymentChannel: PaymentChannel;
   setPaymentChannel: (value: PaymentChannel) => void;
@@ -76,8 +80,8 @@ export function usePosWorkspaceEffects({
 }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, paymentType, paymentChannel, note, search, priceType, branchId, locationId }));
-  }, [cart, customerId, discount, paidAmount, cashAmount, cardAmount, paymentType, paymentChannel, note, search, priceType, branchId, locationId]);
+    persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, branchId, locationId }));
+  }, [cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, branchId, locationId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -109,13 +113,14 @@ export function usePosWorkspaceEffects({
   }, [branchId, locationId, branches, locations, setBranchId, setLocationId]);
 
   useEffect(() => {
-    const nextChannel = normalizePaymentChannel(paymentType, cashAmount, cardAmount);
+    const nextChannel = normalizePaymentChannel(paymentType, cashAmount, cardAmount, transferAmount, paymentChannel);
     if (paymentChannel !== nextChannel) setPaymentChannel(nextChannel);
     if (paymentType === 'credit') {
       if (cashAmount !== 0) setCashAmount(0);
       if (cardAmount !== 0) setCardAmount(0);
+      if (transferAmount !== 0) setTransferAmount(0);
     }
-  }, [cashAmount, cardAmount, paymentChannel, paymentType, setCashAmount, setCardAmount, setPaymentChannel]);
+  }, [cashAmount, cardAmount, transferAmount, paymentChannel, paymentType, setCashAmount, setCardAmount, setTransferAmount, setPaymentChannel]);
 
   useEffect(() => {
     if (!cart.length) {

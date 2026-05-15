@@ -18,8 +18,8 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
     >
       <div className="pos-checkout-static">
         <div className="pos-checkout-top-strip">
-          <PosCartMetaForm {...props} />
-          <PosCartPaymentSection {...props} />
+          {props.showMetaSection === false ? null : <PosCartMetaForm {...props} />}
+          {props.showPaymentSection === false ? null : <PosCartPaymentSection {...props} />}
         </div>
 
         {alertMessages.length ? (
@@ -53,6 +53,7 @@ function arePropsEqual(prev: PosCartPanelProps, next: PosCartPanelProps) {
     && prev.paidAmount === next.paidAmount
     && prev.cashAmount === next.cashAmount
     && prev.cardAmount === next.cardAmount
+    && prev.transferAmount === next.transferAmount
     && prev.discount === next.discount
     && prev.note === next.note
     && prev.submitMessage === next.submitMessage
@@ -78,7 +79,10 @@ function arePropsEqual(prev: PosCartPanelProps, next: PosCartPanelProps) {
     && prev.canSubmitHint === next.canSubmitHint
     && prev.lastAddedLineKey === next.lastAddedLineKey
     && prev.selectedLineKey === next.selectedLineKey
-    && prev.posMode === next.posMode;
+    && prev.posMode === next.posMode
+    && prev.showPaymentSection === next.showPaymentSection
+    && prev.showMetaSection === next.showMetaSection
+    && prev.showHeldDraftsInline === next.showHeldDraftsInline;
 }
 
 export const PosCartPanel = memo(PosCartPanelComponent, arePropsEqual);

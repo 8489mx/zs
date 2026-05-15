@@ -291,7 +291,7 @@ export interface SalesTable {
   customer_id: number | null;
   customer_name: string | null;
   payment_type: 'cash' | 'credit';
-  payment_channel: 'cash' | 'card' | 'mixed' | 'credit';
+  payment_channel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
   subtotal: number;
   discount: number;
   tax_rate: number;
@@ -329,7 +329,7 @@ export interface SaleItemTable {
 export interface SalePaymentTable {
   id: Generated<number>;
   sale_id: number;
-  payment_channel: 'cash' | 'card';
+  payment_channel: 'cash' | 'card' | 'wallet' | 'instapay';
   amount: number;
   created_at: ColumnType<Date, string | undefined, never>;
 }
@@ -338,7 +338,7 @@ export interface HeldSaleTable {
   id: Generated<number>;
   customer_id: number | null;
   payment_type: 'cash' | 'credit';
-  payment_channel: 'cash' | 'card' | 'mixed' | 'credit';
+  payment_channel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
   paid_amount: number;
   cash_amount: number;
   card_amount: number;
@@ -568,6 +568,7 @@ export interface HrPositionTable extends HrDepartmentTable {
 export interface HrEmployeeTable {
   id: Generated<number>;
   employee_no: string;
+  national_id: string | null;
   user_id: number | null;
   first_name: string;
   last_name: string;
@@ -704,6 +705,72 @@ export interface HrEmployeeLedgerTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface HrAttendanceRecordTable {
+  id: Generated<number>;
+  employee_id: number;
+  work_date: ColumnType<string, string | undefined, string | undefined>;
+  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'excused' | 'early_leave';
+  check_in_at: Date | null;
+  check_out_at: Date | null;
+  source: 'manual' | 'import';
+  notes: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrLeaveTypeTable {
+  id: Generated<number>;
+  name: string;
+  code: string | null;
+  description: string | null;
+  is_paid: boolean;
+  is_active: boolean;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrLeaveRequestTable {
+  id: Generated<number>;
+  employee_id: number;
+  leave_type_id: number | null;
+  leave_type: string | null;
+  start_date: ColumnType<string, string | undefined, string | undefined>;
+  end_date: ColumnType<string, string | undefined, string | undefined>;
+  days_count: number;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  reason: string | null;
+  notes: string | null;
+  decision_notes: string | null;
+  decided_by: number | null;
+  decided_at: Date | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrEmployeeAssetTable {
+  id: Generated<number>;
+  employee_id: number;
+  asset_type: string;
+  asset_name: string;
+  asset_code: string | null;
+  serial_no: string | null;
+  assigned_at: ColumnType<string, string | undefined, string | undefined>;
+  returned_at: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  status: 'assigned' | 'returned' | 'lost' | 'damaged' | 'cancelled';
+  notes: string | null;
+  return_notes: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface HrPayrollRunTable {
   id: Generated<number>;
   period_month: string;
@@ -804,6 +871,10 @@ export interface Database {
   hr_employee_loans: HrEmployeeLoanTable;
   hr_employee_loan_installments: HrEmployeeLoanInstallmentTable;
   hr_employee_ledger: HrEmployeeLedgerTable;
+  hr_attendance_records: HrAttendanceRecordTable;
+  hr_leave_types: HrLeaveTypeTable;
+  hr_leave_requests: HrLeaveRequestTable;
+  hr_employee_assets: HrEmployeeAssetTable;
   hr_payroll_runs: HrPayrollRunTable;
   hr_payroll_run_items: HrPayrollRunItemTable;
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;

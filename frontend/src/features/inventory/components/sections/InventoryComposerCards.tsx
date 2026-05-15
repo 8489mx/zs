@@ -4,6 +4,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
+import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
 import type { Branch, Location, Product, StockCountItem, StockTransferItem } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
@@ -55,10 +56,13 @@ export function StockTransferComposerCard({
           </select>
         </Field>
         <Field label="الصنف">
-          <select value={form.productId} onChange={(e) => onFormChange({ productId: e.target.value })}>
-            <option value="">اختر الصنف</option>
-            {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-          </select>
+          <InventoryProductPicker
+            products={products}
+            value={form.productId}
+            onChange={(productId) => onFormChange({ productId })}
+            showStock
+            showPrice={false}
+          />
         </Field>
         <Field label="الكمية">
           <input type="number" min="0.001" step="0.001" value={form.qty} onChange={(e) => onFormChange({ qty: e.target.value })} />
@@ -148,10 +152,14 @@ export function StockCountComposerCard({
           </select>
         </Field>
         <Field label="الصنف">
-          <select value={form.productId} onChange={(e) => onFormChange({ productId: e.target.value })}>
-            <option value="">اختر الصنف</option>
-            {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-          </select>
+          <InventoryProductPicker
+            products={products}
+            value={form.productId}
+            onChange={(productId) => onFormChange({ productId })}
+            showStock
+            showPrice={false}
+            helperText="تم تجهيز الصنف المحدد لعملية الجرد أو التسوية السريعة."
+          />
         </Field>
         <Field label="الكمية المعدودة">
           <input type="number" min="0" step="0.001" value={form.countedQty} onChange={(e) => onFormChange({ countedQty: e.target.value })} />
@@ -160,7 +168,7 @@ export function StockCountComposerCard({
           <input value={form.reason} onChange={(e) => onFormChange({ reason: e.target.value })} placeholder="مثال: جرد دوري / كسر / فقد" />
         </Field>
         <Field label="رمز اعتماد المدير">
-          <input type="password" value={form.managerPin} onChange={(e) => onFormChange({ managerPin: e.target.value })} />
+          <input type="password" value={form.managerPin} onChange={(e) => onFormChange({ managerPin: e.target.value })} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
         </Field>
         <Field label="ملاحظة العنصر">
           <textarea rows={2} value={form.itemNote} onChange={(e) => onFormChange({ itemNote: e.target.value })} />
@@ -199,3 +207,4 @@ export function StockCountComposerCard({
     </Card>
   );
 }
+

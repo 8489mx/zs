@@ -4,9 +4,16 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import {
+  BulkSaveAttendanceDto,
+  CreateLeaveRequestDto,
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
+  DecideLeaveRequestDto,
+  EmployeeAssetActionDto,
   LoanRepaymentDto,
+  UpsertEmployeeAssetDto,
+  UpsertLeaveTypeDto,
+  UpsertAttendanceRecordDto,
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
@@ -27,6 +34,120 @@ export class HrController {
   @RequirePermissions('hr')
   summary(@Req() req: RequestWithAuth) {
     return this.hr.summary(req.authContext!);
+  }
+
+  @Get('reports/summary')
+  @RequirePermissions('hr')
+  reportsSummary(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.reportsSummary(query, req.authContext!);
+  }
+
+  @Get('attendance')
+  @RequirePermissions('hrEmployees')
+  listAttendance(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listAttendance(query, req.authContext!);
+  }
+
+  @Post('attendance')
+  @RequirePermissions('hrEmployees')
+  saveAttendanceDay(@Body() payload: BulkSaveAttendanceDto, @Req() req: RequestWithAuth) {
+    return this.hr.bulkSaveAttendance(payload, req.authContext!);
+  }
+
+  @Post('attendance/record')
+  @RequirePermissions('hrEmployees')
+  saveAttendanceRecord(@Body() payload: UpsertAttendanceRecordDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertAttendanceRecord(payload, req.authContext!);
+  }
+
+  @Get('leave-types')
+  @RequirePermissions('hrEmployees')
+  listLeaveTypes(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listLeaveTypes(query, req.authContext!);
+  }
+
+  @Post('leave-types')
+  @RequirePermissions('hrEmployees')
+  createLeaveType(@Body() payload: UpsertLeaveTypeDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertLeaveType(null, payload, req.authContext!);
+  }
+
+  @Put('leave-types/:id')
+  @RequirePermissions('hrEmployees')
+  updateLeaveType(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertLeaveTypeDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertLeaveType(id, payload, req.authContext!);
+  }
+
+  @Get('leave-requests')
+  @RequirePermissions('hrEmployees')
+  listLeaveRequests(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listLeaveRequests(query, req.authContext!);
+  }
+
+  @Post('leave-requests')
+  @RequirePermissions('hrEmployees')
+  createLeaveRequest(@Body() payload: CreateLeaveRequestDto, @Req() req: RequestWithAuth) {
+    return this.hr.createLeaveRequest(payload, req.authContext!);
+  }
+
+  @Post('leave-requests/:id/approve')
+  @RequirePermissions('hrEmployees')
+  approveLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideLeaveRequestDto, @Req() req: RequestWithAuth) {
+    return this.hr.approveLeaveRequest(id, payload, req.authContext!);
+  }
+
+  @Post('leave-requests/:id/reject')
+  @RequirePermissions('hrEmployees')
+  rejectLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideLeaveRequestDto, @Req() req: RequestWithAuth) {
+    return this.hr.rejectLeaveRequest(id, payload, req.authContext!);
+  }
+
+  @Post('leave-requests/:id/cancel')
+  @RequirePermissions('hrEmployees')
+  cancelLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideLeaveRequestDto, @Req() req: RequestWithAuth) {
+    return this.hr.cancelLeaveRequest(id, payload, req.authContext!);
+  }
+
+  @Get('assets')
+  @RequirePermissions('hrEmployees')
+  listEmployeeAssets(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listEmployeeAssets(query, req.authContext!);
+  }
+
+  @Post('assets')
+  @RequirePermissions('hrEmployees')
+  createEmployeeAsset(@Body() payload: UpsertEmployeeAssetDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertEmployeeAsset(null, payload, req.authContext!);
+  }
+
+  @Put('assets/:id')
+  @RequirePermissions('hrEmployees')
+  updateEmployeeAsset(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertEmployeeAssetDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertEmployeeAsset(id, payload, req.authContext!);
+  }
+
+  @Post('assets/:id/return')
+  @RequirePermissions('hrEmployees')
+  returnEmployeeAsset(@Param('id', ParseIntPipe) id: number, @Body() payload: EmployeeAssetActionDto, @Req() req: RequestWithAuth) {
+    return this.hr.returnEmployeeAsset(id, payload, req.authContext!);
+  }
+
+  @Post('assets/:id/lost')
+  @RequirePermissions('hrEmployees')
+  markEmployeeAssetLost(@Param('id', ParseIntPipe) id: number, @Body() payload: EmployeeAssetActionDto, @Req() req: RequestWithAuth) {
+    return this.hr.markEmployeeAssetLost(id, payload, req.authContext!);
+  }
+
+  @Post('assets/:id/damaged')
+  @RequirePermissions('hrEmployees')
+  markEmployeeAssetDamaged(@Param('id', ParseIntPipe) id: number, @Body() payload: EmployeeAssetActionDto, @Req() req: RequestWithAuth) {
+    return this.hr.markEmployeeAssetDamaged(id, payload, req.authContext!);
+  }
+
+  @Post('assets/:id/cancel')
+  @RequirePermissions('hrEmployees')
+  cancelEmployeeAsset(@Param('id', ParseIntPipe) id: number, @Body() payload: EmployeeAssetActionDto, @Req() req: RequestWithAuth) {
+    return this.hr.cancelEmployeeAsset(id, payload, req.authContext!);
   }
 
   @Get('withdrawals')

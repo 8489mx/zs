@@ -11,10 +11,15 @@ type CashDrawerShiftSource = {
   opened_by?: number | string | null;
   cash_sales_total?: number | string | null;
   card_sales_total?: number | string | null;
+  wallet_sales_total?: number | string | null;
+  instapay_sales_total?: number | string | null;
   credit_sales_total?: number | string | null;
   shift_sales_total?: number | string | null;
   sale_count?: number | string | null;
   mixed_sale_count?: number | string | null;
+  card_operation_count?: number | string | null;
+  wallet_operation_count?: number | string | null;
+  instapay_operation_count?: number | string | null;
   cash_drawer_movement_total?: number | string | null;
   service_cash_total?: number | string | null;
   service_card_total?: number | string | null;
@@ -35,6 +40,51 @@ type CashDrawerShiftSource = {
   branch_name?: string | null;
   location_name?: string | null;
   opened_by_name?: string | null;
+};
+
+const BLIND_CLOSE_PREFIX = 'BLIND_CLOSE::';
+
+type BlindCloseOperationDetail = {
+  amount: number;
+  reference?: string;
+};
+
+type BlindClosePayload = {
+  blindClose: true;
+  declared?: {
+    cash?: number;
+    cardTotal?: number;
+    cardCount?: number;
+    walletTotal?: number;
+    walletCount?: number;
+    instapayTotal?: number;
+    instapayCount?: number;
+  };
+  detailTotals?: {
+    card?: number;
+    wallet?: number;
+    instapay?: number;
+  };
+  details?: {
+    card?: BlindCloseOperationDetail[];
+    wallet?: BlindCloseOperationDetail[];
+    instapay?: BlindCloseOperationDetail[];
+  };
+  managerReview?: {
+    note?: string;
+    reviewedById?: number;
+    reviewedByName?: string;
+    reviewedAt?: string;
+  };
+  note?: string;
+};
+
+type ParsedCloseNote = {
+  raw: string;
+  hasBlindPrefix: boolean;
+  isBlindMetadataValid: boolean;
+  note: string;
+  blindClose: BlindClosePayload | null;
 };
 
 export function paginateCashDrawerRows<T>(rows: T[], query: CashDrawerQuery): { rows: T[]; pagination: Record<string, number> } {
@@ -70,6 +120,7 @@ export function filterCashDrawerRows(rows: CashDrawerMappedRow[], query: CashDra
     const openedAt = String(row.openedAt || row.createdAt || '');
     if (filter === 'open' && status !== 'open') return false;
     if (filter === 'closed' && status !== 'closed') return false;
+    if (filter === 'pending_review' && status !== 'pending_review') return false;
     if (filter === 'variance' && Math.abs(variance) <= 0) return false;
     if (filter === 'today' && openedAt.slice(0, 10) !== today) return false;
     if (!search) return true;
@@ -77,17 +128,66 @@ export function filterCashDrawerRows(rows: CashDrawerMappedRow[], query: CashDra
   });
 }
 
+function parseBlindCloseNote(rawNote: unknown): ParsedCloseNote {
+  const text = String(rawNote || '');
+  if (!text.startsWith(BLIND_CLOSE_PREFIX)) {
+    return { raw: text, hasBlindPrefix: false, isBlindMetadataValid: false, note: text, blindClose: null };
+  }
+
+  const rawJson = text.slice(BLIND_CLOSE_PREFIX.length).trim();
+  if (!rawJson) {
+    return { raw: text, hasBlindPrefix: true, isBlindMetadataValid: false, note: '', blindClose: null };
+  }
+
+  try {
+    const parsed = JSON.parse(rawJson) as BlindClosePayload;
+    if (!parsed || typeof parsed !== 'object') {
+      return { raw: text, hasBlindPrefix: true, isBlindMetadataValid: false, note: '', blindClose: null };
+    }
+    return {
+      raw: text,
+      hasBlindPrefix: true,
+      isBlindMetadataValid: true,
+      note: String(parsed.note || ''),
+      blindClose: parsed,
+    };
+  } catch {
+    return { raw: text, hasBlindPrefix: true, isBlindMetadataValid: false, note: '', blindClose: null };
+  }
+}
+
+function normalizeBlindOperationList(value: unknown): BlindCloseOperationDetail[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    const amount = Number((entry as { amount?: unknown })?.amount || 0);
+    const reference = String((entry as { reference?: unknown })?.reference || '').trim();
+    return {
+      amount: Number.isFinite(amount) ? Number(amount.toFixed(2)) : 0,
+      ...(reference ? { reference } : {}),
+    };
+  });
+}
+
 export function summarizeCashDrawerRows(rows: CashDrawerMappedRow[]): Record<string, unknown> {
   const openRows = rows.filter((row) => String(row.status || '') === 'open');
+  const pendingReviewRows = rows.filter((row) => String(row.status || '') === 'pending_review');
   return {
     totalItems: rows.length,
     openShiftCount: openRows.length,
+    pendingReviewCount: pendingReviewRows.length,
     openShiftDocNo: openRows[0] ? String(openRows[0].docNo || openRows[0].id || '') : '',
     totalVariance: Number(rows.reduce((sum, row) => sum + Number(row.variance || 0), 0).toFixed(2)),
   };
 }
 
 export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMappedRow {
+  const parsedClose = parseBlindCloseNote(row.close_note);
+  const blindDeclared = parsedClose.blindClose?.declared || {};
+  const blindDetailTotals = parsedClose.blindClose?.detailTotals || {};
+  const blindDetails = parsedClose.blindClose?.details || {};
+  const managerReview = parsedClose.blindClose?.managerReview || {};
+  const blindCloseMetadataStatus = parsedClose.isBlindMetadataValid ? 'valid' : (parsedClose.hasBlindPrefix ? 'invalid' : 'missing');
+
   return {
     id: String(row.id || ''),
     docNo: row.doc_no || (row.id ? `SHIFT-${row.id}` : ''),
@@ -99,10 +199,15 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
     openedByName: row.opened_by_name || '',
     cashSalesTotal: Number(row.cash_sales_total || 0),
     cardSalesTotal: Number(row.card_sales_total || 0),
+    walletSalesTotal: Number(row.wallet_sales_total || 0),
+    instapaySalesTotal: Number(row.instapay_sales_total || 0),
     creditSalesTotal: Number(row.credit_sales_total || 0),
     shiftSalesTotal: Number(row.shift_sales_total || 0),
     saleCount: Number(row.sale_count || 0),
     mixedSalesCount: Number(row.mixed_sale_count || 0),
+    cardOperationCount: Number(row.card_operation_count || 0),
+    walletOperationCount: Number(row.wallet_operation_count || 0),
+    instapayOperationCount: Number(row.instapay_operation_count || 0),
     cashDrawerMovementTotal: Number(row.cash_drawer_movement_total || 0),
     serviceCashTotal: Number(row.service_cash_total || 0),
     serviceCardTotal: Number(row.service_card_total || 0),
@@ -116,7 +221,27 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
     expectedCash: Number(row.expected_cash || 0),
     countedCash: row.counted_cash == null ? null : Number(row.counted_cash || 0),
     variance: row.variance == null ? 0 : Number(row.variance || 0),
-    closeNote: row.close_note || '',
+    closeNote: parsedClose.note,
+    closeNoteRaw: parsedClose.raw,
+    blindCloseMode: Boolean(parsedClose.blindClose?.blindClose),
+    blindCloseMetadataStatus,
+    declaredCash: blindDeclared.cash == null ? null : Number(blindDeclared.cash || 0),
+    declaredCardTotal: blindDeclared.cardTotal == null ? null : Number(blindDeclared.cardTotal || 0),
+    declaredCardCount: blindDeclared.cardCount == null ? null : Number(blindDeclared.cardCount || 0),
+    declaredWalletTotal: blindDeclared.walletTotal == null ? null : Number(blindDeclared.walletTotal || 0),
+    declaredWalletCount: blindDeclared.walletCount == null ? null : Number(blindDeclared.walletCount || 0),
+    declaredInstapayTotal: blindDeclared.instapayTotal == null ? null : Number(blindDeclared.instapayTotal || 0),
+    declaredInstapayCount: blindDeclared.instapayCount == null ? null : Number(blindDeclared.instapayCount || 0),
+    cardDetailsTotal: blindDetailTotals.card == null ? 0 : Number(blindDetailTotals.card || 0),
+    walletDetailsTotal: blindDetailTotals.wallet == null ? 0 : Number(blindDetailTotals.wallet || 0),
+    instapayDetailsTotal: blindDetailTotals.instapay == null ? 0 : Number(blindDetailTotals.instapay || 0),
+    cardDetails: normalizeBlindOperationList(blindDetails.card),
+    walletDetails: normalizeBlindOperationList(blindDetails.wallet),
+    instapayDetails: normalizeBlindOperationList(blindDetails.instapay),
+    managerReviewNote: String(managerReview.note || ''),
+    managerReviewedById: managerReview.reviewedById == null ? null : Number(managerReview.reviewedById || 0),
+    managerReviewedByName: String(managerReview.reviewedByName || ''),
+    managerReviewedAt: String(managerReview.reviewedAt || ''),
     closedBy: row.closed_by_name || '',
     closedAt: row.closed_at || '',
     openedAt: row.created_at || '',

@@ -7,7 +7,7 @@ export type FlowItem = {
 };
 
 export type PaymentEntry = {
-  paymentChannel: 'cash' | 'card';
+  paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay';
   amount: number;
 };
 

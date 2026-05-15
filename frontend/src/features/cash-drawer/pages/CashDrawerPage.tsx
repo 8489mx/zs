@@ -1,7 +1,8 @@
-import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+﻿import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { CashDrawerFormsPanel } from '@/features/cash-drawer/components/CashDrawerFormsPanel';
 import { CashDrawerShiftsCard } from '@/features/cash-drawer/components/CashDrawerShiftsCard';
+import { CashDrawerReviewDialog } from '@/features/cash-drawer/components/CashDrawerReviewDialog';
 import { CashDrawerStatsGrid } from '@/features/cash-drawer/components/CashDrawerStatsGrid';
 import { useCashDrawerPageController } from '@/features/cash-drawer/hooks/useCashDrawerPageController';
 
@@ -19,11 +20,15 @@ export function CashDrawerPage() {
   const confirmDialogTitle = isMovement
     ? (isCashOut ? 'اعتماد صرف من الدرج' : 'تأكيد إيداع في الدرج')
     : 'تأكيد إغلاق الوردية';
+
   const confirmDialogDescription = isMovement
     ? (isCashOut
       ? 'سيتم تسجيل حركة صرف نقدي على الوردية الحالية بعد الاعتماد.'
       : 'سيتم تسجيل حركة إيداع نقدي على الوردية الحالية بعد تأكيد المستخدم الحالي.')
-    : 'سيتم إغلاق الوردية الحالية وتسجيل المبلغ المعدود والفرق النهائي بعد تأكيد المستخدم الحالي.';
+    : (controller.isBlindCloseUser
+      ? 'سيتم تسجيل إقرار الإغلاق وإرسال الوردية في انتظار مراجعة المدير.'
+      : 'سيتم إغلاق الوردية الحالية وتسجيل المبلغ المعدود والفرق النهائي بعد تأكيد المستخدم الحالي.');
+
   const confirmBusy = controller.movementMutation.isPending || controller.closeMutation.isPending;
   const managerPinLabel = isCashOut ? 'رمز اعتماد المدير' : 'كلمة مرور المستخدم الحالي';
   const managerPinHint = isCashOut
@@ -42,8 +47,8 @@ export function CashDrawerPage() {
         openShiftCount={controller.openShiftCount}
         openShiftLabel={controller.openShift?.openedByName || controller.openShift?.docNo}
         totalVariance={controller.totalVariance}
+        canViewSensitiveTotals={controller.canViewSensitiveTotals}
       />
-
 
       {controller.copyFeedback ? <div className={controller.copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{controller.copyFeedback.text}</div> : null}
 
@@ -53,11 +58,15 @@ export function CashDrawerPage() {
         shiftFilter={controller.shiftFilter}
         onShiftFilterChange={controller.setShiftFilter}
         onReset={controller.resetShiftView}
+        onReviewShift={controller.openReviewDialog}
+        canReviewPending={controller.isManagerReviewer}
+        pendingReviewCount={controller.pendingReviewCount}
         onCopySummary={() => void controller.copyShiftSummary()}
         onExportRows={() => void controller.exportShiftRows()}
         onPrintRows={() => void controller.printShiftRows()}
         totalItems={controller.summary.totalItems}
         rows={controller.rows}
+        canViewSensitiveTotals={controller.canViewSensitiveTotals}
         isLoading={controller.query.isLoading}
         isError={controller.query.isError}
         error={controller.query.error}
@@ -84,6 +93,7 @@ export function CashDrawerPage() {
         closeExpectedCash={controller.closeExpectedCash}
         closeVariancePreview={controller.closeVariancePreview}
         closeNoteValue={controller.closeNoteValue}
+        isBlindCloseMode={controller.isBlindCloseUser}
         onMovementSubmit={controller.handleMovementSubmit}
         onCloseSubmit={controller.handleCloseSubmit}
       />
@@ -100,6 +110,18 @@ export function CashDrawerPage() {
         isBusy={confirmBusy}
         onCancel={() => controller.setConfirmAction(null)}
         onConfirm={({ managerPin }) => void controller.performConfirmedAction(managerPin)}
+      />
+
+      <CashDrawerReviewDialog
+        open={Boolean(controller.reviewTargetShift)}
+        shift={controller.reviewTargetShift}
+        managerNote={controller.reviewManagerNote}
+        onManagerNoteChange={controller.setReviewManagerNote}
+        onApprove={() => void controller.submitPendingReview()}
+        onClose={controller.closeReviewDialog}
+        isPending={controller.reviewMutation.isPending}
+        isError={controller.reviewMutation.isError}
+        error={controller.reviewMutation.error}
       />
     </div>
   );
