@@ -154,18 +154,18 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
   return (
     <DialogShell open={shortcutOpen} onClose={handleClose} width="min(1120px, calc(100vw - 80px))" ariaLabel="تسجيل حضور أو انصراف سريع">
       <div
-        className="stack gap-16"
+        className="stack gap-18"
         dir="rtl"
         style={{
           boxSizing: 'border-box',
-          minHeight: 430,
+          minHeight: 520,
           minWidth: 0,
           overflow: 'visible',
-          padding: '10px 12px',
+          padding: '18px 18px 16px',
         }}
       >
-        <div className="stack gap-4" style={{ minWidth: 0 }}>
-          <h3 style={{ margin: 0 }}>تسجيل حضور أو انصراف سريع</h3>
+        <div className="stack gap-8" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', minWidth: 0, paddingBottom: 14, textAlign: 'center' }}>
+          <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.25, margin: 0 }}>تسجيل حضور أو انصراف سريع</h2>
           <p className="muted" style={{ margin: 0 }}>
             ابحث عن الموظف بالاسم أو الكود وسجّل الحضور أو الانصراف دون مغادرة الصفحة الحالية.
           </p>
@@ -182,9 +182,9 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
           />
         </label>
 
-        <div style={{ alignItems: 'stretch', display: 'grid', gap: 14, gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.9fr)' }}>
-          <div className="card-soft" style={{ boxSizing: 'border-box', minHeight: 270, overflow: 'visible', padding: 12 }}>
-            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        <div style={{ alignItems: 'stretch', display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.9fr)' }}>
+          <div className="card-soft" style={{ boxSizing: 'border-box', minHeight: 340, overflow: 'visible', padding: 14 }}>
+            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
               {filteredEmployees.length ? filteredEmployees.map((employee) => {
                 const row = attendanceMap.get(String(employee.id));
                 const rowHasCheckIn = Boolean(String(row?.checkInAt || '').trim());
@@ -199,15 +199,15 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                     key={String(employee.id)}
                     type="button"
                     className={`sidebar-link ${selectedEmployeeId === String(employee.id) ? 'active' : ''}`.trim()}
-                    style={{ boxSizing: 'border-box', display: 'block', minHeight: 92, padding: '12px 14px', textAlign: 'right', whiteSpace: 'normal', width: '100%' }}
+                    style={{ boxSizing: 'border-box', display: 'block', minHeight: 102, padding: '14px 16px', textAlign: 'right', whiteSpace: 'normal', width: '100%' }}
                     onClick={() => setSelectedEmployeeId(String(employee.id))}
                   >
                     <span className="sidebar-label" style={{ minWidth: 0 }}>
-                      <strong>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
+                      <strong style={{ display: 'block', fontSize: 15, marginBottom: 4 }}>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
                       <small className="muted" style={{ display: 'block' }}>
                         كود الموظف: {employee.employeeNo || '—'} · الحالة اليوم: {stateLabel}
                       </small>
-                      <small className="muted" style={{ display: 'block' }}>
+                      <small className="muted" style={{ display: 'block', marginTop: 3 }}>
                         وقت الحضور: {formatTimeText(row?.checkInAt)} · وقت الانصراف: {formatTimeText(row?.checkOutAt)}
                       </small>
                     </span>
@@ -219,7 +219,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
             </div>
           </div>
 
-          <div className="stack gap-12" style={{ minHeight: 270 }}>
+          <div className="stack gap-14" style={{ minHeight: 340 }}>
             {employeesQuery.isError || attendanceQuery.isError ? (
               <div className="error-box">
                 {getErrorMessage(employeesQuery.error || attendanceQuery.error, 'تعذر تحميل بيانات الحضور السريع.')}
@@ -229,7 +229,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
             {selectedEmployee ? (
               <CardSummary employee={selectedEmployee} attendance={selectedAttendance} />
             ) : (
-              <div className="card-soft" style={{ boxSizing: 'border-box', padding: 14 }}>
+              <div className="card-soft" style={{ boxSizing: 'border-box', padding: 16 }}>
                 <p className="muted" style={{ margin: 0 }}>اختر موظفًا من النتائج لعرض حالة اليوم وتنفيذ الإجراء المناسب.</p>
               </div>
             )}
@@ -263,9 +263,9 @@ function CardSummary({ employee, attendance }: { employee: HrEmployee; attendanc
   const checkIn = String(attendance?.checkInAt || '').trim();
   const checkOut = String(attendance?.checkOutAt || '').trim();
   return (
-    <div className="card-soft" style={{ boxSizing: 'border-box', padding: 14 }}>
-      <strong>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
-      <div className="muted" style={{ marginTop: 8 }}>
+    <div className="card-soft" style={{ boxSizing: 'border-box', padding: 16 }}>
+      <strong style={{ display: 'block', fontSize: 16, marginBottom: 8 }}>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
+      <div className="muted" style={{ lineHeight: 1.9 }}>
         كود الموظف: {employee.employeeNo || '—'}<br />
         وقت الحضور: {formatTimeText(checkIn)}<br />
         وقت الانصراف: {formatTimeText(checkOut)}
