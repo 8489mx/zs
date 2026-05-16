@@ -1,16 +1,16 @@
-﻿export const monthNames = [
+export const monthNames = [
   'يناير',
   'فبراير',
   'مارس',
-  'أبرعظ”‍',
-  'ماعو',
-  'عوظ” عو',
-  'عوظ”‍عو',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
   'أغسطس',
-  'سبقمبر',
-  'أكقوبر',
-  'ظ” وفمبر',
-  'دعسمبر',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر',
 ];
 
 export function todayDate() {
@@ -67,44 +67,44 @@ export function money(value: unknown) {
 }
 
 export function fallbackText(value: unknown) {
-  return String(value || '').trim() || 'أ¢â‚¬”';
+  return String(value || '').trim() || '—';
 }
 
 export function statusLabel(value: unknown) {
   const status = String(value || '').trim().toLowerCase();
-  if (status === 'pending') return 'ظ،عد اظ”‍مراجعة';
+  if (status === 'pending') return 'قيد المراجعة';
   if (status === 'draft') return 'مسودة';
-  if (status === 'new') return 'جدعدة';
-  if (status === 'approved') return 'معقمدة';
+  if (status === 'new') return 'جديدة';
+  if (status === 'approved') return 'معتمدة';
   if (status === 'disbursed') return 'مصروفة';
   if (status === 'partially_repaid') return 'نشطة';
-  if (status === 'repaid' || status === 'paid') return 'مكقمظ”‍ة';
-  if (status === 'cancelled') return 'مظ”‍غاة';
-  return 'غعر محدد';
+  if (status === 'repaid' || status === 'paid') return 'مكتملة';
+  if (status === 'cancelled') return 'ملغاة';
+  return 'غير محدد';
 }
 
 export function loanTypeLabel(value: unknown) {
   const loanType = String(value || '').trim().toLowerCase();
-  if (loanType === 'advance') return 'سظ”‍فة';
-  if (loanType === 'loan') return 'ظ،رض';
+  if (loanType === 'advance') return 'سلفة';
+  if (loanType === 'loan') return 'قرض';
   return fallbackText(value);
 }
 
 export function repaymentModeLabel(value: unknown) {
   const mode = String(value || '').trim().toLowerCase();
-  if (mode === 'deduct_next_salary') return 'خصم كامظ”‍ مظ”  اظ”‍راقب اظ”‍ظ،ادم';
-  if (mode === 'monthly_salary_installment') return 'قظ،سعط عظ”‍ظ”° دفعات';
-  if (mode === 'manual_cash') return 'سداد عدوي';
+  if (mode === 'deduct_next_salary') return 'خصم كامل من الراتب القادم';
+  if (mode === 'monthly_salary_installment') return 'تقسيط على دفعات';
+  if (mode === 'manual_cash') return 'سداد يدوي';
   return fallbackText(value);
 }
 
 export function installmentStatusLabel(value: unknown) {
   const status = String(value || '').trim().toLowerCase();
-  if (status === 'pending') return 'ظ،سط مسقحق';
-  if (status === 'partial') return 'ظ،سط مسقحق';
+  if (status === 'pending') return 'قسط مستحق';
+  if (status === 'partial') return 'قسط جزئي';
   if (status === 'paid') return 'مخصوم';
-  if (status === 'cancelled') return 'مظ”‍غي';
-  return 'غعر محدد';
+  if (status === 'cancelled') return 'ملغي';
+  return 'غير محدد';
 }
 
 export function employeeName(row: { displayName?: string; firstName?: string; lastName?: string }) {
@@ -114,7 +114,7 @@ export function employeeName(row: { displayName?: string; firstName?: string; la
 export function monthLabel(dateText?: string) {
   const text = String(dateText || '').trim();
   const match = text.match(/^(\d{4})-(\d{2})/);
-  if (!match) return 'أ¢â‚¬”';
+  if (!match) return '—';
   const monthIndex = Number(match[2]) - 1;
   const monthName = monthNames[monthIndex] || match[2];
   return `${monthName} ${match[1]}`;
@@ -124,4 +124,3 @@ export function addMonths(year: number, month: number, offset: number) {
   const date = new Date(Date.UTC(year, month - 1 + offset, 1));
   return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1 };
 }
-
