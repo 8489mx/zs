@@ -1,0 +1,29 @@
+/* HR loans page: keep wide form sections and action buttons from stretching inside grid rows. */
+.form-grid > .field-wide,
+.form-grid > .actions.field-wide,
+.form-grid > .error-box.field-wide {
+  grid-column: 1 / -1;
+}
+
+.form-grid > .actions.field-wide {
+  align-items: center;
+  justify-content: flex-start;
+  align-self: start;
+}
+
+.form-grid > .actions.field-wide .btn,
+.form-grid > .actions.field-wide .button {
+  width: auto;
+  min-height: 38px;
+  align-self: center;
+}
+
+.form-grid > .field-wide .form-grid {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
