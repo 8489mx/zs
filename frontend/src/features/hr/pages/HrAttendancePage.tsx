@@ -50,20 +50,6 @@ function toDateTime(workDate: string, timeValue: string) {
   return safeTime ? `${workDate}T${safeTime}:00Z` : undefined;
 }
 
-function attendanceStatusLabel(value: string) {
-  switch (String(value || '').toLowerCase()) {
-    case 'present': return 'حاضر';
-    case 'absent': return 'غائب';
-    case 'late': return 'متأخر';
-    case 'early_leave': return 'انصراف مبكر';
-    case 'leave': return 'إجازة';
-    case 'mission': return 'مأمورية';
-    case 'excused': return 'بعذر';
-    case 'half_day': return 'نصف يوم';
-    default: return 'غير مسجل';
-  }
-}
-
 function exceptionTypeLabel(value: string) {
   switch (value) {
     case 'early_check_in': return 'حضور مبكر';
@@ -209,7 +195,7 @@ export function HrAttendancePage() {
           error={attendance.error}
           isEmpty={!rows.length}
           loadingText="جاري تحميل سجلات الحضور..."
-          errorTitle="تعذر تحميل سجلات الحضور"
+          errorTitle="تعذر تحميل سجلات الحضور."
           emptyTitle="لا توجد سجلات حضور لهذا اليوم."
         >
           <DataTable
@@ -293,7 +279,7 @@ export function HrAttendancePage() {
           error={exceptions.error}
           isEmpty={!exceptionRows.length}
           loadingText="جاري تحميل الاستثناءات..."
-          errorTitle="تعذر تحميل الاستثناءات"
+          errorTitle="تعذر تحميل الاستثناءات."
           emptyTitle="لا توجد استثناءات حضور أو انصراف لهذا اليوم."
         >
           <DataTable
@@ -318,7 +304,7 @@ export function HrAttendancePage() {
                     <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
                   </div>
                 ) : (
-                  <span className="muted">{attendanceStatusLabel(row.status)}</span>
+                  <span className="muted">{exceptionStatusLabel(row.status)}</span>
                 ),
               },
             ]}
@@ -331,4 +317,3 @@ export function HrAttendancePage() {
     </div>
   );
 }
-

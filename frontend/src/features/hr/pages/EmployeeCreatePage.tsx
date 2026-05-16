@@ -5,92 +5,16 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { getErrorMessage } from '@/lib/errors';
 import { useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
-
-interface EmployeeDraft {
-  employeeNo: string;
-  firstName: string;
-  lastName: string;
-  mobile: string;
-  nationalId: string;
-  departmentId: string;
-  jobTitleId: string;
-  positionId: string;
-  hireDate: string;
-  status: 'active' | 'inactive';
-  contractType: string;
-  baseSalary: string;
-  compensationType: 'monthly' | 'hourly';
-  hourlyRate: string;
-  expectedDailyHours: string;
-  scheduledCheckInTime: string;
-  scheduledCheckOutTime: string;
-  graceMinutes: string;
-  overtimePolicy: 'review_only' | 'disabled' | 'auto_approved';
-  notes: string;
-}
-
-const initialDraft: EmployeeDraft = {
-  employeeNo: '',
-  firstName: '',
-  lastName: '',
-  mobile: '',
-  nationalId: '',
-  departmentId: '',
-  jobTitleId: '',
-  positionId: '',
-  hireDate: '',
-  status: 'active',
-  contractType: '',
-  baseSalary: '',
-  compensationType: 'monthly',
-  hourlyRate: '',
-  expectedDailyHours: '',
-  scheduledCheckInTime: '',
-  scheduledCheckOutTime: '',
-  graceMinutes: '',
-  overtimePolicy: 'review_only',
-  notes: '',
-};
-
-function normalizeArabicDigits(value: string) {
-  return String(value || '')
-    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
-    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
-}
-
-function normalizeNumberText(value: string) {
-  return normalizeArabicDigits(value).replace(/[،,]/g, '.').trim();
-}
-
-function normalizeDigitsOnly(value: string) {
-  return normalizeArabicDigits(value).replace(/\D/g, '');
-}
-
-function normalizePhone(value: string) {
-  return normalizeArabicDigits(value).replace(/\s+/g, '').trim();
-}
-
-function toId(value: string) {
-  const numeric = Number(normalizeDigitsOnly(value || ''));
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined;
-}
-
-function getCreatedEmployeeId(
-  result: unknown,
-  draft: EmployeeDraft,
-  firstName: string,
-) {
-  const responseRows = ((result as { employees?: Array<{ id?: string | number; firstName?: string; lastName?: string; employeeNo?: string }> })?.employees || []);
-  const lastName = String(draft.lastName || '').trim();
-  const employeeNo = String(draft.employeeNo || '').trim();
-  const matched = responseRows.find((row) => {
-    const sameFirst = String(row.firstName || '').trim() === firstName;
-    const sameLast = String(row.lastName || '').trim() === lastName;
-    const sameNo = employeeNo && String(row.employeeNo || '').trim() === employeeNo;
-    return sameNo || (sameFirst && sameLast);
-  });
-  return matched?.id != null ? String(matched.id) : '';
-}
+import {
+  getCreatedEmployeeId,
+  initialDraft,
+  normalizeArabicDigits,
+  normalizeDigitsOnly,
+  normalizeNumberText,
+  normalizePhone,
+  toId,
+  type EmployeeDraft,
+} from '@/features/hr/pages/employee-create/employee-create.helpers';
 
 export function EmployeeCreatePage() {
   const navigate = useNavigate();
@@ -108,13 +32,13 @@ export function EmployeeCreatePage() {
     const warnings: string[] = [];
     const salaryText = normalizeNumberText(draft.baseSalary);
     const nationalId = normalizeDigitsOnly(draft.nationalId);
-    if (!String(draft.firstName || '').trim()) warnings.push('الاسم الأول مطلوب قبل الحفظ.');
-    if (!normalizePhone(draft.mobile)) warnings.push('الموبايل مطلوب قبل الحفظ.');
-    if (!String(draft.hireDate || '').trim()) warnings.push('تاريخ التعيين مطلوب قبل الحفظ.');
-    if (nationalId && nationalId.length !== 14) warnings.push('الرقم القومي يجب أن يكون 14 رقمًا إذا تم إدخاله.');
-    if (!draft.departmentId) warnings.push('القسم غير محدد ويمكن استكماله لاحقًا.');
-    if (!draft.jobTitleId) warnings.push('المسمى الوظيفي غير محدد ويمكن استكماله لاحقًا.');
-    if (salaryText && Number.isNaN(Number(salaryText))) warnings.push('المرتب الأساسي يجب أن يكون رقمًا صحيحًا.');
+    if (!String(draft.firstName || '').trim()) warnings.push('ط§ظ„ط§ط³ظ… ط§ظ„ط£ظˆظ„ ظ…ط·ظ„ظˆط¨ ظ‚ط¨ظ„ ط§ظ„ط­ظپط¸.');
+    if (!normalizePhone(draft.mobile)) warnings.push('ط§ظ„ظ…ظˆط¨ط§ظٹظ„ ظ…ط·ظ„ظˆط¨ ظ‚ط¨ظ„ ط§ظ„ط­ظپط¸.');
+    if (!String(draft.hireDate || '').trim()) warnings.push('طھط§ط±ظٹط® ط§ظ„طھط¹ظٹظٹظ† ظ…ط·ظ„ظˆط¨ ظ‚ط¨ظ„ ط§ظ„ط­ظپط¸.');
+    if (nationalId && nationalId.length !== 14) warnings.push('ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† 14 ط±ظ‚ظ…ظ‹ط§ ط¥ط°ط§ طھظ… ط¥ط¯ط®ط§ظ„ظ‡.');
+    if (!draft.departmentId) warnings.push('ط§ظ„ظ‚ط³ظ… ط؛ظٹط± ظ…ط­ط¯ط¯ ظˆظٹظ…ظƒظ† ط§ط³طھظƒظ…ط§ظ„ظ‡ ظ„ط§ط­ظ‚ظ‹ط§.');
+    if (!draft.jobTitleId) warnings.push('ط§ظ„ظ…ط³ظ…ظ‰ ط§ظ„ظˆط¸ظٹظپظٹ ط؛ظٹط± ظ…ط­ط¯ط¯ ظˆظٹظ…ظƒظ† ط§ط³طھظƒظ…ط§ظ„ظ‡ ظ„ط§ط­ظ‚ظ‹ط§.');
+    if (salaryText && Number.isNaN(Number(salaryText))) warnings.push('ط§ظ„ط±ط§طھط¨ ط§ظ„ط£ط³ط§ط³ظٹ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط±ظ‚ظ…ظ‹ط§ طµط­ظٹط­ظ‹ط§.');
     return warnings;
   }, [draft]);
 
@@ -137,32 +61,32 @@ export function EmployeeCreatePage() {
     const graceMinutes = graceMinutesText ? Number(graceMinutesText) : 0;
 
     if (!firstName) {
-      setSubmitError('الاسم الأول مطلوب.');
+      setSubmitError('ط§ظ„ط§ط³ظ… ط§ظ„ط£ظˆظ„ ظ…ط·ظ„ظˆط¨.');
       return;
     }
     if (!mobile) {
-      setSubmitError('الموبايل مطلوب.');
+      setSubmitError('ط§ظ„ظ…ظˆط¨ط§ظٹظ„ ظ…ط·ظ„ظˆط¨.');
       return;
     }
     if (!hireDate) {
-      setSubmitError('تاريخ التعيين مطلوب.');
+      setSubmitError('طھط§ط±ظٹط® ط§ظ„طھط¹ظٹظٹظ† ظ…ط·ظ„ظˆط¨.');
       return;
     }
     if (nationalId && !/^\d{14}$/.test(nationalId)) {
-      setSubmitError('الرقم القومي يجب أن يكون 14 رقمًا.');
+      setSubmitError('ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† 14 ط±ظ‚ظ…ظ‹ط§.');
       return;
     }
     if (Number.isNaN(baseSalary)) {
-      setSubmitError('المرتب الأساسي يجب أن يكون رقمًا صحيحًا.');
+      setSubmitError('ط§ظ„ط±ط§طھط¨ ط§ظ„ط£ط³ط§ط³ظٹ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط±ظ‚ظ…ظ‹ط§ طµط­ظٹط­ظ‹ط§.');
       return;
     }
     if (draft.compensationType === 'hourly') {
       if (!(hourlyRate > 0)) {
-        setSubmitError('أجر الساعة مطلوب للموظف بالأجر بالساعة.');
+        setSubmitError('ط£ط¬ط± ط§ظ„ط³ط§ط¹ط© ظ…ط·ظ„ظˆط¨ ظ„ظ„ظ…ظˆط¸ظپ ط¨ط§ظ„ط£ط¬ط± ط¨ط§ظ„ط³ط§ط¹ط©.');
         return;
       }
       if (!(expectedDailyHours > 0)) {
-        setSubmitError('عدد ساعات العمل اليومية المتوقعة مطلوب للموظف بالأجر بالساعة.');
+        setSubmitError('ط¹ط¯ط¯ ط³ط§ط¹ط§طھ ط§ظ„ط¹ظ…ظ„ ط§ظ„ظٹظˆظ…ظٹط© ط§ظ„ظ…طھظˆظ‚ط¹ط© ظ…ط·ظ„ظˆط¨ ظ„ظ„ظ…ظˆط¸ظپ ط¨ط§ظ„ط£ط¬ط± ط¨ط§ظ„ط³ط§ط¹ط©.');
         return;
       }
     }
@@ -197,7 +121,7 @@ export function EmployeeCreatePage() {
           payload: {
             contactType: 'phone',
             value: mobile,
-            label: 'الموبايل',
+            label: 'ط§ظ„ظ…ظˆط¨ط§ظٹظ„',
             isPrimary: true,
             notes: '',
           },
@@ -212,7 +136,7 @@ export function EmployeeCreatePage() {
               startDate: hireDate,
               baseSalary: baseSalary > 0 ? baseSalary : 0,
               currency: 'EGP',
-              notes: 'تم إنشاؤه من صفحة إضافة موظف.',
+              notes: 'طھظ… ط¥ظ†ط´ط§ط¤ظ‡ ظ…ظ† طµظپط­ط© ط¥ط¶ط§ظپط© ظ…ظˆط¸ظپ.',
             },
           });
         }
@@ -220,7 +144,7 @@ export function EmployeeCreatePage() {
 
       navigate('/hr/employees');
     } catch (error) {
-      setSubmitError(getErrorMessage(error, 'تعذر حفظ الموظف.'));
+      setSubmitError(getErrorMessage(error, 'طھط¹ط°ط± ط­ظپط¸ ط§ظ„ظ…ظˆط¸ظپ.'));
     }
   }
 
@@ -229,163 +153,164 @@ export function EmployeeCreatePage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="إضافة موظف"
-        description="إضافة موظف جديد ببيانات واضحة، مع مراجعة سريعة للحقول الناقصة قبل الحفظ."
+        title="ط¥ط¶ط§ظپط© ظ…ظˆط¸ظپ"
+        description="ط¥ط¶ط§ظپط© ظ…ظˆط¸ظپ ط¬ط¯ظٹط¯ ط¨ط¨ظٹط§ظ†ط§طھ ظˆط§ط¶ط­ط©طŒ ظ…ط¹ ظ…ط±ط§ط¬ط¹ط© ط³ط±ظٹط¹ط© ظ„ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ†ط§ظ‚طµط© ظ‚ط¨ظ„ ط§ظ„ط­ظپط¸."
       />
 
       <form onSubmit={(event) => { void handleSubmit(event); }}>
-        <Card title="البيانات الأساسية" description="أدخل بيانات التعريف الأساسية للموظف.">
+        <Card title="ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط©" description="ط£ط¯ط®ظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„طھط¹ط±ظٹظپ ط§ظ„ط£ط³ط§ط³ظٹط© ظ„ظ„ظ…ظˆط¸ظپ.">
           <div className="form-grid">
             <div className="field">
-              <span>كود الموظف</span>
+              <span>ظƒظˆط¯ ط§ظ„ظ…ظˆط¸ظپ</span>
               <input value={draft.employeeNo} onChange={(e) => setDraft((current) => ({ ...current, employeeNo: e.target.value }))} />
             </div>
             <div className="field">
-              <span>الاسم الأول *</span>
+              <span>ط§ظ„ط§ط³ظ… ط§ظ„ط£ظˆظ„ *</span>
               <input value={draft.firstName} onChange={(e) => setDraft((current) => ({ ...current, firstName: e.target.value }))} required />
             </div>
             <div className="field">
-              <span>اسم العائلة</span>
+              <span>ط§ط³ظ… ط§ظ„ط¹ط§ط¦ظ„ط©</span>
               <input value={draft.lastName} onChange={(e) => setDraft((current) => ({ ...current, lastName: e.target.value }))} />
             </div>
             <div className="field">
-              <span>الموبايل *</span>
+              <span>ط§ظ„ظ…ظˆط¨ط§ظٹظ„ *</span>
               <input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} inputMode="tel" required />
             </div>
             <div className="field">
-              <span>الرقم القومي</span>
+              <span>ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ</span>
               <input
                 value={draft.nationalId}
                 onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))}
                 inputMode="numeric"
                 maxLength={14}
-                placeholder="اختياري"
+                placeholder="ط§ط®طھظٹط§ط±ظٹ"
               />
             </div>
           </div>
         </Card>
 
-        <Card title="البيانات الوظيفية" description="حدد القسم والمسمى الوظيفي وتاريخ التعيين.">
+        <Card title="ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظˆط¸ظٹظپظٹط©" description="ط­ط¯ط¯ ط§ظ„ظ‚ط³ظ… ظˆط§ظ„ظ…ط³ظ…ظ‰ ط§ظ„ظˆط¸ظٹظپظٹ ظˆطھط§ط±ظٹط® ط§ظ„طھط¹ظٹظٹظ†.">
           <div className="form-grid">
             <div className="field">
-              <span>القسم</span>
+              <span>ط§ظ„ظ‚ط³ظ…</span>
               <select value={draft.departmentId} onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}>
-                <option value="">اختيار</option>
+                <option value="">ط§ط®طھظٹط§ط±</option>
                 {departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
               </select>
             </div>
             <div className="field">
-              <span>المسمى الوظيفي</span>
+              <span>ط§ظ„ظ…ط³ظ…ظ‰ ط§ظ„ظˆط¸ظٹظپظٹ</span>
               <select value={draft.jobTitleId} onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}>
-                <option value="">اختيار</option>
+                <option value="">ط§ط®طھظٹط§ط±</option>
                 {jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
               </select>
             </div>
             <div className="field">
-              <span>الوظيفة/المنصب</span>
+              <span>ط§ظ„ظˆط¸ظٹظپط©/ط§ظ„ظ…ظ†طµط¨</span>
               <select value={draft.positionId} onChange={(e) => setDraft((current) => ({ ...current, positionId: e.target.value }))}>
-                <option value="">اختيار</option>
+                <option value="">ط§ط®طھظٹط§ط±</option>
                 {positions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
               </select>
             </div>
             <div className="field">
-              <span>تاريخ التعيين *</span>
+              <span>طھط§ط±ظٹط® ط§ظ„طھط¹ظٹظٹظ† *</span>
               <input type="date" value={draft.hireDate} onChange={(e) => setDraft((current) => ({ ...current, hireDate: e.target.value }))} required />
             </div>
             <div className="field">
-              <span>الحالة</span>
+              <span>ط§ظ„ط­ط§ظ„ط©</span>
               <select value={draft.status} onChange={(e) => setDraft((current) => ({ ...current, status: e.target.value === 'inactive' ? 'inactive' : 'active' }))}>
-                <option value="active">نشط</option>
-                <option value="inactive">غير نشط</option>
+                <option value="active">ظ†ط´ط·</option>
+                <option value="inactive">ط؛ظٹط± ظ†ط´ط·</option>
               </select>
             </div>
           </div>
         </Card>
 
-        <Card title="العقد والمرتب" description="اختياري. لو أدخلت نوع التعاقد أو المرتب الأساسي سيتم إنشاء عقد مبدئي للموظف، ويمكن استكمال التفاصيل داخل ملف الموظف لاحقًا.">
+        <Card title="ط§ظ„ط¹ظ‚ط¯ ظˆط§ظ„ط±ط§طھط¨" description="ط§ط®طھظٹط§ط±ظٹ. ظ„ظˆ ط£ط¯ط®ظ„طھ ظ†ظˆط¹ ط§ظ„طھط¹ط§ظ‚ط¯ ط£ظˆ ط§ظ„ط±ط§طھط¨ ط§ظ„ط£ط³ط§ط³ظٹ ط³ظٹطھظ… ط¥ظ†ط´ط§ط، ط¹ظ‚ط¯ ظ…ط¨ط¯ط¦ظٹ ظ„ظ„ظ…ظˆط¸ظپطŒ ظˆظٹظ…ظƒظ† ط§ط³طھظƒظ…ط§ظ„ ط§ظ„طھظپط§طµظٹظ„ ط¯ط§ط®ظ„ ظ…ظ„ظپ ط§ظ„ظ…ظˆط¸ظپ ظ„ط§ط­ظ‚ظ‹ط§.">
           <div className="form-grid">
             <div className="field">
-              <span>نوع التعاقد</span>
-              <input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="اختياري" />
+              <span>ظ†ظˆط¹ ط§ظ„طھط¹ط§ظ‚ط¯</span>
+              <input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="ط§ط®طھظٹط§ط±ظٹ" />
             </div>
             <div className="field">
-              <span>المرتب الأساسي</span>
-              <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
+              <span>ط§ظ„ط±ط§طھط¨ ط§ظ„ط£ط³ط§ط³ظٹ</span>
+              <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="ط§ط®طھظٹط§ط±ظٹ" />
             </div>
           </div>
         </Card>
 
-        <Card title="بيانات الدوام والأجر" description="تحديد نوع الأجر وجدول الدوام المتوقع للموظف.">
+        <Card title="ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¯ظˆط§ظ… ظˆط§ظ„ط£ط¬ط±" description="طھط­ط¯ظٹط¯ ظ†ظˆط¹ ط§ظ„ط£ط¬ط± ظˆط¬ط¯ظˆظ„ ط§ظ„ط¯ظˆط§ظ… ط§ظ„ظ…طھظˆظ‚ط¹ ظ„ظ„ظ…ظˆط¸ظپ.">
           <div className="form-grid">
             <label className="field">
-              <span>نوع الأجر</span>
+              <span>ظ†ظˆط¹ ط§ظ„ط£ط¬ط±</span>
               <select value={draft.compensationType} onChange={(e) => setDraft((current) => ({ ...current, compensationType: e.target.value === 'hourly' ? 'hourly' : 'monthly' }))}>
-                <option value="monthly">راتب شهري</option>
-                <option value="hourly">أجر بالساعة</option>
+                <option value="monthly">ط±ط§طھط¨ ط´ظ‡ط±ظٹ</option>
+                <option value="hourly">ط£ط¬ط± ط¨ط§ظ„ط³ط§ط¹ط©</option>
               </select>
             </label>
             {draft.compensationType === 'monthly' ? (
               <label className="field">
-                <span>الراتب الشهري الأساسي</span>
-                <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
+                <span>ط§ظ„ط±ط§طھط¨ ط§ظ„ط´ظ‡ط±ظٹ ط§ظ„ط£ط³ط§ط³ظٹ</span>
+                <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="ط§ط®طھظٹط§ط±ظٹ" />
               </label>
             ) : (
               <>
                 <label className="field">
-                  <span>أجر الساعة</span>
+                  <span>ط£ط¬ط± ط§ظ„ط³ط§ط¹ط©</span>
                   <input inputMode="decimal" min="0" value={draft.hourlyRate} onChange={(e) => setDraft((current) => ({ ...current, hourlyRate: e.target.value }))} />
                 </label>
                 <label className="field">
-                  <span>عدد ساعات العمل اليومية المتوقعة</span>
+                  <span>ط¹ط¯ط¯ ط³ط§ط¹ط§طھ ط§ظ„ط¹ظ…ظ„ ط§ظ„ظٹظˆظ…ظٹط© ط§ظ„ظ…طھظˆظ‚ط¹ط©</span>
                   <input inputMode="decimal" min="0" value={draft.expectedDailyHours} onChange={(e) => setDraft((current) => ({ ...current, expectedDailyHours: e.target.value }))} />
                 </label>
               </>
             )}
             <label className="field">
-              <span>موعد الحضور</span>
+              <span>ظ…ظˆط¹ط¯ ط§ظ„ط­ط¶ظˆط±</span>
               <input type="time" value={draft.scheduledCheckInTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckInTime: e.target.value }))} />
             </label>
             <label className="field">
-              <span>موعد الانصراف</span>
+              <span>ظ…ظˆط¹ط¯ ط§ظ„ط§ظ†طµط±ط§ظپ</span>
               <input type="time" value={draft.scheduledCheckOutTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckOutTime: e.target.value }))} />
             </label>
             <label className="field">
-              <span>فترة السماح بالدقائق</span>
+              <span>ظپطھط±ط© ط§ظ„ط³ظ…ط§ط­ ط¨ط§ظ„ط¯ظ‚ط§ط¦ظ‚</span>
               <input inputMode="numeric" min="0" value={draft.graceMinutes} onChange={(e) => setDraft((current) => ({ ...current, graceMinutes: e.target.value }))} />
             </label>
             <label className="field">
-              <span>سياسة الوقت الإضافي</span>
+              <span>ط³ظٹط§ط³ط© ط§ظ„ظˆظ‚طھ ط§ظ„ط¥ط¶ط§ظپظٹ</span>
               <select value={draft.overtimePolicy} onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: (e.target.value as 'review_only' | 'disabled' | 'auto_approved') || 'review_only' }))}>
-                <option value="review_only">مراجعة واعتماد قبل الاحتساب</option>
-                <option value="disabled">غير محتسب</option>
-                <option value="auto_approved">محتسب تلقائيًا</option>
+                <option value="review_only">ظ…ط±ط§ط¬ط¹ط© ظˆط§ط¹طھظ…ط§ط¯ ظ‚ط¨ظ„ ط§ظ„ط§ط­طھط³ط§ط¨</option>
+                <option value="disabled">ط؛ظٹط± ظ…ط­طھط³ط¨</option>
+                <option value="auto_approved">ظ…ط­طھط³ط¨ طھظ„ظ‚ط§ط¦ظٹظ‹ط§</option>
               </select>
             </label>
           </div>
         </Card>
 
-        <Card title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">
+        <Card title="ظ…ط±ط§ط¬ط¹ط© ظ‚ط¨ظ„ ط§ظ„ط­ظپط¸" description="طھظ†ط¨ظٹظ‡ط§طھ ط¨ط³ظٹط·ط© ظ„طھظ‚ظ„ظٹظ„ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ†ط§ظ‚طµط©. ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ط§ظ„طھظ†ط¸ظٹظ…ظٹط© ظ„ط§ طھظ…ظ†ط¹ ط§ظ„ط­ظپط¸.">
           {reviewWarnings.length ? (
             <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>
               {reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}
             </ul>
-          ) : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}
+          ) : <p className="muted">ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط© ط¬ط§ظ‡ط²ط© ظ„ظ„ط­ظپط¸.</p>}
         </Card>
 
-        <Card title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف.">
+        <Card title="ظ…ظ„ط§ط­ط¸ط§طھ" description="ط£ظٹ ظ…ظ„ط§ط­ط¸ط§طھ ط¥ط¶ط§ظپظٹط© ط¹ظ„ظ‰ ظ…ظ„ظپ ط§ظ„ظ…ظˆط¸ظپ.">
           <div className="field field-wide">
-            <span>ملاحظات</span>
+            <span>ظ…ظ„ط§ط­ط¸ط§طھ</span>
             <textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} />
           </div>
 
           {submitError ? <div className="error-box" style={{ marginTop: 12 }}>{submitError}</div> : null}
 
           <div className="actions compact-actions" style={{ marginTop: 16 }}>
-            <Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>إلغاء</Button>
-            <Button type="submit" disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ الموظف'}</Button>
+            <Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>ط¥ظ„ط؛ط§ط،</Button>
+            <Button type="submit" disabled={isBusy}>{isBusy ? 'ط¬ط§ط±ظٹ ط§ظ„ط­ظپط¸...' : 'ط­ظپط¸ ط§ظ„ظ…ظˆط¸ظپ'}</Button>
           </div>
         </Card>
       </form>
     </div>
   );
 }
+

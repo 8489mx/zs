@@ -61,7 +61,7 @@ export function EmployeesPage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="الموظفين"
+        title="الموظفون"
         description="مساحة تشغيل الموظفين: بحث سريع، متابعة اكتمال البيانات، وفتح ملف الموظف من مكان واضح."
         actions={<Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>}
       />
@@ -125,7 +125,7 @@ export function EmployeesPage() {
           isEmpty={!rows.length}
           loadingText="جاري تحميل بيانات الموظفين..."
           errorTitle="تعذر تحميل بيانات الموظفين"
-          emptyTitle={search || status ? 'لا توجد نتائج مطابقة للبحث أو الفلتر الحالي.' : 'لا يوجد موظفين حتى الآن. ابدأ بإضافة أول موظف.'}
+          emptyTitle={search || status ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد بيانات حتى الآن.'}
         >
           <DataTable
             rows={rows}
@@ -176,3 +176,4 @@ export function EmployeesPage() {
     </div>
   );
 }
+
