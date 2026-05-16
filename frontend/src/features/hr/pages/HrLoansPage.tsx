@@ -34,6 +34,31 @@ interface RepaymentDraft {
   notes: string;
 }
 
+type LoanQuickFilter = 'active' | 'due' | 'pending' | 'closed' | 'all';
+
+function normalize(value: unknown) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function hasDueInstallment(row: HrLoan) {
+  return Number(row.dueInstallmentsAmount || 0) > 0 || Number(row.dueInstallmentsCount || 0) > 0;
+}
+
+function isActiveLoan(row: HrLoan) {
+  const status = normalize(row.status);
+  return Number(row.remainingAmount || 0) > 0 && status !== 'cancelled' && status !== 'repaid' && status !== 'paid';
+}
+
+function matchesQuickFilter(row: HrLoan, filter: LoanQuickFilter) {
+  const status = normalize(row.status);
+  if (filter === 'all') return true;
+  if (filter === 'active') return isActiveLoan(row);
+  if (filter === 'due') return hasDueInstallment(row);
+  if (filter === 'pending') return !status || status === 'pending' || status === 'draft' || status === 'new' || status === 'approved';
+  if (filter === 'closed') return status === 'repaid' || status === 'paid' || status === 'cancelled' || Number(row.remainingAmount || 0) <= 0;
+  return true;
+}
+
 export function HrLoansPage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
@@ -42,6 +67,8 @@ export function HrLoansPage() {
   const canViewSalaryAmounts = useHasAnyPermission(['hrLoans', 'hrSalaryView', 'hrSalaryManage', 'hrPayrollManage', 'hrPayrollApprove']);
 
   const [search, setSearch] = useState('');
+  const [quickFilter, setQuickFilter] = useState<LoanQuickFilter>('active');
+  const [showCreate, setShowCreate] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [loanDraft, setLoanDraft] = useState<LoanDraft>(createInitialLoanDraft);
@@ -53,12 +80,23 @@ export function HrLoansPage() {
   const workspace = useHrWorkspace({ search, page, pageSize });
   const employees = useMemo(() => workspace.employees.data?.employees || [], [workspace.employees.data?.employees]);
   const loans = useMemo(() => (workspace.loans.data?.loans || []) as HrLoan[], [workspace.loans.data?.loans]);
-  const totalItems = Number(workspace.loans.data?.summary?.totalItems || loans.length || 0);
+  const visibleLoans = useMemo(() => loans.filter((row) => matchesQuickFilter(row, quickFilter)), [loans, quickFilter]);
+  const totalItems = quickFilter === 'all' ? Number(workspace.loans.data?.summary?.totalItems || loans.length || 0) : visibleLoans.length;
 
   const selectedRepaymentLoan = useMemo(
     () => loans.find((row) => String(row.id) === String(selectedLoanForRepayment)),
     [loans, selectedLoanForRepayment],
   );
+
+  const summary = useMemo(() => {
+    const active = loans.filter(isActiveLoan).length;
+    const due = loans.filter(hasDueInstallment).length;
+    const pending = loans.filter((row) => matchesQuickFilter(row, 'pending')).length;
+    const closed = loans.filter((row) => matchesQuickFilter(row, 'closed')).length;
+    const dueAmount = loans.reduce((sum, row) => sum + Number(row.dueInstallmentsAmount || 0), 0);
+    const remainingAmount = loans.reduce((sum, row) => sum + Number(row.remainingAmount || 0), 0);
+    return { total: loans.length, active, due, pending, closed, dueAmount, remainingAmount, visible: visibleLoans.length };
+  }, [loans, visibleLoans.length]);
 
   const planPreview = useMemo(() => {
     const principalAmount = parsePositiveNumber(loanDraft.principalAmount);
@@ -145,6 +183,8 @@ export function HrLoansPage() {
         },
       });
       setLoanDraft(createInitialLoanDraft());
+      setShowCreate(false);
+      setQuickFilter('active');
     } catch (error) {
       setFormError(getErrorMessage(error, 'تعذر حفظ السلفة.'));
     }
@@ -181,8 +221,14 @@ export function HrLoansPage() {
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="السلف والخصومات"
-        description="إدارة السلف وخطط السداد ومراجعة الأقساط المستحقة للموظفين."
-        actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>}
+        description="سجل السلفة، راجع الأقساط المستحقة، ثم تأكد من ظهورها في المرتبات قبل الاعتماد."
+        actions={(
+          <div className="compact-actions">
+            <Button type="button" onClick={() => setShowCreate((current) => !current)}>{showCreate ? 'إغلاق نموذج السلفة' : 'سلفة جديدة'}</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+          </div>
+        )}
       />
 
       {!canViewLoans ? (
@@ -192,22 +238,54 @@ export function HrLoansPage() {
         </Card>
       ) : (
         <>
-            <Card title="سلفة جديدة">
-        <HrLoanCreateForm
-          loanDraft={loanDraft}
-          employees={employees as HrEmployee[]}
-          canManageLoans={canManageLoans}
-          formError={formError}
-          planPreview={planPreview}
-          isPending={mutations.saveLoan.isPending}
-          onChange={(patch) => setLoanDraft((current) => ({ ...current, ...patch }))}
-          onSubmit={() => {
-            void handleCreateLoan();
-          }}
-        />
+      <Card title="تسلسل السلف والخصومات" description="استخدم الصفحة بهذا الترتيب حتى لا تظهر خصومات مفاجئة في المرتبات.">
+        <div className="form-grid">
+          <div className="field"><strong>1. سجل السلفة</strong><span className="muted">اختر الموظف والمبلغ وخطة السداد.</span></div>
+          <div className="field"><strong>2. اعتمد أو اصرف</strong><span className="muted">راجع السلف الجديدة قبل صرفها فعليًا.</span></div>
+          <div className="field"><strong>3. راجع أقساط الشهر</strong><span className="muted">الأقساط المستحقة تنتقل للمراجعة في المرتبات.</span></div>
+          <div className="field"><strong>4. تابع السداد</strong><span className="muted">سجل السداد اليدوي أو راجع الخصم من المرتب.</span></div>
+        </div>
       </Card>
 
-      <Card title="قائمة السلف">
+      {showCreate ? (
+        <Card title="سلفة جديدة" description="اختر طريقة السداد قبل الحفظ. خطة السداد لا تُخصم من المرتب إلا داخل مسير المرتبات.">
+          <HrLoanCreateForm
+            loanDraft={loanDraft}
+            employees={employees as HrEmployee[]}
+            canManageLoans={canManageLoans}
+            formError={formError}
+            planPreview={planPreview}
+            isPending={mutations.saveLoan.isPending}
+            onChange={(patch) => setLoanDraft((current) => ({ ...current, ...patch }))}
+            onSubmit={() => {
+              void handleCreateLoan();
+            }}
+          />
+        </Card>
+      ) : null}
+
+      <Card title="ملخص السلف" description="اضغط على الكروت لتصفية القائمة مباشرة.">
+        <div className="stats-grid">
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي السلف</span><strong>{summary.total}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('active'); setPage(1); }} style={{ textAlign: 'right' }}><span>سلف نشطة</span><strong>{summary.active}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('due'); setPage(1); }} style={{ textAlign: 'right' }}><span>أقساط مستحقة</span><strong>{summary.due}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setPage(1); }} style={{ textAlign: 'right' }}><span>تحتاج اعتماد/صرف</span><strong>{summary.pending}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('closed'); setPage(1); }} style={{ textAlign: 'right' }}><span>مغلقة/مسددة</span><strong>{summary.closed}</strong></button>
+          <div className="stat-card"><span>إجمالي مستحق هذا الشهر</span><strong>{canViewSalaryAmounts ? money(summary.dueAmount) : '—'}</strong></div>
+          <div className="stat-card"><span>إجمالي المتبقي</span><strong>{canViewSalaryAmounts ? money(summary.remainingAmount) : '—'}</strong></div>
+          <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
+        </div>
+      </Card>
+
+      <Card title="قائمة السلف" description="السلف النشطة تظهر افتراضيًا. استخدم الفلاتر لمراجعة المستحق أو المغلق.">
+        <div className="compact-actions" style={{ marginBottom: 12 }}>
+          <Button type="button" variant={quickFilter === 'active' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('active'); setPage(1); }}>نشطة</Button>
+          <Button type="button" variant={quickFilter === 'due' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('due'); setPage(1); }}>أقساط مستحقة</Button>
+          <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setPage(1); }}>تحتاج اعتماد/صرف</Button>
+          <Button type="button" variant={quickFilter === 'closed' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('closed'); setPage(1); }}>مغلقة/مسددة</Button>
+          <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }}>كل السلف</Button>
+        </div>
+
         <SearchToolbar
           search={search}
           onSearchChange={(value) => {
@@ -222,13 +300,14 @@ export function HrLoansPage() {
           isLoading={workspace.loans.isLoading}
           isError={workspace.loans.isError}
           error={workspace.loans.error}
-          isEmpty={!loans.length}
+          isEmpty={!visibleLoans.length}
           loadingText="جاري تحميل السلف..."
           errorTitle="تعذر تحميل بيانات السلف"
-          emptyTitle="لا توجد سلف مسجلة حتى الآن."
+          emptyTitle={search || quickFilter !== 'all' ? 'لا توجد سلف مطابقة للفلاتر الحالية.' : 'لا توجد سلف مسجلة حتى الآن.'}
+          emptyHint={search || quickFilter !== 'all' ? 'جرّب تغيير الفلتر أو البحث.' : 'ابدأ بتسجيل سلفة جديدة من زر أعلى الصفحة.'}
         >
           <DataTable
-            rows={loans}
+            rows={visibleLoans}
             rowKey={(row) => String(row.id)}
             density="compact"
             pagination={{
@@ -248,6 +327,7 @@ export function HrLoansPage() {
               { key: 'loanType', header: 'النوع', cell: (row) => loanTypeLabel(row.loanType) },
               { key: 'principalAmount', header: 'قيمة السلفة', cell: (row) => canViewSalaryAmounts ? money(row.principalAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
               { key: 'remainingAmount', header: 'المتبقي', cell: (row) => canViewSalaryAmounts ? money(row.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
+              { key: 'dueInstallmentsAmount', header: 'مستحق هذا الشهر', cell: (row) => canViewSalaryAmounts ? money(row.dueInstallmentsAmount || 0) : 'لا تملك صلاحية عرض هذه البيانات.' },
               { key: 'repaymentMode', header: 'طريقة السداد', cell: (row) => repaymentModeLabel(row.repaymentMode) },
               { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
               { key: 'issueDate', header: 'تاريخ السلفة', cell: (row) => fallbackText(row.issueDate) },
@@ -292,7 +372,7 @@ export function HrLoansPage() {
                 key: 'actions',
                 header: 'إجراءات',
                 cell: (row) => {
-                  const status = String(row.status || '').trim().toLowerCase();
+                  const status = normalize(row.status);
                   const canApprove = canManageLoans && (!status || status === 'pending' || status === 'draft' || status === 'new');
                   const canDisburse = canManageLoans && status === 'approved';
                   const canRepay = canManageLoans && Number(row.remainingAmount || 0) > 0;
@@ -308,7 +388,7 @@ export function HrLoansPage() {
             ]}
           />
 
-                    {selectedRepaymentLoan ? (
+          {selectedRepaymentLoan ? (
             <HrLoanRepaymentForm
               selectedLoanLabel={fallbackText(selectedRepaymentLoan.loanNo || selectedRepaymentLoan.id)}
               remainingAmountText={canViewSalaryAmounts ? money(selectedRepaymentLoan.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}
@@ -324,10 +404,12 @@ export function HrLoansPage() {
           ) : null}
         </QueryFeedback>
       </Card>
+
+      <Card title="ملاحظة تشغيلية">
+        <p className="muted" style={{ margin: 0 }}>الأقساط المستحقة تظهر في مراجعة المرتبات للشهر المحدد. لا تعتمد المرتبات قبل مراجعة السلف النشطة والمستحقة.</p>
+      </Card>
       </>
       )}
     </div>
   );
 }
-
-
