@@ -130,9 +130,9 @@ export function QuickAttendanceShortcut({ open, onClose }: QuickAttendanceShortc
   }
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(760px, 100%)" ariaLabel="تسجيل حضور أو انصراف سريع">
-      <div className="stack gap-12" dir="rtl">
-        <div className="stack gap-4">
+    <DialogShell open={open} onClose={onClose} width="min(760px, calc(100vw - 32px))" ariaLabel="تسجيل حضور أو انصراف سريع">
+      <div className="stack gap-12" dir="rtl" style={{ boxSizing: 'border-box', maxHeight: 'calc(100vh - 48px)', minWidth: 0, overflowX: 'hidden', overflowY: 'auto', paddingInline: 2 }}>
+        <div className="stack gap-4" style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0 }}>تسجيل حضور أو انصراف سريع</h3>
           <p className="muted" style={{ margin: 0 }}>
             ابحث عن الموظف بالاسم أو الكود وسجّل الحضور أو الانصراف دون مغادرة الصفحة الحالية.
@@ -140,7 +140,7 @@ export function QuickAttendanceShortcut({ open, onClose }: QuickAttendanceShortc
           <p className="muted" style={{ margin: 0 }}>الاختصار: {QUICK_ATTENDANCE_SHORTCUT}</p>
         </div>
 
-        <label className="field">
+        <label className="field" style={{ minWidth: 0 }}>
           <span>بحث الموظف</span>
           <input
             data-autofocus
@@ -150,7 +150,7 @@ export function QuickAttendanceShortcut({ open, onClose }: QuickAttendanceShortc
           />
         </label>
 
-        <div className="card-soft" style={{ maxHeight: 260, overflow: 'auto', padding: 8 }}>
+        <div className="card-soft" style={{ boxSizing: 'border-box', maxHeight: 260, overflowX: 'hidden', overflowY: 'auto', padding: 8 }}>
           {filteredEmployees.length ? filteredEmployees.map((employee) => {
             const row = attendanceMap.get(String(employee.id));
             const rowHasCheckIn = Boolean(String(row?.checkInAt || '').trim());
@@ -165,10 +165,10 @@ export function QuickAttendanceShortcut({ open, onClose }: QuickAttendanceShortc
                 key={String(employee.id)}
                 type="button"
                 className={`sidebar-link ${selectedEmployeeId === String(employee.id) ? 'active' : ''}`.trim()}
-                style={{ width: '100%', textAlign: 'right', marginBottom: 6 }}
+                style={{ boxSizing: 'border-box', display: 'block', marginBottom: 6, padding: '10px 12px', textAlign: 'right', whiteSpace: 'normal', width: '100%' }}
                 onClick={() => setSelectedEmployeeId(String(employee.id))}
               >
-                <span className="sidebar-label">
+                <span className="sidebar-label" style={{ minWidth: 0 }}>
                   <strong>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
                   <small className="muted" style={{ display: 'block' }}>
                     كود الموظف: {employee.employeeNo || '—'} · الحالة اليوم: {stateLabel}
@@ -201,7 +201,7 @@ export function QuickAttendanceShortcut({ open, onClose }: QuickAttendanceShortc
           <p className="muted" style={{ margin: 0 }}>{feedback}</p>
         ) : null}
 
-        <div className="actions compact-actions">
+        <div className="actions compact-actions" style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
           <Button type="button" variant="secondary" onClick={onClose}>إغلاق</Button>
           {primaryActionLabel ? (
             <Button
@@ -224,7 +224,7 @@ function CardSummary({ employee, attendance }: { employee: HrEmployee; attendanc
   const checkIn = String(attendance?.checkInAt || '').trim();
   const checkOut = String(attendance?.checkOutAt || '').trim();
   return (
-    <div className="card-soft" style={{ padding: 10 }}>
+    <div className="card-soft" style={{ boxSizing: 'border-box', padding: 10 }}>
       <strong>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
       <div className="muted" style={{ marginTop: 6 }}>
         كود الموظف: {employee.employeeNo || '—'}<br />
