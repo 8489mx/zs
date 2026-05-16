@@ -135,6 +135,58 @@ export function HrPayrollPage() {
   }, [runs, runStatusFilter]);
 
   const hasCreatePayrollRun = Boolean(mutations.createPayrollRun);
+  const selectedRunStatus = normalize(selectedRun?.status);
+  const runIsFinal = selectedRunStatus === 'approved' || selectedRunStatus === 'paid';
+  const payrollChecklist = useMemo(() => {
+    const hasRun = Boolean(selectedRun);
+    const hasItems = filteredRunItems.length > 0;
+    return [
+      {
+        key: 'run',
+        title: 'اختيار كشف المرتبات',
+        status: hasRun ? `تم اختيار كشف ${text(selectedRun?.periodMonth)}` : 'اختر كشفًا من جدول كشوف المرتبات أولًا.',
+        ok: hasRun,
+        action: 'اختيار كشف',
+        onClick: undefined,
+      },
+      {
+        key: 'items',
+        title: 'وجود موظفين داخل الكشف',
+        status: hasItems ? `${filteredRunItems.length} موظف ظاهر حسب الفلاتر الحالية.` : 'لا توجد بنود موظفين ظاهرة. راجع الفلاتر أو أنشئ المسير.',
+        ok: hasItems,
+        action: 'مسح فلاتر المراجعة',
+        onClick: () => {
+          setSearch('');
+          setDepartmentFilter('all');
+          setReviewStatusFilter('all');
+        },
+      },
+      {
+        key: 'review',
+        title: 'مراجعة الحضور والإجازات',
+        status: summary.needsReview > 0 ? `${summary.needsReview} موظف يحتاج مراجعة قبل الاعتماد.` : 'لا توجد تنبيهات مراجعة ظاهرة في الفلتر الحالي.',
+        ok: summary.needsReview === 0,
+        action: summary.needsReview > 0 ? 'عرض المحتاج مراجعة' : 'فتح الحضور',
+        onClick: summary.needsReview > 0 ? () => setReviewStatusFilter('needs_review') : () => navigate('/hr/attendance'),
+      },
+      {
+        key: 'loans',
+        title: 'أقساط السلف لهذا الشهر',
+        status: dueLoanInstallmentRows.length > 0 ? `${dueLoanInstallmentRows.length} موظف لديهم خصم سلفة/قسط داخل الكشف.` : 'لا توجد أقساط سلف ظاهرة داخل الكشف الحالي.',
+        ok: true,
+        action: 'فتح السلف',
+        onClick: () => navigate('/hr/loans'),
+      },
+      {
+        key: 'status',
+        title: 'حالة الاعتماد',
+        status: runIsFinal ? 'الكشف معتمد/مصروف. أي تعديل يحتاج مراجعة إدارية.' : 'الكشف ما زال قابلًا للمراجعة قبل الاعتماد النهائي.',
+        ok: runIsFinal || summary.needsReview === 0,
+        action: 'فتح تفاصيل الكشف',
+        onClick: undefined,
+      },
+    ];
+  }, [dueLoanInstallmentRows.length, filteredRunItems.length, navigate, runIsFinal, selectedRun, summary.needsReview]);
 
   async function handleCreateRun(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,7 +213,7 @@ export function HrPayrollPage() {
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="المرتبات"
-        description="مساحة تشغيل شهرية لمراجعة كشوف المرتبات قبل الاعتماد والصرف."
+        description="مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة."
         actions={
           <div className="actions compact-actions">
             {hasCreatePayrollRun && canManagePayroll ? (
@@ -169,6 +221,7 @@ export function HrPayrollPage() {
                 إنشاء مسير الشهر
               </Button>
             ) : null}
+            <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>مراجعة الحضور</Button>
             <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
         }
@@ -181,6 +234,15 @@ export function HrPayrollPage() {
         </Card>
       ) : (
         <>
+      <Card title="تسلسل المرتبات الشهري" description="لا تعتمد المرتبات قبل المرور على نقاط المراجعة الأساسية.">
+        <div className="form-grid">
+          <div className="field"><strong>1. إنشاء/اختيار المسير</strong><span className="muted">اختر شهر المرتبات ثم افتح كشف الشهر.</span></div>
+          <div className="field"><strong>2. مراجعة الحضور</strong><span className="muted">تأكد من اعتماد أو تخطي الاستثناءات المؤثرة على الأجر.</span></div>
+          <div className="field"><strong>3. مراجعة السلف والإجازات</strong><span className="muted">راجع الأقساط والخصومات والإجازات غير المدفوعة.</span></div>
+          <div className="field"><strong>4. الاعتماد والصرف</strong><span className="muted">بعد زوال التنبيهات، اعتمد الكشف ثم انتقل للصرف.</span></div>
+        </div>
+      </Card>
+
       <HrPayrollTopSections
         monthFilter={monthFilter}
         search={search}
@@ -205,6 +267,21 @@ export function HrPayrollPage() {
         onDraftChange={setDraft}
         onCreateRun={(event) => { void handleCreateRun(event); }}
       />
+
+      <Card title="مراجعة قبل الاعتماد" description="قائمة مختصرة تمنع نسيان الحضور أو السلف أو البنود التي تحتاج مراجعة قبل اعتماد المرتبات.">
+        <div className="form-grid">
+          {payrollChecklist.map((item) => (
+            <div key={item.key} className="field" style={{ alignItems: 'flex-start' }}>
+              <strong>{item.ok ? '✓' : '•'} {item.title}</strong>
+              <span className="muted">{item.status}</span>
+              {item.onClick ? (
+                <Button type="button" variant="secondary" onClick={item.onClick}>{item.action}</Button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <Card title="كشوف المرتبات الشهرية">
         <QueryFeedback
           isLoading={workspace.payrollRuns.isLoading}
@@ -362,7 +439,7 @@ export function HrPayrollPage() {
 
       <Card title="ملاحظة تشغيلية">
         <p className="muted" style={{ margin: 0 }}>
-          بعض تنبيهات المراجعة تحتاج ربط بيانات إضافية لاحقًا.
+          اعتمد المرتبات بعد مراجعة الحضور، الإجازات، والسلف. أي خصومات مقترحة تظهر للمراجعة ولا تُعامل كقرار نهائي إلا بعد اعتماد المسؤول.
         </p>
       </Card>
       </>
@@ -370,6 +447,4 @@ export function HrPayrollPage() {
     </div>
   );
 }
-
-
 
