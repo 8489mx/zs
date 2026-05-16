@@ -18,6 +18,8 @@ type DraftRow = {
   notes: string;
 };
 
+type ExceptionFilter = 'all' | 'needs_action' | 'overtime' | 'deduction';
+
 function todayDate() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -77,17 +79,35 @@ function isOvertimeException(type: string) {
   return type === 'early_check_in' || type === 'late_check_out';
 }
 
+function isDeductionException(type: string) {
+  return type === 'late_check_in' || type === 'early_check_out' || type === 'missing_check_in' || type === 'missing_check_out';
+}
+
+function isActionableException(row: HrAttendanceException) {
+  const status = String(row.status || '').toLowerCase();
+  return status === 'pending' || status === 'needs_review';
+}
+
+function filterExceptions(rows: HrAttendanceException[], filter: ExceptionFilter) {
+  if (filter === 'needs_action') return rows.filter(isActionableException);
+  if (filter === 'overtime') return rows.filter((row) => isOvertimeException(row.exceptionType));
+  if (filter === 'deduction') return rows.filter((row) => isDeductionException(row.exceptionType));
+  return rows;
+}
+
 export function HrAttendancePage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
   const [date, setDate] = useState(todayDate());
   const [search, setSearch] = useState('');
+  const [exceptionFilter, setExceptionFilter] = useState<ExceptionFilter>('needs_action');
   const [draftByEmployeeId, setDraftByEmployeeId] = useState<Record<string, DraftRow>>({});
 
   const attendance = useHrAttendance({ date, search, page: 1, pageSize: 200 });
   const exceptions = useHrAttendanceExceptions({ date, search, page: 1, pageSize: 200 });
   const rows = useMemo(() => (attendance.data?.rows || []) as HrAttendanceRecord[], [attendance.data?.rows]);
-  const exceptionRows = useMemo(() => (exceptions.data?.rows || []) as HrAttendanceException[], [exceptions.data?.rows]);
+  const allExceptionRows = useMemo(() => (exceptions.data?.rows || []) as HrAttendanceException[], [exceptions.data?.rows]);
+  const exceptionRows = useMemo(() => filterExceptions(allExceptionRows, exceptionFilter), [allExceptionRows, exceptionFilter]);
 
   useEffect(() => {
     const next: Record<string, DraftRow> = {};
@@ -117,8 +137,11 @@ export function HrAttendancePage() {
       else if (status === 'absent') absent += 1;
       else if (status === 'late') late += 1;
     }
-    return { total: rows.length, present, absent, late, unmarked };
-  }, [rows, draftByEmployeeId]);
+    const needsAction = allExceptionRows.filter(isActionableException).length;
+    const overtime = allExceptionRows.filter((row) => isOvertimeException(row.exceptionType)).length;
+    const deduction = allExceptionRows.filter((row) => isDeductionException(row.exceptionType)).length;
+    return { total: rows.length, present, absent, late, unmarked, needsAction, overtime, deduction };
+  }, [rows, draftByEmployeeId, allExceptionRows]);
 
   const updateDraft = (employeeId: string, patch: Partial<DraftRow>) => {
     setDraftByEmployeeId((current) => ({
@@ -154,18 +177,28 @@ export function HrAttendancePage() {
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="الحضور والانصراف"
-        description="مساحة العمل اليومية لمتابعة الحضور والانصراف ومراجعة الاستثناءات."
+        description="ابدأ بتحديد اليوم، راجع الاستثناءات التي تؤثر على الراتب، ثم احفظ أي تعديل على سجل الحضور."
         actions={(
           <div className="compact-actions">
             <Button onClick={saveDay} disabled={mutations.saveAttendanceDay.isPending}>
               {mutations.saveAttendanceDay.isPending ? 'جاري الحفظ...' : 'حفظ اليوم'}
             </Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
             <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
         )}
       />
 
-      <Card title="فلاتر اليوم">
+      <Card title="تسلسل العمل في صفحة الحضور" description="استخدم هذه الصفحة كمسار يومي واضح بدل التنقل بين أكثر من مكان.">
+        <div className="form-grid">
+          <div className="field"><strong>1. اختر اليوم</strong><span className="muted">حدد التاريخ وابحث عن الموظف عند الحاجة.</span></div>
+          <div className="field"><strong>2. راجع الاستثناءات</strong><span className="muted">اعتمد أو تخطَّى الحضور المبكر والانصراف المتأخر قبل المرتبات.</span></div>
+          <div className="field"><strong>3. عدّل السجل</strong><span className="muted">سجل حضور أو انصراف يدويًا عند وجود نسيان أو خطأ.</span></div>
+          <div className="field"><strong>4. احفظ اليوم</strong><span className="muted">الحفظ يعيد حساب الاستثناءات الخاصة بهذا اليوم.</span></div>
+        </div>
+      </Card>
+
+      <Card title="اليوم والبحث" description="اختيار التاريخ والبحث يؤثران على السجل والاستثناءات معًا.">
         <div className="form-grid">
           <label className="field">
             <span>التاريخ</span>
@@ -178,17 +211,69 @@ export function HrAttendancePage() {
         </div>
       </Card>
 
-      <Card title="ملخص اليوم">
+      <Card title="ملخص اليوم" description="اضغط على أرقام الاستثناءات لتصفية قائمة المراجعة بالأسفل.">
         <div className="stats-grid">
           <div className="stat-card"><span>إجمالي الموظفين</span><strong>{summary.total}</strong></div>
           <div className="stat-card"><span>حاضر</span><strong>{summary.present}</strong></div>
           <div className="stat-card"><span>غائب</span><strong>{summary.absent}</strong></div>
           <div className="stat-card"><span>متأخر</span><strong>{summary.late}</strong></div>
           <div className="stat-card"><span>غير مسجل / يحتاج مراجعة</span><strong>{summary.unmarked}</strong></div>
+          <button className="stat-card" type="button" onClick={() => setExceptionFilter('needs_action')} style={{ textAlign: 'right' }}><span>استثناءات تحتاج إجراء</span><strong>{summary.needsAction}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setExceptionFilter('overtime')} style={{ textAlign: 'right' }}><span>وقت إضافي محتمل</span><strong>{summary.overtime}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setExceptionFilter('deduction')} style={{ textAlign: 'right' }}><span>خصم/نقص محتمل</span><strong>{summary.deduction}</strong></button>
         </div>
       </Card>
 
-      <Card title="سجل الحضور اليومي">
+      <Card title="استثناءات تحتاج مراجعة" description="هذه أهم منطقة قبل المرتبات: الحضور المبكر والانصراف المتأخر يمكن اعتمادهما كوقت إضافي، أما التأخير والانصراف المبكر فيظهران للمراجعة.">
+        <div className="compact-actions" style={{ marginBottom: 12 }}>
+          <Button type="button" variant={exceptionFilter === 'needs_action' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('needs_action')}>يحتاج إجراء</Button>
+          <Button type="button" variant={exceptionFilter === 'overtime' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('overtime')}>وقت إضافي محتمل</Button>
+          <Button type="button" variant={exceptionFilter === 'deduction' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('deduction')}>خصم/نقص محتمل</Button>
+          <Button type="button" variant={exceptionFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('all')}>كل الاستثناءات</Button>
+        </div>
+        <QueryFeedback
+          isLoading={exceptions.isLoading}
+          isError={exceptions.isError}
+          error={exceptions.error}
+          isEmpty={!exceptionRows.length}
+          loadingText="جاري تحميل الاستثناءات..."
+          errorTitle="تعذر تحميل الاستثناءات."
+          emptyTitle="لا توجد استثناءات مطابقة لهذا الفلتر."
+        >
+          <DataTable
+            rows={exceptionRows}
+            rowKey={(row) => row.id}
+            density="compact"
+            columns={[
+              { key: 'workDate', header: 'التاريخ', cell: (row) => row.workDate || '—' },
+              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => row.employeeNo || '—' },
+              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => row.employeeName || '—' },
+              { key: 'exceptionType', header: 'نوع الاستثناء', cell: (row) => exceptionTypeLabel(row.exceptionType) },
+              { key: 'scheduledTime', header: 'المجدول', cell: (row) => row.scheduledTime || '—' },
+              { key: 'actualTime', header: 'الفعلي', cell: (row) => row.actualTime || '—' },
+              { key: 'durationMinutes', header: 'المدة', cell: (row) => `${row.durationMinutes || 0} دقيقة` },
+              { key: 'status', header: 'الحالة', cell: (row) => exceptionStatusLabel(row.status) },
+              {
+                key: 'actions',
+                header: 'الإجراء',
+                cell: (row) => isOvertimeException(row.exceptionType) && row.status === 'pending' ? (
+                  <div className="compact-actions">
+                    <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>اعتماد كوقت إضافي</Button>
+                    <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
+                  </div>
+                ) : (
+                  <span className="muted">{exceptionStatusLabel(row.status)}</span>
+                ),
+              },
+            ]}
+          />
+        </QueryFeedback>
+        {(mutations.approveAttendanceException.isError || mutations.skipAttendanceException.isError)
+          ? <p className="muted">{getErrorMessage(mutations.approveAttendanceException.error || mutations.skipAttendanceException.error, 'تعذر تحديث حالة الاستثناء.')}</p>
+          : null}
+      </Card>
+
+      <Card title="سجل الحضور اليومي" description="استخدمه للتعديل اليدوي عند نسيان الحضور أو الانصراف، ثم اضغط حفظ اليوم.">
         <QueryFeedback
           isLoading={attendance.isLoading}
           isError={attendance.isError}
@@ -270,49 +355,6 @@ export function HrAttendancePage() {
             ]}
           />
         </QueryFeedback>
-      </Card>
-
-      <Card title="استثناءات الحضور والانصراف" description="الاستثناءات تُعرض بشكل منفصل لكل نوع في نفس اليوم.">
-        <QueryFeedback
-          isLoading={exceptions.isLoading}
-          isError={exceptions.isError}
-          error={exceptions.error}
-          isEmpty={!exceptionRows.length}
-          loadingText="جاري تحميل الاستثناءات..."
-          errorTitle="تعذر تحميل الاستثناءات."
-          emptyTitle="لا توجد استثناءات حضور أو انصراف لهذا اليوم."
-        >
-          <DataTable
-            rows={exceptionRows}
-            rowKey={(row) => row.id}
-            density="compact"
-            columns={[
-              { key: 'workDate', header: 'التاريخ', cell: (row) => row.workDate || '—' },
-              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => row.employeeNo || '—' },
-              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => row.employeeName || '—' },
-              { key: 'exceptionType', header: 'نوع الاستثناء', cell: (row) => exceptionTypeLabel(row.exceptionType) },
-              { key: 'scheduledTime', header: 'الوقت المجدول', cell: (row) => row.scheduledTime || '—' },
-              { key: 'actualTime', header: 'الوقت الفعلي', cell: (row) => row.actualTime || '—' },
-              { key: 'durationMinutes', header: 'المدة', cell: (row) => `${row.durationMinutes || 0} دقيقة` },
-              { key: 'status', header: 'الحالة', cell: (row) => exceptionStatusLabel(row.status) },
-              {
-                key: 'actions',
-                header: 'الإجراء',
-                cell: (row) => isOvertimeException(row.exceptionType) && row.status === 'pending' ? (
-                  <div className="compact-actions">
-                    <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>اعتماد كوقت إضافي</Button>
-                    <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
-                  </div>
-                ) : (
-                  <span className="muted">{exceptionStatusLabel(row.status)}</span>
-                ),
-              },
-            ]}
-          />
-        </QueryFeedback>
-        {(mutations.approveAttendanceException.isError || mutations.skipAttendanceException.isError)
-          ? <p className="muted">{getErrorMessage(mutations.approveAttendanceException.error || mutations.skipAttendanceException.error, 'تعذر تحديث حالة الاستثناء.')}</p>
-          : null}
       </Card>
     </div>
   );
