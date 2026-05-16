@@ -17,6 +17,15 @@ const STATUS_FILTERS = [
   { value: 'terminated', label: 'منتهي الخدمة' },
 ];
 
+const COMPLETION_FILTERS = [
+  { value: '', label: 'كل الملفات' },
+  { value: 'missingMobile', label: 'ناقص موبايل' },
+  { value: 'missingNationalId', label: 'ناقص رقم قومي' },
+  { value: 'missingOrgData', label: 'ناقص بيانات وظيفية' },
+] as const;
+
+type CompletionFilter = (typeof COMPLETION_FILTERS)[number]['value'];
+
 function statusLabel(status: string) {
   if (status === 'active') return 'نشط';
   if (status === 'inactive') return 'غير نشط';
@@ -38,29 +47,39 @@ function isMissing(value?: string) {
   return !String(value || '').trim();
 }
 
+function matchesCompletionFilter(row: HrEmployee, filter: CompletionFilter) {
+  if (!filter) return true;
+  if (filter === 'missingMobile') return pickMobile(row) === '—';
+  if (filter === 'missingNationalId') return isMissing(row.nationalId);
+  if (filter === 'missingOrgData') return isMissing(row.departmentName) || isMissing(row.jobTitleName);
+  return true;
+}
+
 export function EmployeesPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [completionFilter, setCompletionFilter] = useState<CompletionFilter>('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   const workspace = useHrWorkspace({ search, status, page, pageSize });
   const apiRows = useMemo(() => workspace.employees.data?.employees || [], [workspace.employees.data?.employees]);
-  const rows = useMemo(() => {
+  const statusRows = useMemo(() => {
     if (!status) return apiRows;
     return apiRows.filter((row) => String(row.status || '') === status);
   }, [apiRows, status]);
+  const rows = useMemo(() => statusRows.filter((row) => matchesCompletionFilter(row, completionFilter)), [completionFilter, statusRows]);
   const summary = workspace.employees.data?.summary;
-  const totalItems = status ? rows.length : Number(summary?.totalItems || rows.length || 0);
+  const totalItems = status || completionFilter ? rows.length : Number(summary?.totalItems || rows.length || 0);
 
   const visibleStats = useMemo(() => {
-    const active = rows.filter((row) => String(row.status || '') === 'active').length;
-    const missingMobile = rows.filter((row) => pickMobile(row) === '—').length;
-    const missingNationalId = rows.filter((row) => isMissing(row.nationalId)).length;
-    const missingOrgData = rows.filter((row) => isMissing(row.departmentName) || isMissing(row.jobTitleName)).length;
+    const active = statusRows.filter((row) => String(row.status || '') === 'active').length;
+    const missingMobile = statusRows.filter((row) => pickMobile(row) === '—').length;
+    const missingNationalId = statusRows.filter((row) => isMissing(row.nationalId)).length;
+    const missingOrgData = statusRows.filter((row) => isMissing(row.departmentName) || isMissing(row.jobTitleName)).length;
     return { active, missingMobile, missingNationalId, missingOrgData };
-  }, [rows]);
+  }, [statusRows]);
 
   return (
     <div className="page-stack page-shell" dir="rtl">
@@ -70,28 +89,38 @@ export function EmployeesPage() {
         actions={<Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>}
       />
 
+      <Card title="تشغيل سريع" description="اختصارات مرتبطة بالموظفين دون الرجوع للسايد بار.">
+        <div className="compact-actions" style={{ flexWrap: 'wrap' }}>
+          <Button type="button" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
+          <Button type="button" variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>
+          <Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')}>فتح الإجازات</Button>
+          <Button type="button" variant="secondary" onClick={() => navigate('/hr/loans')}>فتح السلف</Button>
+          <Button type="button" variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
+        </div>
+      </Card>
+
       <Card title="نظرة سريعة" description="مؤشرات تساعدك تراجع بيانات الموظفين الظاهرة في القائمة الحالية.">
         <div className="form-grid">
           <div className="field">
             <span>إجمالي النتائج</span>
             <strong>{totalItems}</strong>
           </div>
-          <div className="field">
-            <span>نشط في الصفحة الحالية</span>
+          <button className="field" type="button" onClick={() => setCompletionFilter('')} style={{ textAlign: 'right' }}>
+            <span>نشط في الفلتر الحالي</span>
             <strong>{visibleStats.active}</strong>
-          </div>
-          <div className="field">
+          </button>
+          <button className="field" type="button" onClick={() => { setCompletionFilter('missingMobile'); setPage(1); }} style={{ textAlign: 'right' }}>
             <span>ناقص موبايل</span>
             <strong>{visibleStats.missingMobile}</strong>
-          </div>
-          <div className="field">
+          </button>
+          <button className="field" type="button" onClick={() => { setCompletionFilter('missingNationalId'); setPage(1); }} style={{ textAlign: 'right' }}>
             <span>ناقص رقم قومي</span>
             <strong>{visibleStats.missingNationalId}</strong>
-          </div>
-          <div className="field">
+          </button>
+          <button className="field" type="button" onClick={() => { setCompletionFilter('missingOrgData'); setPage(1); }} style={{ textAlign: 'right' }}>
             <span>ناقص بيانات وظيفية</span>
             <strong>{visibleStats.missingOrgData}</strong>
-          </div>
+          </button>
         </div>
       </Card>
 
@@ -122,6 +151,22 @@ export function EmployeesPage() {
           ))}
         </div>
 
+        <div className="compact-actions" style={{ marginBottom: 12 }}>
+          {COMPLETION_FILTERS.map((entry) => (
+            <Button
+              key={entry.value || 'all-completion'}
+              type="button"
+              variant={completionFilter === entry.value ? 'primary' : 'secondary'}
+              onClick={() => {
+                setCompletionFilter(entry.value);
+                setPage(1);
+              }}
+            >
+              {entry.label}
+            </Button>
+          ))}
+        </div>
+
         <QueryFeedback
           isLoading={workspace.employees.isLoading}
           isError={workspace.employees.isError}
@@ -129,7 +174,7 @@ export function EmployeesPage() {
           isEmpty={!rows.length}
           loadingText="جاري تحميل بيانات الموظفين..."
           errorTitle="تعذر تحميل بيانات الموظفين"
-          emptyTitle={search || status ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد بيانات حتى الآن.'}
+          emptyTitle={search || status || completionFilter ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد بيانات حتى الآن.'}
         >
           <DataTable
             rows={rows}
@@ -180,4 +225,3 @@ export function EmployeesPage() {
     </div>
   );
 }
-
