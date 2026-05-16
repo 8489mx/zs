@@ -18,6 +18,21 @@ import {
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 
+type ShiftPreset = {
+  label: string;
+  description: string;
+  checkIn: string;
+  checkOut: string;
+  hours: string;
+  grace: string;
+};
+
+const shiftPresets: ShiftPreset[] = [
+  { label: 'وردية المحل الأساسية', description: '10:00 صباحًا إلى 10:00 مساءً · 12 ساعة', checkIn: '10:00', checkOut: '22:00', hours: '12', grace: '15' },
+  { label: 'وردية صباحية', description: '9:00 صباحًا إلى 5:00 مساءً · 8 ساعات', checkIn: '09:00', checkOut: '17:00', hours: '8', grace: '15' },
+  { label: 'وردية مسائية', description: '2:00 ظهرًا إلى 10:00 مساءً · 8 ساعات', checkIn: '14:00', checkOut: '22:00', hours: '8', grace: '15' },
+];
+
 function objectValue(value: unknown, key: string) {
   if (!value || typeof value !== 'object') return undefined;
   return (value as Record<string, unknown>)[key];
@@ -65,9 +80,20 @@ export function EmployeeCreatePage() {
     if (nationalId && nationalId.length !== 14) warnings.push('الرقم القومي يجب أن يكون 14 رقمًا إذا تم إدخاله.');
     if (!draft.departmentId) warnings.push('القسم غير محدد ويمكن استكماله لاحقًا.');
     if (!draft.jobTitleId) warnings.push('المسمى الوظيفي غير محدد ويمكن استكماله لاحقًا.');
+    if (!draft.scheduledCheckInTime || !draft.scheduledCheckOutTime) warnings.push('مواعيد الدوام غير مكتملة ويمكن استخدام وردية جاهزة.');
     if (salaryText && Number.isNaN(Number(salaryText))) warnings.push('الراتب الأساسي يجب أن يكون رقمًا صحيحًا.');
     return warnings;
   }, [draft]);
+
+  function applyShiftPreset(preset: ShiftPreset) {
+    setDraft((current) => ({
+      ...current,
+      expectedDailyHours: current.expectedDailyHours || preset.hours,
+      graceMinutes: current.graceMinutes || preset.grace,
+      scheduledCheckInTime: preset.checkIn,
+      scheduledCheckOutTime: preset.checkOut,
+    }));
+  }
 
   async function createQuickMaster(kind: MasterKind, name: string) {
     const cleanName = String(name || '').trim();
@@ -336,7 +362,20 @@ export function EmployeeCreatePage() {
           </div>
         </Card>
 
-        <Card title="بيانات الدوام والأجر" description="تحديد نوع الأجر وجدول الدوام المتوقع للموظف.">
+        <Card title="بيانات الدوام والأجر" description="اختر وردية جاهزة لتعبئة مواعيد الحضور والانصراف بسرعة، أو عدّل القيم يدويًا حسب الموظف.">
+          <div className="card-soft" style={{ marginBottom: 12, padding: 12 }}>
+            <strong style={{ display: 'block', marginBottom: 8 }}>ورديات جاهزة</strong>
+            <div className="form-grid">
+              {shiftPresets.map((preset) => (
+                <div key={preset.label} className="field" style={{ alignItems: 'flex-start' }}>
+                  <strong>{preset.label}</strong>
+                  <span className="muted">{preset.description}</span>
+                  <Button type="button" variant="secondary" onClick={() => applyShiftPreset(preset)}>استخدام الوردية</Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="form-grid">
             <label className="field">
               <span>نوع الأجر</span>
