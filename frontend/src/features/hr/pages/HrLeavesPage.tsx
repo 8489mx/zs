@@ -28,12 +28,15 @@ type LeaveFormState = {
   notes: string;
 };
 
+type QuickFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'unpaid';
+
 export function HrLeavesPage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('pending');
   const [leaveTypeFilter, setLeaveTypeFilter] = useState('all');
   const [fromDateFilter, setFromDateFilter] = useState('');
   const [toDateFilter, setToDateFilter] = useState('');
@@ -76,10 +79,21 @@ export function HrLeavesPage() {
     return map;
   }, [leaveTypes]);
 
+  const isUnpaidLeave = (row: HrLeaveRequest) => {
+    const byId = leaveTypeById.get(String(row.leaveTypeId || ''));
+    const byName = leaveTypeByName.get(text(row.leaveTypeName || row.leaveType).toLowerCase());
+    return byId?.isPaid === false || byName?.isPaid === false;
+  };
+
   const visibleRequests = useMemo(() => {
     return requests.filter((row) => {
       const leaveTypeId = text(row.leaveTypeId);
+      const status = text(row.status);
       if (leaveTypeFilter !== 'all' && leaveTypeId !== leaveTypeFilter) return false;
+      if (quickFilter === 'pending' && status !== 'pending') return false;
+      if (quickFilter === 'approved' && status !== 'approved') return false;
+      if (quickFilter === 'rejected' && status !== 'rejected') return false;
+      if (quickFilter === 'unpaid' && !isUnpaidLeave(row)) return false;
 
       const rowStartDate = toDateOnly(row.startDate);
       const rowEndDate = toDateOnly(row.endDate);
@@ -87,7 +101,7 @@ export function HrLeavesPage() {
       if (toDateFilter && rowStartDate && rowStartDate > toDateFilter) return false;
       return true;
     });
-  }, [requests, leaveTypeFilter, fromDateFilter, toDateFilter]);
+  }, [requests, leaveTypeFilter, quickFilter, fromDateFilter, toDateFilter, leaveTypeById, leaveTypeByName]);
 
   const summary = useMemo(() => {
     let pending = 0;
@@ -95,28 +109,35 @@ export function HrLeavesPage() {
     let rejected = 0;
     let unpaid = 0;
 
-    for (const row of visibleRequests) {
+    for (const row of requests) {
       const status = text(row.status);
       if (status === 'pending') pending += 1;
       if (status === 'approved') approved += 1;
       if (status === 'rejected') rejected += 1;
-
-      const byId = leaveTypeById.get(String(row.leaveTypeId || ''));
-      const byName = leaveTypeByName.get(text(row.leaveTypeName || row.leaveType).toLowerCase());
-      const isUnpaid = byId?.isPaid === false || byName?.isPaid === false;
-      if (isUnpaid) unpaid += 1;
+      if (isUnpaidLeave(row)) unpaid += 1;
     }
 
     return {
-      total: visibleRequests.length,
+      total: requests.length,
+      visible: visibleRequests.length,
       pending,
       approved,
       rejected,
       unpaid,
     };
-  }, [visibleRequests, leaveTypeById, leaveTypeByName]);
+  }, [requests, visibleRequests.length, leaveTypeById, leaveTypeByName]);
 
-  const isSearchOrFilterActive = Boolean(search.trim()) || Boolean(statusFilter) || leaveTypeFilter !== 'all' || Boolean(fromDateFilter) || Boolean(toDateFilter);
+  const isSearchOrFilterActive = Boolean(search.trim()) || Boolean(statusFilter) || quickFilter !== 'all' || leaveTypeFilter !== 'all' || Boolean(fromDateFilter) || Boolean(toDateFilter);
+
+  const resetFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setQuickFilter('all');
+    setLeaveTypeFilter('all');
+    setFromDateFilter('');
+    setToDateFilter('');
+    setPage(1);
+  };
 
   const createLeaveRequest = async () => {
     const nextErrors: Record<string, string> = {};
@@ -151,6 +172,7 @@ export function HrLeavesPage() {
     });
     setErrors({});
     setShowCreate(false);
+    setQuickFilter('pending');
   };
 
   const approveRequest = async (id: string) => {
@@ -177,18 +199,28 @@ export function HrLeavesPage() {
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="الإجازات"
-        description="مساحة العمل اليومية لمراجعة طلبات الإجازة والاعتماد والمتابعة، مع توضيح الحالات التي تحتاج مراجعة."
+        description="راجع الطلبات قيد المراجعة أولًا، ثم تابع الإجازات غير المدفوعة لأنها تؤثر على المرتبات."
         actions={(
           <div className="compact-actions">
             <Button type="button" onClick={() => setShowCreate((current) => !current)}>
               {showCreate ? 'إغلاق نموذج الطلب' : 'إضافة طلب إجازة'}
             </Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
             <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
         )}
       />
 
-            {showCreate ? (
+      <Card title="تسلسل مراجعة الإجازات" description="استخدم الصفحة بهذا الترتيب حتى لا تدخل إجازة مؤثرة على المرتب بدون مراجعة.">
+        <div className="form-grid">
+          <div className="field"><strong>1. راجع قيد المراجعة</strong><span className="muted">اعتمد أو ارفض الطلبات الجديدة أولًا.</span></div>
+          <div className="field"><strong>2. راجع غير المدفوعة</strong><span className="muted">الإجازات غير المدفوعة تظهر لاحقًا في مراجعة المرتبات.</span></div>
+          <div className="field"><strong>3. استخدم الفلاتر</strong><span className="muted">ابحث بالموظف أو نوع الإجازة أو الفترة الزمنية.</span></div>
+          <div className="field"><strong>4. انتقل للمرتبات</strong><span className="muted">بعد اعتماد الطلبات، راجع أثرها في صفحة المرتبات.</span></div>
+        </div>
+      </Card>
+
+      {showCreate ? (
         <HrLeavesCreateRequestCard
           leaveForm={leaveForm}
           employees={employees}
@@ -206,7 +238,24 @@ export function HrLeavesPage() {
         />
       ) : null}
 
-      <Card title="فلاتر الطلبات">
+      <Card title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
+        <div className="stats-grid">
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي الطلبات</span><strong>{summary.total}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>قيد المراجعة</span><strong>{summary.pending}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>معتمدة</span><strong>{summary.approved}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>مرفوضة</span><strong>{summary.rejected}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>إجازات غير مدفوعة</span><strong>{summary.unpaid}</strong></button>
+          <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
+        </div>
+      </Card>
+
+      <Card title="فلاتر الطلبات" description="الفلاتر هنا تضيق النتائج الظاهرة فقط، ويمكن تصفيرها بزر واحد.">
+        <div className="compact-actions" style={{ marginBottom: 12 }}>
+          <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }}>قيد المراجعة</Button>
+          <Button type="button" variant={quickFilter === 'unpaid' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }}>غير مدفوعة</Button>
+          <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }}>كل الطلبات</Button>
+          <Button type="button" variant="secondary" onClick={resetFilters}>مسح الفلاتر</Button>
+        </div>
         <div className="form-grid">
           <div className="field field-wide">
             <span>بحث الموظف</span>
@@ -221,8 +270,8 @@ export function HrLeavesPage() {
             />
           </div>
           <label className="field">
-            <span>الحالة</span>
-            <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}>
+            <span>الحالة التفصيلية</span>
+            <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setQuickFilter('all'); setPage(1); }}>
               <option value="">الكل</option>
               <option value="pending">قيد المراجعة</option>
               <option value="approved">معتمدة</option>
@@ -248,17 +297,7 @@ export function HrLeavesPage() {
         </div>
       </Card>
 
-      <Card title="ملخص الطلبات">
-        <div className="stats-grid">
-          <div className="stat-card"><span>إجمالي الطلبات</span><strong>{summary.total}</strong></div>
-          <div className="stat-card"><span>قيد المراجعة</span><strong>{summary.pending}</strong></div>
-          <div className="stat-card"><span>معتمدة</span><strong>{summary.approved}</strong></div>
-          <div className="stat-card"><span>مرفوضة</span><strong>{summary.rejected}</strong></div>
-          <div className="stat-card"><span>إجازات غير مدفوعة / تحتاج مراجعة</span><strong>{summary.unpaid}</strong></div>
-        </div>
-      </Card>
-
-      <Card title="طلبات الإجازة">
+      <Card title="طلبات الإجازة" description="الطلبات قيد المراجعة تظهر افتراضيًا حتى يكون القرار واضحًا وسريعًا.">
         <QueryFeedback
           isLoading={leaveRequestsQuery.isLoading}
           isError={leaveRequestsQuery.isError}
@@ -296,12 +335,8 @@ export function HrLeavesPage() {
                 key: 'isPaid',
                 header: 'مدفوعة / غير مدفوعة',
                 cell: (row) => {
-                  const byId = leaveTypeById.get(String(row.leaveTypeId || ''));
-                  const byName = leaveTypeByName.get(text(row.leaveTypeName || row.leaveType).toLowerCase());
-                  const isPaid = byId?.isPaid ?? byName?.isPaid;
-                  if (isPaid === true) return 'مدفوعة';
-                  if (isPaid === false) return 'غير مدفوعة';
-                  return 'غير محدد';
+                  const isPaid = !isUnpaidLeave(row);
+                  return isPaid ? 'مدفوعة أو غير محددة' : 'غير مدفوعة';
                 },
               },
               { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes || row.reason || '') || '—' },
@@ -310,9 +345,7 @@ export function HrLeavesPage() {
                 header: 'إجراء',
                 cell: (row) => {
                   const rowId = String(row.id);
-                  const byId = leaveTypeById.get(String(row.leaveTypeId || ''));
-                  const byName = leaveTypeByName.get(text(row.leaveTypeName || row.leaveType).toLowerCase());
-                  const isUnpaid = byId?.isPaid === false || byName?.isPaid === false;
+                  const isUnpaid = isUnpaidLeave(row);
                   return (
                     <div className="actions compact-actions">
                       {row.status === 'pending' ? (
@@ -330,7 +363,7 @@ export function HrLeavesPage() {
                           إلغاء
                         </Button>
                       ) : null}
-                      {isUnpaid ? <span className="muted small">الإجازة غير المدفوعة قد تحتاج مراجعة في الراتب.</span> : null}
+                      {isUnpaid ? <span className="muted small">تؤثر على المرتبات.</span> : null}
                     </div>
                   );
                 },
@@ -360,11 +393,10 @@ export function HrLeavesPage() {
         </Card>
       ) : null}
 
-      <Card title="مراجعة رصيد الإجازات">
-        <p className="muted" style={{ margin: 0 }}>رصيد الإجازات غير متاح حاليًا من البيانات الحالية.</p>
+      <Card title="ملاحظة تشغيلية">
+        <p className="muted" style={{ margin: 0 }}>رصيد الإجازات غير متاح حاليًا من البيانات الحالية. راجع نوع الإجازة وحالة الدفع قبل اعتماد المرتبات.</p>
       </Card>
     </div>
   );
 }
-
 
