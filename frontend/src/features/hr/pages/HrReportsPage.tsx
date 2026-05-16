@@ -13,65 +13,17 @@ import {
   useHrReportsSummary,
   useHrWorkspace,
 } from '@/features/hr/hooks/useHr';
-
-type ReportType = 'all' | 'employees' | 'attendance' | 'leaves' | 'payroll' | 'alerts';
-
-const reportTypeOptions: Array<{ value: ReportType; label: string }> = [
-  { value: 'all', label: 'الكل' },
-  { value: 'employees', label: 'الموظفين' },
-  { value: 'attendance', label: 'الحضور' },
-  { value: 'leaves', label: 'الإجازات' },
-  { value: 'payroll', label: 'المرتبات' },
-  { value: 'alerts', label: 'التنبيهات' },
-];
-
-function money(value: unknown) {
-  const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return 'غير متاح';
-  return `${amount.toFixed(2)} ج.م`;
-}
-
-function countText(value: unknown) {
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return 'غير متاح';
-  return String(amount);
-}
-
-function text(value: unknown) {
-  return String(value || '').trim() || '—';
-}
-
-function normalize(value: unknown) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function todayDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function monthStartDate() {
-  return `${todayDate().slice(0, 7)}-01`;
-}
-
-function employeeMatches(employee: HrEmployee, search: string, department: string) {
-  const searchTerm = normalize(search);
-  const departmentName = normalize(employee.departmentName);
-
-  if (department !== 'all' && departmentName !== department) return false;
-
-  if (!searchTerm) return true;
-  const haystack = [
-    employee.displayName,
-    employee.firstName,
-    employee.lastName,
-    employee.employeeNo,
-    employee.nationalId,
-    employee.departmentName,
-    employee.jobTitleName,
-  ].map((value) => normalize(value)).join(' ');
-
-  return haystack.includes(searchTerm);
-}
+import {
+  countText,
+  employeeMatches,
+  money,
+  monthStartDate,
+  normalize,
+  reportTypeOptions,
+  text,
+  todayDate,
+  type ReportType,
+} from '@/features/hr/pages/reports/hr-reports.helpers';
 
 export function HrReportsPage() {
   const navigate = useNavigate();
@@ -163,12 +115,12 @@ export function HrReportsPage() {
 
     if (!run) {
       return {
-        employeesInRun: 'غير متاح',
-        totalBase: 'غير متاح',
-        totalDeduction: 'غير متاح',
-        totalLoan: 'غير متاح',
+        employeesInRun: 'ط؛ظٹط± ظ…طھط§ط­',
+        totalBase: 'ط؛ظٹط± ظ…طھط§ط­',
+        totalDeduction: 'ط؛ظٹط± ظ…طھط§ط­',
+        totalLoan: 'ط؛ظٹط± ظ…طھط§ط­',
         totalNet: money(source?.totalNetPay),
-        needsReview: 'غير متاح',
+        needsReview: 'ط؛ظٹط± ظ…طھط§ط­',
       };
     }
 
@@ -198,37 +150,37 @@ export function HrReportsPage() {
       if (!normalize(employee.nationalId)) {
         rows.push({
           id: `emp-national-${employee.id}`,
-          type: 'بيانات موظف',
+          type: 'ط¨ظٹط§ظ†ط§طھ ظ…ظˆط¸ظپ',
           employee: employee.displayName || employee.firstName,
-          note: 'بدون رقم قومي.',
+          note: 'ط¨ط¯ظˆظ† ط±ظ‚ظ… ظ‚ظˆظ…ظٹ.',
         });
       }
       if (!normalize(employee.departmentName) && !normalize(employee.jobTitleName)) {
         rows.push({
           id: `emp-role-${employee.id}`,
-          type: 'بيانات موظف',
+          type: 'ط¨ظٹط§ظ†ط§طھ ظ…ظˆط¸ظپ',
           employee: employee.displayName || employee.firstName,
-          note: 'بدون قسم أو مسمى وظيفي.',
+          note: 'ط¨ط¯ظˆظ† ظ‚ط³ظ… ط£ظˆ ظ…ط³ظ…ظ‰ ظˆط¸ظٹظپظٹ.',
         });
       }
       if (Number(employee?.hireDate ? 1 : 0) === 0) {
         rows.push({
           id: `emp-hire-${employee.id}`,
-          type: 'بيانات موظف',
+          type: 'ط¨ظٹط§ظ†ط§طھ ظ…ظˆط¸ظپ',
           employee: employee.displayName || employee.firstName,
-          note: 'تاريخ التعيين غير مسجل.',
+          note: 'طھط§ط±ظٹط® ط§ظ„طھط¹ظٹظٹظ† ط؛ظٹط± ظ…ط³ط¬ظ„.',
         });
       }
     }
 
     for (const request of leavesQuery.data?.requests || []) {
       const reason = normalize((request as { leaveTypeName?: string }).leaveTypeName);
-      if (reason.includes('بدون') || reason.includes('unpaid')) {
+      if (reason.includes('ط¨ط¯ظˆظ†') || reason.includes('unpaid')) {
         rows.push({
           id: `leave-unpaid-${request.id}`,
-          type: 'إجازات',
+          type: 'ط¥ط¬ط§ط²ط§طھ',
           employee: text(request.employeeName),
-          note: 'إجازة غير مدفوعة قد تؤثر على المرتب.',
+          note: 'ط¥ط¬ط§ط²ط© ط؛ظٹط± ظ…ط¯ظپظˆط¹ط© ظ‚ط¯ طھط¤ط«ط± ط¹ظ„ظ‰ ط§ظ„ط±ط§طھط¨.',
         });
       }
     }
@@ -237,9 +189,9 @@ export function HrReportsPage() {
       if (normalize(run.status) === 'draft' || normalize(run.status) === 'reviewed') {
         rows.push({
           id: `payroll-${run.id}`,
-          type: 'مرتبات',
+          type: 'ظ…ط±طھط¨ط§طھ',
           employee: text(run.periodMonth),
-          note: 'مسير يحتاج مراجعة قبل الاعتماد النهائي.',
+          note: 'ظ…ط³ظٹط± ظٹط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط© ظ‚ط¨ظ„ ط§ظ„ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ†ظ‡ط§ط¦ظٹ.',
         });
       }
     }
@@ -248,9 +200,9 @@ export function HrReportsPage() {
     if (unmarked > 0) {
       rows.push({
         id: 'attendance-unmarked',
-        type: 'حضور',
-        employee: 'سجلات اليوم',
-        note: `يوجد ${unmarked} سجل حضور غير مكتمل ويحتاج مراجعة.`,
+        type: 'ط­ط¶ظˆط±',
+        employee: 'ط³ط¬ظ„ط§طھ ط§ظ„ظٹظˆظ…',
+        note: `ظٹظˆط¬ط¯ ${unmarked} ط³ط¬ظ„ ط­ط¶ظˆط± ط؛ظٹط± ظ…ظƒطھظ…ظ„ ظˆظٹط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©.`,
       });
     }
 
@@ -277,42 +229,42 @@ export function HrReportsPage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="تقارير الموارد البشرية"
-        description="ملخص تشغيلي لحالة الموارد البشرية ونقاط المراجعة خلال الفترة المحددة."
-        actions={<Button variant="secondary" onClick={() => navigate('/hr')}>رجوع للموارد البشرية</Button>}
+        title="طھظ‚ط§ط±ظٹط± ط§ظ„ظ…ظˆط§ط±ط¯ ط§ظ„ط¨ط´ط±ظٹط©"
+        description="ظ…ظ„ط®طµ طھط´ط؛ظٹظ„ظٹ ظ„ط­ط§ظ„ط© ط§ظ„ظ…ظˆط§ط±ط¯ ط§ظ„ط¨ط´ط±ظٹط© ظˆظ†ظ‚ط§ط· ط§ظ„ظ…ط±ط§ط¬ط¹ط© ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط© ط§ظ„ظ…ط­ط¯ط¯ط©."
+        actions={<Button variant="secondary" onClick={() => navigate('/hr')}>ط±ط¬ظˆط¹ ظ„ظ„ظ…ظˆط§ط±ط¯ ط§ظ„ط¨ط´ط±ظٹط©</Button>}
       />
 
-      <Card title="الفترة والفلاتر">
+      <Card title="ط§ظ„ظپطھط±ط© ظˆط§ظ„ظپظ„ط§طھط±">
         <div className="form-grid">
           <label className="field">
-            <span>من تاريخ</span>
+            <span>ظ…ظ† طھط§ط±ظٹط®</span>
             <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
           </label>
           <label className="field">
-            <span>إلى تاريخ</span>
+            <span>ط¥ظ„ظ‰ طھط§ط±ظٹط®</span>
             <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
           </label>
           <label className="field">
-            <span>الشهر</span>
+            <span>ط§ظ„ط´ظ‡ط±</span>
             <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
           </label>
           <label className="field">
-            <span>السنة</span>
+            <span>ط§ظ„ط³ظ†ط©</span>
             <input readOnly value={month.split('-')[0] || ''} />
           </label>
           <label className="field field-wide">
-            <span>بحث الموظف (اسم/كود)</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="اكتب اسم الموظف أو كوده" />
+            <span>ط¨ط­ط« ط§ظ„ظ…ظˆط¸ظپ (ط§ط³ظ…/ظƒظˆط¯)</span>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ط§ظƒطھط¨ ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ط£ظˆ ظƒظˆط¯ظ‡" />
           </label>
           <label className="field">
-            <span>القسم</span>
+            <span>ط§ظ„ظ‚ط³ظ…</span>
             <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}>
-              <option value="all">الكل</option>
+              <option value="all">ط§ظ„ظƒظ„</option>
               {departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </label>
           <label className="field">
-            <span>نوع التقرير</span>
+            <span>ظ†ظˆط¹ ط§ظ„طھظ‚ط±ظٹط±</span>
             <select value={reportType} onChange={(event) => setReportType(event.target.value as ReportType)}>
               {reportTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
@@ -325,107 +277,109 @@ export function HrReportsPage() {
         isError={isError}
         error={error}
         isEmpty={!hasAnyData}
-        loadingText="جارٍ تحميل التقارير..."
-        errorTitle="تعذر تحميل تقارير الموارد البشرية"
-        emptyTitle="لا توجد بيانات كافية لعرض التقرير."
+        loadingText="ط¬ط§ط±ظچ طھط­ظ…ظٹظ„ ط§ظ„طھظ‚ط§ط±ظٹط±..."
+        errorTitle="طھط¹ط°ط± طھط­ظ…ظٹظ„ طھظ‚ط§ط±ظٹط± ط§ظ„ظ…ظˆط§ط±ط¯ ط§ظ„ط¨ط´ط±ظٹط©"
+        emptyTitle="ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظƒط§ظپظٹط© ظ„ط¹ط±ط¶ ط§ظ„طھظ‚ط±ظٹط±."
       >
         <div className="stats-grid">
-          <Card title="إجمالي الموظفين"><strong>{countText(summary?.employeeCount)}</strong></Card>
-          <Card title="الموظفون النشطون"><strong>{countText(summary?.activeEmployeeCount)}</strong></Card>
-          <Card title="سجلات الحضور"><strong>{attendanceSummary.total}</strong></Card>
-          <Card title="طلبات الإجازات"><strong>{leavesSummary.total}</strong></Card>
-          <Card title="صافي المرتبات"><strong>{money(summary?.payroll?.totalNetPay)}</strong></Card>
-          <Card title="عناصر تحتاج مراجعة"><strong>{countText(alerts.length)}</strong></Card>
+          <Card title="ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ظˆط¸ظپظٹظ†"><strong>{countText(summary?.employeeCount)}</strong></Card>
+          <Card title="ط§ظ„ظ…ظˆط¸ظپظˆظ† ط§ظ„ظ†ط´ط·ظˆظ†"><strong>{countText(summary?.activeEmployeeCount)}</strong></Card>
+          <Card title="ط³ط¬ظ„ط§طھ ط§ظ„ط­ط¶ظˆط±"><strong>{attendanceSummary.total}</strong></Card>
+          <Card title="ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط§طھ"><strong>{leavesSummary.total}</strong></Card>
+          <Card title="طµط§ظپظٹ ط§ظ„ظ…ط±طھط¨ط§طھ"><strong>{money(summary?.payroll?.totalNetPay)}</strong></Card>
+          <Card title="ط¹ظ†ط§طµط± طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©"><strong>{countText(alerts.length)}</strong></Card>
         </div>
 
         {showSection('employees') ? (
-          <Card title="تقرير الموظفين">
+          <Card title="طھظ‚ط±ظٹط± ط§ظ„ظ…ظˆط¸ظپظٹظ†">
             <div className="stats-grid" style={{ marginBottom: 12 }}>
-              <div><strong>إجمالي الموظفين:</strong> {employeesCompleteness.total}</div>
-              <div><strong>نشط:</strong> {employeesCompleteness.active}</div>
-              <div><strong>غير نشط:</strong> {employeesCompleteness.inactive}</div>
-              <div><strong>بدون رقم قومي:</strong> {employeesCompleteness.missingNationalId}</div>
-              <div><strong>بدون قسم/مسمى وظيفي:</strong> {employeesCompleteness.missingDepartmentOrTitle}</div>
-              <div><strong>بدون موبايل:</strong> غير متاح</div>
+              <div><strong>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ظˆط¸ظپظٹظ†:</strong> {employeesCompleteness.total}</div>
+              <div><strong>ظ†ط´ط·:</strong> {employeesCompleteness.active}</div>
+              <div><strong>ط؛ظٹط± ظ†ط´ط·:</strong> {employeesCompleteness.inactive}</div>
+              <div><strong>ط¨ط¯ظˆظ† ط±ظ‚ظ… ظ‚ظˆظ…ظٹ:</strong> {employeesCompleteness.missingNationalId}</div>
+              <div><strong>ط¨ط¯ظˆظ† ظ‚ط³ظ…/ظ…ط³ظ…ظ‰ ظˆط¸ظٹظپظٹ:</strong> {employeesCompleteness.missingDepartmentOrTitle}</div>
+              <div><strong>ط¨ط¯ظˆظ† ظ…ظˆط¨ط§ظٹظ„:</strong> ط؛ظٹط± ظ…طھط§ط­</div>
             </div>
             <DataTable
               density="compact"
               rowKey={(row) => String((row as HrEmployee).id)}
               rows={filteredEmployees.slice(0, 30)}
               columns={[
-                { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text((row as HrEmployee).employeeNo) },
-                { key: 'name', header: 'اسم الموظف', cell: (row) => text((row as HrEmployee).displayName || (row as HrEmployee).firstName) },
-                { key: 'department', header: 'القسم', cell: (row) => text((row as HrEmployee).departmentName) },
-                { key: 'jobTitle', header: 'المسمى الوظيفي', cell: (row) => text((row as HrEmployee).jobTitleName) },
-                { key: 'nationalId', header: 'الرقم القومي', cell: (row) => normalize((row as HrEmployee).nationalId) ? 'موجود' : 'غير مسجل' },
-                { key: 'status', header: 'الحالة', cell: (row) => text((row as HrEmployee).status) },
+                { key: 'employeeNo', header: 'ظƒظˆط¯ ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => text((row as HrEmployee).employeeNo) },
+                { key: 'name', header: 'ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => text((row as HrEmployee).displayName || (row as HrEmployee).firstName) },
+                { key: 'department', header: 'ط§ظ„ظ‚ط³ظ…', cell: (row) => text((row as HrEmployee).departmentName) },
+                { key: 'jobTitle', header: 'ط§ظ„ظ…ط³ظ…ظ‰ ط§ظ„ظˆط¸ظٹظپظٹ', cell: (row) => text((row as HrEmployee).jobTitleName) },
+                { key: 'nationalId', header: 'ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ', cell: (row) => normalize((row as HrEmployee).nationalId) ? 'ظ…ظˆط¬ظˆط¯' : 'ط؛ظٹط± ظ…ط³ط¬ظ„' },
+                { key: 'status', header: 'ط§ظ„ط­ط§ظ„ط©', cell: (row) => text((row as HrEmployee).status) },
               ]}
             />
           </Card>
         ) : null}
 
         {showSection('attendance') ? (
-          <Card title="تقرير الحضور">
+          <Card title="طھظ‚ط±ظٹط± ط§ظ„ط­ط¶ظˆط±">
             <div className="stats-grid">
-              <div><strong>إجمالي سجلات الفترة:</strong> {attendanceSummary.total}</div>
-              <div><strong>حاضر:</strong> {attendanceSummary.present}</div>
-              <div><strong>غائب:</strong> {attendanceSummary.absent}</div>
-              <div><strong>متأخر:</strong> {attendanceSummary.late}</div>
-              <div><strong>غير مسجل/يحتاج مراجعة:</strong> {attendanceSummary.needsReview}</div>
+              <div><strong>ط¥ط¬ظ…ط§ظ„ظٹ ط³ط¬ظ„ط§طھ ط§ظ„ظپطھط±ط©:</strong> {attendanceSummary.total}</div>
+              <div><strong>ط­ط§ط¶ط±:</strong> {attendanceSummary.present}</div>
+              <div><strong>ط؛ط§ط¦ط¨:</strong> {attendanceSummary.absent}</div>
+              <div><strong>ظ…طھط£ط®ط±:</strong> {attendanceSummary.late}</div>
+              <div><strong>ط؛ظٹط± ظ…ط³ط¬ظ„/ظٹط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©:</strong> {attendanceSummary.needsReview}</div>
             </div>
           </Card>
         ) : null}
 
         {showSection('leaves') ? (
-          <Card title="تقرير الإجازات">
+          <Card title="طھظ‚ط±ظٹط± ط§ظ„ط¥ط¬ط§ط²ط§طھ">
             <div className="stats-grid">
-              <div><strong>إجمالي الطلبات:</strong> {leavesSummary.total}</div>
-              <div><strong>قيد المراجعة:</strong> {leavesSummary.pending}</div>
-              <div><strong>معتمدة:</strong> {leavesSummary.approved}</div>
-              <div><strong>مرفوضة:</strong> {leavesSummary.rejected}</div>
-              <div><strong>إجازات غير مدفوعة:</strong> {leavesSummary.unpaidDays}</div>
+              <div><strong>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط¨ط§طھ:</strong> {leavesSummary.total}</div>
+              <div><strong>ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©:</strong> {leavesSummary.pending}</div>
+              <div><strong>ظ…ط¹طھظ…ط¯ط©:</strong> {leavesSummary.approved}</div>
+              <div><strong>ظ…ط±ظپظˆط¶ط©:</strong> {leavesSummary.rejected}</div>
+              <div><strong>ط¥ط¬ط§ط²ط§طھ ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©:</strong> {leavesSummary.unpaidDays}</div>
             </div>
           </Card>
         ) : null}
 
         {showSection('payroll') ? (
-          <Card title="تقرير المرتبات">
+          <Card title="طھظ‚ط±ظٹط± ط§ظ„ظ…ط±طھط¨ط§طھ">
             <div className="stats-grid">
-              <div><strong>إجمالي الموظفين في المسير:</strong> {payrollSummary.employeesInRun}</div>
-              <div><strong>إجمالي الأساسي:</strong> {payrollSummary.totalBase}</div>
-              <div><strong>إجمالي الخصومات:</strong> {payrollSummary.totalDeduction}</div>
-              <div><strong>إجمالي السلف/الأقساط:</strong> {payrollSummary.totalLoan}</div>
-              <div><strong>صافي المرتبات:</strong> {payrollSummary.totalNet}</div>
-              <div><strong>يحتاج مراجعة:</strong> {payrollSummary.needsReview}</div>
+              <div><strong>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ظˆط¸ظپظٹظ† ظپظٹ ط§ظ„ظ…ط³ظٹط±:</strong> {payrollSummary.employeesInRun}</div>
+              <div><strong>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط£ط³ط§ط³ظٹ:</strong> {payrollSummary.totalBase}</div>
+              <div><strong>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط®طµظˆظ…ط§طھ:</strong> {payrollSummary.totalDeduction}</div>
+              <div><strong>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط³ظ„ظپ/ط§ظ„ط£ظ‚ط³ط§ط·:</strong> {payrollSummary.totalLoan}</div>
+              <div><strong>طµط§ظپظٹ ط§ظ„ظ…ط±طھط¨ط§طھ:</strong> {payrollSummary.totalNet}</div>
+              <div><strong>ظٹط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©:</strong> {payrollSummary.needsReview}</div>
             </div>
           </Card>
         ) : null}
 
         {showSection('alerts') ? (
-          <Card title="تنبيهات تحتاج مراجعة">
+          <Card title="طھظ†ط¨ظٹظ‡ط§طھ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©">
             {alerts.length ? (
               <DataTable
                 density="compact"
                 rows={alerts}
                 rowKey={(row) => String((row as { id: string }).id)}
                 columns={[
-                  { key: 'type', header: 'النوع', cell: (row) => text((row as { type: string }).type) },
-                  { key: 'employee', header: 'الموظف/الفترة', cell: (row) => text((row as { employee: string }).employee) },
-                  { key: 'note', header: 'التنبيه', cell: (row) => text((row as { note: string }).note) },
+                  { key: 'type', header: 'ط§ظ„ظ†ظˆط¹', cell: (row) => text((row as { type: string }).type) },
+                  { key: 'employee', header: 'ط§ظ„ظ…ظˆط¸ظپ/ط§ظ„ظپطھط±ط©', cell: (row) => text((row as { employee: string }).employee) },
+                  { key: 'note', header: 'ط§ظ„طھظ†ط¨ظٹظ‡', cell: (row) => text((row as { note: string }).note) },
                 ]}
               />
             ) : (
-              <p className="muted">لا توجد نتائج مطابقة للفلاتر الحالية.</p>
+              <p className="muted">ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ ظ…ط·ط§ط¨ظ‚ط© ظ„ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©.</p>
             )}
           </Card>
         ) : null}
 
-        <Card title="ملاحظة">
+        <Card title="ظ…ظ„ط§ط­ط¸ط©">
           <p className="muted" style={{ margin: 0 }}>
-            بعض المؤشرات تحتاج ربط بيانات إضافية لاحقًا.
+            ط¨ط¹ط¶ ط§ظ„ظ…ط¤ط´ط±ط§طھ طھط­طھط§ط¬ ط±ط¨ط· ط¨ظٹط§ظ†ط§طھ ط¥ط¶ط§ظپظٹط© ظ„ط§ط­ظ‚ظ‹ط§.
           </p>
         </Card>
       </QueryFeedback>
     </div>
   );
 }
+
+

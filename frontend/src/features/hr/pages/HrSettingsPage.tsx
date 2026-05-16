@@ -7,6 +7,16 @@ import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
 import { useHrLeaveTypes, useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
+import { HrSettingsHealthSummaryCard } from '@/features/hr/pages/settings/HrSettingsHealthSummaryCard';
+import { HrSettingsOrganizationSection } from '@/features/hr/pages/settings/HrSettingsOrganizationSection';
+import {
+  normalize,
+  paidLabel,
+  stats,
+  statusLabel,
+  text,
+  toId,
+} from '@/features/hr/pages/settings/hr-settings.helpers';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 
@@ -39,40 +49,6 @@ const initialLeaveTypeDraft: LeaveTypeDraft = {
   description: '',
   isPaid: 'paid',
 };
-
-function toId(value: string) {
-  const numeric = Number(value || 0);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined;
-}
-
-function text(value: unknown) {
-  return String(value || '').trim() || '—';
-}
-
-function normalize(value: unknown) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function isActiveValue(value: unknown) {
-  return value !== false;
-}
-
-function statusLabel(isActive: unknown) {
-  return isActiveValue(isActive) ? 'نشط' : 'غير نشط';
-}
-
-function paidLabel(value: unknown) {
-  if (value === true) return 'مدفوعة';
-  if (value === false) return 'غير مدفوعة';
-  return 'غير متاح';
-}
-
-function stats(rows: Array<{ isActive?: boolean }>) {
-  const total = rows.length;
-  const active = rows.filter((row) => isActiveValue(row.isActive)).length;
-  const inactive = Math.max(0, total - active);
-  return { total, active, inactive };
-}
 
 export function HrSettingsPage() {
   const navigate = useNavigate();
@@ -233,16 +209,7 @@ export function HrSettingsPage() {
         </div>
       </Card>
 
-      <Card title="ملخص صحة الإعدادات">
-        <div className="stats-grid">
-          <div><strong>عدد الأقسام:</strong> {healthSummary.departments}</div>
-          <div><strong>عدد المسميات الوظيفية:</strong> {healthSummary.jobTitles}</div>
-          <div><strong>عدد أنواع الإجازات:</strong> {healthSummary.leaveTypes}</div>
-          <div><strong>عدد أنواع المستندات:</strong> {healthSummary.documentTypes}</div>
-          <div><strong>عناصر غير نشطة:</strong> {healthSummary.inactiveTotal}</div>
-          <div><strong>عناصر تحتاج مراجعة:</strong> {healthSummary.reviewItems}</div>
-        </div>
-      </Card>
+      <HrSettingsHealthSummaryCard healthSummary={healthSummary} />
 
       <QueryFeedback
         isLoading={workspace.departments.isLoading || workspace.jobTitles.isLoading || workspace.positions.isLoading || leaveTypesQuery.isLoading}
@@ -252,135 +219,27 @@ export function HrSettingsPage() {
         loadingText="جاري تحميل إعدادات الموارد البشرية..."
         errorTitle="تعذر تحميل إعدادات الموارد البشرية"
       >
-        <Card title="الهيكل التنظيمي" description="إدارة الأقسام والمسميات الوظيفية والمناصب المستخدمة في ملفات الموظفين والتقارير.">
-          <div className="stats-grid" style={{ marginBottom: 12 }}>
-            <div><strong>الأقسام:</strong> {departmentStats.total}</div>
-            <div><strong>المسميات الوظيفية:</strong> {jobTitleStats.total}</div>
-            <div><strong>المناصب/الوظائف:</strong> {positionStats.total}</div>
-            <div><strong>الفروع/المواقع:</strong> غير متاح</div>
-          </div>
-
-          <Card title="الأقسام" description="القوائم التي يتم ربط الموظفين بها داخل الهيكل التنظيمي.">
-            <div className="form-grid">
-              <div className="field">
-                <span>الاسم *</span>
-                <input value={departmentDraft.name} onChange={(e) => setDepartmentDraft((current) => ({ ...current, name: e.target.value }))} />
-              </div>
-              <div className="field">
-                <span>الكود</span>
-                <input value={departmentDraft.code} onChange={(e) => setDepartmentDraft((current) => ({ ...current, code: e.target.value }))} />
-              </div>
-              <div className="field field-wide">
-                <span>الوصف</span>
-                <input value={departmentDraft.description} onChange={(e) => setDepartmentDraft((current) => ({ ...current, description: e.target.value }))} />
-              </div>
-            </div>
-            {errors.departments ? <div className="error-box" style={{ marginTop: 12 }}>{errors.departments}</div> : null}
-            <div className="actions compact-actions" style={{ marginTop: 12 }}>
-              <Button onClick={() => { void saveKind('departments'); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ القسم'}</Button>
-            </div>
-
-            {filteredDepartments.length ? (
-              <DataTable
-                rows={filteredDepartments}
-                rowKey={(row) => String(row.id)}
-                density="compact"
-                columns={[
-                  { key: 'name', header: 'الاسم', cell: (row) => text(row.name) },
-                  { key: 'code', header: 'الكود', cell: (row) => text(row.code) },
-                  { key: 'description', header: 'الوصف', cell: (row) => text(row.description) },
-                  { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) },
-                ]}
-              />
-            ) : <p className="muted">لا توجد أقسام حتى الآن.</p>}
-          </Card>
-
-          <Card title="المسميات الوظيفية" description="المسميات التي تظهر في بيانات الموظفين والتقارير.">
-            <div className="form-grid">
-              <div className="field">
-                <span>الاسم *</span>
-                <input value={jobTitleDraft.name} onChange={(e) => setJobTitleDraft((current) => ({ ...current, name: e.target.value }))} />
-              </div>
-              <div className="field">
-                <span>الكود</span>
-                <input value={jobTitleDraft.code} onChange={(e) => setJobTitleDraft((current) => ({ ...current, code: e.target.value }))} />
-              </div>
-              <div className="field field-wide">
-                <span>الوصف</span>
-                <input value={jobTitleDraft.description} onChange={(e) => setJobTitleDraft((current) => ({ ...current, description: e.target.value }))} />
-              </div>
-            </div>
-            {errors['job-titles'] ? <div className="error-box" style={{ marginTop: 12 }}>{errors['job-titles']}</div> : null}
-            <div className="actions compact-actions" style={{ marginTop: 12 }}>
-              <Button onClick={() => { void saveKind('job-titles'); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ المسمى'}</Button>
-            </div>
-
-            {filteredJobTitles.length ? (
-              <DataTable
-                rows={filteredJobTitles}
-                rowKey={(row) => String(row.id)}
-                density="compact"
-                columns={[
-                  { key: 'name', header: 'الاسم', cell: (row) => text(row.name) },
-                  { key: 'code', header: 'الكود', cell: (row) => text(row.code) },
-                  { key: 'description', header: 'الوصف', cell: (row) => text(row.description) },
-                  { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) },
-                ]}
-              />
-            ) : <p className="muted">لا توجد مسميات وظيفية حتى الآن.</p>}
-          </Card>
-
-          <Card title="المناصب / الوظائف" description="الوظائف التفصيلية المرتبطة بالأقسام والمسميات الوظيفية.">
-            <div className="form-grid">
-              <div className="field">
-                <span>الاسم *</span>
-                <input value={positionDraft.name} onChange={(e) => setPositionDraft((current) => ({ ...current, name: e.target.value }))} />
-              </div>
-              <div className="field">
-                <span>الكود</span>
-                <input value={positionDraft.code} onChange={(e) => setPositionDraft((current) => ({ ...current, code: e.target.value }))} />
-              </div>
-              <div className="field">
-                <span>القسم</span>
-                <select value={positionDraft.departmentId} onChange={(e) => setPositionDraft((current) => ({ ...current, departmentId: e.target.value }))}>
-                  <option value="">اختيار</option>
-                  {departments.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <span>المسمى الوظيفي</span>
-                <select value={positionDraft.jobTitleId} onChange={(e) => setPositionDraft((current) => ({ ...current, jobTitleId: e.target.value }))}>
-                  <option value="">اختيار</option>
-                  {jobTitles.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
-                </select>
-              </div>
-              <div className="field field-wide">
-                <span>الوصف</span>
-                <input value={positionDraft.description} onChange={(e) => setPositionDraft((current) => ({ ...current, description: e.target.value }))} />
-              </div>
-            </div>
-            {errors.positions ? <div className="error-box" style={{ marginTop: 12 }}>{errors.positions}</div> : null}
-            <div className="actions compact-actions" style={{ marginTop: 12 }}>
-              <Button onClick={() => { void saveKind('positions'); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ المنصب'}</Button>
-            </div>
-
-            {filteredPositions.length ? (
-              <DataTable
-                rows={filteredPositions}
-                rowKey={(row) => String(row.id)}
-                density="compact"
-                columns={[
-                  { key: 'name', header: 'الاسم', cell: (row) => text(row.name) },
-                  { key: 'code', header: 'الكود', cell: (row) => text(row.code) },
-                  { key: 'department', header: 'القسم', cell: (row) => text(row.departmentName) },
-                  { key: 'jobTitle', header: 'المسمى الوظيفي', cell: (row) => text(row.jobTitleName) },
-                  { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) },
-                ]}
-              />
-            ) : <p className="muted">لا توجد وظائف أو مناصب حتى الآن.</p>}
-          </Card>
-        </Card>
-
+        <HrSettingsOrganizationSection
+          departmentStatsTotal={departmentStats.total}
+          jobTitleStatsTotal={jobTitleStats.total}
+          positionStatsTotal={positionStats.total}
+          departmentDraft={departmentDraft}
+          jobTitleDraft={jobTitleDraft}
+          positionDraft={positionDraft}
+          errors={{ departments: errors.departments, 'job-titles': errors['job-titles'], positions: errors.positions }}
+          isBusy={isBusy}
+          departments={departments}
+          jobTitles={jobTitles}
+          filteredDepartments={filteredDepartments}
+          filteredJobTitles={filteredJobTitles}
+          filteredPositions={filteredPositions}
+          onDepartmentDraftChange={setDepartmentDraft}
+          onJobTitleDraftChange={setJobTitleDraft}
+          onPositionDraftChange={setPositionDraft}
+          onSaveDepartment={() => { void saveKind('departments'); }}
+          onSaveJobTitle={() => { void saveKind('job-titles'); }}
+          onSavePosition={() => { void saveKind('positions'); }}
+        />
         <Card title="الإجازات" description="إدارة أنواع الإجازات المعتمدة وإعداداتها الأساسية.">
           <div className="form-grid">
             <div className="field">
@@ -454,3 +313,6 @@ export function HrSettingsPage() {
     </div>
   );
 }
+
+
+
