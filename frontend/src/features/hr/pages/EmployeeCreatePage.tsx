@@ -16,10 +16,35 @@ import {
   type EmployeeDraft,
 } from '@/features/hr/pages/employee-create/employee-create.helpers';
 
+type MasterKind = 'departments' | 'job-titles' | 'positions';
+
+function objectValue(value: unknown, key: string) {
+  if (!value || typeof value !== 'object') return undefined;
+  return (value as Record<string, unknown>)[key];
+}
+
+function createdMasterId(result: unknown) {
+  const candidates = [
+    objectValue(result, 'id'),
+    objectValue(objectValue(result, 'row'), 'id'),
+    objectValue(objectValue(result, 'item'), 'id'),
+    objectValue(objectValue(result, 'department'), 'id'),
+    objectValue(objectValue(result, 'jobTitle'), 'id'),
+    objectValue(objectValue(result, 'position'), 'id'),
+  ];
+  const value = candidates.find((entry) => String(entry || '').trim());
+  return value == null ? '' : String(value);
+}
+
 export function EmployeeCreatePage() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState<EmployeeDraft>(initialDraft);
   const [submitError, setSubmitError] = useState('');
+  const [setupError, setSetupError] = useState('');
+  const [setupSuccess, setSetupSuccess] = useState('');
+  const [quickDepartmentName, setQuickDepartmentName] = useState('');
+  const [quickJobTitleName, setQuickJobTitleName] = useState('');
+  const [quickPositionName, setQuickPositionName] = useState('');
 
   const workspace = useHrWorkspace({ page: 1, pageSize: 200 });
   const mutations = useHrMutations();
@@ -27,6 +52,8 @@ export function EmployeeCreatePage() {
   const departments = useMemo(() => workspace.departments.data?.rows || [], [workspace.departments.data?.rows]);
   const jobTitles = useMemo(() => workspace.jobTitles.data?.rows || [], [workspace.jobTitles.data?.rows]);
   const positions = useMemo(() => workspace.positions.data?.rows || [], [workspace.positions.data?.rows]);
+
+  const missingSetup = !departments.length || !jobTitles.length;
 
   const reviewWarnings = useMemo(() => {
     const warnings: string[] = [];
@@ -41,6 +68,49 @@ export function EmployeeCreatePage() {
     if (salaryText && Number.isNaN(Number(salaryText))) warnings.push('الراتب الأساسي يجب أن يكون رقمًا صحيحًا.');
     return warnings;
   }, [draft]);
+
+  async function createQuickMaster(kind: MasterKind, name: string) {
+    const cleanName = String(name || '').trim();
+    if (!cleanName) {
+      setSetupError('اكتب الاسم أولًا.');
+      return;
+    }
+
+    setSetupError('');
+    setSetupSuccess('');
+
+    const payload: Record<string, unknown> = {
+      name: cleanName,
+      isActive: true,
+    };
+
+    if (kind === 'positions') {
+      payload.departmentId = toId(draft.departmentId);
+      payload.jobTitleId = toId(draft.jobTitleId);
+    }
+
+    try {
+      const result = await mutations.saveMasterData.mutateAsync({ kind, payload });
+      const createdId = createdMasterId(result);
+      if (kind === 'departments') {
+        setQuickDepartmentName('');
+        if (createdId) setDraft((current) => ({ ...current, departmentId: createdId }));
+        setSetupSuccess('تمت إضافة القسم.');
+      }
+      if (kind === 'job-titles') {
+        setQuickJobTitleName('');
+        if (createdId) setDraft((current) => ({ ...current, jobTitleId: createdId }));
+        setSetupSuccess('تمت إضافة المسمى الوظيفي.');
+      }
+      if (kind === 'positions') {
+        setQuickPositionName('');
+        if (createdId) setDraft((current) => ({ ...current, positionId: createdId }));
+        setSetupSuccess('تمت إضافة الوظيفة/المنصب.');
+      }
+    } catch (error) {
+      setSetupError(getErrorMessage(error, 'تعذر إضافة البيانات.'));
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -148,14 +218,41 @@ export function EmployeeCreatePage() {
     }
   }
 
-  const isBusy = mutations.saveEmployee.isPending || mutations.saveContact.isPending || mutations.saveContract.isPending;
+  const isBusy = mutations.saveEmployee.isPending || mutations.saveContact.isPending || mutations.saveContract.isPending || mutations.saveMasterData.isPending;
 
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="إضافة موظف"
-        description="إضافة موظف جديد ببيانات واضحة، مع مراجعة سريعة للحقول الناقصة قبل الحفظ."
+        description="ابدأ بتهيئة القسم والمسمى الوظيفي إذا لم يكونا موجودين، ثم أدخل بيانات الموظف في نفس الصفحة."
       />
+
+      <Card title="تجهيز سريع قبل الإضافة" description="حتى لا تضطر للخروج من الصفحة، يمكنك إضافة قسم أو مسمى وظيفي سريعًا ثم استخدامه في بيانات الموظف.">
+        {missingSetup ? (
+          <div className="notice-box" style={{ marginBottom: 12 }}>
+            لا توجد أقسام أو مسميات وظيفية كافية حتى الآن. الأفضل تجهيزها قبل حفظ الموظف، أو إضافتها سريعًا من هنا.
+          </div>
+        ) : null}
+        <div className="form-grid">
+          <label className="field">
+            <span>إضافة قسم سريع</span>
+            <input value={quickDepartmentName} onChange={(event) => setQuickDepartmentName(event.target.value)} placeholder="مثال: المبيعات" />
+            <Button type="button" variant="secondary" onClick={() => { void createQuickMaster('departments', quickDepartmentName); }} disabled={isBusy}>إضافة القسم</Button>
+          </label>
+          <label className="field">
+            <span>إضافة مسمى وظيفي سريع</span>
+            <input value={quickJobTitleName} onChange={(event) => setQuickJobTitleName(event.target.value)} placeholder="مثال: كاشير" />
+            <Button type="button" variant="secondary" onClick={() => { void createQuickMaster('job-titles', quickJobTitleName); }} disabled={isBusy}>إضافة المسمى</Button>
+          </label>
+          <label className="field">
+            <span>إضافة وظيفة/منصب سريع</span>
+            <input value={quickPositionName} onChange={(event) => setQuickPositionName(event.target.value)} placeholder="اختياري" />
+            <Button type="button" variant="secondary" onClick={() => { void createQuickMaster('positions', quickPositionName); }} disabled={isBusy}>إضافة الوظيفة</Button>
+          </label>
+        </div>
+        {setupError ? <div className="error-box" style={{ marginTop: 12 }}>{setupError}</div> : null}
+        {setupSuccess ? <p className="muted" style={{ margin: '12px 0 0' }}>{setupSuccess}</p> : null}
+      </Card>
 
       <form onSubmit={(event) => { void handleSubmit(event); }}>
         <Card title="البيانات الأساسية" description="أدخل بيانات التعريف الأساسية للموظف.">
@@ -313,4 +410,3 @@ export function EmployeeCreatePage() {
     </div>
   );
 }
-
