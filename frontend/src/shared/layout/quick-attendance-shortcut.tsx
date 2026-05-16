@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -7,7 +7,7 @@ import { hrApi } from '@/features/hr/api/hr.api';
 import { useHrMutations } from '@/features/hr/hooks/useHr';
 import type { HrAttendanceRecord, HrEmployee } from '@/types/domain';
 
-export const QUICK_ATTENDANCE_SHORTCUT = 'Alt + Shift + F9';
+export const QUICK_ATTENDANCE_SHORTCUT = 'Ctrl + Alt + H';
 
 interface QuickAttendanceShortcutProps {
   open: boolean;
@@ -33,23 +33,50 @@ function formatTimeText(value?: string) {
   return `${match[1]}:${match[2]}`;
 }
 
-export function QuickAttendanceShortcut({ open, onClose }: QuickAttendanceShortcutProps) {
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName.toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+  if (target.isContentEditable || target.closest('[contenteditable="true"]')) return true;
+  return false;
+}
+
+export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProps) {
   const mutations = useHrMutations();
+  const [shortcutOpen, setShortcutOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [feedback, setFeedback] = useState('');
 
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return;
+      if (!event.ctrlKey || !event.altKey || event.shiftKey || event.metaKey) return;
+      if (event.key.toLowerCase() !== 'h') return;
+      event.preventDefault();
+      setShortcutOpen(true);
+    };
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, []);
+
+  function handleClose() {
+    setShortcutOpen(false);
+    onClose();
+  }
+
   const employeesQuery = useQuery({
     queryKey: ['hr', 'quick-attendance', 'employees'],
     queryFn: () => hrApi.employees({ page: 1, pageSize: 1000 }),
-    enabled: open,
+    enabled: shortcutOpen,
     staleTime: 30_000,
   });
 
   const attendanceQuery = useQuery({
     queryKey: ['hr', 'quick-attendance', 'today', todayDate()],
     queryFn: () => hrApi.attendance({ date: todayDate(), page: 1, pageSize: 1000 }),
-    enabled: open,
+    enabled: shortcutOpen,
     staleTime: 10_000,
   });
 
@@ -130,7 +157,7 @@ export function QuickAttendanceShortcut({ open, onClose }: QuickAttendanceShortc
   }
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(760px, calc(100vw - 32px))" ariaLabel="تسجيل حضور أو انصراف سريع">
+    <DialogShell open={shortcutOpen} onClose={handleClose} width="min(760px, calc(100vw - 32px))" ariaLabel="تسجيل حضور أو انصراف سريع">
       <div className="stack gap-12" dir="rtl" style={{ boxSizing: 'border-box', maxHeight: 'calc(100vh - 48px)', minWidth: 0, overflowX: 'hidden', overflowY: 'auto', paddingInline: 2 }}>
         <div className="stack gap-4" style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0 }}>تسجيل حضور أو انصراف سريع</h3>
@@ -202,7 +229,7 @@ export function QuickAttendanceShortcut({ open, onClose }: QuickAttendanceShortc
         ) : null}
 
         <div className="actions compact-actions" style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-          <Button type="button" variant="secondary" onClick={onClose}>إغلاق</Button>
+          <Button type="button" variant="secondary" onClick={handleClose}>إغلاق</Button>
           {primaryActionLabel ? (
             <Button
               type="button"
@@ -234,4 +261,3 @@ function CardSummary({ employee, attendance }: { employee: HrEmployee; attendanc
     </div>
   );
 }
-
