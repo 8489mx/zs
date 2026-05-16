@@ -19,6 +19,7 @@ import {
   POS_TOGGLE_FULLSCREEN_EVENT,
   readPosShellPreference,
 } from '@/features/pos/lib/pos-shell';
+import { QuickAttendanceShortcut } from '@/shared/layout/quick-attendance-shortcut';
 
 type SidebarGroupDefinition = {
   key: string;
@@ -219,6 +220,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const isPosRoute = location.pathname.startsWith('/pos');
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
   const [expandedSidebarGroupKey, setExpandedSidebarGroupKey] = useState<string | null>(null);
+  const [quickAttendanceOpen, setQuickAttendanceOpen] = useState(false);
 
   const visibleNavigationItems = useMemo(() => {
     const hiddenKeys = new Set<string>([]);
@@ -429,6 +431,27 @@ export function AppShell({ children }: PropsWithChildren) {
     return () => window.cancelAnimationFrame(frameId);
   }, [location.pathname]);
 
+  useEffect(() => {
+    const isTypingTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+      if (target.isContentEditable || target.closest('[contenteditable="true"]')) return true;
+      return false;
+    };
+
+    const handleGlobalShortcut = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return;
+      if (!event.altKey || !event.shiftKey) return;
+      if (event.key !== 'F9') return;
+      event.preventDefault();
+      setQuickAttendanceOpen(true);
+    };
+
+    window.addEventListener('keydown', handleGlobalShortcut);
+    return () => window.removeEventListener('keydown', handleGlobalShortcut);
+  }, []);
+
   async function handleLogout() {
     try {
       await authApi.logout();
@@ -557,6 +580,7 @@ export function AppShell({ children }: PropsWithChildren) {
         <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
       </div>
       <PasswordRotationGate />
+      <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
     </div>
   );
 }
