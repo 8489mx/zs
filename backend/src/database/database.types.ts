@@ -580,6 +580,13 @@ export interface HrEmployeeTable {
   branch_id: number | null;
   location_id: number | null;
   hire_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  compensation_type: 'monthly' | 'hourly';
+  hourly_rate: number | null;
+  expected_daily_hours: number | null;
+  scheduled_check_in_time: string | null;
+  scheduled_check_out_time: string | null;
+  grace_minutes: number;
+  overtime_policy: 'review_only' | 'disabled' | 'auto_approved';
   notes: string;
   created_by: number | null;
   updated_by: number | null;
@@ -714,6 +721,24 @@ export interface HrAttendanceRecordTable {
   check_out_at: Date | null;
   source: 'manual' | 'import';
   notes: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrAttendanceExceptionTable {
+  id: Generated<number>;
+  employee_id: number;
+  attendance_record_id: number | null;
+  work_date: ColumnType<string, string | undefined, string | undefined>;
+  exception_type: 'early_check_in' | 'late_check_in' | 'early_check_out' | 'late_check_out' | 'missing_check_in' | 'missing_check_out';
+  scheduled_time: string | null;
+  actual_time: string | null;
+  duration_minutes: number;
+  status: 'pending' | 'approved' | 'skipped' | 'auto_calculated' | 'needs_review';
+  approved_duration_minutes: number | null;
+  note: string | null;
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -872,6 +897,7 @@ export interface Database {
   hr_employee_loan_installments: HrEmployeeLoanInstallmentTable;
   hr_employee_ledger: HrEmployeeLedgerTable;
   hr_attendance_records: HrAttendanceRecordTable;
+  hr_attendance_exceptions: HrAttendanceExceptionTable;
   hr_leave_types: HrLeaveTypeTable;
   hr_leave_requests: HrLeaveRequestTable;
   hr_employee_assets: HrEmployeeAssetTable;

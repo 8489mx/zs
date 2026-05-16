@@ -19,6 +19,13 @@ interface EmployeeDraft {
   status: 'active' | 'inactive';
   contractType: string;
   baseSalary: string;
+  compensationType: 'monthly' | 'hourly';
+  hourlyRate: string;
+  expectedDailyHours: string;
+  scheduledCheckInTime: string;
+  scheduledCheckOutTime: string;
+  graceMinutes: string;
+  overtimePolicy: 'review_only' | 'disabled' | 'auto_approved';
   notes: string;
 }
 
@@ -35,6 +42,13 @@ const initialDraft: EmployeeDraft = {
   status: 'active',
   contractType: '',
   baseSalary: '',
+  compensationType: 'monthly',
+  hourlyRate: '',
+  expectedDailyHours: '',
+  scheduledCheckInTime: '',
+  scheduledCheckOutTime: '',
+  graceMinutes: '',
+  overtimePolicy: 'review_only',
   notes: '',
 };
 
@@ -115,6 +129,12 @@ export function EmployeeCreatePage() {
     const contractType = String(draft.contractType || '').trim();
     const baseSalaryText = normalizeNumberText(draft.baseSalary);
     const baseSalary = baseSalaryText ? Number(baseSalaryText) : 0;
+    const hourlyRateText = normalizeNumberText(draft.hourlyRate);
+    const expectedDailyHoursText = normalizeNumberText(draft.expectedDailyHours);
+    const graceMinutesText = normalizeDigitsOnly(draft.graceMinutes);
+    const hourlyRate = hourlyRateText ? Number(hourlyRateText) : 0;
+    const expectedDailyHours = expectedDailyHoursText ? Number(expectedDailyHoursText) : 0;
+    const graceMinutes = graceMinutesText ? Number(graceMinutesText) : 0;
 
     if (!firstName) {
       setSubmitError('الاسم الأول مطلوب.');
@@ -136,6 +156,16 @@ export function EmployeeCreatePage() {
       setSubmitError('المرتب الأساسي يجب أن يكون رقمًا صحيحًا.');
       return;
     }
+    if (draft.compensationType === 'hourly') {
+      if (!(hourlyRate > 0)) {
+        setSubmitError('أجر الساعة مطلوب للموظف بالأجر بالساعة.');
+        return;
+      }
+      if (!(expectedDailyHours > 0)) {
+        setSubmitError('عدد ساعات العمل اليومية المتوقعة مطلوب للموظف بالأجر بالساعة.');
+        return;
+      }
+    }
 
     try {
       const employeePayload = {
@@ -149,6 +179,13 @@ export function EmployeeCreatePage() {
         positionId: toId(draft.positionId),
         hireDate,
         notes: String(draft.notes || '').trim() || undefined,
+        compensationType: draft.compensationType,
+        hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined,
+        expectedDailyHours: draft.compensationType === 'hourly' ? expectedDailyHours : undefined,
+        scheduledCheckInTime: draft.scheduledCheckInTime || undefined,
+        scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined,
+        graceMinutes,
+        overtimePolicy: draft.overtimePolicy,
       };
 
       const result = await mutations.saveEmployee.mutateAsync({ payload: employeePayload });
@@ -275,6 +312,55 @@ export function EmployeeCreatePage() {
               <span>المرتب الأساسي</span>
               <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
             </div>
+          </div>
+        </Card>
+
+        <Card title="بيانات الدوام والأجر" description="تحديد نوع الأجر وجدول الدوام المتوقع للموظف.">
+          <div className="form-grid">
+            <label className="field">
+              <span>نوع الأجر</span>
+              <select value={draft.compensationType} onChange={(e) => setDraft((current) => ({ ...current, compensationType: e.target.value === 'hourly' ? 'hourly' : 'monthly' }))}>
+                <option value="monthly">راتب شهري</option>
+                <option value="hourly">أجر بالساعة</option>
+              </select>
+            </label>
+            {draft.compensationType === 'monthly' ? (
+              <label className="field">
+                <span>الراتب الشهري الأساسي</span>
+                <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
+              </label>
+            ) : (
+              <>
+                <label className="field">
+                  <span>أجر الساعة</span>
+                  <input inputMode="decimal" min="0" value={draft.hourlyRate} onChange={(e) => setDraft((current) => ({ ...current, hourlyRate: e.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>عدد ساعات العمل اليومية المتوقعة</span>
+                  <input inputMode="decimal" min="0" value={draft.expectedDailyHours} onChange={(e) => setDraft((current) => ({ ...current, expectedDailyHours: e.target.value }))} />
+                </label>
+              </>
+            )}
+            <label className="field">
+              <span>موعد الحضور</span>
+              <input type="time" value={draft.scheduledCheckInTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckInTime: e.target.value }))} />
+            </label>
+            <label className="field">
+              <span>موعد الانصراف</span>
+              <input type="time" value={draft.scheduledCheckOutTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckOutTime: e.target.value }))} />
+            </label>
+            <label className="field">
+              <span>فترة السماح بالدقائق</span>
+              <input inputMode="numeric" min="0" value={draft.graceMinutes} onChange={(e) => setDraft((current) => ({ ...current, graceMinutes: e.target.value }))} />
+            </label>
+            <label className="field">
+              <span>سياسة الوقت الإضافي</span>
+              <select value={draft.overtimePolicy} onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: (e.target.value as 'review_only' | 'disabled' | 'auto_approved') || 'review_only' }))}>
+                <option value="review_only">مراجعة واعتماد قبل الاحتساب</option>
+                <option value="disabled">غير محتسب</option>
+                <option value="auto_approved">محتسب تلقائيًا</option>
+              </select>
+            </label>
           </div>
         </Card>
 

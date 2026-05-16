@@ -10,6 +10,7 @@ import type {
 } from '@/types/domain';
 import {
   normalizeHrAttendanceRow,
+  normalizeHrAttendanceExceptionRow,
   normalizeHrEmployeeAssetRow,
   normalizeHrEmployeeRow,
   normalizeHrLeaveRequestRow,
@@ -19,6 +20,7 @@ import {
 } from './hr-api.normalizers';
 import type {
   AttendanceResponse,
+  AttendanceExceptionsResponse,
   EmployeeAssetsResponse,
   EmployeesResponse,
   HrReportsSummaryResponse,
@@ -64,8 +66,14 @@ export const hrApi = {
     const response = await http<AttendanceResponse>(`/api/hr/attendance${buildQueryString(params)}`);
     return { ...response, rows: (response.rows || []).map(normalizeHrAttendanceRow) };
   },
+  attendanceExceptions: async (params: HrListParams & { date?: string; workDate?: string } = {}) => {
+    const response = await http<AttendanceExceptionsResponse>(`/api/hr/attendance/exceptions${buildQueryString(params)}`);
+    return { ...response, rows: (response.rows || []).map(normalizeHrAttendanceExceptionRow) };
+  },
   saveAttendanceDay: (payload: unknown) => http<AttendanceResponse>('/api/hr/attendance', { method: 'POST', body: JSON.stringify(payload) }),
   saveAttendanceRecord: (payload: unknown) => http<AttendanceResponse>('/api/hr/attendance/record', { method: 'POST', body: JSON.stringify(payload) }),
+  approveAttendanceException: (id: string, payload: unknown = {}) => http<AttendanceExceptionsResponse>(`/api/hr/attendance/exceptions/${id}/approve`, { method: 'POST', body: JSON.stringify(payload) }),
+  skipAttendanceException: (id: string, payload: unknown = {}) => http<AttendanceExceptionsResponse>(`/api/hr/attendance/exceptions/${id}/skip`, { method: 'POST', body: JSON.stringify(payload) }),
   leaveTypes: async (params: HrListParams = {}) => {
     const response = await http<LeaveTypesResponse>(`/api/hr/leave-types${buildQueryString(params)}`);
     return { ...response, rows: (response.rows || []).map(normalizeHrLeaveTypeRow) };

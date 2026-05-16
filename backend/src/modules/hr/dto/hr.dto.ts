@@ -99,6 +99,42 @@ export class UpsertEmployeeDto {
   hireDate?: string;
 
   @IsOptional()
+  @IsIn(['monthly', 'hourly'])
+  compensationType?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  hourlyRate?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  expectedDailyHours?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5)
+  scheduledCheckInTime?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5)
+  scheduledCheckOutTime?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  graceMinutes?: number;
+
+  @IsOptional()
+  @IsIn(['review_only', 'disabled', 'auto_approved'])
+  overtimePolicy?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(1000)
   notes?: string;
@@ -375,6 +411,19 @@ export class UpsertAttendanceRecordDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+}
+
+export class DecideAttendanceExceptionDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  approvedDurationMinutes?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
 }
 
 export class BulkSaveAttendanceDto {

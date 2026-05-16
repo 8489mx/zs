@@ -56,6 +56,16 @@ export function useHrAttendance(params: HrListParams & { date?: string; workDate
   });
 }
 
+export function useHrAttendanceExceptions(params: HrListParams & { date?: string; workDate?: string } = {}) {
+  const key = paramsKey(params);
+  const dateKey = String(params.date || params.workDate || '');
+  return useQuery({
+    queryKey: ['hr', 'attendance-exceptions', dateKey, key],
+    queryFn: () => hrApi.attendanceExceptions(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
 export function useHrLeaveTypes(params: HrListParams = {}) {
   const key = paramsKey(params);
   return useQuery({
@@ -108,6 +118,8 @@ export function useHrMutations() {
     saveCompensation: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveCompensation(employeeId, payload, id), onSuccess: invalidate }),
     saveAttendanceDay: useMutation({ mutationFn: (payload: unknown) => hrApi.saveAttendanceDay(payload), onSuccess: invalidate }),
     saveAttendanceRecord: useMutation({ mutationFn: (payload: unknown) => hrApi.saveAttendanceRecord(payload), onSuccess: invalidate }),
+    approveAttendanceException: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.approveAttendanceException(id, payload || {}), onSuccess: invalidate }),
+    skipAttendanceException: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.skipAttendanceException(id, payload || {}), onSuccess: invalidate }),
     saveLeaveType: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveLeaveType(payload, id), onSuccess: invalidate }),
     createLeaveRequest: useMutation({ mutationFn: (payload: unknown) => hrApi.createLeaveRequest(payload), onSuccess: invalidate }),
     approveLeaveRequest: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.approveLeaveRequest(id, payload || {}), onSuccess: invalidate }),

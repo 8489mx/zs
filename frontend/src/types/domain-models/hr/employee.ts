@@ -19,6 +19,13 @@
   locationId?: string;
   locationName?: string;
   hireDate?: string;
+  compensationType?: 'monthly' | 'hourly' | string;
+  hourlyRate?: number | null;
+  expectedDailyHours?: number | null;
+  scheduledCheckInTime?: string;
+  scheduledCheckOutTime?: string;
+  graceMinutes?: number;
+  overtimePolicy?: 'review_only' | 'disabled' | 'auto_approved' | string;
   notes?: string;
 }
 
