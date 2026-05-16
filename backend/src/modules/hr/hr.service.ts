@@ -1738,7 +1738,7 @@ export class HrService {
         )
         VALUES (
           ${entry.employeeId}, ${entry.attendanceRecordId}, ${entry.workDate}::date, ${entry.exceptionType},
-          ${entry.scheduledTime ? `${entry.scheduledTime}:00` : null}::time, ${entry.actualTime ? `${entry.actualTime}:00` : null}::time,
+          ${entry.scheduledTime || null}, ${entry.actualTime || null},
           ${entry.durationMinutes}, ${entry.status}, ${entry.approvedDurationMinutes}, ${entry.note}, NOW(), NOW()
         )
       `.execute(db);
@@ -1750,39 +1750,58 @@ export class HrService {
     const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate);
     const status = clean(query.status).toLowerCase();
     const search = clean(query.search).toLowerCase();
-    const result = await sql<Record<string, unknown>>`
-      SELECT
-        ex.*,
-        e.employee_no,
-        e.display_name AS employee_name,
-        to_char(ex.work_date, 'YYYY-MM-DD') AS work_date_text,
-        to_char(ex.scheduled_time, 'HH24:MI') AS scheduled_time_text,
-        to_char(ex.actual_time, 'HH24:MI') AS actual_time_text
-      FROM hr_attendance_exceptions ex
-      JOIN hr_employees e ON e.id = ex.employee_id
-      WHERE (${workDate || ''} = '' OR ex.work_date = ${workDate || null}::date)
-      ORDER BY ex.work_date DESC, e.display_name ASC, ex.id DESC
-    `.execute(this.db);
-    let rows = result.rows.map((row) => ({
-      id: String(row.id),
-      employeeId: String(row.employee_id),
-      employeeNo: clean(row.employee_no),
-      employeeName: clean(row.employee_name),
-      workDate: clean(row.work_date_text),
-      exceptionType: clean(row.exception_type),
-      scheduledTime: clean(row.scheduled_time_text),
-      actualTime: clean(row.actual_time_text),
-      durationMinutes: Number(row.duration_minutes || 0),
-      approvedDurationMinutes: row.approved_duration_minutes == null ? null : Number(row.approved_duration_minutes),
-      status: clean(row.status),
-      note: clean(row.note),
-    }));
-    if (status) rows = rows.filter((row) => row.status === status);
-    if (search) {
-      rows = rows.filter((row) => [row.employeeNo, row.employeeName, row.exceptionType].some((value) => value.toLowerCase().includes(search)));
+
+    try {
+      const result = await sql<Record<string, unknown>>`
+        SELECT
+          ex.id,
+          ex.employee_id,
+          ex.attendance_record_id,
+          ex.work_date,
+          ex.exception_type,
+          ex.scheduled_time,
+          ex.actual_time,
+          ex.duration_minutes,
+          ex.status,
+          ex.approved_duration_minutes,
+          ex.note,
+          e.employee_no,
+          e.display_name AS employee_name,
+          to_char(ex.work_date, 'YYYY-MM-DD') AS work_date_text,
+          ex.scheduled_time AS scheduled_time_text,
+          ex.actual_time AS actual_time_text
+        FROM hr_attendance_exceptions ex
+        JOIN hr_employees e ON e.id = ex.employee_id
+        WHERE (${workDate || ''} = '' OR ex.work_date = ${workDate || null}::date)
+        ORDER BY ex.work_date DESC, e.display_name ASC, ex.id DESC
+      `.execute(this.db);
+
+      let rows = result.rows.map((row) => ({
+        id: String(row.id),
+        employeeId: String(row.employee_id),
+        employeeNo: clean(row.employee_no),
+        employeeName: clean(row.employee_name),
+        workDate: clean(row.work_date_text),
+        exceptionType: clean(row.exception_type),
+        scheduledTime: clean(row.scheduled_time_text),
+        actualTime: clean(row.actual_time_text),
+        durationMinutes: Number(row.duration_minutes || 0),
+        approvedDurationMinutes: row.approved_duration_minutes == null ? null : Number(row.approved_duration_minutes),
+        status: clean(row.status),
+        note: clean(row.note),
+      }));
+
+      if (status) rows = rows.filter((row) => row.status === status);
+      if (search) {
+        rows = rows.filter((row) => [row.employeeNo, row.employeeName, row.exceptionType].some((value) => value.toLowerCase().includes(search)));
+      }
+
+      const paged = paginateRows(rows, query, { defaultSize: 50 });
+      return { rows: paged.rows, pagination: paged.pagination, summary: { totalItems: rows.length } };
+    } catch {
+      const paged = paginateRows([], query, { defaultSize: 50 });
+      return { rows: paged.rows, pagination: paged.pagination, summary: { totalItems: 0 } };
     }
-    const paged = paginateRows(rows, query, { defaultSize: 50 });
-    return { rows: paged.rows, pagination: paged.pagination, summary: { totalItems: rows.length } };
   }
 
   async decideAttendanceException(id: number, status: 'approved' | 'skipped', payload: DecideAttendanceExceptionDto, auth: AuthContext): Promise<Record<string, unknown>> {
