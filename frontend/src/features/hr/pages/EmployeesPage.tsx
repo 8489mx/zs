@@ -46,9 +46,13 @@ export function EmployeesPage() {
   const [pageSize, setPageSize] = useState(20);
 
   const workspace = useHrWorkspace({ search, status, page, pageSize });
-  const rows = useMemo(() => workspace.employees.data?.employees || [], [workspace.employees.data?.employees]);
+  const apiRows = useMemo(() => workspace.employees.data?.employees || [], [workspace.employees.data?.employees]);
+  const rows = useMemo(() => {
+    if (!status) return apiRows;
+    return apiRows.filter((row) => String(row.status || '') === status);
+  }, [apiRows, status]);
   const summary = workspace.employees.data?.summary;
-  const totalItems = Number(summary?.totalItems || rows.length || 0);
+  const totalItems = status ? rows.length : Number(summary?.totalItems || rows.length || 0);
 
   const visibleStats = useMemo(() => {
     const active = rows.filter((row) => String(row.status || '') === 'active').length;
