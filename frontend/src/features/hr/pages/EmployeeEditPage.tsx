@@ -6,13 +6,16 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { getErrorMessage } from '@/lib/errors';
 import type { HrEmployee } from '@/types/domain';
-import { useHrMutations, useHrProfile } from '@/features/hr/hooks/useHr';
+import { useHrMutations, useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
 
 interface EmployeeEditDraft {
   employeeNo: string;
   firstName: string;
   lastName: string;
   nationalId: string;
+  departmentId: string;
+  jobTitleId: string;
+  positionId: string;
   hireDate: string;
   status: 'active' | 'inactive';
   notes: string;
@@ -25,11 +28,29 @@ interface EmployeeEditDraft {
   overtimePolicy: 'review_only' | 'disabled' | 'auto_approved';
 }
 
+type ShiftPreset = {
+  label: string;
+  description: string;
+  checkIn: string;
+  checkOut: string;
+  hours: string;
+  grace: string;
+};
+
+const shiftPresets: ShiftPreset[] = [
+  { label: 'وردية المحل الأساسية', description: '10:00 صباحًا إلى 10:00 مساءً · 12 ساعة', checkIn: '10:00', checkOut: '22:00', hours: '12', grace: '15' },
+  { label: 'وردية صباحية', description: '9:00 صباحًا إلى 5:00 مساءً · 8 ساعات', checkIn: '09:00', checkOut: '17:00', hours: '8', grace: '15' },
+  { label: 'وردية مسائية', description: '2:00 ظهرًا إلى 10:00 مساءً · 8 ساعات', checkIn: '14:00', checkOut: '22:00', hours: '8', grace: '15' },
+];
+
 const initialDraft: EmployeeEditDraft = {
   employeeNo: '',
   firstName: '',
   lastName: '',
   nationalId: '',
+  departmentId: '',
+  jobTitleId: '',
+  positionId: '',
   hireDate: '',
   status: 'active',
   notes: '',
@@ -56,10 +77,22 @@ function normalizeNumberText(value: string) {
   return normalizeArabicDigits(value).replace(/[،,]/g, '.').trim();
 }
 
+function toId(value: string) {
+  const normalized = normalizeDigitsOnly(value);
+  return normalized ? Number(normalized) : undefined;
+}
+
+function getEmployeeRef(employee: HrEmployee | undefined, key: string) {
+  if (!employee) return '';
+  const value = (employee as HrEmployee & Record<string, unknown>)[key];
+  return value == null ? '' : String(value);
+}
+
 export function EmployeeEditPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const profile = useHrProfile(id);
+  const workspace = useHrWorkspace({ page: 1, pageSize: 200 });
   const mutations = useHrMutations();
   const [draft, setDraft] = useState<EmployeeEditDraft>(initialDraft);
   const [submitError, setSubmitError] = useState('');
@@ -69,6 +102,9 @@ export function EmployeeEditPage() {
     () => (profile.data?.employee || undefined) as HrEmployee | undefined,
     [profile.data?.employee],
   );
+  const departments = useMemo(() => workspace.departments.data?.rows || [], [workspace.departments.data?.rows]);
+  const jobTitles = useMemo(() => workspace.jobTitles.data?.rows || [], [workspace.jobTitles.data?.rows]);
+  const positions = useMemo(() => workspace.positions.data?.rows || [], [workspace.positions.data?.rows]);
 
   useEffect(() => {
     if (!employee || draftInitialized) return;
@@ -77,6 +113,9 @@ export function EmployeeEditPage() {
       firstName: String(employee.firstName || ''),
       lastName: String(employee.lastName || ''),
       nationalId: String(employee.nationalId || ''),
+      departmentId: getEmployeeRef(employee, 'departmentId'),
+      jobTitleId: getEmployeeRef(employee, 'jobTitleId'),
+      positionId: getEmployeeRef(employee, 'positionId'),
       hireDate: String(employee.hireDate || ''),
       status: String(employee.status || 'active') === 'inactive' ? 'inactive' : 'active',
       notes: String(employee.notes || ''),
@@ -91,6 +130,20 @@ export function EmployeeEditPage() {
     setDraftInitialized(true);
   }, [draftInitialized, employee]);
 
+  const reviewWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    const nationalId = normalizeDigitsOnly(draft.nationalId);
+    if (!String(draft.firstName || '').trim()) warnings.push('الاسم الأول مطلوب قبل الحفظ.');
+    if (!String(draft.hireDate || '').trim()) warnings.push('تاريخ التعيين مطلوب قبل الحفظ.');
+    if (nationalId && nationalId.length !== 14) warnings.push('الرقم القومي يجب أن يكون 14 رقمًا إذا تم إدخاله.');
+    if (!draft.departmentId) warnings.push('القسم غير محدد.');
+    if (!draft.jobTitleId) warnings.push('المسمى الوظيفي غير محدد.');
+    if (!draft.scheduledCheckInTime || !draft.scheduledCheckOutTime) warnings.push('مواعيد الدوام غير مكتملة ويمكن استخدام وردية جاهزة.');
+    if (draft.compensationType === 'hourly' && !normalizeNumberText(draft.hourlyRate)) warnings.push('أجر الساعة مطلوب للموظف بالأجر بالساعة.');
+    if (draft.compensationType === 'hourly' && !normalizeNumberText(draft.expectedDailyHours)) warnings.push('ساعات العمل اليومية مطلوبة للموظف بالأجر بالساعة.');
+    return warnings;
+  }, [draft]);
+
   const isBusy = mutations.saveEmployee.isPending;
 
   function goToProfile() {
@@ -99,6 +152,16 @@ export function EmployeeEditPage() {
       return;
     }
     navigate(`/hr/employees/${id}`);
+  }
+
+  function applyShiftPreset(preset: ShiftPreset) {
+    setDraft((current) => ({
+      ...current,
+      expectedDailyHours: current.expectedDailyHours || preset.hours,
+      graceMinutes: current.graceMinutes || preset.grace,
+      scheduledCheckInTime: preset.checkIn,
+      scheduledCheckOutTime: preset.checkOut,
+    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -149,6 +212,9 @@ export function EmployeeEditPage() {
           firstName,
           lastName: String(draft.lastName || '').trim() || undefined,
           nationalId: nationalId || undefined,
+          departmentId: toId(draft.departmentId),
+          jobTitleId: toId(draft.jobTitleId),
+          positionId: toId(draft.positionId),
           hireDate,
           status: draft.status,
           notes: String(draft.notes || '').trim() || undefined,
@@ -171,7 +237,13 @@ export function EmployeeEditPage() {
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="تعديل بيانات الموظف"
-        description="تعديل البيانات الأساسية وبيانات الدوام والأجر للموظف."
+        description="تعديل بيانات الموظف الأساسية، الوظيفية، والدوام من نفس المسار المستخدم في الإضافة."
+        actions={(
+          <div className="compact-actions">
+            <Button variant="secondary" onClick={goToProfile}>رجوع لملف الموظف</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+          </div>
+        )}
       />
 
       <QueryFeedback
@@ -184,7 +256,7 @@ export function EmployeeEditPage() {
         emptyTitle="لم يتم العثور على الموظف."
       >
         <form onSubmit={(event) => { void handleSubmit(event); }}>
-          <Card title="البيانات الأساسية">
+          <Card title="البيانات الأساسية" description="تعديل بيانات التعريف الأساسية للموظف.">
             <div className="form-grid">
               <label className="field">
                 <span>كود الموظف</span>
@@ -216,7 +288,49 @@ export function EmployeeEditPage() {
             </div>
           </Card>
 
-          <Card title="بيانات الدوام والأجر">
+          <Card title="البيانات الوظيفية" description="تعديل القسم والمسمى الوظيفي والوظيفة/المنصب.">
+            <div className="form-grid">
+              <label className="field">
+                <span>القسم</span>
+                <select value={draft.departmentId} onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}>
+                  <option value="">اختيار</option>
+                  {departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>المسمى الوظيفي</span>
+                <select value={draft.jobTitleId} onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}>
+                  <option value="">اختيار</option>
+                  {jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>الوظيفة/المنصب</span>
+                <select value={draft.positionId} onChange={(e) => setDraft((current) => ({ ...current, positionId: e.target.value }))}>
+                  <option value="">اختيار</option>
+                  {positions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="compact-actions" style={{ marginTop: 12 }}>
+              <Button type="button" variant="secondary" onClick={() => navigate('/hr/settings')}>إدارة الأقسام والمسميات</Button>
+            </div>
+          </Card>
+
+          <Card title="بيانات الدوام والأجر" description="يمكنك اختيار وردية جاهزة أو تعديل القيم يدويًا حسب الموظف.">
+            <div className="card-soft" style={{ marginBottom: 12, padding: 12 }}>
+              <strong style={{ display: 'block', marginBottom: 8 }}>ورديات جاهزة</strong>
+              <div className="form-grid">
+                {shiftPresets.map((preset) => (
+                  <div key={preset.label} className="field" style={{ alignItems: 'flex-start' }}>
+                    <strong>{preset.label}</strong>
+                    <span className="muted">{preset.description}</span>
+                    <Button type="button" variant="secondary" onClick={() => applyShiftPreset(preset)}>استخدام الوردية</Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="form-grid">
               <label className="field">
                 <span>نوع الأجر</span>
@@ -259,10 +373,18 @@ export function EmployeeEditPage() {
               </label>
               {draft.compensationType === 'hourly' ? (
                 <p className="muted field-wide">
-                  الأجر اليومي المتوقع: {(Number(normalizeNumberText(draft.hourlyRate) || 0) * Number(normalizeNumberText(draft.expectedDailyHours) || 0)).toFixed(2)}
+                  الأجر اليومي المتوقع: {(Number(normalizeNumberText(draft.hourlyRate) || 0) * Number(normalizeNumberText(draft.expectedDailyHours) || 0)).toFixed(2)} ج.م
                 </p>
               ) : null}
             </div>
+          </Card>
+
+          <Card title="مراجعة قبل الحفظ" description="هذه التنبيهات تساعدك تتجنب ملف ناقص. التنبيهات التنظيمية لا تمنع الحفظ.">
+            {reviewWarnings.length ? (
+              <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>
+                {reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+              </ul>
+            ) : <p className="muted">البيانات الأساسية والوظيفية جاهزة للحفظ.</p>}
           </Card>
 
           <Card title="ملاحظات">
@@ -281,4 +403,3 @@ export function EmployeeEditPage() {
     </div>
   );
 }
-
