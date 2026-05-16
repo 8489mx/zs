@@ -622,6 +622,7 @@ export class HrService {
   async listLoans(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const employeeId = toId(query.employeeId);
+    const periodMonth = normalizePayrollMonth(query.month);
     const result = await sql<Record<string, unknown>>`
       SELECT
         l.*,
@@ -669,9 +670,95 @@ export class HrService {
       branchId: row.branch_id ? String(row.branch_id) : '',
       locationId: row.location_id ? String(row.location_id) : '',
       notes: clean(row.notes),
+      dueInstallmentsAmount: 0,
+      dueInstallmentsCount: 0,
+      installments: [] as Array<Record<string, unknown>>,
     }));
     const paged = paginateRows(rows, query, { defaultSize: 25 });
-    return { loans: paged.rows, pagination: paged.pagination, summary: { totalItems: rows.length, outstandingAmount: Number(rows.reduce((sum, row) => sum + row.remainingAmount, 0).toFixed(2)) } };
+    const pagedRows = paged.rows as Array<Record<string, unknown>>;
+    const loanIds = pagedRows
+      .map((row) => Number(row.id || 0))
+      .filter((value) => Number.isSafeInteger(value) && value > 0);
+
+    let installmentsByLoanId = new Map<number, Array<Record<string, unknown>>>();
+    if (loanIds.length > 0) {
+      const installmentsResult = await sql<Record<string, unknown>>`
+        SELECT
+          i.*,
+          to_char(i.due_date, 'YYYY-MM-DD') AS due_date_text,
+          to_char(i.paid_at, 'YYYY-MM-DD HH24:MI') AS paid_at_text
+        FROM hr_employee_loan_installments i
+        WHERE i.loan_id IN (${sql.join(loanIds)})
+        ORDER BY i.loan_id ASC, i.installment_no ASC
+      `.execute(this.db);
+
+      installmentsByLoanId = installmentsResult.rows.reduce((acc, row) => {
+        const key = Number(row.loan_id || 0);
+        if (!(key > 0)) return acc;
+        const bucket = acc.get(key) || [];
+        bucket.push({
+          id: String(row.id),
+          loanId: String(row.loan_id),
+          installmentNumber: Number(row.installment_no || 0),
+          dueDate: clean(row.due_date_text),
+          amount: Number(row.amount || 0),
+          paidAmount: Number(row.paid_amount || 0),
+          status: clean(row.status) || 'pending',
+          paidAt: clean(row.paid_at_text),
+        });
+        acc.set(key, bucket);
+        return acc;
+      }, new Map<number, Array<Record<string, unknown>>>());
+    }
+
+    let dueSummaryByLoanId = new Map<number, { dueInstallmentsCount: number; dueInstallmentsAmount: number }>();
+    if (periodMonth && loanIds.length > 0) {
+      const range = monthRange(periodMonth);
+      const dueSummaryResult = await sql<Record<string, unknown>>`
+        SELECT
+          i.loan_id,
+          COUNT(*) AS due_count,
+          COALESCE(SUM(GREATEST(i.amount - COALESCE(i.paid_amount, 0), 0)), 0) AS due_amount
+        FROM hr_employee_loan_installments i
+        JOIN hr_employee_loans l ON l.id = i.loan_id
+        WHERE i.loan_id IN (${sql.join(loanIds)})
+          AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
+          AND l.status IN ('paid', 'partially_repaid', 'disbursed')
+          AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
+          AND COALESCE(i.due_date, l.first_due_date, l.salary_due_date) BETWEEN ${range.from}::date AND ${range.to}::date
+          AND (i.amount - COALESCE(i.paid_amount, 0)) > 0
+        GROUP BY i.loan_id
+      `.execute(this.db);
+      dueSummaryByLoanId = dueSummaryResult.rows.reduce((acc, row) => {
+        const loanId = Number(row.loan_id || 0);
+        if (!(loanId > 0)) return acc;
+        acc.set(loanId, {
+          dueInstallmentsCount: Number(row.due_count || 0),
+          dueInstallmentsAmount: Number(row.due_amount || 0),
+        });
+        return acc;
+      }, new Map<number, { dueInstallmentsCount: number; dueInstallmentsAmount: number }>());
+    }
+
+    const mappedRows = pagedRows.map((row) => {
+      const loanId = Number(row.id || 0);
+      const dueSummary = dueSummaryByLoanId.get(loanId);
+      return {
+        ...row,
+        installments: installmentsByLoanId.get(loanId) || [],
+        dueInstallmentsCount: dueSummary?.dueInstallmentsCount || 0,
+        dueInstallmentsAmount: dueSummary?.dueInstallmentsAmount || 0,
+      };
+    });
+
+    return {
+      loans: mappedRows,
+      pagination: paged.pagination,
+      summary: {
+        totalItems: rows.length,
+        outstandingAmount: Number(rows.reduce((sum, row) => sum + row.remainingAmount, 0).toFixed(2)),
+      },
+    };
   }
 
   async createLoan(payload: UpsertEmployeeLoanDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -911,39 +998,38 @@ export class HrService {
     return { runId: Number(row.run_id), runStatus: clean(row.run_status), itemStatus: clean(row.item_status) };
   }
 
-  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number): Promise<{ amount: number; notes: string[] }> {
+  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number, periodMonth: string): Promise<{ amount: number; notes: string[] }> {
+    const normalizedMonth = normalizePayrollMonth(periodMonth);
+    if (!normalizedMonth) return { amount: 0, notes: ['Payroll month is invalid for loan deduction'] };
+    const range = monthRange(normalizedMonth);
     const result = await sql<Record<string, unknown>>`
-      SELECT id, repayment_mode, remaining_amount, principal_amount, installment_count, monthly_installment_amount
-      FROM hr_employee_loans
-      WHERE employee_id = ${employeeId}
-        AND repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
-        AND status IN ('paid', 'partially_repaid', 'disbursed')
-        AND remaining_amount > 0
-      ORDER BY id ASC
+      SELECT
+        i.loan_id,
+        i.id AS installment_id,
+        i.amount,
+        i.paid_amount,
+        i.status,
+        to_char(COALESCE(i.due_date, l.first_due_date, l.salary_due_date), 'YYYY-MM-DD') AS due_date_text
+      FROM hr_employee_loan_installments i
+      JOIN hr_employee_loans l ON l.id = i.loan_id
+      WHERE l.employee_id = ${employeeId}
+        AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
+        AND l.status IN ('paid', 'partially_repaid', 'disbursed')
+        AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
+        AND COALESCE(i.due_date, l.first_due_date, l.salary_due_date) BETWEEN ${range.from}::date AND ${range.to}::date
+      ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC
     `.execute(db);
     let total = 0;
     const notes: string[] = [];
-    for (const loan of result.rows) {
-      const remaining = money(loan.remaining_amount);
-      if (!(remaining > 0)) continue;
-      const mode = clean(loan.repayment_mode);
-      let deduction = 0;
-      if (mode === 'deduct_next_salary') {
-        deduction = remaining;
-      } else if (mode === 'monthly_salary_installment') {
-        const monthly = money(loan.monthly_installment_amount);
-        const installmentCount = Number(loan.installment_count || 0);
-        const principal = money(loan.principal_amount);
-        if (monthly > 0) {
-          deduction = monthly;
-        } else if (principal > 0 && installmentCount > 0) {
-          deduction = Number((principal / installmentCount).toFixed(2));
-        } else {
-          notes.push(`Loan #${loan.id} has no monthly installment amount`);
-        }
+    for (const installment of result.rows) {
+      const amount = money(installment.amount);
+      const paidAmount = money(installment.paid_amount);
+      const remaining = Number((amount - paidAmount).toFixed(2));
+      if (remaining > 0) {
+        total = Number((total + remaining).toFixed(2));
+      } else {
+        notes.push(`Loan #${installment.loan_id} installment #${installment.installment_id} has no remaining due amount`);
       }
-      const capped = Math.min(remaining, money(deduction));
-      if (capped > 0) total = Number((total + capped).toFixed(2));
     }
     return { amount: total, notes };
   }
@@ -1053,7 +1139,7 @@ export class HrService {
       const baseSalary = money(employee.base_salary);
       const compensationAllowance = money(employee.allowance_amount);
       const compensationDeduction = money(employee.deduction_amount);
-      const loanDeduction = await this.calculateLoanDeduction(db, employeeId);
+      const loanDeduction = await this.calculateLoanDeduction(db, employeeId, periodMonth);
       const allowanceAmount = Number((compensationAllowance + adjustments.allowance).toFixed(2));
       const deductionAmount = Number((compensationDeduction + adjustments.deduction).toFixed(2));
       const grossPay = Number((baseSalary + allowanceAmount).toFixed(2));

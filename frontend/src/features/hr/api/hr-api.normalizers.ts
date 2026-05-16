@@ -38,6 +38,28 @@ function normalizeApiDateTime(value: unknown): string {
 
 export function normalizeHrLoanRow(row: HrLoan | HrApiDateRecord): HrLoan {
   const source = row as HrApiDateRecord;
+  const installmentsRaw = Array.isArray(source.installments) ? source.installments : [];
+  const installments = installmentsRaw
+    .map((installment) => {
+      const item = installment as HrApiDateRecord;
+      const amount = Number(item.amount ?? 0);
+      const paidAmount = Number(item.paid_amount ?? item.paidAmount ?? 0);
+      return {
+        id: apiPick(item, ['id']) || '',
+        loanId: apiPick(item, ['loanId', 'loan_id']) || apiPick(source, ['id']) || '',
+        installmentNumber: Number(item.installment_no ?? item.installmentNumber ?? 0),
+        dueDate: normalizeApiDateOnly(apiPick(item, ['dueDate', 'due_date', 'due_date_text'])),
+        amount: Number.isFinite(amount) ? amount : 0,
+        paidAmount: Number.isFinite(paidAmount) ? paidAmount : 0,
+        remainingAmount: Number(((Number.isFinite(amount) ? amount : 0) - (Number.isFinite(paidAmount) ? paidAmount : 0)).toFixed(2)),
+        status: apiPick(item, ['status']) || 'pending',
+        paidAt: normalizeApiDateTime(apiPick(item, ['paidAt', 'paid_at', 'paid_at_text'])) || '',
+        note: apiPick(item, ['note', 'notes']) || '',
+      };
+    })
+    .filter((item) => item.id || item.installmentNumber > 0);
+  const dueInstallmentsAmount = Number(source.due_installments_amount ?? source.dueInstallmentsAmount ?? (row as HrLoan).dueInstallmentsAmount ?? 0);
+  const dueInstallmentsCount = Number(source.due_installments_count ?? source.dueInstallmentsCount ?? (row as HrLoan).dueInstallmentsCount ?? 0);
   return {
     ...(row as HrLoan),
     issueDate: normalizeApiDateOnly(apiPick(source, ['issueDate', 'issue_date', 'issue_date_text'])) || (row as HrLoan).issueDate || '',
@@ -48,6 +70,9 @@ export function normalizeHrLoanRow(row: HrLoan | HrApiDateRecord): HrLoan {
     approvedAt: normalizeApiDateTime(apiPick(source, ['approvedAt', 'approved_at', 'approved_at_text'])) || (row as HrLoan).approvedAt || '',
     disbursedAt: normalizeApiDateTime(apiPick(source, ['disbursedAt', 'disbursed_at', 'disbursed_at_text'])) || (row as HrLoan).disbursedAt || '',
     paidAt: normalizeApiDateTime(apiPick(source, ['paidAt', 'paid_at', 'paid_at_text'])) || (row as HrLoan).paidAt || '',
+    dueInstallmentsAmount: Number.isFinite(dueInstallmentsAmount) ? dueInstallmentsAmount : 0,
+    dueInstallmentsCount: Number.isFinite(dueInstallmentsCount) ? dueInstallmentsCount : 0,
+    installments: installments.length ? installments : ((row as HrLoan).installments || []),
   };
 }
 

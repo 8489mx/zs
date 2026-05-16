@@ -1,4 +1,17 @@
-﻿export interface HrLoan {
+﻿export interface HrLoanInstallment {
+  id: string;
+  loanId: string;
+  installmentNumber: number;
+  dueDate: string;
+  amount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: 'pending' | 'partial' | 'paid' | 'cancelled' | string;
+  paidAt?: string;
+  note?: string;
+}
+
+export interface HrLoan {
   id: string;
   employeeId: string;
   employeeName?: string;
@@ -23,6 +36,9 @@
   branchId?: string;
   locationId?: string;
   notes?: string;
+  dueInstallmentsAmount?: number;
+  dueInstallmentsCount?: number;
+  installments?: HrLoanInstallment[];
 }
 
 export interface HrLedgerEntry {

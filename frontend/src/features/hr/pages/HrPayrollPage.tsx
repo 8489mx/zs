@@ -4,10 +4,24 @@ import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrPayrollRun, HrPayrollRunItem } from '@/types/domain';
 import { getErrorMessage } from '@/lib/errors';
 import { useHrMutations, useHrPayrollRun, useHrWorkspace } from '@/features/hr/hooks/useHr';
+import { HrPayrollTopSections } from '@/features/hr/pages/payroll/HrPayrollTopSections';
+import {
+  employeeMatches,
+  itemNeedsReview,
+  money,
+  normalize,
+  reviewAttendanceText,
+  reviewFlagText,
+  reviewLeavesText,
+  statusLabel,
+  text,
+  type PayrollReviewStatus,
+} from '@/features/hr/pages/payroll/hr-payroll.helpers';
 
 interface PayrollDraft {
   periodMonth: string;
@@ -19,100 +33,13 @@ const initialDraft: PayrollDraft = {
   notes: '',
 };
 
-type PayrollReviewStatus = 'all' | 'needs_review' | 'ready' | 'approved' | 'paid';
-
-const reviewStatusOptions: Array<{ value: PayrollReviewStatus; label: string }> = [
-  { value: 'all', label: 'الكل' },
-  { value: 'needs_review', label: 'يحتاج مراجعة' },
-  { value: 'ready', label: 'جاهز' },
-  { value: 'approved', label: 'معتمد' },
-  { value: 'paid', label: 'مدفوع' },
-];
-
-function money(value: unknown) {
-  const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return '0.00 ج.م';
-  return `${amount.toFixed(2)} ج.م`;
-}
-
-function text(value: unknown) {
-  return String(value || '').trim() || '—';
-}
-
-function normalize(value: unknown) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function statusLabel(value: unknown) {
-  const status = normalize(value);
-  if (status === 'draft') return 'مسودة / بانتظار المراجعة';
-  if (status === 'reviewed') return 'جاهز';
-  if (status === 'approved') return 'معتمد';
-  if (status === 'paid') return 'مدفوع';
-  if (status === 'cancelled' || status === 'canceled') return 'ملغي';
-  return text(value);
-}
-
-function itemNeedsReview(row: HrPayrollRunItem) {
-  return (
-    Number(row.unpaidLeaveDays || 0) > 0
-    || Number(row.loanDeductionAmount || 0) > 0
-    || Number(row.deductionAmount || 0) > 0
-    || Number(row.suggestedAttendanceDeductionAmount || 0) > 0
-    || Number(row.suggestedLeaveDeductionAmount || 0) > 0
-    || Number(row.attendanceAbsentDays || 0) > 0
-    || Number(row.attendanceHalfDays || 0) > 0
-    || Number(row.attendanceEarlyLeaveDays || 0) > 0
-    || !Number.isFinite(Number(row.baseSalary || 0))
-    || Number(row.baseSalary || 0) <= 0
-  );
-}
-
-function employeeMatches(row: HrPayrollRunItem, employeesMap: Map<string, HrEmployee>, searchTerm: string, department: string) {
-  const employee = employeesMap.get(String(row.employeeId));
-  const departmentName = normalize(employee?.departmentName || '');
-  const rowDepartment = normalize((row as { departmentName?: string }).departmentName || '');
-
-  if (department !== 'all' && departmentName !== department && rowDepartment !== department) {
-    return false;
-  }
-
-  if (!searchTerm) return true;
-
-  const haystack = [
-    row.employeeName,
-    row.employeeNo,
-    row.employeeId,
-    employee?.firstName,
-    employee?.lastName,
-    employee?.displayName,
-    employee?.employeeNo,
-  ].map((value) => normalize(value)).join(' ');
-
-  return haystack.includes(searchTerm);
-}
-
-function reviewAttendanceText(row: HrPayrollRunItem) {
-  return `غياب ${Number(row.attendanceAbsentDays || 0)} / تأخير ${Number(row.attendanceLateDays || 0)} / نصف يوم ${Number(row.attendanceHalfDays || 0)} / انصراف مبكر ${Number(row.attendanceEarlyLeaveDays || 0)}`;
-}
-
-function reviewLeavesText(row: HrPayrollRunItem) {
-  return `معتمدة ${Number(row.approvedLeaveDays || 0)} / بدون مرتب ${Number(row.unpaidLeaveDays || 0)}`;
-}
-
-function reviewFlagText(row: HrPayrollRunItem) {
-  const flags: string[] = [];
-  if (Number(row.unpaidLeaveDays || 0) > 0) flags.push('إجازة غير مدفوعة');
-  if (Number(row.loanDeductionAmount || 0) > 0) flags.push('سلف/أقساط');
-  if (Number(row.deductionAmount || 0) > 0) flags.push('خصومات');
-  if (Number(row.attendanceAbsentDays || 0) > 0 || Number(row.attendanceHalfDays || 0) > 0 || Number(row.attendanceEarlyLeaveDays || 0) > 0) flags.push('استثناء حضور');
-  if (Number(row.baseSalary || 0) <= 0) flags.push('راتب أساسي غير مكتمل');
-  return flags.length ? flags.join('، ') : 'جاهز';
-}
-
 export function HrPayrollPage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
+  const canViewPayroll = useHasAnyPermission(['hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']);
+  const canManagePayroll = useHasAnyPermission(['hrPayrollManage', 'hrPayrollApprove']);
+  const canApprovePayroll = useHasAnyPermission('hrPayrollApprove');
+  const canViewSalaryAmounts = useHasAnyPermission(['hrSalaryView', 'hrSalaryManage', 'hrPayrollManage', 'hrPayrollApprove']);
 
   const now = new Date();
   const initialMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -185,6 +112,11 @@ export function HrPayrollPage() {
     };
   }, [filteredRunItems]);
 
+  const dueLoanInstallmentRows = useMemo(
+    () => filteredRunItems.filter((row) => Number(row.loanDeductionAmount || 0) > 0),
+    [filteredRunItems],
+  );
+
   const runStatusOptions = useMemo(() => {
     const labels = new Map<string, string>();
     for (const row of runs) {
@@ -210,7 +142,7 @@ export function HrPayrollPage() {
 
     const periodMonth = String(draft.periodMonth || '').trim();
     if (!periodMonth) {
-      setFormError('شهر المرتب مطلوب.');
+      setFormError('ط´ظ‡ط± ظ…ط³ظٹط± ط§ظ„ظ…ط±طھط¨ط§طھ ظ…ط·ظ„ظˆط¨.');
       return;
     }
 
@@ -221,109 +153,67 @@ export function HrPayrollPage() {
       });
       setDraft(initialDraft);
     } catch (error) {
-      setFormError(getErrorMessage(error, 'تعذر تجهيز كشف المرتب.'));
+      setFormError(getErrorMessage(error, 'طھط¹ط°ط± طھط¬ظ‡ظٹط² ظ…ط³ظٹط± ط§ظ„ظ…ط±طھط¨ط§طھ.'));
     }
   }
 
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="المرتبات"
-        description="مساحة تشغيل شهرية لمراجعة كشوف المرتبات قبل الاعتماد والصرف."
+        title="ط§ظ„ظ…ط±طھط¨ط§طھ"
+        description="ظ…ط³ط§ط­ط© طھط´ط؛ظٹظ„ ط´ظ‡ط±ظٹط© ظ„ظ…ط±ط§ط¬ط¹ط© ظƒط´ظˆظپ ط§ظ„ظ…ط±طھط¨ط§طھ ظ‚ط¨ظ„ ط§ظ„ط§ط¹طھظ…ط§ط¯ ظˆط§ظ„طµط±ظپ."
         actions={
           <div className="actions compact-actions">
-            {hasCreatePayrollRun ? (
+            {hasCreatePayrollRun && canManagePayroll ? (
               <Button variant="secondary" onClick={() => setDraft((current) => ({ ...current, periodMonth: current.periodMonth || monthFilter }))}>
-                إنشاء مسير الشهر
+                ط¥ظ†ط´ط§ط، ظ…ط³ظٹط± ط§ظ„ط´ظ‡ط±
               </Button>
             ) : null}
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>ط±ط¬ظˆط¹ ظ„ظ„ظ…ظˆط¸ظپظٹظ†</Button>
           </div>
         }
       />
 
-      <Card title="فترة التشغيل والفلاتر">
-        <div className="form-grid">
-          <label className="field">
-            <span>الشهر</span>
-            <input type="month" value={monthFilter} onChange={(event) => { setMonthFilter(event.target.value); setPage(1); }} />
-          </label>
-          <label className="field">
-            <span>السنة</span>
-            <input value={monthFilter.split('-')[0] || ''} readOnly />
-          </label>
-          <label className="field field-wide">
-            <span>بحث الموظف (اسم/كود)</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="اكتب اسم الموظف أو كوده" />
-          </label>
-          <label className="field">
-            <span>القسم</span>
-            <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}>
-              <option value="all">الكل</option>
-              {departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>حالة المراجعة</span>
-            <select value={reviewStatusFilter} onChange={(event) => setReviewStatusFilter(event.target.value as PayrollReviewStatus)}>
-              {reviewStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>حالة المسير</span>
-            <select value={runStatusFilter} onChange={(event) => setRunStatusFilter(event.target.value)}>
-              <option value="all">الكل</option>
-              {runStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-        </div>
-      </Card>
-
-      <div className="stats-grid">
-        <Card title="إجمالي الموظفين"><strong>{summary.totalEmployees || 0}</strong></Card>
-        <Card title="إجمالي الرواتب الأساسية"><strong>{summary.totalEmployees ? money(summary.totalBaseSalary) : 'غير متاح'}</strong></Card>
-        <Card title="إجمالي الخصومات"><strong>{summary.totalEmployees ? money(summary.totalDeductions) : 'غير متاح'}</strong></Card>
-        <Card title="إجمالي السلف / الأقساط"><strong>{summary.totalEmployees ? money(summary.totalLoanDeduction) : 'غير متاح'}</strong></Card>
-        <Card title="صافي المرتبات"><strong>{summary.totalEmployees ? money(summary.totalNet) : 'غير متاح'}</strong></Card>
-        <Card title="يحتاج مراجعة"><strong>{summary.needsReview}</strong></Card>
-      </div>
-
-      <Card title="تنبيه مراجعة">
-        <p className="muted" style={{ margin: 0 }}>
-          حساب الضرائب والتأمينات يحتاج إعدادات ومراجعة محاسب قبل الاعتماد النهائي.
-        </p>
-      </Card>
-
-      <Card title="تجهيز مسير المرتبات">
-        {hasCreatePayrollRun ? (
-          <form className="form-grid" onSubmit={(event) => { void handleCreateRun(event); }}>
-            <label className="field">
-              <span>شهر المرتب *</span>
-              <input type="month" value={draft.periodMonth} onChange={(event) => setDraft((current) => ({ ...current, periodMonth: event.target.value }))} />
-            </label>
-            <label className="field field-wide">
-              <span>ملاحظات</span>
-              <input value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} />
-            </label>
-            {formError ? <div className="field-wide error-box">{formError}</div> : null}
-            <div className="actions compact-actions field-wide">
-              <Button type="submit" disabled={mutations.createPayrollRun.isPending}>{mutations.createPayrollRun.isPending ? 'جارٍ التجهيز...' : 'تجهيز مسير المرتبات'}</Button>
-            </div>
-          </form>
-        ) : (
-          <p className="muted">تجهيز مسير جديد غير متاح من الواجهة الحالية.</p>
-        )}
-      </Card>
-
-      <Card title="كشوف المرتبات الشهرية">
+      {!canViewPayroll ? (
+        <Card title="ط§ظ„ظˆطµظˆظ„ ظ„ظ„ظ…ط±طھط¨ط§طھ">
+          <p className="muted" style={{ margin: 0 }}>ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ظ‡ط°ظ‡ ط§ظ„طµظپط­ط©.</p>
+          <p className="muted" style={{ marginBottom: 0 }}>طھظˆط§طµظ„ ظ…ط¹ ظ…ط³ط¤ظˆظ„ ط§ظ„ظ†ط¸ط§ظ… ظ„طھط­ط¯ظٹط« ط§ظ„طµظ„ط§ط­ظٹط§طھ.</p>
+        </Card>
+      ) : (
+        <>
+      <HrPayrollTopSections
+        monthFilter={monthFilter}
+        search={search}
+        departmentFilter={departmentFilter}
+        reviewStatusFilter={reviewStatusFilter}
+        runStatusFilter={runStatusFilter}
+        departmentOptions={departmentOptions}
+        runStatusOptions={runStatusOptions}
+        summary={summary}
+        canViewSalaryAmounts={canViewSalaryAmounts}
+        dueLoanInstallmentRows={dueLoanInstallmentRows}
+        draft={draft}
+        formError={formError}
+        canManagePayroll={canManagePayroll}
+        hasCreatePayrollRun={hasCreatePayrollRun}
+        isCreatePending={mutations.createPayrollRun.isPending}
+        onMonthFilterChange={(value) => { setMonthFilter(value); setPage(1); }}
+        onSearchChange={setSearch}
+        onDepartmentFilterChange={setDepartmentFilter}
+        onReviewStatusFilterChange={setReviewStatusFilter}
+        onRunStatusFilterChange={setRunStatusFilter}
+        onDraftChange={setDraft}
+        onCreateRun={(event) => { void handleCreateRun(event); }}
+      />
+      <Card title="ظƒط´ظˆظپ ط§ظ„ظ…ط±طھط¨ط§طھ ط§ظ„ط´ظ‡ط±ظٹط©">
         <QueryFeedback
           isLoading={workspace.payrollRuns.isLoading}
           isError={workspace.payrollRuns.isError}
           error={workspace.payrollRuns.error}
           isEmpty={!filteredRuns.length}
-          loadingText="جارٍ تحميل كشوف المرتبات..."
-          errorTitle="تعذر تحميل كشوف المرتبات"
-          emptyTitle="لا توجد بيانات مرتبات لهذه الفترة."
+          loadingText="ط¬ط§ط±ظچ طھط­ظ…ظٹظ„ ظƒط´ظˆظپ ط§ظ„ظ…ط±طھط¨ط§طھ..."
+          errorTitle="طھط¹ط°ط± طھط­ظ…ظٹظ„ ظƒط´ظˆظپ ط§ظ„ظ…ط±طھط¨ط§طھ"
+          emptyTitle="ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط±طھط¨ط§طھ ظ„ظ‡ط°ظ‡ ط§ظ„ظپطھط±ط©."
         >
           <DataTable
             rows={filteredRuns}
@@ -339,26 +229,26 @@ export function HrPayrollPage() {
                 setPageSize(next);
                 setPage(1);
               },
-              itemLabel: 'كشف',
+              itemLabel: 'ظƒط´ظپ',
             }}
             columns={[
-              { key: 'periodMonth', header: 'الشهر', cell: (row) => text(row.periodMonth) },
-              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-              { key: 'itemCount', header: 'عدد الموظفين', cell: (row) => text(row.itemCount || (row.items?.length ?? 0)) },
-              { key: 'totalBaseSalary', header: 'إجمالي الأساسي', cell: (row) => money(row.totalBaseSalary) },
-              { key: 'totalDeductionAmount', header: 'إجمالي الخصومات', cell: (row) => money(row.totalDeductionAmount) },
-              { key: 'totalLoanDeductionAmount', header: 'إجمالي السلف/الأقساط', cell: (row) => money(row.totalLoanDeductionAmount) },
-              { key: 'totalNetPay', header: 'صافي المرتبات', cell: (row) => money(row.totalNetPay) },
-              { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => text(row.createdAt) },
+              { key: 'periodMonth', header: 'ط§ظ„ط´ظ‡ط±', cell: (row) => text(row.periodMonth) },
+              { key: 'status', header: 'ط§ظ„ط­ط§ظ„ط©', cell: (row) => statusLabel(row.status) },
+              { key: 'itemCount', header: 'ط¹ط¯ط¯ ط§ظ„ظ…ظˆط¸ظپظٹظ†', cell: (row) => text(row.itemCount || (row.items?.length ?? 0)) },
+              { key: 'totalBaseSalary', header: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط£ط³ط§ط³ظٹ', cell: (row) => canViewSalaryAmounts ? money(row.totalBaseSalary) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+              { key: 'totalDeductionAmount', header: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط®طµظˆظ…ط§طھ', cell: (row) => canViewSalaryAmounts ? money(row.totalDeductionAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+              { key: 'totalLoanDeductionAmount', header: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط³ظ„ظپ/ط§ظ„ط£ظ‚ط³ط§ط·', cell: (row) => canViewSalaryAmounts ? money(row.totalLoanDeductionAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+              { key: 'totalNetPay', header: 'طµط§ظپظٹ ط§ظ„ظ…ط±طھط¨ط§طھ', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+              { key: 'createdAt', header: 'طھط§ط±ظٹط® ط§ظ„ط¥ظ†ط´ط§ط،', cell: (row) => text(row.createdAt) },
               {
                 key: 'actions',
-                header: 'إجراء',
+                header: 'ط¥ط¬ط±ط§ط،',
                 cell: (row) => (
                   <div className="actions compact-actions">
-                    {mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}
-                    {mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.reviewPayrollRun.mutateAsync(String(row.id)); }}>اعتماد</Button> : null}
-                    {mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.approvePayrollRun.mutateAsync(String(row.id)); }}>اعتماد نهائي</Button> : null}
-                    {mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}
+                    {canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>ظ…ط±ط§ط¬ط¹ط©</Button> : null}
+                    {canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.reviewPayrollRun.mutateAsync(String(row.id)); }}>ط§ط¹طھظ…ط§ط¯</Button> : null}
+                    {canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.approvePayrollRun.mutateAsync(String(row.id)); }}>ط§ط¹طھظ…ط§ط¯ ظ†ظ‡ط§ط¦ظٹ</Button> : null}
+                    {canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>ط¥ظ„ط؛ط§ط،</Button> : null}
                   </div>
                 ),
               },
@@ -367,114 +257,119 @@ export function HrPayrollPage() {
         </QueryFeedback>
       </Card>
 
-      <Card title="تفاصيل ومراجعة المسير">
+      <Card title="طھظپط§طµظٹظ„ ظˆظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط³ظٹط±">
         {!selectedRunId ? (
-          <p className="muted">اختر كشفًا من الجدول لعرض تفاصيل الموظفين.</p>
+          <p className="muted">ط§ط®طھط± ظƒط´ظپظ‹ط§ ظ…ظ† ط§ظ„ط¬ط¯ظˆظ„ ظ„ط¹ط±ط¶ طھظپط§طµظٹظ„ ط§ظ„ظ…ظˆط¸ظپظٹظ†.</p>
         ) : (
           <QueryFeedback
             isLoading={payrollRunDetails.isLoading}
             isError={payrollRunDetails.isError}
             error={payrollRunDetails.error}
             isEmpty={false}
-            loadingText="جارٍ تحميل تفاصيل المسير..."
-            errorTitle="تعذر تحميل تفاصيل المسير"
+            loadingText="ط¬ط§ط±ظچ طھط­ظ…ظٹظ„ طھظپط§طµظٹظ„ ط§ظ„ظ…ط³ظٹط±..."
+            errorTitle="طھط¹ط°ط± طھط­ظ…ظٹظ„ طھظپط§طµظٹظ„ ط§ظ„ظ…ط³ظٹط±"
           >
             {!selectedRun ? (
-              <p className="muted">تفاصيل المسير غير متاحة من الواجهة الحالية.</p>
+              <p className="muted">طھظپط§طµظٹظ„ ط§ظ„ظ…ط³ظٹط± ط؛ظٹط± ظ…طھط§ط­ط© ظ…ظ† ط§ظ„ظˆط§ط¬ظ‡ط© ط§ظ„ط­ط§ظ„ظٹط©.</p>
             ) : filteredRunItems.length ? (
               <>
                 <p className="muted" style={{ marginTop: 0, marginBottom: 12 }}>
-                  الخصومات المقترحة للمراجعة فقط، ولا يتم تطبيقها تلقائيًا إلا بعد اعتماد المسؤول.
+                  ط§ظ„ط®طµظˆظ…ط§طھ ط§ظ„ظ…ظ‚طھط±ط­ط© ظ„ظ„ظ…ط±ط§ط¬ط¹ط© ظپظ‚ط·طŒ ظˆظ„ط§ ظٹطھظ… طھط·ط¨ظٹظ‚ظ‡ط§ طھظ„ظ‚ط§ط¦ظٹظ‹ط§ ط¥ظ„ط§ ط¨ط¹ط¯ ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ…ط³ط¤ظˆظ„.
                 </p>
                 <DataTable
                   rows={filteredRunItems}
                   rowKey={(row) => String(row.id)}
                   density="compact"
                   columns={[
-                    { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
-                    { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) },
+                    { key: 'employeeNo', header: 'ظƒظˆط¯ ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => text(row.employeeNo) },
+                    { key: 'employeeName', header: 'ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => text(row.employeeName) },
                     {
                       key: 'compensationType',
-                      header: 'نوع الأجر',
-                      cell: (row) => normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري',
+                      header: 'ظ†ظˆط¹ ط§ظ„ط£ط¬ط±',
+                      cell: (row) => normalize(row.compensationType) === 'hourly' ? 'ط£ط¬ط± ط¨ط§ظ„ط³ط§ط¹ط©' : 'ط±ط§طھط¨ ط´ظ‡ط±ظٹ',
                     },
                     {
                       key: 'department',
-                      header: 'القسم',
+                      header: 'ط§ظ„ظ‚ط³ظ…',
                       cell: (row) => text(employeesMap.get(String(row.employeeId))?.departmentName),
                     },
                     {
                       key: 'hourlyRate',
-                      header: 'أجر الساعة',
-                      cell: (row) => normalize(row.compensationType) === 'hourly' ? money(row.hourlyRate || 0) : 'غير متاح',
+                      header: 'ط£ط¬ط± ط§ظ„ط³ط§ط¹ط©',
+                      cell: (row) => normalize(row.compensationType) === 'hourly' ? money(row.hourlyRate || 0) : 'ط؛ظٹط± ظ…طھط§ط­',
                     },
                     {
                       key: 'expectedDailyHours',
-                      header: 'ساعات اليوم المتوقعة',
-                      cell: (row) => normalize(row.compensationType) === 'hourly' ? String(row.expectedDailyHours || 0) : 'غير متاح',
+                      header: 'ط³ط§ط¹ط§طھ ط§ظ„ظٹظˆظ… ط§ظ„ظ…طھظˆظ‚ط¹ط©',
+                      cell: (row) => normalize(row.compensationType) === 'hourly' ? String(row.expectedDailyHours || 0) : 'ط؛ظٹط± ظ…طھط§ط­',
                     },
-                    { key: 'baseSalary', header: 'الراتب الأساسي', cell: (row) => money(row.baseSalary) },
-                    { key: 'allowanceAmount', header: 'البدلات', cell: (row) => money(row.allowanceAmount) },
-                    { key: 'deductionAmount', header: 'الخصومات', cell: (row) => money(row.deductionAmount) },
-                    { key: 'loanDeductionAmount', header: 'السلف/الأقساط', cell: (row) => money(row.loanDeductionAmount) },
+                    { key: 'baseSalary', header: 'ط§ظ„ط±ط§طھط¨ ط§ظ„ط£ط³ط§ط³ظٹ', cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+                    { key: 'allowanceAmount', header: 'ط§ظ„ط¨ط¯ظ„ط§طھ', cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+                    { key: 'deductionAmount', header: 'ط§ظ„ط®طµظˆظ…ط§طھ', cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+                    { key: 'loanDeductionAmount', header: 'ط§ظ„ط³ظ„ظپ/ط§ظ„ط£ظ‚ط³ط§ط·', cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
                     {
                       key: 'unpaidLeave',
-                      header: 'إجازات غير مدفوعة / تنبيهات',
-                      cell: (row) => Number(row.unpaidLeaveDays || 0) > 0 ? `بدون مرتب ${Number(row.unpaidLeaveDays || 0)} يوم` : reviewFlagText(row),
+                      header: 'ط¥ط¬ط§ط²ط§طھ ط؛ظٹط± ظ…ط¯ظپظˆط¹ط© / طھظ†ط¨ظٹظ‡ط§طھ',
+                      cell: (row) => Number(row.unpaidLeaveDays || 0) > 0 ? `ط؛ظٹط± ظ…ط¯ظپظˆط¹ط© ${Number(row.unpaidLeaveDays || 0)} ظٹظˆظ…` : reviewFlagText(row),
                     },
-                    { key: 'netPay', header: 'صافي الراتب', cell: (row) => money(row.netPay) },
-                    { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+                    { key: 'netPay', header: 'طµط§ظپظٹ ط§ظ„ط±ط§طھط¨', cell: (row) => canViewSalaryAmounts ? money(row.netPay) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+                    { key: 'status', header: 'ط§ظ„ط­ط§ظ„ط©', cell: (row) => statusLabel(row.status) },
                     {
                       key: 'reviewAttendance',
-                      header: 'مراجعة الحضور',
+                      header: 'ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط­ط¶ظˆط±',
                       cell: (row) => reviewAttendanceText(row),
                     },
                     {
                       key: 'reviewLeaves',
-                      header: 'مراجعة الإجازات',
+                      header: 'ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¥ط¬ط§ط²ط§طھ',
                       cell: (row) => reviewLeavesText(row),
                     },
                     {
                       key: 'suggestedDeduction',
-                      header: 'خصم مقترح',
-                      cell: (row) => money(Number(row.suggestedAttendanceDeductionAmount || 0) + Number(row.suggestedLeaveDeductionAmount || 0)),
+                      header: 'ط®طµظ… ظ…ظ‚طھط±ط­',
+                      cell: (row) => canViewSalaryAmounts ? money(Number(row.suggestedAttendanceDeductionAmount || 0) + Number(row.suggestedLeaveDeductionAmount || 0)) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.',
                     },
                     {
                       key: 'details',
-                      header: 'عرض التفاصيل',
+                      header: 'ط¹ط±ط¶ ط§ظ„طھظپط§طµظٹظ„',
                       cell: (row) => (
                         <details>
-                          <summary>مراجعة</summary>
+                          <summary>ظ…ط±ط§ط¬ط¹ط©</summary>
                           <div className="muted" style={{ marginTop: 8 }}>
-                            <div>الراتب الأساسي: {money(row.baseSalary)}</div>
-                            <div>نوع الأجر: {normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</div>
-                            <div>أجر الساعة: {normalize(row.compensationType) === 'hourly' ? money(row.hourlyRate || 0) : 'غير متاح'}</div>
-                            <div>ساعات اليوم المتوقعة: {normalize(row.compensationType) === 'hourly' ? String(row.expectedDailyHours || 0) : 'غير متاح'}</div>
-                            <div>الخصومات: {money(row.deductionAmount)}</div>
-                            <div>السلف/الأقساط: {money(row.loanDeductionAmount)}</div>
-                            <div>الإجازات غير المدفوعة: {Number(row.unpaidLeaveDays || 0)} يوم</div>
-                            <div>ملاحظات المراجعة: {text(row.payrollReviewNotes)}</div>
-                            <div>ملاحظات إضافية: {text(row.notes)}</div>
+                            <div>ط§ظ„ط±ط§طھط¨ ط§ظ„ط£ط³ط§ط³ظٹ: {canViewSalaryAmounts ? money(row.baseSalary) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.'}</div>
+                            <div>ظ†ظˆط¹ ط§ظ„ط£ط¬ط±: {normalize(row.compensationType) === 'hourly' ? 'ط£ط¬ط± ط¨ط§ظ„ط³ط§ط¹ط©' : 'ط±ط§طھط¨ ط´ظ‡ط±ظٹ'}</div>
+                            <div>ط£ط¬ط± ط§ظ„ط³ط§ط¹ط©: {normalize(row.compensationType) === 'hourly' ? (canViewSalaryAmounts ? money(row.hourlyRate || 0) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.') : 'ط؛ظٹط± ظ…طھط§ط­'}</div>
+                            <div>ط³ط§ط¹ط§طھ ط§ظ„ظٹظˆظ… ط§ظ„ظ…طھظˆظ‚ط¹ط©: {normalize(row.compensationType) === 'hourly' ? String(row.expectedDailyHours || 0) : 'ط؛ظٹط± ظ…طھط§ط­'}</div>
+                            <div>ط§ظ„ط®طµظˆظ…ط§طھ: {canViewSalaryAmounts ? money(row.deductionAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.'}</div>
+                            <div>ط§ظ„ط³ظ„ظپ/ط§ظ„ط£ظ‚ط³ط§ط·: {canViewSalaryAmounts ? money(row.loanDeductionAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.'}</div>
+                            <div>ط§ظ„ط¥ط¬ط§ط²ط§طھ ط؛ظٹط± ط§ظ„ظ…ط¯ظپظˆط¹ط©: {Number(row.unpaidLeaveDays || 0)} ظٹظˆظ…</div>
+                            <div>ظ…ظ„ط§ط­ط¸ط§طھ ط§ظ„ظ…ط±ط§ط¬ط¹ط©: {text(row.payrollReviewNotes)}</div>
+                            <div>ظ…ظ„ط§ط­ط¸ط§طھ ط¥ط¶ط§ظپظٹط©: {text(row.notes)}</div>
                           </div>
                         </details>
                       ),
                     },
                   ]}
                 />
-                {!filteredRunItems.length ? <p className="muted">لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p> : null}
+                {!filteredRunItems.length ? <p className="muted">ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ ظ…ط·ط§ط¨ظ‚ط© ظ„ظ„ط¨ط­ط« ط£ظˆ ط§ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©.</p> : null}
               </>
             ) : (
-              <p className="muted">لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p>
+              <p className="muted">ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ ظ…ط·ط§ط¨ظ‚ط© ظ„ظ„ط¨ط­ط« ط£ظˆ ط§ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©.</p>
             )}
           </QueryFeedback>
         )}
       </Card>
 
-      <Card title="ملاحظة تشغيلية">
+      <Card title="ظ…ظ„ط§ط­ط¸ط© طھط´ط؛ظٹظ„ظٹط©">
         <p className="muted" style={{ margin: 0 }}>
-          بعض تنبيهات المراجعة تحتاج ربط بيانات إضافية لاحقًا.
+          ط¨ط¹ط¶ طھظ†ط¨ظٹظ‡ط§طھ ط§ظ„ظ…ط±ط§ط¬ط¹ط© طھط­طھط§ط¬ ط±ط¨ط· ط¨ظٹط§ظ†ط§طھ ط¥ط¶ط§ظپظٹط© ظ„ط§ط­ظ‚ظ‹ط§.
         </p>
       </Card>
+      </>
+      )}
     </div>
   );
 }
+
+
+

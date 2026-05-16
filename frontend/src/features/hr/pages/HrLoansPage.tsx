@@ -1,26 +1,32 @@
-﻿import { FormEvent, useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { DataTable } from '@/shared/ui/data-table';
-import type { HrEmployee, HrLoan } from '@/types/domain';
+import type { HrEmployee, HrLoan, HrLoanInstallment } from '@/types/domain';
 import { getErrorMessage } from '@/lib/errors';
 import { useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
-
-interface LoanDraft {
-  employeeId: string;
-  loanType: string;
-  principalAmount: string;
-  installmentCount: string;
-  installmentAmount: string;
-  issueDate: string;
-  firstDueDate: string;
-  repaymentMode: string;
-  notes: string;
-}
+import { HrLoanCreateForm } from '@/features/hr/pages/loans/HrLoanCreateForm';
+import { HrLoanRepaymentForm } from '@/features/hr/pages/loans/HrLoanRepaymentForm';
+import {
+  addMonths,
+  createInitialLoanDraft,
+  fallbackText,
+  installmentStatusLabel,
+  loanTypeLabel,
+  monthLabel,
+  monthNames,
+  money,
+  normalizeArabicDigits,
+  parsePositiveNumber,
+  repaymentModeLabel,
+  statusLabel,
+  type LoanDraft,
+} from '@/features/hr/pages/loans/hr-loans.helpers';
 
 interface RepaymentDraft {
   amount: string;
@@ -28,70 +34,12 @@ interface RepaymentDraft {
   notes: string;
 }
 
-function todayDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function createInitialLoanDraft(): LoanDraft {
-  return {
-    employeeId: '',
-    loanType: 'advance',
-    principalAmount: '',
-    installmentCount: '1',
-    installmentAmount: '',
-    issueDate: todayDate(),
-    firstDueDate: '',
-    repaymentMode: 'deduct_next_salary',
-    notes: '',
-  };
-}
-
-function money(value: unknown) {
-  const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return '0.00 ج.م';
-  return `${amount.toFixed(2)} ج.م`;
-}
-
-function fallbackText(value: unknown) {
-  return String(value || '').trim() || '—';
-}
-
-function statusLabel(value: unknown) {
-  const status = String(value || '').trim().toLowerCase();
-  if (status === 'pending') return 'قيد المراجعة';
-  if (status === 'draft') return 'مسودة';
-  if (status === 'new') return 'جديدة';
-  if (status === 'approved') return 'معتمدة';
-  if (status === 'disbursed') return 'مصروفة';
-  if (status === 'partially_repaid') return 'مسددة جزئيًا';
-  if (status === 'repaid' || status === 'paid') return 'مسددة';
-  if (status === 'cancelled') return 'ملغاة';
-  return 'غير محدد';
-}
-
-function loanTypeLabel(value: unknown) {
-  const loanType = String(value || '').trim().toLowerCase();
-  if (loanType === 'advance') return 'سلفة';
-  if (loanType === 'deduction') return 'خصم';
-  if (loanType === 'other') return 'أخرى';
-  return fallbackText(value);
-}
-
-function repaymentModeLabel(value: unknown) {
-  const mode = String(value || '').trim().toLowerCase();
-  if (mode === 'deduct_next_salary') return 'خصم من أقرب مرتب';
-  if (mode === 'monthly_salary_installment') return 'أقساط شهرية من المرتب';
-  if (mode === 'manual_cash') return 'سداد نقدي/يدوي';
-  return fallbackText(value);
-}
-
-function employeeName(row: HrEmployee) {
-  return fallbackText(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim());
-}
-
 export function HrLoansPage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
+  const canViewLoans = useHasAnyPermission('hrLoans');
+  const canManageLoans = useHasAnyPermission('hrLoans');
+  const canViewSalaryAmounts = useHasAnyPermission(['hrLoans', 'hrSalaryView', 'hrSalaryManage', 'hrPayrollManage', 'hrPayrollApprove']);
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -112,29 +60,74 @@ export function HrLoansPage() {
     [loans, selectedLoanForRepayment],
   );
 
-  async function handleCreateLoan(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const planPreview = useMemo(() => {
+    const principalAmount = parsePositiveNumber(loanDraft.principalAmount);
+    const isInstallments = loanDraft.repaymentMethod === 'installments';
+    const installmentCount = isInstallments
+      ? Math.max(1, Math.min(60, Math.floor(parsePositiveNumber(loanDraft.installmentCount) || 1)))
+      : 1;
+
+    if (!(principalAmount > 0)) {
+      return {
+        principalAmount: 0,
+        installmentCount,
+        installmentAmount: 0,
+        totalInstallments: 0,
+        startMonthLabel: 'â€”',
+        endMonthLabel: 'â€”',
+        firstDueDate: '',
+      };
+    }
+
+    const baseInstallment = Number((principalAmount / installmentCount).toFixed(2));
+    const totalBeforeLast = Number((baseInstallment * Math.max(0, installmentCount - 1)).toFixed(2));
+    const lastInstallment = Number((principalAmount - totalBeforeLast).toFixed(2));
+    const totalInstallments = Number((totalBeforeLast + lastInstallment).toFixed(2));
+
+    const deductionMonth = Math.max(1, Math.min(12, Number(normalizeArabicDigits(loanDraft.firstDeductionMonth || '0')) || 1));
+    const deductionYear = Math.max(2000, Number(normalizeArabicDigits(loanDraft.firstDeductionYear || '0')) || new Date().getFullYear());
+    const firstDueDate = `${deductionYear}-${String(deductionMonth).padStart(2, '0')}-01`;
+    const endMonth = addMonths(deductionYear, deductionMonth, installmentCount - 1);
+
+    return {
+      principalAmount,
+      installmentCount,
+      installmentAmount: baseInstallment,
+      totalInstallments,
+      startMonthLabel: monthLabel(firstDueDate),
+      endMonthLabel: `${monthNames[endMonth.month - 1] || String(endMonth.month).padStart(2, '0')} ${endMonth.year}`,
+      firstDueDate,
+    };
+  }, [loanDraft]);
+
+  async function handleCreateLoan() {
     setFormError('');
 
     const employeeId = String(loanDraft.employeeId || '').trim();
-    const principalAmount = Number(loanDraft.principalAmount);
-    const installmentCount = Number(loanDraft.installmentCount || 1);
+    const principalAmount = parsePositiveNumber(loanDraft.principalAmount);
     const issueDate = String(loanDraft.issueDate || '').trim();
+    const isInstallments = loanDraft.repaymentMethod === 'installments';
+    const rawInstallmentCount = Math.floor(parsePositiveNumber(loanDraft.installmentCount) || 0);
+    const installmentCount = isInstallments ? planPreview.installmentCount : 1;
 
     if (!employeeId) {
-      setFormError('اختيار الموظف مطلوب.');
+      setFormError('ط§ط®طھظٹط§ط± ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨.');
       return;
     }
-    if (!Number.isFinite(principalAmount) || principalAmount <= 0) {
-      setFormError('قيمة السلفة مطلوبة.');
+    if (!(principalAmount > 0)) {
+      setFormError('ظ‚ظٹظ…ط© ط§ظ„ط³ظ„ظپط© ظ…ط·ظ„ظˆط¨ط© ظˆظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ط£ظƒط¨ط± ظ…ظ† طµظپط±.');
       return;
     }
     if (!issueDate) {
-      setFormError('تاريخ السلفة مطلوب.');
+      setFormError('طھط§ط±ظٹط® ط§ظ„ط³ظ„ظپط© ظ…ط·ظ„ظˆط¨.');
       return;
     }
-    if (!Number.isFinite(installmentCount) || installmentCount < 1) {
-      setFormError('عدد الأقساط يجب ألا يقل عن 1.');
+    if (isInstallments && rawInstallmentCount <= 0) {
+      setFormError('ط¹ط¯ط¯ ط§ظ„ط¯ظپط¹ط§طھ ظ…ط·ظ„ظˆط¨ ظˆظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط£ظƒط¨ط± ظ…ظ† طµظپط±.');
+      return;
+    }
+    if (isInstallments && installmentCount > 60) {
+      setFormError('ط¹ط¯ط¯ ط§ظ„ط¯ظپط¹ط§طھ ظٹط¬ط¨ ط£ظ„ط§ ظٹطھط¬ط§ظˆط² 60 ط¯ظپط¹ط©.');
       return;
     }
 
@@ -145,28 +138,26 @@ export function HrLoansPage() {
           loanType: String(loanDraft.loanType || 'advance').trim() || 'advance',
           principalAmount,
           installmentCount,
-          installmentAmount: loanDraft.installmentAmount ? Number(loanDraft.installmentAmount) : undefined,
-          repaymentMode: String(loanDraft.repaymentMode || 'deduct_next_salary').trim() || 'deduct_next_salary',
+          repaymentMode: isInstallments ? 'monthly_salary_installment' : 'deduct_next_salary',
           issueDate,
-          firstDueDate: String(loanDraft.firstDueDate || '').trim() || undefined,
+          firstDueDate: planPreview.firstDueDate || undefined,
           notes: String(loanDraft.notes || '').trim() || undefined,
         },
       });
       setLoanDraft(createInitialLoanDraft());
     } catch (error) {
-      setFormError(getErrorMessage(error, 'تعذر حفظ السلفة.'));
+      setFormError(getErrorMessage(error, 'طھط¹ط°ط± ط­ظپط¸ ط§ظ„ط³ظ„ظپط©.'));
     }
   }
 
-  async function handleRepay(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleRepay() {
     setRepaymentError('');
 
     if (!selectedRepaymentLoan?.id) return;
 
-    const amount = Number(repaymentDraft.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setRepaymentError('قيمة السداد مطلوبة.');
+    const amount = parsePositiveNumber(repaymentDraft.amount);
+    if (!(amount > 0)) {
+      setRepaymentError('ظ‚ظٹظ…ط© ط§ظ„ط³ط¯ط§ط¯ ظ…ط·ظ„ظˆط¨ط©.');
       return;
     }
 
@@ -182,87 +173,49 @@ export function HrLoansPage() {
       setRepaymentDraft({ amount: '', method: '', notes: '' });
       setSelectedLoanForRepayment('');
     } catch (error) {
-      setRepaymentError(getErrorMessage(error, 'تعذر تسجيل السداد.'));
+      setRepaymentError(getErrorMessage(error, 'طھط¹ط°ط± طھط³ط¬ظٹظ„ ط§ظ„ط³ط¯ط§ط¯.'));
     }
   }
 
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="السلف والخصومات"
-        description="تسجيل سلف الموظفين ومتابعة السداد والخصومات المرتبطة بالمرتب."
-        actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>}
+        title="ط§ظ„ط³ظ„ظپ ظˆط§ظ„ط®طµظˆظ…ط§طھ"
+        description="ط¥ط¯ط§ط±ط© ط§ظ„ط³ظ„ظپ ظˆط®ط·ط· ط§ظ„ط³ط¯ط§ط¯ ظˆظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£ظ‚ط³ط§ط· ط§ظ„ظ…ط³طھط­ظ‚ط© ظ„ظ„ظ…ظˆط¸ظپظٹظ†."
+        actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>ط±ط¬ظˆط¹ ظ„ظ„ظ…ظˆط¸ظپظٹظ†</Button>}
       />
 
-      <Card title="سلفة جديدة">
-        <form className="form-grid" onSubmit={(event) => { void handleCreateLoan(event); }}>
-          <label className="field">
-            <span>الموظف *</span>
-            <select value={loanDraft.employeeId} onChange={(event) => setLoanDraft((current) => ({ ...current, employeeId: event.target.value }))}>
-              <option value="">اختر الموظف</option>
-              {employees.map((row) => (
-                <option key={String(row.id)} value={String(row.id)}>{employeeName(row)}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>نوع السلفة</span>
-            <select value={loanDraft.loanType} onChange={(event) => setLoanDraft((current) => ({ ...current, loanType: event.target.value }))}>
-              <option value="advance">سلفة</option>
-              <option value="deduction">خصم</option>
-              <option value="other">أخرى</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>قيمة السلفة *</span>
-            <input type="number" min="0" step="0.01" value={loanDraft.principalAmount} onChange={(event) => setLoanDraft((current) => ({ ...current, principalAmount: event.target.value }))} />
-          </label>
-          <label className="field">
-            <span>عدد الأقساط</span>
-            <input type="number" min="1" step="1" value={loanDraft.installmentCount} onChange={(event) => setLoanDraft((current) => ({ ...current, installmentCount: event.target.value }))} />
-          </label>
-          <label className="field">
-            <span>قيمة القسط</span>
-            <input type="number" min="0" step="0.01" value={loanDraft.installmentAmount} onChange={(event) => setLoanDraft((current) => ({ ...current, installmentAmount: event.target.value }))} />
-          </label>
-          <label className="field">
-            <span>تاريخ السلفة *</span>
-            <input type="date" value={loanDraft.issueDate} onChange={(event) => setLoanDraft((current) => ({ ...current, issueDate: event.target.value }))} />
-          </label>
-          <label className="field">
-            <span>أول استحقاق</span>
-            <input type="date" value={loanDraft.firstDueDate} onChange={(event) => setLoanDraft((current) => ({ ...current, firstDueDate: event.target.value }))} />
-          </label>
-          <label className="field">
-            <span>طريقة السداد</span>
-            <select value={loanDraft.repaymentMode} onChange={(event) => setLoanDraft((current) => ({ ...current, repaymentMode: event.target.value }))}>
-              <option value="deduct_next_salary">خصم من أقرب مرتب</option>
-              <option value="monthly_salary_installment">أقساط شهرية من المرتب</option>
-              <option value="manual_cash">سداد نقدي/يدوي</option>
-            </select>
-          </label>
-          <label className="field field-wide">
-            <span>ملاحظات</span>
-            <input value={loanDraft.notes} onChange={(event) => setLoanDraft((current) => ({ ...current, notes: event.target.value }))} />
-          </label>
-
-          {formError ? <div className="field-wide error-box">{formError}</div> : null}
-
-          <div className="actions compact-actions field-wide">
-            <Button type="submit" disabled={mutations.saveLoan.isPending}>{mutations.saveLoan.isPending ? 'جاري الحفظ...' : 'حفظ السلفة'}</Button>
-          </div>
-        </form>
+      {!canViewLoans ? (
+        <Card title="ط§ظ„ظˆطµظˆظ„ ظ„ظ„ط³ظ„ظپ ظˆط§ظ„ط®طµظˆظ…ط§طھ">
+          <p className="muted" style={{ margin: 0 }}>ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ظ‡ط°ظ‡ ط§ظ„طµظپط­ط©.</p>
+          <p className="muted" style={{ marginBottom: 0 }}>طھظˆط§طµظ„ ظ…ط¹ ظ…ط³ط¤ظˆظ„ ط§ظ„ظ†ط¸ط§ظ… ظ„طھط­ط¯ظٹط« ط§ظ„طµظ„ط§ط­ظٹط§طھ.</p>
+        </Card>
+      ) : (
+        <>
+            <Card title="ط³ظ„ظپط© ط¬ط¯ظٹط¯ط©">
+        <HrLoanCreateForm
+          loanDraft={loanDraft}
+          employees={employees as HrEmployee[]}
+          canManageLoans={canManageLoans}
+          formError={formError}
+          planPreview={planPreview}
+          isPending={mutations.saveLoan.isPending}
+          onChange={(patch) => setLoanDraft((current) => ({ ...current, ...patch }))}
+          onSubmit={() => {
+            void handleCreateLoan();
+          }}
+        />
       </Card>
 
-      <Card title="قائمة السلف">
+      <Card title="ظ‚ط§ط¦ظ…ط© ط§ظ„ط³ظ„ظپ">
         <SearchToolbar
           search={search}
           onSearchChange={(value) => {
             setSearch(value);
             setPage(1);
           }}
-          searchPlaceholder="بحث باسم الموظف أو رقم السلفة"
-          inputAriaLabel="بحث السلف"
+          searchPlaceholder="ط¨ط­ط« ط¨ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ط£ظˆ ط±ظ‚ظ… ط§ظ„ط³ظ„ظپط©"
+          inputAriaLabel="ط¨ط­ط« ط§ظ„ط³ظ„ظپ"
         />
 
         <QueryFeedback
@@ -270,9 +223,9 @@ export function HrLoansPage() {
           isError={workspace.loans.isError}
           error={workspace.loans.error}
           isEmpty={!loans.length}
-          loadingText="جاري تحميل السلف..."
-          errorTitle="تعذر تحميل السلف"
-          emptyTitle="لا توجد سلف مسجلة."
+          loadingText="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط³ظ„ظپ..."
+          errorTitle="طھط¹ط°ط± طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط³ظ„ظپ"
+          emptyTitle="ظ„ط§ طھظˆط¬ط¯ ط³ظ„ظپ ظ…ط³ط¬ظ„ط© ط­طھظ‰ ط§ظ„ط¢ظ†."
         >
           <DataTable
             rows={loans}
@@ -287,31 +240,67 @@ export function HrLoansPage() {
                 setPageSize(next);
                 setPage(1);
               },
-              itemLabel: 'سلفة',
+              itemLabel: 'ط³ظ„ظپط©',
             }}
             columns={[
-              { key: 'loanNo', header: 'رقم السلفة', cell: (row) => fallbackText(row.loanNo || row.id) },
-              { key: 'employee', header: 'الموظف', cell: (row) => fallbackText(row.employeeName) },
-              { key: 'loanType', header: 'النوع', cell: (row) => loanTypeLabel(row.loanType) },
-              { key: 'principalAmount', header: 'قيمة السلفة', cell: (row) => money(row.principalAmount) },
-              { key: 'paidAmount', header: 'المدفوع', cell: (row) => money(row.paidAmount) },
-              { key: 'remainingAmount', header: 'المتبقي', cell: (row) => money(row.remainingAmount) },
-              { key: 'repaymentMode', header: 'طريقة السداد', cell: (row) => repaymentModeLabel(row.repaymentMode) },
-              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-              { key: 'issueDate', header: 'تاريخ السلفة', cell: (row) => fallbackText(row.issueDate) },
+              { key: 'loanNo', header: 'ط±ظ‚ظ… ط§ظ„ط³ظ„ظپط©', cell: (row) => fallbackText(row.loanNo || row.id) },
+              { key: 'employee', header: 'ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => fallbackText(row.employeeName) },
+              { key: 'loanType', header: 'ط§ظ„ظ†ظˆط¹', cell: (row) => loanTypeLabel(row.loanType) },
+              { key: 'principalAmount', header: 'ظ‚ظٹظ…ط© ط§ظ„ط³ظ„ظپط©', cell: (row) => canViewSalaryAmounts ? money(row.principalAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+              { key: 'remainingAmount', header: 'ط§ظ„ظ…طھط¨ظ‚ظٹ', cell: (row) => canViewSalaryAmounts ? money(row.remainingAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
+              { key: 'repaymentMode', header: 'ط·ط±ظٹظ‚ط© ط§ظ„ط³ط¯ط§ط¯', cell: (row) => repaymentModeLabel(row.repaymentMode) },
+              { key: 'status', header: 'ط§ظ„ط­ط§ظ„ط©', cell: (row) => statusLabel(row.status) },
+              { key: 'issueDate', header: 'طھط§ط±ظٹط® ط§ظ„ط³ظ„ظپط©', cell: (row) => fallbackText(row.issueDate) },
+              {
+                key: 'plan',
+                header: 'ط®ط·ط© ط§ظ„ط³ط¯ط§ط¯',
+                cell: (row) => {
+                  const installments = Array.isArray(row.installments) ? row.installments as HrLoanInstallment[] : [];
+                  if (!installments.length) return fallbackText(repaymentModeLabel(row.repaymentMode));
+                  return (
+                    <details>
+                      <summary>{`ط¹ط¯ط¯ ط§ظ„ط£ظ‚ط³ط§ط·: ${installments.length}`}</summary>
+                      <div className="table-wrap" style={{ marginTop: 8 }}>
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>ط±ظ‚ظ… ط§ظ„ظ‚ط³ط·</th>
+                              <th>ط´ظ‡ط± ط§ظ„ط§ط³طھط­ظ‚ط§ظ‚</th>
+                              <th>ظ‚ظٹظ…ط© ط§ظ„ظ‚ط³ط·</th>
+                              <th>ط§ظ„ط­ط§ظ„ط©</th>
+                              <th>طھط§ط±ظٹط® ط§ظ„ط®طµظ…</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {installments.map((item) => (
+                              <tr key={String(item.id)}>
+                                <td>{item.installmentNumber || 'â€”'}</td>
+                                <td>{monthLabel(item.dueDate)}</td>
+                                <td>{canViewSalaryAmounts ? money(item.amount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.'}</td>
+                                <td>{installmentStatusLabel(item.status)}</td>
+                                <td>{fallbackText(item.paidAt)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  );
+                },
+              },
               {
                 key: 'actions',
-                header: 'إجراءات',
+                header: 'ط¥ط¬ط±ط§ط،ط§طھ',
                 cell: (row) => {
                   const status = String(row.status || '').trim().toLowerCase();
-                  const canApprove = !status || status === 'pending' || status === 'draft' || status === 'new';
-                  const canDisburse = status === 'approved';
-                  const canRepay = Number(row.remainingAmount || 0) > 0;
+                  const canApprove = canManageLoans && (!status || status === 'pending' || status === 'draft' || status === 'new');
+                  const canDisburse = canManageLoans && status === 'approved';
+                  const canRepay = canManageLoans && Number(row.remainingAmount || 0) > 0;
                   return (
                     <div className="actions compact-actions">
-                      {canApprove ? <Button variant="secondary" onClick={() => { void mutations.approveLoan.mutateAsync(String(row.id)); }}>اعتماد</Button> : null}
-                      {canDisburse ? <Button variant="secondary" onClick={() => { void mutations.disburseLoan.mutateAsync(String(row.id)); }}>صرف</Button> : null}
-                      {canRepay ? <Button variant="secondary" onClick={() => setSelectedLoanForRepayment(String(row.id))}>تسجيل سداد</Button> : null}
+                      {canApprove ? <Button variant="secondary" onClick={() => { void mutations.approveLoan.mutateAsync(String(row.id)); }}>ط§ط¹طھظ…ط§ط¯</Button> : null}
+                      {canDisburse ? <Button variant="secondary" onClick={() => { void mutations.disburseLoan.mutateAsync(String(row.id)); }}>طµط±ظپ</Button> : null}
+                      {canRepay ? <Button variant="secondary" onClick={() => setSelectedLoanForRepayment(String(row.id))}>طھط³ط¬ظٹظ„ ط³ط¯ط§ط¯</Button> : null}
                     </div>
                   );
                 },
@@ -319,39 +308,26 @@ export function HrLoansPage() {
             ]}
           />
 
-          {selectedRepaymentLoan ? (
-            <form className="form-grid" style={{ marginTop: 12 }} onSubmit={(event) => { void handleRepay(event); }}>
-              <label className="field">
-                <span>السلفة المحددة</span>
-                <input value={fallbackText(selectedRepaymentLoan.loanNo || selectedRepaymentLoan.id)} disabled />
-              </label>
-              <label className="field">
-                <span>المتبقي</span>
-                <input value={money(selectedRepaymentLoan.remainingAmount)} disabled />
-              </label>
-              <label className="field">
-                <span>قيمة السداد</span>
-                <input type="number" min="0" step="0.01" value={repaymentDraft.amount} onChange={(event) => setRepaymentDraft((current) => ({ ...current, amount: event.target.value }))} />
-              </label>
-              <label className="field">
-                <span>الطريقة</span>
-                <input value={repaymentDraft.method} onChange={(event) => setRepaymentDraft((current) => ({ ...current, method: event.target.value }))} />
-              </label>
-              <label className="field field-wide">
-                <span>ملاحظات</span>
-                <input value={repaymentDraft.notes} onChange={(event) => setRepaymentDraft((current) => ({ ...current, notes: event.target.value }))} />
-              </label>
-
-              {repaymentError ? <div className="field-wide error-box">{repaymentError}</div> : null}
-
-              <div className="actions compact-actions field-wide">
-                <Button type="submit" disabled={mutations.repayLoan.isPending}>{mutations.repayLoan.isPending ? 'جاري التسجيل...' : 'تسجيل سداد'}</Button>
-                <Button type="button" variant="secondary" onClick={() => setSelectedLoanForRepayment('')}>إلغاء</Button>
-              </div>
-            </form>
+                    {selectedRepaymentLoan ? (
+            <HrLoanRepaymentForm
+              selectedLoanLabel={fallbackText(selectedRepaymentLoan.loanNo || selectedRepaymentLoan.id)}
+              remainingAmountText={canViewSalaryAmounts ? money(selectedRepaymentLoan.remainingAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.'}
+              repaymentDraft={repaymentDraft}
+              repaymentError={repaymentError}
+              isPending={mutations.repayLoan.isPending}
+              onChange={(patch) => setRepaymentDraft((current) => ({ ...current, ...patch }))}
+              onSubmit={() => {
+                void handleRepay();
+              }}
+              onCancel={() => setSelectedLoanForRepayment('')}
+            />
           ) : null}
         </QueryFeedback>
       </Card>
+      </>
+      )}
     </div>
   );
 }
+
+
