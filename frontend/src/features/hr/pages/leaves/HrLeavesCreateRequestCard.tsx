@@ -40,26 +40,26 @@ export function HrLeavesCreateRequestCard({
   onClose,
 }: Props) {
   return (
-    <Card title="ط¥ط¶ط§ظپط© ط·ظ„ط¨ ط¥ط¬ط§ط²ط©">
+    <Card title="إضافة طلب إجازة">
       <div className="form-grid">
         <label className="field">
-          <span>ط§ظ„ظ…ظˆط¸ظپ</span>
+          <span>الموظف</span>
           <select value={leaveForm.employeeId} onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, employeeId: normalizeArabicDigits(event.target.value) }))}>
-            <option value="">ط§ط®طھط± ط§ظ„ظ…ظˆط¸ظپ</option>
+            <option value="">اختر الموظف</option>
             {employees.map((employee) => <option key={employee.id} value={employee.id}>{employeeDisplay(employee)}</option>)}
           </select>
           {errors.employeeId ? <small className="field-error">{errors.employeeId}</small> : null}
         </label>
         <label className="field">
-          <span>ظ†ظˆط¹ ط§ظ„ط¥ط¬ط§ط²ط©</span>
+          <span>نوع الإجازة</span>
           <select value={leaveForm.leaveTypeId} onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, leaveTypeId: normalizeArabicDigits(event.target.value) }))}>
-            <option value="">ط§ط®طھط± ط§ظ„ظ†ظˆط¹</option>
-            {leaveTypes.map((type) => <option key={type.id} value={type.id}>{text(type.name) || 'â€”'}</option>)}
+            <option value="">اختر النوع</option>
+            {leaveTypes.map((type) => <option key={type.id} value={type.id}>{text(type.name) || '—'}</option>)}
           </select>
           {errors.leaveTypeId ? <small className="field-error">{errors.leaveTypeId}</small> : null}
         </label>
         <label className="field">
-          <span>ظ…ظ† طھط§ط±ظٹط®</span>
+          <span>من تاريخ</span>
           <input
             type="date"
             value={leaveForm.startDate}
@@ -71,7 +71,7 @@ export function HrLeavesCreateRequestCard({
           {errors.startDate ? <small className="field-error">{errors.startDate}</small> : null}
         </label>
         <label className="field">
-          <span>ط¥ظ„ظ‰ طھط§ط±ظٹط®</span>
+          <span>إلى تاريخ</span>
           <input
             type="date"
             value={leaveForm.endDate}

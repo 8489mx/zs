@@ -120,10 +120,10 @@ export function HrLeavesPage() {
 
   const createLeaveRequest = async () => {
     const nextErrors: Record<string, string> = {};
-    if (!leaveForm.employeeId) nextErrors.employeeId = 'ط§ط®طھظٹط§ط± ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨.';
-    if (!leaveForm.leaveTypeId) nextErrors.leaveTypeId = 'ظ†ظˆط¹ ط§ظ„ط¥ط¬ط§ط²ط© ظ…ط·ظ„ظˆط¨.';
-    if (!leaveForm.startDate) nextErrors.startDate = 'طھط§ط±ظٹط® ط§ظ„ط¨ط¯ط§ظٹط© ظ…ط·ظ„ظˆط¨.';
-    if (!leaveForm.endDate) nextErrors.endDate = 'طھط§ط±ظٹط® ط§ظ„ظ†ظ‡ط§ظٹط© ظ…ط·ظ„ظˆط¨.';
+    if (!leaveForm.employeeId) nextErrors.employeeId = 'اختيار الموظف مطلوب.';
+    if (!leaveForm.leaveTypeId) nextErrors.leaveTypeId = 'نوع الإجازة مطلوب.';
+    if (!leaveForm.startDate) nextErrors.startDate = 'تاريخ البداية مطلوب.';
+    if (!leaveForm.endDate) nextErrors.endDate = 'تاريخ النهاية مطلوب.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
@@ -160,7 +160,7 @@ export function HrLeavesPage() {
   const rejectRequest = async (id: string) => {
     const reason = text(rejectNotes);
     if (!reason) {
-      setErrors((prev) => ({ ...prev, reject: 'ط³ط¨ط¨ ط§ظ„ط±ظپط¶ ظ…ط·ظ„ظˆط¨.' }));
+      setErrors((prev) => ({ ...prev, reject: 'سبب الرفض مطلوب.' }));
       return;
     }
     await mutations.rejectLeaveRequest.mutateAsync({ id, payload: { decisionNotes: reason, notes: reason } });
@@ -176,14 +176,14 @@ export function HrLeavesPage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="ط§ظ„ط¥ط¬ط§ط²ط§طھ"
-        description="ظ…ط³ط§ط­ط© ط§ظ„ط¹ظ…ظ„ ط§ظ„ظٹظˆظ…ظٹط© ظ„ظ…ط±ط§ط¬ط¹ط© ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط© ظˆط§ظ„ط§ط¹طھظ…ط§ط¯ ظˆط§ظ„ظ…طھط§ط¨ط¹ط©طŒ ظ…ط¹ طھظˆط¶ظٹط­ ط§ظ„ط­ط§ظ„ط§طھ ط§ظ„طھظٹ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©."
+        title="الإجازات"
+        description="مساحة العمل اليومية لمراجعة طلبات الإجازة والاعتماد والمتابعة، مع توضيح الحالات التي تحتاج مراجعة."
         actions={(
           <div className="compact-actions">
             <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-              {showCreate ? 'ط¥ط؛ظ„ط§ظ‚ ظ†ظ…ظˆط°ط¬ ط§ظ„ط·ظ„ط¨' : 'ط¥ط¶ط§ظپط© ط·ظ„ط¨ ط¥ط¬ط§ط²ط©'}
+              {showCreate ? 'إغلاق نموذج الطلب' : 'إضافة طلب إجازة'}
             </Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>ط±ط¬ظˆط¹ ظ„ظ„ظ…ظˆط¸ظپظٹظ†</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
         )}
       />
@@ -206,68 +206,68 @@ export function HrLeavesPage() {
         />
       ) : null}
 
-      <Card title="ظپظ„ط§طھط± ط§ظ„ط·ظ„ط¨ط§طھ">
+      <Card title="فلاتر الطلبات">
         <div className="form-grid">
           <div className="field field-wide">
-            <span>ط¨ط­ط« ط§ظ„ظ…ظˆط¸ظپ</span>
+            <span>بحث الموظف</span>
             <SearchToolbar
               search={search}
               onSearchChange={(value) => {
                 setSearch(value);
                 setPage(1);
               }}
-              searchPlaceholder="ط¨ط­ط« ط¨ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ط£ظˆ ظƒظˆط¯ ط§ظ„ظ…ظˆط¸ظپ"
-              inputAriaLabel="ط¨ط­ط« ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط§طھ"
+              searchPlaceholder="بحث باسم الموظف أو كود الموظف"
+              inputAriaLabel="بحث طلبات الإجازات"
             />
           </div>
           <label className="field">
-            <span>ط§ظ„ط­ط§ظ„ط©</span>
+            <span>الحالة</span>
             <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}>
-              <option value="">ط§ظ„ظƒظ„</option>
-              <option value="pending">ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</option>
-              <option value="approved">ظ…ط¹طھظ…ط¯ط©</option>
-              <option value="rejected">ظ…ط±ظپظˆط¶ط©</option>
-              <option value="cancelled">ظ…ظ„ط؛ط§ط©</option>
+              <option value="">الكل</option>
+              <option value="pending">قيد المراجعة</option>
+              <option value="approved">معتمدة</option>
+              <option value="rejected">مرفوضة</option>
+              <option value="cancelled">ملغاة</option>
             </select>
           </label>
           <label className="field">
-            <span>ظ†ظˆط¹ ط§ظ„ط¥ط¬ط§ط²ط©</span>
+            <span>نوع الإجازة</span>
             <select value={leaveTypeFilter} onChange={(event) => { setLeaveTypeFilter(event.target.value); setPage(1); }}>
-              <option value="all">ط§ظ„ظƒظ„</option>
-              {leaveTypes.map((type) => <option key={type.id} value={String(type.id)}>{text(type.name) || 'â€”'}</option>)}
+              <option value="all">الكل</option>
+              {leaveTypes.map((type) => <option key={type.id} value={String(type.id)}>{text(type.name) || '—'}</option>)}
             </select>
           </label>
           <label className="field">
-            <span>ظ…ظ† طھط§ط±ظٹط®</span>
+            <span>من تاريخ</span>
             <input type="date" value={fromDateFilter} onChange={(event) => { setFromDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
           </label>
           <label className="field">
-            <span>ط¥ظ„ظ‰ طھط§ط±ظٹط®</span>
+            <span>إلى تاريخ</span>
             <input type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
           </label>
         </div>
       </Card>
 
-      <Card title="ظ…ظ„ط®طµ ط§ظ„ط·ظ„ط¨ط§طھ">
+      <Card title="ملخص الطلبات">
         <div className="stats-grid">
-          <div className="stat-card"><span>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط¨ط§طھ</span><strong>{summary.total}</strong></div>
-          <div className="stat-card"><span>ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</span><strong>{summary.pending}</strong></div>
-          <div className="stat-card"><span>ظ…ط¹طھظ…ط¯ط©</span><strong>{summary.approved}</strong></div>
-          <div className="stat-card"><span>ظ…ط±ظپظˆط¶ط©</span><strong>{summary.rejected}</strong></div>
-          <div className="stat-card"><span>ط¥ط¬ط§ط²ط§طھ ط؛ظٹط± ظ…ط¯ظپظˆط¹ط© / طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©</span><strong>{summary.unpaid}</strong></div>
+          <div className="stat-card"><span>إجمالي الطلبات</span><strong>{summary.total}</strong></div>
+          <div className="stat-card"><span>قيد المراجعة</span><strong>{summary.pending}</strong></div>
+          <div className="stat-card"><span>معتمدة</span><strong>{summary.approved}</strong></div>
+          <div className="stat-card"><span>مرفوضة</span><strong>{summary.rejected}</strong></div>
+          <div className="stat-card"><span>إجازات غير مدفوعة / تحتاج مراجعة</span><strong>{summary.unpaid}</strong></div>
         </div>
       </Card>
 
-      <Card title="ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط©">
+      <Card title="طلبات الإجازة">
         <QueryFeedback
           isLoading={leaveRequestsQuery.isLoading}
           isError={leaveRequestsQuery.isError}
           error={leaveRequestsQuery.error}
           isEmpty={!requests.length || !visibleRequests.length}
-          loadingText="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط©..."
-          errorTitle="طھط¹ط°ط± طھط­ظ…ظٹظ„ ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط©."
-          emptyTitle={isSearchOrFilterActive ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ ظ…ط·ط§ط¨ظ‚ط© ظ„ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©.' : 'ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط¥ط¬ط§ط²ط© ط­طھظ‰ ط§ظ„ط¢ظ†.'}
-          emptyHint={isSearchOrFilterActive ? 'ط¬ط±ظ‘ط¨ طھط¹ط¯ظٹظ„ ط§ظ„ظپظ„ط§طھط± ط£ظˆ ط¥ط²ط§ظ„ط© ط§ظ„ط¨ط­ط«.' : 'ط§ط¨ط¯ط£ ط¨ط¥ط¶ط§ظپط© ط·ظ„ط¨ ط¥ط¬ط§ط²ط© ط¬ط¯ظٹط¯ ظ…ظ† ط§ظ„ط²ط± ط£ط¹ظ„ظ‰ ط§ظ„طµظپط­ط©.'}
+          loadingText="جاري تحميل طلبات الإجازة..."
+          errorTitle="تعذر تحميل طلبات الإجازة."
+          emptyTitle={isSearchOrFilterActive ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد طلبات إجازة حتى الآن.'}
+          emptyHint={isSearchOrFilterActive ? 'جرّب تعديل الفلاتر أو إزالة البحث.' : 'ابدأ بإضافة طلب إجازة جديد من الزر أعلى الصفحة.'}
         >
           <DataTable
             rows={visibleRequests}
@@ -282,32 +282,32 @@ export function HrLeavesPage() {
                 setPageSize(next);
                 setPage(1);
               },
-              itemLabel: 'ط·ظ„ط¨',
+              itemLabel: 'طلب',
             }}
             columns={[
-              { key: 'employeeNo', header: 'ظƒظˆط¯ ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => text(row.employeeNo) || 'â€”' },
-              { key: 'employeeName', header: 'ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => text(row.employeeName) || 'â€”' },
-              { key: 'leaveType', header: 'ظ†ظˆط¹ ط§ظ„ط¥ط¬ط§ط²ط©', cell: (row) => text(row.leaveTypeName || row.leaveType) || 'â€”' },
-              { key: 'startDate', header: 'ظ…ظ† طھط§ط±ظٹط®', cell: (row) => toDateOnly(row.startDate) || 'â€”' },
-              { key: 'endDate', header: 'ط¥ظ„ظ‰ طھط§ط±ظٹط®', cell: (row) => toDateOnly(row.endDate) || 'â€”' },
-              { key: 'daysCount', header: 'ط¹ط¯ط¯ ط§ظ„ط£ظٹط§ظ…', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
-              { key: 'status', header: 'ط§ظ„ط­ط§ظ„ط©', cell: (row) => leaveStatusLabel(row.status) },
+              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) || '—' },
+              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) || '—' },
+              { key: 'leaveType', header: 'نوع الإجازة', cell: (row) => text(row.leaveTypeName || row.leaveType) || '—' },
+              { key: 'startDate', header: 'من تاريخ', cell: (row) => toDateOnly(row.startDate) || '—' },
+              { key: 'endDate', header: 'إلى تاريخ', cell: (row) => toDateOnly(row.endDate) || '—' },
+              { key: 'daysCount', header: 'عدد الأيام', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
+              { key: 'status', header: 'الحالة', cell: (row) => leaveStatusLabel(row.status) },
               {
                 key: 'isPaid',
-                header: 'ظ…ط¯ظپظˆط¹ط© / ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©',
+                header: 'مدفوعة / غير مدفوعة',
                 cell: (row) => {
                   const byId = leaveTypeById.get(String(row.leaveTypeId || ''));
                   const byName = leaveTypeByName.get(text(row.leaveTypeName || row.leaveType).toLowerCase());
                   const isPaid = byId?.isPaid ?? byName?.isPaid;
-                  if (isPaid === true) return 'ظ…ط¯ظپظˆط¹ط©';
-                  if (isPaid === false) return 'ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©';
-                  return 'ط؛ظٹط± ظ…ط­ط¯ط¯';
+                  if (isPaid === true) return 'مدفوعة';
+                  if (isPaid === false) return 'غير مدفوعة';
+                  return 'غير محدد';
                 },
               },
-              { key: 'notes', header: 'ظ…ظ„ط§ط­ط¸ط§طھ', cell: (row) => text(row.notes || row.reason || '') || 'â€”' },
+              { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes || row.reason || '') || '—' },
               {
                 key: 'actions',
-                header: 'ط¥ط¬ط±ط§ط،',
+                header: 'إجراء',
                 cell: (row) => {
                   const rowId = String(row.id);
                   const byId = leaveTypeById.get(String(row.leaveTypeId || ''));
@@ -317,20 +317,20 @@ export function HrLeavesPage() {
                     <div className="actions compact-actions">
                       {row.status === 'pending' ? (
                         <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending}>
-                          ط§ط¹طھظ…ط§ط¯
+                          اعتماد
                         </Button>
                       ) : null}
                       {row.status === 'pending' ? (
                         <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending}>
-                          ط±ظپط¶
+                          رفض
                         </Button>
                       ) : null}
                       {row.status !== 'cancelled' ? (
                         <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending}>
-                          ط¥ظ„ط؛ط§ط،
+                          إلغاء
                         </Button>
                       ) : null}
-                      {isUnpaid ? <span className="muted small">ط§ظ„ط¥ط¬ط§ط²ط© ط؛ظٹط± ط§ظ„ظ…ط¯ظپظˆط¹ط© ظ‚ط¯ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط© ظپظٹ ط§ظ„ط±ط§طھط¨.</span> : null}
+                      {isUnpaid ? <span className="muted small">الإجازة غير المدفوعة قد تحتاج مراجعة في الراتب.</span> : null}
                     </div>
                   );
                 },
@@ -341,27 +341,27 @@ export function HrLeavesPage() {
       </Card>
 
       {rejectTargetId ? (
-        <Card title="ط³ط¨ط¨ ط±ظپط¶ ط§ظ„ط·ظ„ط¨">
+        <Card title="سبب رفض الطلب">
           <div className="form-grid">
             <label className="field field-wide">
-              <span>ط³ط¨ط¨ ط§ظ„ط±ظپط¶</span>
+              <span>سبب الرفض</span>
               <textarea rows={2} value={rejectNotes} onChange={(event) => setRejectNotes(event.target.value)} />
               {errors.reject ? <small className="field-error">{errors.reject}</small> : null}
             </label>
           </div>
           <div className="actions compact-actions">
             <Button type="button" onClick={() => void rejectRequest(rejectTargetId)} disabled={mutations.rejectLeaveRequest.isPending}>
-              {mutations.rejectLeaveRequest.isPending ? 'ط¬ط§ط±ظٹ ط§ظ„ط±ظپط¶...' : 'طھط£ظƒظٹط¯ ط§ظ„ط±ظپط¶'}
+              {mutations.rejectLeaveRequest.isPending ? 'جاري الرفض...' : 'تأكيد الرفض'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }}>
-              ط¥ظ„ط؛ط§ط،
+              إلغاء
             </Button>
           </div>
         </Card>
       ) : null}
 
-      <Card title="ظ…ط±ط§ط¬ط¹ط© ط±طµظٹط¯ ط§ظ„ط¥ط¬ط§ط²ط§طھ">
-        <p className="muted" style={{ margin: 0 }}>ط±طµظٹط¯ ط§ظ„ط¥ط¬ط§ط²ط§طھ ط؛ظٹط± ظ…طھط§ط­ ط­ط§ظ„ظٹظ‹ط§ ظ…ظ† ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط§ظ„ظٹط©.</p>
+      <Card title="مراجعة رصيد الإجازات">
+        <p className="muted" style={{ margin: 0 }}>رصيد الإجازات غير متاح حاليًا من البيانات الحالية.</p>
       </Card>
     </div>
   );

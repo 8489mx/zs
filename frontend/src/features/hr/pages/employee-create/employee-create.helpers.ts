@@ -51,7 +51,7 @@ export function normalizeArabicDigits(value: string) {
 }
 
 export function normalizeNumberText(value: string) {
-  return normalizeArabicDigits(value).replace(/[طŒ,]/g, '.').trim();
+  return normalizeArabicDigits(value).replace(/[،,]/g, '.').trim();
 }
 
 export function normalizeDigitsOnly(value: string) {

@@ -32,7 +32,7 @@ export function buildEmployeeProfileDerivedData(args: {
   const approvedLeavesCount = leaveRequests.filter((row) => normalizeText(row.status) === 'approved').length;
   const unpaidLeavesCount = leaveRequests.filter((row) => {
     const typeName = normalizeText(row.leaveTypeName || row.leaveType);
-    return normalizeText(row.status) === 'approved' && (typeName.includes('ط¨ط¯ظˆظ†') || typeName.includes('unpaid'));
+    return normalizeText(row.status) === 'approved' && (typeName.includes('بدون') || typeName.includes('unpaid'));
   }).length;
 
   const problematicAssetsCount = employeeAssets.filter((row) => {
@@ -41,33 +41,33 @@ export function buildEmployeeProfileDerivedData(args: {
   }).length;
 
   const basicComplete = Boolean(String(employee?.firstName || '').trim() && String(employee?.hireDate || '').trim());
-  const mobileComplete = primaryPhone !== 'ط؛ظٹط± ظ…ط³ط¬ظ„';
-  const nationalIdComplete = nationalIdMasked !== 'ط؛ظٹط± ظ…ط³ط¬ظ„';
+  const mobileComplete = primaryPhone !== 'غير مسجل';
+  const nationalIdComplete = nationalIdMasked !== 'غير مسجل';
   const deptTitleComplete = Boolean(normalizeText(employee?.departmentName) || normalizeText(employee?.jobTitleName));
   const contractSalaryComplete = Boolean(latestContract && Number(latestContract.baseSalary || 0) > 0);
   const documentsComplete = documents.length > 0;
   const assetsComplete = employeeAssets.length > 0;
 
   const completenessRows = [
-    { label: 'ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط©', state: basicComplete ? 'ظ…ظƒطھظ…ظ„' : 'ظ†ط§ظ‚طµ' },
-    { label: 'ط§ظ„ظ…ظˆط¨ط§ظٹظ„', state: mobileComplete ? 'ظ…ظƒطھظ…ظ„' : 'ظ†ط§ظ‚طµ' },
-    { label: 'ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ', state: nationalIdComplete ? 'ظ…ظƒطھظ…ظ„' : 'ظ†ط§ظ‚طµ' },
-    { label: 'ط§ظ„ظ‚ط³ظ… / ط§ظ„ظ…ط³ظ…ظ‰ ط§ظ„ظˆط¸ظٹظپظٹ', state: deptTitleComplete ? 'ظ…ظƒطھظ…ظ„' : 'ظ†ط§ظ‚طµ' },
-    { label: 'ط§ظ„ط¹ظ‚ط¯ / ط§ظ„ط±ط§طھط¨', state: contractSalaryComplete ? 'ظ…ظƒطھظ…ظ„' : (contracts.length ? 'ظٹط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©' : 'ظ†ط§ظ‚طµ') },
-    { label: 'ط§ظ„ظ…ط³طھظ†ط¯ط§طھ', state: documentsComplete ? (documentStats.expired || documentStats.nearExpiry ? 'ظٹط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©' : 'ظ…ظƒطھظ…ظ„') : 'ظ†ط§ظ‚طµ' },
-    { label: 'ط§ظ„ط¹ظڈظ‡ط¯', state: assetsComplete ? (problematicAssetsCount ? 'ظٹط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©' : 'ظ…ظƒطھظ…ظ„') : 'ظ†ط§ظ‚طµ' },
+    { label: 'البيانات الأساسية', state: basicComplete ? 'مكتمل' : 'ناقص' },
+    { label: 'الموبايل', state: mobileComplete ? 'مكتمل' : 'ناقص' },
+    { label: 'الرقم القومي', state: nationalIdComplete ? 'مكتمل' : 'ناقص' },
+    { label: 'القسم / المسمى الوظيفي', state: deptTitleComplete ? 'مكتمل' : 'ناقص' },
+    { label: 'العقد / الراتب', state: contractSalaryComplete ? 'مكتمل' : (contracts.length ? 'يحتاج مراجعة' : 'ناقص') },
+    { label: 'المستندات', state: documentsComplete ? (documentStats.expired || documentStats.nearExpiry ? 'يحتاج مراجعة' : 'مكتمل') : 'ناقص' },
+    { label: 'العُهد', state: assetsComplete ? (problematicAssetsCount ? 'يحتاج مراجعة' : 'مكتمل') : 'ناقص' },
   ];
 
   const reviewAlerts: string[] = [];
-  if (!nationalIdComplete) reviewAlerts.push('ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ ط؛ظٹط± ظ…ط³ط¬ظ„.');
-  if (!mobileComplete) reviewAlerts.push('ط§ظ„ظ…ظˆط¨ط§ظٹظ„ ط؛ظٹط± ظ…ط³ط¬ظ„.');
-  if (!deptTitleComplete) reviewAlerts.push('ظ„ط§ ظٹظˆط¬ط¯ ظ‚ط³ظ… ط£ظˆ ظ…ط³ظ…ظ‰ ظˆط¸ظٹظپظٹ.');
-  if (!contractSalaryComplete) reviewAlerts.push('ظ„ط§ ظٹظˆط¬ط¯ ط¹ظ‚ط¯ ط£ظˆ ط±ط§طھط¨ ظ…ظƒطھظ…ظ„.');
-  if (documentStats.expired > 0) reviewAlerts.push(`ظٹظˆط¬ط¯ ${documentStats.expired} ظ…ط³طھظ†ط¯ ظ…ظ†طھظ‡ظٹ.`);
-  if (documentStats.nearExpiry > 0) reviewAlerts.push(`ظٹظˆط¬ط¯ ${documentStats.nearExpiry} ظ…ط³طھظ†ط¯ ظ‚ط±ظٹط¨ ط§ظ„ط§ظ†طھظ‡ط§ط،.`);
-  if (problematicAssetsCount > 0) reviewAlerts.push('طھظˆط¬ط¯ ط¹ظ‡ط¯ط© طھط§ظ„ظپط© ط£ظˆ ظ…ظپظ‚ظˆط¯ط© طھط­طھط§ط¬ ظ…طھط§ط¨ط¹ط©.');
-  if (unpaidLeavesCount > 0) reviewAlerts.push('طھظˆط¬ط¯ ط¥ط¬ط§ط²ط© ط؛ظٹط± ظ…ط¯ظپظˆط¹ط© ظ‚ط¯ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط© ظپظٹ ط§ظ„ط±ط§طھط¨.');
-  if (openLoansCount > 0) reviewAlerts.push('طھظˆط¬ط¯ ط³ظ„ظپط© ط£ظˆ ظ‚ط³ط· ظ…ظپطھظˆط­ ظٹط­طھط§ط¬ ظ…طھط§ط¨ط¹ط©.');
+  if (!nationalIdComplete) reviewAlerts.push('الرقم القومي غير مسجل.');
+  if (!mobileComplete) reviewAlerts.push('الموبايل غير مسجل.');
+  if (!deptTitleComplete) reviewAlerts.push('لا يوجد قسم أو مسمى وظيفي.');
+  if (!contractSalaryComplete) reviewAlerts.push('لا يوجد عقد أو راتب مكتمل.');
+  if (documentStats.expired > 0) reviewAlerts.push(`يوجد ${documentStats.expired} مستند منتهي.`);
+  if (documentStats.nearExpiry > 0) reviewAlerts.push(`يوجد ${documentStats.nearExpiry} مستند قريب الانتهاء.`);
+  if (problematicAssetsCount > 0) reviewAlerts.push('توجد عهدة تالفة أو مفقودة تحتاج متابعة.');
+  if (unpaidLeavesCount > 0) reviewAlerts.push('توجد إجازة غير مدفوعة قد تحتاج مراجعة في الراتب.');
+  if (openLoansCount > 0) reviewAlerts.push('توجد سلفة أو قسط مفتوح يحتاج متابعة.');
 
   return {
     latestContract,

@@ -3,28 +3,28 @@
 export type ReportType = 'all' | 'employees' | 'attendance' | 'leaves' | 'payroll' | 'alerts';
 
 export const reportTypeOptions: Array<{ value: ReportType; label: string }> = [
-  { value: 'all', label: 'ط§ظ„ظƒظ„' },
-  { value: 'employees', label: 'ط§ظ„ظ…ظˆط¸ظپظٹظ†' },
-  { value: 'attendance', label: 'ط§ظ„ط­ط¶ظˆط±' },
-  { value: 'leaves', label: 'ط§ظ„ط¥ط¬ط§ط²ط§طھ' },
-  { value: 'payroll', label: 'ط§ظ„ظ…ط±طھط¨ط§طھ' },
-  { value: 'alerts', label: 'ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ' },
+  { value: 'all', label: 'الكل' },
+  { value: 'employees', label: 'الموظفين' },
+  { value: 'attendance', label: 'الحضور' },
+  { value: 'leaves', label: 'الإجازات' },
+  { value: 'payroll', label: 'المرتبات' },
+  { value: 'alerts', label: 'التنبيهات' },
 ];
 
 export function money(value: unknown) {
   const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return 'ط؛ظٹط± ظ…طھط§ط­';
-  return `${amount.toFixed(2)} ط¬.ظ…`;
+  if (!Number.isFinite(amount)) return 'غير متاح';
+  return `${amount.toFixed(2)} ج.م`;
 }
 
 export function countText(value: unknown) {
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return 'ط؛ظٹط± ظ…طھط§ط­';
+  if (!Number.isFinite(amount)) return 'غير متاح';
   return String(amount);
 }
 
 export function text(value: unknown) {
-  return String(value || '').trim() || 'â€”';
+  return String(value || '').trim() || '—';
 }
 
 export function normalize(value: unknown) {

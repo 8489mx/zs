@@ -3,21 +3,21 @@
 export type PayrollReviewStatus = 'all' | 'needs_review' | 'ready' | 'approved' | 'paid';
 
 export const reviewStatusOptions: Array<{ value: PayrollReviewStatus; label: string }> = [
-  { value: 'all', label: 'ط§ظ„ظƒظ„' },
-  { value: 'needs_review', label: 'ظٹط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©' },
-  { value: 'ready', label: 'ط¬ط§ظ‡ط²' },
-  { value: 'approved', label: 'ظ…ط¹طھظ…ط¯' },
-  { value: 'paid', label: 'ط…ط¯ظپظˆط¹' },
+  { value: 'all', label: 'الكل' },
+  { value: 'needs_review', label: 'يحتاج مراجعة' },
+  { value: 'ready', label: 'جاهز' },
+  { value: 'approved', label: 'معتمد' },
+  { value: 'paid', label: 'ط…دفوع' },
 ];
 
 export function money(value: unknown) {
   const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return '0.00 ط¬.ظ…';
-  return `${amount.toFixed(2)} ط¬.ظ…`;
+  if (!Number.isFinite(amount)) return '0.00 ج.م';
+  return `${amount.toFixed(2)} ج.م`;
 }
 
 export function text(value: unknown) {
-  return String(value || '').trim() || 'â€”';
+  return String(value || '').trim() || '—';
 }
 
 export function normalize(value: unknown) {
@@ -26,11 +26,11 @@ export function normalize(value: unknown) {
 
 export function statusLabel(value: unknown) {
   const status = normalize(value);
-  if (status === 'draft') return 'ظ…ط³ظˆط¯ط© / ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ظ…ط±ط§ط¬ط¹ط©';
-  if (status === 'reviewed') return 'ط¬ط§ظ‡ط²';
-  if (status === 'approved') return 'ظ…ط¹طھظ…ط¯';
-  if (status === 'paid') return 'ط…ط¯ظپظˆط¹';
-  if (status === 'cancelled' || status === 'canceled') return 'ظ…ظ„ط؛ظٹ';
+  if (status === 'draft') return 'مسودة / بانتظار المراجعة';
+  if (status === 'reviewed') return 'جاهز';
+  if (status === 'approved') return 'معتمد';
+  if (status === 'paid') return 'ط…دفوع';
+  if (status === 'cancelled' || status === 'canceled') return 'ملغي';
   return text(value);
 }
 
@@ -74,19 +74,19 @@ export function employeeMatches(row: HrPayrollRunItem, employeesMap: Map<string,
 }
 
 export function reviewAttendanceText(row: HrPayrollRunItem) {
-  return `ط؛ظٹط§ط¨ ${Number(row.attendanceAbsentDays || 0)} / طھط£ط®ظٹط± ${Number(row.attendanceLateDays || 0)} / ظ†طµظپ ظٹظˆظ… ${Number(row.attendanceHalfDays || 0)} / ط§ظ†طµط±ط§ظپ ظ…ط¨ظƒط± ${Number(row.attendanceEarlyLeaveDays || 0)}`;
+  return `غياب ${Number(row.attendanceAbsentDays || 0)} / تأخير ${Number(row.attendanceLateDays || 0)} / نصف يوم ${Number(row.attendanceHalfDays || 0)} / انصراف مبكر ${Number(row.attendanceEarlyLeaveDays || 0)}`;
 }
 
 export function reviewLeavesText(row: HrPayrollRunItem) {
-  return `ظ…ط¹طھظ…ط¯ط© ${Number(row.approvedLeaveDays || 0)} / ط؛ظٹط± ظ…ط¯ظپظˆط¹ط© ${Number(row.unpaidLeaveDays || 0)}`;
+  return `معتمدة ${Number(row.approvedLeaveDays || 0)} / غير مدفوعة ${Number(row.unpaidLeaveDays || 0)}`;
 }
 
 export function reviewFlagText(row: HrPayrollRunItem) {
   const flags: string[] = [];
-  if (Number(row.unpaidLeaveDays || 0) > 0) flags.push('ط¥ط¬ط§ط²ط© ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©');
-  if (Number(row.loanDeductionAmount || 0) > 0) flags.push('ط³ظ„ظپ/ط£ظ‚ط³ط§ط·');
-  if (Number(row.deductionAmount || 0) > 0) flags.push('ط®طµظˆظ…ط§طھ');
-  if (Number(row.attendanceAbsentDays || 0) > 0 || Number(row.attendanceHalfDays || 0) > 0 || Number(row.attendanceEarlyLeaveDays || 0) > 0) flags.push('ط§ط³طھط«ظ†ط§ط، ط­ط¶ظˆط±');
-  if (Number(row.baseSalary || 0) <= 0) flags.push('ط±ط§طھط¨ ط£ط³ط§ط³ظٹ ط؛ظٹط± ظ…ظƒطھظ…ظ„');
-  return flags.length ? flags.join('طŒ ') : 'ط¬ط§ظ‡ط²';
+  if (Number(row.unpaidLeaveDays || 0) > 0) flags.push('إجازة غير مدفوعة');
+  if (Number(row.loanDeductionAmount || 0) > 0) flags.push('سلف/أقساط');
+  if (Number(row.deductionAmount || 0) > 0) flags.push('خصومات');
+  if (Number(row.attendanceAbsentDays || 0) > 0 || Number(row.attendanceHalfDays || 0) > 0 || Number(row.attendanceEarlyLeaveDays || 0) > 0) flags.push('استثناء حضور');
+  if (Number(row.baseSalary || 0) <= 0) flags.push('راتب أساسي غير مكتمل');
+  return flags.length ? flags.join('، ') : 'جاهز';
 }

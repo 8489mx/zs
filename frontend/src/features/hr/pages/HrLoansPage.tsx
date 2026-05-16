@@ -73,8 +73,8 @@ export function HrLoansPage() {
         installmentCount,
         installmentAmount: 0,
         totalInstallments: 0,
-        startMonthLabel: 'â€”',
-        endMonthLabel: 'â€”',
+        startMonthLabel: '—',
+        endMonthLabel: '—',
         firstDueDate: '',
       };
     }
@@ -111,23 +111,23 @@ export function HrLoansPage() {
     const installmentCount = isInstallments ? planPreview.installmentCount : 1;
 
     if (!employeeId) {
-      setFormError('ط§ط®طھظٹط§ط± ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨.');
+      setFormError('اختيار الموظف مطلوب.');
       return;
     }
     if (!(principalAmount > 0)) {
-      setFormError('ظ‚ظٹظ…ط© ط§ظ„ط³ظ„ظپط© ظ…ط·ظ„ظˆط¨ط© ظˆظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ط£ظƒط¨ط± ظ…ظ† طµظپط±.');
+      setFormError('قيمة السلفة مطلوبة ويجب أن تكون أكبر من صفر.');
       return;
     }
     if (!issueDate) {
-      setFormError('طھط§ط±ظٹط® ط§ظ„ط³ظ„ظپط© ظ…ط·ظ„ظˆط¨.');
+      setFormError('تاريخ السلفة مطلوب.');
       return;
     }
     if (isInstallments && rawInstallmentCount <= 0) {
-      setFormError('ط¹ط¯ط¯ ط§ظ„ط¯ظپط¹ط§طھ ظ…ط·ظ„ظˆط¨ ظˆظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط£ظƒط¨ط± ظ…ظ† طµظپط±.');
+      setFormError('عدد الدفعات مطلوب ويجب أن يكون أكبر من صفر.');
       return;
     }
     if (isInstallments && installmentCount > 60) {
-      setFormError('ط¹ط¯ط¯ ط§ظ„ط¯ظپط¹ط§طھ ظٹط¬ط¨ ط£ظ„ط§ ظٹطھط¬ط§ظˆط² 60 ط¯ظپط¹ط©.');
+      setFormError('عدد الدفعات يجب ألا يتجاوز 60 دفعة.');
       return;
     }
 
@@ -146,7 +146,7 @@ export function HrLoansPage() {
       });
       setLoanDraft(createInitialLoanDraft());
     } catch (error) {
-      setFormError(getErrorMessage(error, 'طھط¹ط°ط± ط­ظپط¸ ط§ظ„ط³ظ„ظپط©.'));
+      setFormError(getErrorMessage(error, 'تعذر حفظ السلفة.'));
     }
   }
 
@@ -157,7 +157,7 @@ export function HrLoansPage() {
 
     const amount = parsePositiveNumber(repaymentDraft.amount);
     if (!(amount > 0)) {
-      setRepaymentError('ظ‚ظٹظ…ط© ط§ظ„ط³ط¯ط§ط¯ ظ…ط·ظ„ظˆط¨ط©.');
+      setRepaymentError('قيمة السداد مطلوبة.');
       return;
     }
 
@@ -173,26 +173,26 @@ export function HrLoansPage() {
       setRepaymentDraft({ amount: '', method: '', notes: '' });
       setSelectedLoanForRepayment('');
     } catch (error) {
-      setRepaymentError(getErrorMessage(error, 'طھط¹ط°ط± طھط³ط¬ظٹظ„ ط§ظ„ط³ط¯ط§ط¯.'));
+      setRepaymentError(getErrorMessage(error, 'تعذر تسجيل السداد.'));
     }
   }
 
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
-        title="ط§ظ„ط³ظ„ظپ ظˆط§ظ„ط®طµظˆظ…ط§طھ"
-        description="ط¥ط¯ط§ط±ط© ط§ظ„ط³ظ„ظپ ظˆط®ط·ط· ط§ظ„ط³ط¯ط§ط¯ ظˆظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£ظ‚ط³ط§ط· ط§ظ„ظ…ط³طھط­ظ‚ط© ظ„ظ„ظ…ظˆط¸ظپظٹظ†."
-        actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>ط±ط¬ظˆط¹ ظ„ظ„ظ…ظˆط¸ظپظٹظ†</Button>}
+        title="السلف والخصومات"
+        description="إدارة السلف وخطط السداد ومراجعة الأقساط المستحقة للموظفين."
+        actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>}
       />
 
       {!canViewLoans ? (
-        <Card title="ط§ظ„ظˆطµظˆظ„ ظ„ظ„ط³ظ„ظپ ظˆط§ظ„ط®طµظˆظ…ط§طھ">
-          <p className="muted" style={{ margin: 0 }}>ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ظ‡ط°ظ‡ ط§ظ„طµظپط­ط©.</p>
-          <p className="muted" style={{ marginBottom: 0 }}>طھظˆط§طµظ„ ظ…ط¹ ظ…ط³ط¤ظˆظ„ ط§ظ„ظ†ط¸ط§ظ… ظ„طھط­ط¯ظٹط« ط§ظ„طµظ„ط§ط­ظٹط§طھ.</p>
+        <Card title="الوصول للسلف والخصومات">
+          <p className="muted" style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى هذه الصفحة.</p>
+          <p className="muted" style={{ marginBottom: 0 }}>تواصل مع مسؤول النظام لتحديث الصلاحيات.</p>
         </Card>
       ) : (
         <>
-            <Card title="ط³ظ„ظپط© ط¬ط¯ظٹط¯ط©">
+            <Card title="سلفة جديدة">
         <HrLoanCreateForm
           loanDraft={loanDraft}
           employees={employees as HrEmployee[]}
@@ -207,15 +207,15 @@ export function HrLoansPage() {
         />
       </Card>
 
-      <Card title="ظ‚ط§ط¦ظ…ط© ط§ظ„ط³ظ„ظپ">
+      <Card title="قائمة السلف">
         <SearchToolbar
           search={search}
           onSearchChange={(value) => {
             setSearch(value);
             setPage(1);
           }}
-          searchPlaceholder="ط¨ط­ط« ط¨ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ط£ظˆ ط±ظ‚ظ… ط§ظ„ط³ظ„ظپط©"
-          inputAriaLabel="ط¨ط­ط« ط§ظ„ط³ظ„ظپ"
+          searchPlaceholder="بحث باسم الموظف أو رقم السلفة"
+          inputAriaLabel="بحث السلف"
         />
 
         <QueryFeedback
@@ -223,9 +223,9 @@ export function HrLoansPage() {
           isError={workspace.loans.isError}
           error={workspace.loans.error}
           isEmpty={!loans.length}
-          loadingText="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط³ظ„ظپ..."
-          errorTitle="طھط¹ط°ط± طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط³ظ„ظپ"
-          emptyTitle="ظ„ط§ طھظˆط¬ط¯ ط³ظ„ظپ ظ…ط³ط¬ظ„ط© ط­طھظ‰ ط§ظ„ط¢ظ†."
+          loadingText="جاري تحميل السلف..."
+          errorTitle="تعذر تحميل بيانات السلف"
+          emptyTitle="لا توجد سلف مسجلة حتى الآن."
         >
           <DataTable
             rows={loans}
@@ -240,43 +240,43 @@ export function HrLoansPage() {
                 setPageSize(next);
                 setPage(1);
               },
-              itemLabel: 'ط³ظ„ظپط©',
+              itemLabel: 'سلفة',
             }}
             columns={[
-              { key: 'loanNo', header: 'ط±ظ‚ظ… ط§ظ„ط³ظ„ظپط©', cell: (row) => fallbackText(row.loanNo || row.id) },
-              { key: 'employee', header: 'ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => fallbackText(row.employeeName) },
-              { key: 'loanType', header: 'ط§ظ„ظ†ظˆط¹', cell: (row) => loanTypeLabel(row.loanType) },
-              { key: 'principalAmount', header: 'ظ‚ظٹظ…ط© ط§ظ„ط³ظ„ظپط©', cell: (row) => canViewSalaryAmounts ? money(row.principalAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
-              { key: 'remainingAmount', header: 'ط§ظ„ظ…طھط¨ظ‚ظٹ', cell: (row) => canViewSalaryAmounts ? money(row.remainingAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
-              { key: 'repaymentMode', header: 'ط·ط±ظٹظ‚ط© ط§ظ„ط³ط¯ط§ط¯', cell: (row) => repaymentModeLabel(row.repaymentMode) },
-              { key: 'status', header: 'ط§ظ„ط­ط§ظ„ط©', cell: (row) => statusLabel(row.status) },
-              { key: 'issueDate', header: 'طھط§ط±ظٹط® ط§ظ„ط³ظ„ظپط©', cell: (row) => fallbackText(row.issueDate) },
+              { key: 'loanNo', header: 'رقم السلفة', cell: (row) => fallbackText(row.loanNo || row.id) },
+              { key: 'employee', header: 'الموظف', cell: (row) => fallbackText(row.employeeName) },
+              { key: 'loanType', header: 'النوع', cell: (row) => loanTypeLabel(row.loanType) },
+              { key: 'principalAmount', header: 'قيمة السلفة', cell: (row) => canViewSalaryAmounts ? money(row.principalAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
+              { key: 'remainingAmount', header: 'المتبقي', cell: (row) => canViewSalaryAmounts ? money(row.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
+              { key: 'repaymentMode', header: 'طريقة السداد', cell: (row) => repaymentModeLabel(row.repaymentMode) },
+              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+              { key: 'issueDate', header: 'تاريخ السلفة', cell: (row) => fallbackText(row.issueDate) },
               {
                 key: 'plan',
-                header: 'ط®ط·ط© ط§ظ„ط³ط¯ط§ط¯',
+                header: 'خطة السداد',
                 cell: (row) => {
                   const installments = Array.isArray(row.installments) ? row.installments as HrLoanInstallment[] : [];
                   if (!installments.length) return fallbackText(repaymentModeLabel(row.repaymentMode));
                   return (
                     <details>
-                      <summary>{`ط¹ط¯ط¯ ط§ظ„ط£ظ‚ط³ط§ط·: ${installments.length}`}</summary>
+                      <summary>{`عدد الأقساط: ${installments.length}`}</summary>
                       <div className="table-wrap" style={{ marginTop: 8 }}>
                         <table className="data-table">
                           <thead>
                             <tr>
-                              <th>ط±ظ‚ظ… ط§ظ„ظ‚ط³ط·</th>
-                              <th>ط´ظ‡ط± ط§ظ„ط§ط³طھط­ظ‚ط§ظ‚</th>
-                              <th>ظ‚ظٹظ…ط© ط§ظ„ظ‚ط³ط·</th>
-                              <th>ط§ظ„ط­ط§ظ„ط©</th>
-                              <th>طھط§ط±ظٹط® ط§ظ„ط®طµظ…</th>
+                              <th>رقم القسط</th>
+                              <th>شهر الاستحقاق</th>
+                              <th>قيمة القسط</th>
+                              <th>الحالة</th>
+                              <th>تاريخ الخصم</th>
                             </tr>
                           </thead>
                           <tbody>
                             {installments.map((item) => (
                               <tr key={String(item.id)}>
-                                <td>{item.installmentNumber || 'â€”'}</td>
+                                <td>{item.installmentNumber || '—'}</td>
                                 <td>{monthLabel(item.dueDate)}</td>
-                                <td>{canViewSalaryAmounts ? money(item.amount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.'}</td>
+                                <td>{canViewSalaryAmounts ? money(item.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td>
                                 <td>{installmentStatusLabel(item.status)}</td>
                                 <td>{fallbackText(item.paidAt)}</td>
                               </tr>
@@ -290,7 +290,7 @@ export function HrLoansPage() {
               },
               {
                 key: 'actions',
-                header: 'ط¥ط¬ط±ط§ط،ط§طھ',
+                header: 'إجراءات',
                 cell: (row) => {
                   const status = String(row.status || '').trim().toLowerCase();
                   const canApprove = canManageLoans && (!status || status === 'pending' || status === 'draft' || status === 'new');
@@ -298,9 +298,9 @@ export function HrLoansPage() {
                   const canRepay = canManageLoans && Number(row.remainingAmount || 0) > 0;
                   return (
                     <div className="actions compact-actions">
-                      {canApprove ? <Button variant="secondary" onClick={() => { void mutations.approveLoan.mutateAsync(String(row.id)); }}>ط§ط¹طھظ…ط§ط¯</Button> : null}
-                      {canDisburse ? <Button variant="secondary" onClick={() => { void mutations.disburseLoan.mutateAsync(String(row.id)); }}>طµط±ظپ</Button> : null}
-                      {canRepay ? <Button variant="secondary" onClick={() => setSelectedLoanForRepayment(String(row.id))}>طھط³ط¬ظٹظ„ ط³ط¯ط§ط¯</Button> : null}
+                      {canApprove ? <Button variant="secondary" onClick={() => { void mutations.approveLoan.mutateAsync(String(row.id)); }}>اعتماد</Button> : null}
+                      {canDisburse ? <Button variant="secondary" onClick={() => { void mutations.disburseLoan.mutateAsync(String(row.id)); }}>صرف</Button> : null}
+                      {canRepay ? <Button variant="secondary" onClick={() => setSelectedLoanForRepayment(String(row.id))}>تسجيل سداد</Button> : null}
                     </div>
                   );
                 },
@@ -311,7 +311,7 @@ export function HrLoansPage() {
                     {selectedRepaymentLoan ? (
             <HrLoanRepaymentForm
               selectedLoanLabel={fallbackText(selectedRepaymentLoan.loanNo || selectedRepaymentLoan.id)}
-              remainingAmountText={canViewSalaryAmounts ? money(selectedRepaymentLoan.remainingAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.'}
+              remainingAmountText={canViewSalaryAmounts ? money(selectedRepaymentLoan.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}
               repaymentDraft={repaymentDraft}
               repaymentError={repaymentError}
               isPending={mutations.repayLoan.isPending}

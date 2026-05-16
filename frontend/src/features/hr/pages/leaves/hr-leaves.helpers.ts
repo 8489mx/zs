@@ -15,7 +15,7 @@ export function normalizeArabicDigits(value: string) {
 }
 
 export function normalizeDecimal(value: string) {
-  return normalizeArabicDigits(value).replace(/[طŒ,]/g, '.').trim();
+  return normalizeArabicDigits(value).replace(/[،,]/g, '.').trim();
 }
 
 export function toDateOnly(value: string) {
@@ -23,7 +23,7 @@ export function toDateOnly(value: string) {
 }
 
 export function employeeDisplay(row: HrEmployee) {
-  return text(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim()) || 'â€”';
+  return text(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim()) || '—';
 }
 
 export function calculateInclusiveDays(startDate: string, endDate: string) {
@@ -37,9 +37,9 @@ export function calculateInclusiveDays(startDate: string, endDate: string) {
 
 export function leaveStatusLabel(value: unknown) {
   const status = text(value);
-  if (status === 'pending') return 'ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©';
-  if (status === 'approved') return 'ظ…ط¹طھظ…ط¯ط©';
-  if (status === 'rejected') return 'ظ…ط±ظپظˆط¶ط©';
-  if (status === 'cancelled') return 'ظ…ظ„ط؛ط§ط©';
-  return status || 'ط؛ظٹط± ظ…ط­ط¯ط¯';
+  if (status === 'pending') return 'قيد المراجعة';
+  if (status === 'approved') return 'معتمدة';
+  if (status === 'rejected') return 'مرفوضة';
+  if (status === 'cancelled') return 'ملغاة';
+  return status || 'غير محدد';
 }
