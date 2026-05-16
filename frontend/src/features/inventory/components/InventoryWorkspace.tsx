@@ -126,6 +126,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
       {currentSection === 'counts' ? (
         <>
           <StockCountMonitorCard
+            canReviewStock={inventory.canAdjustInventory}
             isLoading={inventory.stockCountQuery.isLoading || inventory.damagedQuery.isLoading}
             isError={inventory.stockCountQuery.isError || inventory.damagedQuery.isError}
             error={inventory.stockCountQuery.error || inventory.damagedQuery.error}
@@ -166,6 +167,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             locations={inventory.locations}
             form={inventory.countForm}
             items={inventory.countItems}
+            canReviewStock={inventory.canAdjustInventory}
             isPending={inventory.createCountMutation.isPending}
             isError={inventory.createCountMutation.isError}
             isSuccess={inventory.createCountMutation.isSuccess}
@@ -173,7 +175,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             onFormChange={(patch) => inventory.setCountForm((current) => ({ ...current, ...patch }))}
             onAddItem={inventory.addCountItem}
             onRemoveItem={(index) => inventory.setCountItems((current) => current.filter((_, currentIndex: number) => currentIndex !== index))}
-            onSubmit={() => inventory.createCountMutation.mutate()}
+            onSubmit={(options) => inventory.createCountMutation.mutate(options ?? {})}
           />
         </>
       ) : null}
