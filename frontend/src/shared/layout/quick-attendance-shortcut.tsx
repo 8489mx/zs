@@ -93,18 +93,13 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
 
   const filteredEmployees = useMemo(() => {
     const term = normalize(search);
-    if (!term) return employees.slice(0, 12);
-    return employees
-      .filter((employee) => {
-        const haystack = [
-          employee.employeeNo,
-          employee.displayName,
-          employee.firstName,
-          employee.lastName,
-        ].map(normalize).join(' ');
+    const source = term
+      ? employees.filter((employee) => {
+        const haystack = [employee.employeeNo, employee.displayName, employee.firstName, employee.lastName].map(normalize).join(' ');
         return haystack.includes(term);
       })
-      .slice(0, 12);
+      : employees;
+    return source.slice(0, 8);
   }, [employees, search]);
 
   const selectedEmployee = filteredEmployees.find((row) => String(row.id) === selectedEmployeeId)
@@ -157,8 +152,8 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
   }
 
   return (
-    <DialogShell open={shortcutOpen} onClose={handleClose} width="min(760px, calc(100vw - 32px))" ariaLabel="تسجيل حضور أو انصراف سريع">
-      <div className="stack gap-12" dir="rtl" style={{ boxSizing: 'border-box', maxHeight: 'calc(100vh - 48px)', minWidth: 0, overflowX: 'hidden', overflowY: 'auto', paddingInline: 2 }}>
+    <DialogShell open={shortcutOpen} onClose={handleClose} width="min(1120px, calc(100vw - 80px))" ariaLabel="تسجيل حضور أو انصراف سريع">
+      <div className="stack gap-16" dir="rtl" style={{ boxSizing: 'border-box', minWidth: 0, overflow: 'visible', padding: '6px 8px' }}>
         <div className="stack gap-4" style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0 }}>تسجيل حضور أو انصراف سريع</h3>
           <p className="muted" style={{ margin: 0 }}>
@@ -177,70 +172,77 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
           />
         </label>
 
-        <div className="card-soft" style={{ boxSizing: 'border-box', maxHeight: 260, overflowX: 'hidden', overflowY: 'auto', padding: 8 }}>
-          {filteredEmployees.length ? filteredEmployees.map((employee) => {
-            const row = attendanceMap.get(String(employee.id));
-            const rowHasCheckIn = Boolean(String(row?.checkInAt || '').trim());
-            const rowHasCheckOut = Boolean(String(row?.checkOutAt || '').trim());
-            const stateLabel = !rowHasCheckIn
-              ? 'غير مسجل'
-              : !rowHasCheckOut
-                ? 'حضور مسجل'
-                : 'اكتمل حضور وانصراف';
-            return (
-              <button
-                key={String(employee.id)}
-                type="button"
-                className={`sidebar-link ${selectedEmployeeId === String(employee.id) ? 'active' : ''}`.trim()}
-                style={{ boxSizing: 'border-box', display: 'block', marginBottom: 6, padding: '10px 12px', textAlign: 'right', whiteSpace: 'normal', width: '100%' }}
-                onClick={() => setSelectedEmployeeId(String(employee.id))}
-              >
-                <span className="sidebar-label" style={{ minWidth: 0 }}>
-                  <strong>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
-                  <small className="muted" style={{ display: 'block' }}>
-                    كود الموظف: {employee.employeeNo || '—'} · الحالة اليوم: {stateLabel}
-                  </small>
-                  <small className="muted" style={{ display: 'block' }}>
-                    وقت الحضور: {formatTimeText(row?.checkInAt)} · وقت الانصراف: {formatTimeText(row?.checkOutAt)}
-                  </small>
-                </span>
-              </button>
-            );
-          }) : (
-            <p className="muted" style={{ margin: 8 }}>لا توجد نتائج مطابقة للبحث الحالي.</p>
-          )}
-        </div>
-
-        {employeesQuery.isError || attendanceQuery.isError ? (
-          <div className="error-box">
-            {getErrorMessage(employeesQuery.error || attendanceQuery.error, 'تعذر تحميل بيانات الحضور السريع.')}
+        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'minmax(0, 1.4fr) minmax(300px, 0.9fr)', alignItems: 'start' }}>
+          <div className="card-soft" style={{ boxSizing: 'border-box', overflow: 'visible', padding: 10 }}>
+            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              {filteredEmployees.length ? filteredEmployees.map((employee) => {
+                const row = attendanceMap.get(String(employee.id));
+                const rowHasCheckIn = Boolean(String(row?.checkInAt || '').trim());
+                const rowHasCheckOut = Boolean(String(row?.checkOutAt || '').trim());
+                const stateLabel = !rowHasCheckIn
+                  ? 'غير مسجل'
+                  : !rowHasCheckOut
+                    ? 'حضور مسجل'
+                    : 'اكتمل حضور وانصراف';
+                return (
+                  <button
+                    key={String(employee.id)}
+                    type="button"
+                    className={`sidebar-link ${selectedEmployeeId === String(employee.id) ? 'active' : ''}`.trim()}
+                    style={{ boxSizing: 'border-box', display: 'block', minHeight: 86, padding: '10px 12px', textAlign: 'right', whiteSpace: 'normal', width: '100%' }}
+                    onClick={() => setSelectedEmployeeId(String(employee.id))}
+                  >
+                    <span className="sidebar-label" style={{ minWidth: 0 }}>
+                      <strong>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
+                      <small className="muted" style={{ display: 'block' }}>
+                        كود الموظف: {employee.employeeNo || '—'} · الحالة اليوم: {stateLabel}
+                      </small>
+                      <small className="muted" style={{ display: 'block' }}>
+                        وقت الحضور: {formatTimeText(row?.checkInAt)} · وقت الانصراف: {formatTimeText(row?.checkOutAt)}
+                      </small>
+                    </span>
+                  </button>
+                );
+              }) : (
+                <p className="muted" style={{ gridColumn: '1 / -1', margin: 8 }}>لا توجد نتائج مطابقة للبحث الحالي.</p>
+              )}
+            </div>
           </div>
-        ) : null}
 
-        {selectedEmployee ? (
-          <CardSummary
-            employee={selectedEmployee}
-            attendance={selectedAttendance}
-          />
-        ) : null}
+          <div className="stack gap-12">
+            {employeesQuery.isError || attendanceQuery.isError ? (
+              <div className="error-box">
+                {getErrorMessage(employeesQuery.error || attendanceQuery.error, 'تعذر تحميل بيانات الحضور السريع.')}
+              </div>
+            ) : null}
 
-        {feedback ? (
-          <p className="muted" style={{ margin: 0 }}>{feedback}</p>
-        ) : null}
+            {selectedEmployee ? (
+              <CardSummary employee={selectedEmployee} attendance={selectedAttendance} />
+            ) : (
+              <div className="card-soft" style={{ boxSizing: 'border-box', padding: 12 }}>
+                <p className="muted" style={{ margin: 0 }}>اختر موظفًا من النتائج لعرض حالة اليوم وتنفيذ الإجراء المناسب.</p>
+              </div>
+            )}
 
-        <div className="actions compact-actions" style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-          <Button type="button" variant="secondary" onClick={handleClose}>إغلاق</Button>
-          {primaryActionLabel ? (
-            <Button
-              type="button"
-              onClick={() => { void handlePrimaryAction(); }}
-              disabled={mutations.saveAttendanceRecord.isPending || employeesQuery.isLoading || attendanceQuery.isLoading}
-            >
-              {mutations.saveAttendanceRecord.isPending ? 'جارٍ التسجيل...' : primaryActionLabel}
-            </Button>
-          ) : selectedEmployee ? (
-            <span className="muted">تم تسجيل حضور وانصراف هذا الموظف اليوم</span>
-          ) : null}
+            {feedback ? (
+              <p className="muted" style={{ margin: 0 }}>{feedback}</p>
+            ) : null}
+
+            <div className="actions compact-actions" style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+              <Button type="button" variant="secondary" onClick={handleClose}>إغلاق</Button>
+              {primaryActionLabel ? (
+                <Button
+                  type="button"
+                  onClick={() => { void handlePrimaryAction(); }}
+                  disabled={mutations.saveAttendanceRecord.isPending || employeesQuery.isLoading || attendanceQuery.isLoading}
+                >
+                  {mutations.saveAttendanceRecord.isPending ? 'جارٍ التسجيل...' : primaryActionLabel}
+                </Button>
+              ) : selectedEmployee ? (
+                <span className="muted">تم تسجيل حضور وانصراف هذا الموظف اليوم</span>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
     </DialogShell>
@@ -251,9 +253,9 @@ function CardSummary({ employee, attendance }: { employee: HrEmployee; attendanc
   const checkIn = String(attendance?.checkInAt || '').trim();
   const checkOut = String(attendance?.checkOutAt || '').trim();
   return (
-    <div className="card-soft" style={{ boxSizing: 'border-box', padding: 10 }}>
+    <div className="card-soft" style={{ boxSizing: 'border-box', padding: 12 }}>
       <strong>{employee.displayName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '—'}</strong>
-      <div className="muted" style={{ marginTop: 6 }}>
+      <div className="muted" style={{ marginTop: 8 }}>
         كود الموظف: {employee.employeeNo || '—'}<br />
         وقت الحضور: {formatTimeText(checkIn)}<br />
         وقت الانصراف: {formatTimeText(checkOut)}
