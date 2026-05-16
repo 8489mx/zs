@@ -9,14 +9,15 @@ import { DataTable } from '@/shared/ui/data-table';
 import type { HrDocument, HrEmployee } from '@/types/domain';
 import { useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
 
-type DocumentStatusFilter = 'all' | 'valid' | 'near_expiry' | 'expired' | 'no_expiry';
+type DocumentStatusFilter = 'all' | 'valid' | 'near_expiry' | 'expired' | 'no_expiry' | 'needs_review';
 
 const documentStatusOptions: Array<{ value: DocumentStatusFilter; label: string }> = [
-  { value: 'all', label: 'الكل' },
-  { value: 'valid', label: 'ساري' },
+  { value: 'needs_review', label: 'تحتاج مراجعة' },
   { value: 'near_expiry', label: 'قريب الانتهاء' },
   { value: 'expired', label: 'منتهي' },
+  { value: 'valid', label: 'ساري' },
   { value: 'no_expiry', label: 'بدون تاريخ انتهاء' },
+  { value: 'all', label: 'الكل' },
 ];
 
 function fallbackText(value: unknown) {
@@ -61,13 +62,20 @@ function evaluateDocumentStatus(expiryDate?: string) {
   return { key: 'valid' as const, label: 'ساري', needsReview: false };
 }
 
+function matchesStatusFilter(row: HrDocument, filter: DocumentStatusFilter) {
+  const status = evaluateDocumentStatus(row.expiryDate);
+  if (filter === 'all') return true;
+  if (filter === 'needs_review') return status.needsReview;
+  return status.key === filter;
+}
+
 export function HrDocumentsPage() {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState<DocumentStatusFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<DocumentStatusFilter>('needs_review');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -93,25 +101,16 @@ export function HrDocumentsPage() {
 
   const filteredDocuments = useMemo(() => {
     return rawDocuments.filter((row) => {
-      const status = evaluateDocumentStatus(row.expiryDate);
       const typeKey = normalize(row.documentType);
-      if (statusFilter !== 'all' && status.key !== statusFilter) return false;
+      if (!matchesStatusFilter(row, statusFilter)) return false;
       if (documentTypeFilter !== 'all' && typeKey !== documentTypeFilter) return false;
       return true;
     });
   }, [rawDocuments, statusFilter, documentTypeFilter]);
 
   const summary = useMemo(() => {
-    const result = {
-      total: filteredDocuments.length,
-      valid: 0,
-      nearExpiry: 0,
-      expired: 0,
-      noExpiry: 0,
-      needsReview: 0,
-    };
-
-    for (const row of filteredDocuments) {
+    const result = { total: rawDocuments.length, valid: 0, nearExpiry: 0, expired: 0, noExpiry: 0, needsReview: 0, visible: filteredDocuments.length };
+    for (const row of rawDocuments) {
       const status = evaluateDocumentStatus(row.expiryDate);
       if (status.key === 'valid') result.valid += 1;
       if (status.key === 'near_expiry') result.nearExpiry += 1;
@@ -119,28 +118,42 @@ export function HrDocumentsPage() {
       if (status.key === 'no_expiry') result.noExpiry += 1;
       if (status.needsReview) result.needsReview += 1;
     }
-
     return result;
-  }, [filteredDocuments]);
+  }, [filteredDocuments.length, rawDocuments]);
+
+  function resetDocumentFilters() {
+    setDocumentTypeFilter('all');
+    setStatusFilter('all');
+  }
 
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="مستندات الموظفين"
-        description="متابعة مستندات الموظفين وتواريخ الانتهاء والعناصر التي تحتاج مراجعة."
+        description="ابدأ باختيار الموظف، ثم راجع المستندات المنتهية أو القريبة من الانتهاء وأضف المستندات من ملف الموظف."
         actions={(
           <div className="compact-actions">
             {selectedEmployeeId ? (
-              <Button variant="secondary" onClick={() => navigate(`/hr/employees/${selectedEmployeeId}`)}>
-                إضافة مستند
-              </Button>
+              <Button variant="secondary" onClick={() => navigate(`/hr/employees/${selectedEmployeeId}`)}>فتح ملف الموظف</Button>
+            ) : null}
+            {selectedEmployeeId ? (
+              <Button variant="secondary" onClick={() => navigate(`/hr/employees/${selectedEmployeeId}`)}>إضافة مستند</Button>
             ) : null}
             <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
         )}
       />
 
-      <Card title="اختيار الموظف">
+      <Card title="تسلسل مراجعة المستندات" description="هذه الصفحة للمتابعة والمراجعة، أما إضافة المستند فتتم من ملف الموظف حتى يبقى كل شيء مربوطًا بالموظف الصحيح.">
+        <div className="form-grid">
+          <div className="field"><strong>1. اختر الموظف</strong><span className="muted">ابحث بالاسم أو الكود ثم اضغط على الصف.</span></div>
+          <div className="field"><strong>2. راجع الحالة</strong><span className="muted">ابدأ بالمستندات المنتهية أو القريبة من الانتهاء.</span></div>
+          <div className="field"><strong>3. أضف أو حدّث</strong><span className="muted">افتح ملف الموظف لإضافة مستند أو مراجعة التفاصيل.</span></div>
+          <div className="field"><strong>4. راقب النواقص</strong><span className="muted">المستند بدون تاريخ انتهاء يظهر كمراجعة حتى تؤكد أنه مقصود.</span></div>
+        </div>
+      </Card>
+
+      <Card title="اختيار الموظف" description="اختيار الموظف أول خطوة لأن المستندات مرتبطة بملف الموظف مباشرة.">
         <SearchToolbar
           search={search}
           onSearchChange={(value) => {
@@ -182,25 +195,36 @@ export function HrDocumentsPage() {
               { key: 'name', header: 'اسم الموظف', cell: (row) => employeeName(row) },
               { key: 'department', header: 'القسم', cell: (row) => fallbackText(row.departmentName) },
               { key: 'status', header: 'الحالة', cell: (row) => employeeStatusLabel(row.status) },
+              {
+                key: 'actions',
+                header: 'إجراء',
+                cell: (row) => (
+                  <div className="compact-actions">
+                    <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); setSelectedEmployeeId(String(row.id)); }}>عرض المستندات</Button>
+                    <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); navigate(`/hr/employees/${row.id}`); }}>فتح الملف</Button>
+                  </div>
+                ),
+              },
             ]}
           />
         </QueryFeedback>
       </Card>
 
-      <Card title="ملخص المستندات">
+      <Card title="ملخص المستندات" description={selectedEmployeeId ? `ملف الموظف: ${employeeName(selectedEmployee as HrEmployee)}` : 'اختر موظفًا أولًا لعرض الملخص.'}>
         <div className="stats-grid">
-          <div><strong>إجمالي المستندات:</strong> {summary.total}</div>
-          <div><strong>سارية:</strong> {summary.valid}</div>
-          <div><strong>قريبة الانتهاء:</strong> {summary.nearExpiry}</div>
-          <div><strong>منتهية:</strong> {summary.expired}</div>
-          <div><strong>بدون تاريخ انتهاء:</strong> {summary.noExpiry}</div>
-          <div><strong>تحتاج مراجعة:</strong> {summary.needsReview}</div>
+          <button className="stat-card" type="button" onClick={() => setStatusFilter('all')} style={{ textAlign: 'right' }}><span>إجمالي المستندات</span><strong>{summary.total}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setStatusFilter('valid')} style={{ textAlign: 'right' }}><span>سارية</span><strong>{summary.valid}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setStatusFilter('near_expiry')} style={{ textAlign: 'right' }}><span>قريبة الانتهاء</span><strong>{summary.nearExpiry}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setStatusFilter('expired')} style={{ textAlign: 'right' }}><span>منتهية</span><strong>{summary.expired}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setStatusFilter('no_expiry')} style={{ textAlign: 'right' }}><span>بدون تاريخ انتهاء</span><strong>{summary.noExpiry}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setStatusFilter('needs_review')} style={{ textAlign: 'right' }}><span>تحتاج مراجعة</span><strong>{summary.needsReview}</strong></button>
+          <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
         </div>
       </Card>
 
-      <Card title="قائمة المستندات">
+      <Card title="قائمة المستندات" description="تعرض المستندات التي تطابق فلاتر الحالة والنوع للموظف المختار.">
         {!selectedEmployeeId ? (
-          <p className="muted">اختر موظفًا لعرض مستنداته.</p>
+          <p className="muted">اختر موظفًا من الجدول بالأعلى لعرض مستنداته.</p>
         ) : (
           <QueryFeedback
             isLoading={profile.isLoading}
@@ -210,9 +234,19 @@ export function HrDocumentsPage() {
             loadingText="جاري تحميل مستندات الموظف..."
             errorTitle="تعذر تحميل مستندات الموظف"
           >
-            <p className="muted" style={{ marginTop: 0 }}>
-              ملف الموظف: {employeeName(selectedEmployee as HrEmployee)}
-            </p>
+            <div className="compact-actions" style={{ marginBottom: 12 }}>
+              {documentStatusOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={statusFilter === option.value ? 'primary' : 'secondary'}
+                  onClick={() => setStatusFilter(option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+              <Button type="button" variant="secondary" onClick={resetDocumentFilters}>مسح الفلاتر</Button>
+            </div>
 
             <div className="form-grid" style={{ marginBottom: 12 }}>
               <label className="field">
@@ -222,12 +256,10 @@ export function HrDocumentsPage() {
                   {documentTypes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </label>
-              <label className="field">
-                <span>الحالة</span>
-                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as DocumentStatusFilter)}>
-                  {documentStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
+              <div className="field">
+                <span>الموظف المختار</span>
+                <strong>{employeeName(selectedEmployee as HrEmployee)}</strong>
+              </div>
             </div>
 
             {rawDocuments.length ? (
@@ -241,25 +273,22 @@ export function HrDocumentsPage() {
                     { key: 'employeeName', header: 'اسم الموظف', cell: () => employeeName(selectedEmployee as HrEmployee | undefined) },
                     { key: 'documentType', header: 'نوع المستند', cell: (row) => fallbackText(row.documentType) },
                     { key: 'title', header: 'اسم المستند', cell: (row) => fallbackText(row.title) },
-                    { key: 'issueDate', header: 'تاريخ الإصدار', cell: () => 'غير متاح' },
                     { key: 'expiryDate', header: 'تاريخ الانتهاء', cell: (row) => fallbackText(row.expiryDate) },
                     { key: 'status', header: 'الحالة', cell: (row) => evaluateDocumentStatus(row.expiryDate).label },
                     { key: 'notes', header: 'ملاحظات', cell: (row) => fallbackText(row.notes) },
                     {
                       key: 'actions',
                       header: 'إجراء',
-                      cell: () => <Button variant="secondary" onClick={() => navigate(`/hr/employees/${selectedEmployeeId}`)}>عرض التفاصيل</Button>,
+                      cell: () => <Button variant="secondary" onClick={() => navigate(`/hr/employees/${selectedEmployeeId}`)}>فتح ملف الموظف</Button>,
                     },
                   ]}
                 />
-              ) : (
-                <p className="muted">لا توجد نتائج مطابقة للفلاتر الحالية.</p>
-              )
+              ) : <p className="muted">لا توجد نتائج مطابقة للفلاتر الحالية.</p>
             ) : (
-              <>
-                <p className="muted">لا توجد مستندات موظفين حتى الآن.</p>
-                <p className="muted">أضف مستندات الموظفين لمتابعة تواريخ الانتهاء والتنبيهات.</p>
-              </>
+              <div>
+                <p className="muted">لا توجد مستندات مسجلة لهذا الموظف.</p>
+                <Button type="button" variant="secondary" onClick={() => navigate(`/hr/employees/${selectedEmployeeId}`)}>إضافة أول مستند من ملف الموظف</Button>
+              </div>
             )}
           </QueryFeedback>
         )}
