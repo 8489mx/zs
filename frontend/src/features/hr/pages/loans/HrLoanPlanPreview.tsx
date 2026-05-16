@@ -11,7 +11,10 @@ type PlanPreview = {
 
 export function HrLoanPlanPreview({ planPreview }: { planPreview: PlanPreview }) {
   return (
-    <div className="field field-wide" style={{ background: 'rgba(15, 23, 42, 0.04)', borderRadius: 12, padding: 12 }}>
+    <div
+      className="field field-wide"
+      style={{ gridColumn: '1 / -1', background: 'rgba(15, 23, 42, 0.04)', borderRadius: 12, padding: 12 }}
+    >
       <strong style={{ display: 'block', marginBottom: 8 }}>معاينة خطة السداد</strong>
       <div className="form-grid">
         <div className="field"><span>إجمالي السلفة</span><strong>{money(planPreview.principalAmount)}</strong></div>
