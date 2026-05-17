@@ -300,10 +300,9 @@ export function PosWorkspace() {
         pos={pos}
         selectedCustomerName={selectedCustomerName}
         onClose={() => setCheckoutDialogOpen(false)}
-        onRequestDiscountAuthorization={requestDiscountAuthorization}
-        onConfirmSale={() => {
+        onConfirmSale={(managerPin) => {
           setCheckoutDialogOpen(false);
-          void pos.handleSubmit();
+          void pos.handleSubmit({ managerPin });
         }}
       />
 
