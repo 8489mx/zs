@@ -38,6 +38,7 @@ interface PurchasePaymentScheduleCardProps {
 export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentScheduleCardProps) {
   const queryClient = useQueryClient();
   const purchaseId = String(purchase.id || '');
+  const supplierId = String(purchase.supplierId || '');
   const [mode, setMode] = useState<'count' | 'amount'>('count');
   const [installmentCount, setInstallmentCount] = useState('3');
   const [installmentAmount, setInstallmentAmount] = useState('');
@@ -46,6 +47,13 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
   const [roundingStep, setRoundingStep] = useState('100');
   const [note, setNote] = useState('');
   const [settleAmounts, setSettleAmounts] = useState<Record<string, string>>({});
+
+  function refreshFinancialQueries() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances });
+    queryClient.invalidateQueries({ queryKey: queryKeys.treasury });
+    queryClient.invalidateQueries({ queryKey: queryKeys.purchases });
+    if (supplierId) queryClient.invalidateQueries({ queryKey: queryKeys.supplierLedger(supplierId) });
+  }
 
   const scheduleQuery = useQuery({
     queryKey: queryKeys.purchasePaymentSchedule(purchaseId),
@@ -77,13 +85,14 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
     }),
     onSuccess: (rows) => {
       queryClient.setQueryData(queryKeys.purchasePaymentSchedule(purchaseId), rows);
+      refreshFinancialQueries();
       setSettleAmounts({});
     },
   });
 
   const rows = scheduleQuery.data || [];
   const summary = useMemo(() => buildScheduleSummary(rows), [rows]);
-  const canCreateSchedule = purchase.status !== 'cancelled' && Number(purchase.total || 0) > 0;
+  const canCreateSchedule = purchase.status !== 'cancelled' && Boolean(supplierId) && Number(purchase.total || 0) > 0;
 
   return (
     <Card
