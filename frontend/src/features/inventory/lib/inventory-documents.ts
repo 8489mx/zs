@@ -15,6 +15,64 @@ export async function copyLines(lines: string[], successMessage: string, onResul
   }
 }
 
+export interface StockCountSheetRow {
+  code?: string;
+  barcode?: string;
+  name: string;
+  category?: string;
+  expectedQty?: number | string;
+  countedQty?: number | string;
+  note?: string;
+}
+
+export function printStockCountSheet(rows: StockCountSheetRow[], options: { title?: string; locationName?: string; includeExpectedQty?: boolean }) {
+  if (!rows.length) return;
+  const includeExpected = Boolean(options.includeExpectedQty);
+  printHtmlDocument(options.title || 'شيت عد الجرد', `
+    <h1>${escapeHtml(options.title || 'شيت عد الجرد')}</h1>
+    <div class="meta">المخزن: ${escapeHtml(options.locationName || '—')} · تاريخ الطباعة: ${escapeHtml(formatDate(new Date().toISOString()))}</div>
+    <table>
+      <thead>
+        <tr>
+          <th>كود الصنف</th>
+          <th>الباركود</th>
+          <th>الصنف</th>
+          <th>القسم</th>
+          ${includeExpected ? '<th>كمية النظام</th>' : ''}
+          <th>الكمية الفعلية</th>
+          <th>ملاحظات</th>
+        </tr>
+      </thead>
+      <tbody>${rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.code || '—')}</td>
+          <td>${escapeHtml(row.barcode || '—')}</td>
+          <td>${escapeHtml(row.name || '—')}</td>
+          <td>${escapeHtml(row.category || '—')}</td>
+          ${includeExpected ? `<td>${escapeHtml(String(row.expectedQty ?? ''))}</td>` : ''}
+          <td>${escapeHtml(String(row.countedQty ?? ''))}</td>
+          <td>${escapeHtml(row.note || '')}</td>
+        </tr>`).join('')}</tbody>
+    </table>
+    <div class="totals">
+      <div>عدد الأصناف في الشيت: ${rows.length}</div>
+      <div>توقيع القائم بالعد: ____________________</div>
+      <div>توقيع المراجع: ____________________</div>
+    </div>
+  `);
+}
+
+export function exportStockCountSheetCsv(rows: StockCountSheetRow[], options: { includeExpectedQty?: boolean }) {
+  if (!rows.length) return;
+  const includeExpected = Boolean(options.includeExpectedQty);
+  const headers = includeExpected
+    ? ['code', 'barcode', 'name', 'category', 'expectedQty', 'countedQty', 'note']
+    : ['code', 'barcode', 'name', 'category', 'countedQty', 'note'];
+  downloadCsvFile('stock-count-sheet.csv', headers, rows.map((row) => includeExpected
+    ? [row.code || '', row.barcode || '', row.name, row.category || '', row.expectedQty ?? '', row.countedQty ?? '', row.note || '']
+    : [row.code || '', row.barcode || '', row.name, row.category || '', row.countedQty ?? '', row.note || '']));
+}
+
 export function printTransferDocument(transfer: StockTransfer) {
   printHtmlDocument(`تحويل مخزون ${transfer.docNo || transfer.id}`, `
     <div class="meta">من ${escapeHtml(transfer.fromLocationName || '—')} إلى ${escapeHtml(transfer.toLocationName || '—')} · الحالة: ${escapeHtml(transfer.status || '—')} · التاريخ: ${escapeHtml(formatDate(transfer.date || ''))}</div>
