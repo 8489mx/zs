@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+﻿import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -79,11 +79,11 @@ export function HrLeavesPage() {
     return map;
   }, [leaveTypes]);
 
-  const isUnpaidLeave = (row: HrLeaveRequest) => {
+  const isUnpaidLeave = useCallback((row: HrLeaveRequest) => {
     const byId = leaveTypeById.get(String(row.leaveTypeId || ''));
     const byName = leaveTypeByName.get(text(row.leaveTypeName || row.leaveType).toLowerCase());
     return byId?.isPaid === false || byName?.isPaid === false;
-  };
+  }, [leaveTypeById, leaveTypeByName]);
 
   const visibleRequests = useMemo(() => {
     return requests.filter((row) => {
@@ -101,7 +101,7 @@ export function HrLeavesPage() {
       if (toDateFilter && rowStartDate && rowStartDate > toDateFilter) return false;
       return true;
     });
-  }, [requests, leaveTypeFilter, quickFilter, fromDateFilter, toDateFilter, leaveTypeById, leaveTypeByName]);
+  }, [requests, leaveTypeFilter, quickFilter, fromDateFilter, toDateFilter, isUnpaidLeave]);
 
   const summary = useMemo(() => {
     let pending = 0;
@@ -125,7 +125,7 @@ export function HrLeavesPage() {
       rejected,
       unpaid,
     };
-  }, [requests, visibleRequests.length, leaveTypeById, leaveTypeByName]);
+  }, [requests, visibleRequests.length, isUnpaidLeave]);
 
   const isSearchOrFilterActive = Boolean(search.trim()) || Boolean(statusFilter) || quickFilter !== 'all' || leaveTypeFilter !== 'all' || Boolean(fromDateFilter) || Boolean(toDateFilter);
 
@@ -399,4 +399,3 @@ export function HrLeavesPage() {
     </div>
   );
 }
-
