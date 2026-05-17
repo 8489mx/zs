@@ -109,6 +109,7 @@ interface StockCountComposerCardProps {
   isSuccess: boolean;
   error?: unknown;
   onFormChange: (patch: Partial<{ branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string }>) => void;
+  onItemsChange: (updater: (current: StockCountItem[]) => StockCountItem[]) => void;
   onAddItem: () => void;
   onRemoveItem: (index: number) => void;
   onSubmit: (options?: { noteOverride?: string }) => void;
@@ -129,6 +130,7 @@ export function StockCountComposerCard({
   isSuccess,
   error,
   onFormChange,
+  onItemsChange,
   onAddItem,
   onRemoveItem,
   onSubmit
@@ -202,6 +204,20 @@ export function StockCountComposerCard({
     return `${trimmedBase}\n${line}`;
   }
 
+  function updateCountItem(index: number, patch: Partial<StockCountItem>) {
+    onItemsChange((current) => current.map((item, currentIndex) => {
+      if (currentIndex !== index) return item;
+      const countedQty = patch.countedQty == null ? Number(item.countedQty || 0) : Number(patch.countedQty || 0);
+      const expectedQty = Number(item.expectedQty || 0);
+      return {
+        ...item,
+        ...patch,
+        countedQty,
+        varianceQty: Number((countedQty - expectedQty).toFixed(3)),
+      };
+    }));
+  }
+
   return (
     <Card title="جلسة جرد مخزون" description="ابدأ الجرد، جهّز شيت العد للطباعة أو CSV، ثم أدخل الكميات الفعلية واعتمد التسوية بعد المراجعة." actions={<span className="nav-pill">جلسات الجرد</span>}>
       <div className="form-grid">
@@ -253,6 +269,7 @@ export function StockCountComposerCard({
           selectedProduct={selectedProduct}
           locationName={selectedLocation?.name}
           isCountStarted={isCountStarted}
+          onItemsChange={onItemsChange}
         />
         <Field label="الصنف">
           <InventoryProductPicker
@@ -308,16 +325,34 @@ export function StockCountComposerCard({
           <div className="list-row stacked-row" key={item.id}>
             <div>
               <strong>{item.productName}</strong>
-              {canReviewStock ? (
-                <div className="muted small">متوقع: {item.expectedQty} · معدود: {item.countedQty} · فرق: {item.varianceQty}</div>
-              ) : (
-                <div className="muted small">المعدود: {item.countedQty}</div>
-              )}
-              <div className="muted small">السبب: {item.reason || '—'}</div>
+              <div className="form-grid" style={{ marginTop: 8 }}>
+                {canReviewStock ? (
+                  <Field label="كمية النظام">
+                    <input value={String(item.expectedQty || 0)} disabled />
+                  </Field>
+                ) : null}
+                <Field label="الكمية المعدودة">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    value={String(item.countedQty ?? 0)}
+                    onChange={(event) => updateCountItem(index, { countedQty: Number(event.target.value || 0) })}
+                  />
+                </Field>
+                {canReviewStock ? (
+                  <Field label="الفرق">
+                    <input value={String(item.varianceQty || 0)} disabled />
+                  </Field>
+                ) : null}
+                <Field label="سبب الفرق">
+                  <input value={item.reason || ''} onChange={(event) => updateCountItem(index, { reason: event.target.value })} />
+                </Field>
+              </div>
             </div>
             <Button type="button" variant="danger" onClick={() => onRemoveItem(index)}>حذف</Button>
           </div>
-        )) : <EmptyState title="لا توجد عناصر في جلسة الجرد" hint="أضف الأصناف التي بها فرق بعد العد الفعلي، ثم أنشئ الجلسة للمراجعة والاعتماد." />}
+        )) : <EmptyState title="لا توجد عناصر في جلسة الجرد" hint="استخدم الإدخال الإلكتروني لتجهيز أصناف النطاق أو أضف الأصناف التي بها فرق بعد العد الفعلي." />}
       </div>
     </Card>
   );
