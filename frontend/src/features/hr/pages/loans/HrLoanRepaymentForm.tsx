@@ -44,11 +44,14 @@ export function HrLoanRepaymentForm({
       </label>
       <label className="field">
         <span>طريقة السداد</span>
-        <input value={repaymentDraft.method} onChange={(event) => onChange({ method: event.target.value })} />
+        <select value={repaymentDraft.method || 'manual_cash'} onChange={(event) => onChange({ method: event.target.value })}>
+          <option value="manual_cash">سداد نقدي</option>
+          <option value="salary_deduction">خصم من المرتب</option>
+        </select>
       </label>
       <label className="field field-wide">
         <span>ملاحظات</span>
-        <input value={repaymentDraft.notes} onChange={(event) => onChange({ notes: event.target.value })} />
+        <input value={repaymentDraft.notes} onChange={(event) => onChange({ notes: event.target.value })} placeholder="اختياري" />
       </label>
 
       {repaymentError ? <div className="field-wide error-box">{repaymentError}</div> : null}
