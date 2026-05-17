@@ -25,6 +25,7 @@ export const queryKeys = {
   purchases: ['purchases'] as const,
   purchasesPage: (paramsKey: string) => ['purchases', 'page', paramsKey] as const,
   purchaseDetail: (purchaseId: string) => ['purchase-detail', purchaseId] as const,
+  purchasePaymentSchedule: (purchaseId: string) => ['purchase-payment-schedule', purchaseId] as const,
   settings: ['settings'] as const,
   settingsUsers: ['settings-users'] as const,
   settingsUsersPage: (paramsKey: string) => ['settings-users', 'page', paramsKey] as const,
