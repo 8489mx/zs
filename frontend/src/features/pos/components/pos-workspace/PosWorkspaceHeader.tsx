@@ -9,7 +9,7 @@ import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 
 function buildDescription(pos: PosWorkspaceState) {
-  if (!pos.hasOperationalSetup) return 'أكمل تعريف المتجر ونقطة التشغيل أولًا، ثم ارجع للكاشير لإتمام البيع من نفس الشاشة.';
+  if (!pos.hasOperationalSetup) return 'أكمل تعريف المتجر ونقطة التشغيل أولًا، ثم ارجع لنقطة البيع لإتمام البيع من نفس الشاشة.';
   if (!pos.hasCatalogReady) return 'أضف صنفًا واحدًا على الأقل حتى تظهر تجربة البيع اليومية بشكل كامل.';
   if (pos.requiresCashierShift && !pos.ownOpenShift) return 'افتح وردية لهذا المستخدم أولًا حتى يبدأ البيع النقدي أو الشبكة بدون تعطيل.';
   if (!pos.cart.length) return 'ابدأ بالباركود أو البحث السريع، ثم راجع السلة والدفع من العمود المقابل.';
@@ -38,7 +38,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
 
   return (
     <PageHeader
-      title="الكاشير"
+      title="نقطة البيع"
       description={buildDescription(pos)}
       badge={(
         <span className="pos-title-brand-mark" aria-label="Z ERP">
