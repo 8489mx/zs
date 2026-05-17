@@ -10,6 +10,8 @@ import { DashboardHeroSection } from '@/features/dashboard/components/DashboardH
 import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardSummaryGrid';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
+import { DashboardCompactManagerActions } from '@/features/dashboard/components/DashboardCompactManagerActions';
+import { DashboardMonthlySnapshot } from '@/features/dashboard/components/DashboardMonthlySnapshot';
 import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
 import {
   buildDashboardAlerts,
@@ -68,6 +70,13 @@ export function DashboardPage() {
         isLoading={managerActions.isLoading}
       />
 
+      <DashboardCompactManagerActions
+        insights={managerActions.data?.insights || []}
+        isLoading={managerActions.isLoading}
+        isError={managerActions.isError}
+        error={managerActions.error}
+      />
+
       <DashboardHeroSection
         todaySalesCount={Number(stats.todaySalesCount || 0)}
         todayPurchasesCount={Number(stats.todayPurchasesCount || 0)}
@@ -96,6 +105,8 @@ export function DashboardPage() {
         customerDebt={Number(stats.customerDebt || 0)}
         supplierDebt={Number(stats.supplierDebt || 0)}
       />
+
+      <DashboardMonthlySnapshot data={managerOverview.data} />
     </div>
   );
 }
