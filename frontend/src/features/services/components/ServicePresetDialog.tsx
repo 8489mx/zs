@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -16,7 +17,7 @@ interface ServicePresetDialogProps {
   isPresetSavePending: boolean;
   presetMessage: string;
   presetMessageTone: 'success' | 'error';
-  customServiceNameInputRef: React.RefObject<HTMLInputElement | null>;
+  customServiceNameInputRef: RefObject<HTMLInputElement | null>;
   onClose: () => void;
   onPresetSelection: (key: ServicePresetKey) => void;
   onToggleDraftSelection: (id: string) => void;
