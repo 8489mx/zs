@@ -116,10 +116,12 @@ export class SupplierPaymentSchedulesService {
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be scheduled', 'PURCHASE_CANCELLED', 400);
       this.ensureCredit(purchase.payment_type);
       if (!purchase.supplier_id) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
+      const db = this.scheduleDb(trx);
+      const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('purchase_id', '=', purchaseId).where('paid_amount', '>', 0).executeTakeFirst();
+      if (paidRow) throw new AppError('Cannot reschedule after payments were recorded', 'PURCHASE_SCHEDULE_HAS_PAYMENTS', 400);
       const amounts = this.buildAmounts(Number(purchase.total || 0), payload);
       const firstDueDate = this.parseDate(payload.firstDueDate);
       const intervalDays = Number(payload.intervalDays || 1);
-      const db = this.scheduleDb(trx);
       await db.deleteFrom('supplier_payment_schedules').where('purchase_id', '=', purchaseId).execute();
       for (let index = 0; index < amounts.length; index += 1) {
         await db.insertInto('supplier_payment_schedules').values({
