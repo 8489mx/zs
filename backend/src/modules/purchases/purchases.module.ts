@@ -7,10 +7,17 @@ import { PurchasesService } from './purchases.service';
 import { PurchasesFinanceService } from './services/purchases-finance.service';
 import { PurchasesQueryService } from './services/purchases-query.service';
 import { PurchasesWriteService } from './services/purchases-write.service';
+import { SupplierPaymentSchedulesService } from './services/supplier-payment-schedules.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule],
   controllers: [PurchasesController],
-  providers: [PurchasesService, PurchasesFinanceService, PurchasesQueryService, PurchasesWriteService],
+  providers: [
+    PurchasesService,
+    PurchasesFinanceService,
+    PurchasesQueryService,
+    PurchasesWriteService,
+    SupplierPaymentSchedulesService,
+  ],
 })
 export class PurchasesModule {}
