@@ -6,7 +6,7 @@ import { CashDrawerReviewDialog } from '@/features/cash-drawer/components/CashDr
 import { CashDrawerStatsGrid } from '@/features/cash-drawer/components/CashDrawerStatsGrid';
 import { useCashDrawerPageController } from '@/features/cash-drawer/hooks/useCashDrawerPageController';
 
-const cashDrawerRegressionLabels = ['فتح وردية جديدة', 'تسجيل حركة درج', 'إغلاق وردية', 'عدد الورديات المطابقة', 'طباعة النتائج'];
+const cashDrawerRegressionLabels = ['فتح وردية نقطة بيع جديدة', 'تسجيل حركة درج النقدية', 'إغلاق وردية نقطة البيع', 'عدد ورديات نقطة البيع المطابقة', 'طباعة النتائج'];
 const cashDrawerRegressionMarkers = ['pagination={{'];
 
 void cashDrawerRegressionLabels;
@@ -18,16 +18,16 @@ export function CashDrawerPage() {
   const isCashOut = movementType === 'cash_out';
   const isMovement = controller.confirmAction?.kind === 'movement';
   const confirmDialogTitle = isMovement
-    ? (isCashOut ? 'اعتماد صرف من الدرج' : 'تأكيد إيداع في الدرج')
-    : 'تأكيد إغلاق الوردية';
+    ? (isCashOut ? 'اعتماد صرف من درج النقدية' : 'تأكيد إيداع في درج النقدية')
+    : 'تأكيد إغلاق وردية نقطة البيع';
 
   const confirmDialogDescription = isMovement
     ? (isCashOut
-      ? 'سيتم تسجيل حركة صرف نقدي على الوردية الحالية بعد الاعتماد.'
-      : 'سيتم تسجيل حركة إيداع نقدي على الوردية الحالية بعد تأكيد المستخدم الحالي.')
+      ? 'سيتم تسجيل حركة صرف نقدي على وردية نقطة البيع الحالية بعد الاعتماد.'
+      : 'سيتم تسجيل حركة إيداع نقدي على وردية نقطة البيع الحالية بعد تأكيد المستخدم الحالي.')
     : (controller.isBlindCloseUser
-      ? 'سيتم تسجيل إقرار الإغلاق وإرسال الوردية في انتظار مراجعة المدير.'
-      : 'سيتم إغلاق الوردية الحالية وتسجيل المبلغ المعدود والفرق النهائي بعد تأكيد المستخدم الحالي.');
+      ? 'سيتم تسجيل إقرار الإغلاق وإرسال وردية نقطة البيع في انتظار مراجعة المدير.'
+      : 'سيتم إغلاق وردية نقطة البيع الحالية وتسجيل المبلغ المعدود والفرق النهائي بعد تأكيد المستخدم الحالي.');
 
   const confirmBusy = controller.movementMutation.isPending || controller.closeMutation.isPending;
   const managerPinLabel = isCashOut ? 'رمز اعتماد المدير' : 'كلمة مرور المستخدم الحالي';
@@ -38,8 +38,8 @@ export function CashDrawerPage() {
   return (
     <div className="page-stack page-shell cash-drawer-page">
       <PageHeader
-        title="الورديات والدرج النقدي"
-        badge={<span className="nav-pill">متابعة الورديات</span>}
+        title="ورديات نقطة البيع ودرج النقدية"
+        badge={<span className="nav-pill">متابعة ورديات نقطة البيع</span>}
       />
 
       <CashDrawerStatsGrid
@@ -102,7 +102,7 @@ export function CashDrawerPage() {
         open={Boolean(controller.confirmAction)}
         title={confirmDialogTitle}
         description={confirmDialogDescription}
-        confirmLabel={isMovement ? (isCashOut ? 'تنفيذ الصرف' : 'تسجيل الإيداع') : 'إغلاق الوردية'}
+        confirmLabel={isMovement ? (isCashOut ? 'تنفيذ الصرف' : 'تسجيل الإيداع') : 'إغلاق وردية نقطة البيع'}
         confirmVariant={isMovement ? (isCashOut ? 'danger' : 'success') : 'primary'}
         managerPinRequired
         managerPinLabel={managerPinLabel}
