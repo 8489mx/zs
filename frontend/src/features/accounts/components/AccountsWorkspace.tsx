@@ -7,6 +7,7 @@ import { LedgerPanel } from '@/features/accounts/components/LedgerPanel';
 import { AccountsPartyCard } from '@/features/accounts/components/AccountsPartyCard';
 import { AccountsLedgerCard } from '@/features/accounts/components/AccountsLedgerCard';
 import { AccountsLedgerActions } from '@/features/accounts/components/AccountsLedgerActions';
+import { SupplierBalanceScheduleCard } from '@/features/accounts/components/SupplierBalanceScheduleCard';
 import { useAccountsWorkspaceController } from '@/features/accounts/hooks/useAccountsWorkspaceController';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { Customer, Supplier } from '@/types/domain';
@@ -140,69 +141,73 @@ export function AccountsWorkspace() {
           </AccountsPartyCard>
         </div>
       ) : (
-        <div className="two-column-grid accounts-focus-grid">
-          <AccountsLedgerCard
-            title="كشف حساب مورد"
-            description="اختر المورد وراجع الحركة ثم انسخ أو اطبع الكشف مباشرة."
-            actions={(
-              <AccountsLedgerActions
-                title="كشف حساب مورد"
-                filename="supplier-ledger.csv"
-                partyName={controller.selectedSupplier?.name || ''}
-                entries={controller.supplierEntries}
-                canPrint={canPrint}
-                disabled={!controller.selectedSupplierId}
-                loadAllEntries={controller.exportSupplierLedger}
-              />
-            )}
-            isLoading={controller.supplierBalancesQuery.isLoading || controller.supplierLedgerQuery.isLoading}
-            isError={controller.supplierBalancesQuery.isError || controller.supplierLedgerQuery.isError}
-            error={controller.supplierBalancesQuery.error || controller.supplierLedgerQuery.error}
-            isEmpty={!controller.supplierBalanceOptions.length}
-            loadingText="جاري تحميل كشف المورد..."
-            emptyTitle="لا توجد بيانات موردين للحسابات"
-            emptyHint="سيظهر كشف المورد هنا بمجرد وجود موردين أو حركة مالية."
-          >
-            <LedgerPanel
+        <div className="page-stack">
+          <div className="two-column-grid accounts-focus-grid">
+            <AccountsLedgerCard
               title="كشف حساب مورد"
-              value={controller.selectedSupplierId}
-              onChange={controller.setSelectedSupplierId}
-              options={controller.supplierBalanceOptions as Supplier[]}
-              emptyLabel="اختر المورد"
-              entries={controller.supplierEntries}
-              search={controller.supplierLedgerSearch}
-              onSearchChange={controller.setSupplierLedgerSearch}
-              summary={controller.supplierLedgerSummary}
-              pagination={controller.supplierLedgerPagination}
-              onPageChange={controller.setSupplierLedgerPage}
-              onPageSizeChange={controller.setSupplierLedgerPageSize}
-            />
-          </AccountsLedgerCard>
+              description="اختر المورد وراجع الحركة ثم انسخ أو اطبع الكشف مباشرة."
+              actions={(
+                <AccountsLedgerActions
+                  title="كشف حساب مورد"
+                  filename="supplier-ledger.csv"
+                  partyName={controller.selectedSupplier?.name || ''}
+                  entries={controller.supplierEntries}
+                  canPrint={canPrint}
+                  disabled={!controller.selectedSupplierId}
+                  loadAllEntries={controller.exportSupplierLedger}
+                />
+              )}
+              isLoading={controller.supplierBalancesQuery.isLoading || controller.supplierLedgerQuery.isLoading}
+              isError={controller.supplierBalancesQuery.isError || controller.supplierLedgerQuery.isError}
+              error={controller.supplierBalancesQuery.error || controller.supplierLedgerQuery.error}
+              isEmpty={!controller.supplierBalanceOptions.length}
+              loadingText="جاري تحميل كشف المورد..."
+              emptyTitle="لا توجد بيانات موردين للحسابات"
+              emptyHint="سيظهر كشف المورد هنا بمجرد وجود موردين أو حركة مالية."
+            >
+              <LedgerPanel
+                title="كشف حساب مورد"
+                value={controller.selectedSupplierId}
+                onChange={controller.setSelectedSupplierId}
+                options={controller.supplierBalanceOptions as Supplier[]}
+                emptyLabel="اختر المورد"
+                entries={controller.supplierEntries}
+                search={controller.supplierLedgerSearch}
+                onSearchChange={controller.setSupplierLedgerSearch}
+                summary={controller.supplierLedgerSummary}
+                pagination={controller.supplierLedgerPagination}
+                onPageChange={controller.setSupplierLedgerPage}
+                onPageSizeChange={controller.setSupplierLedgerPageSize}
+              />
+            </AccountsLedgerCard>
 
-          <AccountsPartyCard
-            title="دفع لمورد"
-            description="اختر المورد أولًا ثم سجل الدفع على الموردين الذين لهم رصيد مستحق."
-            badge="دفع"
-            isLoading={controller.supplierBalancesQuery.isLoading}
-            isError={controller.supplierBalancesQuery.isError}
-            error={controller.supplierBalancesQuery.error}
-            isEmpty={!controller.payableSuppliers.length}
-            loadingText="جاري تحميل الموردين..."
-            emptyTitle="لا يوجد موردون عليهم رصيد حاليًا"
-            emptyHint="سيظهر الموردون هنا بمجرد وجود رصيد مستحق للسداد."
-            quickLabel="إضافة مورد سريع"
-            quickName={controller.quickSupplierName}
-            onQuickNameChange={controller.setQuickSupplierName}
-            quickPhone={controller.quickSupplierPhone}
-            onQuickPhoneChange={controller.setQuickSupplierPhone}
-            quickPending={controller.quickSupplierMutation.isPending}
-            canManageParty={canManageSuppliers}
-            onQuickSubmit={controller.handleQuickSupplierSubmit}
-            quickSubmitLabel="إضافة المورد فورًا"
-            permissionHint="هذا الحساب لا يملك صلاحية إنشاء مورد جديد من شاشة الحسابات."
-          >
-            <SupplierPaymentForm suppliers={controller.payableSuppliers as Supplier[]} activeSupplierId={controller.selectedSupplierId} disabled={!canManageAccounts} />
-          </AccountsPartyCard>
+            <AccountsPartyCard
+              title="دفع لمورد"
+              description="اختر المورد أولًا ثم سجل الدفع على الموردين الذين لهم رصيد مستحق."
+              badge="دفع"
+              isLoading={controller.supplierBalancesQuery.isLoading}
+              isError={controller.supplierBalancesQuery.isError}
+              error={controller.supplierBalancesQuery.error}
+              isEmpty={!controller.payableSuppliers.length}
+              loadingText="جاري تحميل الموردين..."
+              emptyTitle="لا يوجد موردون عليهم رصيد حاليًا"
+              emptyHint="سيظهر الموردون هنا بمجرد وجود رصيد مستحق للسداد."
+              quickLabel="إضافة مورد سريع"
+              quickName={controller.quickSupplierName}
+              onQuickNameChange={controller.setQuickSupplierName}
+              quickPhone={controller.quickSupplierPhone}
+              onQuickPhoneChange={controller.setQuickSupplierPhone}
+              quickPending={controller.quickSupplierMutation.isPending}
+              canManageParty={canManageSuppliers}
+              onQuickSubmit={controller.handleQuickSupplierSubmit}
+              quickSubmitLabel="إضافة المورد فورًا"
+              permissionHint="هذا الحساب لا يملك صلاحية إنشاء مورد جديد من شاشة الحسابات."
+            >
+              <SupplierPaymentForm suppliers={controller.payableSuppliers as Supplier[]} activeSupplierId={controller.selectedSupplierId} disabled={!canManageAccounts} />
+            </AccountsPartyCard>
+          </div>
+
+          <SupplierBalanceScheduleCard supplier={controller.selectedSupplier as Supplier | null} disabled={!canManageAccounts} />
         </div>
       )}
     </div>
