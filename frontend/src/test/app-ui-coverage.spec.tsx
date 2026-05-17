@@ -363,6 +363,6 @@ describe('app ui coverage', () => {
     installGlobalAppFetchMock();
     await renderAppAt('/services');
     expect(await screen.findByText('سجل الخدمات')).toBeInTheDocument();
-    expect(await screen.findByText('إضافة خدمة جديدة')).toBeInTheDocument();
+    expect((await screen.findAllByText('إضافة خدمة جديدة')).length).toBeGreaterThan(0);
   });
 });
