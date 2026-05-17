@@ -70,6 +70,8 @@ function payrollRunNeedsReview(row: HrPayrollRun) {
   return status === 'draft' || status === 'reviewed';
 }
 
+const reportSectionCardClassName = 'hr-report-section-card';
+
 export function HrReportsPage() {
   const navigate = useNavigate();
 
@@ -329,7 +331,7 @@ export function HrReportsPage() {
         errorTitle="تعذر تحميل تقارير الموارد البشرية"
         emptyTitle="لا توجد بيانات كافية لعرض التقرير."
       >
-        <Card title="لوحة المؤشرات المختصرة" description="أهم أرقام HR في الفترة الحالية.">
+        <Card className={reportSectionCardClassName} title="لوحة المؤشرات المختصرة" description="أهم أرقام HR في الفترة الحالية.">
           <div className="stats-grid">
             <button className="stat-card" type="button" onClick={() => setReportType('employees')} style={{ textAlign: 'right' }}><span>إجمالي الموظفين</span><strong>{employeesReport.total}</strong></button>
             <button className="stat-card" type="button" onClick={() => setReportType('employees')} style={{ textAlign: 'right' }}><span>ملفات ناقصة</span><strong>{employeesReport.missingBasics}</strong></button>
@@ -343,7 +345,7 @@ export function HrReportsPage() {
         </Card>
 
         {showSection('employees') ? (
-          <Card title="تقرير الموظفين" actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>فتح الموظفين</Button>}>
+          <Card className={reportSectionCardClassName} title="تقرير الموظفين" actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>فتح الموظفين</Button>}>
             <div className="stats-grid" style={{ marginBottom: 12 }}>
               <div className="stat-card"><span>إجمالي النتائج</span><strong>{employeesReport.total}</strong></div>
               <div className="stat-card"><span>نشط</span><strong>{employeesReport.active}</strong></div>
@@ -370,7 +372,7 @@ export function HrReportsPage() {
         ) : null}
 
         {showSection('attendance') ? (
-          <Card title="تقرير الحضور" actions={<Button variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>}>
+          <Card className={reportSectionCardClassName} title="تقرير الحضور" actions={<Button variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>}>
             <div className="stats-grid">
               <div className="stat-card"><span>إجمالي سجلات الفترة</span><strong>{attendanceReport.total}</strong></div>
               <div className="stat-card"><span>حاضر</span><strong>{attendanceReport.present}</strong></div>
@@ -382,7 +384,7 @@ export function HrReportsPage() {
         ) : null}
 
         {showSection('leaves') ? (
-          <Card title="تقرير الإجازات" actions={<Button variant="secondary" onClick={() => navigate('/hr/leaves')}>فتح الإجازات</Button>}>
+          <Card className={reportSectionCardClassName} title="تقرير الإجازات" actions={<Button variant="secondary" onClick={() => navigate('/hr/leaves')}>فتح الإجازات</Button>}>
             <div className="stats-grid">
               <div className="stat-card"><span>إجمالي الطلبات</span><strong>{leavesReport.total}</strong></div>
               <div className="stat-card"><span>قيد المراجعة</span><strong>{leavesReport.pending}</strong></div>
@@ -394,7 +396,7 @@ export function HrReportsPage() {
         ) : null}
 
         {showSection('loans') ? (
-          <Card title="تقرير السلف" actions={<Button variant="secondary" onClick={() => navigate('/hr/loans')}>فتح السلف</Button>}>
+          <Card className={reportSectionCardClassName} title="تقرير السلف" actions={<Button variant="secondary" onClick={() => navigate('/hr/loans')}>فتح السلف</Button>}>
             <div className="stats-grid">
               <div className="stat-card"><span>إجمالي السلف</span><strong>{loansReport.total}</strong></div>
               <div className="stat-card"><span>سلف مفتوحة</span><strong>{loansReport.open}</strong></div>
@@ -406,7 +408,7 @@ export function HrReportsPage() {
         ) : null}
 
         {showSection('payroll') ? (
-          <Card title="تقرير المرتبات" actions={<Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>}>
+          <Card className={reportSectionCardClassName} title="تقرير المرتبات" actions={<Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>}>
             <div className="stats-grid">
               <div className="stat-card"><span>عدد المسيرات</span><strong>{payrollReport.runs}</strong></div>
               <div className="stat-card"><span>حالة مسير الشهر</span><strong>{payrollReport.selectedRunStatus}</strong></div>
@@ -421,7 +423,7 @@ export function HrReportsPage() {
         ) : null}
 
         {showSection('assets') ? (
-          <Card title="تقرير العُهد" actions={<Button variant="secondary" onClick={() => navigate('/hr/assets')}>فتح العُهد</Button>}>
+          <Card className={reportSectionCardClassName} title="تقرير العُهد" actions={<Button variant="secondary" onClick={() => navigate('/hr/assets')}>فتح العُهد</Button>}>
             <div className="stats-grid">
               <div className="stat-card"><span>إجمالي العُهد</span><strong>{assetsReport.total}</strong></div>
               <div className="stat-card"><span>مسلّمة</span><strong>{assetsReport.assigned}</strong></div>
@@ -435,7 +437,7 @@ export function HrReportsPage() {
         ) : null}
 
         {showSection('alerts') ? (
-          <Card title="تنبيهات تحتاج مراجعة" description="كل صف يوجهك للصفحة الصحيحة لمعالجة السبب.">
+          <Card className={reportSectionCardClassName} title="تنبيهات تحتاج مراجعة" description="كل صف يوجهك للصفحة الصحيحة لمعالجة السبب.">
             {alerts.length ? (
               <DataTable
                 density="compact"
