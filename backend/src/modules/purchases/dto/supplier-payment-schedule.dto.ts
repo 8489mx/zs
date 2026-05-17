@@ -7,6 +7,12 @@ export class CreateSupplierPaymentScheduleDto {
 
   @Type(() => Number)
   @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  scheduleAmount?: number;
+
+  @Type(() => Number)
+  @IsOptional()
   @IsInt()
   @Min(1)
   installmentCount?: number;
