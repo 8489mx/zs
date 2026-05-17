@@ -16,6 +16,7 @@ export interface SupplierPaymentScheduleItem {
 
 export interface CreateSupplierPaymentSchedulePayload {
   mode: 'count' | 'amount';
+  scheduleAmount?: number;
   installmentCount?: number;
   installmentAmount?: number;
   firstDueDate: string;
@@ -43,4 +44,10 @@ export const purchasePaymentScheduleApi = {
   list: async (purchaseId: string) => unwrapSchedules(await http<SupplierPaymentScheduleResponse>(`/api/purchases/${purchaseId}/payment-schedule`)),
   create: async (purchaseId: string, payload: CreateSupplierPaymentSchedulePayload) => unwrapSchedules(await http<SupplierPaymentScheduleResponse>(`/api/purchases/${purchaseId}/payment-schedule`, { method: 'POST', body: JSON.stringify(payload) })),
   settle: async (scheduleId: string, payload: SettleSupplierPaymentSchedulePayload) => unwrapSchedules(await http<SupplierPaymentScheduleResponse>(`/api/supplier-payment-schedules/${scheduleId}/settle`, { method: 'POST', body: JSON.stringify(payload) })),
+};
+
+export const supplierBalanceScheduleApi = {
+  list: async (supplierId: string) => unwrapSchedules(await http<SupplierPaymentScheduleResponse>(`/api/suppliers/${supplierId}/payment-schedule`)),
+  create: async (supplierId: string, payload: CreateSupplierPaymentSchedulePayload) => unwrapSchedules(await http<SupplierPaymentScheduleResponse>(`/api/suppliers/${supplierId}/payment-schedule`, { method: 'POST', body: JSON.stringify(payload) })),
+  settle: async (scheduleId: string, payload: SettleSupplierPaymentSchedulePayload) => purchasePaymentScheduleApi.settle(scheduleId, payload),
 };
