@@ -76,9 +76,9 @@ export function statusLabel(value: unknown) {
   if (status === 'draft') return 'مسودة';
   if (status === 'new') return 'جديدة';
   if (status === 'approved') return 'معتمدة';
-  if (status === 'disbursed') return 'مصروفة';
-  if (status === 'partially_repaid') return 'نشطة';
-  if (status === 'repaid' || status === 'paid') return 'مكتملة';
+  if (status === 'disbursed' || status === 'paid') return 'مصروفة';
+  if (status === 'partially_repaid') return 'مسددة جزئيًا';
+  if (status === 'repaid') return 'مكتملة';
   if (status === 'cancelled') return 'ملغاة';
   return 'غير محدد';
 }
