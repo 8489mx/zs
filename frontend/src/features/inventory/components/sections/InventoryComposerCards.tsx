@@ -152,31 +152,16 @@ export function StockCountComposerCard({
     return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label, 'ar'));
   }, [products]);
   const countTypeOptions: Array<{ key: StockCountType; label: string; description: string }> = useMemo(() => ([
-    {
-      key: 'quick',
-      label: 'جرد سريع',
-      description: 'عد صنف أو مجموعة بسيطة بسرعة بدون تجهيز قائمة كاملة.',
-    },
-    {
-      key: 'selected_items',
-      label: 'أصناف محددة',
-      description: 'اختر الأصناف التي تريد عدها يدويًا قبل إنشاء الجلسة.',
-    },
-    {
-      key: 'category',
-      label: 'جرد قسم / تصنيف',
-      description: 'اختر القسم مباشرة ثم اطبع شيت عد أو افتح الإدخال الإلكتروني لأصناف هذا القسم.',
-    },
-    {
-      key: 'full',
-      label: 'جرد كامل',
-      description: 'جهّز شيت عد لكل الأصناف ثم أدخل الفروقات بعد العد الفعلي.',
-    },
+    { key: 'quick', label: 'جرد سريع', description: 'عد صنف أو مجموعة بسيطة بسرعة بدون تجهيز قائمة كاملة.' },
+    { key: 'selected_items', label: 'أصناف محددة', description: 'اختر الأصناف التي تريد عدها يدويًا قبل إنشاء الجلسة.' },
+    { key: 'category', label: 'جرد قسم / تصنيف', description: 'اختر القسم مباشرة ثم اطبع شيت عد أو افتح الإدخال الإلكتروني لأصناف هذا القسم.' },
+    { key: 'full', label: 'جرد كامل', description: 'جهّز شيت عد لكل الأصناف ثم أدخل الفروقات بعد العد الفعلي.' },
   ]), []);
   const [countType, setCountType] = useState<StockCountType>('quick');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [isCountStarted, setIsCountStarted] = useState(false);
   const [startCountMessage, setStartCountMessage] = useState('');
+  const [showExpectedInElectronicCount, setShowExpectedInElectronicCount] = useState(true);
   const selectedProduct = products.find((product) => String(product.id) === String(form.productId));
   const expectedQtyValue = Number(selectedProduct?.stock || 0);
   const countedQtyValue = Number(form.countedQty || 0);
@@ -186,6 +171,7 @@ export function StockCountComposerCard({
   const totalVariance = Number(items.reduce((sum, item) => sum + Number(item.varianceQty || 0), 0).toFixed(3));
   const selectedCountType = countTypeOptions.find((entry) => entry.key === countType) || countTypeOptions[0];
   const needsManualNote = countType === 'category' || countType === 'full';
+  const canShowExpectedCount = canReviewStock && showExpectedInElectronicCount;
 
   useEffect(() => {
     if (!form.locationId) {
@@ -204,6 +190,7 @@ export function StockCountComposerCard({
       setIsCountStarted(false);
       setCountType('quick');
       setSelectedCategoryId('');
+      setShowExpectedInElectronicCount(true);
       setStartCountMessage('');
     }
   }, [isSuccess]);
@@ -224,10 +211,12 @@ export function StockCountComposerCard({
   function buildSessionNoteWithType(baseNote: string) {
     const categoryLabel = categoryOptions.find((category) => category.id === selectedCategoryId)?.label;
     const line = `نوع الجرد: ${selectedCountType.label}${categoryLabel ? ` - ${categoryLabel}` : ''}`;
+    const visibilityLine = `عرض كمية النظام أثناء العد الإلكتروني: ${showExpectedInElectronicCount ? 'نعم' : 'لا'}`;
     const trimmedBase = String(baseNote || '').trim();
-    if (!trimmedBase) return line;
+    const metadata = `${line}\n${visibilityLine}`;
+    if (!trimmedBase) return metadata;
     if (trimmedBase.includes(line)) return trimmedBase;
-    return `${trimmedBase}\n${line}`;
+    return `${trimmedBase}\n${metadata}`;
   }
 
   function updateCountItem(index: number, patch: Partial<StockCountItem>) {
@@ -262,14 +251,7 @@ export function StockCountComposerCard({
         <Field label="نوع الجرد">
           <div className="filter-chip-row">
             {countTypeOptions.map((entry) => (
-              <Button
-                key={entry.key}
-                type="button"
-                variant={countType === entry.key ? 'primary' : 'secondary'}
-                onClick={() => setCountType(entry.key)}
-              >
-                {entry.label}
-              </Button>
+              <Button key={entry.key} type="button" variant={countType === entry.key ? 'primary' : 'secondary'} onClick={() => setCountType(entry.key)}>{entry.label}</Button>
             ))}
           </div>
           <div className="muted small" style={{ marginTop: 8 }}>{selectedCountType.description}</div>
@@ -282,40 +264,26 @@ export function StockCountComposerCard({
             </select>
           </Field>
         ) : null}
+        <Field label="إعدادات العد الإلكتروني">
+          <label className="checkbox-row">
+            <input type="checkbox" checked={showExpectedInElectronicCount} onChange={(event) => setShowExpectedInElectronicCount(event.target.checked)} disabled={!canReviewStock} />
+            <span>إظهار كمية النظام أثناء الإدخال الإلكتروني</span>
+          </label>
+          <div className="muted small" style={{ marginTop: 8 }}>
+            إلغاء الاختيار يجعل العد الإلكتروني حياديًا؛ تظل الفروقات محفوظة وتحسب عند إنشاء الجلسة.
+          </div>
+        </Field>
         <div className="field">
           <span>بدء الجرد</span>
           <div className="actions compact-actions">
-            <Button type="button" variant="secondary" onClick={handleStartCount}>
-              بدء الجرد
-            </Button>
+            <Button type="button" variant="secondary" onClick={handleStartCount}>بدء الجرد</Button>
           </div>
           {startCountMessage ? <div className="muted small" style={{ marginTop: 8 }}>{startCountMessage}</div> : null}
-          {needsManualNote && isCountStarted ? (
-            <div className="surface-note" style={{ marginTop: 10 }}>
-              جهّز شيت العد أولًا، أو استخدم الإدخال الإلكتروني لتجهيز أصناف النطاق داخل الجلسة.
-            </div>
-          ) : null}
+          {needsManualNote && isCountStarted ? <div className="surface-note" style={{ marginTop: 10 }}>جهّز شيت العد أولًا، أو استخدم الإدخال الإلكتروني لتجهيز أصناف النطاق داخل الجلسة.</div> : null}
         </div>
-        <StockCountSheetTools
-          products={products}
-          items={items}
-          countType={countType}
-          selectedProduct={selectedProduct}
-          selectedCategoryId={selectedCategoryId}
-          locationName={selectedLocation?.name}
-          isCountStarted={isCountStarted}
-          onItemsChange={onItemsChange}
-        />
+        <StockCountSheetTools products={products} items={items} countType={countType} selectedProduct={selectedProduct} selectedCategoryId={selectedCategoryId} locationName={selectedLocation?.name} isCountStarted={isCountStarted} onItemsChange={onItemsChange} />
         <Field label="الصنف">
-          <InventoryProductPicker
-            products={products}
-            value={form.productId}
-            onChange={(productId) => onFormChange({ productId })}
-            showStock
-            showPrice={false}
-            disabled={!isCountStarted}
-            helperText={isCountStarted ? 'اختر صنفًا لإدخال كمية العد أو لاستخدامه في الجرد السريع.' : 'ابدأ الجرد أولًا ثم اختر الصنف.'}
-          />
+          <InventoryProductPicker products={products} value={form.productId} onChange={(productId) => onFormChange({ productId })} showStock showPrice={false} disabled={!isCountStarted} helperText={isCountStarted ? 'اختر صنفًا لإدخال كمية العد أو لاستخدامه في الجرد السريع.' : 'ابدأ الجرد أولًا ثم اختر الصنف.'} />
         </Field>
         <Field label="الكمية المعدودة">
           <input type="number" min="0" step="0.001" value={form.countedQty} onChange={(e) => onFormChange({ countedQty: e.target.value })} disabled={!isCountStarted} />
@@ -333,24 +301,16 @@ export function StockCountComposerCard({
           <span>الإجراء</span>
           <div className="actions compact-actions">
             <Button type="button" variant="secondary" onClick={onAddItem} disabled={!isCountStarted}>إضافة عنصر</Button>
-            <SubmitButton
-              type="button"
-              onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })}
-              disabled={isPending || !items.length || !form.locationId || !isCountStarted}
-              idleText="إنشاء جلسة الجرد"
-              pendingText="جارٍ الإنشاء..."
-            />
+            <SubmitButton type="button" onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })} disabled={isPending || !items.length || !form.locationId || !isCountStarted} idleText="إنشاء جلسة الجرد" pendingText="جارٍ الإنشاء..." />
           </div>
         </div>
       </div>
       <div className="surface-note" style={{ marginTop: 12 }}>اعتماد الجرد يتم من خلال مستخدم لديه صلاحية اعتماد/تسوية المخزون.</div>
-      {!canReviewStock ? (
-        <div className="surface-note" style={{ marginTop: 12 }}>وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.</div>
-      ) : null}
+      {!canReviewStock ? <div className="surface-note" style={{ marginTop: 12 }}>وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.</div> : null}
       <div className="stats-grid compact-grid workspace-stats-grid" style={{ marginTop: 12 }}>
         <div className="stat-card"><span>العناصر المضافة</span><strong>{items.length}</strong></div>
-        {canReviewStock ? <div className="stat-card"><span>الفرق الحالي</span><strong>{selectedProduct ? variancePreview : totalVariance}</strong></div> : null}
-        {canReviewStock ? <div className="stat-card"><span>المخزون المتوقع</span><strong>{selectedProduct ? expectedQtyValue : totalExpected}</strong></div> : null}
+        {canShowExpectedCount ? <div className="stat-card"><span>الفرق الحالي</span><strong>{selectedProduct ? variancePreview : totalVariance}</strong></div> : null}
+        {canShowExpectedCount ? <div className="stat-card"><span>المخزون المتوقع</span><strong>{selectedProduct ? expectedQtyValue : totalExpected}</strong></div> : null}
         <div className="stat-card"><span>المعدود</span><strong>{selectedProduct ? countedQtyValue : totalCounted}</strong></div>
       </div>
       <div className="surface-note" style={{ marginTop: 12 }}>يفضل إدخال سبب واضح لكل فرق حتى تكون جلسة الجرد مفهومة عند المراجعة والطباعة لاحقًا.</div>
@@ -361,25 +321,11 @@ export function StockCountComposerCard({
             <div>
               <strong>{item.productName}</strong>
               <div className="form-grid" style={{ marginTop: 8 }}>
-                {canReviewStock ? (
-                  <Field label="كمية النظام">
-                    <input value={String(item.expectedQty || 0)} disabled />
-                  </Field>
-                ) : null}
+                {canShowExpectedCount ? <Field label="كمية النظام"><input value={String(item.expectedQty || 0)} disabled /></Field> : null}
                 <Field label="الكمية المعدودة">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    value={String(item.countedQty ?? 0)}
-                    onChange={(event) => updateCountItem(index, { countedQty: Number(event.target.value || 0) })}
-                  />
+                  <input type="number" min="0" step="0.001" value={String(item.countedQty ?? 0)} onChange={(event) => updateCountItem(index, { countedQty: Number(event.target.value || 0) })} />
                 </Field>
-                {canReviewStock ? (
-                  <Field label="الفرق">
-                    <input value={String(item.varianceQty || 0)} disabled />
-                  </Field>
-                ) : null}
+                {canShowExpectedCount ? <Field label="الفرق"><input value={String(item.varianceQty || 0)} disabled /></Field> : null}
                 <Field label="سبب الفرق">
                   <input value={item.reason || ''} onChange={(event) => updateCountItem(index, { reason: event.target.value })} />
                 </Field>
