@@ -1,4 +1,4 @@
-﻿import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -9,6 +9,7 @@ import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrLeaveRequest, HrLeaveType } from '@/types/domain';
 import { useHrLeaveRequests, useHrLeaveTypes, useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
 import { HrLeavesCreateRequestCard } from '@/features/hr/pages/leaves/HrLeavesCreateRequestCard';
+import { HrLeavesOperationalNote, HrLeavesWorkflowCard } from '@/features/hr/pages/leaves/HrLeavesStaticCards';
 import {
   leaveStatusLabel,
   normalizeArabicDigits,
@@ -211,14 +212,7 @@ export function HrLeavesPage() {
         )}
       />
 
-      <Card title="تسلسل مراجعة الإجازات" description="استخدم الصفحة بهذا الترتيب حتى لا تدخل إجازة مؤثرة على المرتب بدون مراجعة.">
-        <div className="form-grid">
-          <div className="field"><strong>1. راجع قيد المراجعة</strong><span className="muted">اعتمد أو ارفض الطلبات الجديدة أولًا.</span></div>
-          <div className="field"><strong>2. راجع غير المدفوعة</strong><span className="muted">الإجازات غير المدفوعة تظهر لاحقًا في مراجعة المرتبات.</span></div>
-          <div className="field"><strong>3. استخدم الفلاتر</strong><span className="muted">ابحث بالموظف أو نوع الإجازة أو الفترة الزمنية.</span></div>
-          <div className="field"><strong>4. انتقل للمرتبات</strong><span className="muted">بعد اعتماد الطلبات، راجع أثرها في صفحة المرتبات.</span></div>
-        </div>
-      </Card>
+      <HrLeavesWorkflowCard />
 
       {showCreate ? (
         <HrLeavesCreateRequestCard
@@ -331,14 +325,7 @@ export function HrLeavesPage() {
               { key: 'endDate', header: 'إلى تاريخ', cell: (row) => toDateOnly(row.endDate) || '—' },
               { key: 'daysCount', header: 'عدد الأيام', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
               { key: 'status', header: 'الحالة', cell: (row) => leaveStatusLabel(row.status) },
-              {
-                key: 'isPaid',
-                header: 'مدفوعة / غير مدفوعة',
-                cell: (row) => {
-                  const isPaid = !isUnpaidLeave(row);
-                  return isPaid ? 'مدفوعة أو غير محددة' : 'غير مدفوعة';
-                },
-              },
+              { key: 'isPaid', header: 'مدفوعة / غير مدفوعة', cell: (row) => (!isUnpaidLeave(row) ? 'مدفوعة أو غير محددة' : 'غير مدفوعة') },
               { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes || row.reason || '') || '—' },
               {
                 key: 'actions',
@@ -348,21 +335,9 @@ export function HrLeavesPage() {
                   const isUnpaid = isUnpaidLeave(row);
                   return (
                     <div className="actions compact-actions">
-                      {row.status === 'pending' ? (
-                        <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending}>
-                          اعتماد
-                        </Button>
-                      ) : null}
-                      {row.status === 'pending' ? (
-                        <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending}>
-                          رفض
-                        </Button>
-                      ) : null}
-                      {row.status !== 'cancelled' ? (
-                        <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending}>
-                          إلغاء
-                        </Button>
-                      ) : null}
+                      {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending}>اعتماد</Button> : null}
+                      {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending}>رفض</Button> : null}
+                      {row.status !== 'cancelled' ? <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending}>إلغاء</Button> : null}
                       {isUnpaid ? <span className="muted small">تؤثر على المرتبات.</span> : null}
                     </div>
                   );
@@ -386,16 +361,12 @@ export function HrLeavesPage() {
             <Button type="button" onClick={() => void rejectRequest(rejectTargetId)} disabled={mutations.rejectLeaveRequest.isPending}>
               {mutations.rejectLeaveRequest.isPending ? 'جاري الرفض...' : 'تأكيد الرفض'}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }}>
-              إلغاء
-            </Button>
+            <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }}>إلغاء</Button>
           </div>
         </Card>
       ) : null}
 
-      <Card title="ملاحظة تشغيلية">
-        <p className="muted" style={{ margin: 0 }}>رصيد الإجازات غير متاح حاليًا من البيانات الحالية. راجع نوع الإجازة وحالة الدفع قبل اعتماد المرتبات.</p>
-      </Card>
+      <HrLeavesOperationalNote />
     </div>
   );
 }
