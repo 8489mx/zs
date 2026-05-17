@@ -167,7 +167,8 @@ export function ServicesPage() {
         if (!normalized || seen.has(normalized)) return;
         seen.add(normalized);
         const parsedAmount = item.amountInput.trim() === '' ? null : Number(item.amountInput);
-        const nextItem = { name: item.name.trim(), defaultAmount: Number.isFinite(parsedAmount) ? parsedAmount : null };
+        const defaultAmount = typeof parsedAmount === 'number' && Number.isFinite(parsedAmount) ? parsedAmount : null;
+        const nextItem = { name: item.name.trim(), defaultAmount };
         const existingIndex = existingByName.has(normalized) ? nextCatalog.findIndex((entry) => normalizeServiceName(entry.name) === normalized) : -1;
         if (existingIndex !== -1) nextCatalog[existingIndex] = nextItem;
         else nextCatalog.push(nextItem);
