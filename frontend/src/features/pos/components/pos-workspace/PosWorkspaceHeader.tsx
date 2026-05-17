@@ -6,6 +6,7 @@ import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
+import { ZErpIcon } from '@/shared/components/z-erp-brand';
 
 function buildDescription(pos: PosWorkspaceState) {
   if (!pos.hasOperationalSetup) return 'أكمل تعريف المتجر ونقطة التشغيل أولًا، ثم ارجع للكاشير لإتمام البيع من نفس الشاشة.';
@@ -43,6 +44,10 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
       className="page-header--dense pos-page-header pos-page-header-streamlined"
       actions={(
         <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single">
+          <span className="pos-header-brand-mark" aria-label="Z ERP">
+            <ZErpIcon size={26} />
+            <strong>Z ERP</strong>
+          </span>
           <span className="toolbar-meta-pill">{getShiftHeaderLabel(pos)}</span>
           <span className="toolbar-meta-pill">الدفع {paymentMode}</span>
 
