@@ -38,7 +38,15 @@ function objectValue(value: unknown, key: string) {
   return (value as Record<string, unknown>)[key];
 }
 
-function createdMasterId(result: unknown) {
+function createdMasterId(result: unknown, createdName?: string) {
+  const rows = objectValue(result, 'rows');
+  const cleanCreatedName = String(createdName || '').trim();
+  if (Array.isArray(rows) && cleanCreatedName) {
+    const matchedRow = rows.find((row) => String(objectValue(row, 'name') || '').trim() === cleanCreatedName);
+    const rowId = objectValue(matchedRow, 'id');
+    if (String(rowId || '').trim()) return String(rowId);
+  }
+
   const candidates = [
     objectValue(result, 'id'),
     objectValue(objectValue(result, 'row'), 'id'),
@@ -111,13 +119,19 @@ export function EmployeeCreatePage() {
     };
 
     if (kind === 'positions') {
-      payload.departmentId = toId(draft.departmentId);
-      payload.jobTitleId = toId(draft.jobTitleId);
+      const departmentId = toId(draft.departmentId);
+      const jobTitleId = toId(draft.jobTitleId);
+      if (!departmentId || !jobTitleId) {
+        setSetupError('اختار القسم والمسمى الوظيفي أولًا قبل إضافة الوظيفة/المنصب.');
+        return;
+      }
+      payload.departmentId = departmentId;
+      payload.jobTitleId = jobTitleId;
     }
 
     try {
       const result = await mutations.saveMasterData.mutateAsync({ kind, payload });
-      const createdId = createdMasterId(result);
+      const createdId = createdMasterId(result, cleanName);
       if (kind === 'departments') {
         setQuickDepartmentName('');
         if (createdId) setDraft((current) => ({ ...current, departmentId: createdId }));
@@ -272,7 +286,8 @@ export function EmployeeCreatePage() {
           </label>
           <label className="field">
             <span>إضافة وظيفة/منصب سريع</span>
-            <input value={quickPositionName} onChange={(event) => setQuickPositionName(event.target.value)} placeholder="اختياري" />
+            <input value={quickPositionName} onChange={(event) => setQuickPositionName(event.target.value)} placeholder="اختر القسم والمسمى أولًا" />
+            <span className="muted small">تُربط الوظيفة بالقسم والمسمى المختارين في البيانات الوظيفية بالأسفل.</span>
             <Button type="button" variant="secondary" onClick={() => { void createQuickMaster('positions', quickPositionName); }} disabled={isBusy}>إضافة الوظيفة</Button>
           </label>
         </div>
