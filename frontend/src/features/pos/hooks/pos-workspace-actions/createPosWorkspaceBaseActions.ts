@@ -1,5 +1,3 @@
-import { SINGLE_STORE_MODE } from '@/config/product-scope';
-import { downloadCsvFile } from '@/lib/browser';
 import {
   addPosItem,
   getProductPrice,
@@ -7,76 +5,24 @@ import {
   removePosItem,
   updatePosItemQtyWithOptions,
 } from '@/features/pos/lib/pos.domain';
-import { buildSaleLineKey, computeDraftTotal, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
+import { buildSaleLineKey, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import {
   formatWeightedBarcodeQuantity,
   matchProductByWeightedCode,
   parseWeightedBarcode,
 } from '@/features/pos/lib/weighted-barcode';
-import { clearDraftSnapshot } from '@/features/pos/lib/pos.persistence';
-import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
+import {
+  exportHeldDraftRows,
+  findLineQty,
+  getAddProductErrorMessage,
+  resetPosDraftState,
+  resolveAvailableQty,
+  resolveSaleUnit,
+  toMoney,
+} from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions.helpers';
+import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product } from '@/types/domain';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
-
-function toMoney(value: number) {
-  return Number(Number(value || 0).toFixed(2));
-}
-
-function formatQty(value: number, isWeighted = false) {
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: isWeighted ? 3 : 0,
-  }).format(Number(value || 0));
-}
-
-function resolveSaleUnit(product: Product, unitId?: string) {
-  return product.units?.find((entry) => String(entry.id || '') === String(unitId || ''))
-    || product.units?.find((entry) => entry.isSaleUnit)
-    || product.units?.[0];
-}
-
-function resolveAvailableQty(product: Product, unitMultiplier: number, isWeighted = false) {
-  const raw = Number(product.stock || 0) / Math.max(unitMultiplier || 1, 1);
-  return isWeighted ? Number(raw.toFixed(3)) : Math.floor(raw);
-}
-
-function findLineQty(cart: PosItem[], lineKey: string) {
-  return Number(cart.find((item) => item.lineKey === lineKey)?.qty || 0);
-}
-
-function getAddProductErrorMessage(
-  error: unknown,
-  product: Product,
-  context: { availableQty?: number; currentQty?: number; requestedQty?: number; isWeighted?: boolean } = {},
-) {
-  const message = error instanceof Error ? error.message : '';
-  const availableQty = Number(context.availableQty || 0);
-  const currentQty = Number(context.currentQty || 0);
-  const requestedQty = Number(context.requestedQty || 0);
-  const isWeighted = context.isWeighted === true;
-
-  if (availableQty <= 0) {
-    return 'المخزون غير متاح لهذا الصنف.';
-  }
-
-  if (currentQty > 0 && currentQty >= availableQty) {
-    return `لا يمكن إضافة كمية أكبر. المتاح من الصنف ${formatQty(availableQty, isWeighted)}، والموجود في السلة ${formatQty(currentQty, isWeighted)}.`;
-  }
-
-  if (requestedQty > 0 && requestedQty > availableQty) {
-    return `الكمية المطلوبة أكبر من المخزون المتاح. المتاح حاليًا: ${formatQty(availableQty, isWeighted)}.`;
-  }
-
-  if (message.includes('غير متاح للبيع') || message.includes('المخزون')) {
-    return 'المخزون غير متاح لهذا الصنف.';
-  }
-
-  if (message.includes('الكمية المطلوبة أكبر')) {
-    return `الكمية المطلوبة أكبر من المخزون المتاح. المتاح حاليًا: ${formatQty(availableQty, isWeighted)}.`;
-  }
-
-  return message || `تعذر إضافة "${product.name}" إلى السلة.`;
-}
 
 export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) {
   function resolveUnitLineKey(product: Product, unitId?: string) {
@@ -93,29 +39,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   }
 
   function resetPosDraft() {
-    params.setCart([]);
-    params.setSelectedLineKey('');
-    params.setCustomerId('');
-    params.setDiscount(0);
-    params.setDiscountApprovalGranted(false);
-    params.setDiscountApprovalSecret('');
-    params.setCashAmount(0);
-    params.setCardAmount(0);
-    params.setTransferAmount(0);
-    params.setPaymentType('cash');
-    params.setPaymentChannel('cash');
-    params.setNote('');
-    params.setSearch('');
-    params.setPriceType('retail');
-    params.setBranchId(SINGLE_STORE_MODE ? String(params.branches[0]?.id || '') : '');
-    params.setLocationId(SINGLE_STORE_MODE ? String(params.locations[0]?.id || '') : '');
-    params.setQuickAddCode('');
-    params.setScannerMessage('');
-    params.setLastAddedLineKey('');
-    params.setSubmitMessage('');
-    params.setPostSaleSaleKey('');
-    clearDraftSnapshot();
-    params.requestBarcodeFocus();
+    resetPosDraftState(params);
   }
 
   function handleAddProduct(
@@ -134,12 +58,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     const currentQty = findLineQty(params.cart, lineKey);
 
     if (!allowNegativeStockSales && availableQty <= 0) {
-      const friendlyMessage = getAddProductErrorMessage(null, product, {
-        availableQty,
-        currentQty,
-        requestedQty,
-        isWeighted,
-      });
+      const friendlyMessage = getAddProductErrorMessage(null, product, { availableQty, currentQty, requestedQty, isWeighted });
       params.setSubmitMessage(friendlyMessage);
       params.setScannerMessage(friendlyMessage);
       params.requestBarcodeFocus();
@@ -147,12 +66,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     }
 
     if (!allowNegativeStockSales && currentQty > 0 && currentQty >= availableQty) {
-      const friendlyMessage = getAddProductErrorMessage(null, product, {
-        availableQty,
-        currentQty,
-        requestedQty,
-        isWeighted,
-      });
+      const friendlyMessage = getAddProductErrorMessage(null, product, { availableQty, currentQty, requestedQty, isWeighted });
       params.setSubmitMessage(friendlyMessage);
       params.setScannerMessage(friendlyMessage);
       params.requestBarcodeFocus();
@@ -178,12 +92,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       });
 
       if (caughtError) {
-        const friendlyMessage = getAddProductErrorMessage(caughtError, product, {
-          availableQty,
-          currentQty,
-          requestedQty,
-          isWeighted,
-        });
+        const friendlyMessage = getAddProductErrorMessage(caughtError, product, { availableQty, currentQty, requestedQty, isWeighted });
         params.setSubmitMessage(friendlyMessage);
         params.setScannerMessage(friendlyMessage);
         params.requestBarcodeFocus();
@@ -199,12 +108,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.requestBarcodeFocus();
       return true;
     } catch (error) {
-      const friendlyMessage = getAddProductErrorMessage(error, product, {
-        availableQty,
-        currentQty,
-        requestedQty,
-        isWeighted,
-      });
+      const friendlyMessage = getAddProductErrorMessage(error, product, { availableQty, currentQty, requestedQty, isWeighted });
       params.setSubmitMessage(friendlyMessage);
       params.setScannerMessage(friendlyMessage);
       params.requestBarcodeFocus();
@@ -267,21 +171,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   }
 
   function exportHeldDrafts() {
-    if (!params.heldDrafts.length) return;
-    downloadCsvFile(
-      'pos-held-drafts.csv',
-      ['id', 'savedAt', 'itemsCount', 'total', 'customerId', 'branchId', 'locationId', 'priceType'],
-      params.heldDrafts.map((draft) => [
-        draft.id,
-        draft.savedAt,
-        draft.cart.length,
-        computeDraftTotal(draft),
-        draft.customerId || '',
-        draft.branchId || '',
-        draft.locationId || '',
-        draft.priceType || 'retail',
-      ]),
-    );
+    exportHeldDraftRows(params);
   }
 
   function applyPriceType(nextPriceType: PosPriceType) {
@@ -306,13 +196,10 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       const nextCart = updatePosItemQtyWithOptions(params.cart, lineKey, qty, params.products || [], {
         allowNegativeStockSales: isNegativeStockSalesAllowed(params.settings),
       });
-
       params.setSelectedLineKey(lineKey);
       params.setCart(nextCart);
       params.setSubmitMessage('');
       params.setPostSaleSaleKey('');
-      // Do not force barcode focus here. Quantity editing happens inside the cart, and the
-      // cashier must be able to type multi-digit quantities or press +/- repeatedly.
     } catch (error) {
       params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر تعديل الكمية.');
     }

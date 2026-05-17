@@ -284,7 +284,7 @@ describe('app ui coverage', () => {
       />,
     );
     expect(await screen.findByRole('link', { name: 'النسخ والاستيراد' })).toBeInTheDocument();
-    expect(await screen.findByText('النسخ الاحتياطية')).toBeInTheDocument();
+    expect(await screen.findByText('النسخ والاسترداد')).toBeInTheDocument();
     expect(await screen.findByText('استيراد CSV')).toBeInTheDocument();
   });
 
@@ -363,6 +363,6 @@ describe('app ui coverage', () => {
     installGlobalAppFetchMock();
     await renderAppAt('/services');
     expect(await screen.findByText('سجل الخدمات')).toBeInTheDocument();
-    expect(await screen.findByText('إضافة خدمة')).toBeInTheDocument();
+    expect((await screen.findAllByText('إضافة خدمة جديدة')).length).toBeGreaterThan(0);
   });
 });

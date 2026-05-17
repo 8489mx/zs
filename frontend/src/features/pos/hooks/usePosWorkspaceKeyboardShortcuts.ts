@@ -113,7 +113,7 @@ export function usePosWorkspaceKeyboardShortcuts({
       } else if (event.key === 'F9') {
         if (event.altKey || event.ctrlKey || event.shiftKey || event.metaKey) return;
         event.preventDefault();
-        pos.reprintLastSaleReceipt();
+        pos.reprintLastSale();
       } else if (event.key === 'F12') {
         event.preventDefault();
         if (pos.canShowLastSaleActions) pos.printA4Now();

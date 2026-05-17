@@ -5,59 +5,22 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { getErrorMessage } from '@/lib/errors';
 import { useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
+import { EmployeeQuickSetupCard } from '@/features/hr/pages/employee-create/EmployeeQuickSetupCard';
 import {
+  createdMasterId,
   getCreatedEmployeeId,
   initialDraft,
   normalizeArabicDigits,
   normalizeDigitsOnly,
   normalizeNumberText,
   normalizePhone,
+  shiftPresets,
   toId,
   type EmployeeDraft,
+  type ShiftPreset,
 } from '@/features/hr/pages/employee-create/employee-create.helpers';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
-
-type ShiftPreset = {
-  label: string;
-  description: string;
-  checkIn: string;
-  checkOut: string;
-  hours: string;
-  grace: string;
-};
-
-const shiftPresets: ShiftPreset[] = [
-  { label: 'وردية المحل الأساسية', description: '10:00 صباحًا إلى 10:00 مساءً · 12 ساعة', checkIn: '10:00', checkOut: '22:00', hours: '12', grace: '15' },
-  { label: 'وردية صباحية', description: '9:00 صباحًا إلى 5:00 مساءً · 8 ساعات', checkIn: '09:00', checkOut: '17:00', hours: '8', grace: '15' },
-  { label: 'وردية مسائية', description: '2:00 ظهرًا إلى 10:00 مساءً · 8 ساعات', checkIn: '14:00', checkOut: '22:00', hours: '8', grace: '15' },
-];
-
-function objectValue(value: unknown, key: string) {
-  if (!value || typeof value !== 'object') return undefined;
-  return (value as Record<string, unknown>)[key];
-}
-
-function createdMasterId(result: unknown, createdName?: string) {
-  const rows = objectValue(result, 'rows');
-  const cleanCreatedName = String(createdName || '').trim();
-  if (Array.isArray(rows) && cleanCreatedName) {
-    const matchedRow = rows.find((row) => String(objectValue(row, 'name') || '').trim() === cleanCreatedName);
-    const rowId = objectValue(matchedRow, 'id');
-    if (String(rowId || '').trim()) return String(rowId);
-  }
-
-  const candidates = [
-    objectValue(result, 'id'),
-    objectValue(objectValue(result, 'row'), 'id'),
-    objectValue(objectValue(result, 'item'), 'id'),
-    objectValue(objectValue(result, 'department'), 'id'),
-    objectValue(objectValue(result, 'jobTitle'), 'id'),
-    objectValue(objectValue(result, 'position'), 'id'),
-  ];
-  const value = candidates.find((entry) => String(entry || '').trim());
-  return value == null ? '' : String(value);
-}
 
 export function EmployeeCreatePage() {
   const navigate = useNavigate();
@@ -71,11 +34,9 @@ export function EmployeeCreatePage() {
 
   const workspace = useHrWorkspace({ page: 1, pageSize: 200 });
   const mutations = useHrMutations();
-
   const departments = useMemo(() => workspace.departments.data?.rows || [], [workspace.departments.data?.rows]);
   const jobTitles = useMemo(() => workspace.jobTitles.data?.rows || [], [workspace.jobTitles.data?.rows]);
   const positions = useMemo(() => workspace.positions.data?.rows || [], [workspace.positions.data?.rows]);
-
   const missingSetup = !departments.length || !jobTitles.length;
 
   const reviewWarnings = useMemo(() => {
@@ -94,59 +55,28 @@ export function EmployeeCreatePage() {
   }, [draft]);
 
   function applyShiftPreset(preset: ShiftPreset) {
-    setDraft((current) => ({
-      ...current,
-      expectedDailyHours: current.expectedDailyHours || preset.hours,
-      graceMinutes: current.graceMinutes || preset.grace,
-      scheduledCheckInTime: preset.checkIn,
-      scheduledCheckOutTime: preset.checkOut,
-    }));
+    setDraft((current) => ({ ...current, expectedDailyHours: current.expectedDailyHours || preset.hours, graceMinutes: current.graceMinutes || preset.grace, scheduledCheckInTime: preset.checkIn, scheduledCheckOutTime: preset.checkOut }));
   }
 
   async function createQuickMaster(kind: MasterKind, name: string) {
     const cleanName = String(name || '').trim();
-    if (!cleanName) {
-      setSetupError('اكتب الاسم أولًا.');
-      return;
-    }
-
+    if (!cleanName) { setSetupError('اكتب الاسم أولًا.'); return; }
     setSetupError('');
     setSetupSuccess('');
-
-    const payload: Record<string, unknown> = {
-      name: cleanName,
-      isActive: true,
-    };
-
+    const payload: Record<string, unknown> = { name: cleanName, isActive: true };
     if (kind === 'positions') {
       const departmentId = toId(draft.departmentId);
       const jobTitleId = toId(draft.jobTitleId);
-      if (!departmentId || !jobTitleId) {
-        setSetupError('اختار القسم والمسمى الوظيفي أولًا قبل إضافة الوظيفة/المنصب.');
-        return;
-      }
+      if (!departmentId || !jobTitleId) { setSetupError('اختار القسم والمسمى الوظيفي أولًا قبل إضافة الوظيفة/المنصب.'); return; }
       payload.departmentId = departmentId;
       payload.jobTitleId = jobTitleId;
     }
-
     try {
       const result = await mutations.saveMasterData.mutateAsync({ kind, payload });
       const createdId = createdMasterId(result, cleanName);
-      if (kind === 'departments') {
-        setQuickDepartmentName('');
-        if (createdId) setDraft((current) => ({ ...current, departmentId: createdId }));
-        setSetupSuccess('تمت إضافة القسم.');
-      }
-      if (kind === 'job-titles') {
-        setQuickJobTitleName('');
-        if (createdId) setDraft((current) => ({ ...current, jobTitleId: createdId }));
-        setSetupSuccess('تمت إضافة المسمى الوظيفي.');
-      }
-      if (kind === 'positions') {
-        setQuickPositionName('');
-        if (createdId) setDraft((current) => ({ ...current, positionId: createdId }));
-        setSetupSuccess('تمت إضافة الوظيفة/المنصب.');
-      }
+      if (kind === 'departments') { setQuickDepartmentName(''); if (createdId) setDraft((current) => ({ ...current, departmentId: createdId })); setSetupSuccess('تمت إضافة القسم.'); }
+      if (kind === 'job-titles') { setQuickJobTitleName(''); if (createdId) setDraft((current) => ({ ...current, jobTitleId: createdId })); setSetupSuccess('تمت إضافة المسمى الوظيفي.'); }
+      if (kind === 'positions') { setQuickPositionName(''); if (createdId) setDraft((current) => ({ ...current, positionId: createdId })); setSetupSuccess('تمت إضافة الوظيفة/المنصب.'); }
     } catch (error) {
       setSetupError(getErrorMessage(error, 'تعذر إضافة البيانات.'));
     }
@@ -155,7 +85,6 @@ export function EmployeeCreatePage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError('');
-
     const firstName = String(draft.firstName || '').trim();
     const mobile = normalizePhone(draft.mobile);
     const nationalId = normalizeDigitsOnly(draft.nationalId);
@@ -170,88 +99,21 @@ export function EmployeeCreatePage() {
     const expectedDailyHours = expectedDailyHoursText ? Number(expectedDailyHoursText) : 0;
     const graceMinutes = graceMinutesText ? Number(graceMinutesText) : 0;
 
-    if (!firstName) {
-      setSubmitError('الاسم الأول مطلوب.');
-      return;
-    }
-    if (!mobile) {
-      setSubmitError('الموبايل مطلوب.');
-      return;
-    }
-    if (!hireDate) {
-      setSubmitError('تاريخ التعيين مطلوب.');
-      return;
-    }
-    if (nationalId && !/^\d{14}$/.test(nationalId)) {
-      setSubmitError('الرقم القومي يجب أن يكون 14 رقمًا.');
-      return;
-    }
-    if (Number.isNaN(baseSalary)) {
-      setSubmitError('الراتب الأساسي يجب أن يكون رقمًا صحيحًا.');
-      return;
-    }
-    if (draft.compensationType === 'hourly') {
-      if (!(hourlyRate > 0)) {
-        setSubmitError('أجر الساعة مطلوب للموظف بالأجر بالساعة.');
-        return;
-      }
-      if (!(expectedDailyHours > 0)) {
-        setSubmitError('عدد ساعات العمل اليومية المتوقعة مطلوب للموظف بالأجر بالساعة.');
-        return;
-      }
-    }
+    if (!firstName) { setSubmitError('الاسم الأول مطلوب.'); return; }
+    if (!mobile) { setSubmitError('الموبايل مطلوب.'); return; }
+    if (!hireDate) { setSubmitError('تاريخ التعيين مطلوب.'); return; }
+    if (nationalId && !/^\d{14}$/.test(nationalId)) { setSubmitError('الرقم القومي يجب أن يكون 14 رقمًا.'); return; }
+    if (Number.isNaN(baseSalary)) { setSubmitError('الراتب الأساسي يجب أن يكون رقمًا صحيحًا.'); return; }
+    if (draft.compensationType === 'hourly' && !(hourlyRate > 0)) { setSubmitError('أجر الساعة مطلوب للموظف بالأجر بالساعة.'); return; }
+    if (draft.compensationType === 'hourly' && !(expectedDailyHours > 0)) { setSubmitError('عدد ساعات العمل اليومية المتوقعة مطلوب للموظف بالأجر بالساعة.'); return; }
 
     try {
-      const employeePayload = {
-        employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined,
-        firstName,
-        lastName: String(draft.lastName || '').trim() || undefined,
-        nationalId: nationalId || undefined,
-        status: draft.status,
-        departmentId: toId(draft.departmentId),
-        jobTitleId: toId(draft.jobTitleId),
-        positionId: toId(draft.positionId),
-        hireDate,
-        notes: String(draft.notes || '').trim() || undefined,
-        compensationType: draft.compensationType,
-        hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined,
-        expectedDailyHours: draft.compensationType === 'hourly' ? expectedDailyHours : undefined,
-        scheduledCheckInTime: draft.scheduledCheckInTime || undefined,
-        scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined,
-        graceMinutes,
-        overtimePolicy: draft.overtimePolicy,
-      };
-
-      const result = await mutations.saveEmployee.mutateAsync({ payload: employeePayload });
+      const result = await mutations.saveEmployee.mutateAsync({ payload: { employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined, firstName, lastName: String(draft.lastName || '').trim() || undefined, nationalId: nationalId || undefined, status: draft.status, departmentId: toId(draft.departmentId), jobTitleId: toId(draft.jobTitleId), positionId: toId(draft.positionId), hireDate, notes: String(draft.notes || '').trim() || undefined, compensationType: draft.compensationType, hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined, expectedDailyHours: draft.compensationType === 'hourly' ? expectedDailyHours : undefined, scheduledCheckInTime: draft.scheduledCheckInTime || undefined, scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined, graceMinutes, overtimePolicy: draft.overtimePolicy } });
       const createdEmployeeId = getCreatedEmployeeId(result, draft, firstName);
-
       if (createdEmployeeId) {
-        await mutations.saveContact.mutateAsync({
-          employeeId: createdEmployeeId,
-          payload: {
-            contactType: 'phone',
-            value: mobile,
-            label: 'الموبايل',
-            isPrimary: true,
-            notes: '',
-          },
-        });
-
-        if (contractType || baseSalary > 0) {
-          await mutations.saveContract.mutateAsync({
-            employeeId: createdEmployeeId,
-            payload: {
-              contractType: contractType || 'standard',
-              status: 'active',
-              startDate: hireDate,
-              baseSalary: baseSalary > 0 ? baseSalary : 0,
-              currency: 'EGP',
-              notes: 'تم إنشاؤه من صفحة إضافة موظف.',
-            },
-          });
-        }
+        await mutations.saveContact.mutateAsync({ employeeId: createdEmployeeId, payload: { contactType: 'phone', value: mobile, label: 'الموبايل', isPrimary: true, notes: '' } });
+        if (contractType || baseSalary > 0) await mutations.saveContract.mutateAsync({ employeeId: createdEmployeeId, payload: { contractType: contractType || 'standard', status: 'active', startDate: hireDate, baseSalary: baseSalary > 0 ? baseSalary : 0, currency: 'EGP', notes: 'تم إنشاؤه من صفحة إضافة موظف.' } });
       }
-
       navigate('/hr/employees');
     } catch (error) {
       setSubmitError(getErrorMessage(error, 'تعذر حفظ الموظف.'));
@@ -262,204 +124,46 @@ export function EmployeeCreatePage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <PageHeader
-        title="إضافة موظف"
-        description="ابدأ بتهيئة القسم والمسمى الوظيفي إذا لم يكونا موجودين، ثم أدخل بيانات الموظف في نفس الصفحة."
-      />
-
-      <Card title="تجهيز سريع قبل الإضافة" description="حتى لا تضطر للخروج من الصفحة، يمكنك إضافة قسم أو مسمى وظيفي سريعًا ثم استخدامه في بيانات الموظف.">
-        {missingSetup ? (
-          <div className="notice-box" style={{ marginBottom: 12 }}>
-            لا توجد أقسام أو مسميات وظيفية كافية حتى الآن. الأفضل تجهيزها قبل حفظ الموظف، أو إضافتها سريعًا من هنا.
-          </div>
-        ) : null}
-        <div className="form-grid">
-          <label className="field">
-            <span>إضافة قسم سريع</span>
-            <input value={quickDepartmentName} onChange={(event) => setQuickDepartmentName(event.target.value)} placeholder="مثال: المبيعات" />
-            <Button type="button" variant="secondary" onClick={() => { void createQuickMaster('departments', quickDepartmentName); }} disabled={isBusy}>إضافة القسم</Button>
-          </label>
-          <label className="field">
-            <span>إضافة مسمى وظيفي سريع</span>
-            <input value={quickJobTitleName} onChange={(event) => setQuickJobTitleName(event.target.value)} placeholder="مثال: كاشير" />
-            <Button type="button" variant="secondary" onClick={() => { void createQuickMaster('job-titles', quickJobTitleName); }} disabled={isBusy}>إضافة المسمى</Button>
-          </label>
-          <label className="field">
-            <span>إضافة وظيفة/منصب سريع</span>
-            <input value={quickPositionName} onChange={(event) => setQuickPositionName(event.target.value)} placeholder="اختر القسم والمسمى أولًا" />
-            <span className="muted small">تُربط الوظيفة بالقسم والمسمى المختارين في البيانات الوظيفية بالأسفل.</span>
-            <Button type="button" variant="secondary" onClick={() => { void createQuickMaster('positions', quickPositionName); }} disabled={isBusy}>إضافة الوظيفة</Button>
-          </label>
-        </div>
-        {setupError ? <div className="error-box" style={{ marginTop: 12 }}>{setupError}</div> : null}
-        {setupSuccess ? <p className="muted" style={{ margin: '12px 0 0' }}>{setupSuccess}</p> : null}
-      </Card>
+      <PageHeader title="إضافة موظف" description="ابدأ بتهيئة القسم والمسمى الوظيفي إذا لم يكونا موجودين، ثم أدخل بيانات الموظف في نفس الصفحة." />
+      <EmployeeQuickSetupCard missingSetup={missingSetup} quickDepartmentName={quickDepartmentName} quickJobTitleName={quickJobTitleName} quickPositionName={quickPositionName} setupError={setupError} setupSuccess={setupSuccess} isBusy={isBusy} onQuickDepartmentNameChange={setQuickDepartmentName} onQuickJobTitleNameChange={setQuickJobTitleName} onQuickPositionNameChange={setQuickPositionName} onCreateQuickMaster={(kind, name) => { void createQuickMaster(kind, name); }} />
 
       <form onSubmit={(event) => { void handleSubmit(event); }}>
         <Card title="البيانات الأساسية" description="أدخل بيانات التعريف الأساسية للموظف.">
           <div className="form-grid">
-            <div className="field">
-              <span>كود الموظف</span>
-              <input value={draft.employeeNo} onChange={(e) => setDraft((current) => ({ ...current, employeeNo: e.target.value }))} />
-            </div>
-            <div className="field">
-              <span>الاسم الأول *</span>
-              <input value={draft.firstName} onChange={(e) => setDraft((current) => ({ ...current, firstName: e.target.value }))} required />
-            </div>
-            <div className="field">
-              <span>اسم العائلة</span>
-              <input value={draft.lastName} onChange={(e) => setDraft((current) => ({ ...current, lastName: e.target.value }))} />
-            </div>
-            <div className="field">
-              <span>الموبايل *</span>
-              <input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} inputMode="tel" required />
-            </div>
-            <div className="field">
-              <span>الرقم القومي</span>
-              <input
-                value={draft.nationalId}
-                onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))}
-                inputMode="numeric"
-                maxLength={14}
-                placeholder="اختياري"
-              />
-            </div>
+            <div className="field"><span>كود الموظف</span><input value={draft.employeeNo} onChange={(e) => setDraft((current) => ({ ...current, employeeNo: e.target.value }))} /></div>
+            <div className="field"><span>الاسم الأول *</span><input value={draft.firstName} onChange={(e) => setDraft((current) => ({ ...current, firstName: e.target.value }))} required /></div>
+            <div className="field"><span>اسم العائلة</span><input value={draft.lastName} onChange={(e) => setDraft((current) => ({ ...current, lastName: e.target.value }))} /></div>
+            <div className="field"><span>الموبايل *</span><input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} inputMode="tel" required /></div>
+            <div className="field"><span>الرقم القومي</span><input value={draft.nationalId} onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))} inputMode="numeric" maxLength={14} placeholder="اختياري" /></div>
           </div>
         </Card>
 
         <Card title="البيانات الوظيفية" description="حدد القسم والمسمى الوظيفي وتاريخ التعيين.">
           <div className="form-grid">
-            <div className="field">
-              <span>القسم</span>
-              <select value={draft.departmentId} onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}>
-                <option value="">اختيار</option>
-                {departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <span>المسمى الوظيفي</span>
-              <select value={draft.jobTitleId} onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}>
-                <option value="">اختيار</option>
-                {jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <span>الوظيفة/المنصب</span>
-              <select value={draft.positionId} onChange={(e) => setDraft((current) => ({ ...current, positionId: e.target.value }))}>
-                <option value="">اختيار</option>
-                {positions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <span>تاريخ التعيين *</span>
-              <input type="date" value={draft.hireDate} onChange={(e) => setDraft((current) => ({ ...current, hireDate: e.target.value }))} required />
-            </div>
-            <div className="field">
-              <span>الحالة</span>
-              <select value={draft.status} onChange={(e) => setDraft((current) => ({ ...current, status: e.target.value === 'inactive' ? 'inactive' : 'active' }))}>
-                <option value="active">نشط</option>
-                <option value="inactive">غير نشط</option>
-              </select>
-            </div>
+            <div className="field"><span>القسم</span><select value={draft.departmentId} onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}><option value="">اختيار</option>{departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></div>
+            <div className="field"><span>المسمى الوظيفي</span><select value={draft.jobTitleId} onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}><option value="">اختيار</option>{jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></div>
+            <div className="field"><span>الوظيفة/المنصب</span><select value={draft.positionId} onChange={(e) => setDraft((current) => ({ ...current, positionId: e.target.value }))}><option value="">اختيار</option>{positions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></div>
+            <div className="field"><span>تاريخ التعيين *</span><input type="date" value={draft.hireDate} onChange={(e) => setDraft((current) => ({ ...current, hireDate: e.target.value }))} required /></div>
+            <div className="field"><span>الحالة</span><select value={draft.status} onChange={(e) => setDraft((current) => ({ ...current, status: e.target.value === 'inactive' ? 'inactive' : 'active' }))}><option value="active">نشط</option><option value="inactive">غير نشط</option></select></div>
           </div>
         </Card>
 
-        <Card title="العقد والراتب" description="اختياري. لو أدخلت نوع التعاقد أو الراتب الأساسي سيتم إنشاء عقد مبدئي للموظف، ويمكن استكمال التفاصيل داخل ملف الموظف لاحقًا.">
-          <div className="form-grid">
-            <div className="field">
-              <span>نوع التعاقد</span>
-              <input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="اختياري" />
-            </div>
-            <div className="field">
-              <span>الراتب الأساسي</span>
-              <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
-            </div>
-          </div>
-        </Card>
+        <Card title="العقد والراتب" description="اختياري. لو أدخلت نوع التعاقد أو الراتب الأساسي سيتم إنشاء عقد مبدئي للموظف، ويمكن استكمال التفاصيل داخل ملف الموظف لاحقًا."><div className="form-grid"><div className="field"><span>نوع التعاقد</span><input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="اختياري" /></div><div className="field"><span>الراتب الأساسي</span><input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" /></div></div></Card>
 
         <Card title="بيانات الدوام والأجر" description="اختر وردية جاهزة لتعبئة مواعيد الحضور والانصراف بسرعة، أو عدّل القيم يدويًا حسب الموظف.">
-          <div className="card-soft" style={{ marginBottom: 12, padding: 12 }}>
-            <strong style={{ display: 'block', marginBottom: 8 }}>ورديات جاهزة</strong>
-            <div className="form-grid">
-              {shiftPresets.map((preset) => (
-                <div key={preset.label} className="field" style={{ alignItems: 'flex-start' }}>
-                  <strong>{preset.label}</strong>
-                  <span className="muted">{preset.description}</span>
-                  <Button type="button" variant="secondary" onClick={() => applyShiftPreset(preset)}>استخدام الوردية</Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
+          <div className="card-soft" style={{ marginBottom: 12, padding: 12 }}><strong style={{ display: 'block', marginBottom: 8 }}>ورديات جاهزة</strong><div className="form-grid">{shiftPresets.map((preset) => <div key={preset.label} className="field" style={{ alignItems: 'flex-start' }}><strong>{preset.label}</strong><span className="muted">{preset.description}</span><Button type="button" variant="secondary" onClick={() => applyShiftPreset(preset)}>استخدام الوردية</Button></div>)}</div></div>
           <div className="form-grid">
-            <label className="field">
-              <span>نوع الأجر</span>
-              <select value={draft.compensationType} onChange={(e) => setDraft((current) => ({ ...current, compensationType: e.target.value === 'hourly' ? 'hourly' : 'monthly' }))}>
-                <option value="monthly">راتب شهري</option>
-                <option value="hourly">أجر بالساعة</option>
-              </select>
-            </label>
-            {draft.compensationType === 'monthly' ? (
-              <label className="field">
-                <span>الراتب الشهري الأساسي</span>
-                <input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" />
-              </label>
-            ) : (
-              <>
-                <label className="field">
-                  <span>أجر الساعة</span>
-                  <input inputMode="decimal" min="0" value={draft.hourlyRate} onChange={(e) => setDraft((current) => ({ ...current, hourlyRate: e.target.value }))} />
-                </label>
-                <label className="field">
-                  <span>عدد ساعات العمل اليومية المتوقعة</span>
-                  <input inputMode="decimal" min="0" value={draft.expectedDailyHours} onChange={(e) => setDraft((current) => ({ ...current, expectedDailyHours: e.target.value }))} />
-                </label>
-              </>
-            )}
-            <label className="field">
-              <span>موعد الحضور</span>
-              <input type="time" value={draft.scheduledCheckInTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckInTime: e.target.value }))} />
-            </label>
-            <label className="field">
-              <span>موعد الانصراف</span>
-              <input type="time" value={draft.scheduledCheckOutTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckOutTime: e.target.value }))} />
-            </label>
-            <label className="field">
-              <span>فترة السماح بالدقائق</span>
-              <input inputMode="numeric" min="0" value={draft.graceMinutes} onChange={(e) => setDraft((current) => ({ ...current, graceMinutes: e.target.value }))} />
-            </label>
-            <label className="field">
-              <span>سياسة الوقت الإضافي</span>
-              <select value={draft.overtimePolicy} onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: (e.target.value as 'review_only' | 'disabled' | 'auto_approved') || 'review_only' }))}>
-                <option value="review_only">مراجعة واعتماد قبل الاحتساب</option>
-                <option value="disabled">غير محتسب</option>
-                <option value="auto_approved">محتسب تلقائيًا</option>
-              </select>
-            </label>
+            <label className="field"><span>نوع الأجر</span><select value={draft.compensationType} onChange={(e) => setDraft((current) => ({ ...current, compensationType: e.target.value === 'hourly' ? 'hourly' : 'monthly' }))}><option value="monthly">راتب شهري</option><option value="hourly">أجر بالساعة</option></select></label>
+            {draft.compensationType === 'monthly' ? <label className="field"><span>الراتب الشهري الأساسي</span><input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" /></label> : <><label className="field"><span>أجر الساعة</span><input inputMode="decimal" min="0" value={draft.hourlyRate} onChange={(e) => setDraft((current) => ({ ...current, hourlyRate: e.target.value }))} /></label><label className="field"><span>عدد ساعات العمل اليومية المتوقعة</span><input inputMode="decimal" min="0" value={draft.expectedDailyHours} onChange={(e) => setDraft((current) => ({ ...current, expectedDailyHours: e.target.value }))} /></label></>}
+            <label className="field"><span>موعد الحضور</span><input type="time" value={draft.scheduledCheckInTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckInTime: e.target.value }))} /></label>
+            <label className="field"><span>موعد الانصراف</span><input type="time" value={draft.scheduledCheckOutTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckOutTime: e.target.value }))} /></label>
+            <label className="field"><span>فترة السماح بالدقائق</span><input inputMode="numeric" min="0" value={draft.graceMinutes} onChange={(e) => setDraft((current) => ({ ...current, graceMinutes: e.target.value }))} /></label>
+            <label className="field"><span>سياسة الوقت الإضافي</span><select value={draft.overtimePolicy} onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: (e.target.value as 'review_only' | 'disabled' | 'auto_approved') || 'review_only' }))}><option value="review_only">مراجعة واعتماد قبل الاحتساب</option><option value="disabled">غير محتسب</option><option value="auto_approved">محتسب تلقائيًا</option></select></label>
           </div>
         </Card>
 
-        <Card title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">
-          {reviewWarnings.length ? (
-            <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>
-              {reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}
-            </ul>
-          ) : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}
-        </Card>
-
-        <Card title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف.">
-          <div className="field field-wide">
-            <span>ملاحظات</span>
-            <textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} />
-          </div>
-
-          {submitError ? <div className="error-box" style={{ marginTop: 12 }}>{submitError}</div> : null}
-
-          <div className="actions compact-actions" style={{ marginTop: 16 }}>
-            <Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>إلغاء</Button>
-            <Button type="submit" disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ الموظف'}</Button>
-          </div>
-        </Card>
+        <Card title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">{reviewWarnings.length ? <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>{reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}</Card>
+        <Card title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف."><div className="field field-wide"><span>ملاحظات</span><textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} /></div>{submitError ? <div className="error-box" style={{ marginTop: 12 }}>{submitError}</div> : null}<div className="actions compact-actions" style={{ marginTop: 16 }}><Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>إلغاء</Button><Button type="submit" disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ الموظف'}</Button></div></Card>
       </form>
     </div>
   );

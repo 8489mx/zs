@@ -1,0 +1,30 @@
+import { Card } from '@/shared/ui/card';
+
+export function HrPayrollWorkflowCard() {
+  const steps = [
+    ['1. إنشاء/اختيار المسير', 'اختر شهر المرتبات ثم افتح كشف الشهر.'],
+    ['2. مراجعة الحضور', 'تأكد من اعتماد أو تخطي الاستثناءات المؤثرة على الأجر.'],
+    ['3. مراجعة السلف والإجازات', 'راجع الأقساط والخصومات والإجازات غير المدفوعة.'],
+    ['4. الاعتماد والصرف', 'بعد زوال التنبيهات، اعتمد الكشف ثم انتقل للصرف.'],
+  ];
+
+  return (
+    <Card title="تسلسل المرتبات الشهري" description="لا تعتمد المرتبات قبل المرور على نقاط المراجعة الأساسية.">
+      <div className="form-grid">
+        {steps.map(([title, hint]) => (
+          <div key={title} className="field"><strong>{title}</strong><span className="muted">{hint}</span></div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+export function HrPayrollOperationalNote() {
+  return (
+    <Card title="ملاحظة تشغيلية">
+      <p className="muted" style={{ margin: 0 }}>
+        اعتمد المرتبات بعد مراجعة الحضور، الإجازات، والسلف. أي خصومات مقترحة تظهر للمراجعة ولا تُعامل كقرار نهائي إلا بعد اعتماد المسؤول.
+      </p>
+    </Card>
+  );
+}
