@@ -10,6 +10,8 @@ import { getErrorMessage } from '@/lib/errors';
 import type { HrEmployee, HrEmployeeAsset } from '@/types/domain';
 import { useHrEmployeeAssets, useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
 
+type CustodyTab = 'physical' | 'cash';
+
 type AssetFormState = {
   employeeId: string;
   assetType: string;
@@ -18,16 +20,24 @@ type AssetFormState = {
   serialNo: string;
   assignedAt: string;
   notes: string;
+  cashAmount: string;
+};
+
+type SettlementDraft = {
+  spentAmount: string;
+  returnedAmount: string;
+  notes: string;
 };
 
 type ReviewStatusFilter = 'all' | 'assigned' | 'returned' | 'damaged' | 'lost' | 'needs_review' | 'cancelled';
 
+const cashCustodyType = 'عهدة نقدية';
 const assetTypeOptions = ['جهاز', 'هاتف', 'حاسوب محمول', 'أدوات', 'مفاتيح', 'زي عمل', 'أخرى'];
 
 const statusOptions: Array<{ value: ReviewStatusFilter; label: string }> = [
   { value: 'needs_review', label: 'تحتاج مراجعة' },
-  { value: 'assigned', label: 'مسلّمة' },
-  { value: 'returned', label: 'مرتجعة' },
+  { value: 'assigned', label: 'مفتوحة / مسلّمة' },
+  { value: 'returned', label: 'مقفولة / مرتجعة' },
   { value: 'damaged', label: 'تالفة' },
   { value: 'lost', label: 'مفقودة' },
   { value: 'cancelled', label: 'ملغاة' },
@@ -38,30 +48,77 @@ function todayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function normalizeArabicDigits(value: string) {
+  return value
+    .replace(/[\u0660-\u0669]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[\u06F0-\u06F9]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
+}
+
+function normalizeNumberText(value: unknown) {
+  return normalizeArabicDigits(String(value || '').trim()).replace(/[،,]/g, '.');
+}
+
+function parseAmount(value: unknown) {
+  const amount = Number(normalizeNumberText(value));
+  return Number.isFinite(amount) && amount > 0 ? Number(amount.toFixed(2)) : 0;
+}
+
+function money(value: unknown) {
+  return `${parseAmount(value).toFixed(2)} ج.م`;
+}
+
 function text(value: unknown) {
   return String(value || '').trim();
 }
 
 function fallbackText(value: unknown) {
-  return String(value || '').trim() || '—';
+  return text(value) || '—';
 }
 
 function normalize(value: unknown) {
-  return String(value || '').trim().toLowerCase();
+  return text(value).toLowerCase();
 }
 
 function employeeDisplay(row: HrEmployee) {
   return text(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim()) || '—';
 }
 
-function statusLabel(status: unknown) {
+function isCashCustody(row: HrEmployeeAsset) {
+  return text(row.assetType) === cashCustodyType;
+}
+
+function custodyKind(row: HrEmployeeAsset): CustodyTab {
+  return isCashCustody(row) ? 'cash' : 'physical';
+}
+
+function statusLabel(status: unknown, tab: CustodyTab) {
   const value = normalize(status);
-  if (value === 'assigned') return 'مسلّمة';
-  if (value === 'returned') return 'مرتجعة';
+  if (value === 'assigned') return tab === 'cash' ? 'مفتوحة' : 'مسلّمة';
+  if (value === 'returned') return tab === 'cash' ? 'مقفولة' : 'مرتجعة';
   if (value === 'lost') return 'مفقودة';
   if (value === 'damaged') return 'تالفة';
   if (value === 'cancelled') return 'ملغاة';
   return 'غير محدد';
+}
+
+function settlementParts(row: HrEmployeeAsset) {
+  const source = `${row.returnNotes || ''} ${row.notes || ''}`;
+  const spent = source.match(/مصروف:\s*([0-9.]+)/);
+  const returned = source.match(/مرتجع:\s*([0-9.]+)/);
+  return {
+    spentAmount: parseAmount(spent?.[1]),
+    returnedAmount: parseAmount(returned?.[1]),
+  };
+}
+
+function cashAmount(row: HrEmployeeAsset) {
+  return parseAmount(row.assetCode || row.serialNo || 0);
+}
+
+function cashDifference(row: HrEmployeeAsset) {
+  const amount = cashAmount(row);
+  const settled = settlementParts(row);
+  return Number((amount - settled.spentAmount - settled.returnedAmount).toFixed(2));
 }
 
 function needsReview(row: HrEmployeeAsset) {
@@ -69,6 +126,7 @@ function needsReview(row: HrEmployeeAsset) {
   if (status === 'damaged' || status === 'lost') return true;
   if (status === 'assigned' && !text(row.assignedAt)) return true;
   if (status === 'returned' && !text(row.returnedAt)) return true;
+  if (isCashCustody(row) && status === 'returned' && Math.abs(cashDifference(row)) > 0.009) return true;
   return false;
 }
 
@@ -79,10 +137,24 @@ function statusMatches(row: HrEmployeeAsset, filter: ReviewStatusFilter) {
   return status === filter;
 }
 
+function initialForm(tab: CustodyTab): AssetFormState {
+  return {
+    employeeId: '',
+    assetType: tab === 'cash' ? cashCustodyType : '',
+    assetName: '',
+    assetCode: '',
+    serialNo: '',
+    assignedAt: todayDate(),
+    notes: '',
+    cashAmount: '',
+  };
+}
+
 export function HrAssetsPage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
 
+  const [activeTab, setActiveTab] = useState<CustodyTab>('physical');
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReviewStatusFilter>('needs_review');
@@ -90,15 +162,10 @@ export function HrAssetsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<AssetFormState>({
-    employeeId: '',
-    assetType: '',
-    assetName: '',
-    assetCode: '',
-    serialNo: '',
-    assignedAt: todayDate(),
-    notes: '',
-  });
+  const [form, setForm] = useState<AssetFormState>(() => initialForm('physical'));
+  const [settlementId, setSettlementId] = useState('');
+  const [settlementDraft, setSettlementDraft] = useState<SettlementDraft>({ spentAmount: '', returnedAmount: '', notes: '' });
+  const [settlementError, setSettlementError] = useState('');
 
   const workspace = useHrWorkspace({ page: 1, pageSize: 200, search: '' });
   const assetsQuery = useHrEmployeeAssets({ search, status: statusFilter === 'needs_review' || statusFilter === 'all' ? '' : statusFilter, page, pageSize });
@@ -106,6 +173,9 @@ export function HrAssetsPage() {
   const employees = useMemo(() => (workspace.employees.data?.employees || []) as HrEmployee[], [workspace.employees.data?.employees]);
   const employeesMap = useMemo(() => new Map(employees.map((row) => [String(row.id), row])), [employees]);
   const rawAssets = useMemo(() => (assetsQuery.data?.assets || []) as HrEmployeeAsset[], [assetsQuery.data?.assets]);
+  const tabAssets = useMemo(() => rawAssets.filter((row) => custodyKind(row) === activeTab), [activeTab, rawAssets]);
+
+  const selectedSettlementRow = useMemo(() => tabAssets.find((row) => String(row.id) === settlementId), [settlementId, tabAssets]);
 
   const departmentOptions = useMemo(() => {
     const set = new Map<string, string>();
@@ -117,62 +187,115 @@ export function HrAssetsPage() {
     return Array.from(set.entries()).map(([value, label]) => ({ value, label }));
   }, [employees]);
 
-  const assets = useMemo(() => rawAssets.filter((row) => {
+  const assets = useMemo(() => tabAssets.filter((row) => {
     const employee = employeesMap.get(String(row.employeeId));
     const departmentName = normalize(employee?.departmentName || row.departmentName);
     if (departmentFilter !== 'all' && departmentName !== departmentFilter) return false;
     return statusMatches(row, statusFilter);
-  }), [rawAssets, employeesMap, departmentFilter, statusFilter]);
+  }), [tabAssets, employeesMap, departmentFilter, statusFilter]);
 
   const summary = useMemo(() => {
-    const result = { total: rawAssets.length, assigned: 0, returned: 0, damaged: 0, lost: 0, needsReview: 0, visible: assets.length };
-    for (const row of rawAssets) {
+    const result = {
+      total: tabAssets.length,
+      assigned: 0,
+      returned: 0,
+      damaged: 0,
+      lost: 0,
+      needsReview: 0,
+      visible: assets.length,
+      cashOpenAmount: 0,
+      cashTotalAmount: 0,
+    };
+    for (const row of tabAssets) {
       const status = normalize(row.status);
       if (status === 'assigned') result.assigned += 1;
       if (status === 'returned') result.returned += 1;
       if (status === 'damaged') result.damaged += 1;
       if (status === 'lost') result.lost += 1;
       if (needsReview(row)) result.needsReview += 1;
+      if (isCashCustody(row)) {
+        const amount = cashAmount(row);
+        result.cashTotalAmount = Number((result.cashTotalAmount + amount).toFixed(2));
+        if (status === 'assigned') result.cashOpenAmount = Number((result.cashOpenAmount + amount).toFixed(2));
+      }
     }
     return result;
-  }, [assets.length, rawAssets]);
+  }, [assets.length, tabAssets]);
 
   const totalItems = statusFilter === 'all' && departmentFilter === 'all'
-    ? Number(assetsQuery.data?.summary?.totalItems || rawAssets.length || 0)
+    ? tabAssets.length
     : assets.length;
+
+  const switchTab = (tab: CustodyTab) => {
+    setActiveTab(tab);
+    setShowCreate(false);
+    setStatusFilter('needs_review');
+    setDepartmentFilter('all');
+    setPage(1);
+    setErrors({});
+    setSettlementId('');
+    setSettlementError('');
+    setForm(initialForm(tab));
+  };
 
   const submitAsset = async () => {
     const nextErrors: Record<string, string> = {};
+    const isCash = activeTab === 'cash';
+    const amount = parseAmount(form.cashAmount);
     if (!form.employeeId) nextErrors.employeeId = 'اختيار الموظف مطلوب.';
-    if (!text(form.assetType)) nextErrors.assetType = 'نوع العهدة مطلوب.';
-    if (!text(form.assetName)) nextErrors.assetName = 'اسم العهدة مطلوب.';
+    if (isCash && !(amount > 0)) nextErrors.cashAmount = 'مبلغ العهدة النقدية مطلوب.';
+    if (!isCash && !text(form.assetType)) nextErrors.assetType = 'نوع العهدة مطلوب.';
+    if (!text(form.assetName)) nextErrors.assetName = isCash ? 'الغرض / بيان العهدة مطلوب.' : 'اسم العهدة مطلوب.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
     await mutations.saveEmployeeAsset.mutateAsync({
       payload: {
         employeeId: Number(form.employeeId),
-        assetType: form.assetType,
+        assetType: isCash ? cashCustodyType : form.assetType,
         assetName: form.assetName,
-        assetCode: form.assetCode || undefined,
-        serialNo: form.serialNo || undefined,
+        assetCode: isCash ? String(amount) : (form.assetCode || undefined),
+        serialNo: isCash ? undefined : (form.serialNo || undefined),
         assignedAt: form.assignedAt || undefined,
         notes: form.notes || undefined,
       },
     });
 
-    setForm({
-      employeeId: '',
-      assetType: '',
-      assetName: '',
-      assetCode: '',
-      serialNo: '',
-      assignedAt: todayDate(),
-      notes: '',
-    });
+    setForm(initialForm(activeTab));
     setErrors({});
     setShowCreate(false);
     setStatusFilter('assigned');
+  };
+
+  const submitSettlement = async () => {
+    setSettlementError('');
+    if (!selectedSettlementRow) return;
+    const amount = cashAmount(selectedSettlementRow);
+    const spent = parseAmount(settlementDraft.spentAmount);
+    const returned = parseAmount(settlementDraft.returnedAmount);
+    if (!(spent > 0) && !(returned > 0)) {
+      setSettlementError('اكتب المصروف أو المرتجع على الأقل.');
+      return;
+    }
+    const difference = Number((amount - spent - returned).toFixed(2));
+    const notes = [
+      `مصروف: ${spent.toFixed(2)}`,
+      `مرتجع: ${returned.toFixed(2)}`,
+      `فرق: ${difference.toFixed(2)}`,
+      text(settlementDraft.notes),
+    ].filter(Boolean).join(' | ');
+
+    await mutations.returnEmployeeAsset.mutateAsync({
+      id: String(selectedSettlementRow.id),
+      payload: {
+        returnedAt: todayDate(),
+        notes: selectedSettlementRow.notes || undefined,
+        returnNotes: notes,
+      },
+    });
+    setSettlementId('');
+    setSettlementDraft({ spentAmount: '', returnedAmount: '', notes: '' });
+    setStatusFilter(Math.abs(difference) > 0.009 ? 'needs_review' : 'returned');
   };
 
   const setFilter = (filter: ReviewStatusFilter) => {
@@ -180,33 +303,82 @@ export function HrAssetsPage() {
     setPage(1);
   };
 
+  const renderActions = (row: HrEmployeeAsset) => {
+    const status = normalize(row.status);
+    if (isCashCustody(row)) {
+      return (
+        <div className="compact-actions">
+          <Button type="button" variant="secondary" onClick={() => navigate(`/hr/employees/${row.employeeId}`)}>ملف الموظف</Button>
+          {status === 'assigned' ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setSettlementId(String(row.id));
+                setSettlementDraft({ spentAmount: '', returnedAmount: '', notes: '' });
+                setSettlementError('');
+              }}
+            >
+              تسوية
+            </Button>
+          ) : null}
+        </div>
+      );
+    }
+    return (
+      <div className="compact-actions">
+        <Button type="button" variant="secondary" onClick={() => navigate(`/hr/employees/${row.employeeId}`)}>ملف الموظف</Button>
+        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.returnEmployeeAsset.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>استرجاع</Button> : null}
+        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.markEmployeeAssetDamaged.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>تالفة</Button> : null}
+        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.markEmployeeAssetLost.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>مفقودة</Button> : null}
+      </div>
+    );
+  };
+
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="العُهد والأصول"
-        description="سجّل تسليم العُهد، راجع العُهد المفتوحة، وتابع التالف أو المفقود قبل إغلاق ملف الموظف أو خروجه."
+        description="قسّم العُهد إلى عينية ونقدية. العهدة النقدية مخصصة لمبلغ يُسلّم للموظف للصرف على شغل الشركة ثم تتم تسويته."
         actions={(
           <div className="compact-actions">
             <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-              {showCreate ? 'إغلاق نموذج العهدة' : 'تسليم عهدة'}
+              {showCreate ? 'إغلاق النموذج' : activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'}
             </Button>
             <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
         )}
       />
 
-      <Card title="تسلسل إدارة العُهد" description="استخدم الصفحة بهذا الترتيب حتى لا تضيع العُهد أو تظل مفتوحة بدون مراجعة.">
+      <Card title="نوع العهدة" description="اختر النوع قبل التسجيل حتى تظهر الحقول المناسبة لكل دورة.">
+        <div className="compact-actions">
+          <Button type="button" variant={activeTab === 'physical' ? 'primary' : 'secondary'} onClick={() => switchTab('physical')}>عُهد عينية</Button>
+          <Button type="button" variant={activeTab === 'cash' ? 'primary' : 'secondary'} onClick={() => switchTab('cash')}>عُهد نقدية</Button>
+        </div>
+      </Card>
+
+      <Card title={activeTab === 'cash' ? 'تسلسل العهدة النقدية' : 'تسلسل العهد العينية'} description={activeTab === 'cash' ? 'العهدة النقدية ليست سلفة شخصية؛ هي مبلغ للشغل يتم تسويته بفواتير أو مرتجع.' : 'استخدم الصفحة بهذا الترتيب حتى لا تضيع العُهد أو تظل مفتوحة بدون مراجعة.'}>
         <div className="form-grid">
-          <div className="field"><strong>1. سلّم العهدة</strong><span className="muted">اختر الموظف ونوع العهدة والكود أو الرقم التسلسلي.</span></div>
-          <div className="field"><strong>2. راجع المفتوح</strong><span className="muted">العُهد المسلّمة تظهر كمسؤولية قائمة على الموظف.</span></div>
-          <div className="field"><strong>3. عالج التالف والمفقود</strong><span className="muted">أي تالف أو مفقود يظهر في فئة تحتاج مراجعة.</span></div>
-          <div className="field"><strong>4. أغلق عند الاسترجاع</strong><span className="muted">سجّل الاسترجاع عند رجوع العهدة من الموظف.</span></div>
+          {activeTab === 'cash' ? (
+            <>
+              <div className="field"><strong>1. تسليم مبلغ</strong><span className="muted">اختر الموظف والمبلغ والغرض.</span></div>
+              <div className="field"><strong>2. صرف على الشغل</strong><span className="muted">الموظف يجمع الفواتير أو الإيصالات.</span></div>
+              <div className="field"><strong>3. تسوية</strong><span className="muted">سجّل المصروف والمرتجع وأي فرق.</span></div>
+              <div className="field"><strong>4. إغلاق أو مراجعة</strong><span className="muted">الفرق غير الصفري يظهر ضمن تحتاج مراجعة.</span></div>
+            </>
+          ) : (
+            <>
+              <div className="field"><strong>1. سلّم العهدة</strong><span className="muted">اختر الموظف ونوع العهدة والكود أو الرقم التسلسلي.</span></div>
+              <div className="field"><strong>2. راجع المفتوح</strong><span className="muted">العُهد المسلّمة تظهر كمسؤولية قائمة على الموظف.</span></div>
+              <div className="field"><strong>3. عالج التالف والمفقود</strong><span className="muted">أي تالف أو مفقود يظهر في فئة تحتاج مراجعة.</span></div>
+              <div className="field"><strong>4. أغلق عند الاسترجاع</strong><span className="muted">سجّل الاسترجاع عند رجوع العهدة من الموظف.</span></div>
+            </>
+          )}
         </div>
       </Card>
 
       {showCreate ? (
-        <Card title="تسليم عهدة جديدة" description="سجّل العهدة على الموظف الصحيح. يمكن متابعة العُهد أيضًا من ملف الموظف.">
-          <div id="asset-create-form" />
+        <Card title={activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'} description={activeTab === 'cash' ? 'سجّل المبلغ والغرض. التسوية تتم لاحقًا من قائمة العهد النقدية.' : 'سجّل العهدة على الموظف الصحيح. يمكن متابعة العُهد أيضًا من ملف الموظف.'}>
           <div className="form-grid">
             <label className="field">
               <span>الموظف *</span>
@@ -216,23 +388,33 @@ export function HrAssetsPage() {
               </select>
               {errors.employeeId ? <small className="field-error">{errors.employeeId}</small> : null}
             </label>
+            {activeTab === 'cash' ? (
+              <label className="field">
+                <span>مبلغ العهدة *</span>
+                <input inputMode="decimal" value={form.cashAmount} onChange={(event) => setForm((prev) => ({ ...prev, cashAmount: event.target.value }))} placeholder="مثال: 5000" />
+                {errors.cashAmount ? <small className="field-error">{errors.cashAmount}</small> : null}
+              </label>
+            ) : (
+              <label className="field">
+                <span>نوع العهدة *</span>
+                <select value={form.assetType} onChange={(event) => setForm((prev) => ({ ...prev, assetType: event.target.value }))}>
+                  <option value="">اختر النوع</option>
+                  {assetTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+                {errors.assetType ? <small className="field-error">{errors.assetType}</small> : null}
+              </label>
+            )}
             <label className="field">
-              <span>نوع العهدة *</span>
-              <select value={form.assetType} onChange={(event) => setForm((prev) => ({ ...prev, assetType: event.target.value }))}>
-                <option value="">اختر النوع</option>
-                {assetTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
-              {errors.assetType ? <small className="field-error">{errors.assetType}</small> : null}
-            </label>
-            <label className="field">
-              <span>اسم العهدة / الأصل *</span>
-              <input value={form.assetName} onChange={(event) => setForm((prev) => ({ ...prev, assetName: event.target.value }))} />
+              <span>{activeTab === 'cash' ? 'الغرض / بيان العهدة *' : 'اسم العهدة / الأصل *'}</span>
+              <input value={form.assetName} onChange={(event) => setForm((prev) => ({ ...prev, assetName: event.target.value }))} placeholder={activeTab === 'cash' ? 'مثال: شراء مستلزمات للمحل' : ''} />
               {errors.assetName ? <small className="field-error">{errors.assetName}</small> : null}
             </label>
-            <label className="field">
-              <span>الكود / الرقم التسلسلي</span>
-              <input value={form.assetCode} onChange={(event) => setForm((prev) => ({ ...prev, assetCode: event.target.value, serialNo: event.target.value }))} />
-            </label>
+            {activeTab === 'physical' ? (
+              <label className="field">
+                <span>الكود / الرقم التسلسلي</span>
+                <input value={form.assetCode} onChange={(event) => setForm((prev) => ({ ...prev, assetCode: event.target.value, serialNo: event.target.value }))} />
+              </label>
+            ) : null}
             <label className="field">
               <span>تاريخ التسليم</span>
               <input type="date" value={form.assignedAt} onChange={(event) => setForm((prev) => ({ ...prev, assignedAt: event.target.value }))} />
@@ -244,7 +426,7 @@ export function HrAssetsPage() {
           </div>
           <div className="actions compact-actions">
             <Button type="button" onClick={submitAsset} disabled={mutations.saveEmployeeAsset.isPending}>
-              {mutations.saveEmployeeAsset.isPending ? 'جاري التسجيل...' : 'تسليم عهدة'}
+              {mutations.saveEmployeeAsset.isPending ? 'جاري التسجيل...' : activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setShowCreate(false)}>إلغاء</Button>
           </div>
@@ -252,21 +434,23 @@ export function HrAssetsPage() {
         </Card>
       ) : null}
 
-      <Card title="ملخص العُهد" description="اضغط على الكروت لتصفية القائمة مباشرة.">
+      <Card title={activeTab === 'cash' ? 'ملخص العُهد النقدية' : 'ملخص العُهد العينية'} description="اضغط على الكروت لتصفية القائمة مباشرة.">
         <div className="stats-grid">
-          <button className="stat-card" type="button" onClick={() => setFilter('all')} style={{ textAlign: 'right' }}><span>إجمالي العُهد</span><strong>{summary.total}</strong></button>
-          <button className="stat-card" type="button" onClick={() => setFilter('assigned')} style={{ textAlign: 'right' }}><span>مسلّمة</span><strong>{summary.assigned}</strong></button>
-          <button className="stat-card" type="button" onClick={() => setFilter('returned')} style={{ textAlign: 'right' }}><span>مرتجعة</span><strong>{summary.returned}</strong></button>
-          <button className="stat-card" type="button" onClick={() => setFilter('damaged')} style={{ textAlign: 'right' }}><span>تالفة</span><strong>{summary.damaged}</strong></button>
-          <button className="stat-card" type="button" onClick={() => setFilter('lost')} style={{ textAlign: 'right' }}><span>مفقودة</span><strong>{summary.lost}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setFilter('all')} style={{ textAlign: 'right' }}><span>الإجمالي</span><strong>{summary.total}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setFilter('assigned')} style={{ textAlign: 'right' }}><span>{activeTab === 'cash' ? 'مفتوحة' : 'مسلّمة'}</span><strong>{summary.assigned}</strong></button>
+          <button className="stat-card" type="button" onClick={() => setFilter('returned')} style={{ textAlign: 'right' }}><span>{activeTab === 'cash' ? 'مقفولة' : 'مرتجعة'}</span><strong>{summary.returned}</strong></button>
+          {activeTab === 'physical' ? <button className="stat-card" type="button" onClick={() => setFilter('damaged')} style={{ textAlign: 'right' }}><span>تالفة</span><strong>{summary.damaged}</strong></button> : null}
+          {activeTab === 'physical' ? <button className="stat-card" type="button" onClick={() => setFilter('lost')} style={{ textAlign: 'right' }}><span>مفقودة</span><strong>{summary.lost}</strong></button> : null}
           <button className="stat-card" type="button" onClick={() => setFilter('needs_review')} style={{ textAlign: 'right' }}><span>تحتاج مراجعة</span><strong>{summary.needsReview}</strong></button>
+          {activeTab === 'cash' ? <div className="stat-card"><span>إجمالي المبالغ</span><strong>{money(summary.cashTotalAmount)}</strong></div> : null}
+          {activeTab === 'cash' ? <div className="stat-card"><span>مبالغ مفتوحة</span><strong>{money(summary.cashOpenAmount)}</strong></div> : null}
           <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
         </div>
       </Card>
 
-      <Card title="قائمة العُهد" description="الفئة الافتراضية تعرض العُهد التي تحتاج مراجعة حتى لا يتم تجاهل التالف أو المفقود.">
+      <Card title={activeTab === 'cash' ? 'قائمة العُهد النقدية' : 'قائمة العُهد العينية'} description={activeTab === 'cash' ? 'سجّل التسوية من نفس القائمة عند انتهاء الصرف.' : 'الفئة الافتراضية تعرض العُهد التي تحتاج مراجعة حتى لا يتم تجاهل التالف أو المفقود.'}>
         <div className="compact-actions" style={{ marginBottom: 12 }}>
-          {statusOptions.map((option) => (
+          {statusOptions.filter((option) => activeTab === 'physical' || !['damaged', 'lost'].includes(option.value)).map((option) => (
             <Button
               key={option.value}
               type="button"
@@ -287,7 +471,7 @@ export function HrAssetsPage() {
                 setSearch(value);
                 setPage(1);
               }}
-              searchPlaceholder="بحث باسم الموظف أو الكود أو اسم العهدة"
+              searchPlaceholder={activeTab === 'cash' ? 'بحث باسم الموظف أو الغرض أو المبلغ' : 'بحث باسم الموظف أو الكود أو اسم العهدة'}
               inputAriaLabel="بحث العُهد"
             />
           </div>
@@ -325,36 +509,68 @@ export function HrAssetsPage() {
               },
               itemLabel: 'عهدة',
             }}
-            columns={[
+            columns={activeTab === 'cash' ? [
+              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => fallbackText(row.employeeNo) },
+              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => fallbackText(row.employeeName) },
+              { key: 'assetName', header: 'الغرض / البيان', cell: (row) => fallbackText(row.assetName) },
+              { key: 'cashAmount', header: 'المبلغ المسلم', cell: (row) => money(cashAmount(row)) },
+              { key: 'spentAmount', header: 'المصروف', cell: (row) => money(settlementParts(row).spentAmount) },
+              { key: 'returnedAmount', header: 'المرتجع', cell: (row) => money(settlementParts(row).returnedAmount) },
+              { key: 'difference', header: 'فرق التسوية', cell: (row) => money(Math.abs(cashDifference(row))) },
+              { key: 'assignedAt', header: 'تاريخ التسليم', cell: (row) => fallbackText(row.assignedAt) },
+              { key: 'returnedAt', header: 'تاريخ التسوية', cell: (row) => fallbackText(row.returnedAt) },
+              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status, 'cash') },
+              { key: 'notes', header: 'ملاحظات', cell: (row) => fallbackText(row.returnNotes || row.notes) },
+              { key: 'actions', header: 'إجراء', cell: (row) => renderActions(row) },
+            ] : [
               { key: 'employeeNo', header: 'كود الموظف', cell: (row) => fallbackText(row.employeeNo) },
               { key: 'employeeName', header: 'اسم الموظف', cell: (row) => fallbackText(row.employeeName) },
               { key: 'departmentName', header: 'القسم', cell: (row) => fallbackText(row.departmentName || employeesMap.get(String(row.employeeId))?.departmentName) },
+              { key: 'assetType', header: 'نوع العهدة', cell: (row) => fallbackText(row.assetType) },
               { key: 'assetName', header: 'اسم العهدة / الأصل', cell: (row) => fallbackText(row.assetName) },
               { key: 'assetCode', header: 'الكود / الرقم التسلسلي', cell: (row) => fallbackText(row.assetCode || row.serialNo) },
               { key: 'assignedAt', header: 'تاريخ التسليم', cell: (row) => fallbackText(row.assignedAt) },
               { key: 'returnedAt', header: 'تاريخ الاسترجاع', cell: (row) => fallbackText(row.returnedAt) },
-              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+              { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status, 'physical') },
               { key: 'notes', header: 'ملاحظات', cell: (row) => fallbackText(row.notes || row.returnNotes) },
-              {
-                key: 'actions',
-                header: 'إجراء',
-                cell: (row) => (
-                  <div className="compact-actions">
-                    <Button type="button" variant="secondary" onClick={() => navigate(`/hr/employees/${row.employeeId}`)}>ملف الموظف</Button>
-                    {normalize(row.status) === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.returnEmployeeAsset.mutate({ id: String(row.id), payload: {} })}>استرجاع</Button> : null}
-                    {normalize(row.status) === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.markEmployeeAssetDamaged.mutate({ id: String(row.id), payload: {} })}>تالفة</Button> : null}
-                    {normalize(row.status) === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.markEmployeeAssetLost.mutate({ id: String(row.id), payload: {} })}>مفقودة</Button> : null}
-                  </div>
-                ),
-              },
+              { key: 'actions', header: 'إجراء', cell: (row) => renderActions(row) },
             ]}
           />
+
+          {selectedSettlementRow ? (
+            <div className="card-soft" style={{ marginTop: 14, padding: 14 }}>
+              <strong style={{ display: 'block', marginBottom: 8 }}>تسوية عهدة نقدية: {fallbackText(selectedSettlementRow.assetName)}</strong>
+              <div className="form-grid">
+                <label className="field">
+                  <span>المبلغ المسلم</span>
+                  <input value={money(cashAmount(selectedSettlementRow))} disabled />
+                </label>
+                <label className="field">
+                  <span>المبلغ المصروف</span>
+                  <input inputMode="decimal" value={settlementDraft.spentAmount} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, spentAmount: event.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>المبلغ المرتجع</span>
+                  <input inputMode="decimal" value={settlementDraft.returnedAmount} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, returnedAmount: event.target.value }))} />
+                </label>
+                <label className="field field-wide">
+                  <span>ملاحظات التسوية / الفواتير</span>
+                  <input value={settlementDraft.notes} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, notes: event.target.value }))} placeholder="مثال: فواتير شراء منظفات + رجع باقي المبلغ" />
+                </label>
+              </div>
+              {settlementError ? <div className="error-box" style={{ marginTop: 10 }}>{settlementError}</div> : null}
+              <div className="actions compact-actions" style={{ marginTop: 12 }}>
+                <Button type="button" onClick={submitSettlement} disabled={mutations.returnEmployeeAsset.isPending}>{mutations.returnEmployeeAsset.isPending ? 'جاري التسوية...' : 'تسجيل التسوية'}</Button>
+                <Button type="button" variant="secondary" onClick={() => { setSettlementId(''); setSettlementError(''); }}>إلغاء</Button>
+              </div>
+            </div>
+          ) : null}
         </QueryFeedback>
       </Card>
 
       <Card title="ملاحظة تشغيلية">
         <p className="muted" style={{ margin: 0 }}>
-          الربط مع المخزون أو المحاسبة يمكن إضافته لاحقًا بعد تثبيت دورة العُهد الحالية. الآن الهدف هو معرفة ما مع كل موظف وما يحتاج مراجعة.
+          العهدة النقدية هنا لا تُعامل كسلفة موظف ولا تخصم من المرتب تلقائيًا؛ هي مبلغ مؤقت للشغل يتم إقفاله بالتسوية. السلف الشخصية تظل في صفحة السلف والخصومات.
         </p>
       </Card>
     </div>
