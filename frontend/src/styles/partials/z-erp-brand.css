@@ -101,21 +101,21 @@
   letter-spacing: 0;
 }
 
-.pos-header-brand-mark {
+.pos-title-brand-mark {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   min-height: 34px;
-  padding: 3px 9px 3px 6px;
+  padding: 3px 10px 3px 6px;
   border: 1px solid rgba(203, 213, 225, 0.72);
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.9));
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.92));
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255,255,255,0.85);
   color: #0f172a;
   direction: ltr;
 }
 
-.pos-header-brand-mark strong {
+.pos-title-brand-mark strong {
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -123,16 +123,20 @@
   white-space: nowrap;
 }
 
-.pos-header-brand-mark .z-erp-icon {
+.pos-title-brand-mark .z-erp-icon {
   filter: drop-shadow(0 5px 10px rgba(37, 99, 235, 0.18));
 }
 
+.pos-page-header .page-header-badge {
+  align-self: center;
+}
+
 @media (max-width: 820px) {
-  .pos-header-brand-mark strong {
+  .pos-title-brand-mark strong {
     display: none;
   }
 
-  .pos-header-brand-mark {
+  .pos-title-brand-mark {
     padding: 3px;
   }
 }
