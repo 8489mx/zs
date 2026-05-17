@@ -39,6 +39,7 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
   const queryClient = useQueryClient();
   const purchaseId = String(purchase.id || '');
   const supplierId = String(purchase.supplierId || '');
+  const isCreditPurchase = purchase.paymentType === 'credit';
   const [mode, setMode] = useState<'count' | 'amount'>('count');
   const [installmentCount, setInstallmentCount] = useState('3');
   const [installmentAmount, setInstallmentAmount] = useState('');
@@ -92,21 +93,27 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
 
   const rows = scheduleQuery.data || [];
   const summary = useMemo(() => buildScheduleSummary(rows), [rows]);
-  const canCreateSchedule = purchase.status !== 'cancelled' && Boolean(supplierId) && Number(purchase.total || 0) > 0;
+  const canCreateSchedule = purchase.status !== 'cancelled' && isCreditPurchase && Boolean(supplierId) && Number(purchase.total || 0) > 0;
 
   return (
     <Card
       className="purchase-payment-schedule-card"
       title="جدولة دفعات المورد"
-      description="قسّم فاتورة المورد إلى دفعات مستحقة، وتابع المدفوع والمتبقي من نفس الفاتورة."
+      description="قسّم فاتورة المورد الآجلة إلى دفعات مستحقة، وتابع المدفوع والمتبقي من نفس الفاتورة."
       actions={<span className="nav-pill">{rows.length ? `${rows.length} دفعات` : 'بدون جدول'}</span>}
     >
       <div className="stats-grid compact-grid">
         <div className="stat-card"><span>إجمالي الجدول</span><strong>{formatCurrency(summary.total)}</strong></div>
         <div className="stat-card"><span>مدفوع</span><strong>{formatCurrency(summary.paid)}</strong></div>
-        <div className="stat-card"><span>متبقي</span><strong>{formatCurrency(summary.remaining || Number(purchase.total || 0))}</strong></div>
+        <div className="stat-card"><span>متبقي</span><strong>{formatCurrency(summary.remaining || (isCreditPurchase ? Number(purchase.total || 0) : 0))}</strong></div>
         <div className="stat-card"><span>متأخر</span><strong>{summary.overdue}</strong></div>
       </div>
+
+      {!isCreditPurchase ? (
+        <div className="surface-note" style={{ marginTop: 12 }}>
+          جدولة الدفعات متاحة لفواتير المورد الآجلة فقط، لأن الفاتورة النقدية يتم تسجيل خروجها من الخزينة مباشرة عند إنشاء الفاتورة.
+        </div>
+      ) : null}
 
       {canCreateSchedule ? (
         <div className="form-grid" style={{ marginTop: 12 }}>
@@ -125,41 +132,20 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
               <input type="number" min="1" step="0.01" value={installmentAmount} onChange={(event) => setInstallmentAmount(event.target.value)} />
             </Field>
           )}
-          <Field label="تاريخ أول دفعة">
-            <input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} />
-          </Field>
-          <Field label="تكرار الاستحقاق كل كام يوم">
-            <input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} />
-          </Field>
-          <Field label="تقريب الدفعات لأقرب">
-            <input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} />
-          </Field>
-          <Field label="ملاحظة">
-            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="مثال: اتفاق دفع مع المورد" />
-          </Field>
-          <div className="field">
-            <span>إنشاء الجدول</span>
-            <Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-              {rows.length ? 'إعادة جدولة الدفعات' : 'جدولة الدفعات'}
-            </Button>
-          </div>
+          <Field label="تاريخ أول دفعة"><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></Field>
+          <Field label="تكرار الاستحقاق كل كام يوم"><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
+          <Field label="تقريب الدفعات لأقرب"><input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} /></Field>
+          <Field label="ملاحظة"><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="مثال: اتفاق دفع مع المورد" /></Field>
+          <div className="field"><span>إنشاء الجدول</span><Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>{rows.length ? 'إعادة جدولة الدفعات' : 'جدولة الدفعات'}</Button></div>
         </div>
       ) : null}
 
-      <MutationFeedback
-        isError={createMutation.isError || settleMutation.isError}
-        isSuccess={createMutation.isSuccess || settleMutation.isSuccess}
-        error={createMutation.error || settleMutation.error}
-        errorFallback="تعذر تنفيذ عملية الدفعات"
-        successText="تم تحديث جدول دفعات المورد."
-      />
+      <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback="تعذر تنفيذ عملية الدفعات" successText="تم تحديث جدول دفعات المورد." />
 
       <div className="table-wrap" style={{ marginTop: 12 }}>
         {rows.length ? (
           <table>
-            <thead>
-              <tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>تسجيل دفع</th></tr>
-            </thead>
+            <thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>تسجيل دفع</th></tr></thead>
             <tbody>
               {rows.map((row) => {
                 const isSettled = row.status === 'paid' || row.status === 'cancelled';
@@ -172,35 +158,14 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
                     <td>{formatCurrency(row.paidAmount)}</td>
                     <td>{formatCurrency(row.remainingAmount)}</td>
                     <td>{statusLabel(row.status)}</td>
-                    <td>
-                      <div className="actions compact-actions">
-                        <input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          value={amountValue}
-                          onChange={(event) => setSettleAmounts((current) => ({ ...current, [row.id]: event.target.value }))}
-                          placeholder={String(row.remainingAmount || '')}
-                          disabled={isSettled}
-                          style={{ maxWidth: 110 }}
-                        />
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          disabled={isSettled || settleMutation.isPending}
-                          onClick={() => settleMutation.mutate({ row, amount: amountValue ? Number(amountValue) : undefined })}
-                        >
-                          دفع
-                        </Button>
-                      </div>
-                    </td>
+                    <td><div className="actions compact-actions"><input type="number" min="0.01" step="0.01" value={amountValue} onChange={(event) => setSettleAmounts((current) => ({ ...current, [row.id]: event.target.value }))} placeholder={String(row.remainingAmount || '')} disabled={isSettled || !isCreditPurchase} style={{ maxWidth: 110 }} /><Button type="button" variant="secondary" disabled={isSettled || !isCreditPurchase || settleMutation.isPending} onClick={() => settleMutation.mutate({ row, amount: amountValue ? Number(amountValue) : undefined })}>دفع</Button></div></td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         ) : (
-          <EmptyState title="لا يوجد جدول دفعات لهذه الفاتورة" hint="اختر طريقة التقسيم وأنشئ جدول دفعات للمورد." />
+          <EmptyState title="لا يوجد جدول دفعات لهذه الفاتورة" hint={isCreditPurchase ? 'اختر طريقة التقسيم وأنشئ جدول دفعات للمورد.' : 'حوّل الفاتورة إلى آجلة عند إنشائها إذا كان سيتم سدادها على دفعات.'} />
         )}
       </div>
     </Card>
