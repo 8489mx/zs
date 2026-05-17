@@ -11,7 +11,7 @@ import { PurchasesFinanceService } from './purchases-finance.service';
 
 type ScheduleRow = {
   id: number;
-  purchase_id: number;
+  purchase_id: number | null;
   supplier_id: number;
   installment_no: number;
   due_date: string | Date;
@@ -62,7 +62,7 @@ export class SupplierPaymentSchedulesService {
   private buildAmounts(total: number, payload: CreateSupplierPaymentScheduleDto): number[] {
     const safeTotal = this.roundCurrency(total);
     const step = Number(payload.roundingStep || 1);
-    if (!(safeTotal > 0)) throw new AppError('Purchase total must be greater than zero', 'INVALID_PURCHASE_TOTAL', 400);
+    if (!(safeTotal > 0)) throw new AppError('Schedule total must be greater than zero', 'INVALID_SCHEDULE_TOTAL', 400);
     if (payload.mode === 'count') {
       const count = Number(payload.installmentCount || 0);
       if (!(count > 0)) throw new AppError('Installment count is required', 'INSTALLMENT_COUNT_REQUIRED', 400);
@@ -91,7 +91,7 @@ export class SupplierPaymentSchedulesService {
     const status = baseStatus === 'pending' && dueDate < today ? 'overdue' : baseStatus;
     return {
       id: String(row.id),
-      purchaseId: String(row.purchase_id),
+      purchaseId: row.purchase_id == null ? '' : String(row.purchase_id),
       supplierId: String(row.supplier_id),
       installmentNo: Number(row.installment_no || 0),
       dueDate,
@@ -106,6 +106,11 @@ export class SupplierPaymentSchedulesService {
 
   async listForPurchase(purchaseId: number): Promise<Record<string, unknown>> {
     const rows = await this.scheduleDb(this.db).selectFrom('supplier_payment_schedules').selectAll().where('purchase_id', '=', purchaseId).orderBy('installment_no asc').execute();
+    return { schedules: rows.map((row) => this.map(row as ScheduleRow)) };
+  }
+
+  async listForSupplier(supplierId: number): Promise<Record<string, unknown>> {
+    const rows = await this.scheduleDb(this.db).selectFrom('supplier_payment_schedules').selectAll().where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).orderBy('installment_no asc').execute();
     return { schedules: rows.map((row) => this.map(row as ScheduleRow)) };
   }
 
@@ -124,47 +129,62 @@ export class SupplierPaymentSchedulesService {
       const intervalDays = Number(payload.intervalDays || 1);
       await db.deleteFrom('supplier_payment_schedules').where('purchase_id', '=', purchaseId).execute();
       for (let index = 0; index < amounts.length; index += 1) {
-        await db.insertInto('supplier_payment_schedules').values({
-          purchase_id: purchaseId,
-          supplier_id: Number(purchase.supplier_id),
-          installment_no: index + 1,
-          due_date: this.addDays(firstDueDate, index * intervalDays),
-          amount: amounts[index],
-          paid_amount: 0,
-          status: 'pending',
-          note: normalizeOptionalNote(payload.note),
-          created_by: auth.userId,
-          updated_by: auth.userId,
-        }).execute();
+        await db.insertInto('supplier_payment_schedules').values({ purchase_id: purchaseId, supplier_id: Number(purchase.supplier_id), installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId }).execute();
       }
     });
     return this.listForPurchase(purchaseId);
   }
 
+  async createForSupplier(supplierId: number, payload: CreateSupplierPaymentScheduleDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'balance']).where('id', '=', supplierId).executeTakeFirst();
+      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      const balance = this.roundCurrency(Number(supplier.balance || 0));
+      const total = this.roundCurrency(Number(payload.scheduleAmount || balance));
+      if (!(balance > 0)) throw new AppError('Supplier has no payable balance', 'SUPPLIER_NO_PAYABLE_BALANCE', 400);
+      if (!(total > 0) || total > balance + 0.0001) throw new AppError('Schedule amount must be within supplier balance', 'INVALID_SUPPLIER_SCHEDULE_AMOUNT', 400);
+      const db = this.scheduleDb(trx);
+      const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where('paid_amount', '>', 0).executeTakeFirst();
+      if (paidRow) throw new AppError('Cannot reschedule supplier balance after payments were recorded', 'SUPPLIER_SCHEDULE_HAS_PAYMENTS', 400);
+      const amounts = this.buildAmounts(total, payload);
+      const firstDueDate = this.parseDate(payload.firstDueDate);
+      const intervalDays = Number(payload.intervalDays || 1);
+      await db.deleteFrom('supplier_payment_schedules').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).execute();
+      for (let index = 0; index < amounts.length; index += 1) {
+        await db.insertInto('supplier_payment_schedules').values({ purchase_id: null, supplier_id: supplierId, installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId }).execute();
+      }
+    });
+    return this.listForSupplier(supplierId);
+  }
+
   async payInstallment(installmentId: number, payload: PaySupplierScheduleInstallmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     let purchaseId = 0;
+    let supplierId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
       const db = this.scheduleDb(trx);
       const installment = await db.selectFrom('supplier_payment_schedules').selectAll().where('id', '=', installmentId).executeTakeFirst();
       if (!installment) throw new AppError('Installment not found', 'INSTALLMENT_NOT_FOUND', 404);
-      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(installment.purchase_id)).executeTakeFirst();
-      if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
-      this.ensureCredit(purchase.payment_type);
+      if (installment.purchase_id) {
+        const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(installment.purchase_id)).executeTakeFirst();
+        if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
+        this.ensureCredit(purchase.payment_type);
+        purchaseId = Number(installment.purchase_id);
+      }
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', Number(installment.supplier_id)).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      supplierId = Number(supplier.id);
       const remaining = this.roundCurrency(Number(installment.amount || 0) - Number(installment.paid_amount || 0));
       const amount = this.roundCurrency(Number(payload.amount || remaining));
       if (!(amount > 0)) throw new AppError('Payment amount must be greater than zero', 'INVALID_AMOUNT', 400);
       if (amount > remaining + 0.0001) throw new AppError('Payment exceeds installment remaining amount', 'INSTALLMENT_OVERPAYMENT', 400);
       const paidAmount = this.roundCurrency(Number(installment.paid_amount || 0) + amount);
       const status = paidAmount >= Number(installment.amount || 0) - 0.0001 ? 'paid' : 'partial';
-      const { branchId, locationId } = normalizePurchaseScope({ branchId: payload.branchId ?? purchase.branch_id ?? undefined, locationId: payload.locationId ?? purchase.location_id ?? undefined });
-      const note = normalizeOptionalNote(payload.note) || `Installment ${installment.installment_no} for purchase ${purchase.doc_no || purchase.id}`;
+      const { branchId, locationId } = normalizePurchaseScope({ branchId: payload.branchId ?? undefined, locationId: payload.locationId ?? undefined });
+      const note = normalizeOptionalNote(payload.note) || `Supplier scheduled installment ${installment.installment_no}`;
       await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).execute();
-      await this.financeService.addSupplierLedgerEntry(trx, Number(supplier.id), -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
+      await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
-      purchaseId = Number(installment.purchase_id);
     });
-    return this.listForPurchase(purchaseId);
+    return purchaseId ? this.listForPurchase(purchaseId) : this.listForSupplier(supplierId);
   }
 }
