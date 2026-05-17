@@ -17,6 +17,7 @@ interface StockCountSheetToolsProps {
   selectedProduct?: Product;
   locationName?: string;
   isCountStarted: boolean;
+  onItemsChange: (updater: (current: StockCountItem[]) => StockCountItem[]) => void;
 }
 
 function productToRow(product: Product): StockCountSheetRow {
@@ -31,6 +32,20 @@ function productToRow(product: Product): StockCountSheetRow {
   };
 }
 
+function productToCountItem(product: Product): StockCountItem {
+  const expectedQty = Number(product.stock || 0);
+  return {
+    id: `${product.id}-${Date.now()}`,
+    productId: product.id,
+    productName: product.name,
+    expectedQty,
+    countedQty: 0,
+    varianceQty: Number((0 - expectedQty).toFixed(3)),
+    reason: '',
+    note: '',
+  };
+}
+
 export function StockCountSheetTools({
   products,
   items,
@@ -38,15 +53,22 @@ export function StockCountSheetTools({
   selectedProduct,
   locationName,
   isCountStarted,
+  onItemsChange,
 }: StockCountSheetToolsProps) {
   const [includeExpectedQty, setIncludeExpectedQty] = useState(false);
 
-  const sheetRows = useMemo(() => {
-    if (countType === 'full') return products.map(productToRow);
+  const scopeProducts = useMemo(() => {
+    if (countType === 'full') return products;
     if (countType === 'category') {
       if (!selectedProduct?.categoryId) return [];
-      return products.filter((product) => product.categoryId === selectedProduct.categoryId).map(productToRow);
+      return products.filter((product) => product.categoryId === selectedProduct.categoryId);
     }
+    if (selectedProduct) return [selectedProduct];
+    return [];
+  }, [countType, products, selectedProduct]);
+
+  const sheetRows = useMemo(() => {
+    if (countType === 'full' || countType === 'category') return scopeProducts.map(productToRow);
     if (items.length) {
       return items.map((item) => {
         const product = products.find((entry) => String(entry.id) === String(item.productId));
@@ -61,20 +83,27 @@ export function StockCountSheetTools({
         };
       });
     }
-    return selectedProduct ? [productToRow(selectedProduct)] : [];
-  }, [countType, items, products, selectedProduct]);
+    return scopeProducts.map(productToRow);
+  }, [countType, items, products, scopeProducts]);
 
   const disabled = !isCountStarted || !sheetRows.length;
   const helperText = countType === 'category' && !selectedProduct
     ? 'اختر صنفًا من القسم المطلوب أولًا حتى نجهز شيت أصناف نفس القسم.'
     : disabled
       ? 'ابدأ الجرد واختر النطاق أو الصنف أولًا.'
-      : `جاهز ${sheetRows.length} صنف للطباعة أو التصدير.`;
+      : `جاهز ${sheetRows.length} صنف للطباعة أو التصدير أو الإدخال الإلكتروني.`;
+
+  function prepareElectronicCount() {
+    if (disabled) return;
+    const rows = (countType === 'full' || countType === 'category') ? scopeProducts : scopeProducts.filter(Boolean);
+    if (!rows.length) return;
+    onItemsChange(() => rows.map(productToCountItem));
+  }
 
   return (
-    <Field label="شيت العد">
+    <Field label="طريقة العد">
       <div className="surface-note">
-        جهّز ورقة عد للجرد قبل إدخال الفروقات: اطبعها أو صدّرها CSV ثم قارنها بالموجود فعليًا في المحل.
+        اختر بين شيت ورقي/CSV للعد خارج النظام، أو إدخال إلكتروني يفتح أصناف النطاق داخل الجلسة وتكتب أمام كل صنف الكمية المعدودة.
       </div>
       <label className="checkbox-row" style={{ marginTop: 10 }}>
         <input
@@ -104,6 +133,14 @@ export function StockCountSheetTools({
           onClick={() => exportStockCountSheetCsv(sheetRows, { includeExpectedQty })}
         >
           تصدير CSV
+        </Button>
+        <Button
+          type="button"
+          variant="primary"
+          disabled={disabled}
+          onClick={prepareElectronicCount}
+        >
+          إدخال إلكتروني
         </Button>
       </div>
       <div className="muted small" style={{ marginTop: 8 }}>{helperText}</div>
