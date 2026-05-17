@@ -6,6 +6,7 @@ import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
+import { StockCountSheetTools } from '@/features/inventory/components/sections/StockCountSheetTools';
 import type { Branch, Location, Product, StockCountItem, StockTransferItem } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
@@ -133,6 +134,7 @@ export function StockCountComposerCard({
   onSubmit
 }: StockCountComposerCardProps) {
   const warehouseList = warehouses || locations || [];
+  const selectedLocation = warehouseList.find((location) => String(location.id) === String(form.locationId));
   const countTypeOptions: Array<{ key: StockCountType; label: string; description: string }> = useMemo(() => ([
     {
       key: 'quick',
@@ -147,12 +149,12 @@ export function StockCountComposerCard({
     {
       key: 'category',
       label: 'جرد قسم / تصنيف',
-      description: 'مرحلة تنظيمية حاليًا، وسيتم دعم توليد أصناف القسم لاحقًا إذا احتاج النظام.',
+      description: 'اختر أي صنف من القسم المطلوب ثم اطبع شيت عد لأصناف نفس القسم.',
     },
     {
       key: 'full',
       label: 'جرد كامل',
-      description: 'مرحلة تنظيمية حاليًا، وسيتم دعم تجهيز كل الأصناف لاحقًا إذا احتاج النظام.',
+      description: 'جهّز شيت عد لكل الأصناف ثم أدخل الفروقات بعد العد الفعلي.',
     },
   ]), []);
   const [countType, setCountType] = useState<StockCountType>('quick');
@@ -201,7 +203,7 @@ export function StockCountComposerCard({
   }
 
   return (
-    <Card title="جلسة جرد مخزون" description="إظهار المتوقع والمعدود والفرق قبل الإنشاء حتى لا يفقد المستخدم الصورة الكاملة أثناء التجميع." actions={<span className="nav-pill">جلسات الجرد</span>}>
+    <Card title="جلسة جرد مخزون" description="ابدأ الجرد، جهّز شيت العد للطباعة أو CSV، ثم أدخل الكميات الفعلية واعتمد التسوية بعد المراجعة." actions={<span className="nav-pill">جلسات الجرد</span>}>
       <div className="form-grid">
         {!SINGLE_STORE_MODE ? <Field label="الفرع">
           <select value={form.branchId} onChange={(e) => onFormChange({ branchId: e.target.value })}>
@@ -240,10 +242,18 @@ export function StockCountComposerCard({
           {startCountMessage ? <div className="muted small" style={{ marginTop: 8 }}>{startCountMessage}</div> : null}
           {needsManualNote && isCountStarted ? (
             <div className="surface-note" style={{ marginTop: 10 }}>
-              هذا النوع يعمل حاليًا كتنظيم للجلسة، ويمكنك إضافة الأصناف يدويًا في هذه المرحلة.
+              جهّز شيت العد أولًا، وبعد العد الفعلي أضف الأصناف التي ظهر بها فرق إلى الجلسة.
             </div>
           ) : null}
         </div>
+        <StockCountSheetTools
+          products={products}
+          items={items}
+          countType={countType}
+          selectedProduct={selectedProduct}
+          locationName={selectedLocation?.name}
+          isCountStarted={isCountStarted}
+        />
         <Field label="الصنف">
           <InventoryProductPicker
             products={products}
@@ -252,7 +262,7 @@ export function StockCountComposerCard({
             showStock
             showPrice={false}
             disabled={!isCountStarted}
-            helperText={isCountStarted ? 'تم تجهيز الصنف المحدد لعملية الجرد أو التسوية السريعة.' : 'ابدأ الجرد أولًا ثم اختر الصنف.'}
+            helperText={isCountStarted ? 'اختر صنفًا لإدخال كمية العد أو لتجهيز شيت قسمه.' : 'ابدأ الجرد أولًا ثم اختر الصنف.'}
           />
         </Field>
         <Field label="الكمية المعدودة">
@@ -307,7 +317,7 @@ export function StockCountComposerCard({
             </div>
             <Button type="button" variant="danger" onClick={() => onRemoveItem(index)}>حذف</Button>
           </div>
-        )) : <EmptyState title="لا توجد عناصر في جلسة الجرد" hint="أضف الأصناف المعدودة قبل إنشاء الجلسة." />}
+        )) : <EmptyState title="لا توجد عناصر في جلسة الجرد" hint="أضف الأصناف التي بها فرق بعد العد الفعلي، ثم أنشئ الجلسة للمراجعة والاعتماد." />}
       </div>
     </Card>
   );
