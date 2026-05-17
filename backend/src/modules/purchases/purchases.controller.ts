@@ -4,13 +4,18 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { CreateCustomerPaymentDto, CreateSupplierPaymentDto } from './dto/create-party-payment.dto';
+import { CreateSupplierPaymentScheduleDto } from './dto/supplier-payment-schedule.dto';
 import { UpsertPurchaseDto } from './dto/upsert-purchase.dto';
 import { PurchasesService } from './purchases.service';
+import { SupplierPaymentSchedulesService } from './services/supplier-payment-schedules.service';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 export class PurchasesController {
-  constructor(private readonly purchasesService: PurchasesService) {}
+  constructor(
+    private readonly purchasesService: PurchasesService,
+    private readonly scheduleService: SupplierPaymentSchedulesService,
+  ) {}
 
   @Get('purchases')
   @RequirePermissions('purchases')
@@ -48,6 +53,22 @@ export class PurchasesController {
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     return this.purchasesService.cancelPurchase(id, String(body?.reason || ''), req.authContext!);
+  }
+
+  @Get('purchases/:id/payment-schedule')
+  @RequirePermissions('purchases')
+  listPurchasePaymentSchedule(@Param('id', ParseIntPipe) id: number): Promise<Record<string, unknown>> {
+    return this.scheduleService.listForPurchase(id);
+  }
+
+  @Post('purchases/:id/payment-schedule')
+  @RequirePermissions('accounts')
+  createPurchasePaymentSchedule(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: CreateSupplierPaymentScheduleDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.scheduleService.createForPurchase(id, payload, req.authContext!);
   }
 
   @Get('supplier-payments')
