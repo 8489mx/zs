@@ -1,13 +1,15 @@
 ﻿import type { HrEmployee } from '@/types/domain';
 
-export type ReportType = 'all' | 'employees' | 'attendance' | 'leaves' | 'payroll' | 'alerts';
+export type ReportType = 'all' | 'employees' | 'attendance' | 'leaves' | 'loans' | 'payroll' | 'assets' | 'alerts';
 
 export const reportTypeOptions: Array<{ value: ReportType; label: string }> = [
   { value: 'all', label: 'الكل' },
-  { value: 'employees', label: 'الموظفين' },
+  { value: 'employees', label: 'الموظفون' },
   { value: 'attendance', label: 'الحضور' },
   { value: 'leaves', label: 'الإجازات' },
+  { value: 'loans', label: 'السلف' },
   { value: 'payroll', label: 'المرتبات' },
+  { value: 'assets', label: 'العُهد' },
   { value: 'alerts', label: 'التنبيهات' },
 ];
 
