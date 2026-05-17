@@ -1,5 +1,5 @@
 :root {
-  --z-erp-approved-logo: url("data:image/webp;base64,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");
+  --z-erp-approved-logo: url('/brand/z-erp-approved-icon.svg');
 }
 
 .z-erp-icon {
@@ -49,20 +49,25 @@
 }
 
 .brand {
-  min-height: 86px;
+  min-height: 78px;
+  gap: 8px;
+  padding: 8px 8px;
 }
 
 .brand-copy {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
+  gap: 2px;
 }
 
 .brand-logo {
   position: relative;
-  width: 74px;
-  height: 77px;
-  border-radius: 20px;
+  width: 58px;
+  height: 60px;
+  border-radius: 18px;
   overflow: visible;
+  flex: 0 0 58px;
   background: transparent;
   color: transparent;
   box-shadow: none;
@@ -89,40 +94,39 @@
 }
 
 .brand-title {
-  font-size: 14px;
-  line-height: 1.2;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .brand-copy .brand-sub {
-  font-size: 0;
+  width: 100%;
+  font-size: 10px;
+  color: #475569;
+  font-weight: 800;
   line-height: 1.2;
+  text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.brand-copy .brand-sub::after {
-  content: 'Z ERP';
-  display: block;
-  color: #1e293b;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.brand-copy .brand-sub.muted::after {
-  content: 'نظام إدارة المبيعات والمخزون';
+.brand-copy .brand-sub.muted {
   color: #64748b;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0;
-  white-space: nowrap;
+  letter-spacing: -0.02em;
 }
 
 .pos-title-brand-mark {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
+  min-height: 42px;
   padding: 4px 11px 4px 5px;
   border: 1px solid rgba(203, 213, 225, 0.72);
   border-radius: 999px;
@@ -150,16 +154,17 @@
 
 @media (max-width: 820px) {
   .brand {
-    min-height: 78px;
+    min-height: 74px;
   }
 
   .brand-logo {
-    width: 62px;
-    height: 65px;
+    width: 54px;
+    height: 56px;
+    flex-basis: 54px;
   }
 
-  .brand-copy .brand-sub.muted::after {
-    font-size: 8.5px;
+  .brand-copy .brand-sub.muted {
+    font-size: 8px;
   }
 
   .pos-title-brand-mark strong {
