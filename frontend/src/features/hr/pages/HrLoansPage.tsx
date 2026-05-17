@@ -74,7 +74,7 @@ export function HrLoansPage() {
   const [loanDraft, setLoanDraft] = useState<LoanDraft>(createInitialLoanDraft);
   const [formError, setFormError] = useState('');
   const [selectedLoanForRepayment, setSelectedLoanForRepayment] = useState<string>('');
-  const [repaymentDraft, setRepaymentDraft] = useState<RepaymentDraft>({ amount: '', method: '', notes: '' });
+  const [repaymentDraft, setRepaymentDraft] = useState<RepaymentDraft>({ amount: '', method: 'manual_cash', notes: '' });
   const [repaymentError, setRepaymentError] = useState('');
 
   const workspace = useHrWorkspace({ search, page, pageSize });
@@ -196,21 +196,32 @@ export function HrLoansPage() {
     if (!selectedRepaymentLoan?.id) return;
 
     const amount = parsePositiveNumber(repaymentDraft.amount);
+    const remainingAmount = Number(selectedRepaymentLoan.remainingAmount || 0);
     if (!(amount > 0)) {
       setRepaymentError('قيمة السداد مطلوبة.');
       return;
     }
+    if (!(remainingAmount > 0)) {
+      setRepaymentError('لا يوجد مبلغ متبقٍ على هذه السلفة.');
+      return;
+    }
+    if (amount > remainingAmount) {
+      setRepaymentError(`قيمة السداد لا يمكن أن تكون أكبر من المتبقي (${money(remainingAmount)}).`);
+      return;
+    }
+
+    const repaymentMethod = String(repaymentDraft.method || 'manual_cash').trim();
 
     try {
       await mutations.repayLoan.mutateAsync({
         id: String(selectedRepaymentLoan.id),
         payload: {
           amount,
-          repaymentMethod: String(repaymentDraft.method || '').trim() || undefined,
-          notes: String(repaymentDraft.notes || '').trim() || undefined,
+          repaymentMethod: repaymentMethod === 'salary_deduction' ? 'salary_deduction' : 'manual_cash',
+          note: String(repaymentDraft.notes || '').trim() || undefined,
         },
       });
-      setRepaymentDraft({ amount: '', method: '', notes: '' });
+      setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' });
       setSelectedLoanForRepayment('');
     } catch (error) {
       setRepaymentError(getErrorMessage(error, 'تعذر تسجيل السداد.'));
@@ -399,7 +410,10 @@ export function HrLoansPage() {
               onSubmit={() => {
                 void handleRepay();
               }}
-              onCancel={() => setSelectedLoanForRepayment('')}
+              onCancel={() => {
+                setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' });
+                setSelectedLoanForRepayment('');
+              }}
             />
           ) : null}
         </QueryFeedback>
