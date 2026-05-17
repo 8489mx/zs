@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely } from '../../../database/kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
-import { CreateSupplierPaymentScheduleDto } from '../dto/supplier-payment-schedule.dto';
-import { normalizeOptionalNote } from '../helpers/purchases-write.helper';
+import { CreateSupplierPaymentScheduleDto, PaySupplierScheduleInstallmentDto } from '../dto/supplier-payment-schedule.dto';
+import { normalizeOptionalNote, normalizePurchaseScope } from '../helpers/purchases-write.helper';
+import { PurchasesFinanceService } from './purchases-finance.service';
 
 type ScheduleRow = {
   id: number;
@@ -28,6 +29,7 @@ export class SupplierPaymentSchedulesService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
+    private readonly financeService: PurchasesFinanceService,
   ) {}
 
   private scheduleDb(db: Kysely<Database>): Kysely<ScheduleDatabase> {
@@ -59,7 +61,6 @@ export class SupplierPaymentSchedulesService {
     const safeTotal = this.roundCurrency(total);
     const step = Number(payload.roundingStep || 1);
     if (!(safeTotal > 0)) throw new AppError('Purchase total must be greater than zero', 'INVALID_PURCHASE_TOTAL', 400);
-
     if (payload.mode === 'count') {
       const count = Number(payload.installmentCount || 0);
       if (!(count > 0)) throw new AppError('Installment count is required', 'INSTALLMENT_COUNT_REQUIRED', 400);
@@ -70,7 +71,6 @@ export class SupplierPaymentSchedulesService {
       amounts[count - 1] = this.roundCurrency(safeTotal - amounts.slice(0, -1).reduce((sum, value) => sum + value, 0));
       return amounts;
     }
-
     const amount = this.roundDownToStep(Number(payload.installmentAmount || 0), step);
     if (!(amount > 0)) throw new AppError('Installment amount is required', 'INSTALLMENT_AMOUNT_REQUIRED', 400);
     const fullCount = Math.floor(safeTotal / amount);
@@ -103,12 +103,7 @@ export class SupplierPaymentSchedulesService {
   }
 
   async listForPurchase(purchaseId: number): Promise<Record<string, unknown>> {
-    const rows = await this.scheduleDb(this.db)
-      .selectFrom('supplier_payment_schedules')
-      .selectAll()
-      .where('purchase_id', '=', purchaseId)
-      .orderBy('installment_no asc')
-      .execute();
+    const rows = await this.scheduleDb(this.db).selectFrom('supplier_payment_schedules').selectAll().where('purchase_id', '=', purchaseId).orderBy('installment_no asc').execute();
     return { schedules: rows.map((row) => this.map(row as ScheduleRow)) };
   }
 
@@ -118,12 +113,10 @@ export class SupplierPaymentSchedulesService {
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be scheduled', 'PURCHASE_CANCELLED', 400);
       if (!purchase.supplier_id) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
-
       const amounts = this.buildAmounts(Number(purchase.total || 0), payload);
       const firstDueDate = this.parseDate(payload.firstDueDate);
       const intervalDays = Number(payload.intervalDays || 1);
       const db = this.scheduleDb(trx);
-
       await db.deleteFrom('supplier_payment_schedules').where('purchase_id', '=', purchaseId).execute();
       for (let index = 0; index < amounts.length; index += 1) {
         await db.insertInto('supplier_payment_schedules').values({
@@ -140,7 +133,32 @@ export class SupplierPaymentSchedulesService {
         }).execute();
       }
     });
+    return this.listForPurchase(purchaseId);
+  }
 
+  async payInstallment(installmentId: number, payload: PaySupplierScheduleInstallmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    let purchaseId = 0;
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const db = this.scheduleDb(trx);
+      const installment = await db.selectFrom('supplier_payment_schedules').selectAll().where('id', '=', installmentId).executeTakeFirst();
+      if (!installment) throw new AppError('Installment not found', 'INSTALLMENT_NOT_FOUND', 404);
+      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(installment.purchase_id)).executeTakeFirst();
+      if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', Number(installment.supplier_id)).executeTakeFirst();
+      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      const remaining = this.roundCurrency(Number(installment.amount || 0) - Number(installment.paid_amount || 0));
+      const amount = this.roundCurrency(Number(payload.amount || remaining));
+      if (!(amount > 0)) throw new AppError('Payment amount must be greater than zero', 'INVALID_AMOUNT', 400);
+      if (amount > remaining + 0.0001) throw new AppError('Payment exceeds installment remaining amount', 'INSTALLMENT_OVERPAYMENT', 400);
+      const paidAmount = this.roundCurrency(Number(installment.paid_amount || 0) + amount);
+      const status = paidAmount >= Number(installment.amount || 0) - 0.0001 ? 'paid' : 'partial';
+      const { branchId, locationId } = normalizePurchaseScope({ branchId: payload.branchId ?? purchase.branch_id ?? undefined, locationId: payload.locationId ?? purchase.location_id ?? undefined });
+      const note = normalizeOptionalNote(payload.note) || `دفعة ${installment.installment_no} لفاتورة ${purchase.doc_no || purchase.id}`;
+      await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).execute();
+      await this.financeService.addSupplierLedgerEntry(trx, Number(supplier.id), -amount, `دفع مجدول إلى ${supplier.name} - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفع مجدول إلى ${supplier.name} - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
+      purchaseId = Number(installment.purchase_id);
+    });
     return this.listForPurchase(purchaseId);
   }
 }
