@@ -22,8 +22,6 @@ type ScheduleRow = {
   paid_at: Date | null;
 };
 
-type ScheduleDatabase = Database & { supplier_payment_schedules: ScheduleRow };
-
 @Injectable()
 export class SupplierPaymentSchedulesService {
   constructor(
@@ -32,8 +30,8 @@ export class SupplierPaymentSchedulesService {
     private readonly financeService: PurchasesFinanceService,
   ) {}
 
-  private scheduleDb(db: Kysely<Database>): Kysely<ScheduleDatabase> {
-    return db as unknown as Kysely<ScheduleDatabase>;
+  private scheduleDb(db: Kysely<Database>): Kysely<any> {
+    return db as unknown as Kysely<any>;
   }
 
   private roundCurrency(value: number): number {
