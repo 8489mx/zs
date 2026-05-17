@@ -10,6 +10,7 @@ import { SubmitButton } from '@/shared/components/submit-button';
 import { formatDate } from '@/lib/format';
 import type { DamagedStockRecord, StockCountSession } from '@/types/domain';
 import { quantityTone } from '@/features/inventory/components/sections/InventoryMonitorCards.shared';
+import { getSessionStatusLabel, summarizeSessionVariance } from '@/features/inventory/components/sections/stockCountMonitor.helpers';
 
 interface StockCountMonitorCardProps {
   canReviewStock: boolean;
@@ -45,45 +46,6 @@ interface StockCountMonitorCardProps {
   selectedSessionIds?: string[];
   onSelectedSessionIdsChange?: (ids: string[]) => void;
   onPostSelectedSessions?: () => void;
-}
-
-type SessionVarianceSummary = {
-  itemsCount: number;
-  varianceItemsCount: number;
-  totalVariance: number;
-  totalAbsoluteVariance: number;
-  hasVariance: boolean;
-};
-
-function getSessionStatusLabel(status?: string | null) {
-  const normalized = String(status || '').toLowerCase();
-  if (normalized === 'draft') return 'مسودة / بانتظار المراجعة';
-  if (normalized === 'posted') return 'معتمد';
-  if (normalized === 'cancelled' || normalized === 'canceled') return 'ملغي';
-  return status || '—';
-}
-
-function summarizeSessionVariance(session: StockCountSession): SessionVarianceSummary {
-  const items = Array.isArray(session.items) ? session.items : [];
-  const itemsCount = items.length;
-  let varianceItemsCount = 0;
-  let totalVariance = 0;
-  let totalAbsoluteVariance = 0;
-
-  for (const item of items) {
-    const variance = Number(item.varianceQty || 0);
-    totalVariance += variance;
-    totalAbsoluteVariance += Math.abs(variance);
-    if (Math.abs(variance) > 0) varianceItemsCount += 1;
-  }
-
-  return {
-    itemsCount,
-    varianceItemsCount,
-    totalVariance: Number(totalVariance.toFixed(3)),
-    totalAbsoluteVariance: Number(totalAbsoluteVariance.toFixed(3)),
-    hasVariance: varianceItemsCount > 0,
-  };
 }
 
 export function StockCountMonitorCard({
@@ -210,14 +172,7 @@ export function StockCountMonitorCard({
               rowTitle={(session) => `فتح جلسة الجرد ${session.docNo || session.id}`}
               density="compact"
               selection={tableSelection}
-              pagination={{
-                page,
-                pageSize,
-                onPageChange,
-                onPageSizeChange,
-                totalItems,
-                itemLabel: 'جلسة',
-              }}
+              pagination={{ page, pageSize, onPageChange, onPageSizeChange, totalItems, itemLabel: 'جلسة' }}
               columns={[
                 {
                   key: 'doc',
@@ -230,11 +185,7 @@ export function StockCountMonitorCard({
                     </div>
                   ),
                 },
-                {
-                  key: 'status',
-                  header: 'الحالة',
-                  cell: (session) => <span className="nav-pill">{getSessionStatusLabel(session.status)}</span>,
-                },
+                { key: 'status', header: 'الحالة', cell: (session) => <span className="nav-pill">{getSessionStatusLabel(session.status)}</span> },
                 {
                   key: 'summary',
                   header: 'ملخص المراجعة',
@@ -243,12 +194,7 @@ export function StockCountMonitorCard({
                     return (
                       <div className="muted small">
                         <div>عدد البنود: {summary.itemsCount}</div>
-                        {canReviewStock ? (
-                          <>
-                            <div>بنود بفروقات: {summary.varianceItemsCount}</div>
-                            <div>إجمالي الفروقات المطلقة: {summary.totalAbsoluteVariance}</div>
-                          </>
-                        ) : null}
+                        {canReviewStock ? <><div>بنود بفروقات: {summary.varianceItemsCount}</div><div>إجمالي الفروقات المطلقة: {summary.totalAbsoluteVariance}</div></> : null}
                       </div>
                     );
                   },
@@ -261,9 +207,7 @@ export function StockCountMonitorCard({
                     return (
                       <div className="actions compact-actions">
                         <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onSelectSession(String(session.id)); }}>التفاصيل</Button>
-                        {canReviewStock && session.status === 'draft' && onPostSession ? (
-                          <SubmitButton type="button" onClick={() => onPostSession(session.id)} disabled={postPending} idleText="اعتماد الجلسة" pendingText="جارٍ الاعتماد..." />
-                        ) : null}
+                        {canReviewStock && session.status === 'draft' && onPostSession ? <SubmitButton type="button" onClick={() => onPostSession(session.id)} disabled={postPending} idleText="اعتماد الجلسة" pendingText="جارٍ الاعتماد..." /> : null}
                         {canReviewStock && session.status === 'posted' ? <span className="muted small">تم اعتماد الجلسة</span> : null}
                         {!canReviewStock ? <span className="muted small">بانتظار مراجعة مخول</span> : null}
                         {canReviewStock && summary.hasVariance ? <span className={`delta-chip ${quantityTone(summary.totalVariance)}`}>{summary.totalVariance > 0 ? '+' : ''}{summary.totalVariance}</span> : null}
@@ -279,10 +223,7 @@ export function StockCountMonitorCard({
             {selectedSession ? (
               <div className="section-stack">
                 <div className="detail-panel-header">
-                  <div>
-                    <h3 className="detail-panel-title">{selectedSession.docNo || selectedSession.id}</h3>
-                    <div className="detail-panel-subtitle">مراجعة مفصلة لبنود الجرد قبل الاعتماد.</div>
-                  </div>
+                  <div><h3 className="detail-panel-title">{selectedSession.docNo || selectedSession.id}</h3><div className="detail-panel-subtitle">مراجعة مفصلة لبنود الجرد قبل الاعتماد.</div></div>
                   <span className="nav-pill">{getSessionStatusLabel(selectedSession.status)}</span>
                 </div>
 
@@ -298,105 +239,34 @@ export function StockCountMonitorCard({
                   {canReviewStock ? <div className="detail-item"><div className="detail-label">اعتمده</div><div className="detail-value">{selectedSession.approvedBy || '—'}</div></div> : null}
                 </div>
 
-                {canReviewStock && selectedSummary?.hasVariance ? (
-                  <div className="surface-note" style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
-                    توجد فروقات في هذه الجلسة. راجع البنود قبل اعتماد الجلسة.
-                  </div>
-                ) : null}
-                {canReviewStock && !selectedSummary?.hasVariance ? (
-                  <div className="success-box">لا توجد فروقات في هذه الجلسة.</div>
-                ) : null}
-
+                {canReviewStock && selectedSummary?.hasVariance ? <div className="surface-note" style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.2)' }}>توجد فروقات في هذه الجلسة. راجع البنود قبل اعتماد الجلسة.</div> : null}
+                {canReviewStock && !selectedSummary?.hasVariance ? <div className="success-box">لا توجد فروقات في هذه الجلسة.</div> : null}
                 <div className="surface-note">{selectedSession.note || 'لا توجد ملاحظات مسجلة على جلسة الجرد.'}</div>
 
                 <div className="detail-table-wrap">
                   {(selectedSession.items || []).length ? (
                     canReviewStock ? (
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>الصنف</th>
-                            <th>المتوقع</th>
-                            <th>المعدود</th>
-                            <th>الفرق</th>
-                            <th>السبب</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(selectedSession.items || []).map((item) => {
-                            const variance = Number(item.varianceQty || 0);
-                            const hasVariance = Math.abs(variance) > 0;
-                            return (
-                              <tr key={item.id || `${selectedSession.id}-${item.productId}`} style={hasVariance ? { background: 'rgba(245, 158, 11, 0.08)' } : undefined}>
-                                <td>{item.productName || '—'}</td>
-                                <td>{item.expectedQty}</td>
-                                <td>{item.countedQty}</td>
-                                <td>
-                                  <span className={`delta-chip ${quantityTone(variance)}`}>
-                                    {variance > 0 ? '+' : ''}
-                                    {item.varianceQty}
-                                  </span>
-                                </td>
-                                <td>{item.reason || '—'}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                      <table><thead><tr><th>الصنف</th><th>المتوقع</th><th>المعدود</th><th>الفرق</th><th>السبب</th></tr></thead><tbody>{(selectedSession.items || []).map((item) => { const variance = Number(item.varianceQty || 0); const hasVariance = Math.abs(variance) > 0; return <tr key={item.id || `${selectedSession.id}-${item.productId}`} style={hasVariance ? { background: 'rgba(245, 158, 11, 0.08)' } : undefined}><td>{item.productName || '—'}</td><td>{item.expectedQty}</td><td>{item.countedQty}</td><td><span className={`delta-chip ${quantityTone(variance)}`}>{variance > 0 ? '+' : ''}{item.varianceQty}</span></td><td>{item.reason || '—'}</td></tr>; })}</tbody></table>
                     ) : (
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>الصنف</th>
-                            <th>المعدود</th>
-                            <th>السبب</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(selectedSession.items || []).map((item) => (
-                            <tr key={item.id || `${selectedSession.id}-${item.productId}`}>
-                              <td>{item.productName || '—'}</td>
-                              <td>{item.countedQty}</td>
-                              <td>{item.reason || '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <table><thead><tr><th>الصنف</th><th>المعدود</th><th>السبب</th></tr></thead><tbody>{(selectedSession.items || []).map((item) => <tr key={item.id || `${selectedSession.id}-${item.productId}`}><td>{item.productName || '—'}</td><td>{item.countedQty}</td><td>{item.reason || '—'}</td></tr>)}</tbody></table>
                     )
-                  ) : (
-                    <EmptyState title="لا توجد بنود مسجلة في هذه الجلسة." />
-                  )}
+                  ) : <EmptyState title="لا توجد بنود مسجلة في هذه الجلسة." />}
                 </div>
 
-                {canReviewStock ? (
-                  <div className="surface-note">بعد الاعتماد سيتم إنشاء حركات تسوية للمخزون حسب الفروقات.</div>
-                ) : (
-                  <div className="surface-note">هذه الجلسة بانتظار مراجعة مستخدم لديه صلاحية اعتماد/تسوية المخزون.</div>
-                )}
-
+                {canReviewStock ? <div className="surface-note">بعد الاعتماد سيتم إنشاء حركات تسوية للمخزون حسب الفروقات.</div> : <div className="surface-note">هذه الجلسة بانتظار مراجعة مستخدم لديه صلاحية اعتماد/تسوية المخزون.</div>}
                 <div className="actions compact-actions">
                   <Button variant="secondary" onClick={onCopySessionDetails}>نسخ التفاصيل</Button>
                   <Button variant="secondary" onClick={() => onPrintSession(selectedSession)}>طباعة الجلسة</Button>
-                  {canReviewStock && selectedSession.status === 'draft' && onPostSession ? (
-                    <SubmitButton type="button" onClick={() => onPostSession(selectedSession.id)} disabled={postPending} idleText="اعتماد الجلسة" pendingText="جارٍ الاعتماد..." />
-                  ) : null}
+                  {canReviewStock && selectedSession.status === 'draft' && onPostSession ? <SubmitButton type="button" onClick={() => onPostSession(selectedSession.id)} disabled={postPending} idleText="اعتماد الجلسة" pendingText="جارٍ الاعتماد..." /> : null}
                   {canReviewStock && selectedSession.status === 'posted' ? <span className="muted small">تم اعتماد الجلسة</span> : null}
                 </div>
               </div>
-            ) : (
-              <EmptyState title="اختر جلسة جرد لعرض التفاصيل" hint="عند تحديد جلسة ستظهر البنود والملخص هنا." />
-            )}
+            ) : <EmptyState title="اختر جلسة جرد لعرض التفاصيل" hint="عند تحديد جلسة ستظهر البنود والملخص هنا." />}
           </div>
         </div>
       </QueryFeedback>
 
-      <MutationFeedback
-        isError={Boolean(transferError) || Boolean(postError)}
-        isSuccess={transferSuccess || postSuccess}
-        error={transferError || postError}
-        errorFallback="تعذر تنفيذ العملية"
-        successText="تم تنفيذ العملية بنجاح."
-      />
+      <MutationFeedback isError={Boolean(transferError) || Boolean(postError)} isSuccess={transferSuccess || postSuccess} error={transferError || postError} errorFallback="تعذر تنفيذ العملية" successText="تم تنفيذ العملية بنجاح." />
     </Card>
   );
 }
