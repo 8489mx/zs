@@ -15,6 +15,7 @@ interface StockCountSheetToolsProps {
   items: StockCountItem[];
   countType: CountScope;
   selectedProduct?: Product;
+  selectedCategoryId?: string;
   locationName?: string;
   isCountStarted: boolean;
   onItemsChange: (updater: (current: StockCountItem[]) => StockCountItem[]) => void;
@@ -51,6 +52,7 @@ export function StockCountSheetTools({
   items,
   countType,
   selectedProduct,
+  selectedCategoryId,
   locationName,
   isCountStarted,
   onItemsChange,
@@ -60,12 +62,13 @@ export function StockCountSheetTools({
   const scopeProducts = useMemo(() => {
     if (countType === 'full') return products;
     if (countType === 'category') {
-      if (!selectedProduct?.categoryId) return [];
-      return products.filter((product) => product.categoryId === selectedProduct.categoryId);
+      const categoryId = selectedCategoryId || selectedProduct?.categoryId || '';
+      if (!categoryId) return [];
+      return products.filter((product) => String(product.categoryId || '') === String(categoryId));
     }
     if (selectedProduct) return [selectedProduct];
     return [];
-  }, [countType, products, selectedProduct]);
+  }, [countType, products, selectedCategoryId, selectedProduct]);
 
   const sheetRows = useMemo(() => {
     if (countType === 'full' || countType === 'category') return scopeProducts.map(productToRow);
@@ -87,8 +90,8 @@ export function StockCountSheetTools({
   }, [countType, items, products, scopeProducts]);
 
   const disabled = !isCountStarted || !sheetRows.length;
-  const helperText = countType === 'category' && !selectedProduct
-    ? 'اختر صنفًا من القسم المطلوب أولًا حتى نجهز شيت أصناف نفس القسم.'
+  const helperText = countType === 'category' && !selectedCategoryId && !selectedProduct
+    ? 'اختر القسم المطلوب حتى نجهز شيت أصناف هذا القسم.'
     : disabled
       ? 'ابدأ الجرد واختر النطاق أو الصنف أولًا.'
       : `جاهز ${sheetRows.length} صنف للطباعة أو التصدير أو الإدخال الإلكتروني.`;
