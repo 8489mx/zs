@@ -34,6 +34,10 @@ export class SupplierPaymentSchedulesService {
     return db as unknown as Kysely<any>;
   }
 
+  private ensureCredit(paymentType: unknown): void {
+    if (String(paymentType || '') !== 'credit') throw new AppError('Schedule is only available for credit purchases', 'PURCHASE_SCHEDULE_CREDIT_ONLY', 400);
+  }
+
   private roundCurrency(value: number): number {
     return Number(Number(value || 0).toFixed(2));
   }
@@ -110,6 +114,7 @@ export class SupplierPaymentSchedulesService {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be scheduled', 'PURCHASE_CANCELLED', 400);
+      this.ensureCredit(purchase.payment_type);
       if (!purchase.supplier_id) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
       const amounts = this.buildAmounts(Number(purchase.total || 0), payload);
       const firstDueDate = this.parseDate(payload.firstDueDate);
@@ -142,6 +147,7 @@ export class SupplierPaymentSchedulesService {
       if (!installment) throw new AppError('Installment not found', 'INSTALLMENT_NOT_FOUND', 404);
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(installment.purchase_id)).executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
+      this.ensureCredit(purchase.payment_type);
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', Number(installment.supplier_id)).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const remaining = this.roundCurrency(Number(installment.amount || 0) - Number(installment.paid_amount || 0));
@@ -151,10 +157,10 @@ export class SupplierPaymentSchedulesService {
       const paidAmount = this.roundCurrency(Number(installment.paid_amount || 0) + amount);
       const status = paidAmount >= Number(installment.amount || 0) - 0.0001 ? 'paid' : 'partial';
       const { branchId, locationId } = normalizePurchaseScope({ branchId: payload.branchId ?? purchase.branch_id ?? undefined, locationId: payload.locationId ?? purchase.location_id ?? undefined });
-      const note = normalizeOptionalNote(payload.note) || `دفعة ${installment.installment_no} لفاتورة ${purchase.doc_no || purchase.id}`;
+      const note = normalizeOptionalNote(payload.note) || `Installment ${installment.installment_no} for purchase ${purchase.doc_no || purchase.id}`;
       await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).execute();
-      await this.financeService.addSupplierLedgerEntry(trx, Number(supplier.id), -amount, `دفع مجدول إلى ${supplier.name} - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفع مجدول إلى ${supplier.name} - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
+      await this.financeService.addSupplierLedgerEntry(trx, Number(supplier.id), -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
       purchaseId = Number(installment.purchase_id);
     });
     return this.listForPurchase(purchaseId);
