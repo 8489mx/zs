@@ -137,6 +137,20 @@ export function StockCountComposerCard({
 }: StockCountComposerCardProps) {
   const warehouseList = warehouses || locations || [];
   const selectedLocation = warehouseList.find((location) => String(location.id) === String(form.locationId));
+  const categoryOptions = useMemo(() => {
+    const unique = new Map<string, { id: string; label: string; count: number }>();
+    products.forEach((product) => {
+      const id = String(product.categoryId || '').trim();
+      if (!id) return;
+      const current = unique.get(id);
+      unique.set(id, {
+        id,
+        label: current?.label || `قسم ${id}`,
+        count: (current?.count || 0) + 1,
+      });
+    });
+    return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label, 'ar'));
+  }, [products]);
   const countTypeOptions: Array<{ key: StockCountType; label: string; description: string }> = useMemo(() => ([
     {
       key: 'quick',
@@ -151,7 +165,7 @@ export function StockCountComposerCard({
     {
       key: 'category',
       label: 'جرد قسم / تصنيف',
-      description: 'اختر أي صنف من القسم المطلوب ثم اطبع شيت عد لأصناف نفس القسم.',
+      description: 'اختر القسم مباشرة ثم اطبع شيت عد أو افتح الإدخال الإلكتروني لأصناف هذا القسم.',
     },
     {
       key: 'full',
@@ -160,6 +174,7 @@ export function StockCountComposerCard({
     },
   ]), []);
   const [countType, setCountType] = useState<StockCountType>('quick');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [isCountStarted, setIsCountStarted] = useState(false);
   const [startCountMessage, setStartCountMessage] = useState('');
   const selectedProduct = products.find((product) => String(product.id) === String(form.productId));
@@ -180,9 +195,15 @@ export function StockCountComposerCard({
   }, [form.locationId]);
 
   useEffect(() => {
+    if (countType !== 'category') setSelectedCategoryId('');
+    onItemsChange(() => []);
+  }, [countType, onItemsChange]);
+
+  useEffect(() => {
     if (isSuccess) {
       setIsCountStarted(false);
       setCountType('quick');
+      setSelectedCategoryId('');
       setStartCountMessage('');
     }
   }, [isSuccess]);
@@ -192,12 +213,17 @@ export function StockCountComposerCard({
       setStartCountMessage('اختر المخزن أولًا قبل بدء الجرد.');
       return;
     }
+    if (countType === 'category' && !selectedCategoryId) {
+      setStartCountMessage('اختر القسم المطلوب قبل بدء جرد القسم.');
+      return;
+    }
     setStartCountMessage('');
     setIsCountStarted(true);
   }
 
   function buildSessionNoteWithType(baseNote: string) {
-    const line = `نوع الجرد: ${selectedCountType.label}`;
+    const categoryLabel = categoryOptions.find((category) => category.id === selectedCategoryId)?.label;
+    const line = `نوع الجرد: ${selectedCountType.label}${categoryLabel ? ` - ${categoryLabel}` : ''}`;
     const trimmedBase = String(baseNote || '').trim();
     if (!trimmedBase) return line;
     if (trimmedBase.includes(line)) return trimmedBase;
@@ -248,6 +274,14 @@ export function StockCountComposerCard({
           </div>
           <div className="muted small" style={{ marginTop: 8 }}>{selectedCountType.description}</div>
         </Field>
+        {countType === 'category' ? (
+          <Field label="القسم / التصنيف">
+            <select value={selectedCategoryId} onChange={(e) => { setSelectedCategoryId(e.target.value); onItemsChange(() => []); }}>
+              <option value="">اختر القسم</option>
+              {categoryOptions.map((category) => <option key={category.id} value={category.id}>{category.label} ({category.count})</option>)}
+            </select>
+          </Field>
+        ) : null}
         <div className="field">
           <span>بدء الجرد</span>
           <div className="actions compact-actions">
@@ -258,7 +292,7 @@ export function StockCountComposerCard({
           {startCountMessage ? <div className="muted small" style={{ marginTop: 8 }}>{startCountMessage}</div> : null}
           {needsManualNote && isCountStarted ? (
             <div className="surface-note" style={{ marginTop: 10 }}>
-              جهّز شيت العد أولًا، وبعد العد الفعلي أضف الأصناف التي ظهر بها فرق إلى الجلسة.
+              جهّز شيت العد أولًا، أو استخدم الإدخال الإلكتروني لتجهيز أصناف النطاق داخل الجلسة.
             </div>
           ) : null}
         </div>
@@ -267,6 +301,7 @@ export function StockCountComposerCard({
           items={items}
           countType={countType}
           selectedProduct={selectedProduct}
+          selectedCategoryId={selectedCategoryId}
           locationName={selectedLocation?.name}
           isCountStarted={isCountStarted}
           onItemsChange={onItemsChange}
@@ -279,7 +314,7 @@ export function StockCountComposerCard({
             showStock
             showPrice={false}
             disabled={!isCountStarted}
-            helperText={isCountStarted ? 'اختر صنفًا لإدخال كمية العد أو لتجهيز شيت قسمه.' : 'ابدأ الجرد أولًا ثم اختر الصنف.'}
+            helperText={isCountStarted ? 'اختر صنفًا لإدخال كمية العد أو لاستخدامه في الجرد السريع.' : 'ابدأ الجرد أولًا ثم اختر الصنف.'}
           />
         </Field>
         <Field label="الكمية المعدودة">
