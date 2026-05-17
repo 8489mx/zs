@@ -53,9 +53,37 @@ const dashboardOverview = {
   },
 };
 
-const { useDashboardOverviewMock, useManagerActionsMock } = vi.hoisted(() => ({
+const managerOverview = {
+  salesLast30: { total: 12500, count: 25, averageInvoice: 500, previousTotal: 10000, comparisonPercent: 25 },
+  profitSummary: { netSales: 12000, cogs: 7200, grossProfit: 4800, expenses: 1300, netProfit: 3500 },
+  profitSources: { topProducts: [], topCategories: [], weakMarginHighSales: [] },
+  stagnant: {
+    days30: 2,
+    days60: 1,
+    days90: 1,
+    inventoryValue: 2400,
+    items: [{ productId: 'p3', name: 'جاكيت قديم', categoryName: 'ملابس', stockQty: 6, costPrice: 400, inventoryValue: 2400, daysWithoutSales: 95 }],
+  },
+  buying: {
+    outOfStock: [],
+    lowStock: [],
+    priority: [{ productId: 'p1', name: 'قميص رجالي', categoryName: 'ملابس', stockQty: 1, minStockQty: 5, soldQty30: 20, daysToRunOut: 1.5, grossProfit: 1800, marginPercent: 45 }],
+  },
+  collection: {
+    topDebts: [{ customerId: 'cust-1', name: 'عميل الآجل', balance: 3000, creditLimit: 2500, creditUsagePercent: 120 }],
+    aboveCreditLimit: [{ customerId: 'cust-1', name: 'عميل الآجل', balance: 3000, creditLimit: 2500, creditUsagePercent: 120 }],
+    nearCreditLimit: [],
+  },
+};
+
+const { useDashboardManagerOverviewMock, useDashboardOverviewMock, useManagerActionsMock } = vi.hoisted(() => ({
+  useDashboardManagerOverviewMock: vi.fn(),
   useDashboardOverviewMock: vi.fn(),
   useManagerActionsMock: vi.fn(),
+}));
+
+vi.mock('@/features/dashboard/hooks/useDashboardManagerOverview', () => ({
+  useDashboardManagerOverview: useDashboardManagerOverviewMock,
 }));
 
 vi.mock('@/features/dashboard/hooks/useDashboardOverview', () => ({
@@ -75,7 +103,7 @@ vi.mock('@/shared/system/first-run-setup-checklist', () => ({
 }));
 
 describe('Dashboard daily home layout', () => {
-  it('renders a focused daily dashboard without long report sections', () => {
+  it('renders a focused daily dashboard with daily decision cards and without long report sections', () => {
     useDashboardOverviewMock.mockReturnValue({
       data: dashboardOverview,
       isLoading: false,
@@ -88,12 +116,21 @@ describe('Dashboard daily home layout', () => {
       isError: false,
       error: null,
     });
+    useDashboardManagerOverviewMock.mockReturnValue({
+      data: managerOverview,
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
 
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
     expect(screen.getByRole('button', { name: 'تنبيهات المدير' })).toBeInTheDocument();
     expect(screen.getByText('موجز المدير اليومي')).toBeInTheDocument();
     expect(screen.getByText('البيع والخزينة')).toBeInTheDocument();
+    expect(screen.getByText('إيه أشتريه؟')).toBeInTheDocument();
+    expect(screen.getByText('إيه الراكد؟')).toBeInTheDocument();
+    expect(screen.getByText('إيه أُحصّله؟')).toBeInTheDocument();
     expect(screen.getByText('ملخص اليوم')).toBeInTheDocument();
     expect(screen.getByText('تنبيهات سريعة')).toBeInTheDocument();
     expect(screen.getByText('أعلى أصناف اليوم')).toBeInTheDocument();
@@ -102,9 +139,6 @@ describe('Dashboard daily home layout', () => {
     expect(screen.queryByText('مبيعات آخر 30 يوم')).not.toBeInTheDocument();
     expect(screen.queryByText('صافي الربح')).not.toBeInTheDocument();
     expect(screen.queryByText('بيكسب منين؟')).not.toBeInTheDocument();
-    expect(screen.queryByText('إيه الراكد؟')).not.toBeInTheDocument();
-    expect(screen.queryByText('إيه أشتريه؟')).not.toBeInTheDocument();
-    expect(screen.queryByText('إيه أُحصّله؟')).not.toBeInTheDocument();
     expect(screen.getAllByText('لا توجد تنبيهات حرجة حاليًا').length).toBeGreaterThan(0);
   });
 
@@ -128,6 +162,12 @@ describe('Dashboard daily home layout', () => {
           actionHref: '/inventory',
         }],
       },
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+    useDashboardManagerOverviewMock.mockReturnValue({
+      data: managerOverview,
       isLoading: false,
       isError: false,
       error: null,
