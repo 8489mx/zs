@@ -59,6 +59,18 @@ export class PurchasesController {
     return this.scheduleService.createForPurchase(id, payload, req.authContext!);
   }
 
+  @Get('suppliers/:id/payment-schedule')
+  @RequirePermissions('accounts')
+  listSupplierPaymentSchedule(@Param('id', ParseIntPipe) id: number): Promise<Record<string, unknown>> {
+    return this.scheduleService.listForSupplier(id);
+  }
+
+  @Post('suppliers/:id/payment-schedule')
+  @RequirePermissions('accounts')
+  createSupplierPaymentSchedule(@Param('id', ParseIntPipe) id: number, @Body() payload: CreateSupplierPaymentScheduleDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.scheduleService.createForSupplier(id, payload, req.authContext!);
+  }
+
   @Post('supplier-payment-schedules/:id/settle')
   @RequirePermissions('accounts')
   settleSupplierSchedule(@Param('id', ParseIntPipe) id: number, @Body() payload: PaySupplierScheduleInstallmentDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
