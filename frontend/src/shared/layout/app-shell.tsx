@@ -246,9 +246,9 @@ export function AppShell({ children }: PropsWithChildren) {
     ];
     const labelOverrides: Record<string, string> = {
       dashboard: 'الرئيسية',
-      pos: 'الكاشير',
+      pos: 'نقطة البيع',
       sales: 'سجل الفواتير',
-      'cash-drawer': 'وردية الكاشير',
+      'cash-drawer': 'وردية نقطة البيع',
       accounts: 'الحسابات',
       treasury: 'الخزينة',
       services: 'الخدمات',
