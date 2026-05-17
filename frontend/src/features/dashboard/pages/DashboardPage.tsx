@@ -3,11 +3,13 @@ import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { CompactFirstRunSetupPrompt } from '@/shared/system/compact-first-run-setup-prompt';
 import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
+import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
 import { DashboardHeroSection } from '@/features/dashboard/components/DashboardHeroSection';
 import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardSummaryGrid';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
+import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
 import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
 import {
   buildDashboardAlerts,
@@ -18,6 +20,7 @@ import {
 export function DashboardPage() {
   const overview = useDashboardOverview();
   const managerActions = useManagerActions(4);
+  const managerOverview = useDashboardManagerOverview();
 
   if (overview.isLoading && !overview.data) {
     return (
@@ -72,6 +75,13 @@ export function DashboardPage() {
         todaySalesAmount={Number(stats.todaySalesAmount || 0)}
         treasuryNet={Number(summary.treasury.net || 0)}
         netOperatingProfit={Number(summary.commercial.netOperatingProfit || 0)}
+      />
+
+      <DashboardDailyDecisionGrid
+        data={managerOverview.data}
+        isLoading={managerOverview.isLoading}
+        isError={managerOverview.isError}
+        error={managerOverview.error}
       />
 
       <DashboardSummaryGrid
