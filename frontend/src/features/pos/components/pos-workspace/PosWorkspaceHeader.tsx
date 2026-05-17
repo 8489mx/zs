@@ -40,14 +40,15 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
     <PageHeader
       title="الكاشير"
       description={buildDescription(pos)}
-      badge={<span className="nav-pill">نقطة البيع</span>}
+      badge={(
+        <span className="pos-title-brand-mark" aria-label="Z ERP">
+          <ZErpIcon size={28} />
+          <strong>Z ERP</strong>
+        </span>
+      )}
       className="page-header--dense pos-page-header pos-page-header-streamlined"
       actions={(
         <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single">
-          <span className="pos-header-brand-mark" aria-label="Z ERP">
-            <ZErpIcon size={26} />
-            <strong>Z ERP</strong>
-          </span>
           <span className="toolbar-meta-pill">{getShiftHeaderLabel(pos)}</span>
           <span className="toolbar-meta-pill">الدفع {paymentMode}</span>
 
