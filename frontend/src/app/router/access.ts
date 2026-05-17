@@ -36,6 +36,30 @@ const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/services': 'services',
   hr: 'hr',
   '/hr': 'hr',
+  'hr/employees': 'hrEmployees',
+  '/hr/employees': 'hrEmployees',
+  'hr/employees/new': 'hrEmployees',
+  '/hr/employees/new': 'hrEmployees',
+  'hr/employees/:id': 'hrEmployees',
+  '/hr/employees/:id': 'hrEmployees',
+  'hr/employees/:id/edit': 'hrEmployees',
+  '/hr/employees/:id/edit': 'hrEmployees',
+  'hr/attendance': 'hrEmployees',
+  '/hr/attendance': 'hrEmployees',
+  'hr/leaves': 'hrEmployees',
+  '/hr/leaves': 'hrEmployees',
+  'hr/assets': 'hrEmployees',
+  '/hr/assets': 'hrEmployees',
+  'hr/documents': 'hrEmployees',
+  '/hr/documents': 'hrEmployees',
+  'hr/loans': 'hrLoans',
+  '/hr/loans': 'hrLoans',
+  'hr/payroll': 'hrPayrollView',
+  '/hr/payroll': 'hrPayrollView',
+  'hr/reports': 'hr',
+  '/hr/reports': 'hr',
+  'hr/settings': 'hr',
+  '/hr/settings': 'hr',
   'pricing-center': 'pricingCenterView',
   '/pricing-center': 'pricingCenterView',
   settings: ['settings', 'canManageSettings'],
@@ -68,6 +92,18 @@ export function getRoutePermissionRequirement(target: string) {
   const normalized = normalizeAccessKey(target);
   const directMatch = routePermissionMap[normalized] ?? routePermissionMap[`/${normalized}`];
   if (directMatch) return directMatch;
+  if (normalized.startsWith('hr/')) {
+    if (normalized.startsWith('hr/employees')) return routePermissionMap['hr/employees'] ?? 'hrEmployees';
+    if (normalized.startsWith('hr/attendance')) return routePermissionMap['hr/attendance'] ?? 'hrEmployees';
+    if (normalized.startsWith('hr/leaves')) return routePermissionMap['hr/leaves'] ?? 'hrEmployees';
+    if (normalized.startsWith('hr/assets')) return routePermissionMap['hr/assets'] ?? 'hrEmployees';
+    if (normalized.startsWith('hr/documents')) return routePermissionMap['hr/documents'] ?? 'hrEmployees';
+    if (normalized.startsWith('hr/loans')) return routePermissionMap['hr/loans'] ?? 'hrLoans';
+    if (normalized.startsWith('hr/payroll')) return routePermissionMap['hr/payroll'] ?? 'hrPayrollView';
+    if (normalized.startsWith('hr/reports')) return routePermissionMap['hr/reports'] ?? 'hr';
+    if (normalized.startsWith('hr/settings')) return routePermissionMap['hr/settings'] ?? 'hr';
+    return routePermissionMap.hr ?? 'hr';
+  }
   const [rootSegment] = normalized.split('/').filter(Boolean);
   if (!rootSegment) return routePermissionMap['/'] ?? null;
   return routePermissionMap[rootSegment] ?? routePermissionMap[`/${rootSegment}`] ?? null;

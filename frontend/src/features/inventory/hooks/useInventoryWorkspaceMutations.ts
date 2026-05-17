@@ -63,7 +63,7 @@ export function useInventoryWorkspaceMutations({
   });
 
   const createCountMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: ({ noteOverride }: { noteOverride?: string } = {}) => {
       const payload: Record<string, unknown> = {
         locationId: Number(countForm.locationId),
         items: countItems.map((item) => {
@@ -79,7 +79,8 @@ export function useInventoryWorkspaceMutations({
       };
 
       if (String(countForm.branchId || '').trim()) payload.branchId = Number(countForm.branchId);
-      if (String(countForm.note || '').trim()) payload.note = countForm.note.trim();
+      const effectiveNote = String(noteOverride || '').trim() || String(countForm.note || '').trim();
+      if (effectiveNote) payload.note = effectiveNote;
       if (String(countForm.managerPin || '').trim()) payload.managerPin = countForm.managerPin.trim();
 
       return inventoryApi.createStockCountSession(payload);

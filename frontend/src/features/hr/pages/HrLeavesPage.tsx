@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -6,9 +6,17 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { getErrorMessage } from '@/lib/errors';
 import type { HrEmployee, HrLeaveRequest, HrLeaveType } from '@/types/domain';
 import { useHrLeaveRequests, useHrLeaveTypes, useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
+import { HrLeavesCreateRequestCard } from '@/features/hr/pages/leaves/HrLeavesCreateRequestCard';
+import {
+  leaveStatusLabel,
+  normalizeArabicDigits,
+  normalizeDecimal,
+  text,
+  toDateOnly,
+  todayDate,
+} from '@/features/hr/pages/leaves/hr-leaves.helpers';
 
 type LeaveFormState = {
   employeeId: string;
@@ -20,51 +28,23 @@ type LeaveFormState = {
   notes: string;
 };
 
-type LeaveTypeFormState = {
-  name: string;
-  code: string;
-  description: string;
-  isPaid: boolean;
-};
-
-function todayDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function text(value: unknown) {
-  return String(value || '').trim();
-}
-
-function employeeDisplay(row: HrEmployee) {
-  return text(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim()) || '—';
-}
-
-function calculateInclusiveDays(startDate: string, endDate: string) {
-  if (!startDate || !endDate) return '';
-  const from = new Date(`${startDate}T00:00:00Z`);
-  const to = new Date(`${endDate}T00:00:00Z`);
-  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to < from) return '';
-  const days = Math.floor((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)) + 1;
-  return String(days);
-}
-
-function leaveStatusLabel(value: unknown) {
-  const status = text(value);
-  if (status === 'pending') return 'قيد المراجعة';
-  if (status === 'approved') return 'معتمدة';
-  if (status === 'rejected') return 'مرفوضة';
-  if (status === 'cancelled') return 'ملغاة';
-  return 'غير محدد';
-}
+type QuickFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'unpaid';
 
 export function HrLeavesPage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
+  const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('pending');
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState('all');
+  const [fromDateFilter, setFromDateFilter] = useState('');
+  const [toDateFilter, setToDateFilter] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [rejectTargetId, setRejectTargetId] = useState('');
+  const [rejectNotes, setRejectNotes] = useState('');
 
   const [leaveForm, setLeaveForm] = useState<LeaveFormState>({
     employeeId: '',
@@ -76,21 +56,88 @@ export function HrLeavesPage() {
     notes: '',
   });
 
-  const [leaveTypeForm, setLeaveTypeForm] = useState<LeaveTypeFormState>({
-    name: '',
-    code: '',
-    description: '',
-    isPaid: true,
-  });
-
-  const workspace = useHrWorkspace({ page: 1, pageSize: 200, search: '' });
+  const workspace = useHrWorkspace({ page: 1, pageSize: 250, search: '' });
   const leaveTypesQuery = useHrLeaveTypes({ page: 1, pageSize: 100, search: '' });
   const leaveRequestsQuery = useHrLeaveRequests({ search, status: statusFilter, page, pageSize });
 
   const employees = useMemo(() => (workspace.employees.data?.employees || []) as HrEmployee[], [workspace.employees.data?.employees]);
   const leaveTypes = useMemo(() => (leaveTypesQuery.data?.rows || []) as HrLeaveType[], [leaveTypesQuery.data?.rows]);
   const requests = useMemo(() => (leaveRequestsQuery.data?.requests || []) as HrLeaveRequest[], [leaveRequestsQuery.data?.requests]);
-  const totalItems = Number(leaveRequestsQuery.data?.summary?.totalItems || requests.length || 0);
+
+  const leaveTypeById = useMemo(() => {
+    const map = new Map<string, HrLeaveType>();
+    for (const type of leaveTypes) map.set(String(type.id), type);
+    return map;
+  }, [leaveTypes]);
+
+  const leaveTypeByName = useMemo(() => {
+    const map = new Map<string, HrLeaveType>();
+    for (const type of leaveTypes) {
+      const key = text(type.name).toLowerCase();
+      if (key) map.set(key, type);
+    }
+    return map;
+  }, [leaveTypes]);
+
+  const isUnpaidLeave = useCallback((row: HrLeaveRequest) => {
+    const byId = leaveTypeById.get(String(row.leaveTypeId || ''));
+    const byName = leaveTypeByName.get(text(row.leaveTypeName || row.leaveType).toLowerCase());
+    return byId?.isPaid === false || byName?.isPaid === false;
+  }, [leaveTypeById, leaveTypeByName]);
+
+  const visibleRequests = useMemo(() => {
+    return requests.filter((row) => {
+      const leaveTypeId = text(row.leaveTypeId);
+      const status = text(row.status);
+      if (leaveTypeFilter !== 'all' && leaveTypeId !== leaveTypeFilter) return false;
+      if (quickFilter === 'pending' && status !== 'pending') return false;
+      if (quickFilter === 'approved' && status !== 'approved') return false;
+      if (quickFilter === 'rejected' && status !== 'rejected') return false;
+      if (quickFilter === 'unpaid' && !isUnpaidLeave(row)) return false;
+
+      const rowStartDate = toDateOnly(row.startDate);
+      const rowEndDate = toDateOnly(row.endDate);
+      if (fromDateFilter && rowEndDate && rowEndDate < fromDateFilter) return false;
+      if (toDateFilter && rowStartDate && rowStartDate > toDateFilter) return false;
+      return true;
+    });
+  }, [requests, leaveTypeFilter, quickFilter, fromDateFilter, toDateFilter, isUnpaidLeave]);
+
+  const summary = useMemo(() => {
+    let pending = 0;
+    let approved = 0;
+    let rejected = 0;
+    let unpaid = 0;
+
+    for (const row of requests) {
+      const status = text(row.status);
+      if (status === 'pending') pending += 1;
+      if (status === 'approved') approved += 1;
+      if (status === 'rejected') rejected += 1;
+      if (isUnpaidLeave(row)) unpaid += 1;
+    }
+
+    return {
+      total: requests.length,
+      visible: visibleRequests.length,
+      pending,
+      approved,
+      rejected,
+      unpaid,
+    };
+  }, [requests, visibleRequests.length, isUnpaidLeave]);
+
+  const isSearchOrFilterActive = Boolean(search.trim()) || Boolean(statusFilter) || quickFilter !== 'all' || leaveTypeFilter !== 'all' || Boolean(fromDateFilter) || Boolean(toDateFilter);
+
+  const resetFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setQuickFilter('all');
+    setLeaveTypeFilter('all');
+    setFromDateFilter('');
+    setToDateFilter('');
+    setPage(1);
+  };
 
   const createLeaveRequest = async () => {
     const nextErrors: Record<string, string> = {};
@@ -102,15 +149,16 @@ export function HrLeavesPage() {
     if (Object.keys(nextErrors).length) return;
 
     const selectedType = leaveTypes.find((row) => String(row.id) === leaveForm.leaveTypeId);
+    const normalizedDaysCount = normalizeDecimal(leaveForm.daysCount);
     await mutations.createLeaveRequest.mutateAsync({
-      employeeId: Number(leaveForm.employeeId),
-      leaveTypeId: Number(leaveForm.leaveTypeId),
+      employeeId: Number(normalizeArabicDigits(leaveForm.employeeId)),
+      leaveTypeId: Number(normalizeArabicDigits(leaveForm.leaveTypeId)),
       leaveType: text(selectedType?.name),
-      startDate: leaveForm.startDate,
-      endDate: leaveForm.endDate,
-      daysCount: leaveForm.daysCount ? Number(leaveForm.daysCount) : undefined,
-      reason: leaveForm.reason || undefined,
-      notes: leaveForm.notes || undefined,
+      startDate: toDateOnly(normalizeArabicDigits(leaveForm.startDate)),
+      endDate: toDateOnly(normalizeArabicDigits(leaveForm.endDate)),
+      daysCount: normalizedDaysCount ? Number(normalizedDaysCount) : undefined,
+      reason: text(leaveForm.reason) || undefined,
+      notes: text(leaveForm.notes) || undefined,
     });
 
     setLeaveForm({
@@ -123,129 +171,151 @@ export function HrLeavesPage() {
       notes: '',
     });
     setErrors({});
+    setShowCreate(false);
+    setQuickFilter('pending');
   };
 
-  const createLeaveType = async () => {
-    if (!text(leaveTypeForm.name)) return;
-    await mutations.saveLeaveType.mutateAsync({
-      payload: {
-        name: leaveTypeForm.name,
-        code: leaveTypeForm.code || undefined,
-        description: leaveTypeForm.description || undefined,
-        isPaid: leaveTypeForm.isPaid,
-        isActive: true,
-      },
-    });
-    setLeaveTypeForm({ name: '', code: '', description: '', isPaid: true });
+  const approveRequest = async (id: string) => {
+    await mutations.approveLeaveRequest.mutate({ id, payload: {} });
+  };
+
+  const rejectRequest = async (id: string) => {
+    const reason = text(rejectNotes);
+    if (!reason) {
+      setErrors((prev) => ({ ...prev, reject: 'سبب الرفض مطلوب.' }));
+      return;
+    }
+    await mutations.rejectLeaveRequest.mutateAsync({ id, payload: { decisionNotes: reason, notes: reason } });
+    setRejectTargetId('');
+    setRejectNotes('');
+    setErrors((prev) => ({ ...prev, reject: '' }));
+  };
+
+  const cancelRequest = async (id: string) => {
+    await mutations.cancelLeaveRequest.mutate({ id, payload: {} });
   };
 
   return (
     <div className="page-stack page-shell" dir="rtl">
       <PageHeader
         title="الإجازات"
-        description="تسجيل ومراجعة طلبات إجازات الموظفين بطريقة بسيطة بدون تعقيد."
-        actions={<Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>}
+        description="راجع الطلبات قيد المراجعة أولًا، ثم تابع الإجازات غير المدفوعة لأنها تؤثر على المرتبات."
+        actions={(
+          <div className="compact-actions">
+            <Button type="button" onClick={() => setShowCreate((current) => !current)}>
+              {showCreate ? 'إغلاق نموذج الطلب' : 'إضافة طلب إجازة'}
+            </Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+          </div>
+        )}
       />
 
-      <Card title="طلب إجازة جديد">
+      <Card title="تسلسل مراجعة الإجازات" description="استخدم الصفحة بهذا الترتيب حتى لا تدخل إجازة مؤثرة على المرتب بدون مراجعة.">
         <div className="form-grid">
-          <label className="field">
-            <span>الموظف *</span>
-            <select value={leaveForm.employeeId} onChange={(event) => setLeaveForm((prev) => ({ ...prev, employeeId: event.target.value }))}>
-              <option value="">اختر الموظف</option>
-              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employeeDisplay(employee)}</option>)}
-            </select>
-            {errors.employeeId ? <small className="field-error">{errors.employeeId}</small> : null}
-          </label>
-          <label className="field">
-            <span>نوع الإجازة *</span>
-            <select value={leaveForm.leaveTypeId} onChange={(event) => setLeaveForm((prev) => ({ ...prev, leaveTypeId: event.target.value }))}>
-              <option value="">اختر النوع</option>
-              {leaveTypes.map((type) => <option key={type.id} value={type.id}>{text(type.name) || '—'}</option>)}
-            </select>
-            {errors.leaveTypeId ? <small className="field-error">{errors.leaveTypeId}</small> : null}
-          </label>
-          <label className="field">
-            <span>من تاريخ *</span>
-            <input
-              type="date"
-              value={leaveForm.startDate}
-              onChange={(event) => {
-                const startDate = event.target.value;
-                setLeaveForm((prev) => ({ ...prev, startDate, daysCount: calculateInclusiveDays(startDate, prev.endDate) || prev.daysCount }));
-              }}
-            />
-            {errors.startDate ? <small className="field-error">{errors.startDate}</small> : null}
-          </label>
-          <label className="field">
-            <span>إلى تاريخ *</span>
-            <input
-              type="date"
-              value={leaveForm.endDate}
-              onChange={(event) => {
-                const endDate = event.target.value;
-                setLeaveForm((prev) => ({ ...prev, endDate, daysCount: calculateInclusiveDays(prev.startDate, endDate) || prev.daysCount }));
-              }}
-            />
-            {errors.endDate ? <small className="field-error">{errors.endDate}</small> : null}
-          </label>
-          <label className="field">
-            <span>عدد الأيام</span>
-            <input type="number" min="0.5" step="0.5" value={leaveForm.daysCount} onChange={(event) => setLeaveForm((prev) => ({ ...prev, daysCount: event.target.value }))} />
-          </label>
-          <label className="field field-wide">
-            <span>السبب</span>
-            <input value={leaveForm.reason} onChange={(event) => setLeaveForm((prev) => ({ ...prev, reason: event.target.value }))} />
-          </label>
-          <label className="field field-wide">
-            <span>ملاحظات</span>
-            <textarea rows={2} value={leaveForm.notes} onChange={(event) => setLeaveForm((prev) => ({ ...prev, notes: event.target.value }))} />
-          </label>
+          <div className="field"><strong>1. راجع قيد المراجعة</strong><span className="muted">اعتمد أو ارفض الطلبات الجديدة أولًا.</span></div>
+          <div className="field"><strong>2. راجع غير المدفوعة</strong><span className="muted">الإجازات غير المدفوعة تظهر لاحقًا في مراجعة المرتبات.</span></div>
+          <div className="field"><strong>3. استخدم الفلاتر</strong><span className="muted">ابحث بالموظف أو نوع الإجازة أو الفترة الزمنية.</span></div>
+          <div className="field"><strong>4. انتقل للمرتبات</strong><span className="muted">بعد اعتماد الطلبات، راجع أثرها في صفحة المرتبات.</span></div>
         </div>
-        <div className="actions compact-actions">
-          <Button type="button" onClick={createLeaveRequest} disabled={mutations.createLeaveRequest.isPending}>
-            {mutations.createLeaveRequest.isPending ? 'جاري التسجيل...' : 'تسجيل الطلب'}
-          </Button>
-        </div>
-        {mutations.createLeaveRequest.isError ? <p className="muted">{getErrorMessage(mutations.createLeaveRequest.error)}</p> : null}
       </Card>
 
-      <Card title="طلبات الإجازات">
-        <div className="compact-actions" style={{ marginBottom: 12 }}>
-          <SearchToolbar
-            search={search}
-            onSearchChange={(value) => {
-              setSearch(value);
-              setPage(1);
-            }}
-            searchPlaceholder="بحث باسم الموظف أو كود الموظف"
-            inputAriaLabel="بحث طلبات الإجازات"
-          />
-          <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} aria-label="تصفية الحالة">
-            <option value="">الكل</option>
-            <option value="pending">قيد المراجعة</option>
-            <option value="approved">معتمدة</option>
-            <option value="rejected">مرفوضة</option>
-            <option value="cancelled">ملغاة</option>
-          </select>
+      {showCreate ? (
+        <HrLeavesCreateRequestCard
+          leaveForm={leaveForm}
+          employees={employees}
+          leaveTypes={leaveTypes}
+          errors={errors}
+          isPending={mutations.createLeaveRequest.isPending}
+          onLeaveFormChange={(updater) => setLeaveForm((prev) => updater(prev))}
+          onCreate={() => {
+            void createLeaveRequest();
+          }}
+          onClose={() => {
+            setShowCreate(false);
+            setLeaveForm((prev) => ({ ...prev, startDate: todayDate(), endDate: todayDate() }));
+          }}
+        />
+      ) : null}
+
+      <Card title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
+        <div className="stats-grid">
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي الطلبات</span><strong>{summary.total}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>قيد المراجعة</span><strong>{summary.pending}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>معتمدة</span><strong>{summary.approved}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>مرفوضة</span><strong>{summary.rejected}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>إجازات غير مدفوعة</span><strong>{summary.unpaid}</strong></button>
+          <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
         </div>
+      </Card>
+
+      <Card title="فلاتر الطلبات" description="الفلاتر هنا تضيق النتائج الظاهرة فقط، ويمكن تصفيرها بزر واحد.">
+        <div className="compact-actions" style={{ marginBottom: 12 }}>
+          <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }}>قيد المراجعة</Button>
+          <Button type="button" variant={quickFilter === 'unpaid' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }}>غير مدفوعة</Button>
+          <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }}>كل الطلبات</Button>
+          <Button type="button" variant="secondary" onClick={resetFilters}>مسح الفلاتر</Button>
+        </div>
+        <div className="form-grid">
+          <div className="field field-wide">
+            <span>بحث الموظف</span>
+            <SearchToolbar
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              searchPlaceholder="بحث باسم الموظف أو كود الموظف"
+              inputAriaLabel="بحث طلبات الإجازات"
+            />
+          </div>
+          <label className="field">
+            <span>الحالة التفصيلية</span>
+            <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setQuickFilter('all'); setPage(1); }}>
+              <option value="">الكل</option>
+              <option value="pending">قيد المراجعة</option>
+              <option value="approved">معتمدة</option>
+              <option value="rejected">مرفوضة</option>
+              <option value="cancelled">ملغاة</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>نوع الإجازة</span>
+            <select value={leaveTypeFilter} onChange={(event) => { setLeaveTypeFilter(event.target.value); setPage(1); }}>
+              <option value="all">الكل</option>
+              {leaveTypes.map((type) => <option key={type.id} value={String(type.id)}>{text(type.name) || '—'}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span>من تاريخ</span>
+            <input type="date" value={fromDateFilter} onChange={(event) => { setFromDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
+          </label>
+          <label className="field">
+            <span>إلى تاريخ</span>
+            <input type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
+          </label>
+        </div>
+      </Card>
+
+      <Card title="طلبات الإجازة" description="الطلبات قيد المراجعة تظهر افتراضيًا حتى يكون القرار واضحًا وسريعًا.">
         <QueryFeedback
           isLoading={leaveRequestsQuery.isLoading}
           isError={leaveRequestsQuery.isError}
           error={leaveRequestsQuery.error}
-          isEmpty={!requests.length}
-          loadingText="جارٍ تحميل طلبات الإجازات..."
-          errorTitle="تعذر تحميل طلبات الإجازات"
-          emptyTitle="لا توجد طلبات إجازات مسجلة."
+          isEmpty={!requests.length || !visibleRequests.length}
+          loadingText="جاري تحميل طلبات الإجازة..."
+          errorTitle="تعذر تحميل طلبات الإجازة."
+          emptyTitle={isSearchOrFilterActive ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد طلبات إجازة حتى الآن.'}
+          emptyHint={isSearchOrFilterActive ? 'جرّب تعديل الفلاتر أو إزالة البحث.' : 'ابدأ بإضافة طلب إجازة جديد من الزر أعلى الصفحة.'}
         >
           <DataTable
-            rows={requests}
+            rows={visibleRequests}
             rowKey={(row) => String(row.id)}
             density="compact"
             pagination={{
               page,
               pageSize,
-              totalItems,
+              totalItems: visibleRequests.length,
               onPageChange: setPage,
               onPageSizeChange: (next) => {
                 setPageSize(next);
@@ -255,81 +325,77 @@ export function HrLeavesPage() {
             }}
             columns={[
               { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) || '—' },
-              { key: 'employeeName', header: 'الموظف', cell: (row) => text(row.employeeName) || '—' },
+              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) || '—' },
               { key: 'leaveType', header: 'نوع الإجازة', cell: (row) => text(row.leaveTypeName || row.leaveType) || '—' },
-              { key: 'startDate', header: 'من تاريخ', cell: (row) => text(row.startDate) || '—' },
-              { key: 'endDate', header: 'إلى تاريخ', cell: (row) => text(row.endDate) || '—' },
+              { key: 'startDate', header: 'من تاريخ', cell: (row) => toDateOnly(row.startDate) || '—' },
+              { key: 'endDate', header: 'إلى تاريخ', cell: (row) => toDateOnly(row.endDate) || '—' },
               { key: 'daysCount', header: 'عدد الأيام', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
               { key: 'status', header: 'الحالة', cell: (row) => leaveStatusLabel(row.status) },
-              { key: 'reason', header: 'السبب', cell: (row) => text(row.reason) || '—' },
+              {
+                key: 'isPaid',
+                header: 'مدفوعة / غير مدفوعة',
+                cell: (row) => {
+                  const isPaid = !isUnpaidLeave(row);
+                  return isPaid ? 'مدفوعة أو غير محددة' : 'غير مدفوعة';
+                },
+              },
+              { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes || row.reason || '') || '—' },
               {
                 key: 'actions',
-                header: 'إجراءات',
-                cell: (row) => (
-                  <div className="compact-actions">
-                    {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => mutations.approveLeaveRequest.mutate({ id: String(row.id), payload: {} })}>اعتماد</Button> : null}
-                    {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => mutations.rejectLeaveRequest.mutate({ id: String(row.id), payload: {} })}>رفض</Button> : null}
-                    {row.status !== 'cancelled' ? <Button type="button" variant="secondary" onClick={() => mutations.cancelLeaveRequest.mutate({ id: String(row.id), payload: {} })}>إلغاء</Button> : null}
-                  </div>
-                ),
+                header: 'إجراء',
+                cell: (row) => {
+                  const rowId = String(row.id);
+                  const isUnpaid = isUnpaidLeave(row);
+                  return (
+                    <div className="actions compact-actions">
+                      {row.status === 'pending' ? (
+                        <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending}>
+                          اعتماد
+                        </Button>
+                      ) : null}
+                      {row.status === 'pending' ? (
+                        <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending}>
+                          رفض
+                        </Button>
+                      ) : null}
+                      {row.status !== 'cancelled' ? (
+                        <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending}>
+                          إلغاء
+                        </Button>
+                      ) : null}
+                      {isUnpaid ? <span className="muted small">تؤثر على المرتبات.</span> : null}
+                    </div>
+                  );
+                },
               },
             ]}
           />
         </QueryFeedback>
       </Card>
 
-      <Card title="أنواع الإجازات">
-        <div className="form-grid">
-          <label className="field">
-            <span>الاسم</span>
-            <input value={leaveTypeForm.name} onChange={(event) => setLeaveTypeForm((prev) => ({ ...prev, name: event.target.value }))} />
-          </label>
-          <label className="field">
-            <span>الكود</span>
-            <input value={leaveTypeForm.code} onChange={(event) => setLeaveTypeForm((prev) => ({ ...prev, code: event.target.value }))} />
-          </label>
-          <label className="field">
-            <span>مدفوعة؟</span>
-            <input type="checkbox" checked={leaveTypeForm.isPaid} onChange={(event) => setLeaveTypeForm((prev) => ({ ...prev, isPaid: event.target.checked }))} />
-          </label>
-          <label className="field field-wide">
-            <span>الوصف</span>
-            <input value={leaveTypeForm.description} onChange={(event) => setLeaveTypeForm((prev) => ({ ...prev, description: event.target.value }))} />
-          </label>
-        </div>
-        <div className="actions compact-actions">
-          <Button type="button" onClick={createLeaveType} disabled={mutations.saveLeaveType.isPending}>حفظ النوع</Button>
-        </div>
-        {mutations.saveLeaveType.isError ? <p className="muted">{getErrorMessage(mutations.saveLeaveType.error)}</p> : null}
-        <QueryFeedback
-          isLoading={leaveTypesQuery.isLoading}
-          isError={leaveTypesQuery.isError}
-          error={leaveTypesQuery.error}
-          isEmpty={!leaveTypes.length}
-          loadingText="جارٍ تحميل أنواع الإجازات..."
-          errorTitle="تعذر تحميل أنواع الإجازات"
-          emptyTitle="لا توجد أنواع إجازات مسجلة."
-        >
-          <DataTable
-            rows={leaveTypes}
-            rowKey={(row) => String(row.id)}
-            density="compact"
-            columns={[
-              { key: 'name', header: 'الاسم', cell: (row) => text(row.name) || '—' },
-              { key: 'code', header: 'الكود', cell: (row) => text(row.code) || '—' },
-              { key: 'isPaid', header: 'مدفوعة', cell: (row) => (row.isPaid ? 'نعم' : 'لا') },
-              { key: 'description', header: 'الوصف', cell: (row) => text(row.description) || '—' },
-            ]}
-          />
-        </QueryFeedback>
-      </Card>
+      {rejectTargetId ? (
+        <Card title="سبب رفض الطلب">
+          <div className="form-grid">
+            <label className="field field-wide">
+              <span>سبب الرفض</span>
+              <textarea rows={2} value={rejectNotes} onChange={(event) => setRejectNotes(event.target.value)} />
+              {errors.reject ? <small className="field-error">{errors.reject}</small> : null}
+            </label>
+          </div>
+          <div className="actions compact-actions">
+            <Button type="button" onClick={() => void rejectRequest(rejectTargetId)} disabled={mutations.rejectLeaveRequest.isPending}>
+              {mutations.rejectLeaveRequest.isPending ? 'جاري الرفض...' : 'تأكيد الرفض'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }}>
+              إلغاء
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
-      <Card title="ملاحظة">
-        <p className="muted" style={{ margin: 0 }}>
-          رصيد الإجازات والربط التلقائي مع المرتبات يمكن إضافته لاحقًا بعد تثبيت دورة الطلبات والاعتمادات.
-        </p>
+      <Card title="ملاحظة تشغيلية">
+        <p className="muted" style={{ margin: 0 }}>رصيد الإجازات غير متاح حاليًا من البيانات الحالية. راجع نوع الإجازة وحالة الدفع قبل اعتماد المرتبات.</p>
       </Card>
     </div>
   );
 }
-

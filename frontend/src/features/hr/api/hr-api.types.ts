@@ -1,5 +1,6 @@
 import type {
   HrAttendanceRecord,
+  HrAttendanceException,
   HrCompensationPackage,
   HrContact,
   HrContract,
@@ -54,6 +55,13 @@ export interface AttendanceResponse {
     lateCount?: number;
     leaveCount?: number;
     unmarkedCount?: number;
+  };
+}
+
+export interface AttendanceExceptionsResponse {
+  rows?: HrAttendanceException[];
+  summary?: {
+    totalItems?: number;
   };
 }
 

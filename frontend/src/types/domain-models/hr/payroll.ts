@@ -14,6 +14,9 @@ export interface HrPayrollRunItem {
   employeeId: string;
   employeeName?: string;
   employeeNo?: string;
+  compensationType?: 'monthly' | 'hourly' | string;
+  hourlyRate?: number | null;
+  expectedDailyHours?: number | null;
   contractId?: string;
   baseSalary: number;
   allowanceAmount: number;

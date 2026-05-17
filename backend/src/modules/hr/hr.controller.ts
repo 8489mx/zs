@@ -8,6 +8,7 @@ import {
   CreateLeaveRequestDto,
   CreatePayrollAdjustmentDto,
   CreatePayrollRunDto,
+  DecideAttendanceExceptionDto,
   DecideLeaveRequestDto,
   EmployeeAssetActionDto,
   LoanRepaymentDto,
@@ -58,6 +59,24 @@ export class HrController {
   @RequirePermissions('hrEmployees')
   saveAttendanceRecord(@Body() payload: UpsertAttendanceRecordDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertAttendanceRecord(payload, req.authContext!);
+  }
+
+  @Get('attendance/exceptions')
+  @RequirePermissions('hrEmployees')
+  listAttendanceExceptions(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listAttendanceExceptions(query, req.authContext!);
+  }
+
+  @Post('attendance/exceptions/:id/approve')
+  @RequirePermissions('hrEmployees')
+  approveAttendanceException(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideAttendanceExceptionDto, @Req() req: RequestWithAuth) {
+    return this.hr.decideAttendanceException(id, 'approved', payload, req.authContext!);
+  }
+
+  @Post('attendance/exceptions/:id/skip')
+  @RequirePermissions('hrEmployees')
+  skipAttendanceException(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideAttendanceExceptionDto, @Req() req: RequestWithAuth) {
+    return this.hr.decideAttendanceException(id, 'skipped', payload, req.authContext!);
   }
 
   @Get('leave-types')

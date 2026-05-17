@@ -42,3 +42,76 @@ export function normalizeDateOnly(value: unknown) {
   const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return match ? `${match[1]}-${match[2]}-${match[3]}` : '';
 }
+
+export function normalizeText(value: unknown) {
+  return String(value || '').trim().toLowerCase();
+}
+
+export function documentStatusLabel(expiryDate?: string) {
+  const date = normalizeDateOnly(expiryDate);
+  if (!date) return 'بدون تاريخ انتهاء';
+
+  const expiry = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(expiry.getTime())) return 'بدون تاريخ انتهاء';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+
+  if (diffDays < 0) return 'منتهي';
+  if (diffDays <= 30) return 'قريب الانتهاء';
+  return 'ساري';
+}
+
+export function assetStatusLabel(status: unknown) {
+  const value = normalizeText(status);
+  if (value === 'assigned') return 'مسلّمة';
+  if (value === 'returned') return 'مرتجعة';
+  if (value === 'damaged') return 'تالفة';
+  if (value === 'lost') return 'مفقودة';
+  if (value === 'cancelled') return 'ملغاة';
+  return 'غير محدد';
+}
+
+export function leaveStatusLabel(status: unknown) {
+  const value = normalizeText(status);
+  if (value === 'pending') return 'قيد المراجعة';
+  if (value === 'approved') return 'معتمدة';
+  if (value === 'rejected') return 'مرفوضة';
+  if (value === 'cancelled' || value === 'canceled') return 'ملغاة';
+  return fallbackText(status);
+}
+
+export function loanStatusLabel(status: unknown) {
+  const value = normalizeText(status);
+  if (value === 'draft') return 'مسودة';
+  if (value === 'approved') return 'معتمدة';
+  if (value === 'paid' || value === 'disbursed') return 'مصروفة';
+  if (value === 'partially_repaid') return 'نشطة';
+  if (value === 'repaid') return 'مكتملة';
+  if (value === 'cancelled' || value === 'canceled') return 'ملغاة';
+  return fallbackText(status);
+}
+
+export function loanTypeLabel(loanType: unknown) {
+  const value = normalizeText(loanType);
+  if (value === 'advance') return 'سلفة';
+  if (value === 'loan') return 'قرض';
+  return fallbackText(loanType);
+}
+
+export function repaymentModeLabel(mode: unknown) {
+  const value = normalizeText(mode);
+  if (value === 'deduct_next_salary') return 'خصم كامل من الراتب القادم';
+  if (value === 'monthly_salary_installment') return 'تقسيط على دفعات';
+  if (value === 'manual_cash') return 'سداد يدوي';
+  return fallbackText(mode);
+}
+
+export function installmentStatusLabel(status: unknown) {
+  const value = normalizeText(status);
+  if (value === 'pending' || value === 'partial') return 'قسط مستحق';
+  if (value === 'paid') return 'مخصوم';
+  if (value === 'cancelled' || value === 'canceled') return 'ملغي';
+  return 'غير محدد';
+}

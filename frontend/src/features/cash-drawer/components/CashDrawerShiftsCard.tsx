@@ -35,13 +35,7 @@ interface CashDrawerShiftsCardProps {
 function getDisplaySaleReturnCashRefundTotal(row: CashierShift): number {
   const rawTotal = Number(row.saleReturnCashRefundTotal || 0);
   if (rawTotal > 0) return rawTotal;
-
-  const inferredTotal = Number(row.openingCash || 0)
-    + Number(row.cashSalesTotal || 0)
-    + Number(row.serviceCashTotal || 0)
-    + Number(row.cashDrawerMovementTotal || 0)
-    - Number(row.expectedCash || 0);
-
+  const inferredTotal = Number(row.openingCash || 0) + Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0) + Number(row.cashDrawerMovementTotal || 0) - Number(row.expectedCash || 0);
   return Math.max(0, Number(inferredTotal.toFixed(2)));
 }
 
@@ -55,11 +49,14 @@ function getShiftStatusLabel(status: string) {
 export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
   const canViewSensitiveTotals = props.canViewSensitiveTotals !== false;
   const canReviewPending = props.canReviewPending === true && typeof props.onReviewShift === 'function';
+  const searchPlaceholder = SINGLE_STORE_MODE
+    ? 'ابحث باسم المستخدم أو رقم المرجع أو المخزن'
+    : 'ابحث باسم المستخدم أو رقم المرجع أو الفرع أو المخزن';
 
   const baseColumns = [
     {
       key: 'shiftName',
-      header: 'الوردية',
+      header: 'وردية نقطة البيع',
       cell: (row: CashierShift) => (
         <div className="page-stack" style={{ gap: 4 }}>
           <strong>{row.openedByName || row.docNo || row.id || '—'}</strong>
@@ -72,11 +69,9 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
       header: 'الحالة',
       cell: (row: CashierShift) => {
         const status = String(row.status || '');
-        if (status === 'pending_review') {
-          return <span className="cash-drawer-pending-badge">في انتظار مراجعة المدير</span>;
-        }
+        if (status === 'pending_review') return <span className="cash-drawer-pending-badge">في انتظار مراجعة المدير</span>;
         return getShiftStatusLabel(status);
-      }
+      },
     },
     ...(!SINGLE_STORE_MODE ? [{ key: 'branch', header: 'الفرع', cell: (row: CashierShift) => row.branchName || '—' }] : []),
     { key: 'location', header: 'المخزن', cell: (row: CashierShift) => row.locationName || '—' },
@@ -104,17 +99,13 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
     ...(canReviewPending ? [{
       key: 'reviewAction',
       header: 'إجراءات',
-      cell: (row: CashierShift) => (
-        String(row.status || '') === 'pending_review'
-          ? <Button variant="secondary" onClick={() => props.onReviewShift?.(row)}>مراجعة الإغلاق</Button>
-          : '—'
-      ),
+      cell: (row: CashierShift) => (String(row.status || '') === 'pending_review' ? <Button variant="secondary" onClick={() => props.onReviewShift?.(row)}>مراجعة الإغلاق</Button> : '—'),
     }] : []),
   ];
 
   return (
     <Card
-      title="الورديات الحالية"
+      title="ورديات نقطة البيع الحالية"
       actions={canViewSensitiveTotals ? (
         <div className="actions compact-actions">
           <Button variant="secondary" onClick={props.onCopySummary} disabled={!props.totalItems}>نسخ الملخص</Button>
@@ -136,7 +127,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
         <Button variant={props.shiftFilter === 'variance' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('variance')}>بفروقات</Button>
         <Button variant={props.shiftFilter === 'today' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('today')}>اليوم</Button>
       </div>
-      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث باسم الكاشير أو رقم المرجع أو المخزن' : 'ابحث باسم الكاشير أو رقم المرجع أو الفرع أو المخزن'}>
+      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={searchPlaceholder}>
         <Button variant="secondary" onClick={props.onReset}>إعادة الضبط</Button>
       </SearchToolbar>
       <QueryFeedback
@@ -144,10 +135,10 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
         isError={props.isError}
         error={props.error}
         isEmpty={!props.totalItems}
-        loadingText="جاري تحميل الورديات..."
-        errorTitle="تعذر تحميل الورديات"
-        emptyTitle="لا توجد ورديات مطابقة حاليًا"
-        emptyHint="افتح وردية جديدة أو وسّع شروط البحث الحالية."
+        loadingText="جاري تحميل ورديات نقطة البيع..."
+        errorTitle="تعذر تحميل ورديات نقطة البيع"
+        emptyTitle="لا توجد ورديات نقطة بيع مطابقة حاليًا"
+        emptyHint="افتح وردية نقطة بيع جديدة أو وسّع شروط البحث الحالية."
       >
         <DataTable
           rows={props.rows}
@@ -158,13 +149,9 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
             onPageChange: props.onPageChange,
             onPageSizeChange: props.onPageSizeChange,
             pageSizeOptions: [10, 20, 50, 100],
-            itemLabel: 'وردية'
+            itemLabel: 'وردية نقطة بيع',
           }}
-          columns={[
-            ...baseColumns,
-            ...sensitiveColumns,
-            ...trailingColumns,
-          ]}
+          columns={[...baseColumns, ...sensitiveColumns, ...trailingColumns]}
         />
       </QueryFeedback>
     </Card>

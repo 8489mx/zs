@@ -3,6 +3,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { getErrorMessage } from '@/lib/errors';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
@@ -11,8 +12,7 @@ interface PosCheckoutDialogProps {
   pos: PosWorkspaceState;
   selectedCustomerName: string;
   onClose: () => void;
-  onRequestDiscountAuthorization: () => void;
-  onConfirmSale: () => void;
+  onConfirmSale: (managerPin?: string) => void;
 }
 
 type PaymentPreset = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit';
@@ -49,15 +49,20 @@ export function PosCheckoutDialog({
   pos,
   selectedCustomerName,
   onClose,
-  onRequestDiscountAuthorization,
   onConfirmSale,
 }: PosCheckoutDialogProps) {
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
+  const [managerApprovalOpen, setManagerApprovalOpen] = useState(false);
+  const [managerPinDraft, setManagerPinDraft] = useState('');
+  const [managerPinError, setManagerPinError] = useState('');
   const cashAmountInputRef = useRef<HTMLInputElement | null>(null);
+  const managerPinInputRef = useRef<HTMLInputElement | null>(null);
+  const approvedManagerPinRef = useRef('');
   const openedOnceRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const createSalePendingRef = useRef(Boolean(pos.createSale.isPending));
+  const isDiscountLocked = !pos.canApplyDiscount;
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -71,25 +76,88 @@ export function PosCheckoutDialog({
     onCloseRef.current();
   }, []);
 
+  const clearInlineManagerApproval = useCallback(() => {
+    setManagerApprovalOpen(false);
+    setManagerPinDraft('');
+    setManagerPinError('');
+    approvedManagerPinRef.current = '';
+  }, []);
+
   const handleDialogClose = useCallback(() => {
     if (createSalePendingRef.current) return;
+    clearInlineManagerApproval();
     stableOnClose();
-  }, [stableOnClose]);
+  }, [clearInlineManagerApproval, stableOnClose]);
+
+  const handleConfirmSale = useCallback(() => {
+    const managerPin = approvedManagerPinRef.current || undefined;
+    approvedManagerPinRef.current = '';
+    onConfirmSale(managerPin);
+  }, [onConfirmSale]);
+
+  const handleInlineManagerApproval = useCallback(async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    const managerPin = String(managerPinDraft || '').trim();
+    setManagerPinError('');
+
+    if (!managerPin) {
+      setManagerPinError('اكتب PIN المدير أولًا.');
+      managerPinInputRef.current?.focus();
+      return;
+    }
+
+    try {
+      await pos.discountAuthorizationMutation.mutateAsync(managerPin);
+      approvedManagerPinRef.current = managerPin;
+      pos.setDiscountApprovalGranted(true);
+      pos.setDiscountApprovalSecret('');
+      setManagerPinDraft('');
+      setManagerApprovalOpen(false);
+      pos.setSubmitMessage('تم اعتماد الخصم لهذه الفاتورة فقط.');
+    } catch (error) {
+      approvedManagerPinRef.current = '';
+      pos.setDiscountApprovalSecret('');
+      setManagerPinDraft('');
+      setManagerPinError(getErrorMessage(error, 'تعذر اعتماد الخصم.'));
+      managerPinInputRef.current?.focus();
+    }
+  }, [managerPinDraft, pos]);
 
   useEffect(() => {
     if (!open) {
       openedOnceRef.current = false;
+      clearInlineManagerApproval();
       return;
     }
     if (openedOnceRef.current) return;
     openedOnceRef.current = true;
     const frameId = window.requestAnimationFrame(() => {
-      if (customerPickerOpen) return;
+      if (customerPickerOpen || managerApprovalOpen) return;
       cashAmountInputRef.current?.focus();
       cashAmountInputRef.current?.select();
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [customerPickerOpen, open]);
+  }, [clearInlineManagerApproval, customerPickerOpen, managerApprovalOpen, open]);
+
+  useEffect(() => {
+    if (!isDiscountLocked || !pos.discountApprovalGranted) {
+      approvedManagerPinRef.current = '';
+    }
+    if (!isDiscountLocked) {
+      setManagerApprovalOpen(false);
+      setManagerPinDraft('');
+      setManagerPinError('');
+    }
+  }, [isDiscountLocked, pos.discountApprovalGranted]);
+
+  useEffect(() => {
+    if (!managerApprovalOpen || pos.discountApprovalGranted) return;
+    const frameId = window.requestAnimationFrame(() => {
+      managerPinInputRef.current?.focus();
+      managerPinInputRef.current?.select();
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [managerApprovalOpen, pos.discountApprovalGranted]);
 
   useEffect(() => {
     if (!open) return;
@@ -97,12 +165,17 @@ export function PosCheckoutDialog({
       if (event.key !== 'F2') return;
       event.preventDefault();
       event.stopPropagation();
-      if (!pos.canSubmitSale || pos.createSale.isPending) return;
-      onConfirmSale();
+      if (pos.createSale.isPending) return;
+      if (managerApprovalOpen && !pos.discountApprovalGranted) {
+        void handleInlineManagerApproval();
+        return;
+      }
+      if (!pos.canSubmitSale) return;
+      handleConfirmSale();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onConfirmSale, open, pos.canSubmitSale, pos.createSale.isPending]);
+  }, [handleConfirmSale, handleInlineManagerApproval, managerApprovalOpen, open, pos.canSubmitSale, pos.createSale.isPending, pos.discountApprovalGranted]);
 
   const customers = useMemo(
     () => (Array.isArray(pos.customersQuery.data) ? pos.customersQuery.data : []),
@@ -129,7 +202,6 @@ export function PosCheckoutDialog({
   const needsCreditCustomer = pos.paymentType === 'credit' && !String(pos.customerId || '').trim();
   const transferSelected = pos.paymentType !== 'credit' && (pos.paymentChannel === 'wallet' || pos.paymentChannel === 'instapay');
   const isCreditSale = pos.paymentType === 'credit';
-  const isDiscountLocked = !pos.canApplyDiscount;
 
   async function handleQuickCustomerSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -324,7 +396,12 @@ export function PosCheckoutDialog({
                 <Button
                   type="button"
                   variant={pos.discountApprovalGranted ? 'success' : 'secondary'}
-                  onClick={onRequestDiscountAuthorization}
+                  onClick={() => {
+                    if (pos.discountApprovalGranted) return;
+                    setManagerPinError('');
+                    setManagerPinDraft('');
+                    setManagerApprovalOpen((current) => !current);
+                  }}
                   disabled={pos.discountAuthorizationMutation.isPending}
                 >
                   {pos.discountAuthorizationMutation.isPending ? 'جاري التحقق...' : (pos.discountApprovalGranted ? 'الخصم معتمد' : 'اعتماد المدير')}
@@ -334,6 +411,47 @@ export function PosCheckoutDialog({
                 <Button type="button" variant="secondary" onClick={pos.fillPaidAmount}>كامل</Button>
               ) : null}
             </div>
+
+            {managerApprovalOpen && isDiscountLocked && !pos.discountApprovalGranted ? (
+              <form className="pos-checkout-manager-approval" onSubmit={(event) => { void handleInlineManagerApproval(event); }}>
+                <label className="field field-wide">
+                  <span>PIN المدير</span>
+                  <input
+                    ref={managerPinInputRef}
+                    type="password"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={managerPinDraft}
+                    onChange={(event) => {
+                      setManagerPinDraft(event.target.value);
+                      if (managerPinError) setManagerPinError('');
+                    }}
+                    placeholder="اكتب PIN المدير"
+                    disabled={pos.discountAuthorizationMutation.isPending}
+                  />
+                </label>
+                <div className="surface-note">يُستخدم PIN للتحقق فقط داخل هذه الفاتورة، ثم يتم مسحه ولا يُحفظ في المسودة.</div>
+                {managerPinError ? <div className="error-box">{managerPinError}</div> : null}
+                <div className="actions compact-actions">
+                  <Button type="submit" disabled={pos.discountAuthorizationMutation.isPending}>
+                    {pos.discountAuthorizationMutation.isPending ? 'جاري التحقق...' : 'اعتماد الخصم'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setManagerApprovalOpen(false);
+                      setManagerPinDraft('');
+                      setManagerPinError('');
+                      approvedManagerPinRef.current = '';
+                    }}
+                    disabled={pos.discountAuthorizationMutation.isPending}
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </form>
+            ) : null}
 
             <div className="pos-checkout-dialog-summary pos-checkout-payment-summary">
               <div className="pos-checkout-dialog-chip">
@@ -382,7 +500,7 @@ export function PosCheckoutDialog({
             <Button
               type="button"
               variant="success"
-              onClick={onConfirmSale}
+              onClick={handleConfirmSale}
               disabled={pos.createSale.isPending || !pos.canSubmitSale}
             >
               {pos.createSale.isPending ? 'جاري الحفظ...' : 'تأكيد البيع (F2)'}

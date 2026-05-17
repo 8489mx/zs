@@ -1,5 +1,6 @@
 import type {
   HrAttendanceRecord,
+  HrAttendanceException,
   HrEmployee,
   HrEmployeeAsset,
   HrLeaveRequest,
@@ -37,6 +38,28 @@ function normalizeApiDateTime(value: unknown): string {
 
 export function normalizeHrLoanRow(row: HrLoan | HrApiDateRecord): HrLoan {
   const source = row as HrApiDateRecord;
+  const installmentsRaw = Array.isArray(source.installments) ? source.installments : [];
+  const installments = installmentsRaw
+    .map((installment) => {
+      const item = installment as HrApiDateRecord;
+      const amount = Number(item.amount ?? 0);
+      const paidAmount = Number(item.paid_amount ?? item.paidAmount ?? 0);
+      return {
+        id: apiPick(item, ['id']) || '',
+        loanId: apiPick(item, ['loanId', 'loan_id']) || apiPick(source, ['id']) || '',
+        installmentNumber: Number(item.installment_no ?? item.installmentNumber ?? 0),
+        dueDate: normalizeApiDateOnly(apiPick(item, ['dueDate', 'due_date', 'due_date_text'])),
+        amount: Number.isFinite(amount) ? amount : 0,
+        paidAmount: Number.isFinite(paidAmount) ? paidAmount : 0,
+        remainingAmount: Number(((Number.isFinite(amount) ? amount : 0) - (Number.isFinite(paidAmount) ? paidAmount : 0)).toFixed(2)),
+        status: apiPick(item, ['status']) || 'pending',
+        paidAt: normalizeApiDateTime(apiPick(item, ['paidAt', 'paid_at', 'paid_at_text'])) || '',
+        note: apiPick(item, ['note', 'notes']) || '',
+      };
+    })
+    .filter((item) => item.id || item.installmentNumber > 0);
+  const dueInstallmentsAmount = Number(source.due_installments_amount ?? source.dueInstallmentsAmount ?? (row as HrLoan).dueInstallmentsAmount ?? 0);
+  const dueInstallmentsCount = Number(source.due_installments_count ?? source.dueInstallmentsCount ?? (row as HrLoan).dueInstallmentsCount ?? 0);
   return {
     ...(row as HrLoan),
     issueDate: normalizeApiDateOnly(apiPick(source, ['issueDate', 'issue_date', 'issue_date_text'])) || (row as HrLoan).issueDate || '',
@@ -47,6 +70,9 @@ export function normalizeHrLoanRow(row: HrLoan | HrApiDateRecord): HrLoan {
     approvedAt: normalizeApiDateTime(apiPick(source, ['approvedAt', 'approved_at', 'approved_at_text'])) || (row as HrLoan).approvedAt || '',
     disbursedAt: normalizeApiDateTime(apiPick(source, ['disbursedAt', 'disbursed_at', 'disbursed_at_text'])) || (row as HrLoan).disbursedAt || '',
     paidAt: normalizeApiDateTime(apiPick(source, ['paidAt', 'paid_at', 'paid_at_text'])) || (row as HrLoan).paidAt || '',
+    dueInstallmentsAmount: Number.isFinite(dueInstallmentsAmount) ? dueInstallmentsAmount : 0,
+    dueInstallmentsCount: Number.isFinite(dueInstallmentsCount) ? dueInstallmentsCount : 0,
+    installments: installments.length ? installments : ((row as HrLoan).installments || []),
   };
 }
 
@@ -85,6 +111,17 @@ export function normalizeHrEmployeeRow(row: HrEmployee | HrApiDateRecord): HrEmp
   return {
     ...(row as HrEmployee),
     nationalId: apiPick(source, ['nationalId', 'national_id']) || (row as HrEmployee).nationalId || '',
+    compensationType: apiPick(source, ['compensationType', 'compensation_type']) || (row as HrEmployee).compensationType || 'monthly',
+    hourlyRate: source.hourly_rate == null && source.hourlyRate == null
+      ? ((row as HrEmployee).hourlyRate ?? null)
+      : Number(source.hourly_rate ?? source.hourlyRate ?? 0),
+    expectedDailyHours: source.expected_daily_hours == null && source.expectedDailyHours == null
+      ? ((row as HrEmployee).expectedDailyHours ?? null)
+      : Number(source.expected_daily_hours ?? source.expectedDailyHours ?? 0),
+    scheduledCheckInTime: apiPick(source, ['scheduledCheckInTime', 'scheduled_check_in_time']) || (row as HrEmployee).scheduledCheckInTime || '',
+    scheduledCheckOutTime: apiPick(source, ['scheduledCheckOutTime', 'scheduled_check_out_time']) || (row as HrEmployee).scheduledCheckOutTime || '',
+    graceMinutes: Number(source.grace_minutes ?? source.graceMinutes ?? (row as HrEmployee).graceMinutes ?? 0),
+    overtimePolicy: apiPick(source, ['overtimePolicy', 'overtime_policy']) || (row as HrEmployee).overtimePolicy || 'review_only',
   };
 }
 
@@ -104,6 +141,27 @@ export function normalizeHrAttendanceRow(row: HrAttendanceRecord | HrApiDateReco
     checkOutAt: normalizeApiDateTime(apiPick(source, ['checkOutAt', 'check_out_at', 'check_out_at_text'])) || (row as HrAttendanceRecord).checkOutAt || '',
     source: apiPick(source, ['source']) || (row as HrAttendanceRecord).source || '',
     notes: apiPick(source, ['notes']) || (row as HrAttendanceRecord).notes || '',
+  };
+}
+
+export function normalizeHrAttendanceExceptionRow(row: HrAttendanceException | HrApiDateRecord): HrAttendanceException {
+  const source = row as HrApiDateRecord;
+  return {
+    ...(row as HrAttendanceException),
+    id: apiPick(source, ['id']) || (row as HrAttendanceException).id || '',
+    employeeId: apiPick(source, ['employeeId', 'employee_id']) || (row as HrAttendanceException).employeeId || '',
+    employeeNo: apiPick(source, ['employeeNo', 'employee_no']) || (row as HrAttendanceException).employeeNo || '',
+    employeeName: apiPick(source, ['employeeName', 'employee_name']) || (row as HrAttendanceException).employeeName || '',
+    workDate: normalizeApiDateOnly(apiPick(source, ['workDate', 'work_date', 'work_date_text'])) || (row as HrAttendanceException).workDate || '',
+    exceptionType: apiPick(source, ['exceptionType', 'exception_type']) || (row as HrAttendanceException).exceptionType || '',
+    scheduledTime: apiPick(source, ['scheduledTime', 'scheduled_time', 'scheduled_time_text']) || (row as HrAttendanceException).scheduledTime || '',
+    actualTime: apiPick(source, ['actualTime', 'actual_time', 'actual_time_text']) || (row as HrAttendanceException).actualTime || '',
+    durationMinutes: Number(source.duration_minutes ?? source.durationMinutes ?? (row as HrAttendanceException).durationMinutes ?? 0),
+    approvedDurationMinutes: source.approved_duration_minutes == null && source.approvedDurationMinutes == null
+      ? ((row as HrAttendanceException).approvedDurationMinutes ?? null)
+      : Number(source.approved_duration_minutes ?? source.approvedDurationMinutes ?? 0),
+    status: apiPick(source, ['status']) || (row as HrAttendanceException).status || 'pending',
+    note: apiPick(source, ['note']) || (row as HrAttendanceException).note || '',
   };
 }
 

@@ -111,6 +111,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         event.preventDefault();
         printCurrentDraft();
       } else if (event.key === 'F9') {
+        if (event.altKey || event.ctrlKey || event.shiftKey || event.metaKey) return;
         event.preventDefault();
         pos.reprintLastSaleReceipt();
       } else if (event.key === 'F12') {
