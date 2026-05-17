@@ -173,6 +173,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             isSuccess={inventory.createCountMutation.isSuccess}
             error={inventory.createCountMutation.error}
             onFormChange={(patch) => inventory.setCountForm((current) => ({ ...current, ...patch }))}
+            onItemsChange={inventory.setCountItems}
             onAddItem={inventory.addCountItem}
             onRemoveItem={(index) => inventory.setCountItems((current) => current.filter((_, currentIndex: number) => currentIndex !== index))}
             onSubmit={(options) => inventory.createCountMutation.mutate(options ?? {})}
