@@ -1,0 +1,274 @@
+.stock-count-setup-stack,
+.stock-count-review-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.stock-count-step-card,
+.stock-count-entry-panel,
+.stock-count-progress-card,
+.stock-count-session-bar {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.stock-count-step-card {
+  padding: 16px;
+}
+
+.stock-count-step-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stock-count-step-heading > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+.stock-count-step-heading div {
+  display: grid;
+  gap: 3px;
+}
+
+.stock-count-step-heading strong {
+  color: #0f172a;
+}
+
+.stock-count-step-heading small {
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.stock-count-method-grid,
+.stock-count-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stock-count-mode-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stock-count-method-card,
+.stock-count-mode-card {
+  display: grid;
+  gap: 6px;
+  padding: 13px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #0f172a;
+  text-align: start;
+}
+
+.stock-count-method-card {
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.stock-count-method-card:hover,
+.stock-count-method-card:focus {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.35);
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
+  outline: none;
+}
+
+.stock-count-method-card--active {
+  border-color: rgba(37, 99, 235, 0.55);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.11), rgba(14, 165, 233, 0.06));
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+}
+
+.stock-count-method-card strong,
+.stock-count-mode-card strong {
+  font-size: 13px;
+}
+
+.stock-count-method-card span,
+.stock-count-mode-card span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.stock-count-compact-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stock-count-expected-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 12px;
+  color: #334155;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.stock-count-expected-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+}
+
+.stock-count-start-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.stock-count-session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.04));
+}
+
+.stock-count-session-bar > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.stock-count-session-bar span,
+.stock-count-session-bar small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.stock-count-session-bar strong {
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.stock-count-progress-card {
+  display: grid;
+  gap: 10px;
+  padding: 13px 16px;
+}
+
+.stock-count-progress-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stock-count-progress-copy span,
+.stock-count-progress-copy small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.stock-count-progress-copy strong {
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.stock-count-progress-track {
+  height: 9px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.stock-count-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  transition: width 180ms ease;
+}
+
+.stock-count-entry-panel {
+  padding: 14px;
+}
+
+.stock-count-entry-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stock-count-entry-heading strong {
+  color: #0f172a;
+}
+
+.stock-count-entry-heading span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.stock-count-items-table-wrap {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.stock-count-items-table input {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.stock-count-items-table th,
+.stock-count-items-table td {
+  vertical-align: middle;
+}
+
+.stock-count-variance {
+  display: inline-flex;
+  min-width: 64px;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  font-weight: 800;
+}
+
+.stock-count-variance--zero {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+@media (max-width: 960px) {
+  .stock-count-method-grid,
+  .stock-count-mode-grid,
+  .stock-count-compact-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .stock-count-method-grid,
+  .stock-count-mode-grid,
+  .stock-count-compact-form {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-count-session-bar,
+  .stock-count-progress-copy,
+  .stock-count-entry-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
