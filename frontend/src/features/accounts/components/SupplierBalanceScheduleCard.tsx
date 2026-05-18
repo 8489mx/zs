@@ -44,6 +44,24 @@ function formatDateTime(value?: string | null) {
   return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
+type ScheduleFilter = 'all' | 'pending' | 'partial' | 'paid' | 'overdue';
+
+const FILTER_OPTIONS: Array<{ key: ScheduleFilter; label: string }> = [
+  { key: 'all', label: 'الكل' },
+  { key: 'pending', label: 'غير مدفوعة' },
+  { key: 'partial', label: 'جزئية' },
+  { key: 'paid', label: 'مدفوعة' },
+  { key: 'overdue', label: 'متأخرة' },
+];
+
+function normalizeStatusForFilter(status: string): ScheduleFilter | 'cancelled' {
+  if (status === 'paid') return 'paid';
+  if (status === 'partial') return 'partial';
+  if (status === 'overdue') return 'overdue';
+  if (status === 'cancelled') return 'cancelled';
+  return 'pending';
+}
+
 interface SupplierBalanceScheduleCardProps {
   supplier: Supplier | null;
   disabled?: boolean;
@@ -52,6 +70,7 @@ interface SupplierBalanceScheduleCardProps {
 export function SupplierBalanceScheduleCard({ supplier, disabled = false }: SupplierBalanceScheduleCardProps) {
   const queryClient = useQueryClient();
   const supplierId = String(supplier?.id || '');
+  const supplierName = String(supplier?.name || 'المورد');
   const supplierBalance = Number(supplier?.balance || 0);
   const [mode, setMode] = useState<'count' | 'amount'>('count');
   const [scheduleAmount, setScheduleAmount] = useState('');
@@ -65,6 +84,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const [paymentTarget, setPaymentTarget] = useState<SupplierPaymentScheduleItem | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('all');
 
   function refreshAccounts() {
     queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances });
@@ -97,7 +117,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const settleMutation = useMutation({
     mutationFn: ({ row, amount, paymentNote: noteText }: { row: SupplierPaymentScheduleItem; amount?: number; paymentNote?: string }) => supplierBalanceScheduleApi.settle(row.id, {
       amount,
-      note: noteText || `تسجيل دفع دفعة ${row.installmentNo} من مستحقات ${supplier?.name || 'المورد'}`,
+      note: noteText || `تسجيل دفع دفعة ${row.installmentNo} من مستحقات ${supplierName}`,
     }),
     onSuccess: (nextRows) => {
       queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), nextRows);
@@ -109,6 +129,16 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   });
 
   const rows = useMemo(() => scheduleQuery.data || [], [scheduleQuery.data]);
+  const filteredRows = useMemo(() => rows.filter((row) => {
+    if (scheduleFilter === 'all') return true;
+    return normalizeStatusForFilter(row.status) === scheduleFilter;
+  }), [rows, scheduleFilter]);
+  const filterCounts = useMemo(() => rows.reduce<Record<ScheduleFilter, number>>((acc, row) => {
+    acc.all += 1;
+    const status = normalizeStatusForFilter(row.status);
+    if (status !== 'cancelled') acc[status] += 1;
+    return acc;
+  }, { all: 0, pending: 0, partial: 0, paid: 0, overdue: 0 }), [rows]);
   const summary = useMemo(() => summarize(rows), [rows]);
   const canSchedule = Boolean(supplierId) && supplierBalance > 0 && !disabled;
   const nextDue = rows.find((row) => row.status !== 'paid' && row.status !== 'cancelled');
@@ -133,7 +163,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
 
   return (
     <Card
-      title="جدولة مستحقات المورد"
+      title={`مستحقات المورد: ${supplierName}`}
       description="قسّم رصيد المورد الحالي أو جزءًا منه إلى دفعات مستحقة وتابع المدفوع والمتبقي."
       actions={<span className="nav-pill">{rows.length ? `${rows.length} دفعات` : 'رصيد المورد'}</span>}
     >
@@ -147,7 +177,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       {nextDue ? (
         <div className="supplier-schedule-next-payment">
           <div>
-            <span>الدفعة القادمة</span>
+            <span>الدفعة القادمة إلى {supplierName}</span>
             <strong>{formatCurrency(nextDue.remainingAmount || nextDue.amount)}</strong>
             <small>تستحق في {formatDate(nextDue.dueDate)}</small>
           </div>
@@ -184,12 +214,28 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
 
       <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback="تعذر تنفيذ عملية جدولة المورد" successText="تم تحديث جدول مستحقات المورد." />
 
+      {rows.length ? (
+        <div className="supplier-schedule-filter-bar" aria-label="فلترة دفعات المورد">
+          {FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              className={`supplier-schedule-filter-chip ${scheduleFilter === option.key ? 'supplier-schedule-filter-chip--active' : ''}`}
+              onClick={() => setScheduleFilter(option.key)}
+            >
+              {option.label}
+              <span>{filterCounts[option.key]}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="table-wrap supplier-schedule-table-wrap" style={{ marginTop: 12 }}>
-        {rows.length ? (
+        {filteredRows.length ? (
           <table className="supplier-schedule-table">
             <thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الإجراء</th></tr></thead>
             <tbody>
-              {rows.map((row) => {
+              {filteredRows.map((row) => {
                 const isSettled = row.status === 'paid' || row.status === 'cancelled';
                 const payments = row.payments || [];
                 const isExpanded = Boolean(expandedRows[row.id]);
@@ -215,17 +261,21 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                       <td><strong>{formatCurrency(row.remainingAmount)}</strong></td>
                       <td><span className={statusClass(row.status)}>{statusLabel(row.status)}</span></td>
                       <td>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          disabled={isSettled || disabled || settleMutation.isPending}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openPaymentDialog(row);
-                          }}
-                        >
-                          تسجيل دفع
-                        </Button>
+                        {isSettled ? (
+                          <span className="supplier-schedule-completed-label">مكتملة</span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={disabled || settleMutation.isPending}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openPaymentDialog(row);
+                            }}
+                          >
+                            تسجيل دفع
+                          </Button>
+                        )}
                       </td>
                     </tr>
                     {isExpanded ? (
@@ -257,6 +307,8 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
               })}
             </tbody>
           </table>
+        ) : rows.length ? (
+          <EmptyState title="لا توجد دفعات مطابقة للفلتر" hint="غيّر فلتر الحالة لعرض باقي دفعات المورد." />
         ) : (
           <EmptyState title="لا يوجد جدول مستحقات لهذا المورد" hint="استخدم نموذج الجدولة لتقسيم رصيد المورد أو جزء منه على دفعات." />
         )}
@@ -264,14 +316,14 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
 
       {paymentTarget ? (
         <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation">
-          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تأكيد تسليم الدفعة للمورد">
+          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label={`تأكيد تسليم الدفعة إلى ${supplierName}`}>
             <div className="dialog-card supplier-payment-dialog-card">
-              <div className="supplier-payment-dialog-header">
+              <div className="supplier-payment-dialog-header supplier-payment-dialog-header--centered">
+                <button type="button" className="supplier-payment-dialog-close" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending} aria-label="إغلاق">×</button>
                 <div>
-                  <h3>تأكيد تسليم الدفعة للمورد</h3>
+                  <h3>تأكيد تسليم الدفعة إلى {supplierName}</h3>
                   <p className="muted">دفعة {paymentTarget.installmentNo} — المتبقي {formatCurrency(paymentTarget.remainingAmount)}</p>
                 </div>
-                <button type="button" className="supplier-payment-dialog-close" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending} aria-label="إغلاق">×</button>
               </div>
               <div className="form-grid supplier-payment-dialog-form">
                 <Field label="المبلغ المدفوع">
