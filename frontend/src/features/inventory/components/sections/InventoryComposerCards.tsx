@@ -169,9 +169,11 @@ export function StockCountComposerCard({
   const totalExpected = items.reduce((sum, item) => sum + Number(item.expectedQty || 0), 0);
   const totalCounted = items.reduce((sum, item) => sum + Number(item.countedQty || 0), 0);
   const totalVariance = Number(items.reduce((sum, item) => sum + Number(item.varianceQty || 0), 0).toFixed(3));
+  const countedItems = items.filter((item) => Number(item.countedQty || 0) > 0 || Number(item.varianceQty || 0) !== 0 || String(item.reason || '').trim()).length;
+  const varianceItems = items.filter((item) => Number(item.varianceQty || 0) !== 0).length;
   const selectedCountType = countTypeOptions.find((entry) => entry.key === countType) || countTypeOptions[0];
-  const needsManualNote = countType === 'category' || countType === 'full';
   const canShowExpectedCount = canReviewStock && showExpectedInElectronicCount;
+  const progressPercent = items.length ? Math.min(100, Math.round((countedItems / items.length) * 100)) : 0;
 
   useEffect(() => {
     if (!form.locationId) {
@@ -183,6 +185,8 @@ export function StockCountComposerCard({
   useEffect(() => {
     if (countType !== 'category') setSelectedCategoryId('');
     onItemsChange(() => []);
+    setIsCountStarted(false);
+    setStartCountMessage('');
   }, [countType, onItemsChange]);
 
   useEffect(() => {
@@ -206,6 +210,11 @@ export function StockCountComposerCard({
     }
     setStartCountMessage('');
     setIsCountStarted(true);
+  }
+
+  function handleBackToSetup() {
+    setIsCountStarted(false);
+    setStartCountMessage('');
   }
 
   function buildSessionNoteWithType(baseNote: string) {
@@ -234,108 +243,202 @@ export function StockCountComposerCard({
   }
 
   return (
-    <Card title="جلسة جرد مخزون" description="ابدأ الجرد، جهّز شيت العد للطباعة أو CSV، ثم أدخل الكميات الفعلية واعتمد التسوية بعد المراجعة." actions={<span className="nav-pill">جلسات الجرد</span>}>
-      <div className="form-grid">
-        {!SINGLE_STORE_MODE ? <Field label="الفرع">
-          <select value={form.branchId} onChange={(e) => onFormChange({ branchId: e.target.value })}>
-            <option value="">بدون فرع</option>
-            {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-          </select>
-        </Field> : null}
-        <Field label={SINGLE_STORE_MODE ? 'المخزن' : 'المخزن'}>
-          <select value={form.locationId} onChange={(e) => onFormChange({ locationId: e.target.value })}>
-            <option value="">اختر المخزن</option>
-            {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-          </select>
-        </Field>
-        <Field label="نوع الجرد">
-          <div className="filter-chip-row">
-            {countTypeOptions.map((entry) => (
-              <Button key={entry.key} type="button" variant={countType === entry.key ? 'primary' : 'secondary'} onClick={() => setCountType(entry.key)}>{entry.label}</Button>
-            ))}
-          </div>
-          <div className="muted small" style={{ marginTop: 8 }}>{selectedCountType.description}</div>
-        </Field>
-        {countType === 'category' ? (
-          <Field label="القسم / التصنيف">
-            <select value={selectedCategoryId} onChange={(e) => { setSelectedCategoryId(e.target.value); onItemsChange(() => []); }}>
-              <option value="">اختر القسم</option>
-              {categoryOptions.map((category) => <option key={category.id} value={category.id}>{category.label} ({category.count})</option>)}
-            </select>
-          </Field>
-        ) : null}
-        <Field label="إعدادات العد الإلكتروني">
-          <label className="checkbox-row">
-            <input type="checkbox" checked={showExpectedInElectronicCount} onChange={(event) => setShowExpectedInElectronicCount(event.target.checked)} disabled={!canReviewStock} />
-            <span>إظهار كمية النظام أثناء الإدخال الإلكتروني</span>
-          </label>
-          <div className="muted small" style={{ marginTop: 8 }}>
-            إلغاء الاختيار يجعل العد الإلكتروني حياديًا؛ تظل الفروقات محفوظة وتحسب عند إنشاء الجلسة.
-          </div>
-        </Field>
-        <div className="field">
-          <span>بدء الجرد</span>
-          <div className="actions compact-actions">
-            <Button type="button" variant="secondary" onClick={handleStartCount}>بدء الجرد</Button>
-          </div>
-          {startCountMessage ? <div className="muted small" style={{ marginTop: 8 }}>{startCountMessage}</div> : null}
-          {needsManualNote && isCountStarted ? <div className="surface-note" style={{ marginTop: 10 }}>جهّز شيت العد أولًا، أو استخدم الإدخال الإلكتروني لتجهيز أصناف النطاق داخل الجلسة.</div> : null}
-        </div>
-        <StockCountSheetTools products={products} items={items} countType={countType} selectedProduct={selectedProduct} selectedCategoryId={selectedCategoryId} locationName={selectedLocation?.name} isCountStarted={isCountStarted} onItemsChange={onItemsChange} />
-        <Field label="الصنف">
-          <InventoryProductPicker products={products} value={form.productId} onChange={(productId) => onFormChange({ productId })} showStock showPrice={false} disabled={!isCountStarted} helperText={isCountStarted ? 'اختر صنفًا لإدخال كمية العد أو لاستخدامه في الجرد السريع.' : 'ابدأ الجرد أولًا ثم اختر الصنف.'} />
-        </Field>
-        <Field label="الكمية المعدودة">
-          <input type="number" min="0" step="0.001" value={form.countedQty} onChange={(e) => onFormChange({ countedQty: e.target.value })} disabled={!isCountStarted} />
-        </Field>
-        <Field label="سبب الفرق">
-          <input value={form.reason} onChange={(e) => onFormChange({ reason: e.target.value })} placeholder="مثال: جرد دوري / كسر / فقد" disabled={!isCountStarted} />
-        </Field>
-        <Field label="ملاحظة العنصر">
-          <textarea rows={2} value={form.itemNote} onChange={(e) => onFormChange({ itemNote: e.target.value })} disabled={!isCountStarted} />
-        </Field>
-        <Field label="ملاحظة الجلسة">
-          <textarea rows={2} value={form.note} onChange={(e) => onFormChange({ note: e.target.value })} />
-        </Field>
-        <div className="field">
-          <span>الإجراء</span>
-          <div className="actions compact-actions">
-            <Button type="button" variant="secondary" onClick={onAddItem} disabled={!isCountStarted}>إضافة عنصر</Button>
-            <SubmitButton type="button" onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })} disabled={isPending || !items.length || !form.locationId || !isCountStarted} idleText="إنشاء جلسة الجرد" pendingText="جارٍ الإنشاء..." />
-          </div>
-        </div>
-      </div>
-      <div className="surface-note" style={{ marginTop: 12 }}>اعتماد الجرد يتم من خلال مستخدم لديه صلاحية اعتماد/تسوية المخزون.</div>
-      {!canReviewStock ? <div className="surface-note" style={{ marginTop: 12 }}>وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.</div> : null}
-      <div className="stats-grid compact-grid workspace-stats-grid" style={{ marginTop: 12 }}>
-        <div className="stat-card"><span>العناصر المضافة</span><strong>{items.length}</strong></div>
-        {canShowExpectedCount ? <div className="stat-card"><span>الفرق الحالي</span><strong>{selectedProduct ? variancePreview : totalVariance}</strong></div> : null}
-        {canShowExpectedCount ? <div className="stat-card"><span>المخزون المتوقع</span><strong>{selectedProduct ? expectedQtyValue : totalExpected}</strong></div> : null}
-        <div className="stat-card"><span>المعدود</span><strong>{selectedProduct ? countedQtyValue : totalCounted}</strong></div>
-      </div>
-      <div className="surface-note" style={{ marginTop: 12 }}>يفضل إدخال سبب واضح لكل فرق حتى تكون جلسة الجرد مفهومة عند المراجعة والطباعة لاحقًا.</div>
-      <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر إنشاء جلسة الجرد" successText="تم إنشاء جلسة الجرد بنجاح." />
-      <div className="list-stack" style={{ marginTop: 12 }}>
-        {items.length ? items.map((item, index) => (
-          <div className="list-row stacked-row" key={item.id}>
-            <div>
-              <strong>{item.productName}</strong>
-              <div className="form-grid" style={{ marginTop: 8 }}>
-                {canShowExpectedCount ? <Field label="كمية النظام"><input value={String(item.expectedQty || 0)} disabled /></Field> : null}
-                <Field label="الكمية المعدودة">
-                  <input type="number" min="0" step="0.001" value={String(item.countedQty ?? 0)} onChange={(event) => updateCountItem(index, { countedQty: Number(event.target.value || 0) })} />
-                </Field>
-                {canShowExpectedCount ? <Field label="الفرق"><input value={String(item.varianceQty || 0)} disabled /></Field> : null}
-                <Field label="سبب الفرق">
-                  <input value={item.reason || ''} onChange={(event) => updateCountItem(index, { reason: event.target.value })} />
-                </Field>
+    <Card
+      title="جلسة جرد مخزون"
+      description={isCountStarted ? 'راجع الأصناف، أدخل الكميات الفعلية، ثم أنشئ جلسة الجرد بعد المراجعة.' : 'ابدأ بخطوات قليلة: اختر طريقة الجرد، النطاق، وطريقة العد.'}
+      actions={<span className="nav-pill">{isCountStarted ? 'مرحلة العد والمراجعة' : 'إنشاء الجلسة'}</span>}
+    >
+      {!isCountStarted ? (
+        <div className="stock-count-setup-stack">
+          <div className="stock-count-step-card">
+            <div className="stock-count-step-heading">
+              <span>1</span>
+              <div>
+                <strong>اختر طريقة الجرد</strong>
+                <small>اختار طريقة واحدة فقط عشان الصفحة تعرض المطلوب بدون زحمة.</small>
               </div>
             </div>
-            <Button type="button" variant="danger" onClick={() => onRemoveItem(index)}>حذف</Button>
+            <div className="stock-count-method-grid">
+              {countTypeOptions.map((entry) => (
+                <button
+                  key={entry.key}
+                  type="button"
+                  className={`stock-count-method-card ${countType === entry.key ? 'stock-count-method-card--active' : ''}`}
+                  onClick={() => setCountType(entry.key)}
+                >
+                  <strong>{entry.label}</strong>
+                  <span>{entry.description}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        )) : <EmptyState title="لا توجد عناصر في جلسة الجرد" hint="استخدم الإدخال الإلكتروني لتجهيز أصناف النطاق أو أضف الأصناف التي بها فرق بعد العد الفعلي." />}
-      </div>
+
+          <div className="stock-count-step-card">
+            <div className="stock-count-step-heading">
+              <span>2</span>
+              <div>
+                <strong>حدد نطاق الجرد</strong>
+                <small>المخزن إجباري، والقسم يظهر فقط مع جرد قسم / تصنيف.</small>
+              </div>
+            </div>
+            <div className="form-grid stock-count-compact-form">
+              {!SINGLE_STORE_MODE ? <Field label="الفرع">
+                <select value={form.branchId} onChange={(e) => onFormChange({ branchId: e.target.value })}>
+                  <option value="">بدون فرع</option>
+                  {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                </select>
+              </Field> : null}
+              <Field label="المخزن">
+                <select value={form.locationId} onChange={(e) => onFormChange({ locationId: e.target.value })}>
+                  <option value="">اختر المخزن</option>
+                  {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+                </select>
+              </Field>
+              {countType === 'category' ? (
+                <Field label="القسم / التصنيف">
+                  <select value={selectedCategoryId} onChange={(e) => { setSelectedCategoryId(e.target.value); onItemsChange(() => []); }}>
+                    <option value="">اختر القسم</option>
+                    {categoryOptions.map((category) => <option key={category.id} value={category.id}>{category.label} ({category.count})</option>)}
+                  </select>
+                </Field>
+              ) : null}
+              <Field label="ملاحظة الجلسة">
+                <textarea rows={2} value={form.note} onChange={(e) => onFormChange({ note: e.target.value })} placeholder="مثال: جرد أسبوعي / جرد قبل طلبية المورد" />
+              </Field>
+            </div>
+          </div>
+
+          <div className="stock-count-step-card">
+            <div className="stock-count-step-heading">
+              <span>3</span>
+              <div>
+                <strong>طريقة العد</strong>
+                <small>اختار إظهار كمية النظام في العد الإلكتروني حسب صلاحية المستخدم وطريقة العمل.</small>
+              </div>
+            </div>
+            <div className="stock-count-mode-grid">
+              <div className="stock-count-mode-card">
+                <strong>جرد ورقي</strong>
+                <span>اطبع شيت العد وروح عدّ فعليًا داخل المحل.</span>
+              </div>
+              <div className="stock-count-mode-card">
+                <strong>جرد إلكتروني</strong>
+                <span>افتح الأصناف داخل الجلسة وأدخل الكميات على النظام.</span>
+              </div>
+              <div className="stock-count-mode-card">
+                <strong>CSV</strong>
+                <span>صدّر الملف، املأ الكميات، ثم ارجع أدخلها أو ارفعها لاحقًا.</span>
+              </div>
+            </div>
+            <label className="stock-count-expected-toggle">
+              <input type="checkbox" checked={showExpectedInElectronicCount} onChange={(event) => setShowExpectedInElectronicCount(event.target.checked)} disabled={!canReviewStock} />
+              <span>إظهار كمية النظام أثناء الإدخال الإلكتروني</span>
+            </label>
+            {!canReviewStock ? <div className="surface-note">وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.</div> : null}
+          </div>
+
+          {startCountMessage ? <div className="warning-box">{startCountMessage}</div> : null}
+          <div className="stock-count-start-actions">
+            <Button type="button" onClick={handleStartCount}>ابدأ جلسة الجرد</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="stock-count-review-stack">
+          <div className="stock-count-session-bar">
+            <div>
+              <span>جلسة جرد</span>
+              <strong>{selectedCountType.label}</strong>
+              <small>{selectedLocation?.name ? `المخزن: ${selectedLocation.name}` : 'اختر المخزن من الإعدادات'}{selectedCategoryId ? ` · القسم: ${categoryOptions.find((category) => category.id === selectedCategoryId)?.label || selectedCategoryId}` : ''}</small>
+            </div>
+            <div className="actions compact-actions">
+              <Button type="button" variant="secondary" onClick={handleBackToSetup} disabled={isPending}>تعديل الإعدادات</Button>
+              <SubmitButton type="button" onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })} disabled={isPending || !items.length || !form.locationId} idleText="إنشاء جلسة الجرد" pendingText="جارٍ الإنشاء..." />
+            </div>
+          </div>
+
+          <div className="stock-count-progress-card">
+            <div className="stock-count-progress-copy">
+              <span>تقدم العد</span>
+              <strong>{countedItems} من {items.length}</strong>
+              <small>{varianceItems ? `${varianceItems} أصناف بها فروقات` : 'لا توجد فروقات مسجلة حتى الآن'}</small>
+            </div>
+            <div className="stock-count-progress-track" aria-label="تقدم العد">
+              <span style={{ width: `${progressPercent}%` }} />
+            </div>
+          </div>
+
+          <div className="stats-grid compact-grid workspace-stats-grid">
+            <div className="stat-card"><span>العناصر المضافة</span><strong>{items.length}</strong></div>
+            {canShowExpectedCount ? <div className="stat-card"><span>الفرق الحالي</span><strong>{selectedProduct ? variancePreview : totalVariance}</strong></div> : null}
+            {canShowExpectedCount ? <div className="stat-card"><span>المخزون المتوقع</span><strong>{selectedProduct ? expectedQtyValue : totalExpected}</strong></div> : null}
+            <div className="stat-card"><span>المعدود</span><strong>{selectedProduct ? countedQtyValue : totalCounted}</strong></div>
+          </div>
+
+          <StockCountSheetTools products={products} items={items} countType={countType} selectedProduct={selectedProduct} selectedCategoryId={selectedCategoryId} locationName={selectedLocation?.name} isCountStarted={isCountStarted} onItemsChange={onItemsChange} />
+
+          <div className="stock-count-entry-panel">
+            <div className="stock-count-entry-heading">
+              <strong>إدخال صنف يدوي</strong>
+              <span>استخدمه للجرد السريع أو لإضافة صنف ناقص من الشيت.</span>
+            </div>
+            <div className="form-grid stock-count-compact-form">
+              <Field label="الصنف">
+                <InventoryProductPicker products={products} value={form.productId} onChange={(productId) => onFormChange({ productId })} showStock showPrice={false} helperText="اختر صنفًا لإدخال كمية العد أو لإضافته للجلسة." />
+              </Field>
+              <Field label="الكمية المعدودة">
+                <input type="number" min="0" step="0.001" value={form.countedQty} onChange={(e) => onFormChange({ countedQty: e.target.value })} />
+              </Field>
+              <Field label="سبب الفرق">
+                <input value={form.reason} onChange={(e) => onFormChange({ reason: e.target.value })} placeholder="مثال: جرد دوري / كسر / فقد" />
+              </Field>
+              <Field label="ملاحظة العنصر">
+                <textarea rows={2} value={form.itemNote} onChange={(e) => onFormChange({ itemNote: e.target.value })} />
+              </Field>
+              <div className="field">
+                <span>الإجراء</span>
+                <Button type="button" variant="secondary" onClick={onAddItem}>إضافة عنصر</Button>
+              </div>
+            </div>
+          </div>
+
+          <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر إنشاء جلسة الجرد" successText="تم إنشاء جلسة الجرد بنجاح." />
+
+          <div className="table-wrap stock-count-items-table-wrap">
+            {items.length ? (
+              <table className="stock-count-items-table">
+                <thead>
+                  <tr>
+                    <th>الصنف</th>
+                    {canShowExpectedCount ? <th>كمية النظام</th> : null}
+                    <th>الكمية المعدودة</th>
+                    {canShowExpectedCount ? <th>الفرق</th> : null}
+                    <th>سبب الفرق</th>
+                    <th>إجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => (
+                    <tr key={item.id}>
+                      <td><strong>{item.productName}</strong></td>
+                      {canShowExpectedCount ? <td className="muted">{item.expectedQty || 0}</td> : null}
+                      <td>
+                        <input type="number" min="0" step="0.001" value={String(item.countedQty ?? 0)} onChange={(event) => updateCountItem(index, { countedQty: Number(event.target.value || 0) })} />
+                      </td>
+                      {canShowExpectedCount ? <td><span className={Number(item.varianceQty || 0) === 0 ? 'stock-count-variance stock-count-variance--zero' : 'stock-count-variance'}>{item.varianceQty || 0}</span></td> : null}
+                      <td>
+                        <input value={item.reason || ''} onChange={(event) => updateCountItem(index, { reason: event.target.value })} placeholder="سبب الفرق" />
+                      </td>
+                      <td>
+                        <Button type="button" variant="secondary" onClick={() => onRemoveItem(index)}>إزالة</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : <EmptyState title="لا توجد عناصر في جلسة الجرد" hint="استخدم أزرار العد الورقي/الإلكتروني أو أضف صنفًا يدويًا بعد بدء الجلسة." />}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
-
