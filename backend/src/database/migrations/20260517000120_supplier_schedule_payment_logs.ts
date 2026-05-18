@@ -11,6 +11,7 @@ export const migration = {
       .addColumn('amount', 'numeric', (col) => col.notNull())
       .addColumn('note', 'text', (col) => col.notNull().defaultTo(''))
       .addColumn('created_by', 'integer', (col) => col.references('users.id'))
+      .addColumn('created_by_name', 'varchar(120)', (col) => col.notNull().defaultTo(''))
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .execute();
 
