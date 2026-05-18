@@ -134,17 +134,17 @@ export class SupplierPaymentSchedulesService {
     let query = db.selectFrom('supplier_payment_schedules').selectAll();
     if (where.purchaseId != null) query = query.where('purchase_id', '=', where.purchaseId);
     if (where.supplierId != null) query = query.where('supplier_id', '=', where.supplierId).where('purchase_id', 'is', null);
-    const rows = await query.orderBy('installment_no asc').execute();
-    const ids = rows.map((row: ScheduleRow) => Number(row.id)).filter(Boolean);
+    const rows = await query.orderBy('installment_no asc').execute() as ScheduleRow[];
+    const ids = rows.map((row) => Number(row.id)).filter(Boolean);
     const logs = ids.length
-      ? await db.selectFrom('supplier_payment_schedule_logs').selectAll().where('schedule_id', 'in', ids).orderBy('created_at asc').execute()
-      : [];
+      ? await db.selectFrom('supplier_payment_schedule_logs').selectAll().where('schedule_id', 'in', ids).orderBy('created_at asc').execute() as SchedulePaymentLogRow[]
+      : [] as SchedulePaymentLogRow[];
     const logsBySchedule = new Map<number, SchedulePaymentLogRow[]>();
-    logs.forEach((log: SchedulePaymentLogRow) => {
+    logs.forEach((log) => {
       const scheduleId = Number(log.schedule_id);
       logsBySchedule.set(scheduleId, [...(logsBySchedule.get(scheduleId) || []), log]);
     });
-    return { schedules: rows.map((row: ScheduleRow) => this.map(row, logsBySchedule.get(Number(row.id)) || [])) };
+    return { schedules: rows.map((row) => this.map(row, logsBySchedule.get(Number(row.id)) || [])) };
   }
 
   async listForPurchase(purchaseId: number): Promise<Record<string, unknown>> {
