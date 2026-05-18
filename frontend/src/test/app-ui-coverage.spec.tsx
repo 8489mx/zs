@@ -165,13 +165,15 @@ function PurchasesHarness() {
 describe('app ui coverage', () => {
   vi.setConfig({ testTimeout: 20000 });
 
-  it('renders dashboard with spotlight, hero, and trends', async () => {
+  it('renders focused dashboard with daily summary cards', async () => {
     await renderAppAt('/');
     expect((await screen.findAllByText(/الرئيسية/)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('ملخص اليوم')).length).toBeGreaterThan(0);
+    expect(await screen.findByText('موجز المدير اليومي')).toBeInTheDocument();
+    expect(await screen.findByText('البيع والخزينة')).toBeInTheDocument();
     expect(await screen.findByText('أعلى أصناف اليوم')).toBeInTheDocument();
-    expect(await screen.findByText('المبيعات اليومية · آخر 7 أيام')).toBeInTheDocument();
-    expect(await screen.findByText('المشتريات اليومية · آخر 7 أيام')).toBeInTheDocument();
+    expect(screen.queryByText('المبيعات اليومية · آخر 7 أيام')).not.toBeInTheDocument();
+    expect(screen.queryByText('المشتريات اليومية · آخر 7 أيام')).not.toBeInTheDocument();
   });
 
   it('covers settings core, reference, users, and backup sections', async () => {
@@ -314,7 +316,7 @@ describe('app ui coverage', () => {
 
   it('opens purchase details from the purchases register', async () => {
     const user = userEvent.setup();
-    render(<PurchasesHarness />);
+    render(<AppProviders><PurchasesHarness /></AppProviders>);
     await user.click(await screen.findByRole('button', { name: 'فتح تفاصيل اختبارية' }));
     expect(await screen.findByRole('button', { name: 'طباعة الفاتورة' })).toBeInTheDocument();
     expect((await screen.findAllByText('مورد رئيسي')).length).toBeGreaterThan(0);
