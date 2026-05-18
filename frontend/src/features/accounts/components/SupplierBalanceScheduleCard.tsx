@@ -242,7 +242,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                                   <div key={payment.id} className="supplier-schedule-payment-log-item">
                                     <strong>{formatCurrency(payment.amount)}</strong>
                                     <span>{formatDateTime(payment.createdAt)}</span>
-                                    <span>بواسطة {payment.createdByName || payment.createdBy || '—'}</span>
+                                    <span>تم تسجيل الدفع بواسطة المستخدم: {payment.createdByName || payment.createdBy || '—'}</span>
                                     {payment.note ? <em>ملاحظة: {payment.note}</em> : null}
                                   </div>
                                 ))}
