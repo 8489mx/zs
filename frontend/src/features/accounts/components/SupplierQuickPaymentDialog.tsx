@@ -5,7 +5,6 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
-import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
 import { supplierBalanceScheduleApi, type SupplierPaymentScheduleItem } from '@/features/accounts/api/supplier-balance-schedule.api';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Supplier } from '@/types/domain';
@@ -28,12 +27,12 @@ export function SupplierQuickPaymentDialog() {
   const [paymentNote, setPaymentNote] = useState('');
 
   const suppliersQuery = useQuery({
-    queryKey: queryKeys.suppliers,
-    queryFn: () => suppliersApi.listAll({ filter: 'debt' }),
+    queryKey: [...queryKeys.suppliers, 'debt-lookup'],
+    queryFn: () => supplierBalanceScheduleApi.listSuppliersWithDebt(),
     enabled: isOpen,
   });
 
-  const suppliers = useMemo(() => suppliersQuery.data?.suppliers || [], [suppliersQuery.data]);
+  const suppliers = useMemo(() => suppliersQuery.data || [], [suppliersQuery.data]);
   const selectedSupplier = useMemo(() => suppliers.find((supplier) => String(supplier.id) === selectedSupplierId) || null, [suppliers, selectedSupplierId]);
 
   const scheduleQuery = useQuery({
