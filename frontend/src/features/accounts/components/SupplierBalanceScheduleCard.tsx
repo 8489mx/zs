@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { Card } from '@/shared/ui/card';
@@ -20,6 +20,14 @@ function statusLabel(status: string) {
   if (status === 'overdue') return 'متأخرة';
   if (status === 'cancelled') return 'ملغاة';
   return 'غير مدفوعة';
+}
+
+function statusClass(status: string) {
+  if (status === 'paid') return 'supplier-schedule-status supplier-schedule-status--paid';
+  if (status === 'partial') return 'supplier-schedule-status supplier-schedule-status--partial';
+  if (status === 'overdue') return 'supplier-schedule-status supplier-schedule-status--overdue';
+  if (status === 'cancelled') return 'supplier-schedule-status supplier-schedule-status--cancelled';
+  return 'supplier-schedule-status supplier-schedule-status--pending';
 }
 
 function summarize(rows: SupplierPaymentScheduleItem[]) {
@@ -137,9 +145,13 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       </div>
 
       {nextDue ? (
-        <div className="surface-note" style={{ marginTop: 12 }}>
-          <strong>الدفعة القادمة:</strong> {formatCurrency(nextDue.remainingAmount || nextDue.amount)} مستحقة في {formatDate(nextDue.dueDate)}.
-          <Button type="button" variant="secondary" style={{ marginInlineStart: 8 }} disabled={disabled || settleMutation.isPending} onClick={() => openPaymentDialog(nextDue)}>تسجيل دفع</Button>
+        <div className="supplier-schedule-next-payment">
+          <div>
+            <span>الدفعة القادمة</span>
+            <strong>{formatCurrency(nextDue.remainingAmount || nextDue.amount)}</strong>
+            <small>تستحق في {formatDate(nextDue.dueDate)}</small>
+          </div>
+          <Button type="button" variant="secondary" disabled={disabled || settleMutation.isPending} onClick={() => openPaymentDialog(nextDue)}>تسجيل دفع</Button>
         </div>
       ) : null}
 
@@ -172,48 +184,75 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
 
       <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback="تعذر تنفيذ عملية جدولة المورد" successText="تم تحديث جدول مستحقات المورد." />
 
-      <div className="table-wrap" style={{ marginTop: 12 }}>
+      <div className="table-wrap supplier-schedule-table-wrap" style={{ marginTop: 12 }}>
         {rows.length ? (
-          <table>
+          <table className="supplier-schedule-table">
             <thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الإجراء</th></tr></thead>
             <tbody>
               {rows.map((row) => {
                 const isSettled = row.status === 'paid' || row.status === 'cancelled';
                 const payments = row.payments || [];
+                const isExpanded = Boolean(expandedRows[row.id]);
                 return (
-                  <>
-                    <tr key={row.id}>
-                      <td><button type="button" className="link-button" onClick={() => toggleRow(row.id)}>دفعة {row.installmentNo}</button></td>
+                  <Fragment key={row.id}>
+                    <tr
+                      className={`supplier-schedule-row ${isExpanded ? 'supplier-schedule-row--expanded' : ''}`}
+                      tabIndex={0}
+                      onClick={() => toggleRow(row.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          toggleRow(row.id);
+                        }
+                      }}
+                    >
+                      <td>
+                        <span className="supplier-schedule-installment-label">دفعة {row.installmentNo} {isExpanded ? '▴' : '▾'}</span>
+                      </td>
                       <td>{formatDate(row.dueDate)}</td>
                       <td>{formatCurrency(row.amount)}</td>
-                      <td>{formatCurrency(row.paidAmount)}</td>
-                      <td>{formatCurrency(row.remainingAmount)}</td>
-                      <td>{statusLabel(row.status)}</td>
-                      <td><Button type="button" variant="secondary" disabled={isSettled || disabled || settleMutation.isPending} onClick={() => openPaymentDialog(row)}>تسجيل دفع</Button></td>
+                      <td className="muted">{formatCurrency(row.paidAmount)}</td>
+                      <td><strong>{formatCurrency(row.remainingAmount)}</strong></td>
+                      <td><span className={statusClass(row.status)}>{statusLabel(row.status)}</span></td>
+                      <td>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={isSettled || disabled || settleMutation.isPending}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openPaymentDialog(row);
+                          }}
+                        >
+                          تسجيل دفع
+                        </Button>
+                      </td>
                     </tr>
-                    {expandedRows[row.id] ? (
-                      <tr key={`${row.id}-details`}>
+                    {isExpanded ? (
+                      <tr className="supplier-schedule-details-row">
                         <td colSpan={7}>
-                          <div className="surface-note">
-                            <strong>سجل دفع الدفعة {row.installmentNo}</strong>
+                          <div className="supplier-schedule-details-panel">
+                            <div className="supplier-schedule-details-heading">
+                              <strong>سجل دفع الدفعة {row.installmentNo}</strong>
+                              <span>{payments.length ? `${payments.length} عملية` : 'لا يوجد دفع مسجل'}</span>
+                            </div>
                             {payments.length ? (
-                              <div className="list-stack" style={{ marginTop: 8 }}>
+                              <div className="supplier-schedule-payment-log">
                                 {payments.map((payment) => (
-                                  <div key={payment.id} className="list-row stacked-row">
-                                    <div>
-                                      <strong>{formatCurrency(payment.amount)}</strong>
-                                      <div className="muted small">{formatDateTime(payment.createdAt)} · بواسطة {payment.createdByName || payment.createdBy || '—'}</div>
-                                      {payment.note ? <div className="muted small">ملاحظة: {payment.note}</div> : null}
-                                    </div>
+                                  <div key={payment.id} className="supplier-schedule-payment-log-item">
+                                    <strong>{formatCurrency(payment.amount)}</strong>
+                                    <span>{formatDateTime(payment.createdAt)}</span>
+                                    <span>بواسطة {payment.createdByName || payment.createdBy || '—'}</span>
+                                    {payment.note ? <em>ملاحظة: {payment.note}</em> : null}
                                   </div>
                                 ))}
                               </div>
-                            ) : <div className="muted small" style={{ marginTop: 8 }}>لم يتم تسجيل أي دفع على هذه الدفعة بعد.</div>}
+                            ) : <div className="muted small">لم يتم تسجيل أي دفع على هذه الدفعة بعد.</div>}
                           </div>
                         </td>
                       </tr>
                     ) : null}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -224,19 +263,28 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       </div>
 
       {paymentTarget ? (
-        <div className="modal-backdrop" role="dialog" aria-label="تأكيد تسليم الدفعة للمورد">
-          <div className="modal-card">
-            <h3>تأكيد تسليم الدفعة للمورد</h3>
-            <p className="muted">دفعة {paymentTarget.installmentNo} — المتبقي {formatCurrency(paymentTarget.remainingAmount)}</p>
-            <Field label="المبلغ المدفوع">
-              <input type="number" min="0.01" step="0.01" max={paymentTarget.remainingAmount} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} />
-            </Field>
-            <Field label="ملاحظات اختيارية">
-              <textarea rows={3} value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} placeholder="مثال: تم التسليم لمندوب المورد / رقم إيصال / ملاحظة داخلية" />
-            </Field>
-            <div className="actions compact-actions" style={{ justifyContent: 'flex-start', marginTop: 12 }}>
-              <Button type="button" onClick={() => settleMutation.mutate({ row: paymentTarget, amount: paymentAmount ? Number(paymentAmount) : undefined, paymentNote })} disabled={settleMutation.isPending}>تأكيد تسليم الدفعة للمورد</Button>
-              <Button type="button" variant="secondary" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending}>إلغاء</Button>
+        <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation">
+          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تأكيد تسليم الدفعة للمورد">
+            <div className="dialog-card supplier-payment-dialog-card">
+              <div className="supplier-payment-dialog-header">
+                <div>
+                  <h3>تأكيد تسليم الدفعة للمورد</h3>
+                  <p className="muted">دفعة {paymentTarget.installmentNo} — المتبقي {formatCurrency(paymentTarget.remainingAmount)}</p>
+                </div>
+                <button type="button" className="supplier-payment-dialog-close" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending} aria-label="إغلاق">×</button>
+              </div>
+              <div className="form-grid supplier-payment-dialog-form">
+                <Field label="المبلغ المدفوع">
+                  <input type="number" min="0.01" step="0.01" max={paymentTarget.remainingAmount} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} />
+                </Field>
+                <Field label="ملاحظات اختيارية">
+                  <textarea rows={3} value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} placeholder="مثال: تم التسليم لمندوب المورد / رقم إيصال / ملاحظة داخلية" />
+                </Field>
+              </div>
+              <div className="actions compact-actions supplier-payment-dialog-actions">
+                <Button type="button" onClick={() => settleMutation.mutate({ row: paymentTarget, amount: paymentAmount ? Number(paymentAmount) : undefined, paymentNote })} disabled={settleMutation.isPending}>تأكيد تسليم الدفعة للمورد</Button>
+                <Button type="button" variant="secondary" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending}>إلغاء</Button>
+              </div>
             </div>
           </div>
         </div>
