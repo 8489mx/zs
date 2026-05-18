@@ -22,6 +22,17 @@ type ScheduleRow = {
   paid_at: Date | null;
 };
 
+type SchedulePaymentLogRow = {
+  id: number;
+  schedule_id: number;
+  supplier_id: number;
+  amount: number;
+  note: string;
+  created_by: number | null;
+  created_by_name: string;
+  created_at: string | Date;
+};
+
 @Injectable()
 export class SupplierPaymentSchedulesService {
   constructor(
@@ -82,7 +93,20 @@ export class SupplierPaymentSchedulesService {
     return amounts.length ? amounts : [safeTotal];
   }
 
-  private map(row: ScheduleRow): Record<string, unknown> {
+  private mapPaymentLog(row: SchedulePaymentLogRow): Record<string, unknown> {
+    return {
+      id: String(row.id),
+      scheduleId: String(row.schedule_id),
+      supplierId: String(row.supplier_id),
+      amount: Number(row.amount || 0),
+      note: row.note || '',
+      createdBy: row.created_by == null ? '' : String(row.created_by),
+      createdByName: row.created_by_name || '',
+      createdAt: row.created_at,
+    };
+  }
+
+  private map(row: ScheduleRow, paymentLogs: SchedulePaymentLogRow[] = []): Record<string, unknown> {
     const amount = Number(row.amount || 0);
     const paidAmount = Number(row.paid_amount || 0);
     const dueDate = String(row.due_date || '').slice(0, 10);
@@ -101,17 +125,34 @@ export class SupplierPaymentSchedulesService {
       status,
       note: row.note || '',
       paidAt: row.paid_at,
+      payments: paymentLogs.map((log) => this.mapPaymentLog(log)),
     };
   }
 
+  private async listWithPayments(where: { purchaseId?: number; supplierId?: number }): Promise<Record<string, unknown>> {
+    const db = this.scheduleDb(this.db);
+    let query = db.selectFrom('supplier_payment_schedules').selectAll();
+    if (where.purchaseId != null) query = query.where('purchase_id', '=', where.purchaseId);
+    if (where.supplierId != null) query = query.where('supplier_id', '=', where.supplierId).where('purchase_id', 'is', null);
+    const rows = await query.orderBy('installment_no asc').execute();
+    const ids = rows.map((row: ScheduleRow) => Number(row.id)).filter(Boolean);
+    const logs = ids.length
+      ? await db.selectFrom('supplier_payment_schedule_logs').selectAll().where('schedule_id', 'in', ids).orderBy('created_at asc').execute()
+      : [];
+    const logsBySchedule = new Map<number, SchedulePaymentLogRow[]>();
+    logs.forEach((log: SchedulePaymentLogRow) => {
+      const scheduleId = Number(log.schedule_id);
+      logsBySchedule.set(scheduleId, [...(logsBySchedule.get(scheduleId) || []), log]);
+    });
+    return { schedules: rows.map((row: ScheduleRow) => this.map(row, logsBySchedule.get(Number(row.id)) || [])) };
+  }
+
   async listForPurchase(purchaseId: number): Promise<Record<string, unknown>> {
-    const rows = await this.scheduleDb(this.db).selectFrom('supplier_payment_schedules').selectAll().where('purchase_id', '=', purchaseId).orderBy('installment_no asc').execute();
-    return { schedules: rows.map((row) => this.map(row as ScheduleRow)) };
+    return this.listWithPayments({ purchaseId });
   }
 
   async listForSupplier(supplierId: number): Promise<Record<string, unknown>> {
-    const rows = await this.scheduleDb(this.db).selectFrom('supplier_payment_schedules').selectAll().where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).orderBy('installment_no asc').execute();
-    return { schedules: rows.map((row) => this.map(row as ScheduleRow)) };
+    return this.listWithPayments({ supplierId });
   }
 
   async createForPurchase(purchaseId: number, payload: CreateSupplierPaymentScheduleDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -182,6 +223,7 @@ export class SupplierPaymentSchedulesService {
       const { branchId, locationId } = normalizePurchaseScope({ branchId: payload.branchId ?? undefined, locationId: payload.locationId ?? undefined });
       const note = normalizeOptionalNote(payload.note) || `Supplier scheduled installment ${installment.installment_no}`;
       await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).execute();
+      await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, note, created_by: auth.userId, created_by_name: auth.username || '' }).execute();
       await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, 'supplier_payment_schedule', `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
     });
