@@ -72,8 +72,8 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
       roundingStep: Number(roundingStep || 1),
       note,
     }),
-    onSuccess: (rows) => {
-      queryClient.setQueryData(queryKeys.purchasePaymentSchedule(purchaseId), rows);
+    onSuccess: (nextRows) => {
+      queryClient.setQueryData(queryKeys.purchasePaymentSchedule(purchaseId), nextRows);
     },
   });
 
@@ -84,14 +84,14 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
       branchId: Number(purchase.branchId || 0) || undefined,
       locationId: Number(purchase.locationId || 0) || undefined,
     }),
-    onSuccess: (rows) => {
-      queryClient.setQueryData(queryKeys.purchasePaymentSchedule(purchaseId), rows);
+    onSuccess: (nextRows) => {
+      queryClient.setQueryData(queryKeys.purchasePaymentSchedule(purchaseId), nextRows);
       refreshFinancialQueries();
       setSettleAmounts({});
     },
   });
 
-  const rows = scheduleQuery.data || [];
+  const rows = useMemo(() => scheduleQuery.data || [], [scheduleQuery.data]);
   const summary = useMemo(() => buildScheduleSummary(rows), [rows]);
   const canCreateSchedule = purchase.status !== 'cancelled' && isCreditPurchase && Boolean(supplierId) && Number(purchase.total || 0) > 0;
 
