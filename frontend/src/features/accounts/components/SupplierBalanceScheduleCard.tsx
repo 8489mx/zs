@@ -6,7 +6,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
-import { supplierBalanceScheduleApi, type SupplierPaymentScheduleItem } from '@/features/purchases/api/purchase-payment-schedule.api';
+import { supplierBalanceScheduleApi, type SupplierPaymentScheduleItem } from '@/features/accounts/api/supplier-balance-schedule.api';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Supplier } from '@/types/domain';
 
@@ -73,8 +73,8 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       roundingStep: Number(roundingStep || 1),
       note,
     }),
-    onSuccess: (rows) => {
-      queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), rows);
+    onSuccess: (nextRows) => {
+      queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), nextRows);
     },
   });
 
@@ -83,14 +83,14 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       amount,
       note: `تسجيل دفع دفعة ${row.installmentNo} من مستحقات ${supplier?.name || 'المورد'}`,
     }),
-    onSuccess: (rows) => {
-      queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), rows);
+    onSuccess: (nextRows) => {
+      queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), nextRows);
       refreshAccounts();
       setSettleAmounts({});
     },
   });
 
-  const rows = scheduleQuery.data || [];
+  const rows = useMemo(() => scheduleQuery.data || [], [scheduleQuery.data]);
   const summary = useMemo(() => summarize(rows), [rows]);
   const canSchedule = Boolean(supplierId) && supplierBalance > 0 && !disabled;
 
