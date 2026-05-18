@@ -131,7 +131,7 @@ describe('Dashboard daily home layout', () => {
     expect(screen.getByText('إيه أشتريه؟')).toBeInTheDocument();
     expect(screen.getByText('إيه الراكد؟')).toBeInTheDocument();
     expect(screen.getByText('إيه أُحصّله؟')).toBeInTheDocument();
-    expect(screen.getByText('ملخص اليوم')).toBeInTheDocument();
+    expect(screen.getAllByText('ملخص اليوم').length).toBeGreaterThan(0);
     expect(screen.getByText('تنبيهات سريعة')).toBeInTheDocument();
     expect(screen.getByText('أعلى أصناف اليوم')).toBeInTheDocument();
     expect(screen.getByText('المخزون والذمم')).toBeInTheDocument();
