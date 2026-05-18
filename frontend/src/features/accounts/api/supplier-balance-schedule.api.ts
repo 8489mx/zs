@@ -1,5 +1,16 @@
 import { http } from '@/lib/http';
 
+export interface SupplierPaymentScheduleLogItem {
+  id: string;
+  scheduleId: string;
+  supplierId: string;
+  amount: number;
+  note: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+}
+
 export interface SupplierPaymentScheduleItem {
   id: string;
   purchaseId: string;
@@ -12,6 +23,7 @@ export interface SupplierPaymentScheduleItem {
   status: 'pending' | 'partial' | 'paid' | 'overdue' | 'cancelled' | string;
   note: string;
   paidAt?: string | null;
+  payments?: SupplierPaymentScheduleLogItem[];
 }
 
 export interface CreateSupplierBalanceSchedulePayload {
