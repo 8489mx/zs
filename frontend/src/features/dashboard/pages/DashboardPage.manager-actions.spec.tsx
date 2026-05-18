@@ -56,7 +56,11 @@ const dashboardOverview = {
 const managerOverview = {
   salesLast30: { total: 12500, count: 25, averageInvoice: 500, previousTotal: 10000, comparisonPercent: 25 },
   profitSummary: { netSales: 12000, cogs: 7200, grossProfit: 4800, expenses: 1300, netProfit: 3500 },
-  profitSources: { topProducts: [], topCategories: [], weakMarginHighSales: [] },
+  profitSources: {
+    topProducts: [{ productId: 'p2', name: 'بن برازيلي', categoryName: 'مشروبات', qty: 15, revenue: 3000, cost: 1800, grossProfit: 1200, marginPercent: 40 }],
+    topCategories: [],
+    weakMarginHighSales: [{ productId: 'p4', name: 'سكر أبيض', categoryName: 'بقالة', qty: 30, revenue: 4500, cost: 4300, grossProfit: 200, marginPercent: 4.4 }],
+  },
   stagnant: {
     days30: 2,
     days60: 1,
@@ -103,7 +107,7 @@ vi.mock('@/shared/system/first-run-setup-checklist', () => ({
 }));
 
 describe('Dashboard daily home layout', () => {
-  it('renders a focused daily dashboard with daily decision cards and without long report sections', () => {
+  it('renders a focused daily dashboard with daily decision cards and compact profit source insights', () => {
     useDashboardOverviewMock.mockReturnValue({
       data: dashboardOverview,
       isLoading: false,
@@ -130,15 +134,15 @@ describe('Dashboard daily home layout', () => {
     expect(screen.getByText('البيع والخزينة')).toBeInTheDocument();
     expect(screen.getByText('إيه أشتريه؟')).toBeInTheDocument();
     expect(screen.getByText('إيه الراكد؟')).toBeInTheDocument();
+    expect(screen.getByText('بيكسب منين؟')).toBeInTheDocument();
+    expect(screen.getByText('مبيعات عالية وهامش ضعيف')).toBeInTheDocument();
     expect(screen.getByText('إيه أُحصّله؟')).toBeInTheDocument();
     expect(screen.getAllByText('ملخص اليوم').length).toBeGreaterThan(0);
     expect(screen.getByText('تنبيهات سريعة')).toBeInTheDocument();
     expect(screen.getByText('أعلى أصناف اليوم')).toBeInTheDocument();
     expect(screen.getByText('المخزون والذمم')).toBeInTheDocument();
+    expect(screen.getByText('مبيعات آخر 30 يوم')).toBeInTheDocument();
 
-    expect(screen.queryByText('مبيعات آخر 30 يوم')).not.toBeInTheDocument();
-    expect(screen.queryByText('صافي الربح')).not.toBeInTheDocument();
-    expect(screen.queryByText('بيكسب منين؟')).not.toBeInTheDocument();
     expect(screen.getAllByText('لا توجد تنبيهات حرجة حاليًا').length).toBeGreaterThan(0);
   });
 
