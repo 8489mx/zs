@@ -182,7 +182,7 @@ export class SupplierPaymentSchedulesService {
       const { branchId, locationId } = normalizePurchaseScope({ branchId: payload.branchId ?? undefined, locationId: payload.locationId ?? undefined });
       const note = normalizeOptionalNote(payload.note) || `Supplier scheduled installment ${installment.installment_no}`;
       await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).execute();
-      await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
+      await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, 'supplier_payment_schedule', `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
     });
     return purchaseId ? this.listForPurchase(purchaseId) : this.listForSupplier(supplierId);
