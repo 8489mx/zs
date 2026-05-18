@@ -292,13 +292,113 @@
   margin-top: 14px;
 }
 
+.supplier-quick-payment-dialog {
+  width: min(760px, calc(100vw - 36px));
+}
+
+.supplier-quick-payment-card {
+  max-height: min(86vh, 760px);
+  overflow: auto;
+}
+
+.supplier-quick-payment-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: 12px;
+  align-items: end;
+}
+
+.supplier-quick-payment-summary,
+.supplier-quick-payment-target {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.supplier-quick-payment-summary span,
+.supplier-quick-payment-summary small,
+.supplier-quick-payment-target span,
+.supplier-quick-payment-target small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.supplier-quick-payment-summary strong,
+.supplier-quick-payment-target strong {
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.supplier-quick-payment-schedules,
+.supplier-quick-payment-confirm-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.supplier-quick-payment-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.supplier-quick-payment-section-title span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.supplier-quick-payment-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+  padding-inline-end: 2px;
+}
+
+.supplier-quick-payment-row {
+  display: grid;
+  grid-template-columns: minmax(90px, auto) minmax(110px, 1fr) minmax(120px, auto);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: start;
+  cursor: pointer;
+}
+
+.supplier-quick-payment-row strong {
+  justify-self: center;
+}
+
+.supplier-quick-payment-row small {
+  color: #64748b;
+}
+
+.supplier-quick-payment-row:hover,
+.supplier-quick-payment-row:focus,
+.supplier-quick-payment-row--active {
+  border-color: rgba(37, 99, 235, 0.4);
+  background: rgba(37, 99, 235, 0.06);
+  outline: none;
+}
+
 @media (max-width: 720px) {
   .supplier-schedule-next-payment {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .supplier-schedule-payment-log-item {
+  .supplier-schedule-payment-log-item,
+  .supplier-quick-payment-grid,
+  .supplier-quick-payment-row {
     grid-template-columns: 1fr;
   }
 
