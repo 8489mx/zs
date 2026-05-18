@@ -33,6 +33,12 @@ type SchedulePaymentLogRow = {
   created_at: string | Date;
 };
 
+type OpenCashierShiftRow = {
+  id: number;
+  branch_id: number | null;
+  location_id: number | null;
+};
+
 @Injectable()
 export class SupplierPaymentSchedulesService {
   constructor(
@@ -220,12 +226,22 @@ export class SupplierPaymentSchedulesService {
       if (amount > remaining + 0.0001) throw new AppError('Payment exceeds installment remaining amount', 'INSTALLMENT_OVERPAYMENT', 400);
       const paidAmount = this.roundCurrency(Number(installment.paid_amount || 0) + amount);
       const status = paidAmount >= Number(installment.amount || 0) - 0.0001 ? 'paid' : 'partial';
-      const { branchId, locationId } = normalizePurchaseScope({ branchId: payload.branchId ?? undefined, locationId: payload.locationId ?? undefined });
-      const note = normalizeOptionalNote(payload.note) || `Supplier scheduled installment ${installment.installment_no}`;
+      const openShift = await db.selectFrom('cashier_shifts')
+        .select(['id', 'branch_id', 'location_id'])
+        .where('opened_by', '=', auth.userId)
+        .where('status', '=', 'open')
+        .orderBy('id desc')
+        .executeTakeFirst() as OpenCashierShiftRow | undefined;
+      const scope = normalizePurchaseScope({ branchId: payload.branchId ?? openShift?.branch_id ?? undefined, locationId: payload.locationId ?? openShift?.location_id ?? undefined });
+      const branchId = scope.branchId;
+      const locationId = scope.locationId;
+      const note = normalizeOptionalNote(payload.note) || `دفعة مجدولة للمورد ${supplier.name || supplierId} - دفعة ${installment.installment_no}`;
+      const treasuryReferenceType = openShift?.id ? 'cashier_shift' : 'supplier_payment_schedule';
+      const treasuryReferenceId = openShift?.id ? Number(openShift.id) : installmentId;
       await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).execute();
       await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, note, created_by: auth.userId, created_by_name: auth.username || '' }).execute();
-      await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, 'supplier_payment_schedule', `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `Scheduled supplier payment - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
+      await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, 'supplier_payment_schedule', `دفعة مورد مجدولة - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفعة مورد مجدولة - ${note}${openShift?.id ? ` - مرتبطة بالوردية SHIFT-${openShift.id}` : ''}`, treasuryReferenceType, treasuryReferenceId, auth, branchId, locationId);
     });
     return purchaseId ? this.listForPurchase(purchaseId) : this.listForSupplier(supplierId);
   }
