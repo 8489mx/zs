@@ -8,6 +8,7 @@ import type {
   DashboardBuyingItem,
   DashboardCollectionItem,
   DashboardManagerOverviewPayload,
+  DashboardProfitItem,
   DashboardStagnantItem,
 } from '@/features/dashboard/api/dashboard.types';
 
@@ -21,6 +22,11 @@ interface DashboardDailyDecisionGridProps {
 function formatNumber(value: number | null | undefined) {
   if (value == null || !Number.isFinite(Number(value))) return 'غير متاح';
   return new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 1 }).format(Number(value));
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(Number(value))) return 'غير متاح';
+  return `${formatNumber(value)}%`;
 }
 
 function MetricTile({ label, value }: { label: string; value: string }) {
@@ -48,6 +54,24 @@ function ProductList({ rows, type }: { rows: DashboardStagnantItem[] | Dashboard
               ? `${formatNumber((row as DashboardStagnantItem).daysWithoutSales)} يوم`
               : `متاح ${formatNumber((row as DashboardBuyingItem).stockQty)}`}
           </b>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProfitList({ rows, emptyLabel, valueType }: { rows: DashboardProfitItem[]; emptyLabel: string; valueType: 'profit' | 'margin' }) {
+  if (!rows.length) return <div className="manager-overview-inline-empty">{emptyLabel}</div>;
+
+  return (
+    <div className="manager-overview-list">
+      {rows.slice(0, 3).map((row, index) => (
+        <div className="manager-overview-row" key={`${valueType}-${row.productId || row.categoryId || row.name}-${index}`}>
+          <div>
+            <strong>{row.name}</strong>
+            <span>{row.categoryName || `مبيعات ${formatCurrency(row.revenue)}`}</span>
+          </div>
+          <b>{valueType === 'profit' ? formatCurrency(row.grossProfit) : formatPercent(row.marginPercent)}</b>
         </div>
       ))}
     </div>
@@ -118,6 +142,27 @@ export function DashboardDailyDecisionGrid({
           <MetricTile label="قيمة الراكد" value={formatCurrency(data.stagnant.inventoryValue)} />
         </div>
         <ProductList rows={data.stagnant.items} type="stagnant" />
+      </Card>
+
+      <Card
+        title="بيكسب منين؟"
+        description="أعلى الأصناف ربحًا، والأصناف التي تبيع كثيرًا بهامش ضعيف وتحتاج مراجعة سعر أو تكلفة."
+        actions={<Link className="button button-secondary manager-overview-action" to="/reports/profit">افتح تقرير الربح</Link>}
+        className="dashboard-premium-card dashboard-card-compact manager-overview-card"
+      >
+        <div className="manager-overview-mini-metrics">
+          <MetricTile label="أعلى ربح" value={data.profitSources.topProducts[0] ? formatCurrency(data.profitSources.topProducts[0].grossProfit) : 'غير متاح'} />
+          <MetricTile label="هامش أعلى صنف" value={data.profitSources.topProducts[0] ? formatPercent(data.profitSources.topProducts[0].marginPercent) : 'غير متاح'} />
+          <MetricTile label="هامش ضعيف" value={formatNumber(data.profitSources.weakMarginHighSales.length)} />
+        </div>
+        <div className="manager-overview-list-section">
+          <div className="muted small">أعلى الأصناف ربحًا</div>
+          <ProfitList rows={data.profitSources.topProducts} emptyLabel="لا توجد أرباح أصناف كافية الآن" valueType="profit" />
+        </div>
+        <div className="manager-overview-list-section">
+          <div className="muted small">مبيعات عالية وهامش ضعيف</div>
+          <ProfitList rows={data.profitSources.weakMarginHighSales} emptyLabel="لا توجد أصناف بهامش ضعيف تحتاج متابعة الآن" valueType="margin" />
+        </div>
       </Card>
 
       <Card
