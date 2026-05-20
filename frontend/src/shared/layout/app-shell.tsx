@@ -27,6 +27,8 @@ type SidebarGroupDefinition = {
   itemKeys: string[];
 };
 
+const SIDEBAR_COLLAPSED_KEY = 'z-erp-sidebar-collapsed';
+
 function SideIcon({ children }: { children: ReactNode }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -204,6 +206,26 @@ function AppNavIcon({ itemKey }: { itemKey: string }) {
   return <>{iconMap[itemKey] || <SideIcon><circle cx="12" cy="12" r="8" /></SideIcon>}</>;
 }
 
+function SidebarCollapseIcon() {
+  return (
+    <SideIcon>
+      <path d="M4.5 6.5h15" />
+      <path d="M4.5 12h9" />
+      <path d="M4.5 17.5h15" />
+    </SideIcon>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <SideIcon>
+      <path d="M10 5.5H6.8A2.3 2.3 0 0 0 4.5 7.8v8.4a2.3 2.3 0 0 0 2.3 2.3H10" />
+      <path d="M13.2 8.8 17.5 12l-4.3 3.2" />
+      <path d="M17.5 12H9.7" />
+    </SideIcon>
+  );
+}
+
 export function AppShell({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -219,6 +241,15 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [storeName]);
   const isPosRoute = location.pathname.startsWith('/pos');
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+
+    try {
+      return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [expandedSidebarGroupKey, setExpandedSidebarGroupKey] = useState<string | null>(null);
   const [quickAttendanceOpen, setQuickAttendanceOpen] = useState(false);
 
@@ -355,6 +386,18 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [isPosChromeHidden, isPosRoute]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, isSidebarCollapsed ? '1' : '0');
+    } catch {
+      // ignore storage failures
+    }
+
+    document.body.classList.toggle('app-layout-sidebar-collapsed', isSidebarCollapsed);
+  }, [isSidebarCollapsed]);
+
+  useEffect(() => {
     if (!isPosRoute || typeof window === 'undefined') return undefined;
 
     const toggleChrome = () => setIsPosChromeHidden((current: boolean) => !current);
@@ -463,11 +506,13 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const cleanWorkspaceName = workspaceName.replace(/^\s*["'”“]+|["'”“]+\s*$/g, '').trim() || workspaceName;
 
+  const sidebarToggleLabel = isSidebarCollapsed ? 'توسيع القائمة' : 'طي القائمة';
+
   return (
-    <div className={`app-layout ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
+    <div className={`app-layout ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''} ${isSidebarCollapsed ? 'app-layout-sidebar-collapsed' : ''}`.trim()}>
       {!isPosRoute || !isPosChromeHidden ? (
-      <aside className="sidebar-fixed">
-        <div className="brand">
+      <aside className={`sidebar-fixed ${isSidebarCollapsed ? 'sidebar-fixed-collapsed' : ''}`.trim()}>
+        <div className="brand" title={cleanWorkspaceName}>
           <div className="brand-copy">
             <div className="brand-title">{cleanWorkspaceName}</div>
             <div className="brand-sub">منصة Z Systems</div>
@@ -491,6 +536,8 @@ export function AppShell({ children }: PropsWithChildren) {
                 to={item.to}
                 end={item.end}
                 data-key={item.key}
+                title={item.label}
+                aria-label={item.label}
                 style={toneStyle}
                 className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`.trim()}
               >
@@ -524,6 +571,8 @@ export function AppShell({ children }: PropsWithChildren) {
                   type="button"
                   className="sidebar-group-trigger"
                   aria-expanded={isOpen}
+                  aria-label={group.label}
+                  title={group.label}
                   onClick={() => toggleSidebarGroup(group.key)}
                   style={toneStyle}
                 >
@@ -549,6 +598,8 @@ export function AppShell({ children }: PropsWithChildren) {
                           to={item.to}
                           end={item.end}
                           data-key={item.key}
+                          title={item.label}
+                          aria-label={item.label}
                           style={toneStyle}
                           className={({ isActive: isItemActive }) => `sidebar-link sidebar-link-sub ${isItemActive ? 'active' : ''}`.trim()}
                         >
@@ -565,10 +616,26 @@ export function AppShell({ children }: PropsWithChildren) {
           })}
         </nav>
         <div className="sidebar-footer">
-          <div className="stack gap-8" style={{ marginBottom: 12 }}>
+          <div className="sidebar-footer-copy stack gap-8" style={{ marginBottom: 12 }}>
             <div className="muted small">مرحبًا {displayName}</div>
           </div>
-          <Button variant="danger" onClick={handleLogout} className="full-width">تسجيل الخروج</Button>
+          <div className="sidebar-footer-actions">
+            <button
+              type="button"
+              className="sidebar-collapse-toggle sidebar-footer-toggle"
+              aria-label={sidebarToggleLabel}
+              aria-expanded={!isSidebarCollapsed}
+              title={sidebarToggleLabel}
+              onClick={() => setIsSidebarCollapsed((current) => !current)}
+            >
+              <span className="sidebar-collapse-toggle-icon" aria-hidden="true"><SidebarCollapseIcon /></span>
+              <span className="sidebar-collapse-toggle-label">{sidebarToggleLabel}</span>
+            </button>
+            <Button variant="danger" onClick={handleLogout} className="sidebar-logout-button" title="تسجيل الخروج" aria-label="تسجيل الخروج">
+              <span className="sidebar-button-icon" aria-hidden="true"><LogoutIcon /></span>
+              <span className="sidebar-button-label">تسجيل الخروج</span>
+            </Button>
+          </div>
         </div>
       </aside>
       ) : null}

@@ -1,6 +1,6 @@
 import { ButtonHTMLAttributes, PropsWithChildren } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'success' | 'danger';
+type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'dashedAction';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;

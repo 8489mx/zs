@@ -16,9 +16,13 @@
   --sidebar-border:#dbe7f7;
   --shadow:0 14px 34px rgba(15, 23, 42, 0.08);
   --radius:22px;
+  --radius-button:9px;
+  --radius-button-sm:8px;
+  --radius-chip:8px;
+  --radius-icon-button:999px;
 }
 * { box-sizing: border-box; }
-html, body, #root { height: 100%; min-height: 100%; }
+html, body, #root { height: 100%; min-height: 100%; overflow: hidden; }
 body {
   margin: 0;
   font-family: Tahoma, Arial, sans-serif;
@@ -68,7 +72,7 @@ textarea { min-height: 88px; resize: vertical; }
   min-height: 38px;
   padding: 8px 14px;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-button);
   cursor: pointer;
   font-weight: 700;
   font-size: 13px;
@@ -82,6 +86,21 @@ textarea { min-height: 88px; resize: vertical; }
 .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .btn-success { background: var(--success); color: #fff; }
 .btn-danger { background: var(--danger); color: #fff; }
+.btn-dashedAction {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-button-sm);
+  border: 1px dashed rgba(124, 58, 237, 0.35);
+  background: rgba(124, 58, 237, 0.035);
+  color: #6d28d9;
+  box-shadow: none;
+  font-size: 12.75px;
+}
+.btn-dashedAction:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.07);
+  border-color: rgba(124, 58, 237, 0.55);
+  color: #5b21b6;
+}
 .button {
   display: inline-flex;
   align-items: center;
@@ -90,7 +109,7 @@ textarea { min-height: 88px; resize: vertical; }
   min-height: 38px;
   padding: 8px 14px;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-button);
   cursor: pointer;
   font-weight: 700;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
@@ -103,6 +122,21 @@ textarea { min-height: 88px; resize: vertical; }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-success { background: var(--success); color: #fff; }
 .button-danger { background: var(--danger); color: #fff; }
+.button-dashedAction {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-button-sm);
+  border: 1px dashed rgba(124, 58, 237, 0.35);
+  background: rgba(124, 58, 237, 0.035);
+  color: #6d28d9;
+  box-shadow: none;
+  font-size: 12.75px;
+}
+.button-dashedAction:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.07);
+  border-color: rgba(124, 58, 237, 0.55);
+  color: #5b21b6;
+}
 .card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -125,7 +159,7 @@ textarea { min-height: 88px; resize: vertical; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   font-size: 11px;
   font-weight: 700;
   min-height: 26px;
@@ -184,7 +218,7 @@ th {
   min-width: 40px;
   text-align: center;
   padding: 8px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: #fef3c7;
   color: #92400e;
   font-weight: 800;
@@ -194,7 +228,15 @@ th {
 .inline-create-panel { border: 1px solid var(--border); border-radius: 18px; padding: 14px; background: var(--surface-2); }
 .inline-create-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .filter-chip-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-.filter-chip-row .btn, .filter-chip-row .button { min-height: 36px; }
+.filter-chip-row .btn,
+.filter-chip-row .button {
+  min-height: 36px;
+  border-radius: var(--radius-button-sm);
+}
+
+.sidebar-logout-button {
+  border-radius: 12px;
+}
 .align-end-inline { align-items: flex-end; }
 .section-heading-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .section-description { font-size: 12px; line-height: 1.5; }

@@ -126,6 +126,22 @@ body,
   white-space: nowrap;
 }
 
+:where(.btn, .button):not(.pos-workspace *, .pos-sale-success-modal-shell *, .sidebar-logout-button) {
+  border-radius: var(--radius-button) !important;
+}
+
+:where(.filter-chip-row .btn, .filter-chip-row .button):not(.pos-workspace *, .pos-sale-success-modal-shell *, .sidebar-logout-button) {
+  border-radius: var(--radius-button-sm) !important;
+}
+
+:where(.nav-pill, .status-badge, .cashier-chip):not(.pos-workspace *) {
+  border-radius: var(--radius-chip) !important;
+}
+
+:where(.sidebar-logout-button) {
+  border-radius: 12px !important;
+}
+
 /* Dashboard-specific responsive polish without changing business data or component order. */
 :where(.dashboard-page, .home-page, .dashboard-shell, .home-dashboard):not(.pos-workspace *) {
   min-width: 0;

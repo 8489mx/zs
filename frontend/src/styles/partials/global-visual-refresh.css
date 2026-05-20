@@ -43,7 +43,7 @@ textarea {
 .button {
   min-height: 40px;
   padding: 9px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-button);
   font-size: 13px;
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
@@ -190,8 +190,9 @@ th {
 }
 
 .content-wrap {
-  width: calc(100vw - 248px);
-  max-width: calc(100vw - 248px);
+  flex: 1 1 0;
+  width: auto;
+  max-width: none;
   padding: 14px var(--content-gutter) 18px;
 }
 
@@ -273,8 +274,8 @@ th {
   }
 
   .content-wrap {
-    width: calc(100vw - 232px);
-    max-width: calc(100vw - 232px);
+    width: auto;
+    max-width: none;
   }
 
   .app-layout.app-layout-pos-focus .content-wrap.content-wrap-pos-focus {
