@@ -3,7 +3,6 @@ import { authApi } from '@/shared/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { MIN_PASSWORD_LENGTH } from '@/config/security';
 
 export function PasswordRotationGate() {
   const user = useAuthStore((state) => state.user);
@@ -22,9 +21,9 @@ export function PasswordRotationGate() {
   const helperText = useMemo(() => {
     if (!shouldEnforceRotation) return '';
     if (user?.usingDefaultAdminPassword === true) {
-      return `حساب التثبيت ما زال يستخدم كلمة المرور الافتراضية. غيّرها الآن إلى كلمة مرور جديدة لا تقل عن ${MIN_PASSWORD_LENGTH} حرفًا.`;
+      return 'حساب التثبيت ما زال يستخدم كلمة المرور الافتراضية. غيّرها الآن إلى كلمة مرور جديدة.';
     }
-    return `يجب تغيير كلمة المرور الحالية قبل متابعة استخدام النظام. استخدم كلمة مرور جديدة لا تقل عن ${MIN_PASSWORD_LENGTH} حرفًا.`;
+    return 'يجب تغيير كلمة المرور الحالية قبل متابعة استخدام النظام. استخدم كلمة مرور جديدة.';
   }, [shouldEnforceRotation, user?.usingDefaultAdminPassword]);
 
   useEffect(() => {
@@ -43,16 +42,12 @@ export function PasswordRotationGate() {
     setError('');
     setSuccess('');
 
-    if (!currentPassword.trim() || !newPassword) {
+    if (!currentPassword.trim() || !newPassword.trim()) {
       setError('أدخل كلمة المرور الحالية والجديدة.');
       return;
     }
     if (newPassword !== confirmPassword) {
       setError('تأكيد كلمة المرور غير مطابق.');
-      return;
-    }
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setError(`كلمة المرور الجديدة يجب ألا تقل عن ${MIN_PASSWORD_LENGTH} حرفًا.`);
       return;
     }
     if (newPassword === currentPassword) {

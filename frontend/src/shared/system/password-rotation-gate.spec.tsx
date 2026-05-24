@@ -51,33 +51,35 @@ describe('PasswordRotationGate', () => {
     expect(changePasswordMock).not.toHaveBeenCalled();
   });
 
-  it('requires at least 12 characters for the new password before submitting', async () => {
+  it('requires a non-empty new password before submitting', async () => {
     seedBootstrapUser();
     const user = userEvent.setup();
     render(<PasswordRotationGate />);
 
     await user.type(screen.getByLabelText('كلمة المرور الحالية'), 'old-password-123');
-    await user.type(screen.getByLabelText('كلمة المرور الجديدة'), '12345678901');
-    await user.type(screen.getByLabelText('تأكيد كلمة المرور الجديدة'), '12345678901');
+    await user.type(screen.getByLabelText('كلمة المرور الجديدة'), '   ');
+    await user.type(screen.getByLabelText('تأكيد كلمة المرور الجديدة'), '   ');
     await user.click(screen.getByRole('button', { name: 'تحديث كلمة المرور' }));
 
-    expect(await screen.findByText('كلمة المرور الجديدة يجب ألا تقل عن 12 حرفًا.')).toBeInTheDocument();
+    expect(await screen.findByText('أدخل كلمة المرور الحالية والجديدة.')).toBeInTheDocument();
     expect(changePasswordMock).not.toHaveBeenCalled();
   });
 
 
-  it('blocks weak replacement passwords before calling the API', async () => {
+  it('accepts one-character replacement passwords before calling the API', async () => {
     seedBootstrapUser();
+    changePasswordMock.mockResolvedValueOnce({ ok: true, removedOtherSessions: 0 });
     const user = userEvent.setup();
     render(<PasswordRotationGate />);
 
     await user.type(screen.getByLabelText('كلمة المرور الحالية'), 'old-password-123');
-    await user.type(screen.getByLabelText('كلمة المرور الجديدة'), 'short-pass');
-    await user.type(screen.getByLabelText('تأكيد كلمة المرور الجديدة'), 'short-pass');
+    await user.type(screen.getByLabelText('كلمة المرور الجديدة'), '1');
+    await user.type(screen.getByLabelText('تأكيد كلمة المرور الجديدة'), '1');
     await user.click(screen.getByRole('button', { name: 'تحديث كلمة المرور' }));
 
-    expect(await screen.findByText('كلمة المرور الجديدة يجب ألا تقل عن 12 حرفًا.')).toBeInTheDocument();
-    expect(changePasswordMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(changePasswordMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('still enforces password rotation when the bootstrap account keeps the default admin password flag', async () => {

@@ -103,11 +103,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
       throw new Error('Bootstrap admin seeding refuses to start with the default administrator password');
     }
 
-    assertStrongPassword(bootstrapSuperAdminPassword, {
-      minLength: 14,
-      code: 'BOOTSTRAP_PASSWORD_TOO_WEAK',
-      message: 'Bootstrap admin password must be at least 14 characters long',
-    });
+    assertStrongPassword(bootstrapSuperAdminPassword);
 
     await this.ensureBootstrapUser({
       username: bootstrapSuperAdminUsername,
