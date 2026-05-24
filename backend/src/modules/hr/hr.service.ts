@@ -65,10 +65,12 @@ function normalizeEmployeeNo(value: unknown): string {
 function isUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const candidate = error as { code?: unknown; constraint?: unknown; detail?: unknown; message?: unknown };
-  return candidate.code === '23505'
-    || String(candidate.constraint || '').includes('hr_employees_employee_no')
+  return String(candidate.code || '') === '23505'
+    && (
+      String(candidate.constraint || '').includes('hr_employees_employee_no')
     || String(candidate.detail || '').includes('employee_no')
-    || String(candidate.message || '').includes('idx_hr_employees_employee_no_unique');
+    || String(candidate.message || '').includes('idx_hr_employees_employee_no_unique')
+    );
 }
 
 function normalizeDateOnly(value: unknown): string | null {
