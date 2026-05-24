@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 function Invoke-SetupStep {
@@ -30,11 +30,11 @@ try {
 
   Invoke-SetupStep `
     -Title 'Installing Windows Startup autostart shortcut' `
-    -ScriptPath (Join-Path $launcherDir 'Install-Autostart-ZS.ps1')
+    -ScriptPath (Join-Path $launcherDir '../shortcuts/Install-Autostart-ZS.ps1')
 
   Invoke-SetupStep `
     -Title 'Installing Desktop browser shortcut' `
-    -ScriptPath (Join-Path $launcherDir 'Install-Desktop-Shortcut-ZS.ps1')
+    -ScriptPath (Join-Path $launcherDir '../shortcuts/Install-Desktop-Shortcut-ZS.ps1')
 
   Invoke-SetupStep `
     -Title 'Starting ZS Portable' `
@@ -47,3 +47,4 @@ try {
   Write-Error $_.Exception.Message
   exit 1
 }
+

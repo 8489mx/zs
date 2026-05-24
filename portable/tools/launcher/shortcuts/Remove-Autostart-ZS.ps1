@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $startupDir = [Environment]::GetFolderPath('Startup')
@@ -16,3 +16,4 @@ if (Test-Path $shortcutPath) {
 } else {
   Write-Host 'ZS autostart shortcut was not found. Nothing to remove.'
 }
+

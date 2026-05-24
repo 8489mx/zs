@@ -5,6 +5,6 @@ Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 launcherDir = fso.GetParentFolderName(WScript.ScriptFullName)
-command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & launcherDir & "\\Start-ZS.ps1"""
+command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & launcherDir & "\\..\\scripts\\Start-ZS.ps1"" -NoBrowser"
 
 shell.Run command, 0, False

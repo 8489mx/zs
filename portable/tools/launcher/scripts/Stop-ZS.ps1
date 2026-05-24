@@ -1,7 +1,7 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-. "$PSScriptRoot/Common.ps1"
+. "$PSScriptRoot/../lib/Common.ps1"
 
 $paths = Get-PathMap
 $logName = 'launcher-stop.log'
@@ -357,3 +357,4 @@ try {
   Write-Error $_.Exception.Message
   exit 1
 }
+

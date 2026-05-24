@@ -1,11 +1,11 @@
-param(
+﻿param(
   [Parameter(Mandatory = $true)][string]$BackupFile
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-. "$PSScriptRoot/Common.ps1"
+. "$PSScriptRoot/../lib/Common.ps1"
 
 $paths = Get-PathMap
 $logName = 'launcher-restore.log'

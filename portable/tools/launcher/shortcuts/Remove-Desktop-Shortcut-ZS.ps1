@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $desktopDir = [Environment]::GetFolderPath('Desktop')
@@ -16,3 +16,4 @@ if (Test-Path $shortcutPath) {
 } else {
   Write-Host 'ZS desktop shortcut was not found. Nothing to remove.'
 }
+

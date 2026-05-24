@@ -1,7 +1,7 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-. "$PSScriptRoot/Common.ps1"
+. "$PSScriptRoot/../lib/Common.ps1"
 
 $paths = Get-PathMap
 $desktopDir = [Environment]::GetFolderPath('Desktop')
@@ -97,3 +97,4 @@ if ($stopShortcut.IconLocation) {
 } else {
   Write-Host 'Stop icon: default icon. Add portable\assets\zs-stop.ico for a distinct Stop icon.'
 }
+
