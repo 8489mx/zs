@@ -9,7 +9,7 @@ import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee } from '@/types/domain';
 import { useHrWorkspace } from '@/features/hr/hooks/useHr';
-import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench';
+import { ImportWorkbench } from '@/shared/components/ImportWorkbench';
 import { downloadCsvFile } from '@/lib/browser';
 import { hrApi } from '@/features/hr/api/hr.api';
 
