@@ -37,3 +37,7 @@ portable/config/.env.offline
 *.bak
 *.localbak
 release/
+backend/.env.development
+frontend/.env.development
+scripts/dev/.runtime/
+scripts/dev/.state/
