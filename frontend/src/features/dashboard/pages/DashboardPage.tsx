@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
@@ -7,6 +8,7 @@ import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashb
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
 import { DashboardHeroSection } from '@/features/dashboard/components/DashboardHeroSection';
+import { DashboardMetricCard } from '@/features/dashboard/components/DashboardMetricCard';
 import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardSummaryGrid';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
@@ -16,6 +18,7 @@ import { ManagerNotificationsBell } from '@/features/dashboard/components/Manage
 import {
   buildDashboardAlerts,
   exportDashboardSnapshot,
+  formatInteger,
   printDashboardSnapshot,
 } from '@/features/dashboard/lib/dashboard-page.utils';
 
@@ -27,7 +30,7 @@ export function DashboardPage() {
   if (overview.isLoading && !overview.data) {
     return (
       <div className="page-stack page-shell">
-        <LoadingState title="جاري تحميل الرئيسية..." hint="نجهز لك مؤشرات البيع والمخزون والخزينة." className="status-surface-block" />
+        <LoadingState title="جاري تحميل ملخص اليوم..." hint="نجهز لك مؤشرات المبيعات والخزينة والمخزون." className="status-surface-block" />
       </div>
     );
   }
@@ -35,7 +38,7 @@ export function DashboardPage() {
   if (overview.isError && !overview.data) {
     return (
       <div className="page-stack page-shell">
-        <ErrorState title="تعذر تحميل الرئيسية" error={overview.error} hint="تحقق من تشغيل الخادم أو أعد تحميل الصفحة." className="status-surface-block" />
+        <ErrorState title="تعذر تحميل ملخص اليوم" error={overview.error} hint="تحقق من اتصال النظام ثم أعد المحاولة." className="status-surface-block" />
       </div>
     );
   }
@@ -44,13 +47,21 @@ export function DashboardPage() {
 
   const { summary, stats, topToday, trends } = overview.data;
   const smartAlerts = buildDashboardAlerts(overview.data);
+  const quickActions = [
+    { to: '/pos', label: 'نقطة البيع', hint: 'ابدأ تسجيل فاتورة' },
+    { to: '/treasury', label: 'تسجيل مصروف', hint: 'متابعة مصروفات اليوم' },
+    { to: '/inventory', label: 'مراجعة المخزون', hint: 'الأصناف المنخفضة والراكدة' },
+    { to: '/reports', label: 'تقرير اليوم', hint: 'ملخص الأداء اليومي' },
+    { to: '/customers', label: 'العملاء المستحقين', hint: 'كشف الذمم المدينة' },
+    { to: '/suppliers', label: 'الموردين المستحقين', hint: 'كشف الذمم الدائنة' },
+  ];
 
   return (
     <div className="page-stack dashboard-premium-shell dashboard-priority-shell">
       <PageHeader
-        title="الرئيسية"
-        description="لوحة تشغيل يومية مختصرة: راجع التنبيهات، مبيعات اليوم، الخزينة، وأهم ما يحتاج متابعة."
-        badge={<span className="nav-pill">ملخص اليوم</span>}
+        title="ملخص اليوم"
+        description="نظرة سريعة على المبيعات والخزينة والمخزون والتنبيهات المهمة."
+        badge={<span className="nav-pill">Daily Summary</span>}
         actions={(
           <div className="actions compact-actions dashboard-header-actions">
             <ManagerNotificationsBell />
@@ -58,23 +69,6 @@ export function DashboardPage() {
             <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
           </div>
         )}
-      />
-
-      <CompactFirstRunSetupPrompt />
-      <FirstRunSetupChecklist />
-
-      <DashboardDailyBrief
-        insights={managerActions.data?.insights || []}
-        salesTrend={trends.sales || []}
-        purchasesTrend={trends.purchases || []}
-        isLoading={managerActions.isLoading}
-      />
-
-      <DashboardCompactManagerActions
-        insights={managerActions.data?.insights || []}
-        isLoading={managerActions.isLoading}
-        isError={managerActions.isError}
-        error={managerActions.error}
       />
 
       <DashboardHeroSection
@@ -86,6 +80,37 @@ export function DashboardPage() {
         netOperatingProfit={Number(summary.commercial.netOperatingProfit || 0)}
       />
 
+      <section className="dashboard-daily-kpi-grid" aria-label="ملخص التشغيل">
+        <DashboardMetricCard label="مبيعات اليوم" value={Number(stats.todaySalesAmount || 0)} helper="إجمالي البيع المسجل اليوم" tone="primary" />
+        <DashboardMetricCard label="عدد فواتير اليوم" value={Number(stats.todaySalesCount || 0)} helper="عدد فواتير البيع" tone="success" formatter={formatInteger} />
+        <DashboardMetricCard label="صافي الخزينة" value={Number(summary.treasury.net || 0)} helper="الوضع النقدي الحالي" tone={Number(summary.treasury.net || 0) >= 0 ? 'success' : 'danger'} />
+        <DashboardMetricCard label="مصروفات اليوم" value={Number(summary.expenses.total || 0)} helper="إجمالي المصروفات" tone="warning" />
+        <DashboardMetricCard label="العملاء عليهم" value={Number(stats.customerDebt || 0)} helper="إجمالي الذمم المدينة" tone="danger" />
+        <DashboardMetricCard label="الموردين لهم" value={Number(stats.supplierDebt || 0)} helper="إجمالي الذمم الدائنة" tone="warning" />
+        <DashboardMetricCard label="تنبيهات المخزون" value={Number(overview.data.lowStock.length || 0)} helper="أصناف تحتاج متابعة" tone={Number(overview.data.lowStock.length || 0) > 0 ? 'danger' : 'success'} formatter={formatInteger} />
+      </section>
+
+      <section className="dashboard-quick-actions-grid" aria-label="إجراءات سريعة">
+        {quickActions.map((action) => (
+          <Link key={action.to} className="dashboard-quick-action" to={action.to}>
+            <strong>{action.label}</strong>
+            <span>{action.hint}</span>
+          </Link>
+        ))}
+      </section>
+
+      <CompactFirstRunSetupPrompt />
+      <FirstRunSetupChecklist />
+
+      <h2 className="dashboard-section-heading">ملخص التشغيل</h2>
+      <DashboardDailyBrief
+        insights={managerActions.data?.insights || []}
+        salesTrend={trends.sales || []}
+        purchasesTrend={trends.purchases || []}
+        isLoading={managerActions.isLoading}
+      />
+
+      <h2 className="dashboard-section-heading">قرارات تحتاج مراجعة</h2>
       <DashboardDailyDecisionGrid
         data={managerOverview.data}
         isLoading={managerOverview.isLoading}
@@ -104,6 +129,14 @@ export function DashboardPage() {
         inventorySaleValue={Number(stats.inventorySaleValue || 0)}
         customerDebt={Number(stats.customerDebt || 0)}
         supplierDebt={Number(stats.supplierDebt || 0)}
+      />
+
+      <h2 className="dashboard-section-heading">اختصارات إدارية</h2>
+      <DashboardCompactManagerActions
+        insights={managerActions.data?.insights || []}
+        isLoading={managerActions.isLoading}
+        isError={managerActions.isError}
+        error={managerActions.error}
       />
 
       <DashboardMonthlySnapshot data={managerOverview.data} />
