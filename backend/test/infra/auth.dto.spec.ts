@@ -19,7 +19,6 @@ function assertInvalid<T>(cls: new () => T, payload: unknown): void {
 
 function run(): void {
   const strongPassword = 'VeryStrongPass123!';
-  const shortPassword = 'weakpass';
 
   assertValid(UpsertUserDto, {
     username: 'owner',
@@ -32,15 +31,26 @@ function run(): void {
     role: 'admin',
   });
 
-  assertInvalid(UpsertUserDto, {
-    username: 'owner',
-    password: shortPassword,
+  assertValid(UpsertUserDto, {
+    username: 'cashier1',
+    password: '1',
+    role: 'cashier',
+  });
+
+  assertValid(UpsertUserDto, {
+    username: 'admin1',
+    password: 'a',
     role: 'admin',
   });
 
   assertValid(ChangePasswordDto, {
     currentPassword: 'CurrentPass123!',
     newPassword: strongPassword,
+  });
+
+  assertValid(ChangePasswordDto, {
+    currentPassword: 'CurrentPass123!',
+    newPassword: '1',
   });
 
   assertInvalid(ChangePasswordDto, {
@@ -50,11 +60,11 @@ function run(): void {
 
   assertInvalid(ChangePasswordDto, {
     currentPassword: 'CurrentPass123!',
-    newPassword: '12345678901',
+    newPassword: '',
   });
 
-  if (MIN_PASSWORD_LENGTH < 12) {
-    throw new Error('Password policy minimum unexpectedly regressed');
+  if (MIN_PASSWORD_LENGTH !== 1) {
+    throw new Error('Password policy minimum should allow one-character passwords');
   }
 
   process.stdout.write('auth.dto.spec.ts passed\n');

@@ -230,7 +230,7 @@ async function run(): Promise<void> {
 
   await service.changePassword(1, password, '1');
 
-  await service.changePassword(1, password, 'AdminEvenStronger123!');
+  await service.changePassword(1, '1', 'AdminEvenStronger123!');
 }
 
 run().then(() => {
