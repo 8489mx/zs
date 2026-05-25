@@ -19,7 +19,7 @@ import { SessionService } from '../../core/auth/services/session.service';
 import { AuditService } from '../../core/audit/audit.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
-import { createCsrfToken, CSRF_COOKIE_NAME } from '../../core/auth/utils/csrf-token';
+import { createCsrfToken } from '../../core/auth/utils/csrf-token';
 import { ActivationService } from '../activation/activation.service';
 
 @Controller('api/auth')
@@ -51,16 +51,24 @@ export class SessionsController {
     };
   }
 
+  private getSessionCookieName(): string {
+    return this.configService.get<string>('SESSION_COOKIE_NAME')?.trim() || 'session_id';
+  }
+
+  private getCsrfCookieName(): string {
+    return this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token';
+  }
+
   private setAuthCookies(res: Response, sessionId: string, expiresAt: Date): void {
     const csrfSecret = this.configService.get<string>('SESSION_CSRF_SECRET') || '';
     const csrfToken = createCsrfToken(sessionId, csrfSecret);
-    res.cookie('session_id', sessionId, this.cookieOptions(expiresAt));
-    res.cookie(CSRF_COOKIE_NAME, csrfToken, this.csrfCookieOptions(expiresAt));
+    res.cookie(this.getSessionCookieName(), sessionId, this.cookieOptions(expiresAt));
+    res.cookie(this.getCsrfCookieName(), csrfToken, this.csrfCookieOptions(expiresAt));
   }
 
   private clearAuthCookies(res: Response): void {
-    res.clearCookie('session_id', this.cookieOptions());
-    res.clearCookie(CSRF_COOKIE_NAME, this.csrfCookieOptions());
+    res.clearCookie(this.getSessionCookieName(), this.cookieOptions());
+    res.clearCookie(this.getCsrfCookieName(), this.csrfCookieOptions());
   }
 
   @Post('login')

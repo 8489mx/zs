@@ -22,7 +22,7 @@ export interface HttpRequestInit extends RequestInit {
   timeoutMs?: number;
 }
 const RAW_API_BASE = import.meta.env?.VITE_API_BASE_URL?.trim();
-const CSRF_COOKIE_NAME = 'csrf_token';
+const CSRF_COOKIE_NAME = import.meta.env?.VITE_CSRF_COOKIE_NAME?.trim() || 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
 
 export function normalizeApiBaseUrl(
