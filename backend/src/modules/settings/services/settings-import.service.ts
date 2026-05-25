@@ -466,7 +466,7 @@ export class SettingsImportService {
         const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
         const lookup = this.buildRowLookup(row);
 
-        const fullName = this.pickCell(lookup, ['اسم الموظف', 'الاسم', 'employee name', 'name', 'displayname', 'display_name']);
+        const fullName = this.pickCell(lookup, ['اسم الموظف', 'اسم العامل', 'الموظف', 'الاسم', 'employee name', 'employee_name', 'employeename', 'full name', 'fullname', 'full_name', 'name', 'displayname', 'display_name']);
         const explicitFirstName = this.pickCell(lookup, ['الاسم الأول', 'first name', 'firstname', 'first_name']);
         const explicitLastName = this.pickCell(lookup, ['الاسم الأخير', 'last name', 'lastname', 'last_name']);
         const nameParts = cleanString(fullName).split(/\s+/).filter(Boolean);
@@ -487,7 +487,7 @@ export class SettingsImportService {
         }
         const employeeNo = employeeNoDigits ? employeeNoDigits.padStart(3, '0') : '';
 
-        const nationalIdText = digitsOnly(this.pickCell(lookup, ['الرقم القومي', 'رقم الهوية', 'national id', 'national_id', 'id number']));
+        const nationalIdText = digitsOnly(this.pickCell(lookup, ['الرقم القومي', 'رقم قومي', 'رقم الهوية', 'national id', 'national_id', 'nationalid', 'id number']));
         if (nationalIdText && nationalIdText.length !== 14) {
           warnings.push(`الصف ${rowNumber}: الرقم القومي يجب أن يكون 14 رقمًا.`);
           continue;
@@ -536,12 +536,12 @@ export class SettingsImportService {
 
         const status = this.normalizeEmployeeStatus(this.pickCell(lookup, ['الحالة', 'status']));
         const overtimePolicy = this.normalizeOvertimePolicy(this.pickCell(lookup, ['سياسة الإضافي', 'overtime policy', 'overtime_policy']));
-        const phone = normalizePhoneText(this.pickCell(lookup, ['رقم الهاتف', 'الموبايل', 'mobile', 'phone']));
+        const phone = normalizePhoneText(this.pickCell(lookup, ['رقم الهاتف', 'الموبايل', 'mobile', 'phoneNumber', 'phone number', 'phonenumber', 'phone']));
         const email = cleanString(this.pickCell(lookup, ['البريد الإلكتروني', 'email'])).toLowerCase();
         const notes = cleanString(this.pickCell(lookup, ['ملاحظات', 'notes']));
 
-        const departmentName = this.pickCell(lookup, ['القسم', 'department']);
-        const jobTitleName = this.pickCell(lookup, ['الوظيفة', 'المسمى الوظيفي', 'job title', 'job_title']);
+        const departmentName = this.pickCell(lookup, ['القسم', 'الإدارة', 'department']);
+        const jobTitleName = this.pickCell(lookup, ['الوظيفة', 'المسمى الوظيفي', 'job title', 'job_title', 'jobtitle']);
         const positionName = this.pickCell(lookup, ['المنصب', 'position']);
         const departmentId = await this.ensureHrMasterName(trx, 'hr_departments', departmentName, actor);
         const jobTitleId = await this.ensureHrMasterName(trx, 'hr_job_titles', jobTitleName, actor);
@@ -687,3 +687,4 @@ export class SettingsImportService {
     return { ok: true, inserted: result.inserted, updated: result.updated, warnings: result.warnings };
   }
 }
+

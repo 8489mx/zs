@@ -159,6 +159,21 @@ export function EmployeesPage() {
             title="استيراد الموظفين"
             description="يدعم الأعمدة العربية أو الإنجليزية المكافئة. يتم تحديث الموظف عند التطابق، أو إضافته إذا لم يوجد."
             requiredColumns={['اسم الموظف']}
+            requiredFieldKeys={['name']}
+            fieldMappings={[
+              { key: 'name', label: 'اسم الموظف', aliases: ['name', 'employeeName', 'fullName', 'displayName', 'employee_name', 'employee name', 'اسم الموظف', 'اسم العامل', 'الموظف'] },
+              { key: 'phone', label: 'رقم الهاتف', aliases: ['phone', 'mobile', 'phoneNumber', 'رقم الهاتف', 'الموبايل'] },
+              { key: 'email', label: 'البريد الإلكتروني', aliases: ['email', 'البريد الإلكتروني'] },
+              { key: 'department', label: 'القسم', aliases: ['department', 'القسم', 'الإدارة'] },
+              { key: 'jobTitle', label: 'الوظيفة', aliases: ['jobTitle', 'job_title', 'job title', 'الوظيفة', 'المسمى الوظيفي'] },
+              { key: 'hireDate', label: 'تاريخ التعيين', aliases: ['hireDate', 'hire_date', 'hire date', 'تاريخ التعيين'] },
+              { key: 'baseSalary', label: 'الراتب الأساسي', aliases: ['baseSalary', 'base_salary', 'salary', 'الراتب', 'الراتب الأساسي'] },
+              { key: 'contractType', label: 'نوع العقد', aliases: ['contractType', 'contract_type', 'نوع العقد'] },
+              { key: 'status', label: 'الحالة', aliases: ['status', 'الحالة'] },
+              { key: 'nationalId', label: 'الرقم القومي', aliases: ['nationalId', 'national_id', 'national id', 'الرقم القومي', 'رقم قومي'] },
+              { key: 'address', label: 'العنوان', aliases: ['address', 'العنوان'] },
+              { key: 'notes', label: 'ملاحظات', aliases: ['notes', 'ملاحظات'] },
+            ]}
             onDownloadTemplate={downloadEmployeesTemplate}
             onImportRows={(rows) => importEmployeesMutation.mutateAsync(rows)}
             isPending={importEmployeesMutation.isPending}
@@ -302,3 +317,4 @@ export function EmployeesPage() {
     </div>
   );
 }
+

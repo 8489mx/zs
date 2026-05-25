@@ -8,6 +8,11 @@ export function normalizeHeader(value: string) {
 }
 
 type CsvRow = Record<string, string>;
+interface ImportFieldMapping {
+  key: string;
+  label: string;
+  aliases?: string[];
+}
 
 
 export function summarizeImportResult(result: unknown, rowCount: number, fileName: string): { kind: 'success' | 'warning'; text: string } {
@@ -38,12 +43,23 @@ interface ImportWorkbenchProps {
   title: string;
   description?: string;
   requiredColumns: string[];
+  requiredFieldKeys?: string[];
+  fieldMappings?: ImportFieldMapping[];
   onDownloadTemplate: () => void;
   onImportRows: (rows: CsvRow[]) => Promise<unknown>;
   isPending?: boolean;
 }
 
-export function ImportWorkbench({ title, description = '', requiredColumns, onDownloadTemplate, onImportRows, isPending = false }: ImportWorkbenchProps) {
+export function ImportWorkbench({
+  title,
+  description = '',
+  requiredColumns,
+  requiredFieldKeys,
+  fieldMappings,
+  onDownloadTemplate,
+  onImportRows,
+  isPending = false,
+}: ImportWorkbenchProps) {
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -56,17 +72,37 @@ export function ImportWorkbench({ title, description = '', requiredColumns, onDo
     }, {});
   }, [headers]);
 
-  const missingColumns = useMemo(() => {
-    return requiredColumns.filter((column) => !normalizedHeaderMap[normalizeHeader(column)]);
-  }, [normalizedHeaderMap, requiredColumns]);
+  const normalizedFieldMappings = useMemo<ImportFieldMapping[]>(() => {
+    if (fieldMappings?.length) return fieldMappings;
+    return requiredColumns.map((label) => ({ key: label, label, aliases: [label] }));
+  }, [fieldMappings, requiredColumns]);
+
+  const requiredMappings = useMemo(() => {
+    const requiredKeys = new Set((requiredFieldKeys?.length ? requiredFieldKeys : requiredColumns).map((entry) => String(entry)));
+    return normalizedFieldMappings.filter((entry) => requiredKeys.has(entry.key) || requiredKeys.has(entry.label));
+  }, [normalizedFieldMappings, requiredFieldKeys, requiredColumns]);
+
+  const resolvedHeaderByFieldKey = useMemo(() => {
+    const resolved: Record<string, string> = {};
+    for (const field of normalizedFieldMappings) {
+      const candidates = [field.key, field.label, ...(field.aliases || [])];
+      const matchedHeader = candidates
+        .map((candidate) => normalizedHeaderMap[normalizeHeader(candidate)])
+        .find(Boolean);
+      if (matchedHeader) resolved[field.key] = matchedHeader;
+    }
+    return resolved;
+  }, [normalizedFieldMappings, normalizedHeaderMap]);
+
+  const missingRequiredFields = useMemo(() => requiredMappings.filter((field) => !resolvedHeaderByFieldKey[field.key]), [requiredMappings, resolvedHeaderByFieldKey]);
 
   const rowIssueCount = useMemo(() => {
     if (!rows.length) return 0;
-    return rows.filter((row) => requiredColumns.some((column) => {
-      const actualHeader = normalizedHeaderMap[normalizeHeader(column)];
+    return rows.filter((row) => requiredMappings.some((field) => {
+      const actualHeader = resolvedHeaderByFieldKey[field.key];
       return !String(actualHeader ? row[actualHeader] : '').trim();
     })).length;
-  }, [normalizedHeaderMap, requiredColumns, rows]);
+  }, [requiredMappings, resolvedHeaderByFieldKey, rows]);
 
   const previewRows = useMemo(() => rows.slice(0, 5), [rows]);
 
@@ -96,8 +132,17 @@ export function ImportWorkbench({ title, description = '', requiredColumns, onDo
   async function handleImport() {
     try {
       if (!rows.length) throw new Error('اختر ملف CSV أولًا.');
-      if (missingColumns.length) throw new Error(`الأعمدة المطلوبة غير موجودة: ${missingColumns.join('، ')}`);
-      const result = await onImportRows(rows);
+      if (missingRequiredFields.length) throw new Error(`العمود المطلوب غير موجود: ${missingRequiredFields.map((field) => field.label).join('، ')}`);
+      const normalizedRows = rows.map((row) => {
+        const nextRow: CsvRow = { ...row };
+        for (const field of normalizedFieldMappings) {
+          const actualHeader = resolvedHeaderByFieldKey[field.key];
+          if (!actualHeader) continue;
+          nextRow[field.key] = String(row[actualHeader] || '').trim();
+        }
+        return nextRow;
+      });
+      const result = await onImportRows(normalizedRows);
       setStatus(summarizeImportResult(result, rows.length, fileName || 'الملف المحدد'));
     } catch (error) {
       setStatus({ kind: 'error', text: error instanceof Error ? error.message : 'تعذر استيراد الملف.' });
@@ -136,7 +181,7 @@ export function ImportWorkbench({ title, description = '', requiredColumns, onDo
         <div className="stat-card compact-stat-card"><span>أعمدة مكتشفة</span><strong>{headers.length}</strong></div>
       </div>
 
-      {missingColumns.length ? <div className="warning-box">الأعمدة الناقصة: {missingColumns.join('، ')}</div> : null}
+      {missingRequiredFields.length ? <div className="warning-box">{missingRequiredFields.map((field) => <div key={field.key}>العمود المطلوب غير موجود: {field.label}</div>)}</div> : null}
       {rowIssueCount ? <div className="warning-box">يوجد {rowIssueCount} صف يفتقد قيمة واحدة أو أكثر من الحقول المطلوبة.</div> : null}
       {status.text ? <div className={status.kind === 'error' || status.kind === 'warning' ? 'warning-box' : 'success-box'}>{status.text}</div> : null}
 
@@ -160,8 +205,9 @@ export function ImportWorkbench({ title, description = '', requiredColumns, onDo
       <div className="actions compact-actions">
         <Button type="button" variant="secondary" onClick={onDownloadTemplate}>تحميل القالب</Button>
         <Button type="button" variant="secondary" onClick={() => { setFileName(''); setRows([]); setHeaders([]); setStatus({ kind: '', text: '' }); }}>مسح المعاينة</Button>
-        <Button type="button" onClick={() => void handleImport()} disabled={isPending || !rows.length || !!missingColumns.length}>{isPending ? 'جارٍ الاستيراد...' : 'استيراد الآن'}</Button>
+        <Button type="button" onClick={() => void handleImport()} disabled={isPending || !rows.length || !!missingRequiredFields.length}>{isPending ? 'جارٍ الاستيراد...' : 'استيراد الآن'}</Button>
       </div>
     </div>
   );
 }
+
