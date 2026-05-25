@@ -31,4 +31,10 @@ export class SettingsImportController {
     this.importService.assertAdmin(req.authContext);
     return this.importService.importOpeningStock(payload.rows || [], req.authContext!);
   }
+
+  @Post('employees')
+  importEmployees(@Body() payload: { rows?: unknown[] }, @Req() req: RequestWithAuth) {
+    this.importService.assertEmployeeImporter(req.authContext);
+    return this.importService.importEmployees(payload.rows || [], req.authContext!);
+  }
 }
