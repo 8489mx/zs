@@ -160,34 +160,36 @@ function renderTotals(options: {
 
 export function getInvoiceStyles(compact = false) {
   return `
-    .print-shell { padding: ${compact ? '4px' : '12px'}; }
+    .print-shell { padding: ${compact ? '1px 1mm 2mm' : '4px 1.2mm 2mm'}; }
     .print-header { display: none !important; }
     .print-title { font-size: ${compact ? '14px' : '19px'}; }
     .print-subtitle { margin-top: 1px; font-size: ${compact ? '9px' : '11px'}; min-height: 0; }
     .print-meta-chip { padding: ${compact ? '4px 8px' : '6px 10px'}; font-size: ${compact ? '9.5px' : '11px'}; }
-    .print-content { gap: ${compact ? '5px' : '8px'}; }
+    .print-content { gap: ${compact ? '3px' : '6px'}; }
     .invoice-card {
-      border: 1px solid var(--print-border);
-      border-radius: ${compact ? '12px' : '18px'};
-      background: rgba(248,250,252,.58);
-      padding: ${compact ? '6px 7px' : '12px 14px'};
+      border: 0;
+      border-bottom: 1px solid #a3a3a3;
+      border-radius: 0;
+      background: #fff;
+      padding: ${compact ? '3px 2px 4px' : '4px 2px 5px'};
       break-inside: avoid;
     }
-    .invoice-card.compact { padding: 6px 7px; }
-    .invoice-brand-row { display: flex; align-items: center; justify-content: center; gap: ${compact ? '7px' : '10px'}; }
+    .invoice-card.compact { padding: 3px 2px 4px; }
+    .invoice-store-card { border-bottom-color: #8c8c8c; }
+    .invoice-brand-row { display: flex; align-items: center; justify-content: center; gap: ${compact ? '5px' : '7px'}; }
     .invoice-logo,
     .invoice-logo-fallback {
-      width: ${compact ? '28px' : '44px'};
-      height: ${compact ? '28px' : '44px'};
-      border-radius: ${compact ? '10px' : '14px'};
-      border: 1px solid var(--print-border);
+      width: ${compact ? '76px' : '104px'};
+      height: ${compact ? '32px' : '44px'};
+      border-radius: ${compact ? '5px' : '6px'};
+      border: 1px solid #8a8a8a;
       object-fit: cover;
       flex-shrink: 0;
-      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+      background: #fff;
       display: grid;
       place-items: center;
       font-weight: 700;
-      color: var(--print-accent);
+      color: #111;
       overflow: hidden;
     }
     .invoice-brand-copy { min-width: 0; text-align: center; }
@@ -195,78 +197,98 @@ export function getInvoiceStyles(compact = false) {
       margin: 0;
       font-size: ${compact ? '12px' : '19px'};
       line-height: 1.2;
-      color: var(--print-accent);
+      color: #000;
       font-weight: 800;
     }
     .store-inline-details {
-      margin-top: ${compact ? '3px' : '6px'};
-      color: var(--print-muted);
+      margin-top: ${compact ? '2px' : '4px'};
+      color: #111;
       font-size: ${compact ? '9px' : '10.5px'};
-      line-height: 1.5;
+      line-height: 1.35;
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
       justify-content: center;
       text-align: center;
     }
-    .invoice-meta-panel { display: grid; gap: ${compact ? '1px' : '2px'}; }
+    .invoice-meta-panel { display: grid; gap: 0; }
     .meta-line {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: auto 1fr;
       align-items: baseline;
-      gap: 10px;
-      padding: ${compact ? '2px 0' : '3px 0'};
-      border-bottom: 1px dashed rgba(148,163,184,.35);
+      gap: 4px;
+      padding: ${compact ? '1px 0' : '2px 0'};
+      border-bottom: 1px dashed #b1b1b1;
       font-size: ${compact ? '10.5px' : '12px'};
     }
     .meta-line:last-child { border-bottom: 0; }
     .meta-line.strong { font-weight: 700; font-size: ${compact ? '12.5px' : '14px'}; }
     .total-line { color: #0f172a; }
-    .meta-label { color: var(--print-muted); white-space: nowrap; }
-    .meta-value { text-align: left; font-weight: 600; }
+    .meta-label { color: #111; white-space: nowrap; font-weight: 500; }
+    .meta-value { text-align: right; font-weight: 400; color: #000; }
     .invoice-items-table { margin-top: 0; width: 100%; border-collapse: collapse; }
     .invoice-items-table th,
     .invoice-items-table td {
-      padding: ${compact ? '4px 3px' : '8px 6px'};
+      padding: ${compact ? '3px 2px' : '4px 4px'};
       font-size: ${compact ? '10px' : '12px'};
-      border: 1px solid var(--print-border);
+      border: 1px solid #9a9a9a;
       text-align: center;
       white-space: nowrap;
       line-height: 1.15;
     }
     .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; }
+    .invoice-items-table td:not(.name-cell) {
+      text-align: left;
+      font-variant-numeric: tabular-nums;
+    }
     .invoice-items-table.compact th,
-    .invoice-items-table.compact td { font-size: 9px; }
+    .invoice-items-table.compact td { font-size: 9.5px; }
     .invoice-items-table.compact th { font-size: 8.5px; }
     .invoice-items-table.compact th:first-child,
     .invoice-items-table.compact td:first-child { text-align: right; }
     .invoice-payment-card .section-title {
       font-size: ${compact ? '10.5px' : '12px'};
       font-weight: 700;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
     .payment-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(${compact ? '92px' : '120px'}, 1fr));
-      gap: 6px;
+      gap: 4px;
     }
     .payment-chip {
-      border: 1px solid var(--print-border);
-      border-radius: 10px;
-      padding: ${compact ? '5px' : '8px'};
+      border: 0;
+      border-bottom: 1px dashed #a8a8a8;
+      border-radius: 0;
+      padding: ${compact ? '3px 4px' : '5px 6px'};
       display: flex;
       justify-content: space-between;
       gap: 6px;
       font-size: ${compact ? '9.5px' : '11px'};
-      background: rgba(248,250,252,.55);
+      background: #fff;
+    }
+    .payment-chip strong {
+      font-variant-numeric: tabular-nums;
+      text-align: left;
+    }
+    .invoice-totals-card .meta-value {
+      text-align: left;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-weight: 500;
+    }
+    .invoice-totals-card .meta-line.strong .meta-value {
+      font-weight: 700;
     }
     .print-footer {
-      margin-top: 8px;
-      font-size: ${compact ? '9.5px' : '11px'};
-      padding-top: 8px;
+      margin-top: 4px;
+      font-size: ${compact ? '8.8px' : '9.8px'};
+      padding-top: 3px;
+      padding-bottom: 2.4mm;
+      border: 0;
       text-align: center;
     }
-    body.receipt-mode .print-shell { max-width: 80mm; padding-top: 0; }
+    body.receipt-mode .print-shell { max-width: 76mm; padding-top: 0; margin: 0 auto; }
     body.receipt-mode .print-header { display: none !important; }
     body.receipt-mode .print-title-wrap { min-width: 0; }
   `;
