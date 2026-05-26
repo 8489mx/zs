@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
@@ -7,7 +7,6 @@ import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklis
 import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
-import { DashboardHeroSection } from '@/features/dashboard/components/DashboardHeroSection';
 import { DashboardMetricCard } from '@/features/dashboard/components/DashboardMetricCard';
 import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardSummaryGrid';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
@@ -45,15 +44,13 @@ export function DashboardPage() {
 
   if (!overview.data) return null;
 
-  const { summary, stats, topToday, trends } = overview.data;
+  const { summary, stats, topToday } = overview.data;
   const smartAlerts = buildDashboardAlerts(overview.data);
   const quickActions = [
     { to: '/pos', label: 'نقطة البيع', hint: 'ابدأ تسجيل فاتورة' },
     { to: '/treasury', label: 'تسجيل مصروف', hint: 'متابعة مصروفات اليوم' },
     { to: '/inventory', label: 'مراجعة المخزون', hint: 'الأصناف المنخفضة والراكدة' },
     { to: '/reports', label: 'تقرير اليوم', hint: 'ملخص الأداء اليومي' },
-    { to: '/customers', label: 'العملاء المستحقين', hint: 'كشف الذمم المدينة' },
-    { to: '/suppliers', label: 'الموردين المستحقين', hint: 'كشف الذمم الدائنة' },
   ];
 
   return (
@@ -71,22 +68,11 @@ export function DashboardPage() {
         )}
       />
 
-      <DashboardHeroSection
-        todaySalesCount={Number(stats.todaySalesCount || 0)}
-        todayPurchasesCount={Number(stats.todayPurchasesCount || 0)}
-        activeOffers={Number(stats.activeOffers || 0)}
-        todaySalesAmount={Number(stats.todaySalesAmount || 0)}
-        treasuryNet={Number(summary.treasury.net || 0)}
-        netOperatingProfit={Number(summary.commercial.netOperatingProfit || 0)}
-      />
-
-      <section className="dashboard-daily-kpi-grid" aria-label="ملخص التشغيل">
+      <section className="dashboard-daily-kpi-grid dashboard-primary-kpi-grid" aria-label="ملخص التشغيل">
         <DashboardMetricCard label="مبيعات اليوم" value={Number(stats.todaySalesAmount || 0)} helper="إجمالي البيع المسجل اليوم" tone="primary" />
         <DashboardMetricCard label="عدد فواتير اليوم" value={Number(stats.todaySalesCount || 0)} helper="عدد فواتير البيع" tone="success" formatter={formatInteger} />
         <DashboardMetricCard label="صافي الخزينة" value={Number(summary.treasury.net || 0)} helper="الوضع النقدي الحالي" tone={Number(summary.treasury.net || 0) >= 0 ? 'success' : 'danger'} />
         <DashboardMetricCard label="مصروفات اليوم" value={Number(summary.expenses.total || 0)} helper="إجمالي المصروفات" tone="warning" />
-        <DashboardMetricCard label="العملاء عليهم" value={Number(stats.customerDebt || 0)} helper="إجمالي الذمم المدينة" tone="danger" />
-        <DashboardMetricCard label="الموردين لهم" value={Number(stats.supplierDebt || 0)} helper="إجمالي الذمم الدائنة" tone="warning" />
         <DashboardMetricCard label="تنبيهات المخزون" value={Number(overview.data.lowStock.length || 0)} helper="أصناف تحتاج متابعة" tone={Number(overview.data.lowStock.length || 0) > 0 ? 'danger' : 'success'} formatter={formatInteger} />
       </section>
 
@@ -99,14 +85,9 @@ export function DashboardPage() {
         ))}
       </section>
 
-      <CompactFirstRunSetupPrompt />
-      <FirstRunSetupChecklist />
-
       <h2 className="dashboard-section-heading">ملخص التشغيل</h2>
       <DashboardDailyBrief
         insights={managerActions.data?.insights || []}
-        salesTrend={trends.sales || []}
-        purchasesTrend={trends.purchases || []}
         isLoading={managerActions.isLoading}
       />
 
@@ -130,6 +111,9 @@ export function DashboardPage() {
         customerDebt={Number(stats.customerDebt || 0)}
         supplierDebt={Number(stats.supplierDebt || 0)}
       />
+
+      <CompactFirstRunSetupPrompt />
+      <FirstRunSetupChecklist />
 
       <h2 className="dashboard-section-heading">اختصارات إدارية</h2>
       <DashboardCompactManagerActions

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
@@ -43,8 +43,8 @@ export function DashboardSummaryGrid({
   };
 
   return (
-    <section className="dashboard-content-grid dashboard-content-grid-summary-merged">
-      <Card title="ملخص التشغيل" className="dashboard-premium-card dashboard-card-compact">
+    <section className="dashboard-content-grid dashboard-content-grid-summary-merged dashboard-secondary-zone-grid">
+      <Card title="ملخص التشغيل" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         <div className="metric-list">
           <div className="metric-row"><span>فواتير البيع اليوم</span><strong>{todaySalesCount}</strong></div>
           <div className="metric-row"><span>فواتير الشراء اليوم</span><strong>{todayPurchasesCount}</strong></div>
@@ -53,7 +53,7 @@ export function DashboardSummaryGrid({
         </div>
       </Card>
 
-      <Card title="تنبيهات المخزون والحسابات" className="dashboard-premium-card dashboard-card-compact">
+      <Card title="تنبيهات المخزون والحسابات" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         <div className="dashboard-alert-grid">
           {alerts.map((alert) => (
             <div key={`${alert.title}-${alert.text}`} className={`alert-card ${alert.cls}`}>
@@ -65,7 +65,7 @@ export function DashboardSummaryGrid({
         </div>
       </Card>
 
-      <Card title="أعلى أصناف اليوم" className="dashboard-premium-card dashboard-card-compact">
+      <Card title="أعلى أصناف اليوم" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         {topToday.length ? (
           <div className="list-stack">
             {topToday.slice(0, 5).map((row) => (
@@ -83,7 +83,7 @@ export function DashboardSummaryGrid({
         )}
       </Card>
 
-      <Card title="الحسابات المستحقة والمخزون" className="dashboard-premium-card dashboard-card-compact">
+      <Card title="الحسابات المستحقة والمخزون" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         <div className="metric-list">
           <div className="metric-row"><span>عدد الأصناف</span><strong>{productsCount}</strong></div>
           <div className="metric-row"><span>قيمة المخزون بالبيع</span><strong>{formatCurrency(inventorySaleValue)}</strong></div>
