@@ -1,5 +1,14 @@
 import { registerAs } from '@nestjs/config';
 
+function readSslCaCert(): string {
+  const base64Cert = process.env.DATABASE_SSL_CA_CERT_B64?.trim();
+  if (base64Cert) {
+    return Buffer.from(base64Cert, 'base64').toString('utf8');
+  }
+
+  return process.env.DATABASE_SSL_CA_CERT ?? '';
+}
+
 export default registerAs('database', () => ({
   host: process.env.DATABASE_HOST ?? process.env.DB_HOST,
   port: Number(process.env.DATABASE_PORT ?? process.env.DB_PORT ?? process.env.PGPORT),
@@ -8,5 +17,7 @@ export default registerAs('database', () => ({
   name: process.env.DATABASE_NAME ?? process.env.DB_NAME,
   schema: process.env.DATABASE_SCHEMA,
   ssl: process.env.DATABASE_SSL === 'true',
+  sslRejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
+  sslCaCert: readSslCaCert(),
   logging: process.env.DATABASE_LOGGING === 'true',
 }));
