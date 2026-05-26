@@ -1,11 +1,11 @@
-param(
+﻿param(
   [switch]$NoBrowser
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-. "$PSScriptRoot/Common.ps1"
+. "$PSScriptRoot/../lib/Common.ps1"
 
 $paths = Get-PathMap
 $logName = 'launcher-start.log'
@@ -47,7 +47,7 @@ function Ensure-StartupShortcut([hashtable]$Paths) {
   Ensure-Directory -Path $startupDir
 
   $shortcutPath = Join-Path $startupDir 'ZS Portable.lnk'
-  $autostartScript = Join-Path $Paths.LauncherDir 'Start-ZS-Autostart.vbs'
+  $autostartScript = Join-Path $Paths.LauncherDir 'shortcuts/Start-ZS-Autostart.vbs'
   if (-not (Test-Path $autostartScript)) {
     throw "Autostart launcher script missing: $autostartScript"
   }
@@ -208,7 +208,7 @@ try {
     -Paths $paths `
     -Name 'backend'
 
-  $frontendServerScript = Join-Path $paths.LauncherDir 'serve-frontend.mjs'
+  $frontendServerScript = Join-Path $paths.LauncherDir 'server/serve-frontend.mjs'
   if (-not (Test-Path $frontendServerScript)) {
     throw "Frontend server script missing: $frontendServerScript"
   }
@@ -254,3 +254,5 @@ try {
   Write-Error $errorDetails
   exit 1
 }
+
+

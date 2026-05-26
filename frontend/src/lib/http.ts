@@ -1,3 +1,5 @@
+import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
+
 export class ApiError extends Error {
   status: number;
   code?: string;
@@ -20,7 +22,7 @@ export interface HttpRequestInit extends RequestInit {
   timeoutMs?: number;
 }
 const RAW_API_BASE = import.meta.env?.VITE_API_BASE_URL?.trim();
-const CSRF_COOKIE_NAME = 'csrf_token';
+const CSRF_COOKIE_NAME = import.meta.env?.VITE_CSRF_COOKIE_NAME?.trim() || 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
 
 export function normalizeApiBaseUrl(
@@ -67,65 +69,6 @@ function emitWindowEvent<T>(name: string, detail: T) {
   window.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
-function firstNonEmptyString(...values: unknown[]): string | null {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim();
-    }
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        const nested = firstNonEmptyString(item);
-        if (nested) return nested;
-      }
-    }
-  }
-
-  return null;
-}
-
-function extractMessage(payload: unknown): string | null {
-  if (!payload) return null;
-
-  if (typeof payload === 'string') {
-    return payload.trim() || null;
-  }
-
-  if (Array.isArray(payload)) {
-    return firstNonEmptyString(payload);
-  }
-
-  if (typeof payload === 'object') {
-    const candidate = payload as {
-      message?: unknown;
-      error?: unknown;
-      details?: unknown;
-      code?: unknown;
-    };
-
-    const nestedError =
-      typeof candidate.error === 'object' && candidate.error
-        ? extractMessage(candidate.error)
-        : null;
-
-    const nestedDetails =
-      typeof candidate.details === 'object' && candidate.details
-        ? extractMessage(candidate.details)
-        : null;
-
-    return (
-      firstNonEmptyString(candidate.message)
-      || firstNonEmptyString(candidate.error)
-      || nestedError
-      || nestedDetails
-      || firstNonEmptyString(candidate.details)
-      || null
-    );
-  }
-
-  return null;
-}
-
 function extractCode(payload: unknown): string | undefined {
   if (!payload || typeof payload !== 'object') return undefined;
 
@@ -153,7 +96,7 @@ function extractCode(payload: unknown): string | undefined {
 }
 
 function buildErrorMessage(payload: unknown, fallback: string) {
-  return extractMessage(payload) || fallback;
+  return getFriendlyApiErrorMessage(payload, fallback);
 }
 
 function withTimeout(init?: HttpRequestInit) {

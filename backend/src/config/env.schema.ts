@@ -29,6 +29,8 @@ const envSchema = z.object({
   ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: booleanString,
   DEFAULT_ADMIN_USERNAME: z.string().trim().default(''),
   DEFAULT_ADMIN_PASSWORD: z.string().default(''),
+  SESSION_COOKIE_NAME: z.string().trim().min(1).default('session_id'),
+  SESSION_CSRF_COOKIE_NAME: z.string().trim().min(1).default('csrf_token'),
   SESSION_COOKIE_SECURE: booleanString,
   SESSION_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
   SESSION_CSRF_SECRET: z.string().min(16),
@@ -91,6 +93,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     ACTIVATION_ENFORCED: config.ACTIVATION_ENFORCED ?? 'false',
     ACTIVATION_PUBLIC_KEY: config.ACTIVATION_PUBLIC_KEY ?? '',
     ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: config.ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION ?? 'false',
+    SESSION_COOKIE_NAME: config.SESSION_COOKIE_NAME ?? 'session_id',
+    SESSION_CSRF_COOKIE_NAME: config.SESSION_CSRF_COOKIE_NAME ?? 'csrf_token',
     SESSION_COOKIE_SECURE:
       config.SESSION_COOKIE_SECURE
       ?? ((config.NODE_ENV as string | undefined) === 'production' ? 'true' : 'false'),

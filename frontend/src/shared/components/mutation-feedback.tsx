@@ -1,4 +1,4 @@
-import { getErrorMessage } from '@/lib/errors';
+import { getFriendlyApiErrorMessage } from '@/lib/errors';
 
 interface MutationFeedbackProps {
   isError?: boolean;
@@ -12,11 +12,11 @@ export function MutationFeedback({
   isError,
   isSuccess,
   error,
-  errorFallback = 'تعذر تنفيذ العملية المطلوبة.',
+  errorFallback = '\u062a\u0639\u0630\u0631 \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0639\u0645\u0644\u064a\u0629 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629.',
   successText
 }: MutationFeedbackProps) {
   if (isError) {
-    return <div className="error-box">{getErrorMessage(error, errorFallback)}</div>;
+    return <div className="error-box">{getFriendlyApiErrorMessage(error, errorFallback)}</div>;
   }
 
   if (isSuccess && successText) {

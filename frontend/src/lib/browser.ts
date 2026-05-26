@@ -194,7 +194,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
       ? '@page { size: A4 landscape; margin: 9mm; }'
       : '@page { size: A4 portrait; margin: 9mm; }'
     : pageSize === 'receipt'
-      ? '@page { size: 80mm auto; margin: 3.5mm; }'
+      ? '@page { size: 80mm auto; margin: 1.8mm 2mm 2mm; }'
       : '@page { size: auto; margin: 9mm; }';
 
   const html = `<!doctype html>
@@ -205,11 +205,11 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
       <title>${escapeHtml(title)}</title>
       <style>
         :root {
-          --print-text: #0f172a;
-          --print-muted: #475569;
-          --print-border: #cbd5e1;
-          --print-surface: #f8fafc;
-          --print-strong: #111827;
+          --print-text: #000;
+          --print-muted: #222;
+          --print-border: #8a8a8a;
+          --print-surface: #fff;
+          --print-strong: #000;
           --print-accent: #1d4ed8;
         }
         * { box-sizing: border-box; }
@@ -277,7 +277,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         .doc-title { margin: 0; font-size: 17px; line-height: 1.2; font-weight: 800; color: var(--print-strong); }
         .doc-subtitle { color: var(--print-muted); font-size: 11px; }
         .doc-meta-chip { margin-top: 4px; color: var(--print-muted); font-size: 11px; }
-        .print-content { display: flex; flex-direction: column; gap: 10px; }
+        .print-content { display: flex; flex-direction: column; gap: 8px; }
         .meta { margin: 0; color: var(--print-muted); font-size: 11px; }
         .section { margin: 0; break-inside: avoid; }
         h1, h2, h3 { margin: 0 0 8px; color: var(--print-strong); }
@@ -302,7 +302,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
           border-collapse: collapse;
           table-layout: auto;
           font-size: 11px;
-          margin-top: 4px;
+          margin-top: 2px;
         }
         th, td {
           border: 1px solid var(--print-border);
@@ -315,13 +315,13 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         }
         th {
           background: var(--print-surface);
-          color: var(--print-muted);
+          color: #111;
           font-weight: 700;
         }
         tbody tr:nth-child(even) { background: rgba(248, 250, 252, 0.45); }
         .totals {
-          margin-top: 4px;
-          padding: 8px 10px;
+          margin-top: 2px;
+          padding: 7px 9px;
         }
         .totals div {
           display: flex;
@@ -333,28 +333,32 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         .muted { color: var(--print-muted); }
         .text-left { text-align: left; }
         .print-footer {
-          margin-top: 12px;
-          padding: 8px 10px;
-          color: var(--print-muted);
+          margin-top: 6px;
+          padding: 6px 8px;
+          color: #111;
           font-size: 11px;
         }
         body.receipt-mode { font-size: 11px; }
-        body.receipt-mode .print-shell { padding: 6px; max-width: 76mm; }
+        body.receipt-mode .print-shell {
+          padding: 1px 0 2px;
+          max-width: 80mm;
+          margin: 0 auto;
+        }
         body.receipt-mode .print-header {
           grid-template-columns: 1fr;
-          gap: 8px;
-          margin-bottom: 8px;
+          gap: 6px;
+          margin-bottom: 6px;
         }
-        body.receipt-mode .brand-panel { padding: 8px 10px; border-radius: 12px; }
+        body.receipt-mode .brand-panel { padding: 6px 8px; border-radius: 8px; }
         body.receipt-mode .brand-name { font-size: 15px; }
-        body.receipt-mode .brand-logo-image, body.receipt-mode .brand-logo-fallback { width: 34px; height: 34px; border-radius: 10px; }
-        body.receipt-mode .doc-panel { min-width: 0; padding: 8px 10px; }
+        body.receipt-mode .brand-logo-image, body.receipt-mode .brand-logo-fallback { width: 38px; height: 38px; border-radius: 8px; }
+        body.receipt-mode .doc-panel { min-width: 0; padding: 6px 8px; }
         body.receipt-mode .doc-title { font-size: 14px; }
         body.receipt-mode table { font-size: 11px; }
-        body.receipt-mode th, body.receipt-mode td { padding: 5px 6px; }
+        body.receipt-mode th, body.receipt-mode td { padding: 4px 5px; }
         body.receipt-mode .meta-grid, body.receipt-mode .summary-grid { grid-template-columns: 1fr; }
-        body.receipt-mode .totals { padding: 8px 10px; }
-        body.receipt-mode .print-footer { margin-top: 8px; }
+        body.receipt-mode .totals { padding: 6px 8px; }
+        body.receipt-mode .print-footer { margin-top: 4px; }
         body.report-mode .print-shell { max-width: 100%; }
         body.report-mode .print-content > *:first-child { margin-top: 0 !important; }
         body.report-mode .print-content > * { min-height: auto !important; }
@@ -363,6 +367,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         body.report-mode .print-content .meta-box { break-inside: avoid; }
         @media print {
           html, body { height: auto; }
+          html, body { margin: 0 !important; padding: 0 !important; }
           .print-shell { padding: 0; }
           a { color: inherit; text-decoration: none; }
           .section, .meta-box, .summary-box, .totals, .print-header { break-inside: avoid; }

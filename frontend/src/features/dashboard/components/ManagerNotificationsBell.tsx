@@ -1,6 +1,6 @@
-import { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
+﻿import { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
 import {
   importantManagerActions,
@@ -19,14 +19,18 @@ function BellIcon() {
 
 export function ManagerNotificationsBell() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const managerActions = useManagerActions(20);
   const importantActions = importantManagerActions(managerActions.data?.insights || []);
   const badgeCount = importantActions.length;
-  const topAlerts = importantActions.slice(0, 5);
+  const compactCount = 5;
+  const shouldShowExpand = badgeCount > compactCount;
+  const visibleAlerts = showAllAlerts ? importantActions : importantActions.slice(0, compactCount);
 
   const updateMenuPosition = useCallback(() => {
     const rect = rootRef.current?.getBoundingClientRect();
@@ -50,6 +54,7 @@ export function ManagerNotificationsBell() {
 
   useEffect(() => {
     setIsOpen(false);
+    setShowAllAlerts(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -60,12 +65,14 @@ export function ManagerNotificationsBell() {
       const target = event.target as Node;
       if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) {
         setIsOpen(false);
+        setShowAllAlerts(false);
       }
     };
 
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
+        setShowAllAlerts(false);
       }
     };
 
@@ -83,6 +90,29 @@ export function ManagerNotificationsBell() {
     };
   }, [isOpen, updateMenuPosition]);
 
+  const handleCenterAction = () => {
+    setIsOpen(false);
+    setShowAllAlerts(false);
+
+    const scrollToDecisionCenter = () => {
+      const target = document.getElementById('manager-decision-center');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    if (location.pathname !== '/') {
+      navigate('/#manager-decision-center');
+      window.setTimeout(scrollToDecisionCenter, 150);
+      return;
+    }
+
+    if (location.hash !== '#manager-decision-center') {
+      navigate('/#manager-decision-center', { replace: true });
+    }
+    window.setTimeout(scrollToDecisionCenter, 50);
+  };
+
   const menu = isOpen ? (
     <div
       className="manager-notifications-menu"
@@ -93,16 +123,20 @@ export function ManagerNotificationsBell() {
     >
       <div className="manager-notifications-header">
         <strong>تنبيهات المدير</strong>
-        <span>{badgeCount ? `${badgeCount} تحتاج مراجعة` : 'لا توجد تنبيهات مهمة'}</span>
+        <span>{badgeCount ? `${badgeCount} تنبيه يحتاج مراجعة` : 'لا توجد تنبيهات مهمة'}</span>
       </div>
 
-      {topAlerts.length ? (
-        <div className="manager-notifications-list">
-          {topAlerts.map((alert) => (
+      {visibleAlerts.length ? (
+        <div className="manager-notifications-list" data-expanded={showAllAlerts ? 'true' : 'false'}>
+          {visibleAlerts.map((alert) => (
             <Link
               className={`manager-notification-row ${managerActionSeverityClasses[alert.severity]}`}
               key={alert.id}
               to={alert.actionHref}
+              onClick={() => {
+                setIsOpen(false);
+                setShowAllAlerts(false);
+              }}
             >
               <span>{managerActionSeverityLabels[alert.severity]}</span>
               <strong>{alert.title}</strong>
@@ -114,13 +148,27 @@ export function ManagerNotificationsBell() {
       ) : (
         <div className="manager-notifications-empty">
           <strong>لا توجد تنبيهات مهمة</strong>
-          <span>سنظهر هنا التنبيهات العاجلة عند وجودها.</span>
+          <span>ستظهر هنا التنبيهات العاجلة عند وجودها.</span>
         </div>
       )}
 
-      <Link className="manager-notifications-center-link" to="/">
+      {shouldShowExpand ? (
+        <button
+          type="button"
+          className="manager-notifications-more"
+          onClick={() => setShowAllAlerts((current) => !current)}
+        >
+          {showAllAlerts ? 'عرض أقل' : `عرض كل التنبيهات (${badgeCount})`}
+        </button>
+      ) : null}
+
+      {!showAllAlerts && shouldShowExpand ? (
+        <div className="manager-notifications-hint">يتم عرض أهم {compactCount} تنبيهات من {badgeCount}</div>
+      ) : null}
+
+      <button type="button" className="manager-notifications-center-link" onClick={handleCenterAction}>
         عرض مركز القرارات
-      </Link>
+      </button>
     </div>
   ) : null;
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -8,6 +9,9 @@ import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee } from '@/types/domain';
 import { useHrWorkspace } from '@/features/hr/hooks/useHr';
+import { ImportWorkbench } from '@/shared/components/ImportWorkbench';
+import { downloadCsvFile } from '@/lib/browser';
+import { hrApi } from '@/features/hr/api/hr.api';
 
 const STATUS_FILTERS = [
   { value: '', label: 'كل الموظفين' },
@@ -55,13 +59,68 @@ function matchesCompletionFilter(row: HrEmployee, filter: CompletionFilter) {
   return true;
 }
 
+function downloadEmployeesTemplate() {
+  downloadCsvFile(
+    'employees-template.csv',
+    [
+      'كود الموظف',
+      'اسم الموظف',
+      'رقم الهاتف',
+      'البريد الإلكتروني',
+      'القسم',
+      'المسمى الوظيفي',
+      'المنصب',
+      'تاريخ التعيين',
+      'نوع الأجر',
+      'أجر الساعة',
+      'ساعات العمل اليومية',
+      'موعد الحضور',
+      'موعد الانصراف',
+      'فترة السماح',
+      'سياسة الإضافي',
+      'الحالة',
+      'الرقم القومي',
+      'ملاحظات',
+    ],
+    [[
+      '001',
+      'أحمد علي',
+      '01000000000',
+      'ahmed@example.com',
+      'المبيعات',
+      'كاشير',
+      '',
+      '2026-01-10',
+      'monthly',
+      '',
+      '',
+      '10:00',
+      '18:00',
+      '15',
+      'review_only',
+      'active',
+      '29901011234567',
+      'تم الاستيراد من ملف التهيئة',
+    ]],
+  );
+}
+
 export function EmployeesPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [completionFilter, setCompletionFilter] = useState<CompletionFilter>('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const importEmployeesMutation = useMutation({
+    mutationFn: (rows: Record<string, string>[]) => hrApi.importEmployees(rows),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['hr'] });
+    },
+  });
 
   const workspace = useHrWorkspace({ search, status, page, pageSize });
   const apiRows = useMemo(() => workspace.employees.data?.employees || [], [workspace.employees.data?.employees]);
@@ -86,8 +145,41 @@ export function EmployeesPage() {
       <PageHeader
         title="الموظفون"
         description="مساحة تشغيل الموظفين: بحث سريع، متابعة اكتمال البيانات، وفتح ملف الموظف من مكان واضح."
-        actions={<Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>}
+        actions={(
+          <div className="actions compact-actions">
+            <Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
+            <Button type="button" variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen((current) => !current)}>استيراد</Button>
+          </div>
+        )}
       />
+
+      {importOpen ? (
+        <Card title="استيراد الموظفين" description="استخدم نفس نمط الاستيراد الحالي في النظام: حمّل القالب ثم ارفع CSV وراجع المعاينة قبل التنفيذ.">
+          <ImportWorkbench
+            title="استيراد الموظفين"
+            description="يدعم الأعمدة العربية أو الإنجليزية المكافئة. يتم تحديث الموظف عند التطابق، أو إضافته إذا لم يوجد."
+            requiredColumns={['اسم الموظف']}
+            requiredFieldKeys={['name']}
+            fieldMappings={[
+              { key: 'name', label: 'اسم الموظف', aliases: ['name', 'employeeName', 'fullName', 'displayName', 'employee_name', 'employee name', 'اسم الموظف', 'اسم العامل', 'الموظف'] },
+              { key: 'phone', label: 'رقم الهاتف', aliases: ['phone', 'mobile', 'phoneNumber', 'رقم الهاتف', 'الموبايل'] },
+              { key: 'email', label: 'البريد الإلكتروني', aliases: ['email', 'البريد الإلكتروني'] },
+              { key: 'department', label: 'القسم', aliases: ['department', 'القسم', 'الإدارة'] },
+              { key: 'jobTitle', label: 'الوظيفة', aliases: ['jobTitle', 'job_title', 'job title', 'الوظيفة', 'المسمى الوظيفي'] },
+              { key: 'hireDate', label: 'تاريخ التعيين', aliases: ['hireDate', 'hire_date', 'hire date', 'تاريخ التعيين'] },
+              { key: 'baseSalary', label: 'الراتب الأساسي', aliases: ['baseSalary', 'base_salary', 'salary', 'الراتب', 'الراتب الأساسي'] },
+              { key: 'contractType', label: 'نوع العقد', aliases: ['contractType', 'contract_type', 'نوع العقد'] },
+              { key: 'status', label: 'الحالة', aliases: ['status', 'الحالة'] },
+              { key: 'nationalId', label: 'الرقم القومي', aliases: ['nationalId', 'national_id', 'national id', 'الرقم القومي', 'رقم قومي'] },
+              { key: 'address', label: 'العنوان', aliases: ['address', 'العنوان'] },
+              { key: 'notes', label: 'ملاحظات', aliases: ['notes', 'ملاحظات'] },
+            ]}
+            onDownloadTemplate={downloadEmployeesTemplate}
+            onImportRows={(rows) => importEmployeesMutation.mutateAsync(rows)}
+            isPending={importEmployeesMutation.isPending}
+          />
+        </Card>
+      ) : null}
 
       <Card title="تشغيل سريع" description="اختصارات مرتبطة بالموظفين دون الرجوع للسايد بار.">
         <div className="compact-actions" style={{ flexWrap: 'wrap' }}>
@@ -225,3 +317,4 @@ export function EmployeesPage() {
     </div>
   );
 }
+

@@ -225,10 +225,12 @@ async function run(): Promise<void> {
   assert.equal((me.user as any).accountId, 'default');
 
   await assert.rejects(async () => {
-    await service.changePassword(1, password, 'short');
-  }, /PASSWORD_TOO_WEAK/);
+    await service.changePassword(1, password, '   ');
+  }, /PASSWORD_REQUIRED/);
 
-  await service.changePassword(1, password, 'AdminEvenStronger123!');
+  await service.changePassword(1, password, '1');
+
+  await service.changePassword(1, '1', 'AdminEvenStronger123!');
 }
 
 run().then(() => {

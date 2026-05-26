@@ -35,6 +35,8 @@ import type {
   WithdrawalsResponse,
 } from './hr-api.types';
 
+const CSV_IMPORT_TIMEOUT_MS = 10 * 60 * 1000;
+
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 
 export interface HrListParams {
@@ -130,4 +132,5 @@ export const hrApi = {
   createPayrollAdjustment: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}/adjustments`, { method: 'POST', body: JSON.stringify(payload) }),
   deletePayrollAdjustment: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-item-adjustments/${id}`, { method: 'DELETE' }),
   reportsSummary: (params: HrListParams = {}) => http<HrReportsSummaryResponse>(`/api/hr/reports/summary${buildQueryString({ from: params.from, to: params.to, month: params.month })}`),
+  importEmployees: (rows: unknown) => http<Record<string, unknown>>('/api/import/employees', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),
 };

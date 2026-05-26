@@ -18,6 +18,63 @@ function toNumber(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeImportKey(value: string): string {
+  return String(value || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+function normalizeArabicDigits(value: unknown): string {
+  return String(value ?? '')
+    .replace(/[\u0660-\u0669]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[\u06F0-\u06F9]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
+}
+
+function normalizeNumberText(value: unknown): string {
+  return normalizeArabicDigits(value).replace(/[،,]/g, '.').trim();
+}
+
+function digitsOnly(value: unknown): string {
+  return normalizeArabicDigits(value).replace(/\D/g, '');
+}
+
+function normalizePhoneText(value: unknown): string {
+  return normalizeArabicDigits(value).replace(/\s+/g, '').trim();
+}
+
+function parseDateOnly(value: unknown): string | null {
+  const text = normalizeArabicDigits(value).trim();
+  if (!text) return null;
+
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+  const ymdSlash = text.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (ymdSlash) {
+    const month = Number(ymdSlash[2]);
+    const day = Number(ymdSlash[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${ymdSlash[1]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+
+  const mdYSlash = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdYSlash) {
+    const month = Number(mdYSlash[1]);
+    const day = Number(mdYSlash[2]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${mdYSlash[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+
+  return null;
+}
+
+function toNumericOrNull(value: unknown): number | null {
+  const text = normalizeNumberText(value);
+  if (!text) return null;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 @Injectable()
 export class SettingsImportService {
   constructor(
@@ -29,6 +86,142 @@ export class SettingsImportService {
     if (!auth) throw new ForbiddenException('Authentication required');
     const canManage = auth.role === 'super_admin' || auth.permissions.includes('settings') || auth.permissions.includes('canManageSettings');
     if (!canManage) throw new ForbiddenException('Missing required permissions');
+  }
+
+  assertEmployeeImporter(auth?: AuthContext | null): asserts auth is AuthContext {
+    if (!auth) throw new ForbiddenException('Authentication required');
+    const canImportEmployees = auth.role === 'super_admin'
+      || auth.permissions.includes('hrEmployees')
+      || auth.permissions.includes('hr');
+    if (!canImportEmployees) throw new ForbiddenException('Missing required permissions');
+  }
+
+  private buildRowLookup(row: Record<string, unknown>): Record<string, string> {
+    const lookup: Record<string, string> = {};
+    for (const [key, value] of Object.entries(row || {})) {
+      lookup[normalizeImportKey(key)] = String(value ?? '').trim();
+    }
+    return lookup;
+  }
+
+  private pickCell(lookup: Record<string, string>, aliases: string[]): string {
+    for (const alias of aliases) {
+      const value = lookup[normalizeImportKey(alias)];
+      if (value != null && String(value).trim()) return String(value).trim();
+    }
+    return '';
+  }
+
+  private normalizeEmployeeStatus(value: unknown): 'active' | 'inactive' | 'deactivated' | 'terminated' {
+    const normalized = cleanString(value).toLowerCase();
+    if (['inactive', 'غير نشط'].includes(normalized)) return 'inactive';
+    if (['deactivated', 'موقوف'].includes(normalized)) return 'deactivated';
+    if (['terminated', 'منتهي الخدمة'].includes(normalized)) return 'terminated';
+    return 'active';
+  }
+
+  private normalizeCompensationType(value: unknown): 'monthly' | 'hourly' {
+    const normalized = cleanString(value).toLowerCase();
+    if (['hourly', 'بالساعة', 'أجر بالساعة'].includes(normalized)) return 'hourly';
+    return 'monthly';
+  }
+
+  private normalizeOvertimePolicy(value: unknown): 'review_only' | 'disabled' | 'auto_approved' {
+    const normalized = cleanString(value).toLowerCase();
+    if (['disabled', 'غير محتسب'].includes(normalized)) return 'disabled';
+    if (['auto_approved', 'محتسب تلقائيًا'].includes(normalized)) return 'auto_approved';
+    return 'review_only';
+  }
+
+  private normalizeTimeOnly(value: unknown): string | null {
+    const text = normalizeArabicDigits(value).trim();
+    if (!text) return null;
+    const matched = text.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (!matched) return null;
+    const hour = Number(matched[1]);
+    const minute = Number(matched[2]);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  }
+
+  private async ensureHrMasterName(db: DbExecutor, table: 'hr_departments' | 'hr_job_titles' | 'hr_positions', name: string, actor: AuthContext): Promise<number | null> {
+    const normalized = cleanString(name);
+    if (!normalized) return null;
+    const existing = await sql<{ id: number }>`
+      SELECT id
+      FROM ${sql.table(table)}
+      WHERE LOWER(name) = LOWER(${normalized})
+      ORDER BY id DESC
+      LIMIT 1
+    `.execute(db);
+    if (existing.rows[0]?.id) return Number(existing.rows[0].id);
+
+    const inserted = await sql<{ id: number }>`
+      INSERT INTO ${sql.table(table)} (name, code, description, is_active, created_by, updated_by)
+      VALUES (${normalized}, '', '', TRUE, ${actor.userId}, ${actor.userId})
+      RETURNING id
+    `.execute(db);
+    return inserted.rows[0]?.id ? Number(inserted.rows[0].id) : null;
+  }
+
+  private async nextAvailableEmployeeNo(db: DbExecutor): Promise<string> {
+    const result = await sql<{ employee_no: string }>`
+      SELECT employee_no
+      FROM hr_employees
+      WHERE employee_no ~ '^[0-9]+$'
+      ORDER BY LENGTH(employee_no), employee_no
+    `.execute(db);
+    const used = new Set<number>();
+    for (const row of result.rows) {
+      const numeric = Number(row.employee_no);
+      if (Number.isSafeInteger(numeric) && numeric > 0) used.add(numeric);
+    }
+    let next = 1;
+    while (used.has(next)) next += 1;
+    return String(next).padStart(3, '0');
+  }
+
+  private async upsertEmployeeContact(db: DbExecutor, employeeId: number, contactType: 'phone' | 'email', value: string, actor: AuthContext): Promise<void> {
+    const normalizedValue = cleanString(value);
+    if (!normalizedValue) return;
+    const existing = await sql<{ id: number }>`
+      SELECT id
+      FROM hr_employee_contacts
+      WHERE employee_id = ${employeeId}
+        AND LOWER(contact_type) = LOWER(${contactType})
+      ORDER BY is_primary DESC, id DESC
+      LIMIT 1
+    `.execute(db);
+    if (existing.rows[0]?.id) {
+      await sql`
+        UPDATE hr_employee_contacts
+        SET value = ${normalizedValue},
+            label = ${contactType === 'phone' ? 'الموبايل' : 'البريد الإلكتروني'},
+            is_primary = ${contactType === 'phone'},
+            updated_by = ${actor.userId},
+            updated_at = NOW()
+        WHERE id = ${existing.rows[0].id}
+      `.execute(db);
+      return;
+    }
+
+    await sql`
+      INSERT INTO hr_employee_contacts (employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by)
+      VALUES (${employeeId}, ${contactType}, ${normalizedValue}, ${contactType === 'phone' ? 'الموبايل' : 'البريد الإلكتروني'}, ${contactType === 'phone'}, '', ${actor.userId}, ${actor.userId})
+    `.execute(db);
+  }
+
+  private async findEmployeeByContact(db: DbExecutor, contactType: 'phone' | 'email', value: string): Promise<number[]> {
+    const normalized = cleanString(value);
+    if (!normalized) return [];
+    const rows = await sql<{ employee_id: number }>`
+      SELECT DISTINCT c.employee_id
+      FROM hr_employee_contacts c
+      WHERE LOWER(c.contact_type) = LOWER(${contactType})
+        AND LOWER(c.value) = LOWER(${normalized})
+      LIMIT 3
+    `.execute(db);
+    return rows.rows.map((row) => Number(row.employee_id)).filter((id) => id > 0);
   }
 
   private async ensureCategory(db: DbExecutor, name: string): Promise<number | null> {
@@ -258,4 +451,240 @@ export class SettingsImportService {
     await this.audit.log('استيراد مخزون افتتاحي', `تم تحديث ${result.updated} سجل مخزون على يد ${actor.username}`, actor);
     return { ok: true, updated: result.updated };
   }
+
+  async importEmployees(rows: unknown[], actor: AuthContext): Promise<Record<string, unknown>> {
+    if (!Array.isArray(rows)) throw new AppError('rows must be an array', 'IMPORT_ROWS_INVALID', 400);
+
+    const result = await this.db.transaction().execute(async (trx) => {
+      let inserted = 0;
+      let updated = 0;
+      const warnings: string[] = [];
+
+      for (let index = 0; index < rows.length; index += 1) {
+        const rowNumber = index + 2;
+        const raw = rows[index];
+        const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+        const lookup = this.buildRowLookup(row);
+
+        const fullName = this.pickCell(lookup, ['اسم الموظف', 'اسم العامل', 'الموظف', 'الاسم', 'employee name', 'employee_name', 'employeename', 'full name', 'fullname', 'full_name', 'name', 'displayname', 'display_name']);
+        const explicitFirstName = this.pickCell(lookup, ['الاسم الأول', 'first name', 'firstname', 'first_name']);
+        const explicitLastName = this.pickCell(lookup, ['الاسم الأخير', 'last name', 'lastname', 'last_name']);
+        const nameParts = cleanString(fullName).split(/\s+/).filter(Boolean);
+        const firstName = cleanString(explicitFirstName || nameParts[0] || '');
+        const lastName = cleanString(explicitLastName || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''));
+        const displayName = cleanString(`${firstName} ${lastName}`);
+
+        if (!firstName) {
+          warnings.push(`الصف ${rowNumber}: اسم الموظف مطلوب.`);
+          continue;
+        }
+
+        const employeeNoRaw = normalizeArabicDigits(this.pickCell(lookup, ['كود الموظف', 'رقم الموظف', 'employee no', 'employee_no', 'employee code', 'code']));
+        const employeeNoDigits = digitsOnly(employeeNoRaw);
+        if (employeeNoRaw && !employeeNoDigits) {
+          warnings.push(`الصف ${rowNumber}: كود الموظف يجب أن يحتوي أرقامًا فقط.`);
+          continue;
+        }
+        const employeeNo = employeeNoDigits ? employeeNoDigits.padStart(3, '0') : '';
+
+        const nationalIdText = digitsOnly(this.pickCell(lookup, ['الرقم القومي', 'رقم قومي', 'رقم الهوية', 'national id', 'national_id', 'nationalid', 'id number']));
+        if (nationalIdText && nationalIdText.length !== 14) {
+          warnings.push(`الصف ${rowNumber}: الرقم القومي يجب أن يكون 14 رقمًا.`);
+          continue;
+        }
+
+        const hireDateRaw = this.pickCell(lookup, ['تاريخ التعيين', 'hire date', 'hiredate', 'hire_date']);
+        const hireDate = hireDateRaw ? parseDateOnly(hireDateRaw) : null;
+        if (hireDateRaw && !hireDate) {
+          warnings.push(`الصف ${rowNumber}: تاريخ التعيين غير صحيح.`);
+          continue;
+        }
+
+        const compensationType = this.normalizeCompensationType(this.pickCell(lookup, ['نوع الأجر', 'compensation type', 'compensation_type']));
+        const hourlyRateText = this.pickCell(lookup, ['أجر الساعة', 'hourly rate', 'hourly_rate']);
+        const expectedDailyHoursText = this.pickCell(lookup, ['ساعات العمل اليومية', 'ساعات العمل اليومية المتوقعة', 'expected daily hours', 'expected_daily_hours']);
+        const graceMinutesText = this.pickCell(lookup, ['فترة السماح', 'فترة السماح بالدقائق', 'grace minutes', 'grace_minutes']);
+        const hourlyRate = toNumericOrNull(hourlyRateText);
+        const expectedDailyHours = toNumericOrNull(expectedDailyHoursText);
+        const graceMinutes = toNumericOrNull(graceMinutesText);
+
+        if (hourlyRateText && hourlyRate == null) {
+          warnings.push(`الصف ${rowNumber}: أجر الساعة غير صالح.`);
+          continue;
+        }
+        if (expectedDailyHoursText && expectedDailyHours == null) {
+          warnings.push(`الصف ${rowNumber}: ساعات العمل اليومية غير صالحة.`);
+          continue;
+        }
+        if (graceMinutesText && graceMinutes == null) {
+          warnings.push(`الصف ${rowNumber}: فترة السماح غير صالحة.`);
+          continue;
+        }
+
+        const scheduledCheckInRaw = this.pickCell(lookup, ['موعد الحضور', 'scheduled check in', 'scheduled_check_in_time', 'check in']);
+        const scheduledCheckOutRaw = this.pickCell(lookup, ['موعد الانصراف', 'scheduled check out', 'scheduled_check_out_time', 'check out']);
+        const scheduledCheckInTime = this.normalizeTimeOnly(scheduledCheckInRaw);
+        const scheduledCheckOutTime = this.normalizeTimeOnly(scheduledCheckOutRaw);
+        if (scheduledCheckInRaw && !scheduledCheckInTime) {
+          warnings.push(`الصف ${rowNumber}: موعد الحضور غير صحيح.`);
+          continue;
+        }
+        if (scheduledCheckOutRaw && !scheduledCheckOutTime) {
+          warnings.push(`الصف ${rowNumber}: موعد الانصراف غير صحيح.`);
+          continue;
+        }
+
+        const status = this.normalizeEmployeeStatus(this.pickCell(lookup, ['الحالة', 'status']));
+        const overtimePolicy = this.normalizeOvertimePolicy(this.pickCell(lookup, ['سياسة الإضافي', 'overtime policy', 'overtime_policy']));
+        const phone = normalizePhoneText(this.pickCell(lookup, ['رقم الهاتف', 'الموبايل', 'mobile', 'phoneNumber', 'phone number', 'phonenumber', 'phone']));
+        const email = cleanString(this.pickCell(lookup, ['البريد الإلكتروني', 'email'])).toLowerCase();
+        const notes = cleanString(this.pickCell(lookup, ['ملاحظات', 'notes']));
+
+        const departmentName = this.pickCell(lookup, ['القسم', 'الإدارة', 'department']);
+        const jobTitleName = this.pickCell(lookup, ['الوظيفة', 'المسمى الوظيفي', 'job title', 'job_title', 'jobtitle']);
+        const positionName = this.pickCell(lookup, ['المنصب', 'position']);
+        const departmentId = await this.ensureHrMasterName(trx, 'hr_departments', departmentName, actor);
+        const jobTitleId = await this.ensureHrMasterName(trx, 'hr_job_titles', jobTitleName, actor);
+        const positionId = await this.ensureHrMasterName(trx, 'hr_positions', positionName, actor);
+
+        const matchedIds = new Set<number>();
+        if (employeeNo) {
+          const byCode = await sql<{ id: number }>`
+            SELECT id
+            FROM hr_employees
+            WHERE employee_no = ${employeeNo}
+            LIMIT 2
+          `.execute(trx);
+          for (const rowMatch of byCode.rows) matchedIds.add(Number(rowMatch.id));
+        } else {
+          if (nationalIdText) {
+            const byNational = await sql<{ id: number }>`
+              SELECT id
+              FROM hr_employees
+              WHERE national_id = ${nationalIdText}
+              LIMIT 2
+            `.execute(trx);
+            for (const rowMatch of byNational.rows) matchedIds.add(Number(rowMatch.id));
+          }
+          if (phone) {
+            const byPhone = await this.findEmployeeByContact(trx, 'phone', phone);
+            for (const id of byPhone) matchedIds.add(id);
+          }
+          if (email) {
+            const byEmail = await this.findEmployeeByContact(trx, 'email', email);
+            for (const id of byEmail) matchedIds.add(id);
+          }
+          if (!matchedIds.size && displayName) {
+            const byName = await sql<{ id: number }>`
+              SELECT id
+              FROM hr_employees
+              WHERE LOWER(display_name) = LOWER(${displayName})
+              LIMIT 2
+            `.execute(trx);
+            for (const rowMatch of byName.rows) matchedIds.add(Number(rowMatch.id));
+          }
+        }
+
+        if (matchedIds.size > 1) {
+          warnings.push(`الصف ${rowNumber}: تعذر تحديد موظف واحد بسبب تكرار محتمل. استخدم كود موظف واضح.`);
+          continue;
+        }
+
+        const existingId = matchedIds.size === 1 ? Array.from(matchedIds)[0] : null;
+        if (existingId) {
+          await sql`
+            UPDATE hr_employees
+            SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no),
+                first_name = ${firstName},
+                last_name = ${lastName},
+                display_name = ${displayName},
+                national_id = ${nationalIdText || null},
+                status = ${status},
+                department_id = ${departmentId},
+                job_title_id = ${jobTitleId},
+                position_id = ${positionId},
+                hire_date = ${hireDate},
+                compensation_type = ${compensationType},
+                hourly_rate = ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null},
+                expected_daily_hours = ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null},
+                scheduled_check_in_time = ${scheduledCheckInTime || null},
+                scheduled_check_out_time = ${scheduledCheckOutTime || null},
+                grace_minutes = ${Math.max(0, Math.floor(Number(graceMinutes || 0)))},
+                overtime_policy = ${overtimePolicy},
+                notes = ${notes},
+                updated_by = ${actor.userId},
+                updated_at = NOW()
+            WHERE id = ${existingId}
+          `.execute(trx);
+          if (phone) await this.upsertEmployeeContact(trx, existingId, 'phone', phone, actor);
+          if (email) await this.upsertEmployeeContact(trx, existingId, 'email', email, actor);
+          updated += 1;
+          continue;
+        }
+
+        const generatedEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx);
+        const insertedEmployee = await sql<{ id: number }>`
+          INSERT INTO hr_employees (
+            employee_no,
+            national_id,
+            first_name,
+            last_name,
+            display_name,
+            status,
+            department_id,
+            job_title_id,
+            position_id,
+            hire_date,
+            notes,
+            compensation_type,
+            hourly_rate,
+            expected_daily_hours,
+            scheduled_check_in_time,
+            scheduled_check_out_time,
+            grace_minutes,
+            overtime_policy,
+            created_by,
+            updated_by
+          )
+          VALUES (
+            ${generatedEmployeeNo},
+            ${nationalIdText || null},
+            ${firstName},
+            ${lastName},
+            ${displayName},
+            ${status},
+            ${departmentId},
+            ${jobTitleId},
+            ${positionId},
+            ${hireDate},
+            ${notes},
+            ${compensationType},
+            ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null},
+            ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null},
+            ${scheduledCheckInTime || null},
+            ${scheduledCheckOutTime || null},
+            ${Math.max(0, Math.floor(Number(graceMinutes || 0)))},
+            ${overtimePolicy},
+            ${actor.userId},
+            ${actor.userId}
+          )
+          RETURNING id
+        `.execute(trx);
+        const employeeId = Number(insertedEmployee.rows[0]?.id || 0);
+        if (employeeId <= 0) {
+          warnings.push(`الصف ${rowNumber}: تعذر حفظ الموظف.`);
+          continue;
+        }
+        if (phone) await this.upsertEmployeeContact(trx, employeeId, 'phone', phone, actor);
+        if (email) await this.upsertEmployeeContact(trx, employeeId, 'email', email, actor);
+        inserted += 1;
+      }
+
+      return { inserted, updated, warnings };
+    });
+
+    await this.audit.log('استيراد موظفين', `تم استيراد/تحديث ${result.inserted + result.updated} موظف على يد ${actor.username}`, actor);
+    return { ok: true, inserted: result.inserted, updated: result.updated, warnings: result.warnings };
+  }
 }
+

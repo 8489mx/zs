@@ -138,9 +138,9 @@ describe('Dashboard daily home layout', () => {
     expect(screen.getByText('مبيعات عالية وهامش ضعيف')).toBeInTheDocument();
     expect(screen.getByText('إيه أُحصّله؟')).toBeInTheDocument();
     expect(screen.getAllByText('ملخص اليوم').length).toBeGreaterThan(0);
-    expect(screen.getByText('تنبيهات سريعة')).toBeInTheDocument();
+    expect(screen.getByText(/التنبيهات المهمة/)).toBeInTheDocument();
     expect(screen.getByText('أعلى أصناف اليوم')).toBeInTheDocument();
-    expect(screen.getByText('المخزون والذمم')).toBeInTheDocument();
+    expect(screen.getByText('الحسابات المستحقة والمخزون')).toBeInTheDocument();
     expect(screen.getByText('مبيعات آخر 30 يوم')).toBeInTheDocument();
 
     expect(screen.getAllByText('لا توجد تنبيهات حرجة حاليًا').length).toBeGreaterThan(0);

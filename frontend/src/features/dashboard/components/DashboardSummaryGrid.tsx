@@ -1,3 +1,4 @@
+﻿import { Link } from 'react-router-dom';
 import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
@@ -29,31 +30,42 @@ export function DashboardSummaryGrid({
   customerDebt,
   supplierDebt,
 }: DashboardSummaryGridProps) {
-  const alerts = smartAlerts.length ? smartAlerts : [{ cls: 'alert-info', title: 'الوضع مستقر', text: 'لا توجد تنبيهات حرجة حاليًا' }];
+  const alerts = smartAlerts.length
+    ? smartAlerts
+    : [{ cls: 'alert-info', title: 'الوضع مستقر', text: 'لا توجد تنبيهات مخزون حاليًا' }];
+
+  const alertAction = (alert: DashboardAlert) => {
+    if (alert.title.includes('مخزون')) return { to: '/inventory', label: 'راجع المخزون' };
+    if (alert.title.includes('الائتمان')) return { to: '/customers', label: 'كشف العملاء' };
+    if (alert.title.includes('مورد')) return { to: '/suppliers', label: 'كشف الموردين' };
+    if (alert.title.includes('عروض')) return { to: '/products', label: 'راجع الأصناف' };
+    return { to: '/reports', label: 'مراجعة التفاصيل' };
+  };
 
   return (
-    <section className="dashboard-content-grid dashboard-content-grid-summary-merged">
-      <Card title="ملخص اليوم" className="dashboard-premium-card dashboard-card-compact">
+    <section className="dashboard-content-grid dashboard-content-grid-summary-merged dashboard-secondary-zone-grid">
+      <Card title="ملخص التشغيل" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         <div className="metric-list">
           <div className="metric-row"><span>فواتير البيع اليوم</span><strong>{todaySalesCount}</strong></div>
           <div className="metric-row"><span>فواتير الشراء اليوم</span><strong>{todayPurchasesCount}</strong></div>
-          <div className="metric-row"><span>مصروفات الفترة</span><strong>{formatCurrency(todayExpenses)}</strong></div>
+          <div className="metric-row"><span>مصروفات اليوم</span><strong>{formatCurrency(todayExpenses)}</strong></div>
           <div className="metric-row"><span>إجمالي المرتجعات</span><strong>{formatCurrency(returnsTotal)}</strong></div>
         </div>
       </Card>
 
-      <Card title="تنبيهات سريعة" className="dashboard-premium-card dashboard-card-compact">
+      <Card title="تنبيهات المخزون والحسابات" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         <div className="dashboard-alert-grid">
           {alerts.map((alert) => (
             <div key={`${alert.title}-${alert.text}`} className={`alert-card ${alert.cls}`}>
               <strong>{alert.title}</strong>
               <div className="muted small">{alert.text}</div>
+              <Link className="button button-secondary dashboard-alert-action" to={alertAction(alert).to}>{alertAction(alert).label}</Link>
             </div>
           ))}
         </div>
       </Card>
 
-      <Card title="أعلى أصناف اليوم" className="dashboard-premium-card dashboard-card-compact">
+      <Card title="أعلى أصناف اليوم" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         {topToday.length ? (
           <div className="list-stack">
             {topToday.slice(0, 5).map((row) => (
@@ -67,16 +79,16 @@ export function DashboardSummaryGrid({
             ))}
           </div>
         ) : (
-          <EmptyState title="لا توجد حركة بيع اليوم" hint="ستظهر هنا أعلى الأصناف مبيعًا بمجرد تسجيل مبيعات اليوم." className="dashboard-empty-state" />
+          <EmptyState title="لا توجد مبيعات اليوم بعد" hint="ابدأ من نقطة البيع لتسجيل أول فاتورة" className="dashboard-empty-state" />
         )}
       </Card>
 
-      <Card title="المخزون والذمم" className="dashboard-premium-card dashboard-card-compact">
+      <Card title="الحسابات المستحقة والمخزون" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         <div className="metric-list">
           <div className="metric-row"><span>عدد الأصناف</span><strong>{productsCount}</strong></div>
           <div className="metric-row"><span>قيمة المخزون بالبيع</span><strong>{formatCurrency(inventorySaleValue)}</strong></div>
-          <div className="metric-row"><span>ديون العملاء</span><strong>{formatCurrency(customerDebt)}</strong></div>
-          <div className="metric-row"><span>ديون الموردين</span><strong>{formatCurrency(supplierDebt)}</strong></div>
+          <div className="metric-row"><span>العملاء عليهم</span><strong>{formatCurrency(customerDebt)}</strong></div>
+          <div className="metric-row"><span>الموردين لهم</span><strong>{formatCurrency(supplierDebt)}</strong></div>
         </div>
       </Card>
     </section>

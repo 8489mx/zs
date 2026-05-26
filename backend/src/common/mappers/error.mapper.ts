@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { AppError } from '../errors/app-error';
 import { translateErrorMessageFromCode } from '../errors/error-translations';
+import { mapPostgresErrorToAppError } from '../errors/postgres-error.mapper';
 
 function normalizeHttpExceptionBody(response: string | object, status: number): HttpException {
   if (typeof response === 'string') {
@@ -39,6 +40,18 @@ function normalizeHttpExceptionBody(response: string | object, status: number): 
 export function mapToHttpException(error: unknown): HttpException {
   if (error instanceof HttpException) {
     return normalizeHttpExceptionBody(error.getResponse(), error.getStatus());
+  }
+
+  const mappedPgError = mapPostgresErrorToAppError(error);
+  if (mappedPgError) {
+    return new HttpException(
+      {
+        message: translateErrorMessageFromCode(mappedPgError.code, mappedPgError.message, mappedPgError.statusCode),
+        code: mappedPgError.code,
+        details: mappedPgError.details ?? null,
+      },
+      mappedPgError.statusCode,
+    );
   }
 
   if (error instanceof AppError) {

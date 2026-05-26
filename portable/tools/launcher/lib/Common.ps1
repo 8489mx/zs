@@ -2,7 +2,48 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 function Get-PortableRoot {
-  return (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+  $startDir = (Resolve-Path -LiteralPath $PSScriptRoot).Path
+  $checkedPaths = @()
+  $cursor = Get-Item -LiteralPath $startDir
+
+  while ($null -ne $cursor) {
+    $candidate = $cursor.FullName
+    $checkedPaths += $candidate
+
+    $hasEnvTemplate = Test-Path -LiteralPath (Join-Path $candidate 'config/.env.offline.template')
+    $hasAppDir = Test-Path -LiteralPath (Join-Path $candidate 'app')
+    $hasRuntimeDir = Test-Path -LiteralPath (Join-Path $candidate 'runtime')
+    $hasLauncherDir = Test-Path -LiteralPath (Join-Path $candidate 'tools/launcher')
+
+    if ($hasEnvTemplate -and $hasAppDir -and $hasRuntimeDir -and $hasLauncherDir) {
+      return $candidate
+    }
+
+    $cursor = $cursor.Parent
+  }
+
+  $details = @(
+    'Failed to detect ZS portable root directory.'
+    "Start path: $startDir"
+    'Expected markers under the same root:'
+    '- config/.env.offline.template'
+    '- app/'
+    '- runtime/'
+    '- tools/launcher/'
+    'Checked paths:'
+    ($checkedPaths | ForEach-Object { "- $_" })
+  ) -join [Environment]::NewLine
+
+  try {
+    $launcherDir = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+    $fallbackLog = Join-Path $launcherDir 'launcher-root-detection.log'
+    $line = "[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), ($details -replace [Environment]::NewLine, ' | ')
+    Add-Content -Path $fallbackLog -Value $line
+  } catch {
+    # Ignore logging failures here and keep the main error path clear.
+  }
+
+  throw $details
 }
 
 function Get-PathMap {

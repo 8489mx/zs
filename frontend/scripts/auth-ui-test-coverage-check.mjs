@@ -27,10 +27,10 @@ if (!appShellSpec.includes('clears the session and cached data on logout') && !a
 assertContains(appShellSpec, 'حساب التثبيت', 'AppShell integration spec must cover the bootstrap-admin banner.');
 assertContains(loginPageSpec, '/settings/core?setup=1', 'LoginPage integration spec must verify setup-flow redirect.');
 assertContains(loginPageSpec, 'بيانات الدخول غير صحيحة', 'LoginPage integration spec must verify backend error rendering.');
-assertContains(userManagementHelperSpec, '12 حرفًا', 'User management helper spec must guard the 12-character password policy.');
+assertContains(userManagementHelperSpec, 'accepts a one-character password for new users', 'User management helper spec must guard the one-character password policy.');
 if (!systemBannerSpec.includes('queryClient.getQueryCache().findAll()') && !systemBannerSpec.includes("queryClient.getQueryData(['private', 'summary'])")) {
   throw new Error('SystemStatusBanner spec must verify query-cache cleanup on unauthorized.');
 }
-assertContains(passwordGateSpec, '12 حرفًا', 'PasswordRotationGate spec must guard the client-side password minimum length.');
+assertContains(passwordGateSpec, 'accepts one-character replacement passwords before calling the API', 'PasswordRotationGate spec must guard the client-side one-character password minimum length.');
 
 console.log('Frontend auth UI test coverage check passed.');

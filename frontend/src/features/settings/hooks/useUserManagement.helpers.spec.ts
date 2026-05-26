@@ -3,26 +3,26 @@ import { blankUserDraft } from '@/features/settings/components/user-management.s
 import { validateUserDraft } from '@/features/settings/hooks/useUserManagement.helpers';
 
 describe('validateUserDraft', () => {
-  it('requires a 12-character password for new users', () => {
+  it('requires a non-empty password for new users', () => {
     const draft = {
       ...blankUserDraft('admin'),
       username: 'manager',
       name: 'Operational Manager',
-      password: '12345678901',
+      password: '   ',
     };
 
-    expect(() => validateUserDraft({ draft, managedUsers: [] })).toThrowError('كلمة المرور للمستخدم الجديد يجب ألا تقل عن 12 حرفًا');
+    expect(() => validateUserDraft({ draft, managedUsers: [] })).toThrowError('كلمة المرور مطلوبة عند إنشاء مستخدم جديد');
   });
 
-  it('accepts a 12-character password for new users', () => {
+  it('accepts a one-character password for new users', () => {
     const draft = {
       ...blankUserDraft('admin'),
       username: 'manager',
       name: 'Operational Manager',
-      password: '123456789012',
+      password: '1',
     };
 
     const normalized = validateUserDraft({ draft, managedUsers: [] });
-    expect(normalized.password).toBe('123456789012');
+    expect(normalized.password).toBe('1');
   });
 });

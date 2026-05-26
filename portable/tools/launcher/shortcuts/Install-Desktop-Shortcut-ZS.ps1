@@ -1,7 +1,7 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-. "$PSScriptRoot/Common.ps1"
+. "$PSScriptRoot/../lib/Common.ps1"
 
 $paths = Get-PathMap
 $desktopDir = [Environment]::GetFolderPath('Desktop')
@@ -56,6 +56,30 @@ foreach ($candidate in $iconCandidates) {
 
 $shortcut.Save()
 
+$stopShortcutPath = Join-Path $desktopDir 'Stop ZS Portable.lnk'
+$stopShortcut = $shell.CreateShortcut($stopShortcutPath)
+$stopLauncher = Join-Path $paths.LauncherDir 'Stop-ZS.bat'
+$stopShortcut.TargetPath = $stopLauncher
+$stopShortcut.WorkingDirectory = $paths.Root
+$stopShortcut.Description = 'Stop ZS Portable services and release folder locks.'
+
+$stopIconCandidates = @(
+  (Join-Path $paths.Root 'assets\zs-stop.ico'),
+  (Join-Path $paths.Root 'assets\stop.ico'),
+  (Join-Path $paths.Root 'assets\zs.ico'),
+  (Join-Path $paths.LauncherDir 'zs-stop.ico'),
+  (Join-Path $paths.LauncherDir 'stop.ico')
+)
+
+foreach ($candidate in $stopIconCandidates) {
+  if (Test-Path $candidate) {
+    $stopShortcut.IconLocation = $candidate
+    break
+  }
+}
+
+$stopShortcut.Save()
+
 Write-Host 'ZS desktop shortcut installed successfully:'
 Write-Host $shortcutPath
 Write-Host "Shortcut URL: $appUrl"
@@ -65,3 +89,12 @@ if ($shortcut.IconLocation) {
 } else {
   Write-Host 'Icon: default browser icon. Add portable\assets\zs.ico or set APP_ICON in portable\config\.env.offline to use a custom icon.'
 }
+Write-Host ''
+Write-Host 'Stop shortcut installed successfully:'
+Write-Host $stopShortcutPath
+if ($stopShortcut.IconLocation) {
+  Write-Host "Stop icon: $($stopShortcut.IconLocation)"
+} else {
+  Write-Host 'Stop icon: default icon. Add portable\assets\zs-stop.ico for a distinct Stop icon.'
+}
+

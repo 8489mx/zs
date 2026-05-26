@@ -1,7 +1,7 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-. "$PSScriptRoot/Common.ps1"
+. "$PSScriptRoot/../lib/Common.ps1"
 
 $paths = Get-PathMap
 $startupDir = [Environment]::GetFolderPath('Startup')
@@ -12,7 +12,7 @@ if ([string]::IsNullOrWhiteSpace($startupDir)) {
 
 Ensure-Directory -Path $startupDir
 
-$autostartScript = Join-Path $paths.LauncherDir 'Start-ZS-Autostart.vbs'
+$autostartScript = Join-Path $paths.LauncherDir 'shortcuts/Start-ZS-Autostart.vbs'
 if (-not (Test-Path $autostartScript)) {
   throw "Autostart launcher script missing: $autostartScript"
 }
@@ -33,3 +33,5 @@ $shortcut.Save()
 
 Write-Host 'ZS autostart installed successfully:'
 Write-Host $shortcutPath
+
+

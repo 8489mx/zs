@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench';
+import { ImportWorkbench } from '@/shared/components/ImportWorkbench';
 
 async function uploadCsv(container: HTMLElement, contents: string, fileName = 'import.csv') {
   const input = container.querySelector('input[type="file"]');
@@ -28,7 +28,7 @@ describe('ImportWorkbench', () => {
 
     await uploadCsv(container, 'name\nتفاح');
 
-    expect(await screen.findByText('الأعمدة الناقصة: price')).toBeInTheDocument();
+    expect(await screen.findByText(/العمود المطلوب غير موجود:\s*price/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'استيراد الآن' })).toBeDisabled();
     expect(onImportRows).not.toHaveBeenCalled();
   });
