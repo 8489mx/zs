@@ -59,7 +59,12 @@ export function SupplierQuickPaymentDialog() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'd') {
+      const key = String(event.key || '').toLowerCase();
+      const isSupplierPaymentShortcut = event.ctrlKey
+        && event.altKey
+        && (event.code === 'KeyD' || key === 'd' || event.key === 'د');
+
+      if (isSupplierPaymentShortcut) {
         event.preventDefault();
         setIsOpen((current) => !current);
       }
