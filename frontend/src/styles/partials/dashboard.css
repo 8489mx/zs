@@ -246,6 +246,11 @@
   grid-template-columns: 1fr;
   gap: 8px;
   padding: 10px 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.manager-notifications-list[data-expanded="false"] {
+  max-height: 224px;
 }
 .manager-notification-row {
   display: grid;
@@ -308,6 +313,35 @@
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  width: 100%;
+}
+.manager-notifications-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 2px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.manager-notifications-more:hover {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+.manager-notifications-hint {
+  margin-top: 6px;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
 }
 
 .dashboard-daily-brief-card {

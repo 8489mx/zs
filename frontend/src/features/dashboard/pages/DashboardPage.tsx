@@ -91,13 +91,15 @@ export function DashboardPage() {
         isLoading={managerActions.isLoading}
       />
 
-      <h2 className="dashboard-section-heading">قرارات تحتاج مراجعة</h2>
-      <DashboardDailyDecisionGrid
-        data={managerOverview.data}
-        isLoading={managerOverview.isLoading}
-        isError={managerOverview.isError}
-        error={managerOverview.error}
-      />
+      <section id="manager-decision-center">
+        <h2 className="dashboard-section-heading">قرارات تحتاج مراجعة</h2>
+        <DashboardDailyDecisionGrid
+          data={managerOverview.data}
+          isLoading={managerOverview.isLoading}
+          isError={managerOverview.isError}
+          error={managerOverview.error}
+        />
+      </section>
 
       <DashboardSummaryGrid
         todaySalesCount={Number(stats.todaySalesCount || 0)}
