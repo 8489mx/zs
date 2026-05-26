@@ -31,6 +31,11 @@ export class SessionsController {
     private readonly activationService: ActivationService,
   ) {}
 
+  private sharedCookieDomain(): string | undefined {
+    const domain = this.configService.get<string>('SESSION_COOKIE_DOMAIN')?.trim();
+    return domain || undefined;
+  }
+
   private cookieOptions(expiresAt?: Date) {
     return {
       httpOnly: true,
@@ -38,6 +43,7 @@ export class SessionsController {
       secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
       expires: expiresAt,
       path: '/',
+      ...(this.sharedCookieDomain() ? { domain: this.sharedCookieDomain() } : {}),
     };
   }
 
@@ -48,6 +54,7 @@ export class SessionsController {
       secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
       expires: expiresAt,
       path: '/',
+      ...(this.sharedCookieDomain() ? { domain: this.sharedCookieDomain() } : {}),
     };
   }
 
