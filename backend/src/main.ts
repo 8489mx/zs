@@ -9,7 +9,6 @@ import { ResponseMetadataInterceptor } from './common/interceptors/response-meta
 import { requestValidationPipe } from './common/pipes/request-validation.pipe';
 import { LoggerService } from './core/logging/logger.service';
 
-
 function formatErrorDetails(error: unknown): string {
   if (error instanceof Error) {
     return [
@@ -61,10 +60,17 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(port, host);
   logger.log(`API bootstrap complete on ${host}:${port}`);
+  // eslint-disable-next-line no-console
+  console.log(`API bootstrap complete on ${host}:${port}`);
 }
 
 bootstrap().catch((error: unknown) => {
+  const details = formatErrorDetails(error);
+  // Hostinger's runtime log viewer reliably captures stderr, while the app logger may
+  // not be fully initialized when bootstrap/config validation fails.
+  // eslint-disable-next-line no-console
+  console.error(details);
   const logger = new LoggerService();
-  logger.error(formatErrorDetails(error));
+  logger.error(details);
   process.exit(1);
 });
