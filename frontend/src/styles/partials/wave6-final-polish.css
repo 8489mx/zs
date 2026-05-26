@@ -104,6 +104,129 @@
   margin-bottom: 10px;
 }
 
+.audit-page .audit-action-cell {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.audit-page .audit-col-activity {
+  width: 64%;
+  min-width: 360px;
+}
+
+.audit-page .audit-col-user {
+  width: 16%;
+  white-space: nowrap;
+  color: #475569;
+  font-size: 12px;
+}
+
+.audit-page .audit-col-date {
+  width: 20%;
+  white-space: nowrap;
+  color: #475569;
+  font-size: 12px;
+}
+
+.audit-page .audit-action-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.audit-page .audit-action-label {
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audit-page .audit-detail-text {
+  display: inline-block;
+  max-width: min(520px, 100%);
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+
+.audit-page .audit-activity-badge {
+  width: fit-content;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+
+.audit-page .audit-badge-auth {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.audit-page .audit-badge-import {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.audit-page .audit-badge-inventory {
+  color: #0f766e;
+  background: #f0fdfa;
+  border-color: #99f6e4;
+}
+
+.audit-page .audit-badge-sales {
+  color: #1e3a8a;
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.audit-page .audit-badge-purchases {
+  color: #155e75;
+  background: #ecfeff;
+  border-color: #a5f3fc;
+}
+
+.audit-page .audit-badge-hr {
+  color: #334155;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.audit-page .audit-badge-settings {
+  color: #6d28d9;
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+.audit-page .audit-badge-backup {
+  color: #065f46;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.audit-page .audit-badge-sensitive {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.audit-page .audit-badge-general {
+  color: #475569;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
 .cash-drawer-page .cash-drawer-forms-panel,
 .customers-page .panel-grid,
 .suppliers-page .panel-grid,
@@ -121,6 +244,14 @@
   .customers-page .customers-editor-grid,
   .suppliers-page .suppliers-editor-grid {
     grid-template-columns: 1fr;
+  }
+
+  .audit-page .audit-col-activity,
+  .audit-page .audit-col-user,
+  .audit-page .audit-col-date {
+    width: auto;
+    min-width: 0;
+    white-space: normal;
   }
 }
 
