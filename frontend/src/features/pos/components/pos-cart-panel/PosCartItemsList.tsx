@@ -3,7 +3,20 @@ import type { PosCartPanelProps } from './posCartPanel.types';
 
 export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onRemoveItem, onSelectLine }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onRemoveItem' | 'onSelectLine'>) {
   if (!cart.length) {
-    return <div className="pos-cart-empty-state" aria-hidden="true" />;
+    return (
+      <section className="pos-cart-empty-state pos-cart-empty-state-guided" aria-label="السلة فارغة">
+        <div className="pos-cart-empty-state-mark" aria-hidden="true">+</div>
+        <div className="pos-cart-empty-state-copy">
+          <strong>السلة جاهزة لأول صنف</strong>
+          <span>اضرب الباركود أو ابحث عن الصنف من لوحة الأصناف، وسيظهر هنا مباشرة مع الكمية والإجمالي.</span>
+        </div>
+        <div className="pos-cart-empty-hints" aria-label="اختصارات سريعة">
+          <span>Enter لإضافة أول نتيجة</span>
+          <span>F2 لإنهاء البيع</span>
+          <span>F4 لتعليق الفاتورة</span>
+        </div>
+      </section>
+    );
   }
 
   return (
