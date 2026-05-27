@@ -25,7 +25,7 @@ export class SettingsController {
   @Get('settings')
   async getSettings(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     await this.backupService.runAutoBackupIfDue(req.authContext).catch(() => undefined);
-    return this.settingsService.getSettings();
+    return this.settingsService.getSettings(req.authContext!);
   }
 
   @Put('settings')
@@ -35,8 +35,8 @@ export class SettingsController {
   }
 
   @Get('branches')
-  listBranches(): Promise<Record<string, unknown>> {
-    return this.settingsService.listBranches();
+  listBranches(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.settingsService.listBranches(req.authContext!);
   }
 
   @Post('branches')
@@ -60,7 +60,7 @@ export class SettingsController {
   @Get('settings/locations')
   listLocations(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     this.assertSettingsPermission(req);
-    return this.settingsService.listLocations();
+    return this.settingsService.listLocations(req.authContext!);
   }
 
   @Post('settings/locations')
