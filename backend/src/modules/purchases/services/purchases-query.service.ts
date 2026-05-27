@@ -11,12 +11,13 @@ import { filterPurchases, mapPurchaseRows, paginatePurchases, summarizePurchases
 export class PurchasesQueryService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
-  private tenantPredicate(auth: AuthContext, alias?: string) {
+  private tenantPredicate(auth?: AuthContext, alias?: string) {
+    if (!auth) return sql<boolean>`true`;
     const tenantId = requireTenantScope(auth).tenantId;
     return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`;
   }
 
-  async fetchMappedPurchases(auth: AuthContext): Promise<Array<Record<string, unknown>>> {
+  async fetchMappedPurchases(auth?: AuthContext): Promise<Array<Record<string, unknown>>> {
     const purchases = await this.db
       .selectFrom('purchases as p')
       .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
