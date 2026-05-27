@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely } from '../../../database/kysely';
+import { Kysely, sql } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
@@ -15,7 +15,14 @@ export class SalesQueryService {
     private readonly authz: SalesAuthorizationService,
   ) {}
 
-  private async fetchSaleBaseRows(): Promise<Array<Record<string, unknown>>> {
+  private tenantPredicate(auth: AuthContext, alias?: string) {
+    const { tenantId } = requireTenantScope(auth);
+    return alias
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}`
+      : sql<boolean>`tenant_id = ${tenantId}`;
+  }
+
+  private async fetchSaleBaseRows(auth: AuthContext): Promise<Array<Record<string, unknown>>> {
     return this.db
       .selectFrom('sales as s')
       .leftJoin('customers as c', 'c.id', 's.customer_id')
@@ -27,6 +34,7 @@ export class SalesQueryService {
         's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.store_credit_used',
         's.status', 's.note', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
       ])
+      .where(this.tenantPredicate(auth, 's'))
       .orderBy('s.id desc')
       .execute() as unknown as Array<Record<string, unknown>>;
   }
@@ -62,7 +70,7 @@ export class SalesQueryService {
     }));
   }
 
-  private async hydrateSales(sales: Array<Record<string, unknown>>): Promise<Array<Record<string, unknown>>> {
+  private async hydrateSales(sales: Array<Record<string, unknown>>, auth: AuthContext): Promise<Array<Record<string, unknown>>> {
     const saleIds = sales.map((sale) => Number(sale.id)).filter((id) => Number.isFinite(id) && id > 0);
     if (!saleIds.length) return [];
 
@@ -71,6 +79,7 @@ export class SalesQueryService {
         .selectFrom('sale_items')
         .select(['id', 'sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'line_total', 'unit_name', 'unit_multiplier', 'cost_price', 'price_type'])
         .where('sale_id', 'in', saleIds)
+        .where(this.tenantPredicate(auth))
         .orderBy('sale_id asc')
         .orderBy('id asc')
         .execute(),
@@ -78,6 +87,7 @@ export class SalesQueryService {
         .selectFrom('sale_payments')
         .select(['id', 'sale_id', 'payment_channel', 'amount'])
         .where('sale_id', 'in', saleIds)
+        .where(this.tenantPredicate(auth))
         .orderBy('sale_id asc')
         .orderBy('id asc')
         .execute(),
@@ -94,7 +104,7 @@ export class SalesQueryService {
     const scope = requireTenantScope(auth);
     this.authz.assertCanViewSales(auth);
 
-    const baseSales = await this.fetchSaleBaseRows();
+    const baseSales = await this.fetchSaleBaseRows(auth);
     const shells = this.mapSaleShells(baseSales);
     const filtered = filterSales(shells, query);
     const summary = summarizeSales(filtered);
@@ -105,7 +115,7 @@ export class SalesQueryService {
     const pagedBaseSales = paged.rows
       .map((row) => baseById.get(String(row.id)))
       .filter((row): row is Record<string, unknown> => Boolean(row));
-    const hydratedSales = await this.hydrateSales(pagedBaseSales);
+    const hydratedSales = await this.hydrateSales(pagedBaseSales, auth);
 
     return {
       sales: hydratedSales,
@@ -131,11 +141,12 @@ export class SalesQueryService {
         's.status', 's.note', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
       ])
       .where('s.id', '=', id)
+      .where(this.tenantPredicate(auth, 's'))
       .executeTakeFirst();
 
     if (!sale) throw new AppError('Sale not found', 'SALE_NOT_FOUND', 404);
 
-    const [mappedSale] = await this.hydrateSales([sale as unknown as Record<string, unknown>]);
+    const [mappedSale] = await this.hydrateSales([sale as unknown as Record<string, unknown>], auth);
     return { sale: mappedSale, scope };
   }
 
@@ -150,6 +161,7 @@ export class SalesQueryService {
         'hs.id', 'hs.customer_id', 'hs.payment_type', 'hs.payment_channel', 'hs.paid_amount', 'hs.cash_amount', 'hs.card_amount',
         'hs.discount', 'hs.note', 'hs.search', 'hs.price_type', 'hs.branch_id', 'hs.location_id', 'hs.created_by', 'hs.created_at', 'c.name as customer_name',
       ])
+      .where(this.tenantPredicate(auth, 'hs'))
       .$if(!canManageHeldSales, (qb) => qb.where('hs.created_by', '=', ownerUserId ?? -1))
       .orderBy('hs.id desc')
       .execute();
@@ -162,6 +174,7 @@ export class SalesQueryService {
         .selectFrom('held_sale_items')
         .select(['id', 'held_sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'unit_name', 'unit_multiplier', 'price_type'])
         .where('held_sale_id', 'in', heldSaleIds)
+        .where(this.tenantPredicate(auth))
         .orderBy('held_sale_id asc')
         .orderBy('id asc')
         .execute()
