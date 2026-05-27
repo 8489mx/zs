@@ -6,24 +6,8 @@ import type { AuthContext } from '../auth/interfaces/auth-context.interface';
 
 type AuditActor = number | Pick<AuthContext, 'userId' | 'tenantId' | 'accountId'>;
 
-function toActorMetadata(actor?: AuditActor): Record<string, unknown> | null {
-  if (!actor || typeof actor === 'number') {
-    return null;
-  }
-
-  const metadata: Record<string, unknown> = {
-    userId: actor.userId,
-  };
-
-  if (typeof actor.tenantId === 'string' && actor.tenantId.trim()) {
-    metadata.tenantId = actor.tenantId.trim();
-  }
-
-  if (typeof actor.accountId === 'string' && actor.accountId.trim()) {
-    metadata.accountId = actor.accountId.trim();
-  }
-
-  return metadata;
+function clean(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 @Injectable()
@@ -31,9 +15,8 @@ export class AuditService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   async log(action: string, details: string, actor?: AuditActor): Promise<void> {
-    // Keep audit message human-readable while preserving actor scope at the service boundary.
-    // The metadata can still be consumed internally without leaking raw JSON into details text.
-    toActorMetadata(actor);
+    const tenantId = typeof actor === 'number' ? '' : clean(actor?.tenantId);
+    const accountId = typeof actor === 'number' ? '' : clean(actor?.accountId) || tenantId;
 
     await this.db
       .insertInto('audit_logs')
@@ -41,7 +24,9 @@ export class AuditService {
         action,
         details,
         created_by: typeof actor === 'number' ? actor : (actor?.userId ?? null),
-      })
+        tenant_id: tenantId,
+        account_id: accountId,
+      } as any)
       .execute();
   }
 }
