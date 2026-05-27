@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kysely } from 'kysely';
 import { randomUUID } from 'node:crypto';
@@ -31,6 +31,10 @@ function safeJsonArray(value: unknown): string[] {
   return [];
 }
 
+function toNonEmpty(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 @Injectable()
 export class SessionService {
   constructor(
@@ -46,6 +50,46 @@ export class SessionService {
     };
   }
 
+  private resolveUserTenantContext(user: { tenant_id?: string | null; account_id?: string | null }): { tenantId: string; accountId: string } {
+    const tenantId = toNonEmpty(user.tenant_id);
+    const accountId = toNonEmpty(user.account_id);
+    if (tenantId || accountId) {
+      return resolveTenantContext(this.configService, { tenantId, accountId });
+    }
+    return resolveTenantContext(this.configService);
+  }
+
+  private async assertTenantLoginAllowed(tenantId: string): Promise<void> {
+    const normalizedTenantId = toNonEmpty(tenantId);
+    if (!normalizedTenantId || normalizedTenantId === 'default') return;
+
+    const tenant = await this.db
+      .selectFrom('tenants')
+      .select(['id', 'slug', 'status', 'trial_ends_at'])
+      .where('id', '=', normalizedTenantId)
+      .executeTakeFirst();
+
+    // Preserve existing single-tenant/demo behavior until a formal tenant row exists.
+    if (!tenant) return;
+
+    if (tenant.status === 'suspended') {
+      throw new UnauthorizedException('تم إيقاف هذه النسخة التجريبية. تواصل مع الدعم لتفعيلها.');
+    }
+
+    if (tenant.status === 'expired') {
+      throw new UnauthorizedException('انتهت الفترة التجريبية لهذه النسخة. تواصل معنا لتفعيل الاشتراك.');
+    }
+
+    if (tenant.status === 'trial' && tenant.trial_ends_at <= new Date()) {
+      await this.db
+        .updateTable('tenants')
+        .set({ status: 'expired', updated_at: new Date() })
+        .where('id', '=', tenant.id)
+        .execute();
+      throw new UnauthorizedException('انتهت الفترة التجريبية لهذه النسخة. تواصل معنا لتفعيل الاشتراك.');
+    }
+  }
+
   async resolveAuthContext(sessionId: string): Promise<AuthContext | null> {
     const row = await this.db
       .selectFrom('sessions as s')
@@ -59,6 +103,8 @@ export class SessionService {
         'u.permissions_json',
         'u.is_active',
         'u.locked_until',
+        'u.tenant_id',
+        'u.account_id',
       ])
       .where('s.id', '=', sessionId)
       .executeTakeFirst();
@@ -68,13 +114,20 @@ export class SessionService {
     if (row.expires_at <= new Date()) return null;
     if (row.locked_until && row.locked_until > new Date()) return null;
 
+    const tenantContext = this.resolveUserTenantContext(row);
+    try {
+      await this.assertTenantLoginAllowed(tenantContext.tenantId);
+    } catch {
+      return null;
+    }
+
     return {
       userId: row.user_id,
       sessionId: row.session_id,
       username: row.username,
       role: row.role,
       permissions: safeJsonArray(row.permissions_json),
-      ...resolveTenantContext(this.configService),
+      ...tenantContext,
     };
   }
 
@@ -97,6 +150,8 @@ export class SessionService {
         'is_active',
         'locked_until',
         'failed_login_count',
+        'tenant_id',
+        'account_id',
       ])
       .where('username', '=', normalized)
       .executeTakeFirst();
@@ -121,6 +176,9 @@ export class SessionService {
         .execute();
       return null;
     }
+
+    const tenantContext = this.resolveUserTenantContext(user);
+    await this.assertTenantLoginAllowed(tenantContext.tenantId);
 
     const sessionId = randomUUID();
     const now = new Date();
@@ -165,7 +223,7 @@ export class SessionService {
         username: user.username,
         role: user.role,
         permissions: safeJsonArray(user.permissions_json),
-        ...resolveTenantContext(this.configService),
+        ...tenantContext,
       },
     };
   }
@@ -239,6 +297,8 @@ export class SessionService {
         'must_change_password',
         'password_hash',
         'password_salt',
+        'tenant_id',
+        'account_id',
       ])
       .where('id', '=', auth.userId)
       .executeTakeFirst();
@@ -270,7 +330,7 @@ export class SessionService {
       displayName: String(user.display_name || user.username || auth.username),
       branchIds,
       defaultBranchId,
-      ...resolveTenantContext(this.configService, auth),
+      ...this.resolveUserTenantContext(user),
       mustChangePassword: Boolean(user.must_change_password),
       passwordHash: String(user.password_hash || ''),
       passwordSalt: String(user.password_salt || ''),
