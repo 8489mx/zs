@@ -83,7 +83,7 @@ export class SessionService {
     if (tenant.status === 'trial' && tenant.trial_ends_at <= new Date()) {
       await this.db
         .updateTable('tenants')
-        .set({ status: 'expired', updated_at: new Date() })
+        .set({ status: 'expired', updated_at: new Date().toISOString() })
         .where('id', '=', tenant.id)
         .execute();
       throw new UnauthorizedException('انتهت الفترة التجريبية لهذه النسخة. تواصل معنا لتفعيل الاشتراك.');
