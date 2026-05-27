@@ -16,23 +16,43 @@ export class PartnersService {
     private readonly audit: AuditService,
   ) {}
 
-  private async customerNameExists(name: string, excludeId?: number): Promise<boolean> {
+  private tenantId(actor: AuthContext): string {
+    return String(actor.tenantId || '').trim();
+  }
+
+  private accountId(actor: AuthContext): string {
+    return String(actor.accountId || actor.tenantId || '').trim();
+  }
+
+  private tenantPredicate(actor: AuthContext, alias?: string) {
+    return alias
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${this.tenantId(actor)}`
+      : sql<boolean>`tenant_id = ${this.tenantId(actor)}`;
+  }
+
+  private tenantFields(actor: AuthContext) {
+    return { tenant_id: this.tenantId(actor), account_id: this.accountId(actor) };
+  }
+
+  private async customerNameExists(name: string, actor: AuthContext, excludeId?: number): Promise<boolean> {
     const row = await this.db
       .selectFrom('customers')
       .select(['id'])
       .where('is_active', '=', true)
       .where(sql`LOWER(name)`, '=', name.toLowerCase())
+      .where(this.tenantPredicate(actor))
       .executeTakeFirst();
 
     return Boolean(row && (!excludeId || Number(row.id) !== excludeId));
   }
 
-  private async supplierNameExists(name: string, excludeId?: number): Promise<boolean> {
+  private async supplierNameExists(name: string, actor: AuthContext, excludeId?: number): Promise<boolean> {
     const row = await this.db
       .selectFrom('suppliers')
       .select(['id'])
       .where('is_active', '=', true)
       .where(sql`LOWER(name)`, '=', name.toLowerCase())
+      .where(this.tenantPredicate(actor))
       .executeTakeFirst();
 
     return Boolean(row && (!excludeId || Number(row.id) !== excludeId));
@@ -53,9 +73,10 @@ export class PartnersService {
       created_by: actor.userId,
       branch_id: null,
       location_id: null,
-    }).execute();
+      ...this.tenantFields(actor),
+    } as any).execute();
 
-    await this.db.updateTable('customers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).execute();
+    await this.db.updateTable('customers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(actor)).execute();
   }
 
   private async addSupplierOpeningBalance(supplierId: number, amount: number, actor: AuthContext): Promise<void> {
@@ -73,22 +94,23 @@ export class PartnersService {
       created_by: actor.userId,
       branch_id: null,
       location_id: null,
-    }).execute();
+      ...this.tenantFields(actor),
+    } as any).execute();
 
-    await this.db.updateTable('suppliers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', supplierId).execute();
+    await this.db.updateTable('suppliers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(this.tenantPredicate(actor)).execute();
   }
 
-  async listCustomers(query: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async listCustomers(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { page, pageSize, q, filter, isUnpagedDefault } = parsePartnersListQuery(query);
 
-    let listQuery = this.db.selectFrom('customers').selectAll().where('is_active', '=', true);
-    let countQuery = this.db.selectFrom('customers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true);
+    let listQuery = this.db.selectFrom('customers').selectAll().where('is_active', '=', true).where(this.tenantPredicate(actor));
+    let countQuery = this.db.selectFrom('customers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).where(this.tenantPredicate(actor));
     let summaryQuery = this.db.selectFrom('customers').select((eb) => [
       eb.fn.countAll<number>().as('total_customers'),
       sql<number>`coalesce(sum(balance), 0)`.as('total_balance'),
       sql<number>`coalesce(sum(credit_limit), 0)`.as('total_credit'),
       sql<number>`coalesce(sum(case when customer_type = 'vip' then 1 else 0 end), 0)`.as('vip_count'),
-    ]).where('is_active', '=', true);
+    ]).where('is_active', '=', true).where(this.tenantPredicate(actor));
 
     const searchPredicate = buildCustomerSearchPredicate(q);
     if (searchPredicate) {
@@ -136,12 +158,13 @@ export class PartnersService {
     };
   }
 
-  async getCustomerPosSummary(id: number): Promise<Record<string, unknown>> {
+  async getCustomerPosSummary(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
     const customer = await this.db
       .selectFrom('customers')
       .select(['id', 'balance', 'credit_limit', 'store_credit_balance', 'customer_type'])
       .where('id', '=', id)
       .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
       .executeTakeFirst();
 
     if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
@@ -157,6 +180,7 @@ export class PartnersService {
         ])
         .where('customer_id', '=', id)
         .where('status', '=', 'posted')
+        .where(this.tenantPredicate(actor))
         .executeTakeFirst(),
       this.db
         .selectFrom('return_documents as rd')
@@ -164,6 +188,7 @@ export class PartnersService {
         .select(sql<number>`count(*)`.as('return_count'))
         .where('rd.return_type', '=', 'sale')
         .where('s.customer_id', '=', id)
+        .where(this.tenantPredicate(actor, 's'))
         .executeTakeFirst(),
     ]);
 
@@ -188,7 +213,7 @@ export class PartnersService {
   async createCustomer(payload: UpsertCustomerDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const name = String(payload.name || '').trim();
     if (!name) throw new AppError('Customer name is required', 'CUSTOMER_NAME_REQUIRED', 400);
-    if (await this.customerNameExists(name)) throw new AppError('Customer already exists', 'CUSTOMER_EXISTS', 400);
+    if (await this.customerNameExists(name, actor)) throw new AppError('Customer already exists', 'CUSTOMER_EXISTS', 400);
 
     const inserted = await this.db
       .insertInto('customers')
@@ -203,14 +228,15 @@ export class PartnersService {
         company_name: String(payload.companyName || '').trim(),
         tax_number: String(payload.taxNumber || '').trim(),
         is_active: true,
-      })
+        ...this.tenantFields(actor),
+      } as any)
       .returning('id')
       .executeTakeFirstOrThrow();
 
     await this.addCustomerOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor);
     await this.audit.log('إضافة عميل', `تم إضافة العميل ${name} بواسطة ${actor.username}`, actor);
 
-    const listing = await this.listCustomers({});
+    const listing = await this.listCustomers({}, actor);
     return { ok: true, customers: listing.customers };
   }
 
@@ -220,13 +246,14 @@ export class PartnersService {
       .select(['id', 'balance', 'store_credit_balance'])
       .where('id', '=', id)
       .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
       .executeTakeFirst();
 
     if (!existing) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
 
     const name = String(payload.name || '').trim();
     if (!name) throw new AppError('Customer name is required', 'CUSTOMER_NAME_REQUIRED', 400);
-    if (await this.customerNameExists(name, id)) throw new AppError('Customer already exists', 'CUSTOMER_EXISTS', 400);
+    if (await this.customerNameExists(name, actor, id)) throw new AppError('Customer already exists', 'CUSTOMER_EXISTS', 400);
 
     const requestedBalance = Number(payload.balance ?? existing.balance ?? 0);
     if (Math.abs(Number(existing.balance || 0) - requestedBalance) > 0.0001) {
@@ -251,10 +278,11 @@ export class PartnersService {
         updated_at: sql`NOW()`,
       })
       .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
       .execute();
 
     await this.audit.log('تعديل عميل', `تم تحديث العميل #${id} بواسطة ${actor.username}`, actor);
-    const listing = await this.listCustomers({});
+    const listing = await this.listCustomers({}, actor);
     return { ok: true, customers: listing.customers };
   }
 
@@ -264,6 +292,7 @@ export class PartnersService {
       .select(['id', 'balance', 'store_credit_balance'])
       .where('id', '=', id)
       .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
       .executeTakeFirst();
 
     if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
@@ -271,33 +300,33 @@ export class PartnersService {
     if (Math.abs(Number(customer.store_credit_balance || 0)) > 0.0001) throw new AppError('Customer has store credit balance', 'CUSTOMER_HAS_CREDIT', 400);
 
     const [salesCount, paymentCount, ledgerCount] = await Promise.all([
-      this.db.selectFrom('sales').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).executeTakeFirstOrThrow(),
+      this.db.selectFrom('sales').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
       this.db.selectFrom('customer_payments').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).executeTakeFirstOrThrow(),
-      this.db.selectFrom('customer_ledger').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).executeTakeFirstOrThrow(),
+      this.db.selectFrom('customer_ledger').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
     ]);
 
     if (Number(salesCount.count || 0) || Number(paymentCount.count || 0) || Number(ledgerCount.count || 0)) {
       throw new AppError('Customer has financial history and cannot be deleted', 'CUSTOMER_HAS_HISTORY', 400);
     }
 
-    await this.db.deleteFrom('product_customer_prices').where('customer_id', '=', id).execute();
-    await this.db.updateTable('customers').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+    await this.db.deleteFrom('product_customer_prices').where('customer_id', '=', id).where(this.tenantPredicate(actor)).execute();
+    await this.db.updateTable('customers').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     await this.audit.log('حذف عميل', `تم تعطيل العميل #${id} بواسطة ${actor.username}`, actor);
 
-    const listing = await this.listCustomers({});
+    const listing = await this.listCustomers({}, actor);
     return { ok: true, customers: listing.customers };
   }
 
-  async listSuppliers(query: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async listSuppliers(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { page, pageSize, q, filter, isUnpagedDefault } = parsePartnersListQuery(query);
 
-    let listQuery = this.db.selectFrom('suppliers').selectAll().where('is_active', '=', true);
-    let countQuery = this.db.selectFrom('suppliers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true);
+    let listQuery = this.db.selectFrom('suppliers').selectAll().where('is_active', '=', true).where(this.tenantPredicate(actor));
+    let countQuery = this.db.selectFrom('suppliers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).where(this.tenantPredicate(actor));
     let summaryQuery = this.db.selectFrom('suppliers').select((eb) => [
       eb.fn.countAll<number>().as('total_suppliers'),
       sql<number>`coalesce(sum(balance), 0)`.as('total_balance'),
       sql<number>`coalesce(sum(case when trim(notes) <> '' then 1 else 0 end), 0)`.as('with_notes'),
-    ]).where('is_active', '=', true);
+    ]).where('is_active', '=', true).where(this.tenantPredicate(actor));
 
     const searchPredicate = buildSupplierSearchPredicate(q);
     if (searchPredicate) {
@@ -344,7 +373,7 @@ export class PartnersService {
   async createSupplier(payload: UpsertSupplierDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const name = String(payload.name || '').trim();
     if (!name) throw new AppError('Supplier name is required', 'SUPPLIER_NAME_REQUIRED', 400);
-    if (await this.supplierNameExists(name)) throw new AppError('Supplier already exists', 'SUPPLIER_EXISTS', 400);
+    if (await this.supplierNameExists(name, actor)) throw new AppError('Supplier already exists', 'SUPPLIER_EXISTS', 400);
 
     const inserted = await this.db
       .insertInto('suppliers')
@@ -355,14 +384,15 @@ export class PartnersService {
         balance: 0,
         notes: String(payload.notes || '').trim(),
         is_active: true,
-      })
+        ...this.tenantFields(actor),
+      } as any)
       .returning('id')
       .executeTakeFirstOrThrow();
 
     await this.addSupplierOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor);
     await this.audit.log('إضافة مورد', `تم إضافة المورد ${name} بواسطة ${actor.username}`, actor);
 
-    const listing = await this.listSuppliers({});
+    const listing = await this.listSuppliers({}, actor);
     return { ok: true, suppliers: listing.suppliers };
   }
 
@@ -372,13 +402,14 @@ export class PartnersService {
       .select(['id', 'balance'])
       .where('id', '=', id)
       .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
       .executeTakeFirst();
 
     if (!existing) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
 
     const name = String(payload.name || '').trim();
     if (!name) throw new AppError('Supplier name is required', 'SUPPLIER_NAME_REQUIRED', 400);
-    if (await this.supplierNameExists(name, id)) throw new AppError('Supplier already exists', 'SUPPLIER_EXISTS', 400);
+    if (await this.supplierNameExists(name, actor, id)) throw new AppError('Supplier already exists', 'SUPPLIER_EXISTS', 400);
 
     const requestedBalance = Number(payload.balance ?? existing.balance ?? 0);
     if (Math.abs(Number(existing.balance || 0) - requestedBalance) > 0.0001) {
@@ -395,10 +426,11 @@ export class PartnersService {
         updated_at: sql`NOW()`,
       })
       .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
       .execute();
 
     await this.audit.log('تعديل مورد', `تم تحديث المورد #${id} بواسطة ${actor.username}`, actor);
-    const listing = await this.listSuppliers({});
+    const listing = await this.listSuppliers({}, actor);
     return { ok: true, suppliers: listing.suppliers };
   }
 
@@ -408,25 +440,26 @@ export class PartnersService {
       .select(['id', 'balance'])
       .where('id', '=', id)
       .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
       .executeTakeFirst();
 
     if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
     if (Math.abs(Number(supplier.balance || 0)) > 0.0001) throw new AppError('Supplier has outstanding balance', 'SUPPLIER_HAS_BALANCE', 400);
 
     const [purchaseCount, paymentCount, ledgerCount] = await Promise.all([
-      this.db.selectFrom('purchases').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).executeTakeFirstOrThrow(),
+      this.db.selectFrom('purchases').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
       this.db.selectFrom('supplier_payments').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).executeTakeFirstOrThrow(),
-      this.db.selectFrom('supplier_ledger').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).executeTakeFirstOrThrow(),
+      this.db.selectFrom('supplier_ledger').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
     ]);
 
     if (Number(purchaseCount.count || 0) || Number(paymentCount.count || 0) || Number(ledgerCount.count || 0)) {
       throw new AppError('Supplier has financial history and cannot be deleted', 'SUPPLIER_HAS_HISTORY', 400);
     }
 
-    await this.db.updateTable('suppliers').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+    await this.db.updateTable('suppliers').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     await this.audit.log('حذف مورد', `تم تعطيل المورد #${id} بواسطة ${actor.username}`, actor);
 
-    const listing = await this.listSuppliers({});
+    const listing = await this.listSuppliers({}, actor);
     return { ok: true, suppliers: listing.suppliers };
   }
 }
