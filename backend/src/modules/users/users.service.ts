@@ -7,6 +7,7 @@ import { Database } from '../../database/database.types';
 import { AuditService } from '../../core/audit/audit.service';
 import { UpsertUserDto } from './dto/upsert-user.dto';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { assertStrongPassword } from '../../core/auth/utils/password-policy';
 import { ensureUsersPayload, filterUsers, mapUserRow, normalizeBranchIds, normalizeUserId, normalizeUserListQuery, summarizeUsers } from './helpers/users.helper';
@@ -18,11 +19,18 @@ export class UsersService {
     private readonly audit: AuditService,
   ) {}
 
-  private async ensureUniqueUsername(username: string, excludeId?: number): Promise<void> {
+  private scope(actor: AuthContext) { return requireTenantScope(actor); }
+  private tenantPredicate(actor: AuthContext, alias?: string) {
+    const { tenantId } = this.scope(actor);
+    return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`;
+  }
+
+  private async ensureUniqueUsername(username: string, actor: AuthContext, excludeId?: number): Promise<void> {
     const row = await this.db
       .selectFrom('users')
       .select(['id'])
       .where(sql`LOWER(username)`, '=', username.toLowerCase())
+      .where(this.tenantPredicate(actor))
       .executeTakeFirst();
 
     if (row && (!excludeId || Number(row.id) !== excludeId)) {
@@ -30,14 +38,15 @@ export class UsersService {
     }
   }
 
-  private async loadBranchMap(userIds: number[]): Promise<Map<number, string[]>> {
+  private async loadBranchMap(userIds: number[], actor: AuthContext): Promise<Map<number, string[]>> {
     const map = new Map<number, string[]>();
     if (!userIds.length) return map;
+    const { tenantId } = this.scope(actor);
 
     const rows = await sql<{ user_id: number; branch_id: number }>`
       select user_id, branch_id
       from user_branches
-      where user_id in (${sql.join(userIds)})
+      where tenant_id = ${tenantId} and user_id in (${sql.join(userIds)})
       order by user_id asc, branch_id asc
     `.execute(this.db);
 
@@ -52,26 +61,26 @@ export class UsersService {
     return map;
   }
 
-
-  private async replaceUserBranches(userId: number, branchIds: string[] | undefined): Promise<void> {
+  private async replaceUserBranches(userId: number, branchIds: string[] | undefined, actor: AuthContext): Promise<void> {
     const normalized = normalizeBranchIds(branchIds);
-    await sql`delete from user_branches where user_id = ${userId}`.execute(this.db);
+    const { tenantId, accountId } = this.scope(actor);
+    await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${userId}`.execute(this.db);
 
     if (!normalized.length) return;
 
-    const values = normalized.map((branchId) => sql`(${userId}, ${branchId})`);
+    const values = normalized.map((branchId) => sql`(${userId}, ${branchId}, ${tenantId}, ${accountId})`);
     await sql`
-      insert into user_branches (user_id, branch_id)
+      insert into user_branches (user_id, branch_id, tenant_id, account_id)
       values ${sql.join(values)}
       on conflict (user_id, branch_id) do nothing
     `.execute(this.db);
   }
 
-  async listUsers(query: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async listUsers(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalizedQuery = normalizeUserListQuery(query);
 
-    const allRows = await this.db.selectFrom('users').selectAll().orderBy('id asc').execute();
-    const branchMap = await this.loadBranchMap(allRows.map((row) => Number(row.id)));
+    const allRows = await this.db.selectFrom('users').selectAll().where(this.tenantPredicate(actor)).orderBy('id asc').execute();
+    const branchMap = await this.loadBranchMap(allRows.map((row) => Number(row.id)), actor);
     const users = filterUsers(
       allRows.map((row) => mapUserRow(row, branchMap.get(Number(row.id)) ?? [])),
       normalizedQuery,
@@ -89,15 +98,17 @@ export class UsersService {
         totalPages: paged.pagination.totalPages,
       },
       summary,
+      scope: this.scope(actor),
     };
   }
 
   async createUser(payload: UpsertUserDto, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.scope(actor);
     if (!payload.password) {
       throw new AppError('Password is required', 'PASSWORD_REQUIRED', 400);
     }
 
-    await this.ensureUniqueUsername(payload.username);
+    await this.ensureUniqueUsername(payload.username, actor);
     assertStrongPassword(payload.password);
 
     const passwordRecord = await createPasswordRecord(payload.password);
@@ -115,17 +126,19 @@ export class UsersService {
         must_change_password: payload.mustChangePassword === true,
         failed_login_count: 0,
         locked_until: null,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
       } as any))
       .returning('id')
       .executeTakeFirstOrThrow();
 
-    await this.replaceUserBranches(Number(result.id), payload.branchIds);
+    await this.replaceUserBranches(Number(result.id), payload.branchIds, actor);
 
-    const created = await this.db.selectFrom('users').selectAll().where('id', '=', Number(result.id)).executeTakeFirstOrThrow();
+    const created = await this.db.selectFrom('users').selectAll().where('id', '=', Number(result.id)).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
     await this.audit.log('إضافة مستخدم', `تمت إضافة المستخدم ${created.username} بواسطة ${actor.username}`, actor);
 
-    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
-    const branchMap = await this.loadBranchMap([Number(result.id)]);
+    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);
+    const branchMap = await this.loadBranchMap([Number(result.id)], actor);
     return {
       ok: true,
       user: mapUserRow(created, branchMap.get(Number(result.id)) ?? []),
@@ -134,12 +147,12 @@ export class UsersService {
   }
 
   async updateUser(id: number, payload: UpsertUserDto, actor: AuthContext, keepSessionId?: string): Promise<Record<string, unknown>> {
-    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirst();
+    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) {
       throw new AppError('User not found', 'USER_NOT_FOUND', 404);
     }
 
-    await this.ensureUniqueUsername(payload.username, id);
+    await this.ensureUniqueUsername(payload.username, actor, id);
 
     const updates: Record<string, unknown> = {
       username: payload.username.trim(),
@@ -161,8 +174,8 @@ export class UsersService {
       updates.locked_until = null;
     }
 
-    await this.db.updateTable('users').set(updates as any).where('id', '=', id).execute();
-    await this.replaceUserBranches(id, payload.branchIds);
+    await this.db.updateTable('users').set(updates as any).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+    await this.replaceUserBranches(id, payload.branchIds, actor);
 
     let sessionCleanup = this.db.deleteFrom('sessions').where('user_id', '=', id);
     if (keepSessionId) {
@@ -170,11 +183,11 @@ export class UsersService {
     }
     await sessionCleanup.execute();
 
-    const updated = await this.db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+    const updated = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
     await this.audit.log('تعديل مستخدم', `تم تحديث المستخدم ${updated.username} بواسطة ${actor.username}`, actor);
 
-    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
-    const branchMap = await this.loadBranchMap([id]);
+    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);
+    const branchMap = await this.loadBranchMap([id], actor);
     return {
       ok: true,
       user: mapUserRow(updated, branchMap.get(id) ?? []),
@@ -195,7 +208,7 @@ export class UsersService {
     }
 
     await this.audit.log('تعديل المستخدمين', `تم تحديث ${usersPayload.length} مستخدم/صلاحية بواسطة ${actor.username}`, actor);
-    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
+    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);
 
     return {
       ok: true,
@@ -204,17 +217,21 @@ export class UsersService {
   }
 
   async deleteUser(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirst();
+    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) {
       throw new AppError('User not found', 'USER_NOT_FOUND', 404);
     }
+    if (Number(existing.id) === Number(actor.userId)) {
+      throw new AppError('Cannot delete current user', 'CURRENT_USER_DELETE_FORBIDDEN', 400);
+    }
 
-    await sql`delete from user_branches where user_id = ${id}`.execute(this.db);
+    const { tenantId } = this.scope(actor);
+    await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${id}`.execute(this.db);
     await this.db.deleteFrom('sessions').where('user_id', '=', id).execute();
-    await this.db.deleteFrom('users').where('id', '=', id).execute();
+    await this.db.deleteFrom('users').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     await this.audit.log('حذف مستخدم', `تم حذف المستخدم ${existing.username} بواسطة ${actor.username}`, actor);
 
-    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
+    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);
     return {
       ok: true,
       removedUserId: String(existing.id),
@@ -223,7 +240,7 @@ export class UsersService {
   }
 
   async unlockUser(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirst();
+    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) {
       throw new AppError('User not found', 'USER_NOT_FOUND', 404);
     }
@@ -235,13 +252,14 @@ export class UsersService {
         locked_until: null,
       })
       .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
       .execute();
 
-    const updated = await this.db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+    const updated = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
     await this.audit.log('فتح مستخدم', `تم فتح المستخدم ${updated.username} بواسطة ${actor.username}`, actor);
 
-    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 });
-    const branchMap = await this.loadBranchMap([id]);
+    const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);
+    const branchMap = await this.loadBranchMap([id], actor);
     return {
       ok: true,
       user: mapUserRow(updated, branchMap.get(id) ?? []),
