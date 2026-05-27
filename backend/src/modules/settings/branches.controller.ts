@@ -1,5 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
+import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { SettingsService } from './settings.service';
 
 @Controller('api')
@@ -8,7 +9,7 @@ export class BranchesController {
   constructor(private readonly settingsService: SettingsService) {}
 
   @Get('branches')
-  listBranches(): Promise<Record<string, unknown>> {
-    return this.settingsService.listBranches();
+  listBranches(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.settingsService.listBranches(req.authContext!);
   }
 }
