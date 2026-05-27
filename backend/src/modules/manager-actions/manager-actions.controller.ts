@@ -1,7 +1,8 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
+import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { ManagerDashboardService } from './manager-dashboard.service';
 import { ManagerActionsService } from './manager-actions.service';
 
@@ -15,13 +16,13 @@ export class ManagerActionsController {
 
   @Get('manager-actions')
   @RequirePermissions('dashboard')
-  list(@Query('limit') limit?: string) {
-    return this.managerActionsService.list(Number(limit || 8));
+  list(@Query('limit') limit: string | undefined, @Req() req: RequestWithAuth) {
+    return this.managerActionsService.list(Number(limit || 8), req.authContext!);
   }
 
   @Get('dashboard/manager-overview')
   @RequirePermissions('dashboard')
-  managerOverview() {
-    return this.managerDashboardService.overview();
+  managerOverview(@Req() req: RequestWithAuth) {
+    return this.managerDashboardService.overview(req.authContext!);
   }
 }
