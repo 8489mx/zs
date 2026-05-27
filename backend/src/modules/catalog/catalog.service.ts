@@ -12,7 +12,7 @@ export class CatalogService {
     private readonly productService: CatalogProductService,
   ) {}
 
-  listCategories(): Promise<Record<string, unknown>> { return this.categoryService.listCategories(); }
+  listCategories(actor: AuthContext): Promise<Record<string, unknown>> { return this.categoryService.listCategories(actor); }
   createCategory(payload: UpsertCategoryDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.categoryService.createCategory(payload, actor); }
   updateCategory(id: number, payload: UpsertCategoryDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.categoryService.updateCategory(id, payload, actor); }
   deleteCategory(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.categoryService.deleteCategory(id, actor); }
