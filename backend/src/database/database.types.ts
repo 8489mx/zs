@@ -29,6 +29,35 @@ export interface UserTable {
   failed_login_count: number;
   locked_until: Date | null;
   last_login_at: Date | null;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface TenantTable {
+  id: string;
+  slug: string;
+  business_name: string;
+  owner_name: string;
+  owner_phone: string;
+  owner_email: string | null;
+  activity_type: string | null;
+  status: 'trial' | 'active' | 'expired' | 'suspended';
+  trial_starts_at: Date;
+  trial_ends_at: Date;
+  activated_at: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface TrialSignupTable {
+  id: string;
+  tenant_id: string;
+  source: string | null;
+  campaign: string | null;
+  utm_source: string | null;
+  utm_campaign: string | null;
+  notes: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -848,6 +877,8 @@ export interface Database {
   _phase1_bootstrap: Phase1BootstrapTable;
   sessions: SessionTable;
   users: UserTable;
+  tenants: TenantTable;
+  trial_signups: TrialSignupTable;
   settings: SettingTable;
   audit_logs: AuditLogTable;
   branches: BranchTable;
