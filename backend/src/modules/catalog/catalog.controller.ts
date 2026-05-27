@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete as HttpRemove, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -33,6 +33,12 @@ export class CatalogController {
     return this.catalogService.updateCategory(id, payload, req.authContext!);
   }
 
+  @HttpRemove('categories/:id')
+  @RequirePermissions('canDelete')
+  removeCategory(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.catalogService.deleteCategory(id, req.authContext!);
+  }
+
   @Get('products')
   listProducts(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.listProducts(query, req.authContext);
@@ -58,5 +64,11 @@ export class CatalogController {
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     return this.catalogService.updateProduct(id, payload, req.authContext!);
+  }
+
+  @HttpRemove('products/:id')
+  @RequirePermissions('canDelete')
+  removeProduct(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.catalogService.deleteProduct(id, req.authContext!);
   }
 }
