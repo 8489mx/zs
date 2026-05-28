@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, Transaction, sql } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
@@ -9,6 +10,20 @@ type DbOrTx = Kysely<Database> | Transaction<Database>;
 @Injectable()
 export class SalesFinanceService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
+
+  private tenantScope(auth: AuthContext) {
+    return requireTenantScope(auth);
+  }
+
+  private tenantPredicate(auth: AuthContext) {
+    const scope = this.tenantScope(auth);
+    return sql<boolean>`tenant_id = ${scope.tenantId}`;
+  }
+
+  private tenantFields(auth: AuthContext) {
+    const scope = this.tenantScope(auth);
+    return { tenant_id: scope.tenantId, account_id: scope.accountId };
+  }
 
   async createCustomerLedgerEntry(
     queryable: DbOrTx,
@@ -22,6 +37,7 @@ export class SalesFinanceService {
       .selectFrom('customers')
       .select(['balance'])
       .where('id', '=', customerId)
+      .where(this.tenantPredicate(auth))
       .executeTakeFirstOrThrow();
     const nextBalance = Number(Number(customer.balance || 0) + amount).toFixed(2);
     await queryable
@@ -35,12 +51,14 @@ export class SalesFinanceService {
         reference_type: 'sale',
         reference_id: referenceId,
         created_by: auth.userId,
-      })
+        ...this.tenantFields(auth),
+      } as any)
       .execute();
     await queryable
       .updateTable('customers')
       .set({ balance: Number(nextBalance), updated_at: sql`NOW()` })
       .where('id', '=', customerId)
+      .where(this.tenantPredicate(auth))
       .execute();
   }
 
@@ -64,7 +82,8 @@ export class SalesFinanceService {
         created_by: auth.userId,
         branch_id: branchId,
         location_id: locationId,
-      })
+        ...this.tenantFields(auth),
+      } as any)
       .execute();
   }
 }
