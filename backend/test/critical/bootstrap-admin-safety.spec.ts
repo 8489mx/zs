@@ -10,6 +10,46 @@ class FakeConfigService {
   }
 }
 
+class FakeUsersSelectBuilder {
+  constructor(private readonly user: any) {}
+  select() { return this; }
+  where() { return this; }
+  async executeTakeFirst() { return this.user; }
+}
+
+class FakeSettingsSelectBuilder {
+  constructor(private readonly settings: Array<{ key: string; value: string; tenant_id?: string }>) {}
+  select() { return this; }
+  where() { return this; }
+  async execute() { return this.settings; }
+}
+
+class FakeUserBranchesSelectBuilder {
+  private userId: number | null = null;
+  constructor(private readonly userBranches: Array<{ user_id: number; branch_id: number | string; tenant_id?: string }>) {}
+  select() { return this; }
+  where(column: string | unknown, _op?: string, value?: number) {
+    if (column === 'user_id') this.userId = Number(value);
+    return this;
+  }
+  async execute() {
+    return this.userBranches.filter((row) => this.userId == null || row.user_id === this.userId);
+  }
+}
+
+class FakeTenantsSelectBuilder {
+  private id = '';
+  constructor(private readonly tenants: Array<{ id: string; slug: string; business_name: string; status: string; trial_ends_at: Date | null; created_at: Date }>) {}
+  select() { return this; }
+  where(column: string, _op: string, value: string) {
+    if (column === 'id') this.id = value;
+    return this;
+  }
+  async executeTakeFirst() {
+    return this.tenants.find((tenant) => tenant.id === this.id);
+  }
+}
+
 class FakeDb {
   constructor(
     private readonly user: any,
@@ -18,40 +58,10 @@ class FakeDb {
     private readonly tenants: Array<{ id: string; slug: string; business_name: string; status: string; trial_ends_at: Date | null; created_at: Date }> = [],
   ) {}
   selectFrom(table: string) {
-    if (table === 'users') {
-      return {
-        select: () => ({
-          where: () => ({ executeTakeFirst: async () => this.user }),
-        }),
-      };
-    }
-    if (table === 'settings') {
-      return {
-        select: () => ({
-          where: () => ({ execute: async () => this.settings }),
-          execute: async () => this.settings,
-        }),
-      };
-    }
-    if (table === 'user_branches') {
-      return {
-        select: () => ({
-          where: (_column: string | unknown, _op?: string, value?: number) => ({
-            where: () => ({ execute: async () => this.userBranches.filter((row) => row.user_id === Number(value)) }),
-            execute: async () => this.userBranches.filter((row) => row.user_id === Number(value)),
-          }),
-        }),
-      };
-    }
-    if (table === 'tenants') {
-      return {
-        select: () => ({
-          where: (_column: string, _op: string, value: string) => ({
-            executeTakeFirst: async () => this.tenants.find((tenant) => tenant.id === value),
-          }),
-        }),
-      };
-    }
+    if (table === 'users') return new FakeUsersSelectBuilder(this.user);
+    if (table === 'settings') return new FakeSettingsSelectBuilder(this.settings);
+    if (table === 'user_branches') return new FakeUserBranchesSelectBuilder(this.userBranches);
+    if (table === 'tenants') return new FakeTenantsSelectBuilder(this.tenants);
     throw new Error(`Unsupported table: ${table}`);
   }
 }
