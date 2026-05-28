@@ -2,12 +2,14 @@ import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
 type DbExecutor = Kysely<Database>;
+type TenantScope = { tenantId: string; accountId: string };
 
 function cleanString(value: unknown): string {
   return String(value ?? '').trim();
@@ -86,6 +88,7 @@ export class SettingsImportService {
     if (!auth) throw new ForbiddenException('Authentication required');
     const canManage = auth.role === 'super_admin' || auth.permissions.includes('settings') || auth.permissions.includes('canManageSettings');
     if (!canManage) throw new ForbiddenException('Missing required permissions');
+    requireTenantScope(auth);
   }
 
   assertEmployeeImporter(auth?: AuthContext | null): asserts auth is AuthContext {
@@ -94,6 +97,16 @@ export class SettingsImportService {
       || auth.permissions.includes('hrEmployees')
       || auth.permissions.includes('hr');
     if (!canImportEmployees) throw new ForbiddenException('Missing required permissions');
+    requireTenantScope(auth);
+  }
+
+  private scope(actor: AuthContext): TenantScope {
+    return requireTenantScope(actor);
+  }
+
+  private tenantFields(actor: AuthContext): Record<string, string> {
+    const scope = this.scope(actor);
+    return { tenant_id: scope.tenantId, account_id: scope.accountId };
   }
 
   private buildRowLookup(row: Record<string, unknown>): Record<string, string> {
@@ -147,28 +160,32 @@ export class SettingsImportService {
   private async ensureHrMasterName(db: DbExecutor, table: 'hr_departments' | 'hr_job_titles' | 'hr_positions', name: string, actor: AuthContext): Promise<number | null> {
     const normalized = cleanString(name);
     if (!normalized) return null;
+    const scope = this.scope(actor);
     const existing = await sql<{ id: number }>`
       SELECT id
       FROM ${sql.table(table)}
-      WHERE LOWER(name) = LOWER(${normalized})
+      WHERE tenant_id = ${scope.tenantId}
+        AND LOWER(name) = LOWER(${normalized})
       ORDER BY id DESC
       LIMIT 1
     `.execute(db);
     if (existing.rows[0]?.id) return Number(existing.rows[0].id);
 
     const inserted = await sql<{ id: number }>`
-      INSERT INTO ${sql.table(table)} (name, code, description, is_active, created_by, updated_by)
-      VALUES (${normalized}, '', '', TRUE, ${actor.userId}, ${actor.userId})
+      INSERT INTO ${sql.table(table)} (name, code, description, is_active, created_by, updated_by, tenant_id, account_id)
+      VALUES (${normalized}, '', '', TRUE, ${actor.userId}, ${actor.userId}, ${scope.tenantId}, ${scope.accountId})
       RETURNING id
     `.execute(db);
     return inserted.rows[0]?.id ? Number(inserted.rows[0].id) : null;
   }
 
-  private async nextAvailableEmployeeNo(db: DbExecutor): Promise<string> {
+  private async nextAvailableEmployeeNo(db: DbExecutor, actor: AuthContext): Promise<string> {
+    const scope = this.scope(actor);
     const result = await sql<{ employee_no: string }>`
       SELECT employee_no
       FROM hr_employees
-      WHERE employee_no ~ '^[0-9]+$'
+      WHERE tenant_id = ${scope.tenantId}
+        AND employee_no ~ '^[0-9]+$'
       ORDER BY LENGTH(employee_no), employee_no
     `.execute(db);
     const used = new Set<number>();
@@ -184,10 +201,12 @@ export class SettingsImportService {
   private async upsertEmployeeContact(db: DbExecutor, employeeId: number, contactType: 'phone' | 'email', value: string, actor: AuthContext): Promise<void> {
     const normalizedValue = cleanString(value);
     if (!normalizedValue) return;
+    const scope = this.scope(actor);
     const existing = await sql<{ id: number }>`
       SELECT id
       FROM hr_employee_contacts
-      WHERE employee_id = ${employeeId}
+      WHERE tenant_id = ${scope.tenantId}
+        AND employee_id = ${employeeId}
         AND LOWER(contact_type) = LOWER(${contactType})
       ORDER BY is_primary DESC, id DESC
       LIMIT 1
@@ -200,50 +219,56 @@ export class SettingsImportService {
             is_primary = ${contactType === 'phone'},
             updated_by = ${actor.userId},
             updated_at = NOW()
-        WHERE id = ${existing.rows[0].id}
+        WHERE tenant_id = ${scope.tenantId}
+          AND id = ${existing.rows[0].id}
       `.execute(db);
       return;
     }
 
     await sql`
-      INSERT INTO hr_employee_contacts (employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by)
-      VALUES (${employeeId}, ${contactType}, ${normalizedValue}, ${contactType === 'phone' ? 'الموبايل' : 'البريد الإلكتروني'}, ${contactType === 'phone'}, '', ${actor.userId}, ${actor.userId})
+      INSERT INTO hr_employee_contacts (employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by, tenant_id, account_id)
+      VALUES (${employeeId}, ${contactType}, ${normalizedValue}, ${contactType === 'phone' ? 'الموبايل' : 'البريد الإلكتروني'}, ${contactType === 'phone'}, '', ${actor.userId}, ${actor.userId}, ${scope.tenantId}, ${scope.accountId})
     `.execute(db);
   }
 
-  private async findEmployeeByContact(db: DbExecutor, contactType: 'phone' | 'email', value: string): Promise<number[]> {
+  private async findEmployeeByContact(db: DbExecutor, contactType: 'phone' | 'email', value: string, actor: AuthContext): Promise<number[]> {
     const normalized = cleanString(value);
     if (!normalized) return [];
+    const scope = this.scope(actor);
     const rows = await sql<{ employee_id: number }>`
       SELECT DISTINCT c.employee_id
       FROM hr_employee_contacts c
-      WHERE LOWER(c.contact_type) = LOWER(${contactType})
+      WHERE c.tenant_id = ${scope.tenantId}
+        AND LOWER(c.contact_type) = LOWER(${contactType})
         AND LOWER(c.value) = LOWER(${normalized})
       LIMIT 3
     `.execute(db);
     return rows.rows.map((row) => Number(row.employee_id)).filter((id) => id > 0);
   }
 
-  private async ensureCategory(db: DbExecutor, name: string): Promise<number | null> {
+  private async ensureCategory(db: DbExecutor, name: string, actor: AuthContext): Promise<number | null> {
     const normalized = cleanString(name);
     if (!normalized) return null;
-    const existing = await db.selectFrom('product_categories').select(['id']).where(sql`LOWER(name)`, '=', normalized.toLowerCase()).executeTakeFirst();
+    const scope = this.scope(actor);
+    const existing = await db.selectFrom('product_categories').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', normalized.toLowerCase()).executeTakeFirst();
     if (existing) return Number(existing.id);
-    const inserted = await db.insertInto('product_categories').values({ name: normalized, is_active: true }).returning('id').executeTakeFirstOrThrow();
+    const inserted = await db.insertInto('product_categories').values({ name: normalized, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
     return Number(inserted.id);
   }
 
-  private async ensureSupplier(db: DbExecutor, name: string): Promise<number | null> {
+  private async ensureSupplier(db: DbExecutor, name: string, actor: AuthContext): Promise<number | null> {
     const normalized = cleanString(name);
     if (!normalized) return null;
-    const existing = await db.selectFrom('suppliers').select(['id']).where(sql`LOWER(name)`, '=', normalized.toLowerCase()).executeTakeFirst();
+    const scope = this.scope(actor);
+    const existing = await db.selectFrom('suppliers').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', normalized.toLowerCase()).executeTakeFirst();
     if (existing) return Number(existing.id);
-    const inserted = await db.insertInto('suppliers').values({ name: normalized, phone: '', address: '', balance: 0, notes: '', is_active: true }).returning('id').executeTakeFirstOrThrow();
+    const inserted = await db.insertInto('suppliers').values({ name: normalized, phone: '', address: '', balance: 0, notes: '', is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
     return Number(inserted.id);
   }
 
   private async addCustomerOpeningBalance(db: DbExecutor, customerId: number, amount: number, actor: AuthContext): Promise<void> {
     if (Math.abs(amount) <= 0.0001) return;
+    const scope = this.scope(actor);
     await db.insertInto('customer_ledger').values({
       customer_id: customerId,
       entry_type: 'opening_balance',
@@ -255,12 +280,14 @@ export class SettingsImportService {
       created_by: actor.userId,
       branch_id: null,
       location_id: null,
-    }).execute();
-    await db.updateTable('customers').set({ balance: amount, updated_at: sql`NOW()` }).where('id', '=', customerId).execute();
+      ...this.tenantFields(actor),
+    } as any).execute();
+    await db.updateTable('customers').set({ balance: amount, updated_at: sql`NOW()` }).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
   }
 
   private async addSupplierOpeningBalance(db: DbExecutor, supplierId: number, amount: number, actor: AuthContext): Promise<void> {
     if (Math.abs(amount) <= 0.0001) return;
+    const scope = this.scope(actor);
     await db.insertInto('supplier_ledger').values({
       supplier_id: supplierId,
       entry_type: 'opening_balance',
@@ -272,12 +299,14 @@ export class SettingsImportService {
       created_by: actor.userId,
       branch_id: null,
       location_id: null,
-    }).execute();
-    await db.updateTable('suppliers').set({ balance: amount, updated_at: sql`NOW()` }).where('id', '=', supplierId).execute();
+      ...this.tenantFields(actor),
+    } as any).execute();
+    await db.updateTable('suppliers').set({ balance: amount, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
   }
 
   async importProducts(rows: unknown[], actor: AuthContext): Promise<Record<string, unknown>> {
     if (!Array.isArray(rows)) throw new AppError('rows must be an array', 'IMPORT_ROWS_INVALID', 400);
+    const scope = this.scope(actor);
     const result = await this.db.transaction().execute(async (trx) => {
       let inserted = 0;
       let updated = 0;
@@ -287,12 +316,15 @@ export class SettingsImportService {
         const row = rawRow as Record<string, unknown>;
         const name = cleanString(row.name);
         if (!name) continue;
-        const categoryId = await this.ensureCategory(trx, cleanString(row.categoryName || row.category || ''));
-        const supplierId = await this.ensureSupplier(trx, cleanString(row.supplierName || row.supplier || ''));
-        const existing = await trx.selectFrom('products').select(['id']).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
+        const categoryId = await this.ensureCategory(trx, cleanString(row.categoryName || row.category || ''), actor);
+        const supplierId = await this.ensureSupplier(trx, cleanString(row.supplierName || row.supplier || ''), actor);
+        const barcode = cleanString(row.barcode) || null;
+        const existing = barcode
+          ? await trx.selectFrom('products').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('barcode', '=', barcode).where('is_active', '=', true).executeTakeFirst()
+          : await trx.selectFrom('products').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
         const payload = {
           name,
-          barcode: cleanString(row.barcode) || null,
+          barcode,
           category_id: categoryId,
           supplier_id: supplierId,
           cost_price: toNumber(row.costPrice || row.cost || 0),
@@ -304,17 +336,14 @@ export class SettingsImportService {
 
         if (existing) {
           const requestedStockQty = toNumber(row.stockQty || 0);
-          if (Math.abs(requestedStockQty) > 0.0001) {
-            stockQtyIgnoredOnUpdate += 1;
-          }
-
-          await trx.updateTable('products').set({ ...payload, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).execute();
+          if (Math.abs(requestedStockQty) > 0.0001) stockQtyIgnoredOnUpdate += 1;
+          await trx.updateTable('products').set({ ...payload, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
           updated += 1;
         } else {
           const initialStockQty = toNumber(row.stockQty || 0);
-          const insertedProduct = await trx.insertInto('products').values({ ...payload, stock_qty: initialStockQty, is_active: true }).returning('id').executeTakeFirstOrThrow();
+          const insertedProduct = await trx.insertInto('products').values({ ...payload, stock_qty: initialStockQty, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
           if (initialStockQty > 0) {
-            await trx.insertInto('product_location_stock').values({ product_id: Number(insertedProduct.id), branch_id: null, location_id: null, qty: initialStockQty }).execute();
+            await trx.insertInto('product_location_stock').values({ product_id: Number(insertedProduct.id), branch_id: null, location_id: null, qty: initialStockQty, ...this.tenantFields(actor) } as any).execute();
           }
           inserted += 1;
         }
@@ -329,6 +358,7 @@ export class SettingsImportService {
 
   async importCustomers(rows: unknown[], actor: AuthContext): Promise<Record<string, unknown>> {
     if (!Array.isArray(rows)) throw new AppError('rows must be an array', 'IMPORT_ROWS_INVALID', 400);
+    const scope = this.scope(actor);
     const result = await this.db.transaction().execute(async (trx) => {
       let inserted = 0;
       let updated = 0;
@@ -337,12 +367,15 @@ export class SettingsImportService {
         const row = rawRow as Record<string, unknown>;
         const name = cleanString(row.name);
         if (!name) continue;
-        const existing = await trx.selectFrom('customers').select(['id', 'balance']).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
+        const phone = cleanString(row.phone);
+        const existing = phone
+          ? await trx.selectFrom('customers').select(['id', 'balance']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('phone', '=', phone).where('is_active', '=', true).executeTakeFirst()
+          : await trx.selectFrom('customers').select(['id', 'balance']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
         const openingBalance = toNumber(row.openingBalance || row.balance || 0);
         const storeCreditBalance = toNumber(row.storeCreditBalance || 0);
         const payload = {
           name,
-          phone: cleanString(row.phone),
+          phone,
           address: cleanString(row.address),
           customer_type: cleanString(row.type).toLowerCase() === 'vip' ? 'vip' as const : 'cash' as const,
           credit_limit: toNumber(row.creditLimit || 0),
@@ -351,10 +384,10 @@ export class SettingsImportService {
         };
 
         if (existing) {
-          await trx.updateTable('customers').set({ ...payload, store_credit_balance: storeCreditBalance, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).execute();
+          await trx.updateTable('customers').set({ ...payload, store_credit_balance: storeCreditBalance, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
           updated += 1;
         } else {
-          const insertedRow = await trx.insertInto('customers').values({ ...payload, balance: 0, store_credit_balance: storeCreditBalance, is_active: true }).returning('id').executeTakeFirstOrThrow();
+          const insertedRow = await trx.insertInto('customers').values({ ...payload, balance: 0, store_credit_balance: storeCreditBalance, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
           await this.addCustomerOpeningBalance(trx, Number(insertedRow.id), openingBalance, actor);
           inserted += 1;
         }
@@ -369,6 +402,7 @@ export class SettingsImportService {
 
   async importSuppliers(rows: unknown[], actor: AuthContext): Promise<Record<string, unknown>> {
     if (!Array.isArray(rows)) throw new AppError('rows must be an array', 'IMPORT_ROWS_INVALID', 400);
+    const scope = this.scope(actor);
     const result = await this.db.transaction().execute(async (trx) => {
       let inserted = 0;
       let updated = 0;
@@ -377,20 +411,18 @@ export class SettingsImportService {
         const row = rawRow as Record<string, unknown>;
         const name = cleanString(row.name);
         if (!name) continue;
-        const existing = await trx.selectFrom('suppliers').select(['id']).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
+        const phone = cleanString(row.phone);
+        const existing = phone
+          ? await trx.selectFrom('suppliers').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('phone', '=', phone).where('is_active', '=', true).executeTakeFirst()
+          : await trx.selectFrom('suppliers').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
         const openingBalance = toNumber(row.openingBalance || row.balance || 0);
-        const payload = {
-          name,
-          phone: cleanString(row.phone),
-          address: cleanString(row.address),
-          notes: cleanString(row.notes),
-        };
+        const payload = { name, phone, address: cleanString(row.address), notes: cleanString(row.notes) };
 
         if (existing) {
-          await trx.updateTable('suppliers').set({ ...payload, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).execute();
+          await trx.updateTable('suppliers').set({ ...payload, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
           updated += 1;
         } else {
-          const insertedRow = await trx.insertInto('suppliers').values({ ...payload, balance: 0, is_active: true }).returning('id').executeTakeFirstOrThrow();
+          const insertedRow = await trx.insertInto('suppliers').values({ ...payload, balance: 0, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
           await this.addSupplierOpeningBalance(trx, Number(insertedRow.id), openingBalance, actor);
           inserted += 1;
         }
@@ -405,6 +437,7 @@ export class SettingsImportService {
 
   async importOpeningStock(rows: unknown[], actor: AuthContext): Promise<Record<string, unknown>> {
     if (!Array.isArray(rows)) throw new AppError('rows must be an array', 'IMPORT_ROWS_INVALID', 400);
+    const scope = this.scope(actor);
     const result = await this.db.transaction().execute(async (trx) => {
       let updated = 0;
 
@@ -416,18 +449,13 @@ export class SettingsImportService {
         if (qty <= 0) continue;
 
         const product = productId > 0
-          ? await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', productId).where('is_active', '=', true).executeTakeFirst()
-          : await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where(sql`LOWER(name)`, '=', productName.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
+          ? await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
+          : await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', productName.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
         if (!product) continue;
 
         const branchId = toNumber(row.branchId || row.branch || 0) || null;
         const locationId = toNumber(row.locationId || row.location || 0) || null;
-        const stockChange = await applyStockDelta(trx, {
-          productId: Number(product.id),
-          delta: qty,
-          branchId,
-          locationId,
-        });
+        const stockChange = await applyStockDelta(trx, { productId: Number(product.id), delta: qty, branchId, locationId, tenantId: scope.tenantId, accountId: scope.accountId });
         await trx.insertInto('stock_movements').values({
           product_id: Number(product.id),
           movement_type: 'opening_stock',
@@ -441,7 +469,8 @@ export class SettingsImportService {
           created_by: actor.userId,
           branch_id: branchId,
           location_id: locationId,
-        }).execute();
+          ...this.tenantFields(actor),
+        } as any).execute();
         updated += 1;
       }
 
@@ -454,6 +483,7 @@ export class SettingsImportService {
 
   async importEmployees(rows: unknown[], actor: AuthContext): Promise<Record<string, unknown>> {
     if (!Array.isArray(rows)) throw new AppError('rows must be an array', 'IMPORT_ROWS_INVALID', 400);
+    const scope = this.scope(actor);
 
     const result = await this.db.transaction().execute(async (trx) => {
       let inserted = 0;
@@ -474,31 +504,19 @@ export class SettingsImportService {
         const lastName = cleanString(explicitLastName || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''));
         const displayName = cleanString(`${firstName} ${lastName}`);
 
-        if (!firstName) {
-          warnings.push(`الصف ${rowNumber}: اسم الموظف مطلوب.`);
-          continue;
-        }
+        if (!firstName) { warnings.push(`الصف ${rowNumber}: اسم الموظف مطلوب.`); continue; }
 
         const employeeNoRaw = normalizeArabicDigits(this.pickCell(lookup, ['كود الموظف', 'رقم الموظف', 'employee no', 'employee_no', 'employee code', 'code']));
         const employeeNoDigits = digitsOnly(employeeNoRaw);
-        if (employeeNoRaw && !employeeNoDigits) {
-          warnings.push(`الصف ${rowNumber}: كود الموظف يجب أن يحتوي أرقامًا فقط.`);
-          continue;
-        }
+        if (employeeNoRaw && !employeeNoDigits) { warnings.push(`الصف ${rowNumber}: كود الموظف يجب أن يحتوي أرقامًا فقط.`); continue; }
         const employeeNo = employeeNoDigits ? employeeNoDigits.padStart(3, '0') : '';
 
         const nationalIdText = digitsOnly(this.pickCell(lookup, ['الرقم القومي', 'رقم قومي', 'رقم الهوية', 'national id', 'national_id', 'nationalid', 'id number']));
-        if (nationalIdText && nationalIdText.length !== 14) {
-          warnings.push(`الصف ${rowNumber}: الرقم القومي يجب أن يكون 14 رقمًا.`);
-          continue;
-        }
+        if (nationalIdText && nationalIdText.length !== 14) { warnings.push(`الصف ${rowNumber}: الرقم القومي يجب أن يكون 14 رقمًا.`); continue; }
 
         const hireDateRaw = this.pickCell(lookup, ['تاريخ التعيين', 'hire date', 'hiredate', 'hire_date']);
         const hireDate = hireDateRaw ? parseDateOnly(hireDateRaw) : null;
-        if (hireDateRaw && !hireDate) {
-          warnings.push(`الصف ${rowNumber}: تاريخ التعيين غير صحيح.`);
-          continue;
-        }
+        if (hireDateRaw && !hireDate) { warnings.push(`الصف ${rowNumber}: تاريخ التعيين غير صحيح.`); continue; }
 
         const compensationType = this.normalizeCompensationType(this.pickCell(lookup, ['نوع الأجر', 'compensation type', 'compensation_type']));
         const hourlyRateText = this.pickCell(lookup, ['أجر الساعة', 'hourly rate', 'hourly_rate']);
@@ -507,32 +525,16 @@ export class SettingsImportService {
         const hourlyRate = toNumericOrNull(hourlyRateText);
         const expectedDailyHours = toNumericOrNull(expectedDailyHoursText);
         const graceMinutes = toNumericOrNull(graceMinutesText);
-
-        if (hourlyRateText && hourlyRate == null) {
-          warnings.push(`الصف ${rowNumber}: أجر الساعة غير صالح.`);
-          continue;
-        }
-        if (expectedDailyHoursText && expectedDailyHours == null) {
-          warnings.push(`الصف ${rowNumber}: ساعات العمل اليومية غير صالحة.`);
-          continue;
-        }
-        if (graceMinutesText && graceMinutes == null) {
-          warnings.push(`الصف ${rowNumber}: فترة السماح غير صالحة.`);
-          continue;
-        }
+        if (hourlyRateText && hourlyRate == null) { warnings.push(`الصف ${rowNumber}: أجر الساعة غير صالح.`); continue; }
+        if (expectedDailyHoursText && expectedDailyHours == null) { warnings.push(`الصف ${rowNumber}: ساعات العمل اليومية غير صالحة.`); continue; }
+        if (graceMinutesText && graceMinutes == null) { warnings.push(`الصف ${rowNumber}: فترة السماح غير صالحة.`); continue; }
 
         const scheduledCheckInRaw = this.pickCell(lookup, ['موعد الحضور', 'scheduled check in', 'scheduled_check_in_time', 'check in']);
         const scheduledCheckOutRaw = this.pickCell(lookup, ['موعد الانصراف', 'scheduled check out', 'scheduled_check_out_time', 'check out']);
         const scheduledCheckInTime = this.normalizeTimeOnly(scheduledCheckInRaw);
         const scheduledCheckOutTime = this.normalizeTimeOnly(scheduledCheckOutRaw);
-        if (scheduledCheckInRaw && !scheduledCheckInTime) {
-          warnings.push(`الصف ${rowNumber}: موعد الحضور غير صحيح.`);
-          continue;
-        }
-        if (scheduledCheckOutRaw && !scheduledCheckOutTime) {
-          warnings.push(`الصف ${rowNumber}: موعد الانصراف غير صحيح.`);
-          continue;
-        }
+        if (scheduledCheckInRaw && !scheduledCheckInTime) { warnings.push(`الصف ${rowNumber}: موعد الحضور غير صحيح.`); continue; }
+        if (scheduledCheckOutRaw && !scheduledCheckOutTime) { warnings.push(`الصف ${rowNumber}: موعد الانصراف غير صحيح.`); continue; }
 
         const status = this.normalizeEmployeeStatus(this.pickCell(lookup, ['الحالة', 'status']));
         const overtimePolicy = this.normalizeOvertimePolicy(this.pickCell(lookup, ['سياسة الإضافي', 'overtime policy', 'overtime_policy']));
@@ -540,81 +542,40 @@ export class SettingsImportService {
         const email = cleanString(this.pickCell(lookup, ['البريد الإلكتروني', 'email'])).toLowerCase();
         const notes = cleanString(this.pickCell(lookup, ['ملاحظات', 'notes']));
 
-        const departmentName = this.pickCell(lookup, ['القسم', 'الإدارة', 'department']);
-        const jobTitleName = this.pickCell(lookup, ['الوظيفة', 'المسمى الوظيفي', 'job title', 'job_title', 'jobtitle']);
-        const positionName = this.pickCell(lookup, ['المنصب', 'position']);
-        const departmentId = await this.ensureHrMasterName(trx, 'hr_departments', departmentName, actor);
-        const jobTitleId = await this.ensureHrMasterName(trx, 'hr_job_titles', jobTitleName, actor);
-        const positionId = await this.ensureHrMasterName(trx, 'hr_positions', positionName, actor);
+        const departmentId = await this.ensureHrMasterName(trx, 'hr_departments', this.pickCell(lookup, ['القسم', 'الإدارة', 'department']), actor);
+        const jobTitleId = await this.ensureHrMasterName(trx, 'hr_job_titles', this.pickCell(lookup, ['الوظيفة', 'المسمى الوظيفي', 'job title', 'job_title', 'jobtitle']), actor);
+        const positionId = await this.ensureHrMasterName(trx, 'hr_positions', this.pickCell(lookup, ['المنصب', 'position']), actor);
 
         const matchedIds = new Set<number>();
         if (employeeNo) {
-          const byCode = await sql<{ id: number }>`
-            SELECT id
-            FROM hr_employees
-            WHERE employee_no = ${employeeNo}
-            LIMIT 2
-          `.execute(trx);
+          const byCode = await sql<{ id: number }>`SELECT id FROM hr_employees WHERE tenant_id = ${scope.tenantId} AND employee_no = ${employeeNo} LIMIT 2`.execute(trx);
           for (const rowMatch of byCode.rows) matchedIds.add(Number(rowMatch.id));
         } else {
           if (nationalIdText) {
-            const byNational = await sql<{ id: number }>`
-              SELECT id
-              FROM hr_employees
-              WHERE national_id = ${nationalIdText}
-              LIMIT 2
-            `.execute(trx);
+            const byNational = await sql<{ id: number }>`SELECT id FROM hr_employees WHERE tenant_id = ${scope.tenantId} AND national_id = ${nationalIdText} LIMIT 2`.execute(trx);
             for (const rowMatch of byNational.rows) matchedIds.add(Number(rowMatch.id));
           }
-          if (phone) {
-            const byPhone = await this.findEmployeeByContact(trx, 'phone', phone);
-            for (const id of byPhone) matchedIds.add(id);
-          }
-          if (email) {
-            const byEmail = await this.findEmployeeByContact(trx, 'email', email);
-            for (const id of byEmail) matchedIds.add(id);
-          }
+          if (phone) for (const id of await this.findEmployeeByContact(trx, 'phone', phone, actor)) matchedIds.add(id);
+          if (email) for (const id of await this.findEmployeeByContact(trx, 'email', email, actor)) matchedIds.add(id);
           if (!matchedIds.size && displayName) {
-            const byName = await sql<{ id: number }>`
-              SELECT id
-              FROM hr_employees
-              WHERE LOWER(display_name) = LOWER(${displayName})
-              LIMIT 2
-            `.execute(trx);
+            const byName = await sql<{ id: number }>`SELECT id FROM hr_employees WHERE tenant_id = ${scope.tenantId} AND LOWER(display_name) = LOWER(${displayName}) LIMIT 2`.execute(trx);
             for (const rowMatch of byName.rows) matchedIds.add(Number(rowMatch.id));
           }
         }
 
-        if (matchedIds.size > 1) {
-          warnings.push(`الصف ${rowNumber}: تعذر تحديد موظف واحد بسبب تكرار محتمل. استخدم كود موظف واضح.`);
-          continue;
-        }
+        if (matchedIds.size > 1) { warnings.push(`الصف ${rowNumber}: تعذر تحديد موظف واحد بسبب تكرار محتمل. استخدم كود موظف واضح.`); continue; }
 
         const existingId = matchedIds.size === 1 ? Array.from(matchedIds)[0] : null;
         if (existingId) {
           await sql`
             UPDATE hr_employees
             SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no),
-                first_name = ${firstName},
-                last_name = ${lastName},
-                display_name = ${displayName},
-                national_id = ${nationalIdText || null},
-                status = ${status},
-                department_id = ${departmentId},
-                job_title_id = ${jobTitleId},
-                position_id = ${positionId},
-                hire_date = ${hireDate},
-                compensation_type = ${compensationType},
-                hourly_rate = ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null},
-                expected_daily_hours = ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null},
-                scheduled_check_in_time = ${scheduledCheckInTime || null},
-                scheduled_check_out_time = ${scheduledCheckOutTime || null},
-                grace_minutes = ${Math.max(0, Math.floor(Number(graceMinutes || 0)))},
-                overtime_policy = ${overtimePolicy},
-                notes = ${notes},
-                updated_by = ${actor.userId},
-                updated_at = NOW()
-            WHERE id = ${existingId}
+                first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName}, national_id = ${nationalIdText || null}, status = ${status},
+                department_id = ${departmentId}, job_title_id = ${jobTitleId}, position_id = ${positionId}, hire_date = ${hireDate}, compensation_type = ${compensationType},
+                hourly_rate = ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, expected_daily_hours = ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null},
+                scheduled_check_in_time = ${scheduledCheckInTime || null}, scheduled_check_out_time = ${scheduledCheckOutTime || null}, grace_minutes = ${Math.max(0, Math.floor(Number(graceMinutes || 0)))},
+                overtime_policy = ${overtimePolicy}, notes = ${notes}, updated_by = ${actor.userId}, updated_at = NOW()
+            WHERE tenant_id = ${scope.tenantId} AND id = ${existingId}
           `.execute(trx);
           if (phone) await this.upsertEmployeeContact(trx, existingId, 'phone', phone, actor);
           if (email) await this.upsertEmployeeContact(trx, existingId, 'email', email, actor);
@@ -622,59 +583,14 @@ export class SettingsImportService {
           continue;
         }
 
-        const generatedEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx);
+        const generatedEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, actor);
         const insertedEmployee = await sql<{ id: number }>`
-          INSERT INTO hr_employees (
-            employee_no,
-            national_id,
-            first_name,
-            last_name,
-            display_name,
-            status,
-            department_id,
-            job_title_id,
-            position_id,
-            hire_date,
-            notes,
-            compensation_type,
-            hourly_rate,
-            expected_daily_hours,
-            scheduled_check_in_time,
-            scheduled_check_out_time,
-            grace_minutes,
-            overtime_policy,
-            created_by,
-            updated_by
-          )
-          VALUES (
-            ${generatedEmployeeNo},
-            ${nationalIdText || null},
-            ${firstName},
-            ${lastName},
-            ${displayName},
-            ${status},
-            ${departmentId},
-            ${jobTitleId},
-            ${positionId},
-            ${hireDate},
-            ${notes},
-            ${compensationType},
-            ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null},
-            ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null},
-            ${scheduledCheckInTime || null},
-            ${scheduledCheckOutTime || null},
-            ${Math.max(0, Math.floor(Number(graceMinutes || 0)))},
-            ${overtimePolicy},
-            ${actor.userId},
-            ${actor.userId}
-          )
+          INSERT INTO hr_employees (employee_no, national_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, hire_date, notes, compensation_type, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, created_by, updated_by, tenant_id, account_id)
+          VALUES (${generatedEmployeeNo}, ${nationalIdText || null}, ${firstName}, ${lastName}, ${displayName}, ${status}, ${departmentId}, ${jobTitleId}, ${positionId}, ${hireDate}, ${notes}, ${compensationType}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${Math.max(0, Math.floor(Number(graceMinutes || 0)))}, ${overtimePolicy}, ${actor.userId}, ${actor.userId}, ${scope.tenantId}, ${scope.accountId})
           RETURNING id
         `.execute(trx);
         const employeeId = Number(insertedEmployee.rows[0]?.id || 0);
-        if (employeeId <= 0) {
-          warnings.push(`الصف ${rowNumber}: تعذر حفظ الموظف.`);
-          continue;
-        }
+        if (employeeId <= 0) { warnings.push(`الصف ${rowNumber}: تعذر حفظ الموظف.`); continue; }
         if (phone) await this.upsertEmployeeContact(trx, employeeId, 'phone', phone, actor);
         if (email) await this.upsertEmployeeContact(trx, employeeId, 'email', email, actor);
         inserted += 1;
@@ -687,4 +603,3 @@ export class SettingsImportService {
     return { ok: true, inserted: result.inserted, updated: result.updated, warnings: result.warnings };
   }
 }
-
