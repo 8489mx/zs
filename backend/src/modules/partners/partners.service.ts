@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
@@ -17,11 +18,11 @@ export class PartnersService {
   ) {}
 
   private tenantId(actor: AuthContext): string {
-    return String(actor.tenantId || '').trim();
+    return requireTenantScope(actor).tenantId;
   }
 
   private accountId(actor: AuthContext): string {
-    return String(actor.accountId || actor.tenantId || '').trim();
+    return requireTenantScope(actor).accountId;
   }
 
   private tenantPredicate(actor: AuthContext, alias?: string) {
@@ -189,6 +190,7 @@ export class PartnersService {
         .where('rd.return_type', '=', 'sale')
         .where('s.customer_id', '=', id)
         .where(this.tenantPredicate(actor, 's'))
+        .where(this.tenantPredicate(actor, 'rd'))
         .executeTakeFirst(),
     ]);
 
@@ -301,7 +303,7 @@ export class PartnersService {
 
     const [salesCount, paymentCount, ledgerCount] = await Promise.all([
       this.db.selectFrom('sales').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
-      this.db.selectFrom('customer_payments').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).executeTakeFirstOrThrow(),
+      this.db.selectFrom('customer_payments').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
       this.db.selectFrom('customer_ledger').select((eb) => eb.fn.countAll<number>().as('count')).where('customer_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
     ]);
 
@@ -448,7 +450,7 @@ export class PartnersService {
 
     const [purchaseCount, paymentCount, ledgerCount] = await Promise.all([
       this.db.selectFrom('purchases').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
-      this.db.selectFrom('supplier_payments').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).executeTakeFirstOrThrow(),
+      this.db.selectFrom('supplier_payments').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
       this.db.selectFrom('supplier_ledger').select((eb) => eb.fn.countAll<number>().as('count')).where('supplier_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow(),
     ]);
 
