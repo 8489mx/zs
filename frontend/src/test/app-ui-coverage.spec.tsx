@@ -241,7 +241,7 @@ describe('app ui coverage', () => {
         <div>إدارة المستخدمين</div>
       </Card>,
     );
-    expect(await screen.findByRole('link', { name: 'المستخدمون' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'المستخدمون والصلاحيات' })).toBeInTheDocument();
     expect(await screen.findByText('إدارة المستخدمين')).toBeInTheDocument();
 
     cleanup();
@@ -264,7 +264,13 @@ describe('app ui coverage', () => {
 
   it('covers purchases table details', async () => {
     const user = userEvent.setup();
-    render(<PurchasesHarness />);
+    render(
+      <MemoryRouter>
+        <AppProviders>
+          <PurchasesHarness />
+        </AppProviders>
+      </MemoryRouter>,
+    );
     await user.click(screen.getByText('فتح تفاصيل اختبارية'));
     expect(await screen.findByText('مورد رئيسي')).toBeInTheDocument();
     expect(within(screen.getByText('PO-1001').closest('article') ?? document.body).getByText('مياه معدنية')).toBeInTheDocument();
