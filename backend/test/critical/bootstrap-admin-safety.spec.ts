@@ -13,8 +13,9 @@ class FakeConfigService {
 class FakeDb {
   constructor(
     private readonly user: any,
-    private readonly settings: Array<{ key: string; value: string }> = [],
-    private readonly userBranches: Array<{ user_id: number; branch_id: number | string }> = [],
+    private readonly settings: Array<{ key: string; value: string; tenant_id?: string }> = [],
+    private readonly userBranches: Array<{ user_id: number; branch_id: number | string; tenant_id?: string }> = [],
+    private readonly tenants: Array<{ id: string; slug: string; business_name: string; status: string; trial_ends_at: Date | null; created_at: Date }> = [],
   ) {}
   selectFrom(table: string) {
     if (table === 'users') {
@@ -26,14 +27,27 @@ class FakeDb {
     }
     if (table === 'settings') {
       return {
-        select: () => ({ execute: async () => this.settings }),
+        select: () => ({
+          where: () => ({ execute: async () => this.settings }),
+          execute: async () => this.settings,
+        }),
       };
     }
     if (table === 'user_branches') {
       return {
         select: () => ({
-          where: (_column: string, _op: string, value: number) => ({
+          where: (_column: string | unknown, _op?: string, value?: number) => ({
+            where: () => ({ execute: async () => this.userBranches.filter((row) => row.user_id === Number(value)) }),
             execute: async () => this.userBranches.filter((row) => row.user_id === Number(value)),
+          }),
+        }),
+      };
+    }
+    if (table === 'tenants') {
+      return {
+        select: () => ({
+          where: (_column: string, _op: string, value: string) => ({
+            executeTakeFirst: async () => this.tenants.find((tenant) => tenant.id === value),
           }),
         }),
       };
@@ -74,10 +88,14 @@ async function runMePayloadSafety(): Promise<void> {
     must_change_password: true,
     password_salt: passwordRecord.salt,
     password_hash: passwordRecord.hash,
+    tenant_id: 'tenant-test',
+    account_id: 'account-test',
   };
 
   const service = new SessionService(
-    new FakeDb(user, [{ key: 'theme', value: 'light' }]) as any,
+    new FakeDb(user, [{ key: 'theme', value: 'light', tenant_id: 'tenant-test' }], [], [
+      { id: 'tenant-test', slug: 'tenant-test', business_name: 'Tenant Test', status: 'trial', trial_ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), created_at: new Date() },
+    ]) as any,
     new FakeConfigService({ DEFAULT_ADMIN_USERNAME: 'admin', DEFAULT_ADMIN_PASSWORD: defaultPassword }) as any,
   );
 
@@ -87,10 +105,14 @@ async function runMePayloadSafety(): Promise<void> {
     username: 'admin',
     role: 'super_admin',
     permissions: ['settings'],
+    tenantId: 'tenant-test',
+    accountId: 'account-test',
   });
 
   assert.equal((payload.security as any).usingDefaultAdminPassword, true);
   assert.equal((payload.settings as any).theme, 'light');
+  assert.equal((payload.tenant as any).isTrial, true);
+  assert.equal((payload.tenant as any).id, 'tenant-test');
 }
 
 async function runBootstrapGuardrails(): Promise<void> {
