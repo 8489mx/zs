@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql, type Selectable } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
@@ -11,7 +12,7 @@ import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { CreateCustomerPaymentDto, CreateSupplierPaymentDto } from '../dto/create-party-payment.dto';
 import { UpsertPurchaseDto } from '../dto/upsert-purchase.dto';
-import { buildHistoricCostMap, buildNormalizedPurchaseItem, buildPurchaseReferenceNote, calculatePurchaseStockDecrease, calculatePurchaseStockIncrease, calculatePurchaseSubtotal, ensureAmountWithinOutstanding, normalizeOptionalNote, normalizePositiveAmount, normalizePurchaseScope } from '../helpers/purchases-write.helper';
+import { buildHistoricCostMap, buildNormalizedPurchaseItem, buildPurchaseReferenceNote, calculatePurchaseStockDecrease, calculatePurchaseStockIncrease, calculatePurchaseSubtotal, normalizeOptionalNote, normalizePurchaseScope } from '../helpers/purchases-write.helper';
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { PurchasesQueryService } from './purchases-query.service';
 
@@ -154,14 +155,15 @@ export class PurchasesWriteService {
     auth: AuthContext,
     extras: Record<string, unknown> = {},
   ): Promise<Record<string, unknown>> {
-    const purchase = (await this.queryService.fetchMappedPurchases()).find((entry) => Number(entry.id) === purchaseId) || null;
+    const purchase = (await this.queryService.fetchMappedPurchases(auth)).find((entry) => Number(entry.id) === purchaseId) || null;
     const purchases = await this.queryService.listPurchases({}, auth);
     return { ok: true, purchase, purchases: purchases.purchases, ...extras };
   }
 
   async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const created = await this.tx.runInTransaction(this.db, async (trx) => {
-      const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where('is_active', '=', true).executeTakeFirst();
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
 
       const items = payload.items || [];
@@ -171,7 +173,7 @@ export class PurchasesWriteService {
       const normalizedItems = [];
       const repricingCandidates: PurchaseRepricingCandidate[] = [];
       for (const item of items) {
-        const product = await trx.selectFrom('products').select(['id', 'name', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         normalizedItems.push(buildNormalizedPurchaseItem(item, product));
         repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, Number(item.cost || 0)));
@@ -204,12 +206,14 @@ export class PurchasesWriteService {
           location_id: locationId,
           created_by: auth.userId,
           cancel_reason: '',
-        })
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any)
         .returning('id')
         .executeTakeFirstOrThrow();
 
       const id = Number(insert.id);
-      await trx.updateTable('purchases').set({ doc_no: `PUR-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+      await trx.updateTable('purchases').set({ doc_no: `PUR-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       for (const item of normalizedItems) {
         await trx.insertInto('purchase_items').values({
@@ -221,7 +225,9 @@ export class PurchasesWriteService {
           line_total: item.total,
           unit_name: item.unitName,
           unit_multiplier: item.unitMultiplier,
-        }).execute();
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
 
         const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
         const stockChange = await applyStockDelta(trx, {
@@ -229,8 +235,10 @@ export class PurchasesWriteService {
           delta: increasedQty,
           branchId,
           locationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
         });
-        await trx.updateTable('products').set({ cost_price: item.cost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        await trx.updateTable('products').set({ cost_price: item.cost, updated_at: sql`NOW()` }).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase',
@@ -244,7 +252,9 @@ export class PurchasesWriteService {
           branch_id: branchId,
           location_id: locationId,
           created_by: auth.userId,
-        }).execute();
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
       }
 
       if (paymentType === 'credit') {
@@ -264,24 +274,25 @@ export class PurchasesWriteService {
   }
 
   async updatePurchase(purchaseId: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const updated = await this.tx.runInTransaction(this.db, async (trx) => {
-      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).executeTakeFirst();
+      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be edited', 'PURCHASE_CANCELLED', 400);
 
-      const oldItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).execute();
+      const oldItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       if (!(payload.items || []).length) throw new AppError('Purchase must include at least one item', 'PURCHASE_ITEMS_REQUIRED', 400);
       if (!(Number(payload.supplierId || 0) > 0)) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
       for (const item of oldItems) {
         if (!item.product_id) continue;
-        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id });
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, beforeQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         if (beforeQty < removeQty) throw new AppError(`Cannot edit purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_EDIT_STOCK_INVALID', 400);
       }
 
       for (const item of oldItems) {
         if (!item.product_id) continue;
-        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id });
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
         const stockChange = await applyStockDelta(trx, {
@@ -289,6 +300,8 @@ export class PurchasesWriteService {
           delta: -removeQty,
           branchId: purchase.branch_id,
           locationId: purchase.location_id,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
           errorCode: 'PURCHASE_EDIT_STOCK_INVALID',
           errorMessage: `Cannot edit purchase because stock would go negative for product #${item.product_id}`,
         });
@@ -305,7 +318,9 @@ export class PurchasesWriteService {
           branch_id: purchase.branch_id,
           location_id: purchase.location_id,
           created_by: auth.userId,
-        }).execute();
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
       }
 
       if (purchase.payment_type === 'credit' && purchase.supplier_id) {
@@ -314,9 +329,9 @@ export class PurchasesWriteService {
         await this.financeService.addTreasuryTransaction(trx, 'purchase_edit_restore', Number(purchase.total || 0), `${buildPurchaseReferenceNote('عكس فاتورة شراء', purchase)} قبل التعديل`, 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
       }
 
-      await trx.deleteFrom('purchase_items').where('purchase_id', '=', purchaseId).execute();
+      await trx.deleteFrom('purchase_items').where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
-      const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where('is_active', '=', true).executeTakeFirst();
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const oldByProduct = buildHistoricCostMap(oldItems);
       const { branchId, locationId } = normalizePurchaseScope(payload);
@@ -324,7 +339,7 @@ export class PurchasesWriteService {
       let subtotal = 0;
       const repricingCandidates: PurchaseRepricingCandidate[] = [];
       for (const item of payload.items || []) {
-        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const incomingCost = Number(item.cost || 0);
         const originalCost = oldByProduct.has(Number(item.productId)) ? Number(oldByProduct.get(Number(item.productId)) || 0) : incomingCost;
@@ -344,7 +359,9 @@ export class PurchasesWriteService {
           line_total: normalizedItem.total,
           unit_name: normalizedItem.unitName,
           unit_multiplier: normalizedItem.unitMultiplier,
-        }).execute();
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
 
         const { increasedQty: increaseQty } = calculatePurchaseStockIncrease(normalizedItem.qty, normalizedItem.unitMultiplier, 0);
         const stockChange = await applyStockDelta(trx, {
@@ -352,8 +369,10 @@ export class PurchasesWriteService {
           delta: increaseQty,
           branchId,
           locationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
         });
-        await trx.updateTable('products').set({ cost_price: incomingCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).execute();
+        await trx.updateTable('products').set({ cost_price: incomingCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase_edit_apply',
@@ -367,7 +386,9 @@ export class PurchasesWriteService {
           branch_id: branchId,
           location_id: locationId,
           created_by: auth.userId,
-        }).execute();
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
       }
 
       const discount = Number(payload.discount || 0);
@@ -397,7 +418,7 @@ export class PurchasesWriteService {
         branch_id: branchId,
         location_id: locationId,
         updated_at: sql`NOW()`,
-      }).where('id', '=', purchaseId).execute();
+      }).where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       return {
         repricingInsights: this.buildPurchaseRepricingInsights(purchaseId, { id: Number(supplier.id), name: String(supplier.name || '') }, repricingCandidates),
@@ -409,15 +430,16 @@ export class PurchasesWriteService {
   }
 
   async cancelPurchase(purchaseId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).executeTakeFirst();
+      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Purchase already cancelled', 'PURCHASE_ALREADY_CANCELLED', 400);
 
-      const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).execute();
+      const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       for (const item of items) {
         if (!item.product_id) continue;
-        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id });
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, beforeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         if (beforeQty < removeQty) throw new AppError(`Cannot cancel purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_CANCEL_STOCK_INVALID', 400);
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
@@ -426,6 +448,8 @@ export class PurchasesWriteService {
           delta: -removeQty,
           branchId: purchase.branch_id,
           locationId: purchase.location_id,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
           errorCode: 'PURCHASE_CANCEL_STOCK_INVALID',
           errorMessage: `Cannot cancel purchase because stock would go negative for product #${item.product_id}`,
         });
@@ -442,7 +466,9 @@ export class PurchasesWriteService {
           branch_id: purchase.branch_id,
           location_id: purchase.location_id,
           created_by: auth.userId,
-        }).execute();
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
       }
 
       if (purchase.payment_type === 'credit' && purchase.supplier_id) {
@@ -457,7 +483,7 @@ export class PurchasesWriteService {
         cancelled_by: auth.userId,
         cancelled_at: sql`NOW()`,
         updated_at: sql`NOW()`,
-      }).where('id', '=', purchaseId).execute();
+      }).where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
     });
 
     await this.audit.log('إلغاء فاتورة شراء', `تم إلغاء فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
@@ -465,8 +491,9 @@ export class PurchasesWriteService {
   }
 
   async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const paymentId = await this.tx.runInTransaction(this.db, async (trx) => {
-      const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance']).where('id', '=', payload.supplierId).where('is_active', '=', true).executeTakeFirst();
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const amount = Number(payload.amount || 0);
       if (!(amount > 0)) throw new AppError('Amount must be greater than zero', 'INVALID_AMOUNT', 400);
@@ -484,12 +511,14 @@ export class PurchasesWriteService {
           branch_id: branchId,
           location_id: locationId,
           created_by: auth.userId,
-        })
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any)
         .returning('id')
         .executeTakeFirstOrThrow();
 
       const id = Number(insert.id);
-      await trx.updateTable('supplier_payments').set({ doc_no: `PO-${id}` }).where('id', '=', id).execute();
+      await trx.updateTable('supplier_payments').set({ doc_no: `PO-${id}` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       const paymentNote = normalizeOptionalNote(payload.note);
       await this.financeService.addSupplierLedgerEntry(trx, supplier.id, -amount, 'supplier_payment', `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
@@ -501,8 +530,9 @@ export class PurchasesWriteService {
   }
 
   async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const customer = await trx.selectFrom('customers').select(['id', 'name', 'balance']).where('id', '=', payload.customerId).where('is_active', '=', true).executeTakeFirst();
+      const customer = await trx.selectFrom('customers').select(['id', 'name', 'balance']).where('id', '=', payload.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
       if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       const amount = Number(payload.amount || 0);
       if (!(amount > 0)) throw new AppError('Amount must be greater than zero', 'INVALID_AMOUNT', 400);
@@ -520,7 +550,9 @@ export class PurchasesWriteService {
           branch_id: branchId,
           location_id: locationId,
           created_by: auth.userId,
-        })
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any)
         .returning('id')
         .executeTakeFirstOrThrow();
 
