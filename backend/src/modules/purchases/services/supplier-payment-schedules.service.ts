@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
@@ -49,6 +50,20 @@ export class SupplierPaymentSchedulesService {
 
   private scheduleDb(db: Kysely<Database>): Kysely<any> {
     return db as unknown as Kysely<any>;
+  }
+
+  private tenantScope(auth: AuthContext) {
+    return requireTenantScope(auth);
+  }
+
+  private tenantPredicate(auth: AuthContext, alias?: string) {
+    const scope = this.tenantScope(auth);
+    return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${scope.tenantId}` : sql<boolean>`tenant_id = ${scope.tenantId}`;
+  }
+
+  private tenantFields(auth: AuthContext) {
+    const scope = this.tenantScope(auth);
+    return { tenant_id: scope.tenantId, account_id: scope.accountId };
   }
 
   private ensureCredit(paymentType: unknown): void {
@@ -135,15 +150,15 @@ export class SupplierPaymentSchedulesService {
     };
   }
 
-  private async listWithPayments(where: { purchaseId?: number; supplierId?: number }): Promise<Record<string, unknown>> {
+  private async listWithPayments(where: { purchaseId?: number; supplierId?: number }, auth: AuthContext): Promise<Record<string, unknown>> {
     const db = this.scheduleDb(this.db);
-    let query = db.selectFrom('supplier_payment_schedules').selectAll();
+    let query = db.selectFrom('supplier_payment_schedules').selectAll().where(this.tenantPredicate(auth));
     if (where.purchaseId != null) query = query.where('purchase_id', '=', where.purchaseId);
     if (where.supplierId != null) query = query.where('supplier_id', '=', where.supplierId).where('purchase_id', 'is', null);
     const rows = await query.orderBy('installment_no asc').execute() as ScheduleRow[];
     const ids = rows.map((row) => Number(row.id)).filter(Boolean);
     const logs = ids.length
-      ? await db.selectFrom('supplier_payment_schedule_logs').selectAll().where('schedule_id', 'in', ids).orderBy('created_at asc').execute() as SchedulePaymentLogRow[]
+      ? await db.selectFrom('supplier_payment_schedule_logs').selectAll().where('schedule_id', 'in', ids).where(this.tenantPredicate(auth)).orderBy('created_at asc').execute() as SchedulePaymentLogRow[]
       : [] as SchedulePaymentLogRow[];
     const logsBySchedule = new Map<number, SchedulePaymentLogRow[]>();
     logs.forEach((log) => {
@@ -153,55 +168,55 @@ export class SupplierPaymentSchedulesService {
     return { schedules: rows.map((row) => this.map(row, logsBySchedule.get(Number(row.id)) || [])) };
   }
 
-  async listForPurchase(purchaseId: number): Promise<Record<string, unknown>> {
-    return this.listWithPayments({ purchaseId });
+  async listForPurchase(purchaseId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.listWithPayments({ purchaseId }, auth);
   }
 
-  async listForSupplier(supplierId: number): Promise<Record<string, unknown>> {
-    return this.listWithPayments({ supplierId });
+  async listForSupplier(supplierId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.listWithPayments({ supplierId }, auth);
   }
 
   async createForPurchase(purchaseId: number, payload: CreateSupplierPaymentScheduleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).executeTakeFirst();
+      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be scheduled', 'PURCHASE_CANCELLED', 400);
       this.ensureCredit(purchase.payment_type);
       if (!purchase.supplier_id) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
       const db = this.scheduleDb(trx);
-      const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('purchase_id', '=', purchaseId).where('paid_amount', '>', 0).executeTakeFirst();
+      const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('purchase_id', '=', purchaseId).where('paid_amount', '>', 0).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (paidRow) throw new AppError('Cannot reschedule after payments were recorded', 'PURCHASE_SCHEDULE_HAS_PAYMENTS', 400);
       const amounts = this.buildAmounts(Number(purchase.total || 0), payload);
       const firstDueDate = this.parseDate(payload.firstDueDate);
       const intervalDays = Number(payload.intervalDays || 1);
-      await db.deleteFrom('supplier_payment_schedules').where('purchase_id', '=', purchaseId).execute();
+      await db.deleteFrom('supplier_payment_schedules').where('purchase_id', '=', purchaseId).where(this.tenantPredicate(auth)).execute();
       for (let index = 0; index < amounts.length; index += 1) {
-        await db.insertInto('supplier_payment_schedules').values({ purchase_id: purchaseId, supplier_id: Number(purchase.supplier_id), installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId }).execute();
+        await db.insertInto('supplier_payment_schedules').values({ purchase_id: purchaseId, supplier_id: Number(purchase.supplier_id), installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId, ...this.tenantFields(auth) } as any).execute();
       }
     });
-    return this.listForPurchase(purchaseId);
+    return this.listForPurchase(purchaseId, auth);
   }
 
   async createForSupplier(supplierId: number, payload: CreateSupplierPaymentScheduleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const supplier = await trx.selectFrom('suppliers').select(['id', 'balance']).where('id', '=', supplierId).executeTakeFirst();
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'balance']).where('id', '=', supplierId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const balance = this.roundCurrency(Number(supplier.balance || 0));
       const total = this.roundCurrency(Number(payload.scheduleAmount || balance));
       if (!(balance > 0)) throw new AppError('Supplier has no payable balance', 'SUPPLIER_NO_PAYABLE_BALANCE', 400);
       if (!(total > 0) || total > balance + 0.0001) throw new AppError('Schedule amount must be within supplier balance', 'INVALID_SUPPLIER_SCHEDULE_AMOUNT', 400);
       const db = this.scheduleDb(trx);
-      const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where('paid_amount', '>', 0).executeTakeFirst();
+      const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where('paid_amount', '>', 0).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (paidRow) throw new AppError('Cannot reschedule supplier balance after payments were recorded', 'SUPPLIER_SCHEDULE_HAS_PAYMENTS', 400);
       const amounts = this.buildAmounts(total, payload);
       const firstDueDate = this.parseDate(payload.firstDueDate);
       const intervalDays = Number(payload.intervalDays || 1);
-      await db.deleteFrom('supplier_payment_schedules').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).execute();
+      await db.deleteFrom('supplier_payment_schedules').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where(this.tenantPredicate(auth)).execute();
       for (let index = 0; index < amounts.length; index += 1) {
-        await db.insertInto('supplier_payment_schedules').values({ purchase_id: null, supplier_id: supplierId, installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId }).execute();
+        await db.insertInto('supplier_payment_schedules').values({ purchase_id: null, supplier_id: supplierId, installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId, ...this.tenantFields(auth) } as any).execute();
       }
     });
-    return this.listForSupplier(supplierId);
+    return this.listForSupplier(supplierId, auth);
   }
 
   async payInstallment(installmentId: number, payload: PaySupplierScheduleInstallmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -209,15 +224,15 @@ export class SupplierPaymentSchedulesService {
     let supplierId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
       const db = this.scheduleDb(trx);
-      const installment = await db.selectFrom('supplier_payment_schedules').selectAll().where('id', '=', installmentId).executeTakeFirst();
+      const installment = await db.selectFrom('supplier_payment_schedules').selectAll().where('id', '=', installmentId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!installment) throw new AppError('Installment not found', 'INSTALLMENT_NOT_FOUND', 404);
       if (installment.purchase_id) {
-        const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(installment.purchase_id)).executeTakeFirst();
+        const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(installment.purchase_id)).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
         this.ensureCredit(purchase.payment_type);
         purchaseId = Number(installment.purchase_id);
       }
-      const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', Number(installment.supplier_id)).executeTakeFirst();
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', Number(installment.supplier_id)).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       supplierId = Number(supplier.id);
       const remaining = this.roundCurrency(Number(installment.amount || 0) - Number(installment.paid_amount || 0));
@@ -230,6 +245,7 @@ export class SupplierPaymentSchedulesService {
         .select(['id', 'branch_id', 'location_id'])
         .where('opened_by', '=', auth.userId)
         .where('status', '=', 'open')
+        .where(this.tenantPredicate(auth))
         .orderBy('id desc')
         .executeTakeFirst() as OpenCashierShiftRow | undefined;
       const scope = normalizePurchaseScope({ branchId: payload.branchId ?? openShift?.branch_id ?? undefined, locationId: payload.locationId ?? openShift?.location_id ?? undefined });
@@ -238,11 +254,11 @@ export class SupplierPaymentSchedulesService {
       const note = normalizeOptionalNote(payload.note) || `دفعة مجدولة للمورد ${supplier.name || supplierId} - دفعة ${installment.installment_no}`;
       const treasuryReferenceType = openShift?.id ? 'cashier_shift' : 'supplier_payment_schedule';
       const treasuryReferenceId = openShift?.id ? Number(openShift.id) : installmentId;
-      await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).execute();
-      await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, note, created_by: auth.userId, created_by_name: auth.username || '' }).execute();
+      await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).where(this.tenantPredicate(auth)).execute();
+      await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, note, created_by: auth.userId, created_by_name: auth.username || '', ...this.tenantFields(auth) } as any).execute();
       await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, 'supplier_payment_schedule', `دفعة مورد مجدولة - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفعة مورد مجدولة - ${note}${openShift?.id ? ` - مرتبطة بالوردية SHIFT-${openShift.id}` : ''}`, treasuryReferenceType, treasuryReferenceId, auth, branchId, locationId);
     });
-    return purchaseId ? this.listForPurchase(purchaseId) : this.listForSupplier(supplierId);
+    return purchaseId ? this.listForPurchase(purchaseId, auth) : this.listForSupplier(supplierId, auth);
   }
 }
