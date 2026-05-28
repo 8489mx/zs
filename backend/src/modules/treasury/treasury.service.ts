@@ -43,9 +43,10 @@ export class TreasuryService {
         l.name AS location_name,
         u.username AS created_by_name
       FROM expenses e
-      LEFT JOIN branches b ON b.id = e.branch_id
-      LEFT JOIN stock_locations l ON l.id = e.location_id
-      LEFT JOIN users u ON u.id = e.created_by
+      LEFT JOIN branches b ON b.id = e.branch_id AND b.tenant_id = ${scope.tenantId}
+      LEFT JOIN stock_locations l ON l.id = e.location_id AND l.tenant_id = ${scope.tenantId}
+      LEFT JOIN users u ON u.id = e.created_by AND u.tenant_id = ${scope.tenantId}
+      WHERE e.tenant_id = ${scope.tenantId}
       ORDER BY e.id DESC
     `.execute(this.db);
 
@@ -84,9 +85,10 @@ export class TreasuryService {
   }
 
   async createExpense(payload: CreateExpenseDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
       const insert = await sql<{ id: number }>`
-        INSERT INTO expenses (title, amount, expense_date, note, branch_id, location_id, created_by)
+        INSERT INTO expenses (title, amount, expense_date, note, branch_id, location_id, created_by, tenant_id, account_id)
         VALUES (
           ${String(payload.title || '').trim()},
           ${Number(payload.amount || 0)},
@@ -94,7 +96,9 @@ export class TreasuryService {
           ${String(payload.note || '').trim()},
           ${payload.branchId ? Number(payload.branchId) : null},
           ${payload.locationId ? Number(payload.locationId) : null},
-          ${auth.userId}
+          ${auth.userId},
+          ${scope.tenantId},
+          ${scope.accountId}
         )
         RETURNING id
       `.execute(trx);
@@ -110,7 +114,9 @@ export class TreasuryService {
         branch_id: payload.branchId ? Number(payload.branchId) : null,
         location_id: payload.locationId ? Number(payload.locationId) : null,
         created_by: auth.userId,
-      }).execute();
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+      } as any).execute();
     });
 
     await this.audit.log('تسجيل مصروف', 'تم تسجيل مصروف بواسطة ' + auth.username, auth);

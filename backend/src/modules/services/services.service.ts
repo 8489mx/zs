@@ -35,13 +35,15 @@ export class ServicesService {
   }
 
   private async getOpenShiftFinanceScope(db: Kysely<Database>, auth: AuthContext): Promise<ServiceFinanceScope> {
+    const scope = requireTenantScope(auth);
     const result = await sql<{ branch_id?: number | string | null; location_id?: number | string | null }>`
-      SELECT branch_id, location_id
-      FROM cashier_shifts
-      WHERE opened_by = ${auth.userId}
-        AND status = 'open'
-      ORDER BY id DESC
-      LIMIT 1
+      select branch_id, location_id
+      from cashier_shifts
+      where tenant_id = ${scope.tenantId}
+        and opened_by = ${auth.userId}
+        and status = 'open'
+      order by id desc
+      limit 1
     `.execute(db);
 
     const row = result.rows?.[0] || null;
@@ -58,10 +60,12 @@ export class ServicesService {
     auth: AuthContext,
     scope: ServiceFinanceScope,
   ): Promise<void> {
+    const tenantScope = requireTenantScope(auth);
     await sql`
-      DELETE FROM treasury_transactions
-      WHERE reference_type = 'service'
-        AND reference_id = ${serviceId}
+      delete from treasury_transactions
+      where tenant_id = ${tenantScope.tenantId}
+        and reference_type = 'service'
+        and reference_id = ${serviceId}
     `.execute(db);
 
     const amount = Number(service.amount || 0);
@@ -72,27 +76,10 @@ export class ServicesService {
 
     const serviceDate = service.date ? new Date(service.date) : new Date();
     await sql`
-      INSERT INTO treasury_transactions (
-        txn_type,
-        amount,
-        note,
-        reference_type,
-        reference_id,
-        branch_id,
-        location_id,
-        created_by,
-        created_at
-      )
-      VALUES (
-        'cash_in',
-        ${amount},
-        ${`خدمة نقدي: ${String(service.name || '').trim()}`},
-        'service',
-        ${serviceId},
-        ${scope.branchId},
-        ${scope.locationId},
-        ${auth.userId},
-        ${serviceDate}
+      insert into treasury_transactions (
+        txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, created_at, tenant_id, account_id
+      ) values (
+        'cash_in', ${amount}, ${`خدمة نقدي: ${String(service.name || '').trim()}`}, 'service', ${serviceId}, ${scope.branchId}, ${scope.locationId}, ${auth.userId}, ${serviceDate}, ${tenantScope.tenantId}, ${tenantScope.accountId}
       )
     `.execute(db);
   }
@@ -112,23 +99,14 @@ export class ServicesService {
       location_name?: string | null;
       created_by_name: string | null;
     }>`
-      SELECT
-        s.id,
-        s.name,
-        s.amount,
-        s.notes,
-        s.service_date,
-        COALESCE(s.payment_channel, 'cash') AS payment_channel,
-        s.branch_id,
-        s.location_id,
-        COALESCE(b.name, '') AS branch_name,
-        COALESCE(l.name, '') AS location_name,
-        u.username AS created_by_name
-      FROM services s
-      LEFT JOIN branches b ON b.id = s.branch_id
-      LEFT JOIN stock_locations l ON l.id = s.location_id
-      LEFT JOIN users u ON u.id = s.created_by
-      ORDER BY s.id DESC
+      select s.id, s.name, s.amount, s.notes, s.service_date, coalesce(s.payment_channel, 'cash') as payment_channel,
+             s.branch_id, s.location_id, coalesce(b.name, '') as branch_name, coalesce(l.name, '') as location_name, u.username as created_by_name
+      from services s
+      left join branches b on b.id = s.branch_id
+      left join stock_locations l on l.id = s.location_id
+      left join users u on u.id = s.created_by
+      where s.tenant_id = ${scope.tenantId}
+      order by s.id desc
     `.execute(this.db);
 
     const search = String(query.search || '').trim().toLowerCase();
@@ -149,18 +127,12 @@ export class ServicesService {
       createdByName: row.created_by_name || '',
     }));
 
-    if (filter === 'today') {
-      rows = rows.filter((row) => String(row.serviceDate || '').slice(0, 10) === today);
-    } else if (filter === 'high') {
-      rows = rows.filter((row) => Number(row.amount || 0) >= 100);
-    } else if (filter === 'notes') {
-      rows = rows.filter((row) => String(row.notes || '').trim().length > 0);
-    }
+    if (filter === 'today') rows = rows.filter((row) => String(row.serviceDate || '').slice(0, 10) === today);
+    else if (filter === 'high') rows = rows.filter((row) => Number(row.amount || 0) >= 100);
+    else if (filter === 'notes') rows = rows.filter((row) => String(row.notes || '').trim().length > 0);
 
     if (search) {
-      rows = rows.filter((row) =>
-        [row.name, row.notes, row.createdByName, row.branchName, row.locationName].some((value) => String(value || '').toLowerCase().includes(search)),
-      );
+      rows = rows.filter((row) => [row.name, row.notes, row.createdByName, row.branchName, row.locationName].some((value) => String(value || '').toLowerCase().includes(search)));
     }
 
     const paged = paginateRows(rows, query, { defaultSize: 20 });
@@ -190,6 +162,7 @@ export class ServicesService {
   }
 
   async createService(payload: UpsertServiceDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantScope = requireTenantScope(auth);
     const service = payload.service;
     const normalizedService = {
       name: String(service.name || '').trim(),
@@ -202,24 +175,13 @@ export class ServicesService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const financeScope = await this.getOpenShiftFinanceScope(trx, auth);
       const inserted = await sql<{ id?: number }>`
-        INSERT INTO services (name, amount, notes, service_date, payment_channel, branch_id, location_id, created_by)
-        VALUES (
-          ${normalizedService.name},
-          ${normalizedService.amount},
-          ${normalizedService.notes},
-          ${new Date(normalizedService.date)},
-          ${normalizedService.paymentChannel},
-          ${financeScope.branchId},
-          ${financeScope.locationId},
-          ${auth.userId}
-        )
-        RETURNING id
+        insert into services (name, amount, notes, service_date, payment_channel, branch_id, location_id, created_by, tenant_id, account_id)
+        values (${normalizedService.name}, ${normalizedService.amount}, ${normalizedService.notes}, ${new Date(normalizedService.date)}, ${normalizedService.paymentChannel}, ${financeScope.branchId}, ${financeScope.locationId}, ${auth.userId}, ${tenantScope.tenantId}, ${tenantScope.accountId})
+        returning id
       `.execute(trx);
 
       const serviceId = Number(inserted.rows?.[0]?.id || 0);
-      if (!(serviceId > 0)) {
-        throw new AppError('Service could not be saved', 'SERVICE_SAVE_FAILED', 400);
-      }
+      if (!(serviceId > 0)) throw new AppError('Service could not be saved', 'SERVICE_SAVE_FAILED', 400);
 
       await this.syncServiceTreasuryTransaction(trx, serviceId, normalizedService, auth, financeScope);
     });
@@ -229,16 +191,15 @@ export class ServicesService {
   }
 
   async updateService(id: number, payload: UpsertServiceDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantScope = requireTenantScope(auth);
     const existing = await sql<{ id: number; branch_id?: number | string | null; location_id?: number | string | null }>`
-      SELECT id, branch_id, location_id
-      FROM services
-      WHERE id = ${id}
-      LIMIT 1
+      select id, branch_id, location_id
+      from services
+      where tenant_id = ${tenantScope.tenantId} and id = ${id}
+      limit 1
     `.execute(this.db);
     const existingRow = existing.rows?.[0] || null;
-    if (!existingRow) {
-      throw new AppError('Service not found', 'SERVICE_NOT_FOUND', 404);
-    }
+    if (!existingRow) throw new AppError('Service not found', 'SERVICE_NOT_FOUND', 404);
 
     const service = payload.service;
     const normalizedService = {
@@ -248,21 +209,13 @@ export class ServicesService {
       date: service.date,
       paymentChannel: this.normalizePaymentChannel(service.paymentChannel),
     };
-    const financeScope = {
-      branchId: this.toNullableNumber(existingRow.branch_id),
-      locationId: this.toNullableNumber(existingRow.location_id),
-    };
+    const financeScope = { branchId: this.toNullableNumber(existingRow.branch_id), locationId: this.toNullableNumber(existingRow.location_id) };
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`
-        UPDATE services
-        SET
-          name = ${normalizedService.name},
-          amount = ${normalizedService.amount},
-          notes = ${normalizedService.notes},
-          service_date = ${new Date(normalizedService.date)},
-          payment_channel = ${normalizedService.paymentChannel}
-        WHERE id = ${id}
+        update services
+        set name = ${normalizedService.name}, amount = ${normalizedService.amount}, notes = ${normalizedService.notes}, service_date = ${new Date(normalizedService.date)}, payment_channel = ${normalizedService.paymentChannel}
+        where tenant_id = ${tenantScope.tenantId} and id = ${id}
       `.execute(trx);
 
       await this.syncServiceTreasuryTransaction(trx, id, normalizedService, auth, financeScope);
@@ -273,18 +226,13 @@ export class ServicesService {
   }
 
   async deleteService(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const existing = await sql<{ id: number }>`SELECT id FROM services WHERE id = ${id} LIMIT 1`.execute(this.db);
-    if (!existing.rows.length) {
-      throw new AppError('Service not found', 'SERVICE_NOT_FOUND', 404);
-    }
+    const tenantScope = requireTenantScope(auth);
+    const existing = await sql<{ id: number }>`select id from services where tenant_id = ${tenantScope.tenantId} and id = ${id} limit 1`.execute(this.db);
+    if (!existing.rows.length) throw new AppError('Service not found', 'SERVICE_NOT_FOUND', 404);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
-      await sql`
-        DELETE FROM treasury_transactions
-        WHERE reference_type = 'service'
-          AND reference_id = ${id}
-      `.execute(trx);
-      await sql`DELETE FROM services WHERE id = ${id}`.execute(trx);
+      await sql`delete from treasury_transactions where tenant_id = ${tenantScope.tenantId} and reference_type = 'service' and reference_id = ${id}`.execute(trx);
+      await sql`delete from services where tenant_id = ${tenantScope.tenantId} and id = ${id}`.execute(trx);
     });
 
     await this.audit.log('حذف خدمة', 'تم حذف خدمة بواسطة ' + auth.username, auth);

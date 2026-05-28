@@ -8,6 +8,7 @@ import { Database } from '../../../database/database.types';
 import { NormalizedFashionVariant, NormalizedProductOffer, NormalizedUpsertProduct, UpsertProductDto } from '../dto/upsert-product.dto';
 import { InventoryScopeService } from '../../inventory/services/inventory-scope.service';
 import { normalizeArabicInput, normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 
 type ProductRow = {
   id: number;
@@ -81,8 +82,31 @@ export class CatalogProductService {
 
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService, private readonly inventoryScope: InventoryScopeService) {}
 
-  private hasPermission(actor: AuthContext | undefined, permission: string): boolean {
-    return actor?.role === 'super_admin' || Boolean(actor?.permissions?.includes(permission));
+  private scope(actor: AuthContext) {
+    return requireTenantScope(actor);
+  }
+
+  private hasPermission(actor: AuthContext, permission: string): boolean {
+    return actor.role === 'super_admin' || Boolean(actor.permissions?.includes(permission));
+  }
+
+  private tenantId(actor: AuthContext): string {
+    return this.scope(actor).tenantId;
+  }
+
+  private accountId(actor: AuthContext): string {
+    return this.scope(actor).accountId;
+  }
+
+  private tenantFields(actor: AuthContext) {
+    return { tenant_id: this.tenantId(actor), account_id: this.accountId(actor) };
+  }
+
+  private tenantPredicate(actor: AuthContext, alias?: string) {
+    const tenantId = this.tenantId(actor);
+    return alias
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}`
+      : sql<boolean>`tenant_id = ${tenantId}`;
   }
 
   private normalizeDateOnly(value: unknown): string {
@@ -125,7 +149,7 @@ export class CatalogProductService {
     }
   }
 
-  async listProducts(query: Record<string, unknown>, actor?: AuthContext): Promise<Record<string, unknown>> {
+  async listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { page, pageSize, q, view, requestedLocationId } = this.parseListProductsQuery(query);
     const canViewCost = this.hasPermission(actor, 'canViewCost');
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
@@ -136,15 +160,16 @@ export class CatalogProductService {
         .selectFrom('products')
         .select(['id', 'name', 'barcode', 'item_kind', 'style_code', 'color', 'size', 'category_id', 'supplier_id', 'cost_price', 'retail_price', 'wholesale_price', 'stock_qty', 'min_stock_qty', 'notes'])
         .where('is_active', '=', true)
+        .where(this.tenantPredicate(actor))
         .orderBy('id', 'desc')
         .execute() as Promise<ProductRow[]>,
-      this.db.selectFrom('product_categories').select(['id', 'name']).where('is_active', '=', true).execute(),
-      this.db.selectFrom('suppliers').select(['id', 'name']).where('is_active', '=', true).execute(),
+      this.db.selectFrom('product_categories').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(actor)).execute(),
+      this.db.selectFrom('suppliers').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(actor)).execute(),
     ]);
 
     const productIds = products.map((product) => Number(product.id));
-    const scopedStockByProduct = await this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, products);
-    const listContext = await this.buildListProductsContext(productIds, q, categories, suppliers);
+    const scopedStockByProduct = await this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, products, actor);
+    const listContext = await this.buildListProductsContext(productIds, q, categories, suppliers, actor);
     const filteredBaseRows = this.filterListProducts(products, { q, view, scopedLocationId: scopedLocation?.id || null, scopedStockByProduct, ...listContext });
 
     const total = filteredBaseRows.length;
@@ -154,7 +179,7 @@ export class CatalogProductService {
     const pagedBaseRows = filteredBaseRows.slice(start, start + pageSize);
     const pagedIds = pagedBaseRows.map((row) => Number(row.id));
 
-    const relations = await this.fetchListProductRelations(pagedIds, offerCapabilities.hasMinQty);
+    const relations = await this.fetchListProductRelations(pagedIds, offerCapabilities.hasMinQty, actor);
     const pagedRows = this.mapListProducts(pagedBaseRows, {
       canViewCost,
       scopedLocationId: scopedLocation?.id || null,
@@ -192,15 +217,15 @@ export class CatalogProductService {
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
     const productRows = barcode
-      ? await this.findPosProductsByBarcode(barcode, limit)
-      : await this.searchPosProducts(q, limit, view === 'offers' ? 'offers' : 'all');
+      ? await this.findPosProductsByBarcode(barcode, limit, actor)
+      : await this.searchPosProducts(q, limit, view === 'offers' ? 'offers' : 'all', actor);
 
     const uniqueRows = this.uniquePosProductRows(productRows).slice(0, limit);
     const productIds = uniqueRows.map((product) => Number(product.id));
     const [unitsByProduct, scopedStockByProduct, offersByProduct] = await Promise.all([
-      this.fetchPosProductUnits(productIds),
-      this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, uniqueRows),
-      this.fetchProductOffers(productIds, offerCapabilities.hasMinQty),
+      this.fetchPosProductUnits(productIds, actor),
+      this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, uniqueRows, actor),
+      this.fetchProductOffers(productIds, offerCapabilities.hasMinQty, actor),
     ]);
 
     return {
@@ -234,13 +259,14 @@ export class CatalogProductService {
     };
   }
 
-  private async findPosProductsByBarcode(barcode: string, limit: number): Promise<PosProductLookupRow[]> {
+  private async findPosProductsByBarcode(barcode: string, limit: number, actor: AuthContext): Promise<PosProductLookupRow[]> {
     if (!barcode) return [];
     const productMatches = await this.db
       .selectFrom('products as p')
       .select(['p.id', 'p.name', 'p.barcode', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
+      .where(this.tenantPredicate(actor, 'p'))
       .orderBy('p.id', 'asc')
       .limit(limit)
       .execute() as PosProductLookupRow[];
@@ -270,7 +296,8 @@ export class CatalogProductService {
         'pu.barcode as matched_unit_barcode',
       ])
       .where('p.is_active', '=', true)
-      .where('pu.barcode', '=', barcode);
+      .where('pu.barcode', '=', barcode)
+      .where(this.tenantPredicate(actor, 'p'));
 
     if (seenProductIds.length) unitQuery = unitQuery.where('p.id', 'not in', seenProductIds);
 
@@ -282,7 +309,7 @@ export class CatalogProductService {
     return [...productMatches, ...unitMatches];
   }
 
-  private async searchPosProducts(q: string, limit: number, view: 'all' | 'offers' = 'all'): Promise<PosProductLookupRow[]> {
+  private async searchPosProducts(q: string, limit: number, view: 'all' | 'offers' = 'all', actor: AuthContext): Promise<PosProductLookupRow[]> {
     const normalized = q.trim().toLowerCase();
     const pattern = `%${normalized}%`;
     let productQuery = this.db
@@ -301,7 +328,8 @@ export class CatalogProductService {
         'p.stock_qty',
         'p.min_stock_qty',
       ])
-      .where('p.is_active', '=', true);
+      .where('p.is_active', '=', true)
+      .where(this.tenantPredicate(actor, 'p'));
 
     if (normalized) {
       productQuery = productQuery.where(sql<boolean>`(
@@ -319,6 +347,7 @@ export class CatalogProductService {
         from product_offers po
         where po.product_id = p.id
           and po.is_active = true
+          and po.tenant_id = ${this.tenantId(actor)}
       )`);
     }
 
@@ -341,12 +370,13 @@ export class CatalogProductService {
     return uniqueRows;
   }
 
-  private async fetchPosProductUnits(productIds: number[]): Promise<Map<string, Record<string, unknown>[]>> {
+  private async fetchPosProductUnits(productIds: number[], actor: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
     if (!productIds.length) return new Map();
     const unitRows = await this.db
       .selectFrom('product_units')
       .select(['id', 'product_id', 'name', 'multiplier', 'barcode', 'is_base_unit', 'is_sale_unit_default', 'is_purchase_unit_default'])
       .where('product_id', 'in', productIds)
+      .where(this.tenantPredicate(actor))
       .orderBy('product_id', 'asc')
       .orderBy('is_base_unit', 'desc')
       .orderBy('id', 'asc')
@@ -369,7 +399,7 @@ export class CatalogProductService {
     return unitsByProduct;
   }
 
-  private async fetchProductOffers(productIds: number[], hasMinQty: boolean): Promise<Map<string, Record<string, unknown>[]>> {
+  private async fetchProductOffers(productIds: number[], hasMinQty: boolean, actor: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
     if (!productIds.length) return new Map();
     const offers = hasMinQty
       ? await this.db
@@ -377,6 +407,7 @@ export class CatalogProductService {
           .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
           .where('is_active', '=', true)
           .where('product_id', 'in', productIds)
+          .where(this.tenantPredicate(actor))
           .orderBy('id', 'desc')
           .execute() as ProductOfferReadRow[]
       : await this.db
@@ -384,6 +415,7 @@ export class CatalogProductService {
           .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date'])
           .where('is_active', '=', true)
           .where('product_id', 'in', productIds)
+          .where(this.tenantPredicate(actor))
           .orderBy('id', 'desc')
           .execute() as ProductOfferReadRow[];
 
@@ -455,7 +487,7 @@ export class CatalogProductService {
     };
   }
 
-  private async resolveScopedStockByProduct(productIds: number[], scopedLocationId: number | null, products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>): Promise<Map<string, number>> {
+  private async resolveScopedStockByProduct(productIds: number[], scopedLocationId: number | null, products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>, actor: AuthContext): Promise<Map<string, number>> {
     const scopedStockByProduct = new Map<string, number>();
     if (!scopedLocationId || !productIds.length) return scopedStockByProduct;
 
@@ -464,6 +496,7 @@ export class CatalogProductService {
       .select(['pls.product_id', 'pls.location_id', 'pls.qty'])
       .where('pls.product_id', 'in', productIds)
       .where((eb) => eb.or([eb('pls.location_id', '=', scopedLocationId), eb('pls.location_id', 'is', null)]))
+      .where(this.tenantPredicate(actor, 'pls'))
       .execute();
 
     const locationQtyByProduct = new Map<string, number>();
@@ -488,6 +521,7 @@ export class CatalogProductService {
     q: string,
     categories: Array<{ id: number; name: string }>,
     suppliers: Array<{ id: number; name: string }>,
+    actor: AuthContext,
   ) {
     const [unitSearchRows, offerCountRows, customerPriceCountRows] = await Promise.all([
       q && productIds.length
@@ -495,6 +529,7 @@ export class CatalogProductService {
             .selectFrom('product_units')
             .select(['product_id', 'name', 'barcode'])
             .where('product_id', 'in', productIds)
+            .where(this.tenantPredicate(actor))
             .orderBy('product_id', 'asc')
             .execute() as Promise<ProductUnitSearchRow[]>
         : Promise.resolve([]),
@@ -504,6 +539,7 @@ export class CatalogProductService {
             .select(['product_id', (eb) => eb.fn.countAll<number>().as('count')])
             .where('is_active', '=', true)
             .where('product_id', 'in', productIds)
+            .where(this.tenantPredicate(actor))
             .groupBy('product_id')
             .execute() as Promise<ProductCountRow[]>
         : Promise.resolve([]),
@@ -512,6 +548,7 @@ export class CatalogProductService {
             .selectFrom('product_customer_prices')
             .select(['product_id', (eb) => eb.fn.countAll<number>().as('count')])
             .where('product_id', 'in', productIds)
+            .where(this.tenantPredicate(actor))
             .groupBy('product_id')
             .execute() as Promise<ProductCountRow[]>
         : Promise.resolve([]),
@@ -585,13 +622,14 @@ export class CatalogProductService {
     });
   }
 
-  private async fetchListProductRelations(pagedIds: number[], hasMinQty: boolean) {
+  private async fetchListProductRelations(pagedIds: number[], hasMinQty: boolean, actor: AuthContext) {
     const [units, offers, customerPrices] = pagedIds.length
       ? await Promise.all([
           this.db
             .selectFrom('product_units')
             .select(['id', 'product_id', 'name', 'multiplier', 'barcode', 'is_base_unit', 'is_sale_unit_default', 'is_purchase_unit_default'])
             .where('product_id', 'in', pagedIds)
+            .where(this.tenantPredicate(actor))
             .orderBy('product_id', 'asc')
             .orderBy('is_base_unit', 'desc')
             .orderBy('id', 'asc')
@@ -602,6 +640,7 @@ export class CatalogProductService {
                 .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
                 .where('is_active', '=', true)
                 .where('product_id', 'in', pagedIds)
+                .where(this.tenantPredicate(actor))
                 .orderBy('id', 'desc')
                 .execute() as Promise<ProductOfferReadRow[]>
             : this.db
@@ -609,12 +648,14 @@ export class CatalogProductService {
                 .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date'])
                 .where('is_active', '=', true)
                 .where('product_id', 'in', pagedIds)
+                .where(this.tenantPredicate(actor))
                 .orderBy('id', 'desc')
                 .execute() as Promise<ProductOfferReadRow[]>,
           this.db
             .selectFrom('product_customer_prices')
             .select(['id', 'product_id', 'customer_id', 'price'])
             .where('product_id', 'in', pagedIds)
+            .where(this.tenantPredicate(actor))
             .orderBy('id', 'desc')
             .execute() as Promise<CustomerPriceReadRow[]>,
         ])
@@ -821,14 +862,15 @@ export class CatalogProductService {
     return normalized;
   }
 
-  private async ensureStyleCodeAvailable(styleCode: string, excludeProductIds: number[] = []): Promise<void> {
+  private async ensureStyleCodeAvailable(styleCode: string, actor: AuthContext, excludeProductIds: number[] = []): Promise<void> {
     const normalized = String(styleCode || '').trim();
     if (!normalized) return;
     let query = this.db
       .selectFrom('products')
       .select(['id'])
       .where('is_active', '=', true)
-      .where('style_code', '=', normalized);
+      .where('style_code', '=', normalized)
+      .where(this.tenantPredicate(actor));
     if (excludeProductIds.length) {
       query = query.where('id', 'not in', excludeProductIds);
     }
@@ -838,29 +880,74 @@ export class CatalogProductService {
     }
   }
 
-  private async ensureProductIdentityAvailable(payload: NormalizedUpsertProduct, productId?: number): Promise<void> {
+  private async ensureProductIdentityAvailable(payload: NormalizedUpsertProduct, actor: AuthContext, productId?: number): Promise<void> {
     if (payload.name) {
-      let query = this.db.selectFrom('products').select('id').where(sql`LOWER(name)`, '=', payload.name.toLowerCase()).where('is_active', '=', true);
+      let query = this.db.selectFrom('products').select('id').where(sql`LOWER(name)`, '=', payload.name.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
       const existing = await query.executeTakeFirst();
       if (existing) throw new AppError('Product already exists', 'PRODUCT_EXISTS', 400);
     }
 
     if (payload.barcode) {
-      let query = this.db.selectFrom('products').select('id').where(sql`LOWER(barcode)`, '=', payload.barcode.toLowerCase()).where('is_active', '=', true);
+      let query = this.db.selectFrom('products').select('id').where(sql`LOWER(barcode)`, '=', payload.barcode.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
       const existing = await query.executeTakeFirst();
       if (existing) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400);
     }
   }
 
-  private async replaceProductRelations(db: ProductWriteExecutor, productId: number, payload: NormalizedUpsertProduct): Promise<void> {
+  private async ensureCategoryAndSupplierInTenant(payload: NormalizedUpsertProduct, actor: AuthContext): Promise<void> {
+    if (payload.categoryId) {
+      const category = await this.db
+        .selectFrom('product_categories')
+        .select('id')
+        .where('id', '=', payload.categoryId)
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(actor))
+        .executeTakeFirst();
+      if (!category) throw new AppError('Category not found', 'CATEGORY_NOT_FOUND', 404);
+    }
+
+    if (payload.supplierId) {
+      const supplier = await this.db
+        .selectFrom('suppliers')
+        .select('id')
+        .where('id', '=', payload.supplierId)
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(actor))
+        .executeTakeFirst();
+      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+    }
+  }
+
+  private async ensureCustomerPricesInTenant(payload: NormalizedUpsertProduct, actor: AuthContext): Promise<void> {
+    if (!payload.customerPrices.length) return;
+    const uniqueCustomerIds = [...new Set(payload.customerPrices.map((entry) => Number(entry.customerId || 0)).filter((id) => id > 0))];
+    const duplicateCustomerIds = uniqueCustomerIds.length !== payload.customerPrices.length;
+    if (duplicateCustomerIds) {
+      throw new AppError('Customer price duplicates are not allowed', 'CUSTOMER_PRICE_DUPLICATE', 400);
+    }
+
+    const rows = await this.db
+      .selectFrom('customers')
+      .select(['id'])
+      .where('id', 'in', uniqueCustomerIds)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
+      .execute();
+
+    if (rows.length !== uniqueCustomerIds.length) {
+      throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
+    }
+  }
+
+  private async replaceProductRelations(db: ProductWriteExecutor, productId: number, payload: NormalizedUpsertProduct, actor: AuthContext): Promise<void> {
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     this.ensureAdvancedOffersSupported(payload, offerCapabilities);
 
-    await db.deleteFrom('product_units').where('product_id', '=', productId).execute();
-    await db.deleteFrom('product_offers').where('product_id', '=', productId).execute();
-    await db.deleteFrom('product_customer_prices').where('product_id', '=', productId).execute();
+    await db.deleteFrom('product_units').where('product_id', '=', productId).where(this.tenantPredicate(actor)).execute();
+    await db.deleteFrom('product_offers').where('product_id', '=', productId).where(this.tenantPredicate(actor)).execute();
+    await db.deleteFrom('product_customer_prices').where('product_id', '=', productId).where(this.tenantPredicate(actor)).execute();
 
     for (const unit of payload.units) {
       await db.insertInto('product_units').values({
@@ -871,7 +958,8 @@ export class CatalogProductService {
         is_base_unit: unit.isBaseUnit,
         is_sale_unit_default: unit.isSaleUnit,
         is_purchase_unit_default: unit.isPurchaseUnit,
-      }).execute();
+        ...this.tenantFields(actor),
+      } as any).execute();
     }
 
     for (const offer of payload.offers) {
@@ -884,7 +972,8 @@ export class CatalogProductService {
           start_date: offer.from,
           end_date: offer.to,
           is_active: true,
-        }).execute();
+          ...this.tenantFields(actor),
+        } as any).execute();
       } else {
         await db.insertInto('product_offers').values({
           product_id: productId,
@@ -893,12 +982,13 @@ export class CatalogProductService {
           start_date: offer.from,
           end_date: offer.to,
           is_active: true,
-        }).execute();
+          ...this.tenantFields(actor),
+        } as any).execute();
       }
     }
 
     for (const price of payload.customerPrices) {
-      await db.insertInto('product_customer_prices').values({ product_id: productId, customer_id: price.customerId, price: price.price }).execute();
+      await db.insertInto('product_customer_prices').values({ product_id: productId, customer_id: price.customerId, price: price.price, ...this.tenantFields(actor) } as any).execute();
     }
   }
 
@@ -906,8 +996,10 @@ export class CatalogProductService {
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
     normalized.styleCode = this.coerceNewStyleCode(normalized.styleCode);
-    await this.ensureStyleCodeAvailable(normalized.styleCode);
+    await this.ensureStyleCodeAvailable(normalized.styleCode, actor);
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
+    await this.ensureCategoryAndSupplierInTenant(normalized, actor);
+    await this.ensureCustomerPricesInTenant(normalized, actor);
 
     const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
     const drafts = shouldExpandVariants
@@ -936,7 +1028,7 @@ export class CatalogProductService {
         if (duplicateDraftBarcodes.has(barcodeKey)) throw new AppError('Variant barcodes must be unique', 'BARCODE_EXISTS', 400);
         duplicateDraftBarcodes.add(barcodeKey);
       }
-      await this.ensureProductIdentityAvailable(draft);
+      await this.ensureProductIdentityAvailable(draft, actor);
     }
 
     await this.db.transaction().execute(async (trx) => {
@@ -960,13 +1052,14 @@ export class CatalogProductService {
             min_stock_qty: draft.minStock,
             notes: draft.notes,
             is_active: true,
-          })
+            ...this.tenantFields(actor),
+          } as any)
           .returning('id')
           .executeTakeFirstOrThrow();
         const productId = Number(result.id);
-        await this.replaceProductRelations(trx, productId, draft);
+        await this.replaceProductRelations(trx, productId, draft, actor);
         if (initialStockQty > 0) {
-          await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: null, qty: initialStockQty }).execute();
+          await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: null, qty: initialStockQty, ...this.tenantFields(actor) } as any).execute();
         }
       }
     });
@@ -979,7 +1072,7 @@ export class CatalogProductService {
   }
 
   async updateProduct(id: number, payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
-    const existing = await this.db.selectFrom('products').selectAll().where('id', '=', id).where('is_active', '=', true).executeTakeFirst();
+    const existing = await this.db.selectFrom('products').selectAll().where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
@@ -995,17 +1088,20 @@ export class CatalogProductService {
             .select((eb) => eb.fn.countAll<number>().as('count'))
             .where('is_active', '=', true)
             .where('style_code', '=', existingStyleCode)
+            .where(this.tenantPredicate(actor))
             .executeTakeFirst())?.count || 0)
         : 0;
       if (existingGroupCount <= 1) {
-        await this.ensureStyleCodeAvailable(normalized.styleCode, [id]);
+        await this.ensureStyleCodeAvailable(normalized.styleCode, actor, [id]);
       }
     } else {
       normalized.styleCode = existingStyleCode;
     }
 
-    await this.ensureProductIdentityAvailable(normalized, id);
+    await this.ensureProductIdentityAvailable(normalized, actor, id);
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
+    await this.ensureCategoryAndSupplierInTenant(normalized, actor);
+    await this.ensureCustomerPricesInTenant(normalized, actor);
 
     const priceChanged = Number(normalized.costPrice || 0) !== Number(existing.cost_price || 0)
       || Number(normalized.retailPrice || 0) !== Number(existing.retail_price || 0)
@@ -1033,8 +1129,8 @@ export class CatalogProductService {
         min_stock_qty: normalized.minStock,
         notes: normalized.notes,
         updated_at: sql`NOW()`,
-      }).where('id', '=', id).execute();
-      await this.replaceProductRelations(trx, id, normalized);
+      }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      await this.replaceProductRelations(trx, id, normalized, actor);
     });
 
     await this.audit.log('تعديل صنف', `تم تحديث الصنف #${id} بواسطة ${actor.username}`, actor);
@@ -1043,12 +1139,12 @@ export class CatalogProductService {
 
   async deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
     await this.db.transaction().execute(async (trx) => {
-      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', id).where('is_active', '=', true).executeTakeFirst();
+      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       if (Math.abs(Number(product.stock_qty || 0)) > 0.0001) throw new AppError('Product still has stock on hand', 'PRODUCT_HAS_STOCK', 400);
-      const movementCount = await trx.selectFrom('stock_movements').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirstOrThrow();
+      const movementCount = await trx.selectFrom('stock_movements').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
       if (Number(movementCount.count || 0) > 0) throw new AppError('Product has transaction history and cannot be deleted', 'PRODUCT_HAS_HISTORY', 400);
-      await trx.updateTable('products').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+      await trx.updateTable('products').set({ is_active: false, updated_at: sql`NOW()` }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     });
     await this.audit.log('حذف صنف', `تم حذف الصنف #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };

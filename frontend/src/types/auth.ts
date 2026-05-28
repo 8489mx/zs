@@ -8,13 +8,27 @@ export interface AuthUser {
   displayName: string;
   branchIds: string[];
   defaultBranchId: string;
+  tenantId?: string;
+  accountId?: string;
   mustChangePassword?: boolean;
   usingDefaultAdminPassword?: boolean;
 }
 
+export interface AuthTenant {
+  id: string;
+  accountId: string;
+  slug: string;
+  businessName: string;
+  status: 'trial' | 'active' | 'suspended' | 'expired' | string;
+  isTrial: boolean;
+  trialEndsAt: string | null;
+  trialDaysRemaining: number | null;
+  createdAt?: string | null;
+}
 
 export interface AuthMeResponse {
   user: AuthUser;
+  tenant?: AuthTenant | null;
   settings: {
     storeName: string;
     theme: string;
@@ -24,4 +38,3 @@ export interface AuthMeResponse {
     usingDefaultAdminPassword?: boolean;
   };
 }
-

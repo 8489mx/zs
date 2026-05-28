@@ -208,6 +208,20 @@ export class HrService {
     private readonly treasury: HrTreasuryAdapter,
   ) {}
 
+  private scope(auth: AuthContext) {
+    return requireTenantScope(auth);
+  }
+
+  private tenantPredicate(auth: AuthContext, alias?: string) {
+    const { tenantId } = this.scope(auth);
+    return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`;
+  }
+
+  private tenantFields(auth: AuthContext) {
+    const { tenantId, accountId } = this.scope(auth);
+    return { tenant_id: tenantId, account_id: accountId };
+  }
+
   private maskSalary<T extends Record<string, unknown>>(row: T, auth: AuthContext): T {
     if (canViewSalary(auth)) return row;
     const masked = { ...row };
@@ -217,19 +231,23 @@ export class HrService {
     return masked;
   }
 
-  private async generateNumber(db: Kysely<Database>, table: string, prefix: string): Promise<string> {
+  private async generateNumber(db: Kysely<Database>, table: string, prefix: string, auth: AuthContext): Promise<string> {
+    const { tenantId } = this.scope(auth);
     const result = await sql<{ next_no: string }>`
       SELECT ${sql.lit(prefix)} || '-' || LPAD((COALESCE(MAX(id), 0) + 1)::TEXT, 4, '0') AS next_no
       FROM ${sql.table(table)}
+      WHERE tenant_id = ${tenantId}
     `.execute(db);
     return result.rows[0]?.next_no || `${prefix}-0001`;
   }
 
-  private async nextAvailableEmployeeNo(db: Kysely<Database>): Promise<string> {
+  private async nextAvailableEmployeeNo(db: Kysely<Database>, auth: AuthContext): Promise<string> {
+    const { tenantId } = this.scope(auth);
     const result = await sql<{ employee_no: string }>`
       SELECT employee_no
       FROM hr_employees
       WHERE employee_no ~ '^[0-9]+$'
+        AND tenant_id = ${tenantId}
       ORDER BY LENGTH(employee_no), employee_no
     `.execute(db);
     const used = new Set<number>();
@@ -242,12 +260,14 @@ export class HrService {
     return String(next).padStart(3, '0');
   }
 
-  private async ensureEmployeeNoAvailable(db: Kysely<Database>, employeeNo: string, excludeEmployeeId: number | null): Promise<void> {
+  private async ensureEmployeeNoAvailable(db: Kysely<Database>, employeeNo: string, excludeEmployeeId: number | null, auth: AuthContext): Promise<void> {
+    const { tenantId } = this.scope(auth);
     if (!employeeNo) return;
     const duplicate = await sql<{ id: number }>`
       SELECT id
       FROM hr_employees
       WHERE employee_no = ${employeeNo}
+        AND tenant_id = ${tenantId}
         AND (${excludeEmployeeId}::BIGINT IS NULL OR id <> ${excludeEmployeeId})
       LIMIT 1
     `.execute(db);
@@ -514,7 +534,7 @@ export class HrService {
     try {
       if (id) {
         if (employeeNo) {
-          await this.ensureEmployeeNoAvailable(this.db, employeeNo, id);
+          await this.ensureEmployeeNoAvailable(this.db, employeeNo, id, auth);
         }
         await sql`
           UPDATE hr_employees
@@ -534,8 +554,8 @@ export class HrService {
         `.execute(this.db);
       } else {
         await this.tx.runInTransaction(this.db, async (trx) => {
-          const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx);
-          await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null);
+          const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
+          await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
           await sql<{ id: number }>`
             INSERT INTO hr_employees (employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, created_by, updated_by)
             VALUES (${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${auth.userId}, ${auth.userId})
@@ -596,7 +616,7 @@ export class HrService {
   }
 
   async upsertContract(employeeId: number, id: number | null, payload: UpsertEmploymentContractDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const contractNo = clean(payload.contractNo) || (!id ? await this.generateNumber(this.db, 'hr_employment_contracts', 'CON') : '');
+    const contractNo = clean(payload.contractNo) || (!id ? await this.generateNumber(this.db, 'hr_employment_contracts', 'CON', auth) : '');
     if (id) {
       await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${clean(payload.currency) || 'EGP'}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
     } else {
@@ -780,7 +800,7 @@ export class HrService {
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       const plan = this.normalizeRepaymentPlan({ ...payload, employeeId, principalAmount: amount, issueDate, repaymentMode }, amount);
-      const loanNo = clean(payload.loanNo) || await this.generateNumber(trx, 'hr_employee_loans', 'LOAN');
+      const loanNo = clean(payload.loanNo) || await this.generateNumber(trx, 'hr_employee_loans', 'LOAN', auth);
       const insert = await sql<{ id: number }>`
         INSERT INTO hr_employee_loans (employee_id, loan_no, loan_type, principal_amount, paid_amount, remaining_amount, installment_count, installment_amount, repayment_mode, monthly_installment_amount, status, issue_date, first_due_date, salary_due_date, branch_id, location_id, notes, created_by, updated_by)
         VALUES (${employeeId}, ${loanNo}, ${clean(payload.loanType) || 'advance'}, ${amount}, 0, ${amount}, ${plan.installmentCount}, ${plan.installmentAmount}, ${plan.repaymentMode}, ${plan.monthlyInstallmentAmount}, 'draft', ${issueDate}, ${plan.firstDueDate}, ${plan.salaryDueDate}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})

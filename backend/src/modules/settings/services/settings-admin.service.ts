@@ -34,17 +34,28 @@ export class SettingsAdminService {
     };
   }
 
-  private async count(table: keyof Database): Promise<number> {
+  private scope(actor: AuthContext): TenantScope {
+    return requireTenantScope(actor);
+  }
+
+  private async count(table: keyof Database, actor: AuthContext): Promise<number> {
+    const { tenantId } = this.scope(actor);
     const row = await this.db
       .selectFrom(table)
       .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirstOrThrow();
 
     return Number(row.count || 0);
   }
 
-  private async sumRaw(table: string, column: string): Promise<number> {
-    const result = await sql<{ total: number }>`select coalesce(sum(${sql.ref(column)}), 0) as total from ${sql.table(table)}`.execute(this.db);
+  private async sumRaw(table: string, column: string, actor: AuthContext): Promise<number> {
+    const { tenantId } = this.scope(actor);
+    const result = await sql<{ total: number }>`
+      select coalesce(sum(${sql.ref(column)}), 0) as total
+      from ${sql.table(table)}
+      where tenant_id = ${tenantId}
+    `.execute(this.db);
     return Number(result.rows[0]?.total || 0);
   }
 
@@ -70,7 +81,8 @@ export class SettingsAdminService {
   }
 
   async getDiagnostics(actor: AuthContext): Promise<Record<string, unknown>> {
-    const scope = requireTenantScope(actor);
+    this.assertAdmin(actor);
+    const scope = this.scope(actor);
     const [
       users,
       activeUsers,
@@ -92,25 +104,25 @@ export class SettingsAdminService {
       supplierBalance,
       treasuryNet,
     ] = await Promise.all([
-      this.count('users'),
-      this.db.selectFrom('users').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
-      this.count('sessions'),
-      this.db.selectFrom('sessions').select((eb) => eb.fn.countAll<number>().as('count')).where('expires_at', '<', new Date()).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
-      this.db.selectFrom('branches').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
-      this.db.selectFrom('stock_locations').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
-      this.db.selectFrom('customers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
-      this.db.selectFrom('suppliers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
-      this.db.selectFrom('products').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
-      this.count('sales'),
-      this.count('purchases'),
-      this.count('return_documents'),
-      this.count('expenses'),
-      this.count('treasury_transactions'),
-      this.count('backup_snapshots' as keyof Database),
-      this.count('audit_logs'),
-      this.sumRaw('customers', 'balance'),
-      this.sumRaw('suppliers', 'balance'),
-      this.sumRaw('treasury_transactions', 'amount'),
+      this.count('users', actor),
+      this.db.selectFrom('users').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
+      this.count('sessions', actor),
+      this.db.selectFrom('sessions').select((eb) => eb.fn.countAll<number>().as('count')).where('expires_at', '<', new Date()).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
+      this.db.selectFrom('branches').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
+      this.db.selectFrom('stock_locations').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
+      this.db.selectFrom('customers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
+      this.db.selectFrom('suppliers').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
+      this.db.selectFrom('products').select((eb) => eb.fn.countAll<number>().as('count')).where('is_active', '=', true).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirstOrThrow().then((row) => Number(row.count || 0)),
+      this.count('sales', actor),
+      this.count('purchases', actor),
+      this.count('return_documents', actor),
+      this.count('expenses', actor),
+      this.count('treasury_transactions', actor),
+      this.count('backup_snapshots' as keyof Database, actor),
+      this.count('audit_logs', actor),
+      this.sumRaw('customers', 'balance', actor),
+      this.sumRaw('suppliers', 'balance', actor),
+      this.sumRaw('treasury_transactions', 'amount', actor),
     ]);
 
     return {
@@ -220,7 +232,8 @@ export class SettingsAdminService {
 
   async cleanupExpiredSessions(actor: AuthContext): Promise<Record<string, unknown>> {
     this.assertDestructiveAdminPermission(actor);
-    const result = await this.db.deleteFrom('sessions').where('expires_at', '<', new Date()).executeTakeFirst();
+    const { tenantId } = this.scope(actor);
+    const result = await this.db.deleteFrom('sessions').where('expires_at', '<', new Date()).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
     const removed = Number(result.numDeletedRows || 0);
     await this.audit.log('تنظيف الجلسات', `تم حذف ${removed} جلسة منتهية بواسطة ${actor.username}`, actor);
     return { ok: true, removed };
@@ -228,11 +241,14 @@ export class SettingsAdminService {
 
   async reconcileCustomers(actor: AuthContext): Promise<Record<string, unknown>> {
     this.assertDestructiveAdminPermission(actor);
+    const { tenantId } = this.scope(actor);
     const rows = await this.db
       .selectFrom('customers as c')
       .leftJoin('customer_ledger as l', 'l.customer_id', 'c.id')
       .select(['c.id', 'c.balance'])
       .select((eb) => sql<number>`coalesce(sum(l.amount), 0)`.as('ledger_balance'))
+      .where(sql<boolean>`c.tenant_id = ${tenantId}`)
+      .where(sql<boolean>`(l.id is null or l.tenant_id = ${tenantId})`)
       .groupBy(['c.id', 'c.balance'])
       .execute();
 
@@ -241,7 +257,7 @@ export class SettingsAdminService {
       const nextBalance = Number(Number(row.ledger_balance || 0).toFixed(2));
       const currentBalance = Number(Number(row.balance || 0).toFixed(2));
       if (Math.abs(nextBalance - currentBalance) <= 0.0001) continue;
-      await this.db.updateTable('customers').set({ balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', Number(row.id)).execute();
+      await this.db.updateTable('customers').set({ balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', Number(row.id)).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
       updated += 1;
     }
 
@@ -251,11 +267,14 @@ export class SettingsAdminService {
 
   async reconcileSuppliers(actor: AuthContext): Promise<Record<string, unknown>> {
     this.assertDestructiveAdminPermission(actor);
+    const { tenantId } = this.scope(actor);
     const rows = await this.db
       .selectFrom('suppliers as s')
       .leftJoin('supplier_ledger as l', 'l.supplier_id', 's.id')
       .select(['s.id', 's.balance'])
       .select((eb) => sql<number>`coalesce(sum(l.amount), 0)`.as('ledger_balance'))
+      .where(sql<boolean>`s.tenant_id = ${tenantId}`)
+      .where(sql<boolean>`(l.id is null or l.tenant_id = ${tenantId})`)
       .groupBy(['s.id', 's.balance'])
       .execute();
 
@@ -264,7 +283,7 @@ export class SettingsAdminService {
       const nextBalance = Number(Number(row.ledger_balance || 0).toFixed(2));
       const currentBalance = Number(Number(row.balance || 0).toFixed(2));
       if (Math.abs(nextBalance - currentBalance) <= 0.0001) continue;
-      await this.db.updateTable('suppliers').set({ balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', Number(row.id)).execute();
+      await this.db.updateTable('suppliers').set({ balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', Number(row.id)).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
       updated += 1;
     }
 

@@ -13,8 +13,8 @@ export class PartnersController {
   constructor(private readonly partnersService: PartnersService) {}
 
   @Get('customers')
-  listCustomers(@Query() query: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return this.partnersService.listCustomers(query);
+  listCustomers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.partnersService.listCustomers(query, req.authContext!);
   }
 
   @Post('customers')
@@ -24,8 +24,8 @@ export class PartnersController {
   }
 
   @Get('customers/:id/pos-summary')
-  getCustomerPosSummary(@Param('id', ParseIntPipe) id: number): Promise<Record<string, unknown>> {
-    return this.partnersService.getCustomerPosSummary(id);
+  getCustomerPosSummary(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.partnersService.getCustomerPosSummary(id, req.authContext!);
   }
 
   @Put('customers/:id')
@@ -45,8 +45,8 @@ export class PartnersController {
   }
 
   @Get('suppliers')
-  listSuppliers(@Query() query: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return this.partnersService.listSuppliers(query);
+  listSuppliers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.partnersService.listSuppliers(query, req.authContext!);
   }
 
   @Post('suppliers')

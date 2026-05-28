@@ -31,6 +31,11 @@ export class SessionsController {
     private readonly activationService: ActivationService,
   ) {}
 
+  private sharedCookieDomain(): string | undefined {
+    const domain = this.configService.get<string>('SESSION_COOKIE_DOMAIN')?.trim();
+    return domain || undefined;
+  }
+
   private cookieOptions(expiresAt?: Date) {
     return {
       httpOnly: true,
@@ -38,6 +43,7 @@ export class SessionsController {
       secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
       expires: expiresAt,
       path: '/',
+      ...(this.sharedCookieDomain() ? { domain: this.sharedCookieDomain() } : {}),
     };
   }
 
@@ -48,6 +54,7 @@ export class SessionsController {
       secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
       expires: expiresAt,
       path: '/',
+      ...(this.sharedCookieDomain() ? { domain: this.sharedCookieDomain() } : {}),
     };
   }
 
@@ -112,7 +119,7 @@ export class SessionsController {
     @Req() req: RequestWithAuth,
     @Res({ passthrough: true }) res: Response,
   ): Promise<Record<string, unknown>> {
-    await this.sessionService.logout(req.authContext!.sessionId);
+    await this.sessionService.logout(req.authContext!.sessionId, req.authContext!);
     this.clearAuthCookies(res);
     await this.auditService.log('تسجيل خروج', `تم تسجيل خروج المستخدم ${req.authContext!.username}`, req.authContext!);
     return { ok: true };
@@ -121,19 +128,19 @@ export class SessionsController {
   @Get('sessions')
   @UseGuards(SessionAuthGuard)
   async list(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    const sessions = await this.sessionService.listSessions(req.authContext!.userId);
+    const sessions = await this.sessionService.listSessions(req.authContext!);
     return { sessions };
   }
 
   @Delete('sessions/:id')
   @UseGuards(SessionAuthGuard)
   async revoke(@Param('id') sessionId: string, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    const removed = await this.sessionService.revokeSessionForUser(sessionId, req.authContext!.userId);
+    const removed = await this.sessionService.revokeSessionForUser(sessionId, req.authContext!);
     if (!removed) {
       throw new NotFoundException('Session not found');
     }
 
-    const sessions = await this.sessionService.listSessions(req.authContext!.userId);
+    const sessions = await this.sessionService.listSessions(req.authContext!);
     await this.auditService.log('إنهاء جلسة', `تم إنهاء جلسة للمستخدم ${req.authContext!.username}`, req.authContext!);
     return { ok: true, sessions };
   }
@@ -141,8 +148,8 @@ export class SessionsController {
   @Post('sessions/revoke-others')
   @UseGuards(SessionAuthGuard)
   async revokeOthers(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    const removed = await this.sessionService.revokeOtherSessions(req.authContext!.userId, req.authContext!.sessionId);
-    const sessions = await this.sessionService.listSessions(req.authContext!.userId);
+    const removed = await this.sessionService.revokeOtherSessions(req.authContext!, req.authContext!.sessionId);
+    const sessions = await this.sessionService.listSessions(req.authContext!);
     await this.auditService.log('إنهاء الجلسات الأخرى', `تم إنهاء ${removed} جلسة أخرى`, req.authContext!);
     return { ok: true, removed, sessions };
   }
@@ -150,8 +157,8 @@ export class SessionsController {
   @Post('change-password')
   @UseGuards(SessionAuthGuard)
   async changePassword(@Body() payload: ChangePasswordDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    await this.sessionService.changePassword(req.authContext!.userId, payload.currentPassword, payload.newPassword);
-    const removed = await this.sessionService.revokeOtherSessions(req.authContext!.userId, req.authContext!.sessionId);
+    await this.sessionService.changePassword(req.authContext!, payload.currentPassword, payload.newPassword);
+    const removed = await this.sessionService.revokeOtherSessions(req.authContext!, req.authContext!.sessionId);
     await this.auditService.log('تغيير كلمة المرور', `تم تغيير كلمة المرور وإنهاء ${removed} جلسة`, req.authContext!);
     return { ok: true, removedOtherSessions: removed };
   }

@@ -12,10 +12,9 @@ import { buildReportSummaryPayload } from './helpers/reports-summary.helper';
 import { buildDashboardComputedState, buildDashboardOverviewPayload, buildDashboardScope } from './helpers/reports-dashboard.helper';
 import { buildCustomerBalancesPayload, buildCustomerLedgerPayload, buildSupplierBalancesPayload, buildSupplierLedgerPayload, LedgerSummaryRow, PartnerLedgerEntryRow } from './helpers/reports-ledger.helper';
 import { buildCustomerLedgerTotals, buildSupplierLedgerTotals } from './helpers/reports-partner-ledger.helper';
-import { buildAuditPayload, buildTreasuryPayload, TreasurySummaryRow, TreasuryTransactionRow, AuditLogRow } from './helpers/reports-ops.helper';
 import { buildInventoryLocationHighlights, buildInventoryReportItems, buildInventorySummary, InventoryLocationBreakdownRow, InventoryLocationHighlightRow, InventoryReportProductRow } from './helpers/reports-inventory.helper';
 import { buildReportListState } from './helpers/reports-query.helper';
-import { applyAuditSearch, applyPartnerLedgerSearch, applySignedAmountFilter, applyTreasurySearch } from './helpers/reports-query-pipeline.helper';
+import { applyPartnerLedgerSearch, applySignedAmountFilter } from './helpers/reports-query-pipeline.helper';
 import { ReportsAdminService } from './services/reports-admin.service';
 
 @Injectable()
@@ -31,10 +30,21 @@ export class ReportsService {
     setBusinessTimezoneResolver(() => this.configService?.get<string>('BUSINESS_TIMEZONE') ?? 'UTC');
   }
 
+  private scope(auth: AuthContext) {
+    return requireTenantScope(auth);
+  }
+
+  private tenantPredicate(auth: AuthContext, alias?: string) {
+    const { tenantId } = this.scope(auth);
+    return alias
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}`
+      : sql<boolean>`tenant_id = ${tenantId}`;
+  }
+
   private withScope(payload: Record<string, unknown>, auth: AuthContext): Record<string, unknown> {
     return {
       ...payload,
-      scope: requireTenantScope(auth),
+      scope: this.scope(auth),
     };
   }
 
@@ -58,6 +68,7 @@ export class ReportsService {
         .where('status', '=', 'posted')
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('purchases')
@@ -65,54 +76,45 @@ export class ReportsService {
         .where('status', '=', 'posted')
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
+        .where(this.tenantPredicate(auth))
         .execute(),
       (this.db as any)
         .selectFrom('services')
-        .select([
-          'id',
-          'amount as total',
-          'branch_id',
-          'location_id',
-          'service_date as created_at',
-        ])
+        .select(['id', 'amount as total', 'branch_id', 'location_id', 'service_date as created_at'])
         .where('is_active', '=', true)
         .where('service_date', '>=', fromDate!)
         .where('service_date', '<=', toDate!)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('expenses')
         .select(['id', 'amount', 'branch_id', 'location_id', 'expense_date'])
         .where('expense_date', '>=', fromDate)
         .where('expense_date', '<=', toDate)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('return_documents')
         .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_at'])
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('treasury_transactions')
         .select(['amount', 'branch_id', 'location_id', 'created_at'])
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('sale_items as si')
         .innerJoin('sales as s', 's.id', 'si.sale_id')
-        .select([
-          'si.product_id',
-          'si.product_name',
-          'si.qty',
-          'si.line_total',
-          'si.cost_price',
-          's.branch_id',
-          's.location_id',
-          's.created_at',
-        ])
+        .select(['si.product_id', 'si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_at'])
         .where('s.status', '=', 'posted')
         .where('s.created_at', '>=', fromDate)
         .where('s.created_at', '<=', toDate)
+        .where(this.tenantPredicate(auth, 's'))
         .execute(),
     ]);
 
@@ -172,16 +174,19 @@ export class ReportsService {
         .selectFrom('products')
         .select(['id', 'name', 'category_id', 'supplier_id', 'retail_price', 'stock_qty', 'min_stock_qty', 'cost_price'])
         .where('is_active', '=', true)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('customers')
         .select(['id', 'name', 'balance', 'credit_limit'])
         .where('is_active', '=', true)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('suppliers')
         .select(['id', 'name', 'balance'])
         .where('is_active', '=', true)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('sales')
@@ -189,6 +194,7 @@ export class ReportsService {
         .where('status', '=', 'posted')
         .where('created_at', '>=', trendStart)
         .where('created_at', '<=', todayEnd)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('purchases')
@@ -196,21 +202,25 @@ export class ReportsService {
         .where('status', '=', 'posted')
         .where('created_at', '>=', trendStart)
         .where('created_at', '<=', todayEnd)
+        .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('customer_ledger')
         .select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+        .where(this.tenantPredicate(auth))
         .groupBy('customer_id')
         .execute(),
       this.db
         .selectFrom('supplier_ledger')
         .select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+        .where(this.tenantPredicate(auth))
         .groupBy('supplier_id')
         .execute(),
       this.db
         .selectFrom('product_offers')
         .select(['id'])
         .where('is_active', '=', true)
+        .where(this.tenantPredicate(auth))
         .where(sql<boolean>`(start_date is null or start_date <= ${todayIso}) and (end_date is null or end_date >= ${todayIso})`)
         .execute(),
       this.db
@@ -227,6 +237,7 @@ export class ReportsService {
         .where('s.status', '=', 'posted')
         .where('s.created_at', '>=', todayStart)
         .where('s.created_at', '<=', todayEnd)
+        .where(this.tenantPredicate(auth, 's'))
         .groupBy(['si.product_id', 'si.product_name', 's.branch_id', 's.location_id'])
         .orderBy('sales_total', 'desc')
         .limit(5)
@@ -272,14 +283,16 @@ export class ReportsService {
       .selectFrom('products as p')
       .leftJoin('product_categories as c', 'c.id', 'p.category_id')
       .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
-      .where('p.is_active', '=', true);
+      .where('p.is_active', '=', true)
+      .where(this.tenantPredicate(auth, 'p'));
 
     let rowsQuery = this.db
       .selectFrom('products as p')
       .leftJoin('product_categories as c', 'c.id', 'p.category_id')
       .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
       .select(['p.id', 'p.name', 'p.stock_qty', 'p.min_stock_qty', 'p.retail_price', 'p.cost_price', 'c.name as category_name', 's.name as supplier_name'])
-      .where('p.is_active', '=', true);
+      .where('p.is_active', '=', true)
+      .where(this.tenantPredicate(auth, 'p'));
 
     if (search) {
       countQuery = countQuery.where((eb) => eb.or([
@@ -324,15 +337,9 @@ export class ReportsService {
           .selectFrom('product_location_stock as pls')
           .leftJoin('stock_locations as l', 'l.id', 'pls.location_id')
           .leftJoin('branches', 'branches.id', 'pls.branch_id')
-          .select([
-            'pls.product_id',
-            'pls.location_id',
-            'pls.branch_id',
-            'pls.qty',
-            'l.name as location_name',
-            'branches.name as branch_name',
-          ])
+          .select(['pls.product_id', 'pls.location_id', 'pls.branch_id', 'pls.qty', 'l.name as location_name', 'branches.name as branch_name'])
           .where('pls.product_id', 'in', productIds)
+          .where(this.tenantPredicate(auth, 'pls'))
           .orderBy('pls.product_id asc')
           .orderBy('pls.qty desc')
           .execute()
@@ -343,29 +350,21 @@ export class ReportsService {
       .innerJoin('products as p', 'p.id', 'pls.product_id')
       .leftJoin('stock_locations as l', 'l.id', 'pls.location_id')
       .leftJoin('branches', 'branches.id', 'pls.branch_id')
-      .select([
-        'pls.product_id',
-        'pls.location_id',
-        'pls.branch_id',
-        'pls.qty',
-        'p.min_stock_qty',
-        'l.name as location_name',
-        'branches.name as branch_name',
-      ])
+      .select(['pls.product_id', 'pls.location_id', 'pls.branch_id', 'pls.qty', 'p.min_stock_qty', 'l.name as location_name', 'branches.name as branch_name'])
       .where('p.is_active', '=', true)
       .where('pls.location_id', 'is not', null)
+      .where(this.tenantPredicate(auth, 'p'))
+      .where(this.tenantPredicate(auth, 'pls'))
       .execute();
 
-    const items = buildInventoryReportItems(
-      rows as InventoryReportProductRow[],
-      locationBreakdownRows as InventoryLocationBreakdownRow[],
-    );
+    const items = buildInventoryReportItems(rows as InventoryReportProductRow[], locationBreakdownRows as InventoryLocationBreakdownRow[]);
 
     const outOfStockRow = await this.db
       .selectFrom('products as p')
       .select(sql<number>`count(*)`.as('count'))
       .where('p.is_active', '=', true)
       .where('p.stock_qty', '<=', 0)
+      .where(this.tenantPredicate(auth, 'p'))
       .executeTakeFirst();
 
     const lowStockRow = await this.db
@@ -374,17 +373,17 @@ export class ReportsService {
       .where('p.is_active', '=', true)
       .where('p.stock_qty', '>', 0)
       .whereRef('p.stock_qty', '<=', 'p.min_stock_qty')
+      .where(this.tenantPredicate(auth, 'p'))
       .executeTakeFirst();
 
     const totalActiveRow = await this.db
       .selectFrom('products as p')
       .select(sql<number>`count(*)`.as('count'))
       .where('p.is_active', '=', true)
+      .where(this.tenantPredicate(auth, 'p'))
       .executeTakeFirst();
 
-    const { trackedLocations, highlights: locationHighlights } = buildInventoryLocationHighlights(
-      locationHighlightsRows as InventoryLocationHighlightRow[],
-    );
+    const { trackedLocations, highlights: locationHighlights } = buildInventoryLocationHighlights(locationHighlightsRows as InventoryLocationHighlightRow[]);
 
     const outOfStock = Number((outOfStockRow as { count?: number | string | null } | undefined)?.count || 0);
     const lowStock = Number((lowStockRow as { count?: number | string | null } | undefined)?.count || 0);
@@ -403,12 +402,14 @@ export class ReportsService {
       .selectFrom('customers')
       .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
       .where('is_active', '=', true)
+      .where(this.tenantPredicate(auth))
       .orderBy('name asc')
       .execute();
 
     const ledgerRows = await this.db
       .selectFrom('customer_ledger')
       .select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+      .where(this.tenantPredicate(auth))
       .groupBy('customer_id')
       .execute();
 
@@ -416,37 +417,39 @@ export class ReportsService {
     return this.withScope(buildCustomerBalancesPayload(customers, ledgerTotals, query as Record<string, unknown>), auth);
   }
 
-
   async customerLedger(customerId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const customer = await this.db.selectFrom('customers').select(['id', 'name', 'phone', 'balance', 'credit_limit']).where('id', '=', customerId).where('is_active', '=', true).executeTakeFirst();
+    const customer = await this.db
+      .selectFrom('customers')
+      .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
+      .where('id', '=', customerId)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
     if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
 
-    const { fromDate, toDate, search, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 25);
+    const { fromDate, toDate, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 25);
 
     let countQuery = this.db
       .selectFrom('customer_ledger')
       .where('customer_id', '=', customerId)
       .where('created_at', '>=', fromDate!)
-      .where('created_at', '<=', toDate!);
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
 
     let entriesQuery = this.db
       .selectFrom('customer_ledger')
       .select(['id', 'entry_type', 'amount', 'balance_after', 'note', 'reference_type', 'reference_id', 'created_at'])
       .where('customer_id', '=', customerId)
       .where('created_at', '>=', fromDate!)
-      .where('created_at', '<=', toDate!);
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
 
     countQuery = applySignedAmountFilter(applyPartnerLedgerSearch(countQuery, searchPattern), 'amount', filter);
     entriesQuery = applySignedAmountFilter(applyPartnerLedgerSearch(entriesQuery, searchPattern), 'amount', filter);
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await entriesQuery
-      .orderBy('created_at asc')
-      .orderBy('id asc')
-      .limit(pageSize)
-      .offset(offset)
-      .execute();
+    const rows = await entriesQuery.orderBy('created_at asc').orderBy('id asc').limit(pageSize).offset(offset).execute();
 
     const totalsRow = await entriesQuery
       .clearSelect()
@@ -456,14 +459,7 @@ export class ReportsService {
       ])
       .executeTakeFirst();
 
-    return this.withScope(buildCustomerLedgerPayload({
-      customer,
-      rows: rows as PartnerLedgerEntryRow[],
-      page,
-      pageSize,
-      totalItems,
-      totalsRow: totalsRow as LedgerSummaryRow | undefined,
-    }), auth);
+    return this.withScope(buildCustomerLedgerPayload({ customer, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined }), auth);
   }
 
   async supplierBalances(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -471,12 +467,14 @@ export class ReportsService {
       .selectFrom('suppliers')
       .select(['id', 'name', 'phone', 'balance'])
       .where('is_active', '=', true)
+      .where(this.tenantPredicate(auth))
       .orderBy('name asc')
       .execute();
 
     const ledgerRows = await this.db
       .selectFrom('supplier_ledger')
       .select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+      .where(this.tenantPredicate(auth))
       .groupBy('supplier_id')
       .execute();
 
@@ -485,35 +483,38 @@ export class ReportsService {
   }
 
   async supplierLedger(supplierId: number, query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const supplier = await this.db.selectFrom('suppliers').select(['id', 'name', 'phone', 'balance']).where('id', '=', supplierId).where('is_active', '=', true).executeTakeFirst();
+    const supplier = await this.db
+      .selectFrom('suppliers')
+      .select(['id', 'name', 'phone', 'balance'])
+      .where('id', '=', supplierId)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
     if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
 
-    const { fromDate, toDate, search, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 25);
+    const { fromDate, toDate, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 25);
 
     let countQuery = this.db
       .selectFrom('supplier_ledger')
       .where('supplier_id', '=', supplierId)
       .where('created_at', '>=', fromDate!)
-      .where('created_at', '<=', toDate!);
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
 
     let entriesQuery = this.db
       .selectFrom('supplier_ledger')
       .select(['id', 'entry_type', 'amount', 'balance_after', 'note', 'reference_type', 'reference_id', 'created_at'])
       .where('supplier_id', '=', supplierId)
       .where('created_at', '>=', fromDate!)
-      .where('created_at', '<=', toDate!);
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
 
     countQuery = applySignedAmountFilter(applyPartnerLedgerSearch(countQuery, searchPattern), 'amount', filter);
     entriesQuery = applySignedAmountFilter(applyPartnerLedgerSearch(entriesQuery, searchPattern), 'amount', filter);
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await entriesQuery
-      .orderBy('created_at asc')
-      .orderBy('id asc')
-      .limit(pageSize)
-      .offset(offset)
-      .execute();
+    const rows = await entriesQuery.orderBy('created_at asc').orderBy('id asc').limit(pageSize).offset(offset).execute();
 
     const totalsRow = await entriesQuery
       .clearSelect()
@@ -523,14 +524,7 @@ export class ReportsService {
       ])
       .executeTakeFirst();
 
-    return this.withScope(buildSupplierLedgerPayload({
-      supplier,
-      rows: rows as PartnerLedgerEntryRow[],
-      page,
-      pageSize,
-      totalItems,
-      totalsRow: totalsRow as LedgerSummaryRow | undefined,
-    }), auth);
+    return this.withScope(buildSupplierLedgerPayload({ supplier, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined }), auth);
   }
 
   async treasuryTransactions(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {

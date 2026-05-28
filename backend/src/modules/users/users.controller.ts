@@ -14,8 +14,8 @@ export class UsersController {
 
   @Get()
   @RequirePermissions('canManageUsers')
-  list(@Query() query: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return this.usersService.listUsers(query);
+  list(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.usersService.listUsers(query, req.authContext!);
   }
 
   @Post()

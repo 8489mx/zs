@@ -6,6 +6,7 @@ import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity
 import { applyStockDelta, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
@@ -43,7 +44,7 @@ export class SalesWriteService {
   ): Promise<void> {
     if (Math.abs(Number(discount || 0)) <= 0.0001) return;
     if (this.authz.hasPermission(auth, 'canDiscount')) return;
-    await this.authz.authorizeDiscountOverride(String(managerPin || '').trim(), trx);
+    await this.authz.authorizeDiscountOverride(String(managerPin || '').trim(), auth, trx);
   }
 
   private assertUnitPriceChangeAllowed(auth: AuthContext, providedPrice: number, allowedPrice: number): void {
@@ -52,21 +53,23 @@ export class SalesWriteService {
     throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
   }
 
-  private async getCurrentProductOffers(trx: Kysely<Database> | Transaction<Database>, productId: number) {
+  private async getCurrentProductOffers(trx: Kysely<Database> | Transaction<Database>, productId: number, tenantId: string) {
     return trx
       .selectFrom('product_offers')
       .select(['offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
       .where('product_id', '=', productId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where('is_active', '=', true)
       .orderBy('id', 'desc')
       .execute();
   }
 
-  private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>): Promise<boolean> {
+  private async getAllowNegativeStockSales(trx: Kysely<Database> | Transaction<Database>, tenantId: string): Promise<boolean> {
     const rows = await trx
       .selectFrom('settings')
       .select(['key', 'value'])
       .where('key', 'in', ['allowNegativeStockSales', 'allowSellingBelowStock'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
 
     return rows.some((row) => {
@@ -78,8 +81,8 @@ export class SalesWriteService {
     });
   }
 
-  async authorizeDiscountOverride(secret: string, _auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), this.db);
+  async authorizeDiscountOverride(secret: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), auth, this.db);
     return { ok: true, authorized: true, mode: result.mode, authorizedByName: result.authorizedByName };
   }
 
@@ -109,6 +112,7 @@ export class SalesWriteService {
   }
 
   async createSale(payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const requestStartedAt = Date.now();
     const normalized = normalizeSalePayload(payload);
     if (!normalized.items.length) throw new AppError('Sale must include at least one item', 'SALE_ITEMS_REQUIRED', 400);
@@ -120,18 +124,18 @@ export class SalesWriteService {
       if (normalized.storeCreditUsed < 0) throw new AppError('Store credit cannot be negative', 'INVALID_STORE_CREDIT', 400);
 
       const customer = normalized.customerId
-        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance']).where('id', '=', normalized.customerId).where('is_active', '=', true).executeTakeFirst()
+        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
         : null;
       if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
-      const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx);
+      const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx, scope.tenantId);
 
       let subtotal = 0;
       const preparedItems = [];
       for (const item of normalized.items) {
-        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-        const activeOffers = await this.getCurrentProductOffers(trx, item.productId);
+        const activeOffers = await this.getCurrentProductOffers(trx, item.productId, scope.tenantId);
         const allowedUnitPrice = calculateAllowedSaleUnitPrice({
           retailPrice: product.retail_price,
           wholesalePrice: product.wholesale_price,
@@ -142,7 +146,7 @@ export class SalesWriteService {
         this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
 
         const availableStockQty = normalized.locationId
-          ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId })
+          ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId, tenantId: scope.tenantId, accountId: scope.accountId })
           : Number(product.stock_qty || 0);
         const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item, { allowNegativeStockSales });
         subtotal += preparedItem.lineTotal;
@@ -201,15 +205,17 @@ export class SalesWriteService {
           location_id: normalized.locationId,
           created_by: auth.userId,
           cancel_reason: '',
-        })
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any)
         .returning('id')
         .executeTakeFirstOrThrow();
 
       const id = Number(saleInsert.id);
-      await trx.updateTable('sales').set({ doc_no: `S-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).execute();
+      await trx.updateTable('sales').set({ doc_no: `S-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       for (const payment of payments) {
-        await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount }).execute();
+        await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId } as any).execute();
       }
 
       for (const item of preparedItems) {
@@ -226,7 +232,9 @@ export class SalesWriteService {
             unit_multiplier: item.unitMultiplier,
             cost_price: item.costPrice,
             price_type: item.priceType as 'retail' | 'wholesale',
-          })
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          } as any)
           .execute();
 
         const stockChange = await applyStockDelta(trx, {
@@ -234,6 +242,8 @@ export class SalesWriteService {
           delta: -item.requiredQty,
           branchId: normalized.branchId,
           locationId: normalized.locationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: `Insufficient stock for ${item.productName}`,
           allowNegative: allowNegativeStockSales,
@@ -253,7 +263,9 @@ export class SalesWriteService {
             branch_id: normalized.branchId,
             location_id: normalized.locationId,
             created_by: auth.userId,
-          })
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          } as any)
           .execute();
       }
 
@@ -262,6 +274,7 @@ export class SalesWriteService {
           .updateTable('customers')
           .set({ store_credit_balance: Number((Number(customer.store_credit_balance || 0) - normalized.storeCreditUsed).toFixed(2)), updated_at: sql`NOW()` })
           .where('id', '=', customer.id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .execute();
       }
 
@@ -294,15 +307,16 @@ export class SalesWriteService {
   }
 
   async cancelSale(saleId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const sale = await trx.selectFrom('sales').selectAll().where('id', '=', saleId).executeTakeFirst();
+      const sale = await trx.selectFrom('sales').selectAll().where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
       if (!sale) throw new AppError('Sale not found', 'SALE_NOT_FOUND', 404);
       if (sale.status === 'cancelled') throw new AppError('Sale already cancelled', 'SALE_ALREADY_CANCELLED', 400);
 
-      const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).execute();
+      const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       for (const item of items) {
         if (!item.product_id) continue;
-        const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
         if (!product) continue;
         const { restoreQty } = calculateRestoredStockQuantity(product.stock_qty, item.qty, item.unit_multiplier);
         const stockChange = await applyStockDelta(trx, {
@@ -310,6 +324,8 @@ export class SalesWriteService {
           delta: restoreQty,
           branchId: sale.branch_id,
           locationId: sale.location_id,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
         });
         await trx
           .insertInto('stock_movements')
@@ -326,7 +342,9 @@ export class SalesWriteService {
             branch_id: sale.branch_id,
             location_id: sale.location_id,
             created_by: auth.userId,
-          })
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          } as any)
           .execute();
       }
 
@@ -334,7 +352,7 @@ export class SalesWriteService {
       if (sale.payment_type === 'credit' && sale.customer_id && collectibleTotal > 0) {
         await this.finance.createCustomerLedgerEntry(trx, sale.customer_id, -collectibleTotal, `عكس فاتورة بيع S-${saleId}`, saleId, auth);
       } else {
-        const cashPayments = await trx.selectFrom('sale_payments').select(['amount', 'payment_channel']).where('sale_id', '=', saleId).execute();
+        const cashPayments = await trx.selectFrom('sale_payments').select(['amount', 'payment_channel']).where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
         for (const payment of cashPayments) {
           if (payment.payment_channel !== 'cash') continue;
           await this.finance.addTreasuryTransaction(trx, -Number(payment.amount || 0), `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
@@ -342,9 +360,9 @@ export class SalesWriteService {
       }
 
       if (Number(sale.store_credit_used || 0) > 0 && sale.customer_id) {
-        const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', sale.customer_id).executeTakeFirst();
+        const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
         if (customer) {
-          await trx.updateTable('customers').set({ store_credit_balance: Number((Number(customer.store_credit_balance || 0) + Number(sale.store_credit_used || 0)).toFixed(2)), updated_at: sql`NOW()` }).where('id', '=', sale.customer_id).execute();
+          await trx.updateTable('customers').set({ store_credit_balance: Number((Number(customer.store_credit_balance || 0) + Number(sale.store_credit_used || 0)).toFixed(2)), updated_at: sql`NOW()` }).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
         }
       }
 
@@ -352,6 +370,7 @@ export class SalesWriteService {
         .updateTable('sales')
         .set({ status: 'cancelled', cancel_reason: String(reason || '').trim(), cancelled_by: auth.userId, cancelled_at: sql`NOW()`, updated_at: sql`NOW()` })
         .where('id', '=', saleId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute();
     });
 
@@ -360,6 +379,7 @@ export class SalesWriteService {
   }
 
   async saveHeldSale(payload: HeldSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const heldSaleId = await this.tx.runInTransaction(this.db, async (trx) => {
       const items = (Array.isArray(payload.items) ? payload.items : [])
         .map((item) => ({
@@ -377,9 +397,9 @@ export class SalesWriteService {
       await this.assertDiscountChangeAllowed(trx, auth, Number(payload.discount || 0), payload.managerPin);
 
       for (const item of items) {
-        const product = await trx.selectFrom('products').select(['id', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-        const activeOffers = await this.getCurrentProductOffers(trx, item.productId);
+        const activeOffers = await this.getCurrentProductOffers(trx, item.productId, scope.tenantId);
         const allowedUnitPrice = calculateAllowedSaleUnitPrice({
           retailPrice: product.retail_price,
           wholesalePrice: product.wholesale_price,
@@ -435,7 +455,9 @@ export class SalesWriteService {
           branch_id: payload.branchId ? Number(payload.branchId) : null,
           location_id: payload.locationId ? Number(payload.locationId) : null,
           created_by: auth.userId,
-        })
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any)
         .returning('id')
         .executeTakeFirstOrThrow();
 
@@ -452,7 +474,9 @@ export class SalesWriteService {
             unit_name: item.unitName,
             unit_multiplier: item.unitMultiplier,
             price_type: item.priceType as 'retail' | 'wholesale',
-          })
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          } as any)
           .execute();
       }
 
@@ -464,25 +488,29 @@ export class SalesWriteService {
   }
 
   async deleteHeldSale(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const heldSale = await this.db
       .selectFrom('held_sales')
       .select(['id', 'created_by'])
       .where('id', '=', id)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .executeTakeFirst();
     if (!heldSale || !this.authz.canAccessHeldSale(auth, heldSale)) {
       throw new AppError('Held sale not found', 'HELD_SALE_NOT_FOUND', 404);
     }
 
-    await this.db.deleteFrom('held_sales').where('id', '=', id).execute();
+    await this.db.deleteFrom('held_sales').where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
     await this.audit.log('حذف فاتورة معلقة', `تم حذف فاتورة معلقة #${id} بواسطة ${auth.username}`, auth);
     return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
   }
 
   async clearHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     const canManageHeldSales = this.authz.canManageHeldSales(auth);
     const ownerUserId = this.authz.heldSaleOwnerUserId(auth);
     const result = await this.db
       .deleteFrom('held_sales')
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .$if(!canManageHeldSales, (qb) => qb.where('created_by', '=', ownerUserId ?? -1))
       .execute();
     const deletedCount = Number(result?.[0]?.numDeletedRows ?? NaN);

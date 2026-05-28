@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete as HttpRemove, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -13,8 +13,8 @@ export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 
   @Get('categories')
-  listCategories(): Promise<Record<string, unknown>> {
-    return this.catalogService.listCategories();
+  listCategories(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.catalogService.listCategories(req.authContext!);
   }
 
   @Post('categories')
@@ -33,15 +33,15 @@ export class CatalogController {
     return this.catalogService.updateCategory(id, payload, req.authContext!);
   }
 
-  @Delete('categories/:id')
+  @HttpRemove('categories/:id')
   @RequirePermissions('canDelete')
-  deleteCategory(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  removeCategory(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.deleteCategory(id, req.authContext!);
   }
 
   @Get('products')
   listProducts(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.catalogService.listProducts(query, req.authContext);
+    return this.catalogService.listProducts(query, req.authContext!);
   }
 
   @Get('catalog/pos-products')
@@ -66,9 +66,9 @@ export class CatalogController {
     return this.catalogService.updateProduct(id, payload, req.authContext!);
   }
 
-  @Delete('products/:id')
+  @HttpRemove('products/:id')
   @RequirePermissions('canDelete')
-  deleteProduct(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  removeProduct(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.deleteProduct(id, req.authContext!);
   }
 }

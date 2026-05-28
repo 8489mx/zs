@@ -41,3 +41,6 @@ backend/.env.development
 frontend/.env.development
 scripts/dev/.runtime/
 scripts/dev/.state/
+backend/hostinger-api.production.env
+backend/superbaseold.env
+frontend/.env.production

@@ -1,11 +1,8 @@
-/* eslint-disable max-lines */
-import { CSSProperties, PropsWithChildren, ReactNode, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, PropsWithChildren, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
-import { queryKeys } from '@/app/query-keys';
 import { authApi } from '@/shared/api/auth';
-import { dayRangeLast30 } from '@/lib/format';
 import { resetAuthenticatedClient } from '@/lib/query-client-session';
 import { DEFAULT_STORE_NAME, useAuthStore } from '@/stores/auth-store';
 import { navigationItems } from '@/app/router/registry';
@@ -13,6 +10,7 @@ import { canAccessNavigationItem } from '@/app/router/access';
 import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
+import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
 import {
   POS_SHELL_VISIBILITY_KEY,
   POS_TOGGLE_CHROME_EVENT,
@@ -26,14 +24,6 @@ type SidebarGroupDefinition = {
   label: string;
   itemKeys: string[];
 };
-
-function SideIcon({ children }: { children: ReactNode }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {children}
-    </svg>
-  );
-}
 
 type IconTone = {
   bg: string;
@@ -63,187 +53,27 @@ const iconToneMap: Record<string, IconTone> = {
   settings: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
 };
 
-const iconMap: Record<string, ReactNode> = {
-  dashboard: <SideIcon><path d="M4.5 19.5h15" /><path d="M7.5 16.5v-4" /><path d="M12 16.5V8" /><path d="M16.5 16.5V5.5" /><path d="M4.5 9.5 9 6l3 2.5 4.5-4" /></SideIcon>,
-  products: <SideIcon><path d="M12 2.8 4.2 6.7v10.6L12 21.2l7.8-3.9V6.7L12 2.8Z" /><path d="M4.2 6.7 12 11l7.8-4.3" /><path d="M12 11v10.2" /></SideIcon>,
-  sales: <SideIcon><path d="M7.5 3.5h9l2 2.8v14.2h-13V6.3l2-2.8Z" /><path d="M9 8.5h6" /><path d="M9 12h6" /><path d="M9 15.5h4.5" /><path d="M15.8 3.5V7h3" /></SideIcon>,
-  pos: <SideIcon><rect x="3.5" y="4.2" width="17" height="11.5" rx="2.5" /><path d="M8.5 19.8h7" /><path d="M12 15.7v4.1" /><path d="M7 8.4h10" /><path d="M7 11.5h4.5" /><path d="M15.3 11.5h1.7" /></SideIcon>,
-  'cash-drawer': <SideIcon><path d="M4 10h16v7.8H4z" /><path d="M6 10V7h7.2" /><circle cx="16.6" cy="7.4" r="2.8" /><path d="M16.6 6.2v1.4l1 .8" /><path d="M8.5 13.8h7" /><circle cx="12" cy="14" r="1.1" /></SideIcon>,
-  purchases: <SideIcon><path d="M3.8 7.8h10.5l2.4 3.6v4.8H3.8z" /><path d="M16.7 11.4h3.5v4.8h-3.5" /><circle cx="7.6" cy="17.1" r="1.4" /><circle cx="16.4" cy="17.1" r="1.4" /><path d="M6.2 7.8V5.8h5.6v2" /></SideIcon>,
-  inventory: <SideIcon><path d="M3.5 7.2 12 3l8.5 4.2L12 11.4 3.5 7.2Z" /><path d="M3.5 12 12 16.2 20.5 12" /><path d="M3.5 16.8 12 21l8.5-4.2" /></SideIcon>,
-  suppliers: <SideIcon><path d="M5 20V9.5l4-2.5 4 2.5V20" /><path d="M13 20V5.5L17 3l4 2.5V20" /><path d="M7.5 12.2h.01" /><path d="M10 12.2h.01" /><path d="M15.8 9h.01" /><path d="M18.2 9h.01" /></SideIcon>,
-  customers: <SideIcon><circle cx="12" cy="8" r="3.7" /><path d="M5 20.5a7.8 7.8 0 0 1 14 0" /></SideIcon>,
-  accounts: <SideIcon><rect x="3.8" y="5" width="16.4" height="13.5" rx="2.4" /><path d="M3.8 9.2h16.4" /><path d="M7.5 13.2h4" /><path d="M15.5 13.2h1.8" /><path d="M7.5 16h2.8" /></SideIcon>,
-  returns: <SideIcon><path d="M8 7H4v4" /><path d="M4 11a8 8 0 1 0 2.6-5.9" /><path d="M16 17h4v-4" /></SideIcon>,
-  reports: <SideIcon><path d="M5 19V10.2" /><path d="M10 19V5.5" /><path d="M15 19v-6.8" /><path d="M20 19v-4.6" /><path d="M3.8 19.5h16.4" /></SideIcon>,
-  audit: <SideIcon><path d="M12 3 5.5 6v6c0 4.4 2.7 7 6.5 8.8 3.8-1.8 6.5-4.4 6.5-8.8V6L12 3Z" /><path d="m9.2 11.8 2 2 3.8-4" /></SideIcon>,
-  treasury: <SideIcon><rect x="3.8" y="6" width="16.4" height="11.8" rx="2.3" /><circle cx="12" cy="11.9" r="2.3" /><path d="M7.5 10h.01" /><path d="M16.5 13.8h.01" /></SideIcon>,
-  services: <SideIcon><rect x="4.2" y="4.6" width="10.5" height="14.8" rx="2.1" /><path d="M6.6 8h5.8" /><path d="M6.6 11h1.8" /><path d="M9.6 11h2.8" /><path d="M6.6 14h5.8" /><circle cx="18.2" cy="14.8" r="2.6" /><path d="M18.2 13.7v2.2" /><path d="M17.1 14.8h2.2" /></SideIcon>,
-  hr: <SideIcon><circle cx="9" cy="8" r="3" /><path d="M3.8 20a5.4 5.4 0 0 1 10.4 0" /><circle cx="17" cy="9.5" r="2.4" /><path d="M14.4 19.5a4.2 4.2 0 0 1 5.8-3.9" /></SideIcon>,
-  'pricing-center': <SideIcon><path d="M4.5 18.5h15" /><path d="M7.5 18.5V9.5" /><path d="M12 18.5V5.5" /><path d="M16.5 18.5v-7" /><path d="M5 11.5h14" /></SideIcon>,
-  settings: <SideIcon><circle cx="12" cy="12" r="3.2" /><path d="M19.2 14.4a1.7 1.7 0 0 0 .3 1.8l.05.06a2 2 0 1 1-2.82 2.82l-.06-.05a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-.98 1.55V20.4a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-.98-1.56 1.7 1.7 0 0 0-1.8.31l-.06.05a2 2 0 1 1-2.82-2.82l.05-.06a1.7 1.7 0 0 0 .31-1.8 1.7 1.7 0 0 0-1.55-.98H3.6a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-.98 1.7 1.7 0 0 0-.31-1.8l-.05-.06a2 2 0 1 1 2.82-2.82l.06.05a1.7 1.7 0 0 0 1.8.31 1.7 1.7 0 0 0 .98-1.55V3.6a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 .98 1.56 1.7 1.7 0 0 0 1.8-.31l.06-.05a2 2 0 1 1 2.82 2.82l-.05.06a1.7 1.7 0 0 0-.31 1.8 1.7 1.7 0 0 0 1.55.98h.09a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56.98Z" /></SideIcon>,
-};
-
-const dashboardWarmRange = (() => {
-  const reference = new Date();
-  reference.setHours(23, 59, 59, 999);
-  return dayRangeLast30(reference);
-})();
-
-type WarmupQueryDefinition = {
-  key: string;
-  queryKey: readonly string[];
-  queryFn: () => Promise<unknown>;
-};
-
-function buildWarmupQueries(pathname: string): WarmupQueryDefinition[] {
-  const queries: WarmupQueryDefinition[] = [];
-
-  if (pathname === '/') {
-    queries.push({
-      key: 'dashboard-overview',
-      queryKey: queryKeys.dashboardOverview(dashboardWarmRange.from, dashboardWarmRange.to),
-      queryFn: async () => {
-        const { dashboardApi } = await import('@/features/dashboard/api/dashboard.api');
-        return dashboardApi.overview(dashboardWarmRange.from, dashboardWarmRange.to);
-      },
-    });
-  }
-
-  if (pathname.startsWith('/products') || pathname.startsWith('/inventory') || pathname.startsWith('/pricing-center')) {
-    queries.push(
-      {
-        key: 'products-categories',
-        queryKey: queryKeys.productsCategories,
-        queryFn: async () => {
-          const { productsApi } = await import('@/features/products/api/products.api');
-          return productsApi.categories();
-        },
-      },
-      {
-        key: 'products-suppliers',
-        queryKey: queryKeys.productsSuppliers,
-        queryFn: async () => {
-          const { productsApi } = await import('@/features/products/api/products.api');
-          return productsApi.suppliers();
-        },
-      },
-    );
-  }
-
-  if (pathname.startsWith('/pos')) {
-    queries.push(
-      {
-        key: 'pos-settings',
-        queryKey: queryKeys.posSettings,
-        queryFn: async () => {
-          const { posApi } = await import('@/features/pos/api/pos.api');
-          return posApi.settings();
-        },
-      },
-      {
-        key: 'pos-branches',
-        queryKey: queryKeys.posBranches,
-        queryFn: async () => {
-          const { posApi } = await import('@/features/pos/api/pos.api');
-          return posApi.branches();
-        },
-      },
-      {
-        key: 'pos-locations',
-        queryKey: queryKeys.posLocations,
-        queryFn: async () => {
-          const { posApi } = await import('@/features/pos/api/pos.api');
-          return posApi.locations();
-        },
-      },
-      {
-        key: 'pos-customers',
-        queryKey: queryKeys.posCustomers,
-        queryFn: async () => {
-          const { posApi } = await import('@/features/pos/api/pos.api');
-          return posApi.customers();
-        },
-      },
-    );
-  }
-
-  if (pathname.startsWith('/settings')) {
-    queries.push(
-      {
-        key: 'settings',
-        queryKey: queryKeys.settings,
-        queryFn: async () => {
-          const { settingsApi } = await import('@/features/settings/api/settings.api');
-          return settingsApi.settings();
-        },
-      },
-      {
-        key: 'branches',
-        queryKey: queryKeys.branches,
-        queryFn: async () => {
-          const { settingsApi } = await import('@/features/settings/api/settings.api');
-          return settingsApi.branches();
-        },
-      },
-      {
-        key: 'settings-locations',
-        queryKey: queryKeys.settingsLocations,
-        queryFn: async () => {
-          const { settingsApi } = await import('@/features/settings/api/settings.api');
-          return settingsApi.locations();
-        },
-      },
-    );
-  }
-
-  return queries;
-}
-
 function AppNavIcon({ itemKey }: { itemKey: string }) {
-  return <>{iconMap[itemKey] || <SideIcon><circle cx="12" cy="12" r="8" /></SideIcon>}</>;
+  const label = itemKey.slice(0, 1).toUpperCase();
+  return <span aria-hidden="true" style={{ fontWeight: 800, fontSize: 13 }}>{label}</span>;
 }
 
 export function AppShell({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const storeName = useAuthStore((state) => state.storeName);
   const clearSession = useAuthStore((state) => state.clearSession);
-
-  const displayName = useMemo(() => user?.displayName || user?.username || 'مستخدم', [user]);
-  const workspaceName = useMemo(() => {
-    const trimmed = String(storeName || '').trim();
-    return trimmed || DEFAULT_STORE_NAME;
-  }, [storeName]);
+  const displayName = user?.displayName || user?.username || 'المستخدم';
+  const workspaceName = storeName || DEFAULT_STORE_NAME;
   const isPosRoute = location.pathname.startsWith('/pos');
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
   const [expandedSidebarGroupKey, setExpandedSidebarGroupKey] = useState<string | null>(null);
   const [quickAttendanceOpen, setQuickAttendanceOpen] = useState(false);
 
   const visibleNavigationItems = useMemo(() => {
-    const hiddenKeys = new Set<string>([]);
-    const preferredOrder = [
-      'dashboard',
-      'pos',
-      'cash-drawer',
-      'sales',
-      'purchases',
-      'returns',
-      'accounts',
-      'treasury',
-      'services',
-      'hr',
-      'audit',
-      'inventory',
-      'products',
-      'pricing-center',
-      'customers',
-      'suppliers',
-      'reports',
-      'settings',
-    ];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'treasury', 'services', 'hr', 'audit', 'inventory', 'products', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: 'الرئيسية',
       pos: 'نقطة البيع',
@@ -255,28 +85,18 @@ export function AppShell({ children }: PropsWithChildren) {
       hr: 'الموارد البشرية',
       audit: 'سجل النشاط',
     };
-
-    const items = navigationItems
-      .filter((item) => canAccessNavigationItem(user, item))
-      .filter((item) => !hiddenKeys.has(item.key));
-
-    return items
+    return navigationItems
+      .filter((item) => user && canAccessNavigationItem(user, item))
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
       .sort((a, b) => {
         const aIndex = preferredOrder.indexOf(a.key);
         const bIndex = preferredOrder.indexOf(b.key);
-        const safeA = aIndex === -1 ? 999 : aIndex;
-        const safeB = bIndex === -1 ? 999 : bIndex;
-        return safeA - safeB;
+        return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
   }, [user]);
 
-  const navigationMap = useMemo(() => {
-    return new Map(visibleNavigationItems.map((item) => [item.key, item]));
-  }, [visibleNavigationItems]);
-
+  const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
-
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
     { key: 'sales-group', label: 'المبيعات', itemKeys: ['sales', 'returns', 'customers', 'reports'] },
     { key: 'purchases-group', label: 'المشتريات والموردين', itemKeys: ['purchases', 'suppliers'] },
@@ -285,67 +105,21 @@ export function AppShell({ children }: PropsWithChildren) {
     { key: 'admin-group', label: 'الإدارة', itemKeys: ['hr', 'audit', 'settings'] },
   ]), []);
 
-  const visiblePrimaryNavigationItems = useMemo(
-    () => primaryNavigationKeys
-      .map((key) => navigationMap.get(key))
-      .filter((item): item is NonNullable<typeof item> => Boolean(item)),
-    [navigationMap, primaryNavigationKeys],
-  );
+  const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
+  const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {
+    const navItem = navigationMap.get(itemKey);
+    if (!navItem) return false;
+    if (navItem.end) return location.pathname === navItem.to;
+    return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`);
+  }))?.key ?? null, [location.pathname, navigationMap, sidebarGroups]);
 
-  const activeSidebarGroupKey = useMemo(() => {
-    return sidebarGroups.find((group) => {
-      return group.itemKeys.some((itemKey) => {
-        const navItem = navigationMap.get(itemKey);
-        if (!navItem) return false;
-        if (navItem.end) return location.pathname === navItem.to;
-        return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`);
-      });
-    })?.key ?? null;
-  }, [location.pathname, navigationMap, sidebarGroups]);
-
-  useEffect(() => {
-    setExpandedSidebarGroupKey(activeSidebarGroupKey);
-  }, [activeSidebarGroupKey]);
-
-  function toggleSidebarGroup(groupKey: string) {
-    setExpandedSidebarGroupKey((current) => current === groupKey ? null : groupKey);
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-    const warmupQueries = buildWarmupQueries(location.pathname);
-
-    const warm = () => {
-      if (cancelled) return;
-      warmupQueries.forEach((query) => {
-        if (queryClient.getQueryState(query.queryKey)) return;
-        void queryClient.prefetchQuery({
-          queryKey: query.queryKey,
-          queryFn: query.queryFn,
-          staleTime: 60_000,
-        });
-      });
-    };
-
-    const idleWindow = window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void; };
-    const idleId = idleWindow.requestIdleCallback?.(warm, { timeout: 2000 });
-    const timeoutId = window.setTimeout(warm, 1200);
-
-    return () => {
-      cancelled = true;
-      if (typeof idleId === 'number') {
-        idleWindow.cancelIdleCallback?.(idleId);
-      }
-      window.clearTimeout(timeoutId);
-    };
-  }, [location.pathname, queryClient]);
+  useEffect(() => { setExpandedSidebarGroupKey(activeSidebarGroupKey); }, [activeSidebarGroupKey]);
 
   useEffect(() => {
     if (!isPosRoute) {
       setIsPosChromeHidden(false);
       return;
     }
-
     setIsPosChromeHidden(readPosShellPreference());
   }, [isPosRoute]);
 
@@ -356,9 +130,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!isPosRoute || typeof window === 'undefined') return undefined;
-
-    const toggleChrome = () => setIsPosChromeHidden((current: boolean) => !current);
-
+    const toggleChrome = () => setIsPosChromeHidden((current) => !current);
     const toggleFullscreen = async () => {
       try {
         if (!document.fullscreenElement) {
@@ -366,41 +138,34 @@ export function AppShell({ children }: PropsWithChildren) {
           setIsPosChromeHidden(true);
           return;
         }
-
         await document.exitFullscreen?.();
         setIsPosChromeHidden(false);
       } catch {
         // ignore fullscreen errors triggered by browser policies
       }
     };
-
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key === 'F10') {
         event.preventDefault();
         toggleChrome();
         return;
       }
-
       if (event.key === 'F11') {
         event.preventDefault();
         void toggleFullscreen();
       }
     };
-
     const handleFullscreenChange = () => {
       if (document.fullscreenElement) {
         setIsPosChromeHidden(true);
         return;
       }
-
       setIsPosChromeHidden(readPosShellPreference());
     };
-
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome);
     window.addEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-
     return () => {
       window.removeEventListener('keydown', handleKeydown);
       window.removeEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome);
@@ -413,21 +178,12 @@ export function AppShell({ children }: PropsWithChildren) {
     const resetScroll = () => {
       const contentWrap = document.querySelector('.content-wrap') as HTMLElement | null;
       const pageStack = document.querySelector('.content-wrap .page-stack') as HTMLElement | null;
-
-      if (contentWrap) {
-        contentWrap.scrollTop = 0;
-      }
-
-      if (pageStack) {
-        pageStack.scrollTop = 0;
-      }
-
+      if (contentWrap) contentWrap.scrollTop = 0;
+      if (pageStack) pageStack.scrollTop = 0;
       window.scrollTo(0, 0);
     };
-
     resetScroll();
     const frameId = window.requestAnimationFrame(resetScroll);
-
     return () => window.cancelAnimationFrame(frameId);
   }, [location.pathname]);
 
@@ -435,19 +191,14 @@ export function AppShell({ children }: PropsWithChildren) {
     const isTypingTarget = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
       const tag = target.tagName.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
-      if (target.isContentEditable || target.closest('[contenteditable="true"]')) return true;
-      return false;
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable || Boolean(target.closest('[contenteditable="true"]'));
     };
-
     const handleGlobalShortcut = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return;
-      if (!event.altKey || !event.shiftKey) return;
-      if (event.key !== 'F9') return;
+      if (!event.altKey || !event.shiftKey || event.key !== 'F9') return;
       event.preventDefault();
       setQuickAttendanceOpen(true);
     };
-
     window.addEventListener('keydown', handleGlobalShortcut);
     return () => window.removeEventListener('keydown', handleGlobalShortcut);
   }, []);
@@ -463,118 +214,62 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const cleanWorkspaceName = workspaceName.replace(/^\s*["'”“]+|["'”“]+\s*$/g, '').trim() || workspaceName;
 
+  function renderNavItem(item: NonNullable<(typeof visibleNavigationItems)[number]>, keyPrefix: string) {
+    const tone = iconToneMap[item.key] || iconToneMap.settings;
+    const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
+    return (
+      <NavLink key={`${keyPrefix}-${item.key}`} to={item.to} end={item.end} data-key={item.key} style={toneStyle} className={({ isActive }) => `sidebar-link ${keyPrefix === 'group' ? 'sidebar-link-sub ' : ''}${isActive ? 'active' : ''}`.trim()}>
+        <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
+        <span className="sidebar-label">{item.label}</span>
+        <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
+      </NavLink>
+    );
+  }
+
   return (
     <div className={`app-layout ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
       {!isPosRoute || !isPosChromeHidden ? (
-      <aside className="sidebar-fixed">
-        <div className="brand">
-          <div className="brand-copy">
-            <div className="brand-title">{cleanWorkspaceName}</div>
-            <div className="brand-sub">منصة Z Systems</div>
-            <div className="brand-sub muted">لإدارة المبيعات والمخزون</div>
+        <aside className="sidebar-fixed">
+          <div className="brand">
+            <div className="brand-copy">
+              <div className="brand-title">{cleanWorkspaceName}</div>
+              <div className="brand-sub">منصة Z Systems</div>
+              <div className="brand-sub muted">لإدارة المبيعات والمخزون</div>
+            </div>
+            <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
           </div>
-          <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
-        </div>
-        <nav className="sidebar-nav">
-          {visiblePrimaryNavigationItems.map((item) => {
-            const tone = iconToneMap[item.key] || iconToneMap.settings;
-            const toneStyle = {
-              '--icon-bg': tone.bg,
-              '--icon-border': tone.border,
-              '--icon-fg': tone.fg,
-              '--icon-glow': tone.glow,
-            } as CSSProperties;
-
-            return (
-              <NavLink
-                key={`primary-${item.key}`}
-                to={item.to}
-                end={item.end}
-                data-key={item.key}
-                style={toneStyle}
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`.trim()}
-              >
-                <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
-                <span className="sidebar-label">{item.label}</span>
-                <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
-              </NavLink>
-            );
-          })}
-
-          {sidebarGroups.map((group) => {
-            const groupItems = group.itemKeys
-              .map((key) => navigationMap.get(key))
-              .filter((item): item is NonNullable<typeof item> => Boolean(item));
-            if (!groupItems.length) return null;
-
-            const isOpen = expandedSidebarGroupKey === group.key;
-            const isActive = activeSidebarGroupKey === group.key;
-            const groupIconItemKey = groupItems[0]?.key || 'settings';
-            const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
-            const toneStyle = {
-              '--icon-bg': tone.bg,
-              '--icon-border': tone.border,
-              '--icon-fg': tone.fg,
-              '--icon-glow': tone.glow,
-            } as CSSProperties;
-
-            return (
-              <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>
-                <button
-                  type="button"
-                  className="sidebar-group-trigger"
-                  aria-expanded={isOpen}
-                  onClick={() => toggleSidebarGroup(group.key)}
-                  style={toneStyle}
-                >
-                  <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
-                  <span className="sidebar-label">{group.label}</span>
-                  <span className="sidebar-group-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
-                </button>
-
-                {isOpen ? (
-                  <div className="sidebar-group-items">
-                    {groupItems.map((item) => {
-                      const tone = iconToneMap[item.key] || iconToneMap.settings;
-                      const toneStyle = {
-                        '--icon-bg': tone.bg,
-                        '--icon-border': tone.border,
-                        '--icon-fg': tone.fg,
-                        '--icon-glow': tone.glow,
-                      } as CSSProperties;
-
-                      return (
-                        <NavLink
-                          key={`group-${group.key}-${item.key}`}
-                          to={item.to}
-                          end={item.end}
-                          data-key={item.key}
-                          style={toneStyle}
-                          className={({ isActive: isItemActive }) => `sidebar-link sidebar-link-sub ${isItemActive ? 'active' : ''}`.trim()}
-                        >
-                          <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
-                          <span className="sidebar-label">{item.label}</span>
-                          <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </nav>
-        <div className="sidebar-footer">
-          <div className="stack gap-8" style={{ marginBottom: 12 }}>
-            <div className="muted small">مرحبًا {displayName}</div>
+          <nav className="sidebar-nav">
+            {visiblePrimaryNavigationItems.map((item) => renderNavItem(item, 'primary'))}
+            {sidebarGroups.map((group) => {
+              const groupItems = group.itemKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item));
+              if (!groupItems.length) return null;
+              const isOpen = expandedSidebarGroupKey === group.key;
+              const isActive = activeSidebarGroupKey === group.key;
+              const groupIconItemKey = groupItems[0]?.key || 'settings';
+              const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
+              const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
+              return (
+                <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>
+                  <button type="button" className="sidebar-group-trigger" aria-expanded={isOpen} onClick={() => setExpandedSidebarGroupKey((current) => current === group.key ? null : group.key)} style={toneStyle}>
+                    <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
+                    <span className="sidebar-label">{group.label}</span>
+                    <span className="sidebar-group-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
+                  </button>
+                  {isOpen ? <div className="sidebar-group-items">{groupItems.map((item) => renderNavItem(item, 'group'))}</div> : null}
+                </div>
+              );
+            })}
+          </nav>
+          <div className="sidebar-footer">
+            <div className="stack gap-8" style={{ marginBottom: 12 }}><div className="muted small">مرحبًا {displayName}</div></div>
+            <Button variant="danger" onClick={handleLogout} className="full-width">تسجيل الخروج</Button>
           </div>
-          <Button variant="danger" onClick={handleLogout} className="full-width">تسجيل الخروج</Button>
-        </div>
-      </aside>
+        </aside>
       ) : null}
       <div className={`content-wrap ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
         <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
           <BootstrapAdminBanner />
+          <TrialStatusBanner />
           <SystemStatusBanner />
         </div>
         <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>

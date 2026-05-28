@@ -49,8 +49,8 @@ export class PurchasesController {
 
   @Get('purchases/:id/payment-schedule')
   @RequirePermissions('purchases')
-  listPurchasePaymentSchedule(@Param('id', ParseIntPipe) id: number): Promise<Record<string, unknown>> {
-    return this.scheduleService.listForPurchase(id);
+  listPurchasePaymentSchedule(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.scheduleService.listForPurchase(id, req.authContext!);
   }
 
   @Post('purchases/:id/payment-schedule')
@@ -61,8 +61,8 @@ export class PurchasesController {
 
   @Get('suppliers/:id/payment-schedule')
   @RequirePermissions('accounts')
-  listSupplierPaymentSchedule(@Param('id', ParseIntPipe) id: number): Promise<Record<string, unknown>> {
-    return this.scheduleService.listForSupplier(id);
+  listSupplierPaymentSchedule(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.scheduleService.listForSupplier(id, req.authContext!);
   }
 
   @Post('suppliers/:id/payment-schedule')

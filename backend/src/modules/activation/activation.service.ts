@@ -43,6 +43,14 @@ export class ActivationService {
     return this.configService.get<'desktop' | 'server'>('LICENSE_MODE') || 'desktop';
   }
 
+  private get appMode(): string {
+    return String(this.configService.get<string>('APP_MODE') || '').trim().toUpperCase();
+  }
+
+  private get isCloudSaasMode(): boolean {
+    return this.appMode === 'CLOUD_SAAS';
+  }
+
   private get activationEnforced(): boolean {
     return this.deploymentMode === 'desktop' && this.configService.get<boolean>('ACTIVATION_ENFORCED') === true;
   }
@@ -108,6 +116,19 @@ export class ActivationService {
   }
 
   async getStatus() {
+    if (this.isCloudSaasMode) {
+      return {
+        deploymentMode: this.deploymentMode,
+        activationRequired: false,
+        activated: true,
+        setupRequired: false,
+        machineId: null,
+        customerName: null,
+        activatedAt: null,
+        expiresAt: null,
+      };
+    }
+
     const machine = getMachineFingerprint();
     const record = await this.readActivationRecord();
     const users = await this.getUserCount();
@@ -125,6 +146,9 @@ export class ActivationService {
   }
 
   async activate(dto: ActivateAppDto) {
+    if (this.isCloudSaasMode) {
+      throw new ForbiddenException('Activation endpoints are disabled in CLOUD_SAAS mode.');
+    }
     if (!this.activationEnforced) return { ok: true, ...(await this.getStatus()) };
     const record = this.verifyCode(dto.activationCode);
     await this.setSetting('activation.license', JSON.stringify(record));
@@ -132,6 +156,9 @@ export class ActivationService {
   }
 
   async initialize(dto: InitializeAppDto) {
+    if (this.isCloudSaasMode) {
+      throw new ForbiddenException('Legacy activation initialize is disabled in CLOUD_SAAS mode.');
+    }
     const status = await this.getStatus();
     if (status.activationRequired && !status.activated) {
       throw new ForbiddenException('فعّل البرنامج أولًا قبل التهيئة.');

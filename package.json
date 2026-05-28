@@ -4,7 +4,8 @@
   "version": "1.1.0",
   "scripts": {
     "install:all": "npm --prefix backend ci && npm --prefix frontend ci",
-    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "build": "node ./scripts/build-root.cjs",
+    "build:all": "npm --prefix backend run build && npm --prefix frontend run build",
     "sync:portable-backend": "node ./scripts/sync-portable-backend-runtime.cjs",
     "qa": "npm --prefix backend run check:commercial-ready && npm --prefix frontend run qa",
     "qa:backend": "npm --prefix backend run check:commercial-ready",
