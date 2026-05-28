@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { ensureNonNegativeStock } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, previewAssignedLocationStockQty, setScopedStockQty } from '../../../common/utils/location-stock-ledger';
@@ -21,13 +22,21 @@ export class InventoryAdjustmentService {
   ) {}
 
   async createInventoryAdjustment(payload: InventoryAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
     let result: { productId: number; beforeQty: number; afterQty: number } = { productId: payload.productId, beforeQty: 0, afterQty: 0 };
 
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const product = await trx.selectFrom('products').selectAll().where('id', '=', payload.productId).where('is_active', '=', true).executeTakeFirst();
+      const product = await trx
+        .selectFrom('products')
+        .selectAll()
+        .where('id', '=', payload.productId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+      const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: payload.productId, branchId: payload.branchId, locationId: payload.locationId };
       const beforeQty = payload.locationId
-        ? await previewAssignedLocationStockQty(trx, { productId: payload.productId, branchId: payload.branchId, locationId: payload.locationId })
+        ? await previewAssignedLocationStockQty(trx, stockScope)
         : Number(product.stock_qty || 0);
       let afterQty = beforeQty;
       let movementQty = Number(payload.qty || 0);
@@ -37,29 +46,23 @@ export class InventoryAdjustmentService {
         afterQty = Number(payload.qty || 0);
         movementQty = Math.abs(afterQty - beforeQty);
         stockChange = await setScopedStockQty(trx, {
-          productId: payload.productId,
+          ...stockScope,
           nextQty: afterQty,
-          branchId: payload.branchId,
-          locationId: payload.locationId,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: 'Cannot deduct more than current stock',
         });
       } else if (payload.actionType === 'add') {
         afterQty = beforeQty + Number(payload.qty || 0);
         stockChange = await applyStockDelta(trx, {
-          productId: payload.productId,
+          ...stockScope,
           delta: Number(payload.qty || 0),
-          branchId: payload.branchId,
-          locationId: payload.locationId,
         });
       } else {
         afterQty = beforeQty - Number(payload.qty || 0);
         ensureNonNegativeStock(afterQty, 'INSUFFICIENT_STOCK', 'Cannot deduct more than current stock');
         stockChange = await applyStockDelta(trx, {
-          productId: payload.productId,
+          ...stockScope,
           delta: -Number(payload.qty || 0),
-          branchId: payload.branchId,
-          locationId: payload.locationId,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: 'Cannot deduct more than current stock',
         });
@@ -80,6 +83,8 @@ export class InventoryAdjustmentService {
           branch_id: payload.branchId ?? null,
           location_id: payload.locationId ?? null,
           created_by: auth.userId,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
         })
         .execute();
       result = { productId: payload.productId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter };
@@ -90,7 +95,7 @@ export class InventoryAdjustmentService {
     return {
       ok: true,
       adjustment: result,
-      products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).execute()).map((p) => ({ id: String(p.id), name: p.name })),
+      products: (await this.db.selectFrom('products').select(['id', 'name']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).execute()).map((p) => ({ id: String(p.id), name: p.name })),
       stockMovements: (await this.countService.listStockMovements({}, auth)).stockMovements,
       auditLogs: [],
     };
