@@ -11,13 +11,13 @@ export class SettingsBackupController {
   constructor(private readonly backupService: SettingsBackupService) {}
 
   @Get('backup')
-  getBackup(@Req() _req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.backupService.exportBackup();
+  getBackup(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.backupService.exportBackup(req.authContext!);
   }
 
   @Get('backup-snapshots')
-  listSnapshots(@Req() _req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.backupService.listSnapshots();
+  listSnapshots(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.backupService.listSnapshots(req.authContext!);
   }
 
   @Get('backup/config')
