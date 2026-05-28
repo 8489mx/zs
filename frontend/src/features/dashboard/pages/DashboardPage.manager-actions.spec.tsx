@@ -107,7 +107,7 @@ vi.mock('@/shared/system/first-run-setup-checklist', () => ({
 }));
 
 describe('Dashboard daily home layout', () => {
-  it('renders a focused daily dashboard with daily decision cards and compact profit source insights', () => {
+  it('renders the current focused daily dashboard with decision and summary cards', () => {
     useDashboardOverviewMock.mockReturnValue({
       data: dashboardOverview,
       isLoading: false,
@@ -130,20 +130,22 @@ describe('Dashboard daily home layout', () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
     expect(screen.getByRole('button', { name: 'تنبيهات المدير' })).toBeInTheDocument();
-    expect(screen.getByText('موجز المدير اليومي')).toBeInTheDocument();
-    expect(screen.getByText('البيع والخزينة')).toBeInTheDocument();
+    expect(screen.getAllByText('ملخص اليوم').length).toBeGreaterThan(0);
+    expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
+    expect(screen.getByText('صافي الخزينة')).toBeInTheDocument();
+    expect(screen.getByLabelText('إجراءات سريعة')).toBeInTheDocument();
+    expect(screen.getByText('أهم ما يحتاج مراجعة الآن')).toBeInTheDocument();
+    expect(screen.getByText('قرارات تحتاج مراجعة')).toBeInTheDocument();
     expect(screen.getByText('إيه أشتريه؟')).toBeInTheDocument();
     expect(screen.getByText('إيه الراكد؟')).toBeInTheDocument();
     expect(screen.getByText('بيكسب منين؟')).toBeInTheDocument();
     expect(screen.getByText('مبيعات عالية وهامش ضعيف')).toBeInTheDocument();
     expect(screen.getByText('إيه أُحصّله؟')).toBeInTheDocument();
-    expect(screen.getAllByText('ملخص اليوم').length).toBeGreaterThan(0);
-    expect(screen.getByText(/التنبيهات المهمة/)).toBeInTheDocument();
+    expect(screen.getByText('تنبيهات المخزون والحسابات')).toBeInTheDocument();
     expect(screen.getByText('أعلى أصناف اليوم')).toBeInTheDocument();
     expect(screen.getByText('الحسابات المستحقة والمخزون')).toBeInTheDocument();
     expect(screen.getByText('مبيعات آخر 30 يوم')).toBeInTheDocument();
-
-    expect(screen.getAllByText('لا توجد تنبيهات حرجة حاليًا').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('لا توجد قرارات عاجلة الآن').length).toBeGreaterThan(0);
   });
 
   it('opens and closes the Dashboard manager notifications dropdown', async () => {
