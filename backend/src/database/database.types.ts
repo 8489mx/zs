@@ -68,6 +68,72 @@ export interface SettingTable {
   value: string;
 }
 
+export interface AccountingAccountTable {
+  id: Generated<number>;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  account_type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'contra_asset' | 'contra_revenue';
+  parent_id: number | null;
+  normal_balance: 'debit' | 'credit';
+  is_active: boolean;
+  is_system: boolean;
+  sort_order: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface JournalEntryTable {
+  id: Generated<number>;
+  entry_no: string;
+  entry_date: ColumnType<Date, string | undefined, string | undefined>;
+  description: string;
+  source_type: string;
+  source_id: number | null;
+  status: 'draft' | 'posted' | 'cancelled';
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  posted_by: number | null;
+  posted_at: Date | null;
+  cancelled_by: number | null;
+  cancelled_at: Date | null;
+  cancel_reason: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface JournalEntryLineTable {
+  id: Generated<number>;
+  journal_entry_id: number;
+  account_id: number;
+  description: string;
+  debit: number;
+  credit: number;
+  partner_type: 'none' | 'customer' | 'supplier';
+  partner_id: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface AccountingSettingsTable {
+  id: number;
+  cash_account_id: number | null;
+  bank_account_id: number | null;
+  customer_receivable_account_id: number | null;
+  supplier_payable_account_id: number | null;
+  inventory_account_id: number | null;
+  sales_revenue_account_id: number | null;
+  sales_discount_account_id: number | null;
+  cogs_account_id: number | null;
+  purchase_account_id: number | null;
+  expenses_account_id: number | null;
+  sales_tax_account_id: number | null;
+  purchase_tax_account_id: number | null;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface AuditLogTable {
   id: Generated<number>;
   action: string;
@@ -882,6 +948,10 @@ export interface Database {
   tenants: TenantTable;
   trial_signups: TrialSignupTable;
   settings: SettingTable;
+  accounting_accounts: AccountingAccountTable;
+  journal_entries: JournalEntryTable;
+  journal_entry_lines: JournalEntryLineTable;
+  accounting_settings: AccountingSettingsTable;
   audit_logs: AuditLogTable;
   branches: BranchTable;
   stock_locations: StockLocationTable;

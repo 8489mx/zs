@@ -2,10 +2,10 @@ import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','audit','treasury','services','hr','hrEmployees','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','cashDrawer'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','cashDrawer'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageSettings'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageSettings'
 ];
 export const DEFAULT_CASHIER_PERMS = ['dashboard', 'sales', 'customers', 'cashDrawer'];
 
@@ -20,6 +20,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   returns: 'المرتجعات',
   suppliers: 'الموردون',
   accounts: 'الحسابات',
+  accounting: 'المحاسبة',
   reports: 'التقارير',
   pricingCenterView: 'عرض مركز التسعير',
   pricingCenterManage: 'إدارة مركز التسعير',
@@ -54,7 +55,7 @@ export function getPermissionLabel(permission: string) {
 }
 
 export const USER_PERMISSION_GROUPS = [
-  { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'reports', 'pricingCenterView'] },
+  { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'accounting', 'reports', 'pricingCenterView'] },
   { title: 'الموارد البشرية', items: ['hr', 'hrEmployees', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove'] },
   { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory', 'pricingCenterManage'] },
   { title: 'إدارة النظام', items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups'] },
@@ -65,7 +66,7 @@ export const USER_ROLE_TEMPLATES = {
   cashier: { label: 'كاشير', role: 'cashier', permissions: ['dashboard', 'sales', 'customers', 'cashDrawer'] },
   owner: { label: 'مالك / مدير', role: 'admin', permissions: [...DEFAULT_OPERATOR_PERMS] },
   inventory: { label: 'مسؤول مخزون', role: 'admin', permissions: ['dashboard','products','inventory','purchases','suppliers','reports','pricingCenterView','pricingCenterManage','canPrint','canAdjustInventory'] },
-  accountant: { label: 'محاسب', role: 'admin', permissions: ['dashboard','accounts','reports','customers','suppliers','treasury','canPrint','canViewProfit'] }
+  accountant: { label: 'محاسب', role: 'admin', permissions: ['dashboard','accounts','accounting','reports','customers','suppliers','treasury','canPrint','canViewProfit'] }
 } as const;
 
 export function blankUserDraft(role: 'super_admin' | 'admin' | 'cashier' = 'cashier'): ManagedUserRecord {
@@ -165,3 +166,4 @@ export function printUsersList(title: string, users: ManagedUserRecord[]) {
     </table>
   `);
 }
+
