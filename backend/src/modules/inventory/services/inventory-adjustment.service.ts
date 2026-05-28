@@ -85,7 +85,7 @@ export class InventoryAdjustmentService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        })
+        } as any)
         .execute();
       result = { productId: payload.productId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter };
     });
