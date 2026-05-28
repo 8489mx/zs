@@ -159,7 +159,7 @@ async function insertBalanceRow(
       qty: roundStockQty(qty),
       tenant_id: scope.tenantId,
       account_id: scope.accountId,
-    })
+    } as any)
     .returning(['id', 'product_id', 'branch_id', 'location_id', 'qty'])
     .executeTakeFirstOrThrow();
 
