@@ -8,6 +8,8 @@ export interface Phase1BootstrapTable {
 export interface SessionTable {
   id: string;
   user_id: number;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   expires_at: Date;
   created_at: ColumnType<Date, string | undefined, never>;
   last_seen_at: Date | null;

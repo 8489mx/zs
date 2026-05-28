@@ -44,7 +44,7 @@ export class SalesWriteService {
   ): Promise<void> {
     if (Math.abs(Number(discount || 0)) <= 0.0001) return;
     if (this.authz.hasPermission(auth, 'canDiscount')) return;
-    await this.authz.authorizeDiscountOverride(String(managerPin || '').trim(), trx);
+    await this.authz.authorizeDiscountOverride(String(managerPin || '').trim(), auth, trx);
   }
 
   private assertUnitPriceChangeAllowed(auth: AuthContext, providedPrice: number, allowedPrice: number): void {
@@ -81,8 +81,8 @@ export class SalesWriteService {
     });
   }
 
-  async authorizeDiscountOverride(secret: string, _auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), this.db);
+  async authorizeDiscountOverride(secret: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), auth, this.db);
     return { ok: true, authorized: true, mode: result.mode, authorizedByName: result.authorizedByName };
   }
 

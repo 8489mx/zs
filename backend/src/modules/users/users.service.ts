@@ -177,7 +177,11 @@ export class UsersService {
     await this.db.updateTable('users').set(updates as any).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     await this.replaceUserBranches(id, payload.branchIds, actor);
 
-    let sessionCleanup = this.db.deleteFrom('sessions').where('user_id', '=', id);
+    const { tenantId } = this.scope(actor);
+    let sessionCleanup = this.db
+      .deleteFrom('sessions')
+      .where('user_id', '=', id)
+      .where(sql<boolean>`tenant_id = ${tenantId}`);
     if (keepSessionId) {
       sessionCleanup = sessionCleanup.where('id', '!=', keepSessionId);
     }
@@ -227,7 +231,7 @@ export class UsersService {
 
     const { tenantId } = this.scope(actor);
     await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${id}`.execute(this.db);
-    await this.db.deleteFrom('sessions').where('user_id', '=', id).execute();
+    await this.db.deleteFrom('sessions').where('user_id', '=', id).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
     await this.db.deleteFrom('users').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     await this.audit.log('حذف مستخدم', `تم حذف المستخدم ${existing.username} بواسطة ${actor.username}`, actor);
 

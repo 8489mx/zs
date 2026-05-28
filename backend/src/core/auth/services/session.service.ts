@@ -1,6 +1,6 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { randomUUID } from 'node:crypto';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -8,6 +8,7 @@ import type { AuthContext } from '../../../core/auth/interfaces/auth-context.int
 import { createPasswordRecord, verifyPassword } from '../utils/password-hasher';
 import { assertStrongPassword } from '../utils/password-policy';
 import { resolveTenantContext } from '../utils/tenant-context';
+import { requireTenantScope } from '../utils/tenant-boundary';
 
 function safeJsonArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -48,6 +49,10 @@ export class SessionService {
       maxAttempts: this.configService.get<number>('LOGIN_MAX_ATTEMPTS') ?? 5,
       lockoutMinutes: this.configService.get<number>('LOGIN_LOCKOUT_MINUTES') ?? 15,
     };
+  }
+
+  private scope(auth: AuthContext) {
+    return requireTenantScope(auth);
   }
 
   private resolveUserTenantContext(user: { tenant_id?: string | null; account_id?: string | null }): { tenantId: string; accountId: string } {
@@ -96,6 +101,9 @@ export class SessionService {
       .innerJoin('users as u', 'u.id', 's.user_id')
       .select([
         's.id as session_id',
+        's.user_id as session_user_id',
+        's.tenant_id as session_tenant_id',
+        's.account_id as session_account_id',
         's.expires_at',
         'u.id as user_id',
         'u.username',
@@ -110,6 +118,8 @@ export class SessionService {
       .executeTakeFirst();
 
     if (!row) return null;
+    if (Number(row.session_user_id || 0) !== Number(row.user_id || 0)) return null;
+    if (toNonEmpty(row.session_tenant_id) !== toNonEmpty(row.tenant_id)) return null;
     if (!row.is_active) return null;
     if (row.expires_at <= new Date()) return null;
     if (row.locked_until && row.locked_until > new Date()) return null;
@@ -189,6 +199,8 @@ export class SessionService {
       .values({
         id: sessionId,
         user_id: user.id,
+        tenant_id: tenantContext.tenantId,
+        account_id: tenantContext.accountId,
         expires_at: expiresAt,
         last_seen_at: now,
         ip_address: meta?.ipAddress?.slice(0, 255) || '',
@@ -228,43 +240,56 @@ export class SessionService {
     };
   }
 
-  async logout(sessionId: string): Promise<void> {
-    await this.db.deleteFrom('sessions').where('id', '=', sessionId).execute();
+  async logout(sessionId: string, auth?: AuthContext): Promise<void> {
+    let query = this.db.deleteFrom('sessions').where('id', '=', sessionId);
+    if (auth) {
+      const { tenantId } = this.scope(auth);
+      query = query.where(sql<boolean>`tenant_id = ${tenantId}`);
+    }
+    await query.execute();
   }
 
-  async listSessions(userId: number): Promise<Array<Record<string, unknown>>> {
+  async listSessions(auth: AuthContext, userId: number = auth.userId): Promise<Array<Record<string, unknown>>> {
+    const { tenantId } = this.scope(auth);
     return this.db
       .selectFrom('sessions')
       .select(['id', 'created_at', 'expires_at', 'last_seen_at', 'ip_address', 'user_agent'])
       .where('user_id', '=', userId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .orderBy('created_at desc')
       .execute();
   }
 
-  async revokeSessionForUser(sessionId: string, userId: number): Promise<number> {
+  async revokeSessionForUser(sessionId: string, auth: AuthContext, userId: number = auth.userId): Promise<number> {
+    const { tenantId } = this.scope(auth);
     const result = await this.db
       .deleteFrom('sessions')
       .where('id', '=', sessionId)
       .where('user_id', '=', userId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
 
     return Number(result.numDeletedRows ?? 0);
   }
 
-  async revokeOtherSessions(userId: number, keepSessionId: string): Promise<number> {
+  async revokeOtherSessions(auth: AuthContext, keepSessionId: string, userId: number = auth.userId): Promise<number> {
+    const { tenantId } = this.scope(auth);
     const result = await this.db
       .deleteFrom('sessions')
       .where('user_id', '=', userId)
       .where('id', '!=', keepSessionId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
 
     return Number(result.numDeletedRows ?? 0);
   }
 
-  async revokeAllSessionsForUser(userId: number): Promise<number> {
+  async revokeAllSessionsForUser(auth: AuthContext, userId: number = auth.userId): Promise<number> {
+    const { tenantId } = this.scope(auth);
     const result = await this.db
       .deleteFrom('sessions')
       .where('user_id', '=', userId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
 
     return Number(result.numDeletedRows ?? 0);
@@ -285,6 +310,7 @@ export class SessionService {
     passwordHash: string;
     passwordSalt: string;
   }> {
+    const { tenantId } = this.scope(auth);
     const user = await this.db
       .selectFrom('users')
       .select([
@@ -301,6 +327,7 @@ export class SessionService {
         'account_id',
       ])
       .where('id', '=', auth.userId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
 
     if (!user) {
@@ -311,6 +338,7 @@ export class SessionService {
       .selectFrom('user_branches')
       .select(['branch_id'])
       .where('user_id', '=', auth.userId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
 
     const branchIds = branchRows
@@ -355,11 +383,13 @@ export class SessionService {
     };
   }
 
-  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(auth: AuthContext, currentPassword: string, newPassword: string): Promise<void> {
+    const { tenantId } = this.scope(auth);
     const user = await this.db
       .selectFrom('users')
       .select(['id', 'password_hash', 'password_salt'])
-      .where('id', '=', userId)
+      .where('id', '=', auth.userId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
 
     if (!user) {
@@ -384,16 +414,19 @@ export class SessionService {
         failed_login_count: 0,
         locked_until: null,
       })
-      .where('id', '=', userId)
+      .where('id', '=', auth.userId)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
   }
 
   async buildMePayload(auth: AuthContext): Promise<Record<string, unknown>> {
+    const { tenantId } = this.scope(auth);
     const profile = await this.getSessionUserProfile(auth);
 
     const settingsRows = await this.db
       .selectFrom('settings')
       .select(['key', 'value'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
 
     const settingsMap = new Map(settingsRows.map((row) => [String(row.key || ''), String(row.value || '')]));

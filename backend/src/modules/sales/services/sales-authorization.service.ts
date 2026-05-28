@@ -5,6 +5,7 @@ import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AppError } from '../../../common/errors/app-error';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -49,20 +50,24 @@ export class SalesAuthorizationService {
   }
 
   async hasOpenCashierShift(queryable: DbOrTx, auth: AuthContext): Promise<boolean> {
+    const { tenantId } = requireTenantScope(auth);
     const row = await queryable
       .selectFrom('cashier_shifts')
       .select('id')
       .where('opened_by', '=', auth.userId)
       .where('status', '=', 'open')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .orderBy('id desc')
       .executeTakeFirst();
     return Boolean(row?.id);
   }
 
-  private async getManagerPin(queryable: DbOrTx): Promise<string> {
+  private async getManagerPin(queryable: DbOrTx, auth: AuthContext): Promise<string> {
+    const { tenantId } = requireTenantScope(auth);
     const result = await sql<SettingsRow>`
       select key, value from settings
       where key in ('managerPin', 'managerApprovalPin', 'manager_pin')
+        and tenant_id = ${tenantId}
     `.execute(queryable);
 
     const value = result.rows?.find((row) => String(row.key || '').length > 0)?.value;
@@ -80,14 +85,16 @@ export class SalesAuthorizationService {
 
   async authorizeDiscountOverride(
     secret: string,
+    auth: AuthContext,
     queryable: DbOrTx = this.db,
   ): Promise<{ mode: 'pin' | 'account'; authorizedByName: string; authorizedById?: number }> {
+    const { tenantId } = requireTenantScope(auth);
     const normalizedSecret = String(secret || '').trim();
     if (!normalizedSecret) {
       throw new AppError('أدخل رمز المدير أو كلمة المرور', 'MANAGER_AUTH_REQUIRED', 400);
     }
 
-    const managerPin = await this.getManagerPin(queryable);
+    const managerPin = await this.getManagerPin(queryable, auth);
     if (managerPin && normalizedSecret === managerPin) {
       return { mode: 'pin', authorizedByName: 'اعتماد المدير' };
     }
@@ -96,6 +103,7 @@ export class SalesAuthorizationService {
       .selectFrom('users')
       .select(['id', 'username', 'role', 'password_hash', 'password_salt'])
       .where('is_active', '=', true)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where((eb) => eb.or([eb('role', '=', 'admin'), eb('role', '=', 'super_admin')]))
       .execute() as ManagerUserRow[];
 

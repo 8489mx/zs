@@ -8,6 +8,7 @@ import { Database } from '../../../database/database.types';
 import { NormalizedFashionVariant, NormalizedProductOffer, NormalizedUpsertProduct, UpsertProductDto } from '../dto/upsert-product.dto';
 import { InventoryScopeService } from '../../inventory/services/inventory-scope.service';
 import { normalizeArabicInput, normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 
 type ProductRow = {
   id: number;
@@ -81,25 +82,28 @@ export class CatalogProductService {
 
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService, private readonly inventoryScope: InventoryScopeService) {}
 
-  private hasPermission(actor: AuthContext | undefined, permission: string): boolean {
-    return actor?.role === 'super_admin' || Boolean(actor?.permissions?.includes(permission));
+  private scope(actor: AuthContext) {
+    return requireTenantScope(actor);
   }
 
-  private tenantId(actor: AuthContext | undefined): string {
-    return String(actor?.tenantId || '').trim();
+  private hasPermission(actor: AuthContext, permission: string): boolean {
+    return actor.role === 'super_admin' || Boolean(actor.permissions?.includes(permission));
   }
 
-  private accountId(actor: AuthContext | undefined): string {
-    return String(actor?.accountId || actor?.tenantId || '').trim();
+  private tenantId(actor: AuthContext): string {
+    return this.scope(actor).tenantId;
+  }
+
+  private accountId(actor: AuthContext): string {
+    return this.scope(actor).accountId;
   }
 
   private tenantFields(actor: AuthContext) {
     return { tenant_id: this.tenantId(actor), account_id: this.accountId(actor) };
   }
 
-  private tenantPredicate(actor: AuthContext | undefined, alias?: string) {
+  private tenantPredicate(actor: AuthContext, alias?: string) {
     const tenantId = this.tenantId(actor);
-    if (!tenantId) return sql<boolean>`true`;
     return alias
       ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}`
       : sql<boolean>`tenant_id = ${tenantId}`;
@@ -145,7 +149,7 @@ export class CatalogProductService {
     }
   }
 
-  async listProducts(query: Record<string, unknown>, actor?: AuthContext): Promise<Record<string, unknown>> {
+  async listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { page, pageSize, q, view, requestedLocationId } = this.parseListProductsQuery(query);
     const canViewCost = this.hasPermission(actor, 'canViewCost');
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
@@ -366,7 +370,7 @@ export class CatalogProductService {
     return uniqueRows;
   }
 
-  private async fetchPosProductUnits(productIds: number[], actor?: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
+  private async fetchPosProductUnits(productIds: number[], actor: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
     if (!productIds.length) return new Map();
     const unitRows = await this.db
       .selectFrom('product_units')
@@ -395,7 +399,7 @@ export class CatalogProductService {
     return unitsByProduct;
   }
 
-  private async fetchProductOffers(productIds: number[], hasMinQty: boolean, actor?: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
+  private async fetchProductOffers(productIds: number[], hasMinQty: boolean, actor: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
     if (!productIds.length) return new Map();
     const offers = hasMinQty
       ? await this.db
@@ -483,7 +487,7 @@ export class CatalogProductService {
     };
   }
 
-  private async resolveScopedStockByProduct(productIds: number[], scopedLocationId: number | null, products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>, actor?: AuthContext): Promise<Map<string, number>> {
+  private async resolveScopedStockByProduct(productIds: number[], scopedLocationId: number | null, products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>, actor: AuthContext): Promise<Map<string, number>> {
     const scopedStockByProduct = new Map<string, number>();
     if (!scopedLocationId || !productIds.length) return scopedStockByProduct;
 
@@ -517,7 +521,7 @@ export class CatalogProductService {
     q: string,
     categories: Array<{ id: number; name: string }>,
     suppliers: Array<{ id: number; name: string }>,
-    actor?: AuthContext,
+    actor: AuthContext,
   ) {
     const [unitSearchRows, offerCountRows, customerPriceCountRows] = await Promise.all([
       q && productIds.length
@@ -618,7 +622,7 @@ export class CatalogProductService {
     });
   }
 
-  private async fetchListProductRelations(pagedIds: number[], hasMinQty: boolean, actor?: AuthContext) {
+  private async fetchListProductRelations(pagedIds: number[], hasMinQty: boolean, actor: AuthContext) {
     const [units, offers, customerPrices] = pagedIds.length
       ? await Promise.all([
           this.db
@@ -892,6 +896,51 @@ export class CatalogProductService {
     }
   }
 
+  private async ensureCategoryAndSupplierInTenant(payload: NormalizedUpsertProduct, actor: AuthContext): Promise<void> {
+    if (payload.categoryId) {
+      const category = await this.db
+        .selectFrom('product_categories')
+        .select('id')
+        .where('id', '=', payload.categoryId)
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(actor))
+        .executeTakeFirst();
+      if (!category) throw new AppError('Category not found', 'CATEGORY_NOT_FOUND', 404);
+    }
+
+    if (payload.supplierId) {
+      const supplier = await this.db
+        .selectFrom('suppliers')
+        .select('id')
+        .where('id', '=', payload.supplierId)
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(actor))
+        .executeTakeFirst();
+      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+    }
+  }
+
+  private async ensureCustomerPricesInTenant(payload: NormalizedUpsertProduct, actor: AuthContext): Promise<void> {
+    if (!payload.customerPrices.length) return;
+    const uniqueCustomerIds = [...new Set(payload.customerPrices.map((entry) => Number(entry.customerId || 0)).filter((id) => id > 0))];
+    const duplicateCustomerIds = uniqueCustomerIds.length !== payload.customerPrices.length;
+    if (duplicateCustomerIds) {
+      throw new AppError('Customer price duplicates are not allowed', 'CUSTOMER_PRICE_DUPLICATE', 400);
+    }
+
+    const rows = await this.db
+      .selectFrom('customers')
+      .select(['id'])
+      .where('id', 'in', uniqueCustomerIds)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
+      .execute();
+
+    if (rows.length !== uniqueCustomerIds.length) {
+      throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
+    }
+  }
+
   private async replaceProductRelations(db: ProductWriteExecutor, productId: number, payload: NormalizedUpsertProduct, actor: AuthContext): Promise<void> {
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     this.ensureAdvancedOffersSupported(payload, offerCapabilities);
@@ -949,6 +998,8 @@ export class CatalogProductService {
     normalized.styleCode = this.coerceNewStyleCode(normalized.styleCode);
     await this.ensureStyleCodeAvailable(normalized.styleCode, actor);
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
+    await this.ensureCategoryAndSupplierInTenant(normalized, actor);
+    await this.ensureCustomerPricesInTenant(normalized, actor);
 
     const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
     const drafts = shouldExpandVariants
@@ -1049,6 +1100,8 @@ export class CatalogProductService {
 
     await this.ensureProductIdentityAvailable(normalized, actor, id);
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
+    await this.ensureCategoryAndSupplierInTenant(normalized, actor);
+    await this.ensureCustomerPricesInTenant(normalized, actor);
 
     const priceChanged = Number(normalized.costPrice || 0) !== Number(existing.cost_price || 0)
       || Number(normalized.retailPrice || 0) !== Number(existing.retail_price || 0)
