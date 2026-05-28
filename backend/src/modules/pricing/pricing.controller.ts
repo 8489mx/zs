@@ -13,7 +13,7 @@ export class PricingController {
 
   @Post('preview')
   @RequirePermissions('pricingCenterView')
-  preview(@Body() payload: PricingPreviewDto): Promise<Record<string, unknown>> {
+  preview(@Body() payload: PricingPreviewDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.pricingService.preview({
       ...payload,
       options: {
@@ -23,7 +23,7 @@ export class PricingController {
         skipCustomerPrices: Boolean(payload.options?.skipCustomerPrices),
         skipManualExceptions: Boolean(payload.options?.skipManualExceptions),
       },
-    });
+    }, req.authContext!);
   }
 
   @Post('apply')
@@ -43,8 +43,8 @@ export class PricingController {
 
   @Get('runs')
   @RequirePermissions('pricingCenterView')
-  listRuns(): Promise<Record<string, unknown>> {
-    return this.pricingService.listRuns();
+  listRuns(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.pricingService.listRuns(req.authContext!);
   }
 
   @Post('runs/:id/undo')
