@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 
 @Injectable()
 export class HrTreasuryAdapter {
@@ -10,9 +11,10 @@ export class HrTreasuryAdapter {
     loan: { id: number; amount: number; employeeName: string; branchId: number | null; locationId: number | null },
     auth: AuthContext,
   ): Promise<void> {
+    const scope = requireTenantScope(auth);
     await sql`
       INSERT INTO treasury_transactions (
-        txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by
+        txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id
       )
       VALUES (
         'cash_out',
@@ -22,7 +24,9 @@ export class HrTreasuryAdapter {
         ${loan.id},
         ${loan.branchId},
         ${loan.locationId},
-        ${auth.userId}
+        ${auth.userId},
+        ${scope.tenantId},
+        ${scope.accountId}
       )
     `.execute(db);
   }
@@ -32,9 +36,10 @@ export class HrTreasuryAdapter {
     repayment: { ledgerId: number; loanId: number; amount: number; employeeName: string; branchId: number | null; locationId: number | null },
     auth: AuthContext,
   ): Promise<void> {
+    const scope = requireTenantScope(auth);
     await sql`
       INSERT INTO treasury_transactions (
-        txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by
+        txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id
       )
       VALUES (
         'cash_in',
@@ -44,7 +49,9 @@ export class HrTreasuryAdapter {
         ${repayment.ledgerId},
         ${repayment.branchId},
         ${repayment.locationId},
-        ${auth.userId}
+        ${auth.userId},
+        ${scope.tenantId},
+        ${scope.accountId}
       )
     `.execute(db);
   }
