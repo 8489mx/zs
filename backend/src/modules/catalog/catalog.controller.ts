@@ -41,7 +41,7 @@ export class CatalogController {
 
   @Get('products')
   listProducts(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.catalogService.listProducts(query, req.authContext);
+    return this.catalogService.listProducts(query, req.authContext!);
   }
 
   @Get('catalog/pos-products')
