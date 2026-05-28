@@ -48,20 +48,17 @@ for (const fnName of [
   assert(ledgerSource.includes(`export async function ${fnName}`), `Location stock ledger is missing exported helper ${fnName}`);
 }
 
-
 assert(exists('src/modules/reports/helpers/reports-inventory.helper.ts'), 'Missing reports inventory helper');
 const inventoryHelperSource = read('src/modules/reports/helpers/reports-inventory.helper.ts');
 for (const fnName of ['groupInventoryLocationBreakdown', 'buildInventoryReportItems', 'buildInventoryLocationHighlights', 'buildInventorySummary']) {
   assert(inventoryHelperSource.includes(`export function ${fnName}`), `Reports inventory helper is missing exported helper ${fnName}`);
 }
 
-
 assert(exists('src/modules/reports/helpers/reports-ledger.helper.ts'), 'Missing reports ledger helper');
 const ledgerHelperSource = read('src/modules/reports/helpers/reports-ledger.helper.ts');
 for (const fnName of ['buildCustomerBalancesPayload', 'buildSupplierBalancesPayload', 'buildCustomerLedgerPayload', 'buildSupplierLedgerPayload', 'buildLedgerSummary']) {
   assert(ledgerHelperSource.includes(`export function ${fnName}`), `Reports ledger helper is missing exported helper ${fnName}`);
 }
-
 
 assert(exists('src/modules/reports/helpers/reports-summary.helper.ts'), 'Missing reports summary helper');
 const summaryHelperSource = read('src/modules/reports/helpers/reports-summary.helper.ts');
@@ -94,21 +91,23 @@ for (const fnName of ['buildTreasuryPayload', 'buildAuditPayload', 'buildTreasur
 }
 
 const reportsServiceSource = read('src/modules/reports/reports.service.ts');
+const reportsAdminServiceSource = read('src/modules/reports/services/reports-admin.service.ts');
+const reportsCombinedSource = `${reportsServiceSource}\n${reportsAdminServiceSource}`;
 assert(reportsServiceSource.includes('./helpers/reports-inventory.helper'), 'ReportsService must consume the inventory helper module');
 assert(reportsServiceSource.includes('./helpers/reports-summary.helper'), 'ReportsService must consume the summary helper module');
 assert(reportsServiceSource.includes('./helpers/reports-query.helper'), 'ReportsService must consume the query helper module');
 assert(reportsServiceSource.includes('./helpers/reports-query-pipeline.helper'), 'ReportsService must consume the query pipeline helper module');
 assert(reportsServiceSource.includes('./helpers/reports-dashboard.helper'), 'ReportsService must consume the dashboard helper module');
 assert(reportsServiceSource.includes('./helpers/reports-ledger.helper'), 'ReportsService must consume the ledger helper module');
-assert(reportsServiceSource.includes('./helpers/reports-ops.helper'), 'ReportsService must consume the ops helper module');
+assert(reportsCombinedSource.includes('helpers/reports-ops.helper'), 'Reports services must consume the ops helper module');
 assert(reportsServiceSource.includes('buildReportSummaryPayload'), 'ReportsService must delegate summary shaping to the summary helper');
 assert(reportsServiceSource.includes('buildReportListState'), 'ReportsService must centralize list-query parsing via the query helper');
-assert(reportsServiceSource.includes('applyTreasurySearch'), 'ReportsService must centralize repeated query search wiring via the query pipeline helper');
+assert(reportsCombinedSource.includes('applyTreasurySearch'), 'Reports services must centralize treasury search wiring via the query pipeline helper');
 assert(reportsServiceSource.includes('buildDashboardOverviewPayload'), 'ReportsService must delegate dashboard shaping to the dashboard helper');
 assert(reportsServiceSource.includes('buildDashboardScope'), 'ReportsService must centralize dashboard date-scope derivation via the dashboard helper');
 assert(reportsServiceSource.includes('buildDashboardComputedState'), 'ReportsService must delegate dashboard in-memory aggregate shaping to the dashboard helper');
-assert(reportsServiceSource.includes('buildTreasuryPayload'), 'ReportsService must delegate treasury payload shaping to the ops helper');
-assert(reportsServiceSource.includes('buildAuditPayload'), 'ReportsService must delegate audit payload shaping to the ops helper');
+assert(reportsCombinedSource.includes('buildTreasuryPayload'), 'Reports services must delegate treasury payload shaping to the ops helper');
+assert(reportsCombinedSource.includes('buildAuditPayload'), 'Reports services must delegate audit payload shaping to the ops helper');
 const reportsServiceLines = reportsServiceSource.split(/\r?\n/).length;
 assert(reportsServiceLines <= 600, `ReportsService is still too large (${reportsServiceLines} lines)`);
 assert(reportsServiceSource.includes("leftJoin('stock_locations as l'"), 'Inventory reporting must join stock_locations explicitly');
