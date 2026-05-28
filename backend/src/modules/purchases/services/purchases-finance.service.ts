@@ -1,12 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely, Transaction, sql } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { Database } from '../../../database/database.types';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
 @Injectable()
 export class PurchasesFinanceService {
+  private tenantScope(actor: AuthContext) {
+    return requireTenantScope(actor);
+  }
+
+  private tenantPredicate(actor: AuthContext) {
+    const scope = this.tenantScope(actor);
+    return sql<boolean>`tenant_id = ${scope.tenantId}`;
+  }
+
+  private tenantFields(actor: AuthContext) {
+    const scope = this.tenantScope(actor);
+    return { tenant_id: scope.tenantId, account_id: scope.accountId };
+  }
+
   async addSupplierLedgerEntry(
     queryable: DbOrTx,
     supplierId: number,
@@ -19,7 +34,7 @@ export class PurchasesFinanceService {
     branchId: number | null,
     locationId: number | null,
   ): Promise<void> {
-    const supplier = await queryable.selectFrom('suppliers').select(['balance']).where('id', '=', supplierId).executeTakeFirstOrThrow();
+    const supplier = await queryable.selectFrom('suppliers').select(['balance']).where('id', '=', supplierId).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
     const balanceAfter = Number((Number(supplier.balance || 0) + amount).toFixed(2));
     await queryable
       .insertInto('supplier_ledger')
@@ -34,10 +49,11 @@ export class PurchasesFinanceService {
         branch_id: branchId,
         location_id: locationId,
         created_by: actor.userId,
-      })
+        ...this.tenantFields(actor),
+      } as any)
       .execute();
 
-    await queryable.updateTable('suppliers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', supplierId).execute();
+    await queryable.updateTable('suppliers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(this.tenantPredicate(actor)).execute();
   }
 
   async addCustomerLedgerEntry(
@@ -51,7 +67,7 @@ export class PurchasesFinanceService {
     branchId: number | null,
     locationId: number | null,
   ): Promise<void> {
-    const customer = await queryable.selectFrom('customers').select(['balance']).where('id', '=', customerId).executeTakeFirstOrThrow();
+    const customer = await queryable.selectFrom('customers').select(['balance']).where('id', '=', customerId).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
     const balanceAfter = Number((Number(customer.balance || 0) + amount).toFixed(2));
     await queryable
       .insertInto('customer_ledger')
@@ -66,10 +82,11 @@ export class PurchasesFinanceService {
         branch_id: branchId,
         location_id: locationId,
         created_by: actor.userId,
-      })
+        ...this.tenantFields(actor),
+      } as any)
       .execute();
 
-    await queryable.updateTable('customers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', customerId).execute();
+    await queryable.updateTable('customers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(actor)).execute();
   }
 
   async addTreasuryTransaction(
@@ -94,7 +111,8 @@ export class PurchasesFinanceService {
         branch_id: branchId,
         location_id: locationId,
         created_by: actor.userId,
-      })
+        ...this.tenantFields(actor),
+      } as any)
       .execute();
   }
 }
