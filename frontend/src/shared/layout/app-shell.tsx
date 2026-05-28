@@ -13,6 +13,7 @@ import { canAccessNavigationItem } from '@/app/router/access';
 import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
+import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
 import {
   POS_SHELL_VISIBILITY_KEY,
   POS_TOGGLE_CHROME_EVENT,
@@ -84,139 +85,29 @@ const iconMap: Record<string, ReactNode> = {
   settings: <SideIcon><circle cx="12" cy="12" r="3.2" /><path d="M19.2 14.4a1.7 1.7 0 0 0 .3 1.8l.05.06a2 2 0 1 1-2.82 2.82l-.06-.05a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-.98 1.55V20.4a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-.98-1.56 1.7 1.7 0 0 0-1.8.31l-.06.05a2 2 0 1 1-2.82-2.82l.05-.06a1.7 1.7 0 0 0 .31-1.8 1.7 1.7 0 0 0-1.55-.98H3.6a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-.98 1.7 1.7 0 0 0-.31-1.8l-.05-.06a2 2 0 1 1 2.82-2.82l.06.05a1.7 1.7 0 0 0 1.8.31 1.7 1.7 0 0 0 .98-1.55V3.6a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 .98 1.56 1.7 1.7 0 0 0 1.8-.31l.06-.05a2 2 0 1 1 2.82 2.82l-.05.06a1.7 1.7 0 0 0-.31 1.8 1.7 1.7 0 0 0 1.55.98h.09a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56.98Z" /></SideIcon>,
 };
 
-const dashboardWarmRange = (() => {
-  const reference = new Date();
-  reference.setHours(23, 59, 59, 999);
-  return dayRangeLast30(reference);
-})();
+function AppNavIcon({ itemKey }: { itemKey: string }) {
+  return iconMap[itemKey] || iconMap.settings;
+}
 
-type WarmupQueryDefinition = {
-  key: string;
-  queryKey: readonly string[];
+type WarmupQuery = {
+  queryKey: readonly unknown[];
   queryFn: () => Promise<unknown>;
 };
 
-function buildWarmupQueries(pathname: string): WarmupQueryDefinition[] {
-  const queries: WarmupQueryDefinition[] = [];
-
-  if (pathname === '/') {
-    queries.push({
-      key: 'dashboard-overview',
-      queryKey: queryKeys.dashboardOverview(dashboardWarmRange.from, dashboardWarmRange.to),
-      queryFn: async () => {
-        const { dashboardApi } = await import('@/features/dashboard/api/dashboard.api');
-        return dashboardApi.overview(dashboardWarmRange.from, dashboardWarmRange.to);
-      },
-    });
-  }
-
-  if (pathname.startsWith('/products') || pathname.startsWith('/inventory') || pathname.startsWith('/pricing-center')) {
-    queries.push(
-      {
-        key: 'products-categories',
-        queryKey: queryKeys.productsCategories,
-        queryFn: async () => {
-          const { productsApi } = await import('@/features/products/api/products.api');
-          return productsApi.categories();
-        },
-      },
-      {
-        key: 'products-suppliers',
-        queryKey: queryKeys.productsSuppliers,
-        queryFn: async () => {
-          const { productsApi } = await import('@/features/products/api/products.api');
-          return productsApi.suppliers();
-        },
-      },
-    );
-  }
-
-  if (pathname.startsWith('/pos')) {
-    queries.push(
-      {
-        key: 'pos-settings',
-        queryKey: queryKeys.posSettings,
-        queryFn: async () => {
-          const { posApi } = await import('@/features/pos/api/pos.api');
-          return posApi.settings();
-        },
-      },
-      {
-        key: 'pos-branches',
-        queryKey: queryKeys.posBranches,
-        queryFn: async () => {
-          const { posApi } = await import('@/features/pos/api/pos.api');
-          return posApi.branches();
-        },
-      },
-      {
-        key: 'pos-locations',
-        queryKey: queryKeys.posLocations,
-        queryFn: async () => {
-          const { posApi } = await import('@/features/pos/api/pos.api');
-          return posApi.locations();
-        },
-      },
-      {
-        key: 'pos-customers',
-        queryKey: queryKeys.posCustomers,
-        queryFn: async () => {
-          const { posApi } = await import('@/features/pos/api/pos.api');
-          return posApi.customers();
-        },
-      },
-    );
-  }
-
-  if (pathname.startsWith('/settings')) {
-    queries.push(
-      {
-        key: 'settings',
-        queryKey: queryKeys.settings,
-        queryFn: async () => {
-          const { settingsApi } = await import('@/features/settings/api/settings.api');
-          return settingsApi.settings();
-        },
-      },
-      {
-        key: 'branches',
-        queryKey: queryKeys.branches,
-        queryFn: async () => {
-          const { settingsApi } = await import('@/features/settings/api/settings.api');
-          return settingsApi.branches();
-        },
-      },
-      {
-        key: 'settings-locations',
-        queryKey: queryKeys.settingsLocations,
-        queryFn: async () => {
-          const { settingsApi } = await import('@/features/settings/api/settings.api');
-          return settingsApi.locations();
-        },
-      },
-    );
-  }
-
-  return queries;
-}
-
-function AppNavIcon({ itemKey }: { itemKey: string }) {
-  return <>{iconMap[itemKey] || <SideIcon><circle cx="12" cy="12" r="8" /></SideIcon>}</>;
+function buildWarmupQueries(pathname: string): WarmupQuery[] {
+  if (pathname.startsWith('/sales')) return [{ queryKey: queryKeys.sales.list(dayRangeLast30), queryFn: () => Promise.resolve(null) }];
+  return [];
 }
 
 export function AppShell({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const storeName = useAuthStore((state) => state.storeName);
   const clearSession = useAuthStore((state) => state.clearSession);
-
-  const displayName = useMemo(() => user?.displayName || user?.username || 'مستخدم', [user]);
-  const workspaceName = useMemo(() => {
-    const trimmed = String(storeName || '').trim();
-    return trimmed || DEFAULT_STORE_NAME;
-  }, [storeName]);
+  const displayName = user?.displayName || user?.username || 'المستخدم';
+  const workspaceName = storeName || DEFAULT_STORE_NAME;
   const isPosRoute = location.pathname.startsWith('/pos');
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
   const [expandedSidebarGroupKey, setExpandedSidebarGroupKey] = useState<string | null>(null);
@@ -224,59 +115,18 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const visibleNavigationItems = useMemo(() => {
     const hiddenKeys = new Set<string>([]);
-    const preferredOrder = [
-      'dashboard',
-      'pos',
-      'cash-drawer',
-      'sales',
-      'purchases',
-      'returns',
-      'accounts',
-      'treasury',
-      'services',
-      'hr',
-      'audit',
-      'inventory',
-      'products',
-      'pricing-center',
-      'customers',
-      'suppliers',
-      'reports',
-      'settings',
-    ];
-    const labelOverrides: Record<string, string> = {
-      dashboard: 'الرئيسية',
-      pos: 'نقطة البيع',
-      sales: 'سجل الفواتير',
-      'cash-drawer': 'وردية نقطة البيع',
-      accounts: 'الحسابات',
-      treasury: 'الخزينة',
-      services: 'الخدمات',
-      hr: 'الموارد البشرية',
-      audit: 'سجل النشاط',
-    };
-
-    const items = navigationItems
-      .filter((item) => canAccessNavigationItem(user, item))
-      .filter((item) => !hiddenKeys.has(item.key));
-
-    return items
-      .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
-      .sort((a, b) => {
-        const aIndex = preferredOrder.indexOf(a.key);
-        const bIndex = preferredOrder.indexOf(b.key);
-        const safeA = aIndex === -1 ? 999 : aIndex;
-        const safeB = bIndex === -1 ? 999 : bIndex;
-        return safeA - safeB;
-      });
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'treasury', 'services', 'hr', 'audit', 'inventory', 'products', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const labelOverrides: Record<string, string> = { dashboard: 'الرئيسية', pos: 'نقطة البيع', sales: 'سجل الفواتير', 'cash-drawer': 'وردية نقطة البيع', accounts: 'الحسابات', treasury: 'الخزينة', services: 'الخدمات', hr: 'الموارد البشرية', audit: 'سجل النشاط' };
+    const items = navigationItems.filter((item) => user && canAccessNavigationItem(user, item)).filter((item) => !hiddenKeys.has(item.key));
+    return items.map((item) => ({ ...item, label: labelOverrides[item.key] || item.label })).sort((a, b) => {
+      const aIndex = preferredOrder.indexOf(a.key);
+      const bIndex = preferredOrder.indexOf(b.key);
+      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+    });
   }, [user]);
 
-  const navigationMap = useMemo(() => {
-    return new Map(visibleNavigationItems.map((item) => [item.key, item]));
-  }, [visibleNavigationItems]);
-
+  const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
-
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
     { key: 'sales-group', label: 'المبيعات', itemKeys: ['sales', 'returns', 'customers', 'reports'] },
     { key: 'purchases-group', label: 'المشتريات والموردين', itemKeys: ['purchases', 'suppliers'] },
@@ -284,297 +134,55 @@ export function AppShell({ children }: PropsWithChildren) {
     { key: 'services-group', label: 'الخدمات والحسابات', itemKeys: ['services', 'accounts', 'pricing-center'] },
     { key: 'admin-group', label: 'الإدارة', itemKeys: ['hr', 'audit', 'settings'] },
   ]), []);
+  const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
+  const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => { const navItem = navigationMap.get(itemKey); if (!navItem) return false; if (navItem.end) return location.pathname === navItem.to; return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`); }))?.key ?? null, [location.pathname, navigationMap, sidebarGroups]);
 
-  const visiblePrimaryNavigationItems = useMemo(
-    () => primaryNavigationKeys
-      .map((key) => navigationMap.get(key))
-      .filter((item): item is NonNullable<typeof item> => Boolean(item)),
-    [navigationMap, primaryNavigationKeys],
-  );
-
-  const activeSidebarGroupKey = useMemo(() => {
-    return sidebarGroups.find((group) => {
-      return group.itemKeys.some((itemKey) => {
-        const navItem = navigationMap.get(itemKey);
-        if (!navItem) return false;
-        if (navItem.end) return location.pathname === navItem.to;
-        return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`);
-      });
-    })?.key ?? null;
-  }, [location.pathname, navigationMap, sidebarGroups]);
-
-  useEffect(() => {
-    setExpandedSidebarGroupKey(activeSidebarGroupKey);
-  }, [activeSidebarGroupKey]);
-
-  function toggleSidebarGroup(groupKey: string) {
-    setExpandedSidebarGroupKey((current) => current === groupKey ? null : groupKey);
-  }
+  useEffect(() => { setExpandedSidebarGroupKey(activeSidebarGroupKey); }, [activeSidebarGroupKey]);
+  function toggleSidebarGroup(groupKey: string) { setExpandedSidebarGroupKey((current) => current === groupKey ? null : groupKey); }
 
   useEffect(() => {
     let cancelled = false;
     const warmupQueries = buildWarmupQueries(location.pathname);
-
-    const warm = () => {
-      if (cancelled) return;
-      warmupQueries.forEach((query) => {
-        if (queryClient.getQueryState(query.queryKey)) return;
-        void queryClient.prefetchQuery({
-          queryKey: query.queryKey,
-          queryFn: query.queryFn,
-          staleTime: 60_000,
-        });
-      });
-    };
-
+    const warm = () => { if (cancelled) return; warmupQueries.forEach((query) => { if (queryClient.getQueryState(query.queryKey)) return; void queryClient.prefetchQuery({ queryKey: query.queryKey, queryFn: query.queryFn, staleTime: 60_000 }); }); };
     const idleWindow = window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void; };
     const idleId = idleWindow.requestIdleCallback?.(warm, { timeout: 2000 });
     const timeoutId = window.setTimeout(warm, 1200);
-
-    return () => {
-      cancelled = true;
-      if (typeof idleId === 'number') {
-        idleWindow.cancelIdleCallback?.(idleId);
-      }
-      window.clearTimeout(timeoutId);
-    };
+    return () => { cancelled = true; if (typeof idleId === 'number') idleWindow.cancelIdleCallback?.(idleId); window.clearTimeout(timeoutId); };
   }, [location.pathname, queryClient]);
 
-  useEffect(() => {
-    if (!isPosRoute) {
-      setIsPosChromeHidden(false);
-      return;
-    }
-
-    setIsPosChromeHidden(readPosShellPreference());
-  }, [isPosRoute]);
-
-  useEffect(() => {
-    if (!isPosRoute || typeof window === 'undefined') return;
-    window.localStorage.setItem(POS_SHELL_VISIBILITY_KEY, isPosChromeHidden ? 'hidden' : 'shown');
-  }, [isPosChromeHidden, isPosRoute]);
-
+  useEffect(() => { if (!isPosRoute) { setIsPosChromeHidden(false); return; } setIsPosChromeHidden(readPosShellPreference()); }, [isPosRoute]);
+  useEffect(() => { if (!isPosRoute || typeof window === 'undefined') return; window.localStorage.setItem(POS_SHELL_VISIBILITY_KEY, isPosChromeHidden ? 'hidden' : 'shown'); }, [isPosChromeHidden, isPosRoute]);
   useEffect(() => {
     if (!isPosRoute || typeof window === 'undefined') return undefined;
-
     const toggleChrome = () => setIsPosChromeHidden((current: boolean) => !current);
-
-    const toggleFullscreen = async () => {
-      try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen?.();
-          setIsPosChromeHidden(true);
-          return;
-        }
-
-        await document.exitFullscreen?.();
-        setIsPosChromeHidden(false);
-      } catch {
-        // ignore fullscreen errors triggered by browser policies
-      }
-    };
-
-    const handleKeydown = (event: KeyboardEvent) => {
-      if (event.key === 'F10') {
-        event.preventDefault();
-        toggleChrome();
-        return;
-      }
-
-      if (event.key === 'F11') {
-        event.preventDefault();
-        void toggleFullscreen();
-      }
-    };
-
-    const handleFullscreenChange = () => {
-      if (document.fullscreenElement) {
-        setIsPosChromeHidden(true);
-        return;
-      }
-
-      setIsPosChromeHidden(readPosShellPreference());
-    };
-
-    window.addEventListener('keydown', handleKeydown);
-    window.addEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome);
-    window.addEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeydown);
-      window.removeEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome);
-      window.removeEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
+    const toggleFullscreen = async () => { try { if (!document.fullscreenElement) { await document.documentElement.requestFullscreen?.(); setIsPosChromeHidden(true); return; } await document.exitFullscreen?.(); setIsPosChromeHidden(false); } catch { /* ignore */ } };
+    const handleKeydown = (event: KeyboardEvent) => { if (event.key === 'F10') { event.preventDefault(); toggleChrome(); return; } if (event.key === 'F11') { event.preventDefault(); void toggleFullscreen(); } };
+    const handleFullscreenChange = () => { if (document.fullscreenElement) { setIsPosChromeHidden(true); return; } setIsPosChromeHidden(readPosShellPreference()); };
+    window.addEventListener('keydown', handleKeydown); window.addEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome); window.addEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen); document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => { window.removeEventListener('keydown', handleKeydown); window.removeEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome); window.removeEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen); document.removeEventListener('fullscreenchange', handleFullscreenChange); };
   }, [isPosRoute]);
+  useEffect(() => { const resetScroll = () => { const contentWrap = document.querySelector('.content-wrap') as HTMLElement | null; const pageStack = document.querySelector('.content-wrap .page-stack') as HTMLElement | null; if (contentWrap) contentWrap.scrollTop = 0; if (pageStack) pageStack.scrollTop = 0; window.scrollTo(0, 0); }; resetScroll(); const frameId = window.requestAnimationFrame(resetScroll); return () => window.cancelAnimationFrame(frameId); }, [location.pathname]);
+  useEffect(() => { const isTypingTarget = (target: EventTarget | null) => { if (!(target instanceof HTMLElement)) return false; const tag = target.tagName.toLowerCase(); return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable || Boolean(target.closest('[contenteditable="true"]')); }; const handleGlobalShortcut = (event: KeyboardEvent) => { if (isTypingTarget(event.target)) return; if (!event.altKey || !event.shiftKey) return; if (event.key !== 'F9') return; event.preventDefault(); setQuickAttendanceOpen(true); }; window.addEventListener('keydown', handleGlobalShortcut); return () => window.removeEventListener('keydown', handleGlobalShortcut); }, []);
 
-  useEffect(() => {
-    const resetScroll = () => {
-      const contentWrap = document.querySelector('.content-wrap') as HTMLElement | null;
-      const pageStack = document.querySelector('.content-wrap .page-stack') as HTMLElement | null;
-
-      if (contentWrap) {
-        contentWrap.scrollTop = 0;
-      }
-
-      if (pageStack) {
-        pageStack.scrollTop = 0;
-      }
-
-      window.scrollTo(0, 0);
-    };
-
-    resetScroll();
-    const frameId = window.requestAnimationFrame(resetScroll);
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const isTypingTarget = (target: EventTarget | null) => {
-      if (!(target instanceof HTMLElement)) return false;
-      const tag = target.tagName.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
-      if (target.isContentEditable || target.closest('[contenteditable="true"]')) return true;
-      return false;
-    };
-
-    const handleGlobalShortcut = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) return;
-      if (!event.altKey || !event.shiftKey) return;
-      if (event.key !== 'F9') return;
-      event.preventDefault();
-      setQuickAttendanceOpen(true);
-    };
-
-    window.addEventListener('keydown', handleGlobalShortcut);
-    return () => window.removeEventListener('keydown', handleGlobalShortcut);
-  }, []);
-
-  async function handleLogout() {
-    try {
-      await authApi.logout();
-    } finally {
-      await resetAuthenticatedClient(queryClient, clearSession);
-      navigate('/login?reason=signed-out', { replace: true });
-    }
-  }
-
+  async function handleLogout() { try { await authApi.logout(); } finally { await resetAuthenticatedClient(queryClient, clearSession); navigate('/login?reason=signed-out', { replace: true }); } }
   const cleanWorkspaceName = workspaceName.replace(/^\s*["'”“]+|["'”“]+\s*$/g, '').trim() || workspaceName;
 
   return (
     <div className={`app-layout ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
       {!isPosRoute || !isPosChromeHidden ? (
       <aside className="sidebar-fixed">
-        <div className="brand">
-          <div className="brand-copy">
-            <div className="brand-title">{cleanWorkspaceName}</div>
-            <div className="brand-sub">منصة Z Systems</div>
-            <div className="brand-sub muted">لإدارة المبيعات والمخزون</div>
-          </div>
-          <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
-        </div>
+        <div className="brand"><div className="brand-copy"><div className="brand-title">{cleanWorkspaceName}</div><div className="brand-sub">منصة Z Systems</div><div className="brand-sub muted">لإدارة المبيعات والمخزون</div></div><div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div></div>
         <nav className="sidebar-nav">
-          {visiblePrimaryNavigationItems.map((item) => {
-            const tone = iconToneMap[item.key] || iconToneMap.settings;
-            const toneStyle = {
-              '--icon-bg': tone.bg,
-              '--icon-border': tone.border,
-              '--icon-fg': tone.fg,
-              '--icon-glow': tone.glow,
-            } as CSSProperties;
-
-            return (
-              <NavLink
-                key={`primary-${item.key}`}
-                to={item.to}
-                end={item.end}
-                data-key={item.key}
-                style={toneStyle}
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`.trim()}
-              >
-                <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
-                <span className="sidebar-label">{item.label}</span>
-                <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
-              </NavLink>
-            );
-          })}
-
-          {sidebarGroups.map((group) => {
-            const groupItems = group.itemKeys
-              .map((key) => navigationMap.get(key))
-              .filter((item): item is NonNullable<typeof item> => Boolean(item));
-            if (!groupItems.length) return null;
-
-            const isOpen = expandedSidebarGroupKey === group.key;
-            const isActive = activeSidebarGroupKey === group.key;
-            const groupIconItemKey = groupItems[0]?.key || 'settings';
-            const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
-            const toneStyle = {
-              '--icon-bg': tone.bg,
-              '--icon-border': tone.border,
-              '--icon-fg': tone.fg,
-              '--icon-glow': tone.glow,
-            } as CSSProperties;
-
-            return (
-              <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>
-                <button
-                  type="button"
-                  className="sidebar-group-trigger"
-                  aria-expanded={isOpen}
-                  onClick={() => toggleSidebarGroup(group.key)}
-                  style={toneStyle}
-                >
-                  <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
-                  <span className="sidebar-label">{group.label}</span>
-                  <span className="sidebar-group-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
-                </button>
-
-                {isOpen ? (
-                  <div className="sidebar-group-items">
-                    {groupItems.map((item) => {
-                      const tone = iconToneMap[item.key] || iconToneMap.settings;
-                      const toneStyle = {
-                        '--icon-bg': tone.bg,
-                        '--icon-border': tone.border,
-                        '--icon-fg': tone.fg,
-                        '--icon-glow': tone.glow,
-                      } as CSSProperties;
-
-                      return (
-                        <NavLink
-                          key={`group-${group.key}-${item.key}`}
-                          to={item.to}
-                          end={item.end}
-                          data-key={item.key}
-                          style={toneStyle}
-                          className={({ isActive: isItemActive }) => `sidebar-link sidebar-link-sub ${isItemActive ? 'active' : ''}`.trim()}
-                        >
-                          <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
-                          <span className="sidebar-label">{item.label}</span>
-                          <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+          {visiblePrimaryNavigationItems.map((item) => { const tone = iconToneMap[item.key] || iconToneMap.settings; const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties; return <NavLink key={`primary-${item.key}`} to={item.to} end={item.end} data-key={item.key} style={toneStyle} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`.trim()}><span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span><span className="sidebar-label">{item.label}</span><span className="sidebar-link-chevron-spacer" aria-hidden="true" /></NavLink>; })}
+          {sidebarGroups.map((group) => { const groupItems = group.itemKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)); if (!groupItems.length) return null; const isOpen = expandedSidebarGroupKey === group.key; const isActive = activeSidebarGroupKey === group.key; const groupIconItemKey = groupItems[0]?.key || 'settings'; const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings; const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties; return <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}><button type="button" className="sidebar-group-trigger" aria-expanded={isOpen} onClick={() => toggleSidebarGroup(group.key)} style={toneStyle}><span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span><span className="sidebar-label">{group.label}</span><span className="sidebar-group-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span></button>{isOpen ? <div className="sidebar-group-items">{groupItems.map((item) => { const tone = iconToneMap[item.key] || iconToneMap.settings; const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties; return <NavLink key={`group-${group.key}-${item.key}`} to={item.to} end={item.end} data-key={item.key} style={toneStyle} className={({ isActive: isItemActive }) => `sidebar-link sidebar-link-sub ${isItemActive ? 'active' : ''}`.trim()}><span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span><span className="sidebar-label">{item.label}</span><span className="sidebar-link-chevron-spacer" aria-hidden="true" /></NavLink>; })}</div> : null}</div>; })}
         </nav>
-        <div className="sidebar-footer">
-          <div className="stack gap-8" style={{ marginBottom: 12 }}>
-            <div className="muted small">مرحبًا {displayName}</div>
-          </div>
-          <Button variant="danger" onClick={handleLogout} className="full-width">تسجيل الخروج</Button>
-        </div>
+        <div className="sidebar-footer"><div className="stack gap-8" style={{ marginBottom: 12 }}><div className="muted small">مرحبًا {displayName}</div></div><Button variant="danger" onClick={handleLogout} className="full-width">تسجيل الخروج</Button></div>
       </aside>
       ) : null}
       <div className={`content-wrap ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
         <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
           <BootstrapAdminBanner />
+          <TrialStatusBanner />
           <SystemStatusBanner />
         </div>
         <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
