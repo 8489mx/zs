@@ -5,6 +5,9 @@ import { SalesAuthorizationService } from '../../src/modules/sales/services/sale
 import { SalesQueryService } from '../../src/modules/sales/services/sales-query.service';
 import { SalesWriteService } from '../../src/modules/sales/services/sales-write.service';
 
+const TEST_TENANT_ID = 'tenant-a';
+const TEST_ACCOUNT_ID = 'account-a';
+
 type HeldSaleRow = {
   id: number;
   customer_id: number | null;
@@ -46,8 +49,8 @@ const cashierA: AuthContext = {
   username: 'cashier-a',
   role: 'cashier',
   permissions: ['sales'],
-  tenantId: 'tenant-a',
-  accountId: 'account-a',
+  tenantId: TEST_TENANT_ID,
+  accountId: TEST_ACCOUNT_ID,
 };
 
 const cashierB: AuthContext = {
@@ -211,8 +214,8 @@ function heldSale(id: number, createdBy: number): HeldSaleRow {
     created_by: createdBy,
     created_at: `2026-04-24T10:00:0${id}.000Z`,
     customer_name: '',
-    tenant_id: cashierA.tenantId,
-    account_id: cashierA.accountId,
+    tenant_id: TEST_TENANT_ID,
+    account_id: TEST_ACCOUNT_ID,
   };
 }
 
@@ -227,8 +230,8 @@ function heldSaleItem(id: number, heldSaleId: number, name: string): HeldSaleIte
     unit_name: 'piece',
     unit_multiplier: 1,
     price_type: 'retail',
-    tenant_id: cashierA.tenantId,
-    account_id: cashierA.accountId,
+    tenant_id: TEST_TENANT_ID,
+    account_id: TEST_ACCOUNT_ID,
   };
 }
 
