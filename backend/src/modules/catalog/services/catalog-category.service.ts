@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -12,11 +13,11 @@ export class CatalogCategoryService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
 
   private tenantId(actor: AuthContext): string {
-    return String(actor.tenantId || '').trim();
+    return requireTenantScope(actor).tenantId;
   }
 
   private accountId(actor: AuthContext): string {
-    return String(actor.accountId || actor.tenantId || '').trim();
+    return requireTenantScope(actor).accountId;
   }
 
   private tenantPredicate(actor: AuthContext) {
