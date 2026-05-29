@@ -248,7 +248,45 @@ describe('app ui coverage', () => {
     installGlobalAppFetchMock();
     renderSettingsShell(
       'backup',
-      <SettingsBackupImportSection canManageSettings={true} backupSummary={null} />,
+      <SettingsBackupImportSection
+        snapshots={[]}
+        autoBackupEnabled={false}
+        canManageBackups={true}
+        backupBusy={false}
+        backupConfigQuery={{ isLoading: false, isError: false }}
+        backupFolderPathDraft=""
+        setBackupFolderPathDraft={() => undefined}
+        backupAutoEnabledDraft={false}
+        setBackupAutoEnabledDraft={() => undefined}
+        backupFrequencyDraft="daily"
+        setBackupFrequencyDraft={() => undefined}
+        backupTimeDraft="03:00"
+        setBackupTimeDraft={() => undefined}
+        backupWeeklyDayDraft={0}
+        setBackupWeeklyDayDraft={() => undefined}
+        backupSelectedFileName=""
+        backupMessage=""
+        backupMessageKind="success"
+        backupResult={null}
+        restoreSnapshotId=""
+        handleBackupDownload={() => undefined}
+        saveBackupConfig={async () => undefined}
+        testBackupFolder={async () => undefined}
+        saveBackupFileToFolderNow={async () => undefined}
+        handleBackupFile={() => undefined}
+        handleSnapshotDownload={() => undefined}
+        onRequestRestoreFile={() => undefined}
+        onRequestRestoreSnapshot={() => undefined}
+        importProductsPending={false}
+        importCustomersPending={false}
+        importSuppliersPending={false}
+        importOpeningStockPending={false}
+        importProducts={async () => ({ ok: true })}
+        importCustomers={async () => ({ ok: true })}
+        importSuppliers={async () => ({ ok: true })}
+        importOpeningStock={async () => ({ ok: true })}
+        downloadTemplate={() => undefined}
+      />,
     );
     expect(await screen.findByRole('link', { name: 'النسخ والاستيراد' })).toBeInTheDocument();
     expect(await screen.findByText('نسخة احتياطية')).toBeInTheDocument();
