@@ -1,15 +1,12 @@
 import { http } from '@/lib/http';
-import type { AuthMeResponse } from '@/types/auth';
+import type { AuthLoginResponse, AuthMeResponse } from '@/types/auth';
 
 export interface LoginPayload {
   username: string;
   password: string;
 }
 
-export interface LoginResponse {
-  user: AuthMeResponse['user'];
-  mustChangePassword: boolean;
-}
+export type LoginResponse = AuthLoginResponse;
 
 export interface ChangePasswordPayload {
   currentPassword: string;
