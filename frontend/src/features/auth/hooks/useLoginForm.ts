@@ -8,6 +8,7 @@ import { DEFAULT_STORE_NAME, DEFAULT_THEME, useAuthStore } from '@/stores/auth-s
 import { authApi } from '@/features/auth/api/auth.api';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import { clearQueryClientData } from '@/lib/query-client-session';
+import type { AuthTenant } from '@/types/auth';
 
 const loginSchema = z.object({
   username: z.string().trim().min(1, 'اسم المستخدم مطلوب'),
@@ -49,6 +50,7 @@ export function useLoginForm() {
 
       let storeName = DEFAULT_STORE_NAME;
       let theme = DEFAULT_THEME;
+      let tenant: AuthTenant | null = loginResult.tenant ?? null;
       let user = {
         ...loginResult.user,
         mustChangePassword: loginResult.mustChangePassword === true,
@@ -59,6 +61,7 @@ export function useLoginForm() {
         const me = await authApi.me();
         storeName = me.settings.storeName || DEFAULT_STORE_NAME;
         theme = me.settings.theme || DEFAULT_THEME;
+        tenant = me.tenant ?? tenant;
         user = {
           ...me.user,
           mustChangePassword: me.security?.mustChangePassword === true,
@@ -71,7 +74,7 @@ export function useLoginForm() {
       }
 
       await clearQueryClientData(queryClient);
-      setSession({ user, storeName, theme });
+      setSession({ user, tenant, storeName, theme });
       navigate(getPostLoginRoute(user, storeName), { replace: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول';
