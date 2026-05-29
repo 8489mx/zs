@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { authApi } from '@/shared/api/auth';
+import { useAuthStore } from '@/stores/auth-store';
 
 function formatTrialText(days: number | null | undefined): string {
   if (typeof days !== 'number') return 'نسختك التجريبية مفعّلة.';
@@ -11,14 +10,7 @@ function formatTrialText(days: number | null | undefined): string {
 }
 
 export function TrialStatusBanner() {
-  const query = useQuery({
-    queryKey: ['auth', 'me', 'trial-status'],
-    queryFn: () => authApi.me(),
-    staleTime: 60_000,
-    retry: false,
-  });
-
-  const tenant = query.data?.tenant;
+  const tenant = useAuthStore((state) => state.tenant);
   if (!tenant?.isTrial) return null;
 
   const days = tenant.trialDaysRemaining;
