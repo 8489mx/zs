@@ -52,6 +52,7 @@ export function useBootstrapAuth() {
               mustChangePassword: response.security?.mustChangePassword === true,
               usingDefaultAdminPassword: response.security?.usingDefaultAdminPassword === true,
             },
+            tenant: response.tenant ?? null,
             storeName: response.settings.storeName || DEFAULT_STORE_NAME,
             theme: response.settings.theme || DEFAULT_THEME,
           });
