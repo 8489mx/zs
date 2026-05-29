@@ -56,9 +56,16 @@ export class SessionAuthGuard implements CanActivate {
     private readonly configService: ConfigService,
   ) {}
 
+  private allowSessionIdHeaderFallback(): boolean {
+    if (this.configService.get<boolean>('ALLOW_SESSION_ID_HEADER') === true) return true;
+    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
+    const appMode = this.configService.get<string>('app.mode') || this.configService.get<string>('APP_MODE') || '';
+    return nodeEnv === 'development' && appMode !== 'CLOUD_SAAS';
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
-    const allowHeaderAuth = this.configService.get<boolean>('ALLOW_SESSION_ID_HEADER') === true;
+    const allowHeaderAuth = this.allowSessionIdHeaderFallback();
     const sessionCookieName = this.configService.get<string>('SESSION_COOKIE_NAME')?.trim() || 'session_id';
     const csrfCookieName = this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token';
     const sessionId = readSessionId(request, allowHeaderAuth, sessionCookieName);
@@ -78,8 +85,9 @@ export class SessionAuthGuard implements CanActivate {
       const csrfSecret = this.configService.get<string>('SESSION_CSRF_SECRET') || '';
       const csrfCookie = parseCookie(request, csrfCookieName);
       const csrfHeader = readHeaderValue(request.headers[CSRF_HEADER_NAME]);
+      const usingHeaderFallback = allowHeaderAuth && readHeaderValue(request.headers['x-session-id']) === sessionId;
 
-      if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader || !verifyCsrfToken(sessionId, csrfSecret, csrfHeader)) {
+      if (!usingHeaderFallback && (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader || !verifyCsrfToken(sessionId, csrfSecret, csrfHeader))) {
         throw new ForbiddenException('CSRF validation failed');
       }
     }
