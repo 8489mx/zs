@@ -6,10 +6,21 @@ export type AccountingAccount = {
   nameAr: string;
   nameEn: string;
   accountType: string;
+  accountGroup: string;
   parentId: string;
+  depth: number;
   normalBalance: string;
   isActive: boolean;
   isSystem: boolean;
+  allowManualEntries: boolean;
+  isControlAccount: boolean;
+  flags: {
+    isCashBank: boolean;
+    isReceivable: boolean;
+    isPayable: boolean;
+    isInventory: boolean;
+    isTax: boolean;
+  };
   sortOrder: number;
 };
 

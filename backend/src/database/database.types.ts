@@ -75,9 +75,18 @@ export interface AccountingAccountTable {
   name_en: string;
   account_type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'contra_asset' | 'contra_revenue';
   parent_id: number | null;
+  account_group: string;
   normal_balance: 'debit' | 'credit';
   is_active: boolean;
   is_system: boolean;
+  allow_manual_entries: boolean;
+  is_control_account: boolean;
+  is_cash_bank: boolean;
+  is_receivable: boolean;
+  is_payable: boolean;
+  is_inventory: boolean;
+  is_tax: boolean;
+  description_ar: string;
   sort_order: number;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string | undefined>;

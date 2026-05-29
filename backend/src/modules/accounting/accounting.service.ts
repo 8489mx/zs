@@ -61,14 +61,41 @@ export class AccountingService {
         'name_ar',
         'name_en',
         'account_type',
+        'account_group',
         'parent_id',
         'normal_balance',
         'is_active',
         'is_system',
+        'allow_manual_entries',
+        'is_control_account',
+        'is_cash_bank',
+        'is_receivable',
+        'is_payable',
+        'is_inventory',
+        'is_tax',
         'sort_order',
       ])
       .orderBy('code asc')
       .execute();
+
+    const rowsById = new Map(rows.map((row) => [String(row.id), row]));
+    const depthById = new Map<string, number>();
+    const computeDepth = (id: string): number => {
+      const cached = depthById.get(id);
+      if (typeof cached === 'number') return cached;
+      const row = rowsById.get(id);
+      if (!row || !row.parent_id) {
+        depthById.set(id, 0);
+        return 0;
+      }
+      const parentDepth = computeDepth(String(row.parent_id));
+      const depth = parentDepth + 1;
+      depthById.set(id, depth);
+      return depth;
+    };
+    for (const row of rows) {
+      computeDepth(String(row.id));
+    }
 
     return {
       accounts: rows.map((row) => ({
@@ -77,10 +104,21 @@ export class AccountingService {
         nameAr: row.name_ar,
         nameEn: row.name_en || '',
         accountType: row.account_type,
+        accountGroup: row.account_group || '',
         parentId: row.parent_id ? String(row.parent_id) : '',
+        depth: depthById.get(String(row.id)) || 0,
         normalBalance: row.normal_balance,
         isActive: Boolean(row.is_active),
         isSystem: Boolean(row.is_system),
+        allowManualEntries: Boolean(row.allow_manual_entries),
+        isControlAccount: Boolean(row.is_control_account),
+        flags: {
+          isCashBank: Boolean(row.is_cash_bank),
+          isReceivable: Boolean(row.is_receivable),
+          isPayable: Boolean(row.is_payable),
+          isInventory: Boolean(row.is_inventory),
+          isTax: Boolean(row.is_tax),
+        },
         sortOrder: Number(row.sort_order || 0),
       })),
     };
