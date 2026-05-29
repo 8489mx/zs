@@ -53,9 +53,33 @@ const iconToneMap: Record<string, IconTone> = {
   settings: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
 };
 
+const iconPathMap: Record<string, string> = {
+  dashboard: 'M4 11h16M6 9l6-5 6 5v10H6V9z',
+  pos: 'M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4',
+  'cash-drawer': 'M5 8h14l1 5H4l1-5zM4 13h16v6H4v-6zM8 16h8',
+  sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
+  returns: 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
+  customers: 'M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M17 14a5 5 0 0 1 5 5',
+  reports: 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
+  purchases: 'M6 7h15l-2 8H8L6 3H3M9 20h.01M18 20h.01',
+  suppliers: 'M3 7h11v10H3V7zM14 10h4l3 3v4h-7v-7zM7 20h.01M18 20h.01',
+  inventory: 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
+  products: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
+  treasury: 'M4 7h16v10H4V7zM7 10h2M15 14h2M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  services: 'M6 4h12v16H6V4zM9 8h6M9 12h6M9 16h3',
+  accounts: 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'pricing-center': 'M20 12V5h-7L4 14l6 6 10-8zM16 8h.01',
+  hr: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  audit: 'M5 4h14v16H5V4zM9 8h6M9 12h6M9 16h4',
+  settings: 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19 12h2M3 12h2M12 3v2M12 19v2M17 7l1.4-1.4M5.6 18.4 7 17M17 17l1.4 1.4M5.6 5.6 7 7',
+};
+
 function AppNavIcon({ itemKey }: { itemKey: string }) {
-  const label = itemKey.slice(0, 1).toUpperCase();
-  return <span aria-hidden="true" style={{ fontWeight: 800, fontSize: 13 }}>{label}</span>;
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d={iconPathMap[itemKey] || iconPathMap.settings} />
+    </svg>
+  );
 }
 
 export function AppShell({ children }: PropsWithChildren) {
