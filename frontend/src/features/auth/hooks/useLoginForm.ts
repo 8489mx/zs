@@ -8,6 +8,7 @@ import { DEFAULT_STORE_NAME, DEFAULT_THEME, useAuthStore } from '@/stores/auth-s
 import { authApi } from '@/features/auth/api/auth.api';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import { clearQueryClientData } from '@/lib/query-client-session';
+import { setLocalSessionFallback } from '@/lib/http';
 import type { AuthTenant } from '@/types/auth';
 
 const loginSchema = z.object({
@@ -47,6 +48,7 @@ export function useLoginForm() {
 
     try {
       const loginResult = await authApi.login(values);
+      setLocalSessionFallback(loginResult.sessionId);
 
       let storeName = DEFAULT_STORE_NAME;
       let theme = DEFAULT_THEME;
@@ -77,6 +79,7 @@ export function useLoginForm() {
       setSession({ user, tenant, storeName, theme });
       navigate(getPostLoginRoute(user, storeName), { replace: true });
     } catch (err) {
+      setLocalSessionFallback(null);
       const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول';
       setSubmitError(message);
     } finally {
