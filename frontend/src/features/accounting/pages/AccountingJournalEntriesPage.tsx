@@ -25,6 +25,8 @@ function mapSourceLabel(sourceType: string) {
   if (sourceType === 'supplier_payment') return 'سداد مورد';
   if (sourceType === 'supplier_payment_reversal') return 'عكس سداد مورد';
   if (sourceType === 'supplier_payment_schedule_settlement') return 'سداد مورد';
+  if (sourceType === 'customer_payment') return 'تحصيل عميل';
+  if (sourceType === 'customer_payment_reversal') return 'عكس تحصيل عميل';
   if (sourceType === 'manual') return 'يدوي';
   return sourceType || '';
 }

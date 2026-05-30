@@ -575,6 +575,7 @@ export class PurchasesWriteService {
       const paymentNote = normalizeOptionalNote(payload.note);
       await this.financeService.addCustomerLedgerEntry(trx, customer.id, -amount, `تحصيل من العميل ${customer.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, `تحصيل من العميل ${customer.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'customer_payment', paymentId, auth, branchId, locationId);
+      await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
     });
 
     await this.audit.log('تحصيل عميل', `تم تسجيل تحصيل عميل بواسطة ${auth.username}`, auth);

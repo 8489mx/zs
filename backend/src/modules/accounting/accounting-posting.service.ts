@@ -71,6 +71,17 @@ export class AccountingPostingService {
       .executeTakeFirst();
   }
 
+  private async getExistingCustomerPaymentJournal(queryable: DbOrTx, paymentId: number) {
+    return queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', '=', 'customer_payment')
+      .where('source_id', '=', paymentId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id desc')
+      .executeTakeFirst();
+  }
+
   private async getExistingSaleReversalJournal(queryable: DbOrTx, saleId: number) {
     return queryable
       .selectFrom('journal_entries')
@@ -1051,6 +1062,100 @@ export class AccountingPostingService {
       branchId,
       locationId,
       createdBy: settlement.created_by ? Number(settlement.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: normalizedLines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  async postCustomerPayment(queryable: DbOrTx, paymentId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    const existing = await this.getExistingCustomerPaymentJournal(queryable, paymentId);
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const payment = await queryable
+      .selectFrom('customer_payments as cp')
+      .leftJoin('customers as c', 'c.id', 'cp.customer_id')
+      .select([
+        'cp.id',
+        'cp.customer_id',
+        'cp.amount',
+        'cp.note',
+        'cp.branch_id',
+        'cp.location_id',
+        'cp.created_by',
+        'cp.created_at',
+        'c.name as customer_name',
+      ])
+      .where('cp.id', '=', paymentId)
+      .where(sql<boolean>`cp.tenant_id = ${scope.tenantId}`)
+      .executeTakeFirst();
+
+    if (!payment) {
+      this.logger.warn(`Customer payment ${paymentId} not found; skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    if (!settings) throw new Error(`Accounting settings missing while posting customer payment ${paymentId}`);
+
+    const amount = this.toMoney(payment.amount);
+    if (!(amount > 0)) {
+      this.logger.warn(`Customer payment ${paymentId} has non-positive amount; skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const branchId = payment.branch_id ? Number(payment.branch_id) : null;
+    const locationId = payment.location_id ? Number(payment.location_id) : null;
+    const customerName = String(payment.customer_name || '').trim();
+
+    // No explicit payment method is stored for customer_payments in current schema.
+    // Fallback to cash account to match existing treasury write behavior for this endpoint.
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: Number(settings.cash_account_id || 0),
+      description: 'دخول نقدية من تحصيل عميل',
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId,
+      locationId,
+    });
+    this.addLine(lines, {
+      accountId: Number(settings.customer_receivable_account_id || 0),
+      description: 'تحصيل مستحقات عميل',
+      debit: 0,
+      credit: amount,
+      partnerType: payment.customer_id ? 'customer' : 'none',
+      partnerId: payment.customer_id ? Number(payment.customer_id) : null,
+      branchId,
+      locationId,
+    });
+
+    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    for (const line of lines) {
+      if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting customer payment ${paymentId}`);
+      if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting customer payment ${paymentId}`);
+      if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting customer payment ${paymentId}`);
+    }
+
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced customer payment journal for payment ${paymentId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'customer_payment',
+      sourceId: paymentId,
+      entryDate: payment.created_at ? new Date(payment.created_at) : new Date(),
+      description: `قيد تحصيل عميل${customerName ? ` - ${customerName}` : ''}`,
+      branchId,
+      locationId,
+      createdBy: payment.created_by ? Number(payment.created_by) : auth.userId,
       postedBy: auth.userId,
       lines: normalizedLines,
     });
