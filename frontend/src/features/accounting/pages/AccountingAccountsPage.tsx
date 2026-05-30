@@ -1,4 +1,5 @@
 ﻿import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
 import { DataTable } from '@/shared/ui/data-table';
@@ -21,8 +22,10 @@ const balanceLabel: Record<string, string> = {
 };
 
 const groupLabel: Record<string, string> = {
+  assets: 'أصول',
   current_assets: 'أصول متداولة',
   fixed_assets: 'أصول ثابتة',
+  liabilities: 'خصوم',
   current_liabilities: 'خصوم متداولة',
   equity: 'حقوق ملكية',
   income: 'إيرادات',
@@ -33,6 +36,7 @@ const groupLabel: Record<string, string> = {
   receivable: 'عملاء',
   payable: 'موردون',
   inventory: 'مخزون',
+  legacy: 'حسابات قديمة',
 };
 
 function renderFlags(account: AccountingAccount): string[] {
@@ -48,29 +52,46 @@ function renderFlags(account: AccountingAccount): string[] {
 }
 
 export function AccountingAccountsPage() {
+  const [showInactive, setShowInactive] = useState(false);
   const query = useQuery({
     queryKey: ['accounting', 'accounts'],
     queryFn: () => accountingApi.accounts(),
   });
 
   const rows = query.data?.accounts || [];
+  const visibleRows = useMemo(() => {
+    if (showInactive) return rows;
+    return rows.filter((row) => row.isActive);
+  }, [rows, showInactive]);
 
   return (
     <div className="page-stack page-shell">
       <PageHeader title="الحسابات" description="شجرة الحسابات" />
       <Card title="شجرة الحسابات">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(event) => setShowInactive(event.target.checked)}
+              style={{ width: 18, minHeight: 18 }}
+            />
+            <span>عرض الحسابات غير النشطة</span>
+          </label>
+        </div>
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
           error={query.error}
-          isEmpty={!rows.length}
+          isEmpty={!visibleRows.length}
           loadingText="جاري تحميل شجرة الحسابات..."
           errorTitle="تعذر تحميل شجرة الحسابات"
           emptyTitle="لا توجد حسابات حتى الآن. سيتم إنشاء شجرة الحسابات الافتراضية من إعدادات النظام."
         >
           <DataTable<AccountingAccount>
-            rows={rows}
+            rows={visibleRows}
             rowKey={(row) => row.id}
+            rowClassName={(row) => (row.isActive ? undefined : 'table-row-inactive')}
             columns={[
               { key: 'code', header: 'كود الحساب', cell: (row) => row.code },
               {
@@ -82,7 +103,7 @@ export function AccountingAccountsPage() {
               { key: 'type', header: 'النوع', cell: (row) => typeLabel[row.accountType] || row.accountType },
               { key: 'normalBalance', header: 'الرصيد الطبيعي', cell: (row) => balanceLabel[row.normalBalance] || row.normalBalance },
               { key: 'flags', header: 'خصائص', cell: (row) => renderFlags(row).join(' • ') || '-' },
-              { key: 'status', header: 'الحالة', cell: (row) => (row.isActive ? 'نشط' : 'غير نشط') },
+              { key: 'status', header: 'الحالة', cell: (row) => (row.isActive ? 'نشط' : <span className="muted"><strong>غير نشط</strong></span>) },
             ]}
           />
         </QueryFeedback>

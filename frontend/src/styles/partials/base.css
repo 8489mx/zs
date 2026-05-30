@@ -246,6 +246,7 @@ th {
 }
 .table-row-selected { background: rgba(37, 99, 235, 0.08); }
 .table-row-clickable { cursor: pointer; }
+.table-row-inactive { opacity: 0.55; }
 .table-selection-cell { width: 44px; text-align: center; }
 .table-selection-cell input { width: 18px; min-height: 18px; height: 18px; accent-color: var(--primary); }
 .pagination-bar {

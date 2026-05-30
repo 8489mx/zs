@@ -1,4 +1,4 @@
-﻿import { sql, type Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 
 type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'contra_asset' | 'contra_revenue';
 type NormalBalance = 'debit' | 'credit';
@@ -23,7 +23,7 @@ type SeedAccount = {
 };
 
 const SEED_ACCOUNTS: SeedAccount[] = [
-  { code: '1000', nameAr: 'الأصول', nameEn: 'Assets', accountType: 'asset', normalBalance: 'debit', sortOrder: 1000, parentCode: null, accountGroup: 'fixed_assets', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1000', nameAr: 'الأصول', nameEn: 'Assets', accountType: 'asset', normalBalance: 'debit', sortOrder: 1000, parentCode: null, accountGroup: 'assets', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '1100', nameAr: 'الأصول المتداولة', nameEn: 'Current Assets', accountType: 'asset', normalBalance: 'debit', sortOrder: 1100, parentCode: '1000', accountGroup: 'current_assets', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '1110', nameAr: 'الخزينة', nameEn: 'Cash', accountType: 'asset', normalBalance: 'debit', sortOrder: 1110, parentCode: '1100', accountGroup: 'cash_bank', allowManualEntries: true, isControlAccount: false, isCashBank: true, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '1120', nameAr: 'البنك', nameEn: 'Bank', accountType: 'asset', normalBalance: 'debit', sortOrder: 1120, parentCode: '1100', accountGroup: 'cash_bank', allowManualEntries: true, isControlAccount: false, isCashBank: true, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
@@ -36,7 +36,7 @@ const SEED_ACCOUNTS: SeedAccount[] = [
   { code: '1210', nameAr: 'معدات وأجهزة', nameEn: 'Equipment', accountType: 'asset', normalBalance: 'debit', sortOrder: 1210, parentCode: '1200', accountGroup: 'fixed_assets', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '1220', nameAr: 'أثاث وتجهيزات', nameEn: 'Furniture and Fixtures', accountType: 'asset', normalBalance: 'debit', sortOrder: 1220, parentCode: '1200', accountGroup: 'fixed_assets', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '1290', nameAr: 'مجمع الإهلاك', nameEn: 'Accumulated Depreciation', accountType: 'contra_asset', normalBalance: 'credit', sortOrder: 1290, parentCode: '1200', accountGroup: 'fixed_assets', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
-  { code: '2000', nameAr: 'الخصوم', nameEn: 'Liabilities', accountType: 'liability', normalBalance: 'credit', sortOrder: 2000, parentCode: null, accountGroup: 'current_liabilities', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '2000', nameAr: 'الخصوم', nameEn: 'Liabilities', accountType: 'liability', normalBalance: 'credit', sortOrder: 2000, parentCode: null, accountGroup: 'liabilities', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '2100', nameAr: 'الخصوم المتداولة', nameEn: 'Current Liabilities', accountType: 'liability', normalBalance: 'credit', sortOrder: 2100, parentCode: '2000', accountGroup: 'current_liabilities', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
   { code: '2110', nameAr: 'الموردون', nameEn: 'Accounts Payable', accountType: 'liability', normalBalance: 'credit', sortOrder: 2110, parentCode: '2100', accountGroup: 'payable', allowManualEntries: true, isControlAccount: true, isCashBank: false, isReceivable: false, isPayable: true, isInventory: false, isTax: false },
   { code: '2120', nameAr: 'ضريبة مبيعات مستحقة', nameEn: 'Sales VAT Payable', accountType: 'liability', normalBalance: 'credit', sortOrder: 2120, parentCode: '2100', accountGroup: 'tax', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: true },
@@ -72,23 +72,21 @@ const SEED_ACCOUNTS: SeedAccount[] = [
 ];
 
 const LEGACY_NAME_BY_CODE: Record<string, { nameAr?: string; nameEn?: string }> = {
-  '1000': { nameAr: 'الأصول', nameEn: 'Assets' },
   '1100': { nameAr: 'الخزينة', nameEn: 'Cash' },
   '1200': { nameAr: 'البنك', nameEn: 'Bank' },
-  '2000': { nameAr: 'الخصوم', nameEn: 'Liabilities' },
-  '2100': { nameAr: 'الموردون', nameEn: 'Accounts Payable' },
-  '2200': { nameAr: 'ضريبة مبيعات مستحقة', nameEn: 'Sales Tax Payable' },
-  '3000': { nameAr: 'حقوق الملكية', nameEn: 'Equity' },
-  '3100': { nameAr: 'رأس المال', nameEn: 'Capital' },
-  '4000': { nameAr: 'الإيرادات', nameEn: 'Revenue' },
-  '4100': { nameAr: 'المبيعات', nameEn: 'Sales Revenue' },
   '4200': { nameAr: 'خصومات المبيعات', nameEn: 'Sales Discounts' },
   '5000': { nameAr: 'تكلفة ومصروفات', nameEn: 'Costs and Expenses' },
-  '5100': { nameAr: 'تكلفة البضاعة المباعة', nameEn: 'Cost of Goods Sold' },
   '5200': { nameAr: 'المشتريات', nameEn: 'Purchases' },
   '5300': { nameAr: 'المصروفات العامة', nameEn: 'General Expenses' },
-  '5400': { nameAr: 'ضريبة مشتريات', nameEn: 'Purchase Tax' },
 };
+
+type LegacyReplacement = { code: string; replacementCode: string };
+const LEGACY_REPLACEMENTS: LegacyReplacement[] = [
+  { code: '1300', replacementCode: '1130' },
+  { code: '1400', replacementCode: '1140' },
+  { code: '2200', replacementCode: '2120' },
+  { code: '5400', replacementCode: '1150' },
+];
 
 async function correctSeedAccount(db: Kysely<unknown>, account: SeedAccount): Promise<void> {
   const legacy = LEGACY_NAME_BY_CODE[account.code];
@@ -137,7 +135,98 @@ async function correctSeedAccount(db: Kysely<unknown>, account: SeedAccount): Pr
             OR (${legacy?.nameEn || ''} <> '' AND a.name_en = ${legacy?.nameEn || ''})
           )
         )
+        OR NOT EXISTS (
+          SELECT 1
+          FROM journal_entry_lines jel
+          WHERE jel.account_id = a.id
+        )
       )
+  `.execute(db);
+}
+
+async function cleanupLegacyDuplicateAccount(db: Kysely<unknown>, entry: LegacyReplacement): Promise<void> {
+  const noLinesMessage = `حساب قديم من الشجرة السابقة - تم استبداله بالحساب ${entry.replacementCode}`;
+  const withLinesMessage = 'حساب قديم من الشجرة السابقة - راجع المحاسب قبل الاستخدام';
+  await sql`
+    UPDATE accounting_accounts AS a
+    SET
+      account_group = 'legacy',
+      allow_manual_entries = FALSE,
+      is_control_account = FALSE,
+      is_cash_bank = FALSE,
+      is_receivable = FALSE,
+      is_payable = FALSE,
+      is_inventory = FALSE,
+      is_tax = FALSE,
+      is_active = CASE
+        WHEN NOT EXISTS (
+          SELECT 1
+          FROM journal_entry_lines jel
+          WHERE jel.account_id = a.id
+        ) THEN FALSE
+        ELSE a.is_active
+      END,
+      description_ar = CASE
+        WHEN NOT EXISTS (
+          SELECT 1
+          FROM journal_entry_lines jel
+          WHERE jel.account_id = a.id
+        ) THEN ${noLinesMessage}
+        ELSE ${withLinesMessage}
+      END,
+      updated_at = NOW()
+    WHERE a.code = ${entry.code}
+  `.execute(db);
+}
+
+async function updateSettings(db: Kysely<unknown>): Promise<void> {
+  await sql`
+    INSERT INTO accounting_settings (
+      id,
+      cash_account_id,
+      bank_account_id,
+      customer_receivable_account_id,
+      supplier_payable_account_id,
+      inventory_account_id,
+      sales_revenue_account_id,
+      sales_discount_account_id,
+      cogs_account_id,
+      purchase_account_id,
+      expenses_account_id,
+      sales_tax_account_id,
+      purchase_tax_account_id,
+      updated_at
+    )
+    VALUES (
+      1,
+      (SELECT id FROM accounting_accounts WHERE code = '1110'),
+      (SELECT id FROM accounting_accounts WHERE code = '1120'),
+      (SELECT id FROM accounting_accounts WHERE code = '1130'),
+      (SELECT id FROM accounting_accounts WHERE code = '2110'),
+      (SELECT id FROM accounting_accounts WHERE code = '1140'),
+      (SELECT id FROM accounting_accounts WHERE code = '4100'),
+      (SELECT id FROM accounting_accounts WHERE code = '4300'),
+      (SELECT id FROM accounting_accounts WHERE code = '5100'),
+      (SELECT id FROM accounting_accounts WHERE code = '1140'),
+      (SELECT id FROM accounting_accounts WHERE code = '6900'),
+      (SELECT id FROM accounting_accounts WHERE code = '2120'),
+      (SELECT id FROM accounting_accounts WHERE code = '1150'),
+      NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      cash_account_id = EXCLUDED.cash_account_id,
+      bank_account_id = EXCLUDED.bank_account_id,
+      customer_receivable_account_id = EXCLUDED.customer_receivable_account_id,
+      supplier_payable_account_id = EXCLUDED.supplier_payable_account_id,
+      inventory_account_id = EXCLUDED.inventory_account_id,
+      sales_revenue_account_id = EXCLUDED.sales_revenue_account_id,
+      sales_discount_account_id = EXCLUDED.sales_discount_account_id,
+      cogs_account_id = EXCLUDED.cogs_account_id,
+      purchase_account_id = EXCLUDED.purchase_account_id,
+      expenses_account_id = EXCLUDED.expenses_account_id,
+      sales_tax_account_id = EXCLUDED.sales_tax_account_id,
+      purchase_tax_account_id = EXCLUDED.purchase_tax_account_id,
+      updated_at = NOW()
   `.execute(db);
 }
 
@@ -156,6 +245,12 @@ export const migration = {
     for (const account of SEED_ACCOUNTS) {
       await correctSeedAccount(db, account);
     }
+
+    for (const entry of LEGACY_REPLACEMENTS) {
+      await cleanupLegacyDuplicateAccount(db, entry);
+    }
+
+    await updateSettings(db);
   },
 
   async down(): Promise<void> {},
