@@ -12,7 +12,8 @@ import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { CreateCustomerPaymentDto, CreateSupplierPaymentDto } from '../dto/create-party-payment.dto';
 import { UpsertPurchaseDto } from '../dto/upsert-purchase.dto';
-import { buildHistoricCostMap, buildNormalizedPurchaseItem, buildPurchaseReferenceNote, calculatePurchaseStockDecrease, calculatePurchaseStockIncrease, calculatePurchaseSubtotal, normalizeOptionalNote, normalizePurchaseScope } from '../helpers/purchases-write.helper';
+import { allocatePurchaseInvoiceDiscount, buildHistoricCostMap, buildNormalizedPurchaseItem, buildPurchaseReferenceNote, calculatePurchaseStockDecrease, calculatePurchaseStockIncrease, calculatePurchaseSubtotal, normalizeOptionalNote, normalizePurchaseScope } from '../helpers/purchases-write.helper';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { PurchasesQueryService } from './purchases-query.service';
 
@@ -63,6 +64,7 @@ export class PurchasesWriteService {
     private readonly audit: AuditService,
     private readonly financeService: PurchasesFinanceService,
     private readonly queryService: PurchasesQueryService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   private hasPermission(auth: AuthContext, permission: string): boolean {
@@ -215,14 +217,15 @@ export class PurchasesWriteService {
       const id = Number(insert.id);
       await trx.updateTable('purchases').set({ doc_no: `PUR-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
-      for (const item of normalizedItems) {
+      const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
+      for (const item of allocatedItems) {
         await trx.insertInto('purchase_items').values({
           purchase_id: id,
           product_id: item.productId,
           product_name: item.name,
           qty: item.qty,
-          unit_cost: item.cost,
-          line_total: item.total,
+          unit_cost: item.effectiveUnitCost,
+          line_total: item.effectiveLineTotal,
           unit_name: item.unitName,
           unit_multiplier: item.unitMultiplier,
           tenant_id: scope.tenantId,
@@ -238,7 +241,7 @@ export class PurchasesWriteService {
           tenantId: scope.tenantId,
           accountId: scope.accountId,
         });
-        await trx.updateTable('products').set({ cost_price: item.cost, updated_at: sql`NOW()` }).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+        await trx.updateTable('products').set({ cost_price: item.effectiveUnitCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase',
@@ -262,6 +265,8 @@ export class PurchasesWriteService {
       } else {
         await this.financeService.addTreasuryTransaction(trx, 'purchase', -total, `فاتورة شراء PUR-${id}`, 'purchase', id, auth, branchId, locationId);
       }
+
+      await this.accountingPosting.postPurchase(trx, id, auth);
 
       return {
         purchaseId: id,
@@ -337,6 +342,7 @@ export class PurchasesWriteService {
       const { branchId, locationId } = normalizePurchaseScope(payload);
 
       let subtotal = 0;
+      const normalizedItems = [];
       const repricingCandidates: PurchaseRepricingCandidate[] = [];
       for (const item of payload.items || []) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
@@ -347,16 +353,30 @@ export class PurchasesWriteService {
           throw new AppError(`Cost edit is not allowed for ${product.name}`, 'COST_EDIT_NOT_ALLOWED', 403);
         }
         const normalizedItem = buildNormalizedPurchaseItem({ ...item, cost: incomingCost }, product);
+        normalizedItems.push(normalizedItem);
         repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, incomingCost));
         subtotal += normalizedItem.total;
+      }
+
+      const discount = Number(payload.discount || 0);
+      if (!this.hasPermission(auth, 'canDiscount') && Math.abs(discount - Number(purchase.discount || 0)) > 0.0001) {
+        throw new AppError('Discount change is not allowed', 'DISCOUNT_NOT_ALLOWED', 403);
+      }
+      if (discount < 0 || discount > subtotal) throw new AppError('Discount is invalid', 'INVALID_DISCOUNT', 400);
+      const totals = computeInvoiceTotals(subtotal, discount, Number(payload.taxRate || 0), Boolean(payload.pricesIncludeTax));
+      const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
+
+      const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
+      for (const normalizedItem of allocatedItems) {
+        const repricedCost = Number(normalizedItem.effectiveUnitCost || 0);
 
         await trx.insertInto('purchase_items').values({
           purchase_id: purchaseId,
           product_id: normalizedItem.productId,
           product_name: normalizedItem.name,
           qty: normalizedItem.qty,
-          unit_cost: normalizedItem.cost,
-          line_total: normalizedItem.total,
+          unit_cost: repricedCost,
+          line_total: normalizedItem.effectiveLineTotal,
           unit_name: normalizedItem.unitName,
           unit_multiplier: normalizedItem.unitMultiplier,
           tenant_id: scope.tenantId,
@@ -365,16 +385,16 @@ export class PurchasesWriteService {
 
         const { increasedQty: increaseQty } = calculatePurchaseStockIncrease(normalizedItem.qty, normalizedItem.unitMultiplier, 0);
         const stockChange = await applyStockDelta(trx, {
-          productId: item.productId,
+          productId: normalizedItem.productId,
           delta: increaseQty,
           branchId,
           locationId,
           tenantId: scope.tenantId,
           accountId: scope.accountId,
         });
-        await trx.updateTable('products').set({ cost_price: incomingCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+        await trx.updateTable('products').set({ cost_price: repricedCost, updated_at: sql`NOW()` }).where('id', '=', normalizedItem.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
         await trx.insertInto('stock_movements').values({
-          product_id: item.productId,
+          product_id: normalizedItem.productId,
           movement_type: 'purchase_edit_apply',
           qty: increaseQty,
           before_qty: stockChange.scopeBefore,
@@ -390,14 +410,6 @@ export class PurchasesWriteService {
           account_id: scope.accountId,
         } as any).execute();
       }
-
-      const discount = Number(payload.discount || 0);
-      if (!this.hasPermission(auth, 'canDiscount') && Math.abs(discount - Number(purchase.discount || 0)) > 0.0001) {
-        throw new AppError('Discount change is not allowed', 'DISCOUNT_NOT_ALLOWED', 403);
-      }
-      if (discount < 0 || discount > subtotal) throw new AppError('Discount is invalid', 'INVALID_DISCOUNT', 400);
-      const totals = computeInvoiceTotals(subtotal, discount, Number(payload.taxRate || 0), Boolean(payload.pricesIncludeTax));
-      const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
 
       if (paymentType === 'credit') {
         await this.financeService.addSupplierLedgerEntry(trx, supplier.id, totals.total, 'purchase_edit_apply', buildPurchaseReferenceNote('تطبيق تعديل فاتورة شراء', purchase), 'purchase', purchaseId, auth, branchId, locationId);
@@ -484,6 +496,8 @@ export class PurchasesWriteService {
         cancelled_at: sql`NOW()`,
         updated_at: sql`NOW()`,
       }).where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+      await this.accountingPosting.reversePurchaseJournal(trx, purchaseId, String(reason || '').trim(), auth);
     });
 
     await this.audit.log('إلغاء فاتورة شراء', `تم إلغاء فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);

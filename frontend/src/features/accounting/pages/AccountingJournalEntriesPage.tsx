@@ -20,6 +20,8 @@ function mapSourceLabel(sourceType: string) {
   if (sourceType === 'sale_cancel' || sourceType === 'sale_reversal') return 'عكس بيع / إلغاء بيع';
   if (sourceType === 'sales_return') return 'مرتجع بيع';
   if (sourceType === 'return') return 'مرتجع';
+  if (sourceType === 'purchase') return 'شراء';
+  if (sourceType === 'purchase_cancel' || sourceType === 'purchase_reversal') return 'عكس شراء / إلغاء شراء';
   if (sourceType === 'manual') return 'يدوي';
   return sourceType || '';
 }

@@ -38,12 +38,34 @@ export class AccountingPostingService {
       .executeTakeFirst();
   }
 
+  private async getExistingPurchaseJournal(queryable: DbOrTx, purchaseId: number) {
+    return queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', '=', 'purchase')
+      .where('source_id', '=', purchaseId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id desc')
+      .executeTakeFirst();
+  }
+
   private async getExistingSaleReversalJournal(queryable: DbOrTx, saleId: number) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', 'in', ['sale_reversal', 'sale_cancel'])
       .where('source_id', '=', saleId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id desc')
+      .executeTakeFirst();
+  }
+
+  private async getExistingPurchaseReversalJournal(queryable: DbOrTx, purchaseId: number) {
+    return queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', 'in', ['purchase_reversal', 'purchase_cancel'])
+      .where('source_id', '=', purchaseId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
@@ -619,5 +641,199 @@ export class AccountingPostingService {
     });
 
     return { posted: true, journalEntryId: entryId };
+  }
+
+  async postPurchase(queryable: DbOrTx, purchaseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+    const scope = requireTenantScope(auth);
+    const existing = await this.getExistingPurchaseJournal(queryable, purchaseId);
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const purchase = await queryable
+      .selectFrom('purchases')
+      .select([
+        'id', 'doc_no', 'payment_type', 'subtotal', 'discount', 'tax_amount', 'total',
+        'branch_id', 'location_id', 'created_by', 'created_at', 'supplier_id',
+      ])
+      .where('id', '=', purchaseId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .executeTakeFirstOrThrow();
+
+    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    if (!settings) throw new Error(`Accounting settings missing while posting purchase ${purchaseId}`);
+
+    const lines: JournalLineDraft[] = [];
+    const branchId = purchase.branch_id ? Number(purchase.branch_id) : null;
+    const locationId = purchase.location_id ? Number(purchase.location_id) : null;
+
+    // Reliable inventory value source: purchase_items qty * unit_cost from the purchase document.
+    const purchaseItems = await queryable
+      .selectFrom('purchase_items')
+      .select(['qty', 'unit_cost'])
+      .where('purchase_id', '=', purchaseId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .execute();
+
+    const lineCostTotal = this.toMoney(
+      purchaseItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.unit_cost || 0)), 0),
+    );
+
+    const taxAmount = this.toMoney(purchase.tax_amount);
+    const total = this.toMoney(purchase.total);
+    // Prefer header-consistent net purchase amount (total - tax) to keep discounts/tax aligned.
+    // Fallback to summed item cost when header fields are not reliable.
+    const inventoryDebit = this.toMoney(Math.max(0, total - taxAmount)) > 0
+      ? this.toMoney(Math.max(0, total - taxAmount))
+      : lineCostTotal;
+    const payableCredit = purchase.payment_type === 'credit' ? total : 0;
+    const cashOrBankCredit = purchase.payment_type === 'credit' ? 0 : total;
+
+    if (inventoryDebit > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.inventory_account_id || 0),
+        description: 'إثبات تكلفة شراء للمخزون',
+        debit: inventoryDebit,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+    }
+
+    if (taxAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.purchase_tax_account_id || 0),
+        description: 'ضريبة مشتريات قابلة للخصم',
+        debit: taxAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+    }
+
+    if (payableCredit > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.supplier_payable_account_id || 0),
+        description: 'استحقاق مورد من فاتورة شراء',
+        debit: 0,
+        credit: payableCredit,
+        partnerType: purchase.supplier_id ? 'supplier' : 'none',
+        partnerId: purchase.supplier_id ? Number(purchase.supplier_id) : null,
+        branchId,
+        locationId,
+      });
+    }
+
+    if (cashOrBankCredit > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.cash_account_id || 0),
+        description: 'سداد نقدي لفاتورة شراء',
+        debit: 0,
+        credit: cashOrBankCredit,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+    }
+
+    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    for (const line of lines) {
+      if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting purchase ${purchaseId}`);
+      if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting purchase ${purchaseId}`);
+      if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting purchase ${purchaseId}`);
+    }
+
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced purchase journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'purchase',
+      sourceId: purchaseId,
+      entryDate: purchase.created_at ? new Date(purchase.created_at) : new Date(),
+      description: `قيد شراء تلقائي للفاتورة رقم ${purchase.doc_no || `PUR-${purchaseId}`}`,
+      branchId,
+      locationId,
+      createdBy: purchase.created_by ? Number(purchase.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: normalizedLines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  async reversePurchaseJournal(queryable: DbOrTx, purchaseId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
+    const existingReversal = await this.getExistingPurchaseReversalJournal(queryable, purchaseId);
+    if (existingReversal) {
+      this.logger.warn(`Skipping duplicate purchase reversal journal for purchase ${purchaseId}; existing entry ${existingReversal.id}`);
+      return { reversed: false, journalEntryId: Number(existingReversal.id) };
+    }
+
+    const sourceJournal = await queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'branch_id', 'location_id', 'created_by'])
+      .where('source_type', '=', 'purchase')
+      .where('source_id', '=', purchaseId)
+      .where('status', '=', 'posted')
+      .orderBy('id desc')
+      .executeTakeFirst();
+    if (!sourceJournal) {
+      this.logger.warn(`No posted purchase journal found for purchase ${purchaseId}; skipping accounting reversal`);
+      return { reversed: false, journalEntryId: null };
+    }
+
+    const scope = requireTenantScope(auth);
+    const purchase = await queryable
+      .selectFrom('purchases')
+      .select(['doc_no'])
+      .where('id', '=', purchaseId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .executeTakeFirst();
+    const docNo = purchase?.doc_no || `PUR-${purchaseId}`;
+
+    const sourceLines = await queryable
+      .selectFrom('journal_entry_lines')
+      .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
+      .where('journal_entry_id', '=', Number(sourceJournal.id))
+      .orderBy('id asc')
+      .execute();
+
+    const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({
+      accountId: Number(line.account_id),
+      description: `عكس: ${line.description || 'قيد شراء'}`,
+      debit: this.toMoney(line.credit),
+      credit: this.toMoney(line.debit),
+      partnerType: (line.partner_type as 'none' | 'customer' | 'supplier') || 'none',
+      partnerId: line.partner_id ? Number(line.partner_id) : null,
+      branchId: line.branch_id ? Number(line.branch_id) : null,
+      locationId: line.location_id ? Number(line.location_id) : null,
+    })).filter((line) => line.debit > 0 || line.credit > 0);
+
+    const totalDebit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced purchase reversal journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'purchase_reversal',
+      sourceId: purchaseId,
+      entryDate: new Date(),
+      description: `قيد عكسي لإلغاء فاتورة شراء رقم ${docNo}${reason ? ` - ${reason}` : ''}`,
+      branchId: sourceJournal.branch_id ? Number(sourceJournal.branch_id) : null,
+      locationId: sourceJournal.location_id ? Number(sourceJournal.location_id) : null,
+      createdBy: sourceJournal.created_by ? Number(sourceJournal.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: reversalLines,
+    });
+
+    this.logger.warn(`Posted purchase reversal journal for purchase ${purchaseId} as entry ${entryId}`);
+    return { reversed: true, journalEntryId: entryId };
   }
 }

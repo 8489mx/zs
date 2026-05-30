@@ -21,6 +21,12 @@ export type NormalizedPurchaseItem = {
   total: number;
 };
 
+export type DiscountAllocatedPurchaseItem = NormalizedPurchaseItem & {
+  allocatedDiscount: number;
+  effectiveLineTotal: number;
+  effectiveUnitCost: number;
+};
+
 export type PurchaseContextShape = {
   doc_no?: string | null;
   id?: number | string | null;
@@ -62,6 +68,92 @@ export function buildNormalizedPurchaseItem(
 
 export function calculatePurchaseSubtotal(items: Array<{ total: number }>): number {
   return roundCurrency(items.reduce((sum, item) => sum + Number(item.total || 0), 0));
+}
+
+export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[], invoiceDiscount: number): DiscountAllocatedPurchaseItem[] {
+  const safeDiscount = roundCurrency(Math.max(0, Number(invoiceDiscount || 0)));
+  if (!items.length || safeDiscount <= 0) {
+    return items.map((item) => ({
+      ...item,
+      allocatedDiscount: 0,
+      effectiveLineTotal: roundCurrency(item.total),
+      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total) / item.qty).toFixed(6)) : 0,
+    }));
+  }
+
+  const subtotal = roundCurrency(calculatePurchaseSubtotal(items));
+  if (subtotal <= 0) {
+    return items.map((item) => ({
+      ...item,
+      allocatedDiscount: 0,
+      effectiveLineTotal: roundCurrency(item.total),
+      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total) / item.qty).toFixed(6)) : 0,
+    }));
+  }
+
+  const eligibleIndexes = items
+    .map((item, index) => ({ index, total: roundCurrency(item.total) }))
+    .filter((entry) => entry.total > 0)
+    .map((entry) => entry.index);
+
+  if (!eligibleIndexes.length) {
+    return items.map((item) => ({
+      ...item,
+      allocatedDiscount: 0,
+      effectiveLineTotal: roundCurrency(item.total),
+      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total) / item.qty).toFixed(6)) : 0,
+    }));
+  }
+
+  const targetNetTotal = roundCurrency(Math.max(0, subtotal - safeDiscount));
+  const allocatedByIndex = new Map<number, number>();
+  const effectiveByIndex = new Map<number, number>();
+  let allocatedSoFar = 0;
+  let effectiveSoFar = 0;
+
+  for (let i = 0; i < eligibleIndexes.length; i += 1) {
+    const index = eligibleIndexes[i];
+    const item = items[index];
+    const gross = roundCurrency(item.total);
+    const isLastEligible = i === eligibleIndexes.length - 1;
+
+    if (!isLastEligible) {
+      const proportional = roundCurrency((safeDiscount * gross) / subtotal);
+      const remainingDiscount = roundCurrency(safeDiscount - allocatedSoFar);
+      const allocated = Math.min(proportional, remainingDiscount, gross);
+      const net = roundCurrency(gross - allocated);
+      allocatedByIndex.set(index, allocated);
+      effectiveByIndex.set(index, net);
+      allocatedSoFar = roundCurrency(allocatedSoFar + allocated);
+      effectiveSoFar = roundCurrency(effectiveSoFar + net);
+      continue;
+    }
+
+    const allocated = roundCurrency(Math.max(0, safeDiscount - allocatedSoFar));
+    const netFromDiscount = roundCurrency(Math.max(0, gross - Math.min(allocated, gross)));
+    const netFromTarget = roundCurrency(Math.max(0, targetNetTotal - effectiveSoFar));
+    const net = Math.min(netFromDiscount, netFromTarget);
+    const adjustedAllocated = roundCurrency(gross - net);
+    allocatedByIndex.set(index, adjustedAllocated);
+    effectiveByIndex.set(index, net);
+    allocatedSoFar = roundCurrency(allocatedSoFar + adjustedAllocated);
+  }
+
+  return items.map((item, index) => {
+    const gross = roundCurrency(item.total);
+    const allocatedDiscount = roundCurrency(allocatedByIndex.get(index) || 0);
+    const effectiveLineTotal = roundCurrency(
+      effectiveByIndex.has(index)
+        ? Number(effectiveByIndex.get(index) || 0)
+        : gross,
+    );
+    return {
+      ...item,
+      allocatedDiscount,
+      effectiveLineTotal,
+      effectiveUnitCost: item.qty > 0 ? Number((effectiveLineTotal / item.qty).toFixed(6)) : 0,
+    };
+  });
 }
 
 export function calculatePurchaseStockIncrease(itemQty: number | string | null | undefined, unitMultiplier: number | string | null | undefined, currentStockQty: number | string | null | undefined) {
