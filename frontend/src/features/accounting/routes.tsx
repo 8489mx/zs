@@ -16,6 +16,9 @@ export const accountingRouteModule: FeatureRouteModule = {
       element: createLazyRoute(() => import('@/features/accounting/pages/AccountingSettingsPage').then((module) => ({ default: module.AccountingSettingsPage }))),
     },
   ],
-  navigation: [{ key: 'accounting', label: 'الحسابات', to: '/accounting/accounts' }],
+  navigation: [
+    { key: 'accounting-accounts', label: 'شجرة الحسابات', to: '/accounting/accounts' },
+    { key: 'accounting-journal-entries', label: 'القيود اليومية', to: '/accounting/journal-entries' },
+    { key: 'accounting-settings', label: 'إعدادات الحسابات', to: '/accounting/settings' },
+  ],
 };
-

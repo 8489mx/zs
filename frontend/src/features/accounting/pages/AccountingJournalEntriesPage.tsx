@@ -2,21 +2,48 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { accountingApi, type JournalEntryListItem } from '@/features/accounting/api/accounting.api';
+import { formatCurrency } from '@/lib/format';
+import { accountingApi, type JournalEntryDetail, type JournalEntryLine, type JournalEntryListItem } from '@/features/accounting/api/accounting.api';
+
+function mapStatusLabel(status: string) {
+  if (status === 'posted') return 'مرحّل';
+  if (status === 'draft') return 'مسودة';
+  if (status === 'cancelled') return 'ملغي';
+  return status || '';
+}
+
+function mapSourceLabel(sourceType: string) {
+  if (sourceType === 'sale') return 'بيع';
+  if (sourceType === 'sale_cancel' || sourceType === 'sale_reversal') return 'عكس بيع / إلغاء بيع';
+  if (sourceType === 'sales_return') return 'مرتجع بيع';
+  if (sourceType === 'return') return 'مرتجع';
+  if (sourceType === 'manual') return 'يدوي';
+  return sourceType || '';
+}
 
 export function AccountingJournalEntriesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+
   const query = useQuery({
     queryKey: ['accounting', 'journal-entries', page, pageSize],
     queryFn: () => accountingApi.journalEntries({ page, pageSize }),
   });
 
+  const detailQuery = useQuery({
+    queryKey: ['accounting', 'journal-entry', selectedEntryId],
+    queryFn: () => accountingApi.journalEntry(String(selectedEntryId)),
+    enabled: Boolean(selectedEntryId),
+  });
+
   const rows = query.data?.entries || [];
   const pagination = query.data?.pagination || {};
   const totalItems = Number((pagination as { totalItems?: number }).totalItems || rows.length);
+  const detailEntry: JournalEntryDetail | null = detailQuery.data?.entry || null;
 
   return (
     <div className="page-stack page-shell">
@@ -34,12 +61,29 @@ export function AccountingJournalEntriesPage() {
           <DataTable<JournalEntryListItem>
             rows={rows}
             rowKey={(row) => row.id}
+            onRowClick={(row) => setSelectedEntryId(row.id)}
+            rowTitle={() => 'عرض تفاصيل القيد'}
             columns={[
-              { key: 'entryNo', header: 'رقم القيد', cell: (row) => row.entryNo },
+              {
+                key: 'entryNo',
+                header: 'رقم القيد',
+                cell: (row) => (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedEntryId(row.id);
+                    }}
+                  >
+                    {row.entryNo}
+                  </button>
+                ),
+              },
               { key: 'date', header: 'التاريخ', cell: (row) => String(row.entryDate || '').slice(0, 10) },
-              { key: 'source', header: 'المصدر', cell: (row) => row.sourceType || '' },
+              { key: 'source', header: 'المصدر', cell: (row) => mapSourceLabel(row.sourceType || '') },
               { key: 'description', header: 'الوصف', cell: (row) => row.description || '' },
-              { key: 'status', header: 'الحالة', cell: (row) => row.status },
+              { key: 'status', header: 'الحالة', cell: (row) => mapStatusLabel(row.status || '') },
             ]}
             pagination={{
               page,
@@ -55,7 +99,61 @@ export function AccountingJournalEntriesPage() {
           />
         </QueryFeedback>
       </Card>
+
+      {selectedEntryId ? (
+        <Card title="تفاصيل القيد">
+          <div className="actions">
+            <Button type="button" variant="secondary" onClick={() => setSelectedEntryId(null)}>
+              العودة للقيود اليومية
+            </Button>
+          </div>
+
+          <QueryFeedback
+            isLoading={detailQuery.isLoading}
+            isError={detailQuery.isError}
+            error={detailQuery.error}
+            isEmpty={!detailEntry}
+            loadingText="جاري تحميل تفاصيل القيد..."
+            errorTitle="تعذر تحميل تفاصيل القيد"
+            emptyTitle="لا توجد تفاصيل لهذا القيد"
+          >
+            {detailEntry ? (
+              <div className="page-stack">
+                <div className="grid-2">
+                  <div><strong>رقم القيد:</strong> {detailEntry.entryNo}</div>
+                  <div><strong>التاريخ:</strong> {String(detailEntry.entryDate || '').slice(0, 10)}</div>
+                  <div><strong>المصدر:</strong> {mapSourceLabel(detailEntry.sourceType || '')}</div>
+                  <div><strong>الحالة:</strong> {mapStatusLabel(detailEntry.status || '')}</div>
+                  <div><strong>الوصف:</strong> {detailEntry.description || '-'}</div>
+                  <div><strong>إجمالي المدين:</strong> {formatCurrency(Number(detailEntry.totals?.debit || 0))}</div>
+                  <div><strong>إجمالي الدائن:</strong> {formatCurrency(Number(detailEntry.totals?.credit || 0))}</div>
+                </div>
+
+                <Card title="سطور القيد">
+                  {detailEntry.lines?.length ? (
+                    <DataTable<JournalEntryLine>
+                      rows={detailEntry.lines}
+                      rowKey={(row) => row.id}
+                      columns={[
+                        {
+                          key: 'account',
+                          header: 'الحساب',
+                          cell: (row) => [row.accountCode, row.accountNameAr || row.accountNameEn || row.accountId].filter(Boolean).join(' - '),
+                        },
+                        { key: 'description', header: 'الوصف', cell: (row) => row.description || '-' },
+                        { key: 'debit', header: 'مدين', cell: (row) => formatCurrency(Number(row.debit || 0)) },
+                        { key: 'credit', header: 'دائن', cell: (row) => formatCurrency(Number(row.credit || 0)) },
+                      ]}
+                    />
+                  ) : (
+                    <div className="muted">لا توجد سطور لهذا القيد</div>
+                  )}
+                </Card>
+              </div>
+            ) : null}
+          </QueryFeedback>
+        </Card>
+      ) : null}
     </div>
   );
 }
-

@@ -58,6 +58,21 @@ function getCanSubmitHint(params: {
   return '';
 }
 
+function getCheckoutDisabledReason(params: {
+  cartLength: number;
+  hasOperationalSetup: boolean;
+  hasCatalogReady: boolean;
+  requiresCashierShift: boolean;
+  ownOpenShift: { id: string | number } | null;
+  hasInvalidCartLine: boolean;
+}) {
+  if (!params.cartLength) return 'لا توجد أصناف في الفاتورة';
+  if (!params.hasOperationalSetup || !params.hasCatalogReady) return 'توجد مشكلة في بيانات الفاتورة';
+  if (params.requiresCashierShift && !params.ownOpenShift) return 'لا توجد وردية مفتوحة';
+  if (params.hasInvalidCartLine) return 'توجد مشكلة في بيانات الفاتورة';
+  return '';
+}
+
 function getShiftDisplayLabel(shift: { docNo?: string; openedByName?: string } | null | undefined) {
   if (!shift) return 'غير مفتوحة';
   const openedByName = String(shift.openedByName || '').trim();
@@ -145,6 +160,11 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const hasCatalogReady = Boolean(productList.length > 0);
   const requiresCashierShift = params.paymentType !== 'credit';
   const hasZeroPriceLine = params.cart.some((item) => Number(item.price || 0) <= 0);
+  const hasInvalidCartLine = params.cart.some((item) => {
+    const qty = Number(item.qty || 0);
+    const price = Number(item.price || 0);
+    return !Number.isFinite(qty) || !Number.isFinite(price) || qty <= 0 || price < 0;
+  });
   const hasCreditWithoutCustomer = params.paymentType === 'credit' && !params.customerId;
   const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
   const shouldAssumeFullCashPayment = allowNegativeStockSales && params.paymentType !== 'credit' && Number(params.paidAmount || 0) <= 0.0001;
@@ -175,6 +195,21 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     && !hasDiscountPermissionViolation
     && !hasPricePermissionViolation,
   );
+  const canOpenCheckout = Boolean(
+    params.cart.length
+    && hasOperationalSetup
+    && hasCatalogReady
+    && (!requiresCashierShift || ownOpenShift)
+    && !hasInvalidCartLine,
+  );
+  const checkoutDisabledReason = getCheckoutDisabledReason({
+    cartLength: params.cart.length,
+    hasOperationalSetup,
+    hasCatalogReady,
+    requiresCashierShift,
+    ownOpenShift,
+    hasInvalidCartLine,
+  });
 
   const canSubmitHint = getCanSubmitHint({
     cartLength: params.cart.length,
@@ -228,8 +263,11 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     hasDiscountPermissionViolation,
     hasPricePermissionViolation,
     hasUnderpaidSale,
+    hasInvalidCartLine,
     canApplyDiscount,
     canEditPrice,
+    canOpenCheckout,
+    checkoutDisabledReason,
     canSubmitSale,
     canSubmitHint,
     contextBadges,

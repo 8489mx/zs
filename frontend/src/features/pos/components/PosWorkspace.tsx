@@ -102,8 +102,12 @@ export function PosWorkspace() {
 
   const requestCheckoutDialog = useCallback(() => {
     if (pos.createSale.isPending) return;
+    if (!pos.canOpenCheckout) {
+      if (pos.checkoutDisabledReason) pos.setSubmitMessage(pos.checkoutDisabledReason);
+      return;
+    }
     setCheckoutDialogOpen(true);
-  }, [pos.createSale.isPending]);
+  }, [pos.canOpenCheckout, pos.checkoutDisabledReason, pos.createSale.isPending, pos.setSubmitMessage]);
 
   const requestRecallHeldDraftByIndex = useCallback((index: number) => {
     const targetDraft = pos.heldDraftSummaries[index];

@@ -14,13 +14,19 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { CreateReturnDto } from './dto/create-return.dto';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
 
 type ReturnInputItem = { productId: number; productName: string; qty: number };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null };
 
 @Injectable()
 export class ReturnsService {
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly tx: TransactionHelper, private readonly audit: AuditService) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly tx: TransactionHelper,
+    private readonly audit: AuditService,
+    private readonly accountingPosting: AccountingPostingService,
+  ) {}
 
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
   private tenantPredicate(auth: AuthContext, alias?: string) { const tenantId = this.scope(auth).tenantId; return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`; }
@@ -115,12 +121,25 @@ export class ReturnsService {
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);
+    // TODO(accounting): Sale returns here can be partial line-level returns.
+    // Do not post full-sale reversal journals for this flow.
+    // Implement dedicated partial return accounting entries when reliable line-level accounting mapping is finalized.
     const returnDocumentId = await this.insertReturnDocument(trx, { returnType: 'sale', invoiceId: Number(payload.invoiceId), settlementMode, refundMethod, total, note: String(payload.note || '').trim(), branchId: sale.branch_id, locationId: sale.location_id }, auth);
     for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal }, auth);
     const customerId = sale.customer_id ? Number(sale.customer_id) : null;
     if (settlementMode === 'store_credit' && customerId) await this.addStoreCredit(trx, customerId, total, auth);
     else if (sale.payment_type === 'credit' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -total, 'sale_return', 'sale return RET-' + String(returnDocumentId), returnDocumentId, auth, sale.branch_id, sale.location_id);
     else if (refundMethod === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return RET-' + String(returnDocumentId), returnDocumentId, auth, sale.branch_id, sale.location_id);
+
+    try {
+      await this.accountingPosting.postSalesReturn(trx, returnDocumentId, auth);
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error ? error.message : 'Failed to post accounting journal for sales return',
+        'SALES_RETURN_ACCOUNTING_POST_FAILED',
+        500,
+      );
+    }
     return [returnDocumentId];
   }
 

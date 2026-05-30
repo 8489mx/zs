@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AccountingModule } from '../accounting/accounting.module';
 import { AuditModule } from '../../core/audit/audit.module';
 import { AuthFoundationModule } from '../../core/auth/auth.module';
 import { DatabaseModule } from '../../database/database.module';
@@ -10,7 +11,7 @@ import { SalesQueryService } from './services/sales-query.service';
 import { SalesWriteService } from './services/sales-write.service';
 
 @Module({
-  imports: [DatabaseModule, AuditModule, AuthFoundationModule],
+  imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule],
   controllers: [SalesController],
   providers: [SalesService, SalesAuthorizationService, SalesFinanceService, SalesQueryService, SalesWriteService],
   exports: [SalesService],

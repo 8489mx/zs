@@ -60,6 +60,7 @@ export function buildPreparedSaleItem(
     unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
     unitMultiplier: Number(item.unitMultiplier || 1) || 1,
     priceType: item.priceType === 'wholesale' ? 'wholesale' : 'retail',
+    // Stored as cost per sold unit on sale_items (not per base piece) so accounting COGS can use qty * cost_price.
     costPrice: roundCurrency(Number(product.cost_price || 0) * Number(item.unitMultiplier || 1)),
     requiredQty,
     beforeQty,

@@ -34,6 +34,33 @@ export type JournalEntryListItem = {
   status: 'draft' | 'posted' | 'cancelled' | string;
 };
 
+export type JournalEntryLine = {
+  id: string;
+  accountId: string;
+  accountCode?: string;
+  accountNameAr?: string;
+  accountNameEn?: string;
+  description: string;
+  debit: number;
+  credit: number;
+};
+
+export type JournalEntryDetail = {
+  id: string;
+  entryNo: string;
+  entryDate: string;
+  description: string;
+  sourceType: string;
+  sourceId: string;
+  status: 'draft' | 'posted' | 'cancelled' | string;
+  lines: JournalEntryLine[];
+  totals?: {
+    debit: number;
+    credit: number;
+    balanced?: boolean;
+  };
+};
+
 export const accountingApi = {
   accounts: () => http<{ accounts: AccountingAccount[] }>('/api/accounting/accounts'),
   settings: () => http<{ settings: Record<string, unknown> | null }>('/api/accounting/settings'),
@@ -46,6 +73,6 @@ export const accountingApi = {
     const suffix = search.toString();
     return http<{ entries: JournalEntryListItem[]; pagination: Record<string, unknown> }>(`/api/accounting/journal-entries${suffix ? `?${suffix}` : ''}`);
   },
-  journalEntry: (id: string) => http<{ entry: Record<string, unknown> }>(`/api/accounting/journal-entries/${encodeURIComponent(id)}`),
+  journalEntry: (id: string) => http<{ entry: JournalEntryDetail }>(`/api/accounting/journal-entries/${encodeURIComponent(id)}`),
 };
 
