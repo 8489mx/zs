@@ -2,7 +2,7 @@ import { Controller, Get, Param, ParseIntPipe, Query, Req, UseGuards } from '@ne
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { AccountingService } from './accounting.service';
-import { FinancialSummaryQueryDto, JournalEntriesQueryDto } from './dto/accounting.dto';
+import { CashMovementQueryDto, FinancialSummaryQueryDto, JournalEntriesQueryDto, ReceivablesPayablesQueryDto } from './dto/accounting.dto';
 
 @Controller('api/accounting')
 @UseGuards(SessionAuthGuard)
@@ -32,6 +32,16 @@ export class AccountingController {
   @Get('reports/financial-summary')
   getFinancialSummary(@Query() query: FinancialSummaryQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.getFinancialSummary(query, req.authContext!);
+  }
+
+  @Get('reports/receivables-payables')
+  getReceivablesPayables(@Query() query: ReceivablesPayablesQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.getReceivablesPayables(query, req.authContext!);
+  }
+
+  @Get('reports/cash-movement')
+  getCashMovement(@Query() query: CashMovementQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.getCashMovement(query, req.authContext!);
   }
 }
 

@@ -1,4 +1,4 @@
-import { createLazyRoute } from '@/app/router/lazy-route';
+﻿import { createLazyRoute } from '@/app/router/lazy-route';
 import type { FeatureRouteModule } from '@/app/router/types';
 
 export const accountingRouteModule: FeatureRouteModule = {
@@ -19,11 +19,21 @@ export const accountingRouteModule: FeatureRouteModule = {
       path: 'accounting/financial-summary',
       element: createLazyRoute(() => import('@/features/accounting/pages/AccountingFinancialSummaryPage').then((module) => ({ default: module.AccountingFinancialSummaryPage }))),
     },
+    {
+      path: 'accounting/receivables-payables',
+      element: createLazyRoute(() => import('@/features/accounting/pages/AccountingReceivablesPayablesPage').then((module) => ({ default: module.AccountingReceivablesPayablesPage }))),
+    },
+    {
+      path: 'accounting/cash-movement',
+      element: createLazyRoute(() => import('@/features/accounting/pages/AccountingCashMovementPage').then((module) => ({ default: module.AccountingCashMovementPage }))),
+    },
   ],
   navigation: [
     { key: 'accounting-accounts', label: 'شجرة الحسابات', to: '/accounting/accounts' },
     { key: 'accounting-journal-entries', label: 'القيود اليومية', to: '/accounting/journal-entries' },
     { key: 'accounting-settings', label: 'إعدادات الحسابات', to: '/accounting/settings' },
     { key: 'accounting-financial-summary', label: 'الملخص المالي', to: '/accounting/financial-summary' },
+    { key: 'accounting-receivables-payables', label: 'الذمم والمستحقات', to: '/accounting/receivables-payables' },
+    { key: 'accounting-cash-movement', label: 'حركة الخزنة والبنك', to: '/accounting/cash-movement' },
   ],
 };

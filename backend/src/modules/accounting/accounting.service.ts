@@ -1,9 +1,10 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Kysely } from '../../database/kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
-import { FinancialSummaryQueryDto, JournalEntriesQueryDto } from './dto/accounting.dto';
+import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { CashMovementQueryDto, FinancialSummaryQueryDto, JournalEntriesQueryDto, ReceivablesPayablesQueryDto } from './dto/accounting.dto';
 
 type PartnerType = 'none' | 'customer' | 'supplier';
 
@@ -133,6 +134,13 @@ export class AccountingService {
       from: dateFrom ? String(dateFrom).slice(0, 10) : null,
       to: dateTo ? String(dateTo).slice(0, 10) : null,
     };
+  }
+
+  private tenantPredicate(auth: AuthContext, alias?: string) {
+    const scope = requireTenantScope(auth);
+    return alias
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${scope.tenantId}`
+      : sql<boolean>`tenant_id = ${scope.tenantId}`;
   }
 
   async getAccountingSettings(auth: AuthContext): Promise<Record<string, unknown>> {
@@ -501,6 +509,242 @@ export class AccountingService {
         expenseAccounts: asArray(expenseBreakdown),
         cashMovements: asArray(cashBreakdown),
       },
+    };
+  }
+
+  async getReceivablesPayables(filters: ReceivablesPayablesQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+    const dateTo = filters.date_to ? new Date(filters.date_to) : null;
+    const branchId = Number(filters.branch_id || 0) > 0 ? Number(filters.branch_id) : null;
+    const locationId = Number(filters.location_id || 0) > 0 ? Number(filters.location_id) : null;
+    const showZero = String(filters.show_zero || '').trim().toLowerCase() === 'true';
+
+    if (!dateTo && !branchId && !locationId) {
+      const [customers, suppliers, customerLastRows, supplierLastRows] = await Promise.all([
+        this.db
+          .selectFrom('customers')
+          .select(['id', 'name', 'phone', 'balance'])
+          .where('is_active', '=', true)
+          .where(this.tenantPredicate(auth))
+          .orderBy('name asc')
+          .execute(),
+        this.db
+          .selectFrom('suppliers')
+          .select(['id', 'name', 'phone', 'balance'])
+          .where('is_active', '=', true)
+          .where(this.tenantPredicate(auth))
+          .orderBy('name asc')
+          .execute(),
+        this.db
+          .selectFrom('customer_ledger')
+          .select(['customer_id', (eb) => eb.fn.max('created_at').as('last_movement_at')])
+          .where(this.tenantPredicate(auth))
+          .groupBy('customer_id')
+          .execute(),
+        this.db
+          .selectFrom('supplier_ledger')
+          .select(['supplier_id', (eb) => eb.fn.max('created_at').as('last_movement_at')])
+          .where(this.tenantPredicate(auth))
+          .groupBy('supplier_id')
+          .execute(),
+      ]);
+
+      const customerLastMap = new Map(customerLastRows.map((row) => [String(row.customer_id || ''), row.last_movement_at ? String(row.last_movement_at) : '']));
+      const supplierLastMap = new Map(supplierLastRows.map((row) => [String(row.supplier_id || ''), row.last_movement_at ? String(row.last_movement_at) : '']));
+
+      const customerRows = customers
+        .map((row) => ({
+          customerId: String(row.id),
+          customerName: row.name || '',
+          phone: row.phone || '',
+          balance: this.toMoney(row.balance),
+          lastMovementDate: customerLastMap.get(String(row.id)) || '',
+        }))
+        .filter((row) => showZero || Math.abs(row.balance) > 0.0001);
+
+      const supplierRows = suppliers
+        .map((row) => ({
+          supplierId: String(row.id),
+          supplierName: row.name || '',
+          phone: row.phone || '',
+          balance: this.toMoney(row.balance),
+          lastMovementDate: supplierLastMap.get(String(row.id)) || '',
+        }))
+        .filter((row) => showZero || Math.abs(row.balance) > 0.0001);
+
+      const customerReceivables = this.toMoney(
+        customerRows.reduce((sum, row) => sum + (row.balance > 0 ? row.balance : 0), 0),
+      );
+      const supplierPayables = this.toMoney(
+        supplierRows.reduce((sum, row) => sum + (row.balance > 0 ? row.balance : 0), 0),
+      );
+
+      return {
+        totals: {
+          customerReceivables,
+          supplierPayables,
+          netPosition: this.toMoney(customerReceivables - supplierPayables),
+        },
+        customers: customerRows.sort((a, b) => b.balance - a.balance),
+        suppliers: supplierRows.sort((a, b) => b.balance - a.balance),
+      };
+    }
+
+    let customerLedgerQuery = this.db
+      .selectFrom('customer_ledger')
+      .select([
+        'customer_id',
+        (eb) => eb.fn.sum<number>('amount').as('balance_total'),
+        (eb) => eb.fn.max('created_at').as('last_movement_at'),
+      ])
+      .where(this.tenantPredicate(auth));
+
+    let supplierLedgerQuery = this.db
+      .selectFrom('supplier_ledger')
+      .select([
+        'supplier_id',
+        (eb) => eb.fn.sum<number>('amount').as('balance_total'),
+        (eb) => eb.fn.max('created_at').as('last_movement_at'),
+      ])
+      .where(this.tenantPredicate(auth));
+
+    if (dateTo) {
+      customerLedgerQuery = customerLedgerQuery.where('created_at', '<=', dateTo);
+      supplierLedgerQuery = supplierLedgerQuery.where('created_at', '<=', dateTo);
+    }
+    if (branchId) {
+      customerLedgerQuery = customerLedgerQuery.where('branch_id', '=', branchId);
+      supplierLedgerQuery = supplierLedgerQuery.where('branch_id', '=', branchId);
+    }
+    if (locationId) {
+      customerLedgerQuery = customerLedgerQuery.where('location_id', '=', locationId);
+      supplierLedgerQuery = supplierLedgerQuery.where('location_id', '=', locationId);
+    }
+
+    const [customerLedgers, supplierLedgers, customers, suppliers] = await Promise.all([
+      customerLedgerQuery.groupBy('customer_id').execute(),
+      supplierLedgerQuery.groupBy('supplier_id').execute(),
+      this.db.selectFrom('customers').select(['id', 'name', 'phone']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute(),
+      this.db.selectFrom('suppliers').select(['id', 'name', 'phone']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute(),
+    ]);
+
+    const customerInfo = new Map(customers.map((row) => [String(row.id), row]));
+    const supplierInfo = new Map(suppliers.map((row) => [String(row.id), row]));
+
+    const customerRows = customerLedgers
+      .map((row) => {
+        const customer = customerInfo.get(String(row.customer_id || ''));
+        return {
+          customerId: String(row.customer_id || ''),
+          customerName: customer?.name || '',
+          phone: customer?.phone || '',
+          balance: this.toMoney(row.balance_total || 0),
+          lastMovementDate: row.last_movement_at ? String(row.last_movement_at) : '',
+        };
+      })
+      .filter((row) => row.customerId)
+      .filter((row) => showZero || Math.abs(row.balance) > 0.0001)
+      .sort((a, b) => b.balance - a.balance);
+
+    const supplierRows = supplierLedgers
+      .map((row) => {
+        const supplier = supplierInfo.get(String(row.supplier_id || ''));
+        return {
+          supplierId: String(row.supplier_id || ''),
+          supplierName: supplier?.name || '',
+          phone: supplier?.phone || '',
+          balance: this.toMoney(row.balance_total || 0),
+          lastMovementDate: row.last_movement_at ? String(row.last_movement_at) : '',
+        };
+      })
+      .filter((row) => row.supplierId)
+      .filter((row) => showZero || Math.abs(row.balance) > 0.0001)
+      .sort((a, b) => b.balance - a.balance);
+
+    const customerReceivables = this.toMoney(
+      customerRows.reduce((sum, row) => sum + (row.balance > 0 ? row.balance : 0), 0),
+    );
+    const supplierPayables = this.toMoney(
+      supplierRows.reduce((sum, row) => sum + (row.balance > 0 ? row.balance : 0), 0),
+    );
+
+    return {
+      totals: {
+        customerReceivables,
+        supplierPayables,
+        netPosition: this.toMoney(customerReceivables - supplierPayables),
+      },
+      customers: customerRows,
+      suppliers: supplierRows,
+    };
+  }
+
+  async getCashMovement(filters: CashMovementQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+    const dateFrom = filters.date_from ? new Date(filters.date_from) : null;
+    const dateTo = filters.date_to ? new Date(filters.date_to) : null;
+    const branchId = Number(filters.branch_id || 0) > 0 ? Number(filters.branch_id) : null;
+    const locationId = Number(filters.location_id || 0) > 0 ? Number(filters.location_id) : null;
+
+    let query = this.db
+      .selectFrom('journal_entry_lines as l')
+      .innerJoin('journal_entries as je', 'je.id', 'l.journal_entry_id')
+      .innerJoin('accounting_accounts as a', 'a.id', 'l.account_id')
+      .select([
+        'a.code as account_code',
+        'a.name_ar as account_name_ar',
+        'je.source_type as source_type',
+        'je.entry_date as entry_date',
+        'l.debit as debit',
+        'l.credit as credit',
+      ])
+      .where('je.status', '=', 'posted')
+      .where('a.code', 'in', ['1110', '1120']);
+
+    if (dateFrom) query = query.where('je.entry_date', '>=', dateFrom);
+    if (dateTo) query = query.where('je.entry_date', '<=', dateTo);
+    if (branchId) query = query.where('je.branch_id', '=', branchId);
+    if (locationId) query = query.where('je.location_id', '=', locationId);
+
+    const rows = await query.orderBy('je.entry_date desc').execute();
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+    const byAccount = new Map<string, { accountCode: string; accountNameAr: string; debit: number; credit: number; net: number }>();
+    const bySource = new Map<string, { sourceType: string; debit: number; credit: number; net: number }>();
+
+    for (const row of rows) {
+      const debit = this.toMoney(row.debit);
+      const credit = this.toMoney(row.credit);
+      const sourceType = String(row.source_type || 'other');
+      const accountCode = String(row.account_code || '');
+      const accountNameAr = String(row.account_name_ar || '');
+
+      totalDebit = this.toMoney(totalDebit + debit);
+      totalCredit = this.toMoney(totalCredit + credit);
+
+      const accountItem = byAccount.get(accountCode) || { accountCode, accountNameAr, debit: 0, credit: 0, net: 0 };
+      accountItem.debit = this.toMoney(accountItem.debit + debit);
+      accountItem.credit = this.toMoney(accountItem.credit + credit);
+      accountItem.net = this.toMoney(accountItem.debit - accountItem.credit);
+      byAccount.set(accountCode, accountItem);
+
+      const sourceItem = bySource.get(sourceType) || { sourceType, debit: 0, credit: 0, net: 0 };
+      sourceItem.debit = this.toMoney(sourceItem.debit + debit);
+      sourceItem.credit = this.toMoney(sourceItem.credit + credit);
+      sourceItem.net = this.toMoney(sourceItem.debit - sourceItem.credit);
+      bySource.set(sourceType, sourceItem);
+    }
+
+    return {
+      period: this.mapPeriod(filters.date_from, filters.date_to),
+      totals: {
+        totalIn: totalDebit,
+        totalOut: totalCredit,
+        netMovement: this.toMoney(totalDebit - totalCredit),
+      },
+      accounts: Array.from(byAccount.values()).sort((a, b) => Number(a.accountCode || 0) - Number(b.accountCode || 0)),
+      sources: Array.from(bySource.values()).sort((a, b) => b.net - a.net),
     };
   }
 

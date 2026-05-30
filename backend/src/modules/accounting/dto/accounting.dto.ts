@@ -55,3 +55,47 @@ export class FinancialSummaryQueryDto {
   location_id?: number;
 }
 
+export class ReceivablesPayablesQueryDto {
+  @IsOptional()
+  @IsDateString()
+  date_to?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  branch_id?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  location_id?: number;
+
+  @IsOptional()
+  @IsString()
+  show_zero?: string;
+}
+
+export class CashMovementQueryDto {
+  @IsOptional()
+  @IsDateString()
+  date_from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date_to?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  branch_id?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  location_id?: number;
+}
+

@@ -93,6 +93,54 @@ export type FinancialSummaryResponse = {
   };
 };
 
+export type ReceivableRow = {
+  customerId: string;
+  customerName: string;
+  phone: string;
+  balance: number;
+  lastMovementDate: string;
+};
+
+export type PayableRow = {
+  supplierId: string;
+  supplierName: string;
+  phone: string;
+  balance: number;
+  lastMovementDate: string;
+};
+
+export type ReceivablesPayablesResponse = {
+  totals: {
+    customerReceivables: number;
+    supplierPayables: number;
+    netPosition: number;
+  };
+  customers: ReceivableRow[];
+  suppliers: PayableRow[];
+};
+
+export type CashMovementResponse = {
+  period: { from: string | null; to: string | null };
+  totals: {
+    totalIn: number;
+    totalOut: number;
+    netMovement: number;
+  };
+  accounts: Array<{
+    accountCode: string;
+    accountNameAr: string;
+    debit: number;
+    credit: number;
+    net: number;
+  }>;
+  sources: Array<{
+    sourceType: string;
+    debit: number;
+    credit: number;
+    net: number;
+  }>;
+};
+
 export const accountingApi = {
   accounts: () => http<{ accounts: AccountingAccount[] }>('/api/accounting/accounts'),
   settings: () => http<{ settings: Record<string, unknown> | null }>('/api/accounting/settings'),
@@ -114,6 +162,24 @@ export const accountingApi = {
     }
     const suffix = search.toString();
     return http<FinancialSummaryResponse>(`/api/accounting/reports/financial-summary${suffix ? `?${suffix}` : ''}`);
+  },
+  receivablesPayables: (query: Record<string, string | number | undefined>) => {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === null || String(value).trim() === '') continue;
+      search.set(key, String(value));
+    }
+    const suffix = search.toString();
+    return http<ReceivablesPayablesResponse>(`/api/accounting/reports/receivables-payables${suffix ? `?${suffix}` : ''}`);
+  },
+  cashMovement: (query: Record<string, string | number | undefined>) => {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === null || String(value).trim() === '') continue;
+      search.set(key, String(value));
+    }
+    const suffix = search.toString();
+    return http<CashMovementResponse>(`/api/accounting/reports/cash-movement${suffix ? `?${suffix}` : ''}`);
   },
 };
 
