@@ -17,6 +17,15 @@ type JournalLineDraft = {
   locationId: number | null;
 };
 
+type ExpenseAccountCandidate = {
+  id: number;
+  code: string;
+  name_ar: string;
+  account_type: string;
+  is_active: boolean;
+  allow_manual_entries: boolean;
+};
+
 @Injectable()
 export class AccountingPostingService {
   private readonly logger = new Logger(AccountingPostingService.name);
@@ -158,6 +167,145 @@ export class AccountingPostingService {
     }
 
     lines.push({ ...next, debit, credit });
+  }
+
+  private normalizeExpenseText(input: string): string {
+    return String(input || '').trim().toLowerCase();
+  }
+
+  private mapExpenseTitleToAccountCode(expenseTitle: string): string {
+    const title = this.normalizeExpenseText(expenseTitle);
+    if (!title) return '6900';
+
+    if (title.includes('ايجار') || title.includes('إيجار') || title.includes('rent')) return '6100';
+    if (
+      title.includes('مرتب') || title.includes('مرتبات') || title.includes('اجور')
+      || title.includes('أجور') || title.includes('salary') || title.includes('wage') || title.includes('payroll')
+    ) return '6200';
+    if (
+      title.includes('كهرباء') || title.includes('مرافق') || title.includes('مياه')
+      || title.includes('انترنت') || title.includes('إنترنت') || title.includes('utilities')
+      || title.includes('utility')
+    ) return '6300';
+    if (
+      title.includes('نقل') || title.includes('شحن') || title.includes('delivery')
+      || title.includes('shipping') || title.includes('transport') || title.includes('freight')
+    ) return '6400';
+    if (
+      title.includes('تسويق') || title.includes('اعلان') || title.includes('إعلان')
+      || title.includes('ads') || title.includes('marketing')
+    ) return '6500';
+    if (
+      title.includes('صيانة') || title.includes('اصلاح') || title.includes('إصلاح')
+      || title.includes('maintenance') || title.includes('repair')
+    ) return '6600';
+    if (
+      title.includes('اداري') || title.includes('إداري') || title.includes('مكتبي')
+      || title.includes('office') || title.includes('admin') || title.includes('administrative')
+    ) return '6700';
+    if (
+      title.includes('بنكي') || title.includes('بنك') || title.includes('bank')
+      || title.includes('fee') || title.includes('fees') || title.includes('عمولة بنكية')
+      || title.includes('فيزا') || title.includes('visa')
+      || title.includes('كارت') || title.includes('card')
+      || title.includes('عمولة فيزا') || title.includes('عمولة بنك')
+      || title.includes('رسوم بنكية')
+      || title.includes('bank fee') || title.includes('bank fees')
+      || title.includes('commission')
+      || title.includes('payment fee') || title.includes('merchant fee')
+    ) return '6800';
+    return '6900';
+  }
+
+  private isValidExpensePostingAccount(account: ExpenseAccountCandidate | undefined): boolean {
+    if (!account) return false;
+    if (!account.is_active) return false;
+    if (account.account_type !== 'expense') return false;
+    if (!account.allow_manual_entries) return false;
+    return true;
+  }
+
+  private expenseAccountInvalidReason(account: ExpenseAccountCandidate | undefined): string {
+    if (!account) return 'account_missing';
+    if (!account.is_active) return 'account_inactive';
+    if (account.account_type !== 'expense') return `invalid_account_type:${account.account_type}`;
+    if (!account.allow_manual_entries) return 'manual_entries_disabled';
+    return 'ok';
+  }
+
+  private async findAccountByCode(queryable: DbOrTx, code: string): Promise<ExpenseAccountCandidate | undefined> {
+    const row = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code', 'name_ar', 'account_type', 'is_active', 'allow_manual_entries'])
+      .where('code', '=', code)
+      .executeTakeFirst();
+    if (!row) return undefined;
+    return {
+      id: Number(row.id),
+      code: String(row.code || ''),
+      name_ar: String(row.name_ar || ''),
+      account_type: String(row.account_type || ''),
+      is_active: Boolean(row.is_active),
+      allow_manual_entries: Boolean(row.allow_manual_entries),
+    };
+  }
+
+  private async findAccountById(queryable: DbOrTx, accountId: number): Promise<ExpenseAccountCandidate | undefined> {
+    if (!(accountId > 0)) return undefined;
+    const row = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code', 'name_ar', 'account_type', 'is_active', 'allow_manual_entries'])
+      .where('id', '=', accountId)
+      .executeTakeFirst();
+    if (!row) return undefined;
+    return {
+      id: Number(row.id),
+      code: String(row.code || ''),
+      name_ar: String(row.name_ar || ''),
+      account_type: String(row.account_type || ''),
+      is_active: Boolean(row.is_active),
+      allow_manual_entries: Boolean(row.allow_manual_entries),
+    };
+  }
+
+  private async resolveExpenseDebitAccountId(
+    queryable: DbOrTx,
+    settings: { expenses_account_id: number | null },
+    expenseTitle: string,
+    expenseId: number,
+  ): Promise<number> {
+    const mappedCode = this.mapExpenseTitleToAccountCode(expenseTitle);
+    const normalizedTitle = this.normalizeExpenseText(expenseTitle);
+    const isUnknownCategory = mappedCode === '6900' && normalizedTitle.length > 0;
+    const mappedAccount = await this.findAccountByCode(queryable, mappedCode);
+    if (this.isValidExpensePostingAccount(mappedAccount)) {
+      if (isUnknownCategory) {
+        this.logger.warn(`Expense ${expenseId} category "${expenseTitle}" is unknown; mapped to 6900 by default`);
+      }
+      return Number(mappedAccount!.id);
+    }
+    const mappedReason = this.expenseAccountInvalidReason(mappedAccount);
+    this.logger.warn(
+      `Expense ${expenseId} fallback: mapped category account ${mappedCode} failed (${mappedReason})`,
+    );
+
+    const settingsAccount = await this.findAccountById(queryable, Number(settings.expenses_account_id || 0));
+    if (this.isValidExpensePostingAccount(settingsAccount)) {
+      this.logger.warn(`Expense ${expenseId} fallback: using accounting_settings.expenses_account_id (${settingsAccount!.code})`);
+      return Number(settingsAccount!.id);
+    }
+    const settingsReason = this.expenseAccountInvalidReason(settingsAccount);
+    this.logger.warn(`Expense ${expenseId} fallback: accounting_settings.expenses_account_id failed (${settingsReason})`);
+
+    const fallback6900 = await this.findAccountByCode(queryable, '6900');
+    if (this.isValidExpensePostingAccount(fallback6900)) {
+      this.logger.warn(`Expense ${expenseId} fallback: using code 6900 (مصروفات أخرى)`);
+      return Number(fallback6900!.id);
+    }
+    const fallbackReason = this.expenseAccountInvalidReason(fallback6900);
+    this.logger.warn(`Expense ${expenseId} fallback: code 6900 is not usable (${fallbackReason})`);
+
+    throw new Error(`No valid expense posting account found for expense ${expenseId}`);
   }
 
   private async insertPostedJournal(
@@ -1216,13 +1364,15 @@ export class AccountingPostingService {
     const branchId = expense.branch_id ? Number(expense.branch_id) : null;
     const locationId = expense.location_id ? Number(expense.location_id) : null;
     const expenseTitle = String(expense.title || '').trim();
+    const expenseDebitAccountId = await this.resolveExpenseDebitAccountId(queryable, settings, expenseTitle, expenseId);
+    const expenseLabel = expenseTitle || 'مصروف عام';
 
     // Current expense flow is cash-based and does not persist payment method.
     // Use cash account credit to match existing treasury transaction behavior (txn_type: expense, negative amount).
     const lines: JournalLineDraft[] = [];
     this.addLine(lines, {
-      accountId: Number(settings.expenses_account_id || 0),
-      description: 'إثبات مصروف',
+      accountId: expenseDebitAccountId,
+      description: `إثبات مصروف ${expenseLabel}`,
       debit: amount,
       credit: 0,
       partnerType: 'none',
