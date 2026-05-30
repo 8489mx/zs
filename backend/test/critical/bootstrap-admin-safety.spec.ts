@@ -10,34 +10,58 @@ class FakeConfigService {
   }
 }
 
+class FakeUsersSelectBuilder {
+  constructor(private readonly user: any) {}
+  select() { return this; }
+  where() { return this; }
+  async executeTakeFirst() { return this.user; }
+}
+
+class FakeSettingsSelectBuilder {
+  constructor(private readonly settings: Array<{ key: string; value: string; tenant_id?: string }>) {}
+  select() { return this; }
+  where() { return this; }
+  async execute() { return this.settings; }
+}
+
+class FakeUserBranchesSelectBuilder {
+  private userId: number | null = null;
+  constructor(private readonly userBranches: Array<{ user_id: number; branch_id: number | string; tenant_id?: string }>) {}
+  select() { return this; }
+  where(column: string | unknown, _op?: string, value?: number) {
+    if (column === 'user_id') this.userId = Number(value);
+    return this;
+  }
+  async execute() {
+    return this.userBranches.filter((row) => this.userId == null || row.user_id === this.userId);
+  }
+}
+
+class FakeTenantsSelectBuilder {
+  private id = '';
+  constructor(private readonly tenants: Array<{ id: string; slug: string; business_name: string; status: string; trial_ends_at: Date | null; created_at: Date }>) {}
+  select() { return this; }
+  where(column: string, _op: string, value: string) {
+    if (column === 'id') this.id = value;
+    return this;
+  }
+  async executeTakeFirst() {
+    return this.tenants.find((tenant) => tenant.id === this.id);
+  }
+}
+
 class FakeDb {
   constructor(
     private readonly user: any,
-    private readonly settings: Array<{ key: string; value: string }> = [],
-    private readonly userBranches: Array<{ user_id: number; branch_id: number | string }> = [],
+    private readonly settings: Array<{ key: string; value: string; tenant_id?: string }> = [],
+    private readonly userBranches: Array<{ user_id: number; branch_id: number | string; tenant_id?: string }> = [],
+    private readonly tenants: Array<{ id: string; slug: string; business_name: string; status: string; trial_ends_at: Date | null; created_at: Date }> = [],
   ) {}
   selectFrom(table: string) {
-    if (table === 'users') {
-      return {
-        select: () => ({
-          where: () => ({ executeTakeFirst: async () => this.user }),
-        }),
-      };
-    }
-    if (table === 'settings') {
-      return {
-        select: () => ({ execute: async () => this.settings }),
-      };
-    }
-    if (table === 'user_branches') {
-      return {
-        select: () => ({
-          where: (_column: string, _op: string, value: number) => ({
-            execute: async () => this.userBranches.filter((row) => row.user_id === Number(value)),
-          }),
-        }),
-      };
-    }
+    if (table === 'users') return new FakeUsersSelectBuilder(this.user);
+    if (table === 'settings') return new FakeSettingsSelectBuilder(this.settings);
+    if (table === 'user_branches') return new FakeUserBranchesSelectBuilder(this.userBranches);
+    if (table === 'tenants') return new FakeTenantsSelectBuilder(this.tenants);
     throw new Error(`Unsupported table: ${table}`);
   }
 }
@@ -74,10 +98,14 @@ async function runMePayloadSafety(): Promise<void> {
     must_change_password: true,
     password_salt: passwordRecord.salt,
     password_hash: passwordRecord.hash,
+    tenant_id: 'tenant-test',
+    account_id: 'account-test',
   };
 
   const service = new SessionService(
-    new FakeDb(user, [{ key: 'theme', value: 'light' }]) as any,
+    new FakeDb(user, [{ key: 'theme', value: 'light', tenant_id: 'tenant-test' }], [], [
+      { id: 'tenant-test', slug: 'tenant-test', business_name: 'Tenant Test', status: 'trial', trial_ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), created_at: new Date() },
+    ]) as any,
     new FakeConfigService({ DEFAULT_ADMIN_USERNAME: 'admin', DEFAULT_ADMIN_PASSWORD: defaultPassword }) as any,
   );
 
@@ -87,10 +115,14 @@ async function runMePayloadSafety(): Promise<void> {
     username: 'admin',
     role: 'super_admin',
     permissions: ['settings'],
+    tenantId: 'tenant-test',
+    accountId: 'account-test',
   });
 
   assert.equal((payload.security as any).usingDefaultAdminPassword, true);
   assert.equal((payload.settings as any).theme, 'light');
+  assert.equal((payload.tenant as any).isTrial, true);
+  assert.equal((payload.tenant as any).id, 'tenant-test');
 }
 
 async function runBootstrapGuardrails(): Promise<void> {

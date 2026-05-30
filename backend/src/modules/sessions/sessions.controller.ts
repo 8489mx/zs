@@ -66,6 +66,12 @@ export class SessionsController {
     return this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token';
   }
 
+  private allowLocalSessionHeaderFallback(): boolean {
+    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
+    const appMode = this.configService.get<string>('app.mode') || this.configService.get<string>('APP_MODE') || '';
+    return nodeEnv === 'development' && appMode !== 'CLOUD_SAAS';
+  }
+
   private setAuthCookies(res: Response, sessionId: string, expiresAt: Date): void {
     const csrfSecret = this.configService.get<string>('SESSION_CSRF_SECRET') || '';
     const csrfToken = createCsrfToken(sessionId, csrfSecret);
@@ -109,6 +115,7 @@ export class SessionsController {
     return {
       ok: true,
       ...(await this.sessionService.buildLoginPayload(result.auth)),
+      ...(this.allowLocalSessionHeaderFallback() ? { sessionId: result.sessionId } : {}),
       expiresAt: result.expiresAt.toISOString(),
     };
   }

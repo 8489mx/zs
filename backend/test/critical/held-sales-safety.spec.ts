@@ -5,6 +5,9 @@ import { SalesAuthorizationService } from '../../src/modules/sales/services/sale
 import { SalesQueryService } from '../../src/modules/sales/services/sales-query.service';
 import { SalesWriteService } from '../../src/modules/sales/services/sales-write.service';
 
+const TEST_TENANT_ID = 'tenant-a';
+const TEST_ACCOUNT_ID = 'account-a';
+
 type HeldSaleRow = {
   id: number;
   customer_id: number | null;
@@ -22,6 +25,8 @@ type HeldSaleRow = {
   created_by: number | null;
   created_at: string;
   customer_name?: string;
+  tenant_id: string;
+  account_id: string;
 };
 
 type HeldSaleItemRow = {
@@ -34,6 +39,8 @@ type HeldSaleItemRow = {
   unit_name: string;
   unit_multiplier: number;
   price_type: 'retail' | 'wholesale';
+  tenant_id: string;
+  account_id: string;
 };
 
 const cashierA: AuthContext = {
@@ -42,8 +49,8 @@ const cashierA: AuthContext = {
   username: 'cashier-a',
   role: 'cashier',
   permissions: ['sales'],
-  tenantId: 'tenant-a',
-  accountId: 'account-a',
+  tenantId: TEST_TENANT_ID,
+  accountId: TEST_ACCOUNT_ID,
 };
 
 const cashierB: AuthContext = {
@@ -69,8 +76,14 @@ const invalidCashier: AuthContext = {
   username: 'invalid-cashier',
 };
 
+type FakeFilter = { column: unknown; op: string; value: unknown };
+
+function normalizeColumn(column: unknown): string {
+  return typeof column === 'string' ? column.replace(/^hs\./, '') : '';
+}
+
 class FakeSelectBuilder {
-  private filters: Array<{ column: string; op: string; value: unknown }> = [];
+  private filters: FakeFilter[] = [];
   private sort?: { column: string; direction: string };
 
   constructor(private readonly table: string, private readonly db: FakeDb) {}
@@ -83,8 +96,8 @@ class FakeSelectBuilder {
     return this;
   }
 
-  where(column: string, op: string, value: unknown): this {
-    this.filters.push({ column, op, value });
+  where(column: unknown, op?: string, value?: unknown): this {
+    this.filters.push({ column, op: op || '=', value });
     return this;
   }
 
@@ -105,14 +118,18 @@ class FakeSelectBuilder {
 
   private filter<T extends Record<string, unknown>>(rows: T[]): T[] {
     const filtered = rows.filter((row) => this.filters.every((filter) => {
-      const column = filter.column.replace(/^hs\./, '');
+      const column = normalizeColumn(filter.column);
+      if (!column) return true;
       const actual = row[column];
-      if (filter.op === '=') return Number(actual) === Number(filter.value);
+      if (filter.op === '=') {
+        if (typeof actual === 'string' || typeof filter.value === 'string') return String(actual) === String(filter.value);
+        return Number(actual) === Number(filter.value);
+      }
       if (filter.op === 'in' && Array.isArray(filter.value)) return filter.value.map(Number).includes(Number(actual));
       return false;
     }));
     if (!this.sort) return filtered;
-    const column = this.sort.column.replace(/^hs\./, '');
+    const column = normalizeColumn(this.sort.column);
     const direction = this.sort.direction.toLowerCase();
     return [...filtered].sort((a, b) => {
       const left = Number(a[column] || 0);
@@ -123,11 +140,11 @@ class FakeSelectBuilder {
 }
 
 class FakeDeleteBuilder {
-  private filters: Array<{ column: string; value: unknown }> = [];
+  private filters: Array<{ column: unknown; value: unknown }> = [];
 
   constructor(private readonly table: string, private readonly db: FakeDb) {}
 
-  where(column: string, _op: string, value: unknown): this {
+  where(column: unknown, _op?: string, value?: unknown): this {
     this.filters.push({ column, value });
     return this;
   }
@@ -139,7 +156,13 @@ class FakeDeleteBuilder {
   async execute(): Promise<Array<{ numDeletedRows: bigint }>> {
     if (this.table !== 'held_sales') return [{ numDeletedRows: 0n }];
     const idsToDelete = this.db.heldSales
-      .filter((row) => this.filters.every((filter) => Number(row[filter.column as keyof HeldSaleRow] || 0) === Number(filter.value)))
+      .filter((row) => this.filters.every((filter) => {
+        const column = normalizeColumn(filter.column);
+        if (!column) return true;
+        const actual = row[column as keyof HeldSaleRow];
+        if (typeof actual === 'string' || typeof filter.value === 'string') return String(actual) === String(filter.value);
+        return Number(actual || 0) === Number(filter.value);
+      }))
       .map((row) => row.id);
     if (!this.filters.length) {
       const deletedCount = this.db.heldSales.length;
@@ -191,6 +214,8 @@ function heldSale(id: number, createdBy: number): HeldSaleRow {
     created_by: createdBy,
     created_at: `2026-04-24T10:00:0${id}.000Z`,
     customer_name: '',
+    tenant_id: TEST_TENANT_ID,
+    account_id: TEST_ACCOUNT_ID,
   };
 }
 
@@ -205,6 +230,8 @@ function heldSaleItem(id: number, heldSaleId: number, name: string): HeldSaleIte
     unit_name: 'piece',
     unit_multiplier: 1,
     price_type: 'retail',
+    tenant_id: TEST_TENANT_ID,
+    account_id: TEST_ACCOUNT_ID,
   };
 }
 

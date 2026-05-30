@@ -24,6 +24,10 @@ export interface ReportSummary {
     count: number;
     total: number;
   };
+  services?: {
+    count?: number;
+    total: number;
+  };
   returns: {
     count: number;
     total: number;

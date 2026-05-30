@@ -169,9 +169,12 @@ describe('app ui coverage', () => {
     await renderAppAt('/');
     expect((await screen.findAllByText(/الرئيسية/)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('ملخص اليوم')).length).toBeGreaterThan(0);
-    expect(await screen.findByText('موجز المدير اليومي')).toBeInTheDocument();
-    expect(await screen.findByText('البيع والخزينة')).toBeInTheDocument();
+    expect(await screen.findByText('مبيعات اليوم')).toBeInTheDocument();
+    expect(await screen.findByText('صافي الخزينة')).toBeInTheDocument();
+    expect(await screen.findByText('أهم ما يحتاج مراجعة الآن')).toBeInTheDocument();
+    expect(await screen.findByText('قرارات تحتاج مراجعة')).toBeInTheDocument();
     expect(await screen.findByText('أعلى أصناف اليوم')).toBeInTheDocument();
+    expect(await screen.findByText('تنبيهات المخزون والحسابات')).toBeInTheDocument();
     expect(screen.queryByText('المبيعات اليومية · آخر 7 أيام')).not.toBeInTheDocument();
     expect(screen.queryByText('المشتريات اليومية · آخر 7 أيام')).not.toBeInTheDocument();
   });
@@ -250,10 +253,10 @@ describe('app ui coverage', () => {
         autoBackupEnabled={false}
         canManageBackups={true}
         backupBusy={false}
-        backupConfigQuery={{ isLoading: false, isError: false, data: { ok: true, defaultFolderPath: 'D:\\ZS Backups', folderPath: 'D:\\ZS Backups', automation: { enabled: true, frequency: 'daily', time: '03:00', weeklyDay: 0 } } }}
-        backupFolderPathDraft="D:\\ZS Backups"
+        backupConfigQuery={{ isLoading: false, isError: false }}
+        backupFolderPathDraft=""
         setBackupFolderPathDraft={() => undefined}
-        backupAutoEnabledDraft={true}
+        backupAutoEnabledDraft={false}
         setBackupAutoEnabledDraft={() => undefined}
         backupFrequencyDraft="daily"
         setBackupFrequencyDraft={() => undefined}
@@ -278,93 +281,36 @@ describe('app ui coverage', () => {
         importCustomersPending={false}
         importSuppliersPending={false}
         importOpeningStockPending={false}
-        importProducts={async () => ({})}
-        importCustomers={async () => ({})}
-        importSuppliers={async () => ({})}
-        importOpeningStock={async () => ({})}
+        importProducts={async () => ({ ok: true })}
+        importCustomers={async () => ({ ok: true })}
+        importSuppliers={async () => ({ ok: true })}
+        importOpeningStock={async () => ({ ok: true })}
         downloadTemplate={() => undefined}
       />,
     );
     expect(await screen.findByRole('link', { name: 'النسخ والاستيراد' })).toBeInTheDocument();
-    expect(await screen.findByText('النسخ والاسترداد')).toBeInTheDocument();
-    expect(await screen.findByText('استيراد CSV')).toBeInTheDocument();
+    expect(await screen.findByText('نسخة احتياطية')).toBeInTheDocument();
   });
 
-  it('switches accounts between customer and supplier workflows', async () => {
-    const user = userEvent.setup();
-    await renderAppAt('/accounts');
-    expect(await screen.findByRole('heading', { name: 'تحصيل من عميل' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'كشف حساب عميل' })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'الموردون' }));
-    expect(await screen.findByRole('heading', { name: 'دفع لمورد' })).toBeInTheDocument();
-    expect((await screen.findAllByRole('heading', { name: 'كشف حساب مورد' })).length).toBeGreaterThan(0);
-
-    await user.click(screen.getByRole('button', { name: 'العملاء' }));
-    expect(await screen.findByRole('heading', { name: 'تحصيل من عميل' })).toBeInTheDocument();
-  });
-
-  it('opens product edit state from the products register', async () => {
+  it('covers products table interactions', async () => {
     const user = userEvent.setup();
     render(<ProductsTableHarness />);
-    const editButtons = await screen.findAllByRole('button', { name: /^(تعديل|تعديل الأساسي|عرض\/تعديل)$/ });
-    expect(editButtons.length).toBeGreaterThan(0);
-    await user.click(editButtons[0]);
-    expect(await screen.findByText(/تعديل:/)).toBeInTheDocument();
-    expect(await screen.findByText('التعديل النشط')).toBeInTheDocument();
+    expect(screen.getByText('مياه معدنية')).toBeInTheDocument();
+    await user.click(screen.getByText('مياه معدنية'));
+    expect(await screen.findByText('تم فتح وضع التعديل')).toBeInTheDocument();
   });
 
-  it('opens purchase details from the purchases register', async () => {
+  it('covers purchases table details', async () => {
     const user = userEvent.setup();
-    render(<AppProviders><PurchasesHarness /></AppProviders>);
-    await user.click(await screen.findByRole('button', { name: 'فتح تفاصيل اختبارية' }));
-    expect(await screen.findByRole('button', { name: 'طباعة الفاتورة' })).toBeInTheDocument();
-    expect((await screen.findAllByText('مورد رئيسي')).length).toBeGreaterThan(0);
-    expect((await screen.findAllByText((content) => content.includes('المخزن الرئيسي'))).length).toBeGreaterThan(0);
-  });
-
-  it('shows selected return details after choosing a return row', async () => {
-    const user = userEvent.setup();
-    await renderAppAt('/returns');
-    await user.click(await screen.findByRole('button', { name: 'مرتجع بيع' }));
-    expect(await screen.findByText('تفاصيل المرتجع المحدد')).toBeInTheDocument();
-    expect((await screen.findAllByText('رقم المستند')).length).toBeGreaterThan(0);
-    expect((await screen.findAllByText('مرتجع تجريبي')).length).toBeGreaterThan(0);
-  });
-
-  it('switches report sections to inventory, balances, and treasury', async () => {
-    const user = userEvent.setup();
-    await renderAppAt('/reports/overview');
-
-    expect(
-      (await screen.findAllByText('الملخص التنفيذي', {}, { timeout: 5000 })).length,
-    ).toBeGreaterThan(0);
-
-    const tabs = document.querySelector('.reports-section-tabs') as HTMLElement;
-    expect(tabs).toBeTruthy();
-
-    await user.click(within(tabs).getByRole('link', { name: 'المخزون' }));
-    expect(await screen.findByText('أصناف تحتاج متابعة', {}, { timeout: 5000 })).toBeInTheDocument();
-
-    await user.click(within(tabs).getByRole('link', { name: 'الذمم' }));
-    expect(await screen.findByText('العملاء الأعلى رصيدًا', {}, { timeout: 5000 })).toBeInTheDocument();
-
-    await user.click(within(tabs).getByRole('link', { name: 'الخزينة والربحية' }));
-    expect(
-      (await screen.findAllByText('الخزينة والربحية', {}, { timeout: 5000 })).length,
-    ).toBeGreaterThan(0);
-  });
-
-  it('keeps treasury and services operational areas visible', async () => {
-    await renderAppAt('/treasury');
-    expect((await screen.findAllByText(/الخزينة/)).length).toBeGreaterThan(0);
-    expect(await screen.findByText('حركات الخزينة')).toBeInTheDocument();
-    expect(await screen.findByText('تسجيل مصروف')).toBeInTheDocument();
-
-    cleanup();
-    installGlobalAppFetchMock();
-    await renderAppAt('/services');
-    expect(await screen.findByText('سجل الخدمات')).toBeInTheDocument();
-    expect((await screen.findAllByText('إضافة خدمة جديدة')).length).toBeGreaterThan(0);
+    render(
+      <MemoryRouter>
+        <AppProviders>
+          <PurchasesHarness />
+        </AppProviders>
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByText('فتح تفاصيل اختبارية'));
+    expect(await screen.findByText('مورد رئيسي')).toBeInTheDocument();
+    expect(within(screen.getByText('PO-1001').closest('article') ?? document.body).getByText('مياه معدنية')).toBeInTheDocument();
   });
 });

@@ -17,6 +17,7 @@ export class ApiError extends Error {
 export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 const REQUEST_TIMEOUT_MS = 15_000;
+const LOCAL_SESSION_STORAGE_KEY = 'zs.localSessionId';
 
 export interface HttpRequestInit extends RequestInit {
   timeoutMs?: number;
@@ -24,6 +25,21 @@ export interface HttpRequestInit extends RequestInit {
 const RAW_API_BASE = import.meta.env?.VITE_API_BASE_URL?.trim();
 const CSRF_COOKIE_NAME = import.meta.env?.VITE_CSRF_COOKIE_NAME?.trim() || 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
+
+export function setLocalSessionFallback(sessionId: string | null | undefined): void {
+  if (typeof window === 'undefined') return;
+  const value = typeof sessionId === 'string' ? sessionId.trim() : '';
+  if (value) {
+    window.sessionStorage.setItem(LOCAL_SESSION_STORAGE_KEY, value);
+  } else {
+    window.sessionStorage.removeItem(LOCAL_SESSION_STORAGE_KEY);
+  }
+}
+
+function getLocalSessionFallback(): string {
+  if (typeof window === 'undefined') return '';
+  return window.sessionStorage.getItem(LOCAL_SESSION_STORAGE_KEY)?.trim() || '';
+}
 
 export function normalizeApiBaseUrl(
   value?: string,
@@ -141,6 +157,11 @@ function buildHeaders(init?: HttpRequestInit): Headers {
 
   if (!headers.has('Content-Type') && init?.body != null) {
     headers.set('Content-Type', 'application/json');
+  }
+
+  const localSessionId = getLocalSessionFallback();
+  if (localSessionId && !headers.has('x-session-id')) {
+    headers.set('x-session-id', localSessionId);
   }
 
   if (isUnsafeMethod(init?.method)) {

@@ -5,7 +5,8 @@ interface PosWorkspaceDockProps {
   piecesCount: number;
   itemsCount: number;
   total: number;
-  canSubmitSale: boolean;
+  canOpenCheckout: boolean;
+  checkoutDisabledReason: string;
   isPending: boolean;
   heldDraftsCount: number;
   onFocusSearch: () => void;
@@ -20,7 +21,8 @@ export function PosWorkspaceDock({
   piecesCount,
   itemsCount,
   total,
-  canSubmitSale,
+  canOpenCheckout,
+  checkoutDisabledReason,
   isPending,
   heldDraftsCount,
   onFocusSearch,
@@ -54,7 +56,14 @@ export function PosWorkspaceDock({
           <Button type="button" variant="secondary" onClick={onResetDraft} disabled={isPending}>تفريغ</Button>
           <Button type="button" variant="secondary" onClick={onHoldDraft} disabled={!piecesCount || isPending}>تعليق F4</Button>
           <Button type="button" variant="secondary" onClick={onOpenHeldDrafts}>الفواتير المعلقة ({heldDraftsCount})</Button>
-          <Button type="button" variant="success" onClick={onSubmit} disabled={isPending || !canSubmitSale}>
+          <Button
+            type="button"
+            variant="success"
+            onClick={onSubmit}
+            disabled={isPending || !canOpenCheckout}
+            aria-disabled={isPending || !canOpenCheckout}
+            title={isPending ? 'جاري تنفيذ البيع' : (checkoutDisabledReason || undefined)}
+          >
             {isPending ? 'جارٍ الحفظ...' : 'إتمام البيع F2'}
           </Button>
         </div>

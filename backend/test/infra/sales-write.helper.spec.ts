@@ -3,16 +3,18 @@ import { AppError } from '../../src/common/errors/app-error';
 import { applyStockDelta } from '../../src/common/utils/location-stock-ledger';
 import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../../src/modules/sales/helpers/sales-write.helper';
 
-type FakeProduct = { id: number; name: string; stock_qty: number };
-type FakeLocationStock = { id: number; product_id: number; branch_id: number | null; location_id: number | null; qty: number };
+const STOCK_TEST_SCOPE = { tenantId: 'tenant-test', accountId: 'account-test' };
+
+type FakeProduct = { id: number; name: string; stock_qty: number; tenant_id?: string; account_id?: string };
+type FakeLocationStock = { id: number; product_id: number; branch_id: number | null; location_id: number | null; qty: number; tenant_id?: string; account_id?: string };
 type FakeStockState = { products: FakeProduct[]; locationStock: FakeLocationStock[]; nextLocationStockId: number };
 
 class FakeSelectBuilder {
   private filters = new Map<string, unknown>();
   constructor(private readonly table: string, private readonly state: FakeStockState) {}
   select(_columns: unknown): this { return this; }
-  where(column: string, _operator: string, value: unknown): this {
-    this.filters.set(column, value);
+  where(column: string | unknown, _operator?: string, value?: unknown): this {
+    if (typeof column === 'string') this.filters.set(column, value);
     return this;
   }
   forUpdate(): this { return this; }
@@ -43,6 +45,8 @@ class FakeInsertBuilder {
       branch_id: this.payload.branch_id == null ? null : Number(this.payload.branch_id),
       location_id: this.payload.location_id == null ? null : Number(this.payload.location_id),
       qty: Number(this.payload.qty || 0),
+      tenant_id: String(this.payload.tenant_id || ''),
+      account_id: String(this.payload.account_id || ''),
     };
     this.state.nextLocationStockId += 1;
     this.state.locationStock.push(row);
@@ -58,8 +62,8 @@ class FakeUpdateBuilder {
     this.payload = payload;
     return this;
   }
-  where(column: string, _operator: string, value: unknown): this {
-    this.filters.set(column, value);
+  where(column: string | unknown, _operator?: string, value?: unknown): this {
+    if (typeof column === 'string') this.filters.set(column, value);
     return this;
   }
   async execute(): Promise<void> {
@@ -87,8 +91,8 @@ class FakeStockDb {
 
 function createFakeStockDb(stockQty: number, locationQty?: number): { db: FakeStockDb; state: FakeStockState } {
   const state: FakeStockState = {
-    products: [{ id: 7, name: 'Beans', stock_qty: stockQty }],
-    locationStock: locationQty === undefined ? [] : [{ id: 1, product_id: 7, branch_id: 3, location_id: 4, qty: locationQty }],
+    products: [{ id: 7, name: 'Beans', stock_qty: stockQty, tenant_id: STOCK_TEST_SCOPE.tenantId, account_id: STOCK_TEST_SCOPE.accountId }],
+    locationStock: locationQty === undefined ? [] : [{ id: 1, product_id: 7, branch_id: 3, location_id: 4, qty: locationQty, tenant_id: STOCK_TEST_SCOPE.tenantId, account_id: STOCK_TEST_SCOPE.accountId }],
     nextLocationStockId: locationQty === undefined ? 1 : 2,
   };
   return { db: new FakeStockDb(state), state };
@@ -112,7 +116,6 @@ assert.deepEqual(prepared, {
   beforeQty: 10,
   afterQty: 7,
 });
-
 
 assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail' }), 100);
 assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'wholesale' }), 80);
@@ -175,6 +178,7 @@ async function runStockDeltaChecks(): Promise<void> {
 
   const { db, state } = createFakeStockDb(0);
   const stockChange = await applyStockDelta(db as never, {
+    ...STOCK_TEST_SCOPE,
     productId: 7,
     delta: -1,
     allowNegative: true,
@@ -182,9 +186,12 @@ async function runStockDeltaChecks(): Promise<void> {
   assert.deepEqual(stockChange, { globalBefore: 0, globalAfter: -1, scopeBefore: 0, scopeAfter: -1 });
   assert.equal(state.products[0].stock_qty, -1);
   assert.equal(state.locationStock[0].qty, -1);
+  assert.equal(state.locationStock[0].tenant_id, STOCK_TEST_SCOPE.tenantId);
+  assert.equal(state.locationStock[0].account_id, STOCK_TEST_SCOPE.accountId);
 
   const exceedStock = createFakeStockDb(1, 1);
   const exceedStockChange = await applyStockDelta(exceedStock.db as never, {
+    ...STOCK_TEST_SCOPE,
     productId: 7,
     delta: -2,
     branchId: 3,
@@ -198,6 +205,7 @@ async function runStockDeltaChecks(): Promise<void> {
   const blocked = createFakeStockDb(1, 1);
   await assert.rejects(
     () => applyStockDelta(blocked.db as never, {
+      ...STOCK_TEST_SCOPE,
       productId: 7,
       delta: -2,
       branchId: 3,

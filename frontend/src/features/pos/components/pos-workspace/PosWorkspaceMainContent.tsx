@@ -162,7 +162,8 @@ export function PosWorkspaceMainContent({
             piecesCount={cartPiecesCount}
             itemsCount={cartItemsCount}
             total={pos.totals.total}
-            canSubmitSale={pos.canSubmitSale}
+            canOpenCheckout={pos.canOpenCheckout}
+            checkoutDisabledReason={pos.createSale.isPending ? 'جاري تنفيذ البيع' : pos.checkoutDisabledReason}
             isPending={pos.createSale.isPending}
             heldDraftsCount={heldDraftsCount}
             onFocusSearch={onFocusBarcodeEntry}

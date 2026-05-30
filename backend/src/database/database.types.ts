@@ -68,6 +68,84 @@ export interface SettingTable {
   value: string;
 }
 
+export interface AccountingAccountTable {
+  id: Generated<number>;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  account_type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'contra_asset' | 'contra_revenue';
+  parent_id: number | null;
+  account_group: string;
+  normal_balance: 'debit' | 'credit';
+  is_active: boolean;
+  is_system: boolean;
+  allow_manual_entries: boolean;
+  is_control_account: boolean;
+  is_cash_bank: boolean;
+  is_receivable: boolean;
+  is_payable: boolean;
+  is_inventory: boolean;
+  is_tax: boolean;
+  description_ar: string;
+  sort_order: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface JournalEntryTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  account_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  entry_no: string;
+  entry_date: ColumnType<Date, string | undefined, string | undefined>;
+  description: string;
+  source_type: string;
+  source_id: number | null;
+  status: 'draft' | 'posted' | 'cancelled';
+  branch_id: number | null;
+  location_id: number | null;
+  created_by: number | null;
+  posted_by: number | null;
+  posted_at: Date | null;
+  cancelled_by: number | null;
+  cancelled_at: Date | null;
+  cancel_reason: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface JournalEntryLineTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  journal_entry_id: number;
+  account_id: number;
+  description: string;
+  debit: number;
+  credit: number;
+  partner_type: 'none' | 'customer' | 'supplier';
+  partner_id: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface AccountingSettingsTable {
+  id: number;
+  cash_account_id: number | null;
+  bank_account_id: number | null;
+  customer_receivable_account_id: number | null;
+  supplier_payable_account_id: number | null;
+  inventory_account_id: number | null;
+  sales_revenue_account_id: number | null;
+  sales_discount_account_id: number | null;
+  cogs_account_id: number | null;
+  purchase_account_id: number | null;
+  expenses_account_id: number | null;
+  sales_tax_account_id: number | null;
+  purchase_tax_account_id: number | null;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface AuditLogTable {
   id: Generated<number>;
   action: string;
@@ -559,6 +637,38 @@ export interface SupplierPaymentTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface SupplierPaymentScheduleTable {
+  id: Generated<number>;
+  purchase_id: number | null;
+  supplier_id: number;
+  installment_no: number;
+  due_date: ColumnType<string, string | undefined, string | undefined>;
+  amount: number;
+  paid_amount: number;
+  status: string;
+  note: string;
+  paid_at: Date | null;
+  created_by: number | null;
+  updated_by: number | null;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  account_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface SupplierPaymentScheduleLogTable {
+  id: Generated<number>;
+  schedule_id: number;
+  supplier_id: number;
+  amount: number;
+  note: string;
+  created_by: number | null;
+  created_by_name: string;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  account_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface SupplierLedgerTable {
   id: Generated<number>;
   supplier_id: number;
@@ -882,6 +992,10 @@ export interface Database {
   tenants: TenantTable;
   trial_signups: TrialSignupTable;
   settings: SettingTable;
+  accounting_accounts: AccountingAccountTable;
+  journal_entries: JournalEntryTable;
+  journal_entry_lines: JournalEntryLineTable;
+  accounting_settings: AccountingSettingsTable;
   audit_logs: AuditLogTable;
   branches: BranchTable;
   stock_locations: StockLocationTable;
@@ -917,6 +1031,8 @@ export interface Database {
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
   supplier_payments: SupplierPaymentTable;
+  supplier_payment_schedules: SupplierPaymentScheduleTable;
+  supplier_payment_schedule_logs: SupplierPaymentScheduleLogTable;
   supplier_ledger: SupplierLedgerTable;
   hr_departments: HrDepartmentTable;
   hr_job_titles: HrJobTitleTable;

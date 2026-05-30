@@ -4,10 +4,12 @@ import { DataTable } from '@/shared/ui/data-table';
 import { Field } from '@/shared/ui/field';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { relativePercent } from '@/features/reports/lib/reports-format';
+import { formatCurrency } from '@/lib/format';
 import type { ReportsSectionContentProps } from '@/features/reports/components/reports-section.types';
 
 export function InventoryReportSection({
   inventoryQuery,
+  accountingInventoryValue,
   exportLowStock,
   printLowStockList,
   inventorySearch,
@@ -17,17 +19,25 @@ export function InventoryReportSection({
   onInventoryPageChange,
   onInventoryPageSizeChange,
   onInventoryFiltersReset
-}: Pick<ReportsSectionContentProps, 'inventoryQuery' | 'exportLowStock' | 'printLowStockList' | 'inventorySearch' | 'onInventorySearchChange' | 'inventoryFilter' | 'onInventoryFilterChange' | 'onInventoryPageChange' | 'onInventoryPageSizeChange' | 'onInventoryFiltersReset'>) {
+}: Pick<ReportsSectionContentProps, 'inventoryQuery' | 'accountingInventoryValue' | 'exportLowStock' | 'printLowStockList' | 'inventorySearch' | 'onInventorySearchChange' | 'inventoryFilter' | 'onInventoryFilterChange' | 'onInventoryPageChange' | 'onInventoryPageSizeChange' | 'onInventoryFiltersReset'>) {
   const rows = inventoryQuery.data?.rows || [];
   const pagination = inventoryQuery.data?.pagination;
   const summary = inventoryQuery.data?.summary;
-  const values = [summary?.totalItems || 0, summary?.outOfStock || 0, summary?.lowStock || 0, summary?.healthy || 0];
+  const inventoryTotals = accountingInventoryValue?.totals;
+  const values = [
+    summary?.totalItems || 0,
+    summary?.outOfStock || 0,
+    summary?.lowStock || 0,
+    summary?.healthy || 0,
+    inventoryTotals?.totalInventoryValue || 0,
+    inventoryTotals?.totalRetailPotentialValue || 0,
+  ];
   const locationHighlights = summary?.locationHighlights || [];
 
   return (
     <QueryCard
       title="أصناف تحتاج متابعة"
-      description="تبويب مستقل لمراجعة المخزون الحرج مع بحث وفلاتر وترقيم صفحات من الخادم، مع إبراز أكبر المخازن المتأثرة بكل صنف."
+      description="تبويب مستقل لمراجعة المخزون الحرج مع بحث وفلاتر وترقيم صفحات من الخادم، مع إبراز قيمة المخزون الحالية."
       actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportLowStock()} disabled={!summary?.totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void printLowStockList()} disabled={!summary?.totalItems}>طباعة</Button><span className="nav-pill">المخزون</span></div>}
       className="reports-focus-card"
       isLoading={inventoryQuery.isLoading}
@@ -45,9 +55,18 @@ export function InventoryReportSection({
         <ReportMetricCard label="نافد" value={summary?.outOfStock || 0} helper="يحتاج شراء فورًا" tone="danger" progress={relativePercent(summary?.outOfStock || 0, values)} />
         <ReportMetricCard label="منخفض" value={summary?.lowStock || 0} helper="قريب من الحد الأدنى" tone="warning" progress={relativePercent(summary?.lowStock || 0, values)} />
         <ReportMetricCard label="سليم" value={summary?.healthy || 0} helper={`مواقع مرصودة: ${summary?.trackedLocations || 0}`} tone="success" progress={relativePercent(summary?.healthy || 0, values)} />
+        <ReportMetricCard label="قيمة المخزون" value={inventoryTotals?.totalInventoryValue || 0} helper="حسب تكلفة الشراء الحالية" tone="primary" formatter={formatCurrency} progress={relativePercent(inventoryTotals?.totalInventoryValue || 0, values)} />
+        <ReportMetricCard label="قيمة البيع التقديرية" value={inventoryTotals?.totalRetailPotentialValue || 0} helper="ليست ربحًا محققًا" tone="success" formatter={formatCurrency} progress={relativePercent(inventoryTotals?.totalRetailPotentialValue || 0, values)} />
       </div>
+      {inventoryTotals ? (
+        <div className="metric-list reports-metric-list">
+          <div className="metric-row"><span>الهامش التقديري</span><strong>{formatCurrency(inventoryTotals.totalPotentialGrossMargin || 0)}</strong></div>
+          <div className="metric-row"><span>أصناف منتهية</span><strong>{inventoryTotals.zeroStockCount || 0}</strong></div>
+          <div className="metric-row"><span>أصناف قليلة المخزون</span><strong>{inventoryTotals.lowStockCount || 0}</strong></div>
+        </div>
+      ) : null}
       {locationHighlights.length ? (
-        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-3 space-y-2" aria-label="Hotspot warehouses">
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-3 space-y-2" aria-label="المخازن الأكثر احتياجًا للمتابعة">
           <div className="text-sm font-semibold">أكثر المخازن احتياجًا للمتابعة</div>
           <div className="grid gap-2 md:grid-cols-3">
             {locationHighlights.slice(0, 3).map((location) => (

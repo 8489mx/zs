@@ -15,6 +15,7 @@ import { PosAuditEventDto } from '../dto/pos-audit-event.dto';
 import { UpsertSaleDto } from '../dto/upsert-sale.dto';
 import { normalizeSalePayload } from '../helpers/sales-payload.helper';
 import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculatePaidAmount, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, resolveSalePayments } from '../helpers/sales-write.helper';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { SalesAuthorizationService } from './sales-authorization.service';
 import { SalesFinanceService } from './sales-finance.service';
 import { SalesQueryService } from './sales-query.service';
@@ -30,6 +31,7 @@ export class SalesWriteService {
     private readonly authz: SalesAuthorizationService,
     private readonly finance: SalesFinanceService,
     private readonly query: SalesQueryService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   private shouldLogCheckoutTimings(): boolean {
@@ -287,6 +289,13 @@ export class SalesWriteService {
         }
       }
 
+      try {
+        await this.accountingPosting.postSale(trx, id, auth);
+      } catch (error) {
+        this.logger.error(`Failed to post accounting journal for sale ${id}`, error instanceof Error ? error.stack : String(error));
+        throw error;
+      }
+
       return id;
     });
     const transactionDurationMs = Date.now() - txStartedAt;
@@ -372,6 +381,13 @@ export class SalesWriteService {
         .where('id', '=', saleId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute();
+
+      try {
+        await this.accountingPosting.reverseSaleJournal(trx, saleId, String(reason || '').trim(), auth);
+      } catch (error) {
+        this.logger.error(`Failed to post reversal accounting journal for cancelled sale ${saleId}`, error instanceof Error ? error.stack : String(error));
+        throw error;
+      }
     });
 
     await this.audit.log('إلغاء فاتورة بيع', `تم إلغاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth);

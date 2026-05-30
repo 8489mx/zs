@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
 import { SessionService } from '../../src/core/auth/services/session.service';
+import type { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
 
 function hashPassword(password: string, salt: string): string {
   return createHash('sha256').update(`${password}:${salt}`).digest('hex');
@@ -20,11 +21,15 @@ type UserRow = {
   failed_login_count: number;
   must_change_password?: boolean;
   last_login_at?: Date | null;
+  tenant_id?: string | null;
+  account_id?: string | null;
 };
 
 type SessionRow = {
   id: string;
   user_id: number;
+  tenant_id?: string;
+  account_id?: string;
   expires_at: Date;
   last_seen_at: Date;
   ip_address: string;
@@ -32,8 +37,8 @@ type SessionRow = {
   created_at?: Date;
 };
 
-type SettingRow = { key: string; value: string };
-type UserBranchRow = { user_id: number; branch_id: number };
+type SettingRow = { key: string; value: string; tenant_id?: string };
+type UserBranchRow = { user_id: number; branch_id: number; tenant_id?: string };
 
 class FakeConfigService {
   constructor(private readonly values: Record<string, unknown>) {}
@@ -43,6 +48,7 @@ class FakeConfigService {
 }
 
 class FakeDb {
+  public tenants: Array<{ id: string; slug: string; business_name: string; status: string; trial_ends_at: Date | null; created_at: Date }> = [];
   constructor(
     public users: UserRow[],
     public sessions: SessionRow[] = [],
@@ -54,6 +60,7 @@ class FakeDb {
     if (table === 'users') return new UsersSelectBuilder(this);
     if (table === 'settings') return new SettingsSelectBuilder(this);
     if (table === 'user_branches') return new UserBranchesSelectBuilder(this);
+    if (table === 'tenants') return new TenantsSelectBuilder(this);
     throw new Error(`Unsupported select table: ${table}`);
   }
 
@@ -64,6 +71,7 @@ class FakeDb {
 
   updateTable(table: string) {
     if (table === 'users') return new UsersUpdateBuilder(this);
+    if (table === 'tenants') return new TenantsUpdateBuilder(this);
     throw new Error(`Unsupported update table: ${table}`);
   }
 
@@ -78,7 +86,7 @@ class UsersSelectBuilder {
   private id?: number;
   constructor(private readonly db: FakeDb) {}
   select(_cols: string[]) { return this; }
-  where(column: string, _op: string, value: string | number) {
+  where(column: string | unknown, _op?: string, value?: string | number) {
     if (column === 'username') this.username = String(value);
     if (column === 'id') this.id = Number(value);
     return this;
@@ -90,9 +98,23 @@ class UsersSelectBuilder {
   }
 }
 
+class TenantsSelectBuilder {
+  private id?: string;
+  constructor(private readonly db: FakeDb) {}
+  select(_cols: string[]) { return this; }
+  where(column: string, _op: string, value: string) {
+    if (column === 'id') this.id = value;
+    return this;
+  }
+  async executeTakeFirst() {
+    return this.db.tenants.find((row) => row.id === this.id) ?? undefined;
+  }
+}
+
 class SettingsSelectBuilder {
   constructor(private readonly db: FakeDb) {}
   select(_cols: string[]) { return this; }
+  where(_column: string | unknown, _op?: string, _value?: unknown) { return this; }
   async execute() { return this.db.settings; }
 }
 
@@ -100,7 +122,7 @@ class UserBranchesSelectBuilder {
   private userId?: number;
   constructor(private readonly db: FakeDb) {}
   select(_cols: string[]) { return this; }
-  where(column: string, _op: string, value: number) {
+  where(column: string | unknown, _op?: string, value?: number) {
     if (column === 'user_id') this.userId = Number(value);
     return this;
   }
@@ -123,9 +145,8 @@ class UsersUpdateBuilder {
   private id!: number;
   constructor(private readonly db: FakeDb) {}
   set(payload: Partial<UserRow>) { this.payload = payload; return this; }
-  where(column: string, _op: string, value: number) {
-    if (column !== 'id') throw new Error(`Unsupported where on users update: ${column}`);
-    this.id = Number(value);
+  where(column: string | unknown, _op?: string, value?: number) {
+    if (column === 'id') this.id = Number(value);
     return this;
   }
   async execute() {
@@ -135,12 +156,19 @@ class UsersUpdateBuilder {
   }
 }
 
+class TenantsUpdateBuilder {
+  constructor(private readonly _db: FakeDb) {}
+  set(_payload: Record<string, unknown>) { return this; }
+  where(_column: string, _op: string, _value: string) { return this; }
+  async execute() {}
+}
+
 class SessionsDeleteBuilder {
   private userId?: number;
   private sessionId?: string;
   private notSessionId?: string;
   constructor(private readonly db: FakeDb) {}
-  where(column: string, op: string, value: string | number) {
+  where(column: string | unknown, op?: string, value?: string | number) {
     if (column === 'user_id') this.userId = Number(value);
     if (column === 'id' && op === '=') this.sessionId = String(value);
     if (column === 'id' && op === '!=') this.notSessionId = String(value);
@@ -179,8 +207,10 @@ async function run(): Promise<void> {
       failed_login_count: 0,
       must_change_password: true,
       last_login_at: null,
+      tenant_id: 'default',
+      account_id: 'default',
     },
-  ], [], [{ key: 'storeName', value: 'Z Systems' }], [{ user_id: 1, branch_id: 7 }, { user_id: 1, branch_id: 9 }]);
+  ], [], [{ key: 'storeName', value: 'Z Systems', tenant_id: 'default' }], [{ user_id: 1, branch_id: 7, tenant_id: 'default' }, { user_id: 1, branch_id: 9, tenant_id: 'default' }]);
 
   const service = new SessionService(db as any, new FakeConfigService({ LOGIN_MAX_ATTEMPTS: 3, LOGIN_LOCKOUT_MINUTES: 15 }) as any);
 
@@ -202,6 +232,8 @@ async function run(): Promise<void> {
   const valid = await service.authenticate('admin', password, { ipAddress: '127.0.0.1', userAgent: 'spec' });
   assert.ok(valid);
   assert.equal(db.sessions.length, 1);
+  assert.equal(db.sessions[0].tenant_id, 'default');
+  assert.equal(db.sessions[0].account_id, 'default');
   assert.equal(db.users[0].failed_login_count, 0);
   assert.equal(valid?.auth.username, 'admin');
   assert.notEqual(db.users[0].password_hash, oldHash);
@@ -224,13 +256,13 @@ async function run(): Promise<void> {
   assert.equal((me.user as any).tenantId, 'default');
   assert.equal((me.user as any).accountId, 'default');
 
+  const auth = valid!.auth as AuthContext;
   await assert.rejects(async () => {
-    await service.changePassword(1, password, '   ');
+    await service.changePassword(auth, password, '   ');
   }, /PASSWORD_REQUIRED/);
 
-  await service.changePassword(1, password, '1');
-
-  await service.changePassword(1, '1', 'AdminEvenStronger123!');
+  await service.changePassword(auth, password, '1');
+  await service.changePassword(auth, '1', 'AdminEvenStronger123!');
 }
 
 run().then(() => {

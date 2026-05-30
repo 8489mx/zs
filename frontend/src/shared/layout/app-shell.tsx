@@ -1,4 +1,4 @@
-import { CSSProperties, PropsWithChildren, useEffect, useMemo, useState } from 'react';
+﻿import { CSSProperties, PropsWithChildren, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -51,11 +51,48 @@ const iconToneMap: Record<string, IconTone> = {
   hr: { bg: 'linear-gradient(135deg, #fee2e2, #e0f2fe)', border: '#fca5a5', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.2)' },
   'pricing-center': { bg: 'linear-gradient(135deg, #fef9c3, #fde68a)', border: '#facc15', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.24)' },
   settings: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
+  'accounting-accounts': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'accounting-journal-entries': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'accounting-settings': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'accounting-financial-summary': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'accounting-receivables-payables': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'accounting-cash-movement': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'accounting-inventory-value': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+};
+
+const iconPathMap: Record<string, string> = {
+  dashboard: 'M4 11h16M6 9l6-5 6 5v10H6V9z',
+  pos: 'M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4',
+  'cash-drawer': 'M5 8h14l1 5H4l1-5zM4 13h16v6H4v-6zM8 16h8',
+  sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
+  returns: 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
+  customers: 'M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M17 14a5 5 0 0 1 5 5',
+  reports: 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
+  purchases: 'M6 7h15l-2 8H8L6 3H3M9 20h.01M18 20h.01',
+  suppliers: 'M3 7h11v10H3V7zM14 10h4l3 3v4h-7v-7zM7 20h.01M18 20h.01',
+  inventory: 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
+  products: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
+  treasury: 'M4 7h16v10H4V7zM7 10h2M15 14h2M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  services: 'M6 4h12v16H6V4zM9 8h6M9 12h6M9 16h3',
+  accounts: 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'pricing-center': 'M20 12V5h-7L4 14l6 6 10-8zM16 8h.01',
+  hr: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  audit: 'M5 4h14v16H5V4zM9 8h6M9 12h6M9 16h4',
+  settings: 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19 12h2M3 12h2M12 3v2M12 19v2M17 7l1.4-1.4M5.6 18.4 7 17M17 17l1.4 1.4M5.6 5.6 7 7',
+  'accounting-accounts': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'accounting-journal-entries': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'accounting-settings': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'accounting-financial-summary': 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
+  'accounting-cash-movement': 'M4 12h16M7 8h10M7 16h10M12 5v14',
+  'accounting-inventory-value': 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
 };
 
 function AppNavIcon({ itemKey }: { itemKey: string }) {
-  const label = itemKey.slice(0, 1).toUpperCase();
-  return <span aria-hidden="true" style={{ fontWeight: 800, fontSize: 13 }}>{label}</span>;
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d={iconPathMap[itemKey] || iconPathMap.settings} />
+    </svg>
+  );
 }
 
 export function AppShell({ children }: PropsWithChildren) {
@@ -73,13 +110,20 @@ export function AppShell({ children }: PropsWithChildren) {
   const [quickAttendanceOpen, setQuickAttendanceOpen] = useState(false);
 
   const visibleNavigationItems = useMemo(() => {
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'treasury', 'services', 'hr', 'audit', 'inventory', 'products', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'inventory', 'products', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: 'الرئيسية',
       pos: 'نقطة البيع',
       sales: 'سجل الفواتير',
       'cash-drawer': 'وردية نقطة البيع',
-      accounts: 'الحسابات',
+      accounts: 'حسابات العملاء والموردين',
+      'accounting-accounts': 'شجرة الحسابات',
+      'accounting-journal-entries': 'القيود اليومية',
+      'accounting-financial-summary': 'الملخص المالي',
+      'accounting-receivables-payables': 'الذمم والمستحقات',
+      'accounting-cash-movement': 'حركة الخزنة والبنك',
+      'accounting-inventory-value': 'قيمة المخزون',
+      'accounting-settings': 'إعدادات الحسابات',
       treasury: 'الخزينة',
       services: 'الخدمات',
       hr: 'الموارد البشرية',
@@ -101,7 +145,7 @@ export function AppShell({ children }: PropsWithChildren) {
     { key: 'sales-group', label: 'المبيعات', itemKeys: ['sales', 'returns', 'customers', 'reports'] },
     { key: 'purchases-group', label: 'المشتريات والموردين', itemKeys: ['purchases', 'suppliers'] },
     { key: 'inventory-group', label: 'المخزون والأصناف', itemKeys: ['inventory', 'products', 'treasury'] },
-    { key: 'services-group', label: 'الخدمات والحسابات', itemKeys: ['services', 'accounts', 'pricing-center'] },
+    { key: 'services-group', label: 'الخدمات والحسابات', itemKeys: ['services', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },
     { key: 'admin-group', label: 'الإدارة', itemKeys: ['hr', 'audit', 'settings'] },
   ]), []);
 
@@ -279,3 +323,4 @@ export function AppShell({ children }: PropsWithChildren) {
     </div>
   );
 }
+

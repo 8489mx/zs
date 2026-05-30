@@ -38,3 +38,10 @@ export interface AuthMeResponse {
     usingDefaultAdminPassword?: boolean;
   };
 }
+
+export interface AuthLoginResponse extends AuthMeResponse {
+  ok?: boolean;
+  mustChangePassword?: boolean;
+  expiresAt?: string;
+  sessionId?: string;
+}

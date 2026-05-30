@@ -7,6 +7,7 @@ export const SUPER_ADMIN_PERMISSIONS = [
   'suppliers',
   'customers',
   'accounts',
+  'accounting',
   'returns',
   'reports',
   'audit',

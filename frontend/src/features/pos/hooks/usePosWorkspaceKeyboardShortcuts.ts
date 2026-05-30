@@ -15,6 +15,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
     reprintLastSale: () => void;
     reprintLastSaleReceipt: () => void;
     printA4Now: () => void;
+    canOpenCheckout: boolean;
   };
   focusBarcodeEntry: () => void;
   printCurrentDraft: () => void;
@@ -94,7 +95,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         event.preventDefault();
         if (pos.canShowLastSaleActions) {
           pos.printReceiptNow();
-        } else {
+        } else if (pos.canOpenCheckout) {
           onRequestCheckout();
         }
       } else if (event.key === 'F4') {
