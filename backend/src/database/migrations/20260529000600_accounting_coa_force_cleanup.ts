@@ -1,0 +1,211 @@
+import { sql, type Kysely } from 'kysely';
+
+type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'contra_asset' | 'contra_revenue';
+type NormalBalance = 'debit' | 'credit';
+
+type SeedAccount = {
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  accountType: AccountType;
+  normalBalance: NormalBalance;
+  parentCode: string | null;
+  accountGroup: string;
+  allowManualEntries: boolean;
+  isControlAccount: boolean;
+  isCashBank: boolean;
+  isReceivable: boolean;
+  isPayable: boolean;
+  isInventory: boolean;
+  isTax: boolean;
+};
+
+const SEED_ACCOUNTS: SeedAccount[] = [
+  { code: '1000', nameAr: 'الأصول', nameEn: 'Assets', accountType: 'asset', normalBalance: 'debit', parentCode: null, accountGroup: 'assets', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1100', nameAr: 'الأصول المتداولة', nameEn: 'Current Assets', accountType: 'asset', normalBalance: 'debit', parentCode: '1000', accountGroup: 'current_assets', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1110', nameAr: 'الخزينة', nameEn: 'Cash', accountType: 'asset', normalBalance: 'debit', parentCode: '1100', accountGroup: 'cash_bank', allowManualEntries: true, isControlAccount: false, isCashBank: true, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1120', nameAr: 'البنك', nameEn: 'Bank', accountType: 'asset', normalBalance: 'debit', parentCode: '1100', accountGroup: 'cash_bank', allowManualEntries: true, isControlAccount: false, isCashBank: true, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1130', nameAr: 'العملاء', nameEn: 'Accounts Receivable', accountType: 'asset', normalBalance: 'debit', parentCode: '1100', accountGroup: 'receivable', allowManualEntries: true, isControlAccount: true, isCashBank: false, isReceivable: true, isPayable: false, isInventory: false, isTax: false },
+  { code: '1140', nameAr: 'المخزون', nameEn: 'Inventory', accountType: 'asset', normalBalance: 'debit', parentCode: '1100', accountGroup: 'inventory', allowManualEntries: true, isControlAccount: true, isCashBank: false, isReceivable: false, isPayable: false, isInventory: true, isTax: false },
+  { code: '1150', nameAr: 'ضريبة مشتريات قابلة للخصم', nameEn: 'Purchase VAT Receivable', accountType: 'asset', normalBalance: 'debit', parentCode: '1100', accountGroup: 'tax', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: true },
+  { code: '1160', nameAr: 'عهد وسلف موظفين', nameEn: 'Employee Advances', accountType: 'asset', normalBalance: 'debit', parentCode: '1100', accountGroup: 'current_assets', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1170', nameAr: 'مصروفات مدفوعة مقدمًا', nameEn: 'Prepaid Expenses', accountType: 'asset', normalBalance: 'debit', parentCode: '1100', accountGroup: 'current_assets', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1200', nameAr: 'الأصول الثابتة', nameEn: 'Fixed Assets', accountType: 'asset', normalBalance: 'debit', parentCode: '1000', accountGroup: 'fixed_assets', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1210', nameAr: 'معدات وأجهزة', nameEn: 'Equipment', accountType: 'asset', normalBalance: 'debit', parentCode: '1200', accountGroup: 'fixed_assets', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1220', nameAr: 'أثاث وتجهيزات', nameEn: 'Furniture and Fixtures', accountType: 'asset', normalBalance: 'debit', parentCode: '1200', accountGroup: 'fixed_assets', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '1290', nameAr: 'مجمع الإهلاك', nameEn: 'Accumulated Depreciation', accountType: 'contra_asset', normalBalance: 'credit', parentCode: '1200', accountGroup: 'fixed_assets', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '2000', nameAr: 'الخصوم', nameEn: 'Liabilities', accountType: 'liability', normalBalance: 'credit', parentCode: null, accountGroup: 'liabilities', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '2100', nameAr: 'الخصوم المتداولة', nameEn: 'Current Liabilities', accountType: 'liability', normalBalance: 'credit', parentCode: '2000', accountGroup: 'current_liabilities', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '2110', nameAr: 'الموردون', nameEn: 'Accounts Payable', accountType: 'liability', normalBalance: 'credit', parentCode: '2100', accountGroup: 'payable', allowManualEntries: true, isControlAccount: true, isCashBank: false, isReceivable: false, isPayable: true, isInventory: false, isTax: false },
+  { code: '2120', nameAr: 'ضريبة مبيعات مستحقة', nameEn: 'Sales VAT Payable', accountType: 'liability', normalBalance: 'credit', parentCode: '2100', accountGroup: 'tax', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: true },
+  { code: '2130', nameAr: 'مصروفات مستحقة', nameEn: 'Accrued Expenses', accountType: 'liability', normalBalance: 'credit', parentCode: '2100', accountGroup: 'current_liabilities', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '2140', nameAr: 'رواتب مستحقة', nameEn: 'Payroll Payable', accountType: 'liability', normalBalance: 'credit', parentCode: '2100', accountGroup: 'current_liabilities', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '2150', nameAr: 'دفعات مقدمة من العملاء', nameEn: 'Customer Advances', accountType: 'liability', normalBalance: 'credit', parentCode: '2100', accountGroup: 'current_liabilities', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '3000', nameAr: 'حقوق الملكية', nameEn: 'Equity', accountType: 'equity', normalBalance: 'credit', parentCode: null, accountGroup: 'equity', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '3100', nameAr: 'رأس المال', nameEn: 'Capital', accountType: 'equity', normalBalance: 'credit', parentCode: '3000', accountGroup: 'equity', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '3200', nameAr: 'أرباح محتجزة', nameEn: 'Retained Earnings', accountType: 'equity', normalBalance: 'credit', parentCode: '3000', accountGroup: 'equity', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '3300', nameAr: 'مسحوبات المالك', nameEn: 'Owner Drawings', accountType: 'equity', normalBalance: 'debit', parentCode: '3000', accountGroup: 'equity', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '4000', nameAr: 'الإيرادات', nameEn: 'Income', accountType: 'revenue', normalBalance: 'credit', parentCode: null, accountGroup: 'income', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '4100', nameAr: 'مبيعات المنتجات', nameEn: 'Product Sales', accountType: 'revenue', normalBalance: 'credit', parentCode: '4000', accountGroup: 'income', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '4200', nameAr: 'مبيعات الخدمات', nameEn: 'Service Sales', accountType: 'revenue', normalBalance: 'credit', parentCode: '4000', accountGroup: 'income', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '4300', nameAr: 'خصومات المبيعات', nameEn: 'Sales Discounts', accountType: 'contra_revenue', normalBalance: 'debit', parentCode: '4000', accountGroup: 'income', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '4400', nameAr: 'مردودات المبيعات', nameEn: 'Sales Returns', accountType: 'contra_revenue', normalBalance: 'debit', parentCode: '4000', accountGroup: 'income', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '5000', nameAr: 'تكلفة البضاعة المباعة', nameEn: 'Cost of Goods Sold', accountType: 'expense', normalBalance: 'debit', parentCode: null, accountGroup: 'cogs', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '5100', nameAr: 'تكلفة بضاعة مباعة', nameEn: 'COGS', accountType: 'expense', normalBalance: 'debit', parentCode: '5000', accountGroup: 'cogs', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '5200', nameAr: 'فروق تكلفة مخزون', nameEn: 'Inventory Cost Variance', accountType: 'expense', normalBalance: 'debit', parentCode: '5000', accountGroup: 'cogs', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '5300', nameAr: 'هالك وتالف مخزون', nameEn: 'Damaged Inventory Expense', accountType: 'expense', normalBalance: 'debit', parentCode: '5000', accountGroup: 'cogs', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6000', nameAr: 'المصروفات التشغيلية', nameEn: 'Operating Expenses', accountType: 'expense', normalBalance: 'debit', parentCode: null, accountGroup: 'operating_expenses', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6100', nameAr: 'إيجار', nameEn: 'Rent Expense', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6200', nameAr: 'مرتبات وأجور', nameEn: 'Salaries and Wages', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6300', nameAr: 'كهرباء ومرافق', nameEn: 'Utilities', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6400', nameAr: 'مصاريف نقل وشحن', nameEn: 'Delivery and Freight Expense', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6500', nameAr: 'مصاريف تسويق', nameEn: 'Marketing Expense', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6600', nameAr: 'مصاريف صيانة', nameEn: 'Maintenance Expense', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6700', nameAr: 'مصاريف إدارية', nameEn: 'Administrative Expenses', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6800', nameAr: 'مصاريف بنكية', nameEn: 'Bank Fees', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '6900', nameAr: 'مصروفات أخرى', nameEn: 'Other Expenses', accountType: 'expense', normalBalance: 'debit', parentCode: '6000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '7000', nameAr: 'إيرادات ومصروفات أخرى', nameEn: 'Other Income and Expenses', accountType: 'revenue', normalBalance: 'credit', parentCode: null, accountGroup: 'income', allowManualEntries: false, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '7100', nameAr: 'إيرادات أخرى', nameEn: 'Other Income', accountType: 'revenue', normalBalance: 'credit', parentCode: '7000', accountGroup: 'income', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+  { code: '7200', nameAr: 'خسائر أو فروق تسوية', nameEn: 'Adjustment Losses', accountType: 'expense', normalBalance: 'debit', parentCode: '7000', accountGroup: 'operating_expenses', allowManualEntries: true, isControlAccount: false, isCashBank: false, isReceivable: false, isPayable: false, isInventory: false, isTax: false },
+];
+
+const LEGACY_CODES = ['1300', '1400', '2200', '5400'] as const;
+
+async function forceUpdateSeedAccount(db: Kysely<unknown>, account: SeedAccount): Promise<void> {
+  let parentId: number | null = null;
+  if (account.parentCode) {
+    const parentResult = await sql<{ id: number }>`
+      SELECT id
+      FROM accounting_accounts
+      WHERE code = ${account.parentCode}
+      LIMIT 1
+    `.execute(db);
+    parentId = parentResult.rows[0]?.id ?? null;
+  }
+
+  await sql`
+    UPDATE accounting_accounts
+    SET
+      name_ar = ${account.nameAr},
+      name_en = ${account.nameEn},
+      parent_id = ${parentId},
+      account_type = ${account.accountType},
+      normal_balance = ${account.normalBalance},
+      account_group = ${account.accountGroup},
+      allow_manual_entries = ${account.allowManualEntries},
+      is_control_account = ${account.isControlAccount},
+      is_cash_bank = ${account.isCashBank},
+      is_receivable = ${account.isReceivable},
+      is_payable = ${account.isPayable},
+      is_inventory = ${account.isInventory},
+      is_tax = ${account.isTax},
+      is_system = TRUE,
+      updated_at = NOW()
+    WHERE code = ${account.code}
+  `.execute(db);
+}
+
+async function cleanupLegacyAccount(db: Kysely<unknown>, code: string): Promise<void> {
+  await sql`
+    UPDATE accounting_accounts AS a
+    SET
+      is_active = CASE
+        WHEN NOT EXISTS (
+          SELECT 1
+          FROM journal_entry_lines jel
+          WHERE jel.account_id = a.id
+        ) THEN FALSE
+        ELSE TRUE
+      END,
+      account_group = 'legacy',
+      allow_manual_entries = FALSE,
+      description_ar = CASE
+        WHEN NOT EXISTS (
+          SELECT 1
+          FROM journal_entry_lines jel
+          WHERE jel.account_id = a.id
+        ) THEN 'حساب قديم من الشجرة السابقة - تم استبداله بحساب أحدث'
+        ELSE 'حساب قديم من الشجرة السابقة - راجع المحاسب قبل الاستخدام'
+      END,
+      updated_at = NOW()
+    WHERE a.code = ${code}
+  `.execute(db);
+}
+
+async function forceAccountingSettings(db: Kysely<unknown>): Promise<void> {
+  await sql`
+    INSERT INTO accounting_settings (
+      id,
+      cash_account_id,
+      bank_account_id,
+      customer_receivable_account_id,
+      supplier_payable_account_id,
+      inventory_account_id,
+      sales_revenue_account_id,
+      sales_discount_account_id,
+      cogs_account_id,
+      purchase_account_id,
+      expenses_account_id,
+      sales_tax_account_id,
+      purchase_tax_account_id,
+      updated_at
+    )
+    VALUES (
+      1,
+      (SELECT id FROM accounting_accounts WHERE code = '1110'),
+      (SELECT id FROM accounting_accounts WHERE code = '1120'),
+      (SELECT id FROM accounting_accounts WHERE code = '1130'),
+      (SELECT id FROM accounting_accounts WHERE code = '2110'),
+      (SELECT id FROM accounting_accounts WHERE code = '1140'),
+      (SELECT id FROM accounting_accounts WHERE code = '4100'),
+      (SELECT id FROM accounting_accounts WHERE code = '4300'),
+      (SELECT id FROM accounting_accounts WHERE code = '5100'),
+      (SELECT id FROM accounting_accounts WHERE code = '1140'),
+      (SELECT id FROM accounting_accounts WHERE code = '6900'),
+      (SELECT id FROM accounting_accounts WHERE code = '2120'),
+      (SELECT id FROM accounting_accounts WHERE code = '1150'),
+      NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      cash_account_id = EXCLUDED.cash_account_id,
+      bank_account_id = EXCLUDED.bank_account_id,
+      customer_receivable_account_id = EXCLUDED.customer_receivable_account_id,
+      supplier_payable_account_id = EXCLUDED.supplier_payable_account_id,
+      inventory_account_id = EXCLUDED.inventory_account_id,
+      sales_revenue_account_id = EXCLUDED.sales_revenue_account_id,
+      sales_discount_account_id = EXCLUDED.sales_discount_account_id,
+      cogs_account_id = EXCLUDED.cogs_account_id,
+      purchase_account_id = EXCLUDED.purchase_account_id,
+      expenses_account_id = EXCLUDED.expenses_account_id,
+      sales_tax_account_id = EXCLUDED.sales_tax_account_id,
+      purchase_tax_account_id = EXCLUDED.purchase_tax_account_id,
+      updated_at = NOW()
+  `.execute(db);
+}
+
+export const migration = {
+  async up(db: Kysely<unknown>): Promise<void> {
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS account_group TEXT NOT NULL DEFAULT ''`.execute(db);
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS allow_manual_entries BOOLEAN NOT NULL DEFAULT TRUE`.execute(db);
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS is_control_account BOOLEAN NOT NULL DEFAULT FALSE`.execute(db);
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS is_cash_bank BOOLEAN NOT NULL DEFAULT FALSE`.execute(db);
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS is_receivable BOOLEAN NOT NULL DEFAULT FALSE`.execute(db);
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS is_payable BOOLEAN NOT NULL DEFAULT FALSE`.execute(db);
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS is_inventory BOOLEAN NOT NULL DEFAULT FALSE`.execute(db);
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS is_tax BOOLEAN NOT NULL DEFAULT FALSE`.execute(db);
+    await sql`ALTER TABLE accounting_accounts ADD COLUMN IF NOT EXISTS description_ar TEXT NOT NULL DEFAULT ''`.execute(db);
+
+    for (const account of SEED_ACCOUNTS) {
+      await forceUpdateSeedAccount(db, account);
+    }
+
+    for (const code of LEGACY_CODES) {
+      await cleanupLegacyAccount(db, code);
+    }
+
+    await forceAccountingSettings(db);
+  },
+
+  async down(): Promise<void> {},
+};
+
