@@ -1,4 +1,5 @@
 import type { Customer, ReportSummary } from '@/types/domain';
+import type { CashMovementResponse, FinancialSummaryResponse, InventoryValueResponse, ReceivablesPayablesResponse } from '@/features/accounting/api/accounting.api';
 import type { EmployeeReportRow, EmployeeReportsSummary, ReportInventoryRow } from '@/features/reports/api/reports.api';
 import type { ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
 
@@ -24,6 +25,10 @@ export type ReportsSectionContentProps = {
   section: ReportsSectionKey;
   report: ReportSummary | null | undefined;
   reportQuery: { isLoading: boolean; isError: boolean; error: unknown };
+  accountingFinancialSummary?: FinancialSummaryResponse | null;
+  accountingCashMovement?: CashMovementResponse | null;
+  accountingReceivablesPayables?: ReceivablesPayablesResponse | null;
+  accountingInventoryValue?: InventoryValueResponse | null;
   inventoryQuery: PagedQuery<{ totalItems: number; outOfStock: number; lowStock: number; healthy: number; trackedLocations?: number; locationHighlights?: Array<{ locationId: string; locationName: string; branchId?: string; branchName?: string; totalQty: number; trackedProducts: number; attentionItems: number; lowStockItems: number; outOfStockItems: number }> }, ReportInventoryRow>;
   balancesQuery: PagedQuery<{ totalItems: number; totalBalance: number; overLimit: number; highBalance: number }, Customer>;
   executiveRows: Array<[string, number]>;

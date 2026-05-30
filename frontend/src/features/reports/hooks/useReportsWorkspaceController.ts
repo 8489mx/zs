@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query';
+import { accountingApi } from '@/features/accounting/api/accounting.api';
 import { useReportsOverview } from '@/features/reports/hooks/useReportsOverview';
 import { useReportInventoryPage } from '@/features/reports/hooks/useReportInventoryPage';
 import { useCustomerBalancesPage } from '@/features/reports/hooks/useCustomerBalancesPage';
@@ -11,6 +13,29 @@ import { formatPercent } from '@/features/reports/lib/reports-format';
 export function useReportsWorkspaceController(currentSection: ReportsSectionKey) {
   const state = useReportsWorkspaceState();
   const { reportQuery } = useReportsOverview(state.submittedRange.from, state.submittedRange.to);
+  const accountingFinancialSummaryQuery = useQuery({
+    queryKey: ['reports', 'accounting-financial-summary', state.submittedRange.from, state.submittedRange.to],
+    queryFn: () => accountingApi.financialSummary({ date_from: state.submittedRange.from, date_to: state.submittedRange.to }),
+    enabled: Boolean(state.submittedRange.from && state.submittedRange.to),
+    retry: false,
+  });
+  const accountingCashMovementQuery = useQuery({
+    queryKey: ['reports', 'accounting-cash-movement', state.submittedRange.from, state.submittedRange.to],
+    queryFn: () => accountingApi.cashMovement({ date_from: state.submittedRange.from, date_to: state.submittedRange.to }),
+    enabled: Boolean(state.submittedRange.from && state.submittedRange.to),
+    retry: false,
+  });
+  const accountingReceivablesPayablesQuery = useQuery({
+    queryKey: ['reports', 'accounting-receivables-payables', state.submittedRange.to],
+    queryFn: () => accountingApi.receivablesPayables({ date_to: state.submittedRange.to }),
+    enabled: Boolean(state.submittedRange.to),
+    retry: false,
+  });
+  const accountingInventoryValueQuery = useQuery({
+    queryKey: ['reports', 'accounting-inventory-value'],
+    queryFn: () => accountingApi.inventoryValue({}),
+    retry: false,
+  });
   const inventoryQuery = useReportInventoryPage({ page: state.inventoryPage, pageSize: state.inventoryPageSize, search: state.inventorySearch, filter: state.inventoryFilter });
   const balancesQuery = useCustomerBalancesPage({ page: state.balancesPage, pageSize: state.balancesPageSize, search: state.balancesSearch, filter: state.balancesFilter });
   const employeesQuery = useEmployeeReportsPage({
@@ -29,6 +54,10 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     currentSection,
     submittedRange: state.submittedRange,
     report,
+    accountingFinancialSummary: accountingFinancialSummaryQuery.data ?? null,
+    accountingCashMovement: accountingCashMovementQuery.data ?? null,
+    accountingReceivablesPayables: accountingReceivablesPayablesQuery.data ?? null,
+    accountingInventoryValue: accountingInventoryValueQuery.data ?? null,
     inventoryQuery,
     balancesQuery,
   });
@@ -47,6 +76,10 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
   return {
     report,
     reportQuery,
+    accountingFinancialSummary: accountingFinancialSummaryQuery.data ?? null,
+    accountingCashMovement: accountingCashMovementQuery.data ?? null,
+    accountingReceivablesPayables: accountingReceivablesPayablesQuery.data ?? null,
+    accountingInventoryValue: accountingInventoryValueQuery.data ?? null,
     inventoryQuery,
     balancesQuery,
     employeesQuery,

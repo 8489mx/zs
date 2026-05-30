@@ -6,8 +6,6 @@ import { ReportsRangeCard } from '@/features/reports/components/ReportsRangeCard
 import { useReportsWorkspaceController } from '@/features/reports/hooks/useReportsWorkspaceController';
 import type { ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
 
-// regression-marker: عدد الأصناف المطابقة
-// regression-marker: عدد العملاء المطابقين
 export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSectionKey }) {
   const controller = useReportsWorkspaceController(currentSection);
 
@@ -45,6 +43,10 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         section={currentSection}
         report={controller.report}
         reportQuery={controller.reportQuery}
+        accountingFinancialSummary={controller.accountingFinancialSummary}
+        accountingCashMovement={controller.accountingCashMovement}
+        accountingReceivablesPayables={controller.accountingReceivablesPayables}
+        accountingInventoryValue={controller.accountingInventoryValue}
         inventoryQuery={controller.inventoryQuery}
         balancesQuery={controller.balancesQuery}
         employeesQuery={controller.employeesQuery}

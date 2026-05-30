@@ -4,7 +4,7 @@ import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
-import { CashMovementQueryDto, FinancialSummaryQueryDto, JournalEntriesQueryDto, ReceivablesPayablesQueryDto } from './dto/accounting.dto';
+import { CashMovementQueryDto, FinancialSummaryQueryDto, InventoryValueQueryDto, JournalEntriesQueryDto, ReceivablesPayablesQueryDto } from './dto/accounting.dto';
 
 type PartnerType = 'none' | 'customer' | 'supplier';
 
@@ -746,6 +746,100 @@ export class AccountingService {
       accounts: Array.from(byAccount.values()).sort((a, b) => Number(a.accountCode || 0) - Number(b.accountCode || 0)),
       sources: Array.from(bySource.values()).sort((a, b) => b.net - a.net),
     };
+  }
+
+  async getInventoryValue(filters: InventoryValueQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+
+    const categoryId = Number(filters.category_id || 0) > 0 ? Number(filters.category_id) : null;
+    const supplierId = Number(filters.supplier_id || 0) > 0 ? Number(filters.supplier_id) : null;
+    const search = String(filters.search || '').trim();
+    const lowStockOnly = String(filters.low_stock_only || '').trim().toLowerCase() === 'true';
+    const zeroStockOnly = String(filters.zero_stock_only || '').trim().toLowerCase() === 'true';
+
+    let query = this.db
+      .selectFrom('products as p')
+      .leftJoin('product_categories as c', 'c.id', 'p.category_id')
+      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .select([
+        'p.id',
+        'p.name',
+        'p.barcode',
+        'p.stock_qty',
+        'p.min_stock_qty',
+        'p.cost_price',
+        'p.retail_price',
+        'p.category_id',
+        'p.supplier_id',
+        'c.name as category_name',
+        's.name as supplier_name',
+      ])
+      .where('p.is_active', '=', true)
+      .where(this.tenantPredicate(auth, 'p'));
+
+    if (categoryId) {
+      query = query.where('p.category_id', '=', categoryId);
+    }
+    if (supplierId) {
+      query = query.where('p.supplier_id', '=', supplierId);
+    }
+    if (search) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('p.name', 'ilike', `%${search}%`),
+          eb('p.barcode', 'ilike', `%${search}%`),
+        ]),
+      );
+    }
+
+    const rows = await query.orderBy('p.name asc').execute();
+    const items = rows
+      .map((row) => {
+        const quantityOnHand = this.toMoney(row.stock_qty);
+        const minStockQty = this.toMoney(row.min_stock_qty);
+        const unitCost = this.toMoney(row.cost_price);
+        const unitRetailPrice = this.toMoney(row.retail_price);
+        const inventoryValue = this.toMoney(quantityOnHand * unitCost);
+        const retailPotentialValue = this.toMoney(quantityOnHand * unitRetailPrice);
+        const potentialGrossMargin = this.toMoney(retailPotentialValue - inventoryValue);
+
+        let status: 'available' | 'low_stock' | 'out_of_stock' | 'negative_stock' = 'available';
+        if (quantityOnHand < 0) status = 'negative_stock';
+        else if (quantityOnHand === 0) status = 'out_of_stock';
+        else if (quantityOnHand <= minStockQty) status = 'low_stock';
+
+        return {
+          productId: String(row.id),
+          productName: String(row.name || ''),
+          barcode: String(row.barcode || ''),
+          categoryId: row.category_id ? String(row.category_id) : '',
+          categoryName: String(row.category_name || ''),
+          supplierId: row.supplier_id ? String(row.supplier_id) : '',
+          supplierName: String(row.supplier_name || ''),
+          quantityOnHand,
+          minStockQty,
+          unitCost,
+          unitRetailPrice,
+          inventoryValue,
+          retailPotentialValue,
+          potentialGrossMargin,
+          status,
+        };
+      })
+      .filter((item) => (zeroStockOnly ? item.quantityOnHand === 0 : true))
+      .filter((item) => (lowStockOnly ? item.status === 'low_stock' : true));
+
+    const totals = {
+      totalInventoryValue: this.toMoney(items.reduce((sum, item) => sum + item.inventoryValue, 0)),
+      totalRetailPotentialValue: this.toMoney(items.reduce((sum, item) => sum + item.retailPotentialValue, 0)),
+      totalPotentialGrossMargin: this.toMoney(items.reduce((sum, item) => sum + item.potentialGrossMargin, 0)),
+      itemCount: items.length,
+      lowStockCount: items.filter((item) => item.status === 'low_stock').length,
+      zeroStockCount: items.filter((item) => item.status === 'out_of_stock').length,
+      negativeStockCount: items.filter((item) => item.status === 'negative_stock').length,
+    };
+
+    return { totals, items };
   }
 
   async createDraftJournalEntry(input: DraftJournalEntryInput, auth: AuthContext): Promise<number> {

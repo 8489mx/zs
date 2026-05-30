@@ -141,6 +141,37 @@ export type CashMovementResponse = {
   }>;
 };
 
+export type InventoryValueItem = {
+  productId: string;
+  productName: string;
+  barcode: string;
+  categoryId: string;
+  categoryName: string;
+  supplierId: string;
+  supplierName: string;
+  quantityOnHand: number;
+  minStockQty: number;
+  unitCost: number;
+  unitRetailPrice: number;
+  inventoryValue: number;
+  retailPotentialValue: number;
+  potentialGrossMargin: number;
+  status: 'available' | 'low_stock' | 'out_of_stock' | 'negative_stock';
+};
+
+export type InventoryValueResponse = {
+  totals: {
+    totalInventoryValue: number;
+    totalRetailPotentialValue: number;
+    totalPotentialGrossMargin: number;
+    itemCount: number;
+    lowStockCount: number;
+    zeroStockCount: number;
+    negativeStockCount: number;
+  };
+  items: InventoryValueItem[];
+};
+
 export const accountingApi = {
   accounts: () => http<{ accounts: AccountingAccount[] }>('/api/accounting/accounts'),
   settings: () => http<{ settings: Record<string, unknown> | null }>('/api/accounting/settings'),
@@ -180,6 +211,15 @@ export const accountingApi = {
     }
     const suffix = search.toString();
     return http<CashMovementResponse>(`/api/accounting/reports/cash-movement${suffix ? `?${suffix}` : ''}`);
+  },
+  inventoryValue: (query: Record<string, string | number | undefined>) => {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === null || String(value).trim() === '') continue;
+      search.set(key, String(value));
+    }
+    const suffix = search.toString();
+    return http<InventoryValueResponse>(`/api/accounting/reports/inventory-value${suffix ? `?${suffix}` : ''}`);
   },
 };
 

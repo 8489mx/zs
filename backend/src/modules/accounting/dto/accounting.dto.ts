@@ -99,3 +99,29 @@ export class CashMovementQueryDto {
   location_id?: number;
 }
 
+export class InventoryValueQueryDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  category_id?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  supplier_id?: number;
+
+  @IsOptional()
+  @IsString()
+  low_stock_only?: string;
+
+  @IsOptional()
+  @IsString()
+  zero_stock_only?: string;
+}
+
