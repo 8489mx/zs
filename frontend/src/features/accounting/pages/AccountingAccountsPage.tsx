@@ -1,9 +1,9 @@
 ﻿import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
-import { Card } from '@/shared/ui/card';
-import { DataTable } from '@/shared/ui/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
+import { Card } from '@/shared/ui/card';
 import { accountingApi, type AccountingAccount } from '@/features/accounting/api/accounting.api';
 
 const typeLabel: Record<string, string> = {
@@ -89,21 +89,81 @@ export function AccountingAccountsPage() {
           emptyTitle="لا توجد حسابات حتى الآن. سيتم إنشاء شجرة الحسابات الافتراضية من إعدادات النظام."
         >
           <DataTable<AccountingAccount>
-            rows={visibleRows}
-            rowKey={(row) => row.id}
-            rowClassName={(row) => (row.isActive ? undefined : 'table-row-inactive')}
+            data={visibleRows}
+            getRowKey={(row) => row.id}
+            rowClassName={(row) => [!row.isActive ? 'table-row-inactive' : '', Number(row.depth || 0) === 0 ? 'table-row-root-account' : ''].filter(Boolean).join(' ')}
+            defaultSort={{ columnId: 'code', direction: 'asc' }}
             columns={[
-              { key: 'code', header: 'كود الحساب', cell: (row) => row.code },
               {
-                key: 'nameAr',
-                header: 'اسم الحساب',
-                cell: (row) => <span style={{ paddingInlineStart: `${Math.max(0, Number(row.depth || 0)) * 16}px` }}>{row.nameAr}</span>,
+                id: 'code',
+                header: 'كود الحساب',
+                render: (row) => row.code,
+                sortable: true,
+                sortValue: (row) => Number(row.code || 0),
               },
-              { key: 'group', header: 'المجموعة', cell: (row) => groupLabel[row.accountGroup] || row.accountGroup || '-' },
-              { key: 'type', header: 'النوع', cell: (row) => typeLabel[row.accountType] || row.accountType },
-              { key: 'normalBalance', header: 'الرصيد الطبيعي', cell: (row) => balanceLabel[row.normalBalance] || row.normalBalance },
-              { key: 'flags', header: 'خصائص', cell: (row) => renderFlags(row).join(' • ') || '-' },
-              { key: 'status', header: 'الحالة', cell: (row) => (row.isActive ? 'نشط' : <span className="muted"><strong>غير نشط</strong></span>) },
+              {
+                id: 'nameAr',
+                header: 'اسم الحساب',
+                render: (row) => {
+                  const depth = Math.max(0, Number(row.depth || 0));
+                  return (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        paddingInlineStart: `${depth * 18}px`,
+                        fontWeight: depth === 0 ? 700 : 500,
+                      }}
+                    >
+                      {depth > 0 ? (
+                        <span
+                          aria-hidden
+                          style={{
+                            width: 12,
+                            height: 1,
+                            background: 'currentColor',
+                            opacity: 0.35,
+                            display: 'inline-block',
+                          }}
+                        />
+                      ) : null}
+                      <span>{row.nameAr}</span>
+                    </span>
+                  );
+                },
+                sortable: true,
+                sortValue: (row) => row.nameAr || '',
+              },
+              {
+                id: 'group',
+                header: 'المجموعة',
+                render: (row) => groupLabel[row.accountGroup] || row.accountGroup || '-',
+                sortable: true,
+                sortValue: (row) => groupLabel[row.accountGroup] || row.accountGroup || '',
+              },
+              {
+                id: 'type',
+                header: 'النوع',
+                render: (row) => typeLabel[row.accountType] || row.accountType,
+                sortable: true,
+                sortValue: (row) => typeLabel[row.accountType] || row.accountType || '',
+              },
+              {
+                id: 'normalBalance',
+                header: 'الرصيد الطبيعي',
+                render: (row) => balanceLabel[row.normalBalance] || row.normalBalance,
+                sortable: true,
+                sortValue: (row) => balanceLabel[row.normalBalance] || row.normalBalance || '',
+              },
+              { id: 'flags', header: 'خصائص', render: (row) => renderFlags(row).join(' • ') || '-' },
+              {
+                id: 'status',
+                header: 'الحالة',
+                render: (row) => (row.isActive ? 'نشط' : <span className="muted"><strong>غير نشط</strong></span>),
+                sortable: true,
+                sortValue: (row) => (row.isActive ? 1 : 0),
+              },
             ]}
           />
         </QueryFeedback>

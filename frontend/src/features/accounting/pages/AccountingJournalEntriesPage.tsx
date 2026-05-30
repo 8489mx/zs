@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
-import { Card } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
-import { DataTable } from '@/shared/ui/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
+import { Button } from '@/shared/ui/button';
+import { Card } from '@/shared/ui/card';
 import { formatCurrency } from '@/lib/format';
 import { accountingApi, type JournalEntryDetail, type JournalEntryLine, type JournalEntryListItem } from '@/features/accounting/api/accounting.api';
 
@@ -27,6 +27,9 @@ function mapSourceLabel(sourceType: string) {
   if (sourceType === 'supplier_payment_schedule_settlement') return 'سداد مورد';
   if (sourceType === 'customer_payment') return 'تحصيل عميل';
   if (sourceType === 'customer_payment_reversal') return 'عكس تحصيل عميل';
+  if (sourceType === 'expense') return 'مصروف';
+  if (sourceType === 'treasury_expense') return 'مصروف خزنة';
+  if (sourceType === 'expense_reversal') return 'عكس مصروف';
   if (sourceType === 'manual') return 'يدوي';
   return sourceType || '';
 }
@@ -79,15 +82,18 @@ export function AccountingJournalEntriesPage() {
           emptyTitle="لا توجد قيود يومية"
         >
           <DataTable<JournalEntryListItem>
-            rows={rows}
-            rowKey={(row) => row.id}
+            data={rows}
+            getRowKey={(row) => row.id}
             onRowClick={(row) => handleSelectEntry(row.id)}
             rowTitle={() => 'عرض تفاصيل القيد'}
+            defaultSort={{ columnId: 'date', direction: 'desc' }}
             columns={[
               {
-                key: 'entryNo',
+                id: 'entryNo',
                 header: 'رقم القيد',
-                cell: (row) => (
+                sortable: true,
+                sortValue: (row) => Number(row.id || 0),
+                render: (row) => (
                   <button
                     type="button"
                     className="button button-secondary"
@@ -100,10 +106,28 @@ export function AccountingJournalEntriesPage() {
                   </button>
                 ),
               },
-              { key: 'date', header: 'التاريخ', cell: (row) => String(row.entryDate || '').slice(0, 10) },
-              { key: 'source', header: 'المصدر', cell: (row) => mapSourceLabel(row.sourceType || '') },
-              { key: 'description', header: 'الوصف', cell: (row) => row.description || '' },
-              { key: 'status', header: 'الحالة', cell: (row) => mapStatusLabel(row.status || '') },
+              {
+                id: 'date',
+                header: 'التاريخ',
+                render: (row) => String(row.entryDate || '').slice(0, 10),
+                sortable: true,
+                sortValue: (row) => row.entryDate,
+              },
+              {
+                id: 'source',
+                header: 'المصدر',
+                render: (row) => mapSourceLabel(row.sourceType || ''),
+                sortable: true,
+                sortValue: (row) => mapSourceLabel(row.sourceType || ''),
+              },
+              { id: 'description', header: 'الوصف', render: (row) => row.description || '' },
+              {
+                id: 'status',
+                header: 'الحالة',
+                render: (row) => mapStatusLabel(row.status || ''),
+                sortable: true,
+                sortValue: (row) => mapStatusLabel(row.status || ''),
+              },
             ]}
             pagination={{
               page,
@@ -122,61 +146,65 @@ export function AccountingJournalEntriesPage() {
 
       {selectedEntryId ? (
         <div ref={detailsRef}>
-        <Card title="تفاصيل القيد">
-          <div className="actions">
-            <Button type="button" variant="secondary" onClick={() => {
-              setSelectedEntryId(null);
-              setShouldAutoScrollToDetails(false);
-            }}>
-              العودة للقيود اليومية
-            </Button>
-          </div>
+          <Card title="تفاصيل القيد">
+            <div className="actions">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setSelectedEntryId(null);
+                  setShouldAutoScrollToDetails(false);
+                }}
+              >
+                العودة للقيود اليومية
+              </Button>
+            </div>
 
-          <QueryFeedback
-            isLoading={detailQuery.isLoading}
-            isError={detailQuery.isError}
-            error={detailQuery.error}
-            isEmpty={!detailEntry}
-            loadingText="جاري تحميل تفاصيل القيد..."
-            errorTitle="تعذر تحميل تفاصيل القيد"
-            emptyTitle="لا توجد تفاصيل لهذا القيد"
-          >
-            {detailEntry ? (
-              <div className="page-stack">
-                <div className="grid-2">
-                  <div><strong>رقم القيد:</strong> {detailEntry.entryNo}</div>
-                  <div><strong>التاريخ:</strong> {String(detailEntry.entryDate || '').slice(0, 10)}</div>
-                  <div><strong>المصدر:</strong> {mapSourceLabel(detailEntry.sourceType || '')}</div>
-                  <div><strong>الحالة:</strong> {mapStatusLabel(detailEntry.status || '')}</div>
-                  <div><strong>الوصف:</strong> {detailEntry.description || '-'}</div>
-                  <div><strong>إجمالي المدين:</strong> {formatCurrency(Number(detailEntry.totals?.debit || 0))}</div>
-                  <div><strong>إجمالي الدائن:</strong> {formatCurrency(Number(detailEntry.totals?.credit || 0))}</div>
+            <QueryFeedback
+              isLoading={detailQuery.isLoading}
+              isError={detailQuery.isError}
+              error={detailQuery.error}
+              isEmpty={!detailEntry}
+              loadingText="جاري تحميل تفاصيل القيد..."
+              errorTitle="تعذر تحميل تفاصيل القيد"
+              emptyTitle="لا توجد تفاصيل لهذا القيد"
+            >
+              {detailEntry ? (
+                <div className="page-stack">
+                  <div className="grid-2">
+                    <div><strong>رقم القيد:</strong> {detailEntry.entryNo}</div>
+                    <div><strong>التاريخ:</strong> {String(detailEntry.entryDate || '').slice(0, 10)}</div>
+                    <div><strong>المصدر:</strong> {mapSourceLabel(detailEntry.sourceType || '')}</div>
+                    <div><strong>الحالة:</strong> {mapStatusLabel(detailEntry.status || '')}</div>
+                    <div><strong>الوصف:</strong> {detailEntry.description || '-'}</div>
+                    <div><strong>إجمالي المدين:</strong> {formatCurrency(Number(detailEntry.totals?.debit || 0))}</div>
+                    <div><strong>إجمالي الدائن:</strong> {formatCurrency(Number(detailEntry.totals?.credit || 0))}</div>
+                  </div>
+
+                  <Card title="سطور القيد">
+                    {detailEntry.lines?.length ? (
+                      <DataTable<JournalEntryLine>
+                        data={detailEntry.lines}
+                        getRowKey={(row) => row.id}
+                        columns={[
+                          {
+                            id: 'account',
+                            header: 'الحساب',
+                            render: (row) => [row.accountCode, row.accountNameAr || row.accountNameEn || row.accountId].filter(Boolean).join(' - '),
+                          },
+                          { id: 'description', header: 'الوصف', render: (row) => row.description || '-' },
+                          { id: 'debit', header: 'مدين', align: 'end', render: (row) => formatCurrency(Number(row.debit || 0)) },
+                          { id: 'credit', header: 'دائن', align: 'end', render: (row) => formatCurrency(Number(row.credit || 0)) },
+                        ]}
+                      />
+                    ) : (
+                      <div className="muted">لا توجد سطور لهذا القيد</div>
+                    )}
+                  </Card>
                 </div>
-
-                <Card title="سطور القيد">
-                  {detailEntry.lines?.length ? (
-                    <DataTable<JournalEntryLine>
-                      rows={detailEntry.lines}
-                      rowKey={(row) => row.id}
-                      columns={[
-                        {
-                          key: 'account',
-                          header: 'الحساب',
-                          cell: (row) => [row.accountCode, row.accountNameAr || row.accountNameEn || row.accountId].filter(Boolean).join(' - '),
-                        },
-                        { key: 'description', header: 'الوصف', cell: (row) => row.description || '-' },
-                        { key: 'debit', header: 'مدين', cell: (row) => formatCurrency(Number(row.debit || 0)) },
-                        { key: 'credit', header: 'دائن', cell: (row) => formatCurrency(Number(row.credit || 0)) },
-                      ]}
-                    />
-                  ) : (
-                    <div className="muted">لا توجد سطور لهذا القيد</div>
-                  )}
-                </Card>
-              </div>
-            ) : null}
-          </QueryFeedback>
-        </Card>
+              ) : null}
+            </QueryFeedback>
+          </Card>
         </div>
       ) : null}
     </div>

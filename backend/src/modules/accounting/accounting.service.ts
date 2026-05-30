@@ -211,6 +211,7 @@ export class AccountingService {
         'je.posted_by',
         'je.posted_at',
         'je.cancelled_at',
+        'je.created_at',
         'creator.username as created_by_name',
         'poster.username as posted_by_name',
       ]);
@@ -234,7 +235,12 @@ export class AccountingService {
 
     const totalRow = await countQuery.select((eb) => eb.fn.countAll<number>().as('count')).executeTakeFirst();
     const totalItems = Number(totalRow?.count || 0);
-    const rows = await rowsQuery.orderBy('je.entry_date desc').orderBy('je.id desc').limit(pageSize).offset(offset).execute();
+    const rows = await rowsQuery
+      .orderBy('je.created_at', 'desc')
+      .orderBy('je.id', 'desc')
+      .limit(pageSize)
+      .offset(offset)
+      .execute();
 
     return {
       entries: rows.map((row) => ({

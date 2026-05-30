@@ -82,6 +82,17 @@ export class AccountingPostingService {
       .executeTakeFirst();
   }
 
+  private async getExistingExpenseJournal(queryable: DbOrTx, expenseId: number) {
+    return queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', 'in', ['expense', 'treasury_expense'])
+      .where('source_id', '=', expenseId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id desc')
+      .executeTakeFirst();
+  }
+
   private async getExistingSaleReversalJournal(queryable: DbOrTx, saleId: number) {
     return queryable
       .selectFrom('journal_entries')
@@ -1156,6 +1167,102 @@ export class AccountingPostingService {
       branchId,
       locationId,
       createdBy: payment.created_by ? Number(payment.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: normalizedLines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  async postExpense(queryable: DbOrTx, expenseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    const existing = await this.getExistingExpenseJournal(queryable, expenseId);
+    if (existing) {
+      this.logger.warn(`Skipping duplicate expense journal for expense ${expenseId}; existing entry ${existing.id}`);
+      return { posted: false, journalEntryId: Number(existing.id) };
+    }
+
+    const expense = await queryable
+      .selectFrom('expenses')
+      .select([
+        'id',
+        'title',
+        'amount',
+        'note',
+        'expense_date',
+        'branch_id',
+        'location_id',
+        'created_by',
+        'created_at',
+      ])
+      .where('id', '=', expenseId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .executeTakeFirst();
+
+    if (!expense) {
+      this.logger.warn(`Expense ${expenseId} not found; skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    if (!settings) throw new Error(`Accounting settings missing while posting expense ${expenseId}`);
+
+    const amount = this.toMoney(expense.amount);
+    if (!(amount > 0)) {
+      this.logger.warn(`Expense ${expenseId} has invalid amount (${amount}); skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const branchId = expense.branch_id ? Number(expense.branch_id) : null;
+    const locationId = expense.location_id ? Number(expense.location_id) : null;
+    const expenseTitle = String(expense.title || '').trim();
+
+    // Current expense flow is cash-based and does not persist payment method.
+    // Use cash account credit to match existing treasury transaction behavior (txn_type: expense, negative amount).
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: Number(settings.expenses_account_id || 0),
+      description: 'إثبات مصروف',
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId,
+      locationId,
+    });
+    this.addLine(lines, {
+      accountId: Number(settings.cash_account_id || 0),
+      description: 'خروج نقدية لمصروف',
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId,
+      locationId,
+    });
+
+    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    for (const line of lines) {
+      if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting expense ${expenseId}`);
+      if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting expense ${expenseId}`);
+      if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting expense ${expenseId}`);
+    }
+
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced expense journal for expense ${expenseId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'expense',
+      sourceId: expenseId,
+      entryDate: expense.expense_date ? new Date(expense.expense_date) : (expense.created_at ? new Date(expense.created_at) : new Date()),
+      description: `قيد مصروف: ${expenseTitle || `EXP-${expenseId}`}`,
+      branchId,
+      locationId,
+      createdBy: expense.created_by ? Number(expense.created_by) : auth.userId,
       postedBy: auth.userId,
       lines: normalizedLines,
     });

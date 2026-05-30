@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
@@ -6,15 +6,19 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { paginateRows } from '../../common/utils/pagination';
 
 @Injectable()
 export class TreasuryService {
+  private readonly logger = new Logger(TreasuryService.name);
+
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   async listExpenses(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -117,6 +121,15 @@ export class TreasuryService {
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
       } as any).execute();
+
+      // Source-of-truth accounting post is the expense document itself.
+      // Treasury transaction is an operational cash movement side-effect for the same expense.
+      const accountingResult = await this.accountingPosting.postExpense(trx, expenseId, auth);
+      if (accountingResult.posted) {
+        this.logger.log(`Posted expense journal for expense ${expenseId} with entry ${accountingResult.journalEntryId}`);
+      } else {
+        this.logger.warn(`Skipped expense journal posting for expense ${expenseId}; existing entry ${accountingResult.journalEntryId ?? 'none'}`);
+      }
     });
 
     await this.audit.log('تسجيل مصروف', 'تم تسجيل مصروف بواسطة ' + auth.username, auth);
