@@ -1,10 +1,18 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
-import { CashMovementQueryDto, FinancialSummaryQueryDto, InventoryValueQueryDto, JournalEntriesQueryDto, ReceivablesPayablesQueryDto } from './dto/accounting.dto';
+import {
+  CashMovementQueryDto,
+  FinancialSummaryQueryDto,
+  InventoryValueQueryDto,
+  JournalEntriesQueryDto,
+  OpeningBalancesPreviewQueryDto,
+  PostOpeningBalancesDto,
+  ReceivablesPayablesQueryDto,
+} from './dto/accounting.dto';
 
 type PartnerType = 'none' | 'customer' | 'supplier';
 
@@ -27,6 +35,24 @@ type DraftJournalEntryInput = {
   branchId?: number | null;
   locationId?: number | null;
   lines: DraftJournalLineInput[];
+};
+
+type OpeningBalanceAccount = {
+  id: number;
+  code: string;
+  nameAr: string;
+  accountType: string;
+  isActive: boolean;
+  allowManualEntries: boolean;
+};
+
+type OpeningBalanceLine = {
+  accountId: number;
+  accountCode: string;
+  accountNameAr: string;
+  description: string;
+  debit: number;
+  credit: number;
 };
 
 @Injectable()
@@ -143,6 +169,196 @@ export class AccountingService {
       : sql<boolean>`tenant_id = ${scope.tenantId}`;
   }
 
+  private normalizeDateInput(value?: string | null): string {
+    const dateText = String(value || '').slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) return dateText;
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  private openingAmount(value: unknown): number {
+    return this.toMoney(Math.max(0, Number(value || 0)));
+  }
+
+  private async getExistingOpeningBalanceEntry(auth: AuthContext): Promise<{ id: number } | null> {
+    const scope = requireTenantScope(auth);
+    const row = await this.db
+      .selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'opening_balance')
+      .where('status', '=', 'posted')
+      .where('tenant_id', '=', scope.tenantId)
+      .orderBy('id desc')
+      .executeTakeFirst();
+    return row ? { id: Number(row.id) } : null;
+  }
+
+  private async resolveOpeningAccount(code: string, expectedTypes: string[]): Promise<OpeningBalanceAccount> {
+    const row = await this.db
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code', 'name_ar', 'account_type', 'is_active', 'allow_manual_entries'])
+      .where('code', '=', code)
+      .executeTakeFirst();
+
+    if (!row) {
+      throw new BadRequestException(`حساب الأرصدة الافتتاحية ${code} غير موجود في شجرة الحسابات.`);
+    }
+    if (!row.is_active) {
+      throw new BadRequestException(`حساب الأرصدة الافتتاحية ${code} غير نشط.`);
+    }
+    if (!row.allow_manual_entries) {
+      throw new BadRequestException(`حساب الأرصدة الافتتاحية ${code} لا يسمح بالترحيل عليه.`);
+    }
+    const accountType = String(row.account_type || '');
+    if (!expectedTypes.includes(accountType)) {
+      throw new BadRequestException(`نوع الحساب ${code} غير مناسب للأرصدة الافتتاحية.`);
+    }
+
+    return {
+      id: Number(row.id),
+      code: String(row.code || ''),
+      nameAr: String(row.name_ar || ''),
+      accountType,
+      isActive: Boolean(row.is_active),
+      allowManualEntries: Boolean(row.allow_manual_entries),
+    };
+  }
+
+  private addOpeningLine(lines: OpeningBalanceLine[], account: OpeningBalanceAccount, description: string, debit: number, credit: number): void {
+    const normalizedDebit = this.toMoney(debit);
+    const normalizedCredit = this.toMoney(credit);
+    if (normalizedDebit <= 0 && normalizedCredit <= 0) return;
+    if (normalizedDebit > 0 && normalizedCredit > 0) {
+      throw new BadRequestException('لا يمكن أن يحتوي سطر الأرصدة الافتتاحية على مدين ودائن معًا.');
+    }
+    lines.push({
+      accountId: account.id,
+      accountCode: account.code,
+      accountNameAr: account.nameAr,
+      description,
+      debit: normalizedDebit,
+      credit: normalizedCredit,
+    });
+  }
+
+  private async calculateOpeningOperationalTotals(auth: AuthContext): Promise<{
+    customerReceivables: number;
+    supplierPayables: number;
+    inventoryValue: number;
+  }> {
+    const scope = requireTenantScope(auth);
+    const [customerResult, supplierResult, inventoryResult] = await Promise.all([
+      sql<{ total: string | number | null }>`
+        SELECT COALESCE(SUM(balance), 0) AS total
+        FROM customers
+        WHERE tenant_id = ${scope.tenantId}
+          AND is_active = TRUE
+          AND balance > 0
+      `.execute(this.db),
+      sql<{ total: string | number | null }>`
+        SELECT COALESCE(SUM(balance), 0) AS total
+        FROM suppliers
+        WHERE tenant_id = ${scope.tenantId}
+          AND is_active = TRUE
+          AND balance > 0
+      `.execute(this.db),
+      sql<{ total: string | number | null }>`
+        SELECT COALESCE(SUM(stock_qty * cost_price), 0) AS total
+        FROM products
+        WHERE tenant_id = ${scope.tenantId}
+          AND is_active = TRUE
+          AND stock_qty > 0
+          AND cost_price > 0
+      `.execute(this.db),
+    ]);
+
+    return {
+      customerReceivables: this.toMoney(customerResult.rows[0]?.total),
+      supplierPayables: this.toMoney(supplierResult.rows[0]?.total),
+      inventoryValue: this.toMoney(inventoryResult.rows[0]?.total),
+    };
+  }
+
+  private async buildOpeningBalancesPreview(
+    input: OpeningBalancesPreviewQueryDto | PostOpeningBalancesDto,
+    auth: AuthContext,
+  ): Promise<{
+    alreadyPosted: boolean;
+    existingOpeningEntryId: number | null;
+    systemStartDate: string;
+    totals: {
+      cashOpening: number;
+      bankOpening: number;
+      customerReceivables: number;
+      supplierPayables: number;
+      inventoryValue: number;
+      balancingCapital: number;
+    };
+    linesPreview: OpeningBalanceLine[];
+    warnings: string[];
+  }> {
+    const existing = await this.getExistingOpeningBalanceEntry(auth);
+    const systemStartDate = this.normalizeDateInput(input.system_start_date);
+    const cashOpening = this.openingAmount(input.cash_opening);
+    const bankOpening = this.openingAmount(input.bank_opening);
+    const operational = await this.calculateOpeningOperationalTotals(auth);
+
+    const [cash, bank, receivable, inventory, payable, capital] = await Promise.all([
+      this.resolveOpeningAccount('1110', ['asset']),
+      this.resolveOpeningAccount('1120', ['asset']),
+      this.resolveOpeningAccount('1130', ['asset']),
+      this.resolveOpeningAccount('1140', ['asset']),
+      this.resolveOpeningAccount('2110', ['liability']),
+      this.resolveOpeningAccount('3100', ['equity']),
+    ]);
+
+    const lines: OpeningBalanceLine[] = [];
+    this.addOpeningLine(lines, cash, 'رصيد افتتاحي - الخزينة', cashOpening, 0);
+    this.addOpeningLine(lines, bank, 'رصيد افتتاحي - البنك', bankOpening, 0);
+    this.addOpeningLine(lines, receivable, 'رصيد افتتاحي - العملاء', operational.customerReceivables, 0);
+    this.addOpeningLine(lines, inventory, 'رصيد افتتاحي - المخزون', operational.inventoryValue, 0);
+    this.addOpeningLine(lines, payable, 'رصيد افتتاحي - الموردون', 0, operational.supplierPayables);
+
+    const debitBeforeCapital = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
+    const creditBeforeCapital = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
+    const balancingCapital = this.toMoney(debitBeforeCapital - creditBeforeCapital);
+    if (balancingCapital > 0) {
+      this.addOpeningLine(lines, capital, 'موازنة الأرصدة الافتتاحية - رأس المال', 0, balancingCapital);
+    } else if (balancingCapital < 0) {
+      this.addOpeningLine(lines, capital, 'موازنة الأرصدة الافتتاحية - رأس المال', Math.abs(balancingCapital), 0);
+    }
+
+    const warnings: string[] = [];
+    if (!lines.length) {
+      warnings.push('لا توجد أرصدة افتتاحية ذات قيمة للترحيل.');
+    }
+    if (operational.inventoryValue <= 0) {
+      warnings.push('قيمة المخزون الافتتاحية تساوي صفرًا حسب كميات وتكلفة الأصناف الحالية.');
+    }
+
+    return {
+      alreadyPosted: Boolean(existing),
+      existingOpeningEntryId: existing?.id ?? null,
+      systemStartDate,
+      totals: {
+        cashOpening,
+        bankOpening,
+        customerReceivables: operational.customerReceivables,
+        supplierPayables: operational.supplierPayables,
+        inventoryValue: operational.inventoryValue,
+        balancingCapital,
+      },
+      linesPreview: lines.map((line) => ({
+        accountId: line.accountId,
+        accountCode: line.accountCode,
+        accountNameAr: line.accountNameAr,
+        description: line.description,
+        debit: this.toMoney(line.debit),
+        credit: this.toMoney(line.credit),
+      })),
+      warnings,
+    };
+  }
+
   async getAccountingSettings(auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
     const settings = await this.db.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
@@ -211,7 +427,7 @@ export class AccountingService {
     const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : null;
     const dateTo = filters.dateTo ? new Date(filters.dateTo) : null;
 
-    let countQuery = this.db.selectFrom('journal_entries');
+    let countQuery = this.db.selectFrom('journal_entries').where(this.tenantPredicate(auth));
     let rowsQuery = this.db
       .selectFrom('journal_entries as je')
       .leftJoin('users as creator', 'creator.id', 'je.created_by')
@@ -233,7 +449,8 @@ export class AccountingService {
         'je.created_at',
         'creator.username as created_by_name',
         'poster.username as posted_by_name',
-      ]);
+      ])
+      .where(this.tenantPredicate(auth, 'je'));
 
     if (dateFrom) {
       countQuery = countQuery.where('entry_date', '>=', dateFrom);
@@ -290,7 +507,12 @@ export class AccountingService {
 
   async getJournalEntry(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
-    const entry = await this.db.selectFrom('journal_entries').selectAll().where('id', '=', id).executeTakeFirst();
+    const entry = await this.db
+      .selectFrom('journal_entries')
+      .selectAll()
+      .where('id', '=', id)
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
     if (!entry) throw new NotFoundException('Journal entry not found');
 
     const lines = await this.db
@@ -379,7 +601,8 @@ export class AccountingService {
         'l.credit as credit',
         'je.source_type as source_type',
       ])
-      .where('je.status', '=', 'posted');
+      .where('je.status', '=', 'posted')
+      .where(this.tenantPredicate(auth, 'je'));
 
     if (dateFrom) {
       query = query.where('je.entry_date', '>=', dateFrom);
@@ -699,6 +922,7 @@ export class AccountingService {
         'l.credit as credit',
       ])
       .where('je.status', '=', 'posted')
+      .where(this.tenantPredicate(auth, 'je'))
       .where('a.code', 'in', ['1110', '1120']);
 
     if (dateFrom) query = query.where('je.entry_date', '>=', dateFrom);
@@ -842,11 +1066,123 @@ export class AccountingService {
     return { totals, items };
   }
 
+  async previewOpeningBalances(query: OpeningBalancesPreviewQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+    return this.buildOpeningBalancesPreview(query, auth);
+  }
+
+  async postOpeningBalances(body: PostOpeningBalancesDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    const preview = await this.buildOpeningBalancesPreview(body, auth);
+
+    if (preview.alreadyPosted && preview.existingOpeningEntryId) {
+      return {
+        posted: false,
+        alreadyPosted: true,
+        journalEntryId: String(preview.existingOpeningEntryId),
+        message: 'تم ترحيل الأرصدة الافتتاحية مسبقًا.',
+        preview,
+      };
+    }
+
+    if (preview.linesPreview.length < 2) {
+      throw new BadRequestException('لا توجد أرصدة افتتاحية كافية لإنشاء قيد متوازن.');
+    }
+
+    const totalDebit = this.toMoney(preview.linesPreview.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(preview.linesPreview.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new BadRequestException('قيد الأرصدة الافتتاحية غير متوازن.');
+    }
+
+    const note = String(body.note || '').trim();
+    const entryDate = new Date(`${preview.systemStartDate}T00:00:00.000Z`);
+    const postResult = await this.db.transaction().execute(async (trx) => {
+      const existing = await trx
+        .selectFrom('journal_entries')
+        .select('id')
+        .where('source_type', '=', 'opening_balance')
+        .where('status', '=', 'posted')
+        .where('tenant_id', '=', scope.tenantId)
+        .orderBy('id desc')
+        .executeTakeFirst();
+      if (existing) return { id: Number(existing.id), posted: false };
+
+      const tempEntryNo = `JE-TMP-opening-${scope.tenantId}-${Date.now()}`;
+      const inserted = await trx
+        .insertInto('journal_entries')
+        .values({
+          entry_no: tempEntryNo,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          entry_date: entryDate,
+          description: note ? `قيد الأرصدة الافتتاحية - ${note}` : 'قيد الأرصدة الافتتاحية',
+          source_type: 'opening_balance',
+          source_id: null,
+          status: 'posted',
+          branch_id: null,
+          location_id: null,
+          created_by: auth.userId,
+          posted_by: auth.userId,
+          posted_at: sql`NOW()`,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      const id = Number(inserted.id);
+      await trx
+        .updateTable('journal_entries')
+        .set({ entry_no: `JE-${String(id).padStart(8, '0')}`, updated_at: sql`NOW()` } as any)
+        .where('id', '=', id)
+        .execute();
+
+      for (const line of preview.linesPreview) {
+        await trx
+          .insertInto('journal_entry_lines')
+          .values({
+            journal_entry_id: id,
+            tenant_id: scope.tenantId,
+            account_id: line.accountId,
+            description: line.description,
+            debit: this.toMoney(line.debit),
+            credit: this.toMoney(line.credit),
+            partner_type: 'none',
+            partner_id: null,
+            branch_id: null,
+            location_id: null,
+          } as any)
+          .execute();
+      }
+
+      return { id, posted: true };
+    });
+
+    if (!postResult.posted) {
+      return {
+        posted: false,
+        alreadyPosted: true,
+        journalEntryId: String(postResult.id),
+        message: 'تم ترحيل الأرصدة الافتتاحية مسبقًا.',
+        preview,
+      };
+    }
+
+    return {
+      posted: true,
+      alreadyPosted: false,
+      journalEntryId: String(postResult.id),
+      message: 'تم ترحيل قيد الأرصدة الافتتاحية بنجاح.',
+      preview,
+    };
+  }
+
   async createDraftJournalEntry(input: DraftJournalEntryInput, auth: AuthContext): Promise<number> {
     this.assertAccountingAccess(auth);
     const validation = await this.validateBalancedLines(input.lines);
     if (!validation.ok) throw new ForbiddenException(validation.message);
 
+    const scope = requireTenantScope(auth);
     const sequenceRow = await this.db.selectFrom('journal_entries').select((eb) => eb.fn.countAll<number>().as('count')).executeTakeFirst();
     const sequence = Number(sequenceRow?.count || 0) + 1;
     const entryNo = `JE-${String(sequence).padStart(6, '0')}`;
@@ -856,6 +1192,8 @@ export class AccountingService {
         .insertInto('journal_entries')
         .values({
           entry_no: entryNo,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
           entry_date: input.entryDate ?? new Date(),
           description: String(input.description || '').trim(),
           source_type: String(input.sourceType || 'manual').trim() || 'manual',
@@ -871,6 +1209,7 @@ export class AccountingService {
       for (const line of validation.lines) {
         await trx.insertInto('journal_entry_lines').values({
           journal_entry_id: Number(entry.id),
+          tenant_id: scope.tenantId,
           account_id: line.accountId,
           description: line.description,
           debit: line.debit,

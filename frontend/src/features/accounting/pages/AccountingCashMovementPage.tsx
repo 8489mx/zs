@@ -18,6 +18,7 @@ function sourceLabel(sourceType: string) {
   if (sourceType === 'sales_return' || sourceType === 'return') return 'مرتجع بيع';
   if (sourceType === 'sale_reversal' || sourceType === 'sale_cancel') return 'إلغاء بيع';
   if (sourceType === 'purchase_reversal' || sourceType === 'purchase_cancel') return 'إلغاء شراء';
+  if (sourceType === 'opening_balance') return 'أرصدة افتتاحية';
   return sourceType || '-';
 }
 

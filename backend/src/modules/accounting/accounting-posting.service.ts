@@ -313,6 +313,8 @@ export class AccountingPostingService {
     params: {
       sourceType: string;
       sourceId: number;
+      tenantId: string;
+      accountId: string | null;
       entryDate: Date;
       description: string;
       branchId: number | null;
@@ -327,6 +329,8 @@ export class AccountingPostingService {
       .insertInto('journal_entries')
       .values({
         entry_no: tempEntryNo,
+        tenant_id: params.tenantId,
+        account_id: params.accountId,
         entry_date: params.entryDate,
         description: params.description,
         source_type: params.sourceType,
@@ -353,6 +357,7 @@ export class AccountingPostingService {
         .insertInto('journal_entry_lines')
         .values({
           journal_entry_id: entryId,
+          tenant_id: params.tenantId,
           account_id: line.accountId,
           description: line.description,
           debit: this.toMoney(line.debit),
@@ -537,6 +542,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'sale',
       sourceId: saleId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: sale.created_at ? new Date(sale.created_at) : new Date(),
       description: `قيد بيع تلقائي للفاتورة رقم ${sale.doc_no || `S-${saleId}`}`,
       branchId: sale.branch_id ? Number(sale.branch_id) : null,
@@ -550,6 +557,7 @@ export class AccountingPostingService {
   }
 
   async reverseSaleJournal(queryable: DbOrTx, saleId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
     const existingReversal = await this.getExistingSaleReversalJournal(queryable, saleId);
     if (existingReversal) {
       this.logger.warn(`Skipping duplicate sale reversal journal for sale ${saleId}; existing entry ${existingReversal.id}`);
@@ -562,6 +570,7 @@ export class AccountingPostingService {
       .where('source_type', '=', 'sale')
       .where('source_id', '=', saleId)
       .where('status', '=', 'posted')
+      .where('tenant_id', '=', scope.tenantId)
       .orderBy('id desc')
       .executeTakeFirst();
     if (!sourceJournal) {
@@ -569,7 +578,6 @@ export class AccountingPostingService {
       return { reversed: false, journalEntryId: null };
     }
 
-    const scope = requireTenantScope(auth);
     const sale = await queryable
       .selectFrom('sales')
       .select(['doc_no'])
@@ -582,6 +590,7 @@ export class AccountingPostingService {
       .selectFrom('journal_entry_lines')
       .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
       .where('journal_entry_id', '=', Number(sourceJournal.id))
+      .where('tenant_id', '=', scope.tenantId)
       .orderBy('id asc')
       .execute();
 
@@ -605,6 +614,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'sale_reversal',
       sourceId: saleId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: new Date(),
       description: `قيد عكسي لإلغاء فاتورة بيع رقم ${docNo}${reason ? ` - ${reason}` : ''}`,
       branchId: sourceJournal.branch_id ? Number(sourceJournal.branch_id) : null,
@@ -823,6 +834,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'sales_return',
       sourceId: returnId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: returnDocument.created_at ? new Date(returnDocument.created_at) : new Date(),
       description: `قيد مرتجع بيع للفاتورة رقم ${invoiceNo}`,
       branchId,
@@ -948,6 +961,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'purchase',
       sourceId: purchaseId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: purchase.created_at ? new Date(purchase.created_at) : new Date(),
       description: `قيد شراء تلقائي للفاتورة رقم ${purchase.doc_no || `PUR-${purchaseId}`}`,
       branchId,
@@ -961,6 +976,7 @@ export class AccountingPostingService {
   }
 
   async reversePurchaseJournal(queryable: DbOrTx, purchaseId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
     const existingReversal = await this.getExistingPurchaseReversalJournal(queryable, purchaseId);
     if (existingReversal) {
       this.logger.warn(`Skipping duplicate purchase reversal journal for purchase ${purchaseId}; existing entry ${existingReversal.id}`);
@@ -973,6 +989,7 @@ export class AccountingPostingService {
       .where('source_type', '=', 'purchase')
       .where('source_id', '=', purchaseId)
       .where('status', '=', 'posted')
+      .where('tenant_id', '=', scope.tenantId)
       .orderBy('id desc')
       .executeTakeFirst();
     if (!sourceJournal) {
@@ -980,7 +997,6 @@ export class AccountingPostingService {
       return { reversed: false, journalEntryId: null };
     }
 
-    const scope = requireTenantScope(auth);
     const purchase = await queryable
       .selectFrom('purchases')
       .select(['doc_no'])
@@ -993,6 +1009,7 @@ export class AccountingPostingService {
       .selectFrom('journal_entry_lines')
       .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
       .where('journal_entry_id', '=', Number(sourceJournal.id))
+      .where('tenant_id', '=', scope.tenantId)
       .orderBy('id asc')
       .execute();
 
@@ -1016,6 +1033,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'purchase_reversal',
       sourceId: purchaseId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: new Date(),
       description: `قيد عكسي لإلغاء فاتورة شراء رقم ${docNo}${reason ? ` - ${reason}` : ''}`,
       branchId: sourceJournal.branch_id ? Number(sourceJournal.branch_id) : null,
@@ -1113,6 +1132,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'supplier_payment',
       sourceId: paymentId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: payment.payment_date ? new Date(payment.payment_date) : (payment.created_at ? new Date(payment.created_at) : new Date()),
       description: `قيد سداد مورد رقم ${docNo}${supplierName ? ` - ${supplierName}` : ''}`,
       branchId,
@@ -1216,6 +1237,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'supplier_payment_schedule_settlement',
       sourceId: settlementId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: settlement.created_at ? new Date(settlement.created_at) : new Date(),
       description: `قيد سداد مورد${supplierName ? ` - ${supplierName}` : ''}`,
       branchId,
@@ -1310,6 +1333,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'customer_payment',
       sourceId: paymentId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: payment.created_at ? new Date(payment.created_at) : new Date(),
       description: `قيد تحصيل عميل${customerName ? ` - ${customerName}` : ''}`,
       branchId,
@@ -1408,6 +1433,8 @@ export class AccountingPostingService {
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'expense',
       sourceId: expenseId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
       entryDate: expense.expense_date ? new Date(expense.expense_date) : (expense.created_at ? new Date(expense.created_at) : new Date()),
       description: `قيد مصروف: ${expenseTitle || `EXP-${expenseId}`}`,
       branchId,

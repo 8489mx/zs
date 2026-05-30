@@ -125,3 +125,42 @@ export class InventoryValueQueryDto {
   zero_stock_only?: string;
 }
 
+export class OpeningBalancesPreviewQueryDto {
+  @IsOptional()
+  @IsDateString()
+  system_start_date?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cash_opening?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  bank_opening?: number;
+}
+
+export class PostOpeningBalancesDto {
+  @IsDateString()
+  system_start_date!: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cash_opening?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  bank_opening?: number;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+

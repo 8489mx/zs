@@ -1,8 +1,16 @@
-import { Controller, Get, Param, ParseIntPipe, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { AccountingService } from './accounting.service';
-import { CashMovementQueryDto, FinancialSummaryQueryDto, InventoryValueQueryDto, JournalEntriesQueryDto, ReceivablesPayablesQueryDto } from './dto/accounting.dto';
+import {
+  CashMovementQueryDto,
+  FinancialSummaryQueryDto,
+  InventoryValueQueryDto,
+  JournalEntriesQueryDto,
+  OpeningBalancesPreviewQueryDto,
+  PostOpeningBalancesDto,
+  ReceivablesPayablesQueryDto,
+} from './dto/accounting.dto';
 
 @Controller('api/accounting')
 @UseGuards(SessionAuthGuard)
@@ -47,6 +55,16 @@ export class AccountingController {
   @Get('reports/inventory-value')
   getInventoryValue(@Query() query: InventoryValueQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.getInventoryValue(query, req.authContext!);
+  }
+
+  @Get('opening-balances/preview')
+  previewOpeningBalances(@Query() query: OpeningBalancesPreviewQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.previewOpeningBalances(query, req.authContext!);
+  }
+
+  @Post('opening-balances/post')
+  postOpeningBalances(@Body() body: PostOpeningBalancesDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.postOpeningBalances(body, req.authContext!);
   }
 }
 

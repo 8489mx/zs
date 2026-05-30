@@ -94,6 +94,8 @@ export interface AccountingAccountTable {
 
 export interface JournalEntryTable {
   id: Generated<number>;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  account_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   entry_no: string;
   entry_date: ColumnType<Date, string | undefined, string | undefined>;
   description: string;
@@ -114,6 +116,7 @@ export interface JournalEntryTable {
 
 export interface JournalEntryLineTable {
   id: Generated<number>;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   journal_entry_id: number;
   account_id: number;
   description: string;
