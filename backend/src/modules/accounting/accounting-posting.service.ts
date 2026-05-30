@@ -49,6 +49,28 @@ export class AccountingPostingService {
       .executeTakeFirst();
   }
 
+  private async getExistingSupplierPaymentJournal(queryable: DbOrTx, paymentId: number) {
+    return queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', '=', 'supplier_payment')
+      .where('source_id', '=', paymentId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id desc')
+      .executeTakeFirst();
+  }
+
+  private async getExistingSupplierPaymentScheduleSettlementJournal(queryable: DbOrTx, settlementId: number) {
+    return queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', '=', 'supplier_payment_schedule_settlement')
+      .where('source_id', '=', settlementId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id desc')
+      .executeTakeFirst();
+  }
+
   private async getExistingSaleReversalJournal(queryable: DbOrTx, saleId: number) {
     return queryable
       .selectFrom('journal_entries')
@@ -835,5 +857,204 @@ export class AccountingPostingService {
 
     this.logger.warn(`Posted purchase reversal journal for purchase ${purchaseId} as entry ${entryId}`);
     return { reversed: true, journalEntryId: entryId };
+  }
+
+  async postSupplierPayment(queryable: DbOrTx, paymentId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    const existing = await this.getExistingSupplierPaymentJournal(queryable, paymentId);
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const payment = await queryable
+      .selectFrom('supplier_payments as sp')
+      .leftJoin('suppliers as s', 's.id', 'sp.supplier_id')
+      .select([
+        'sp.id',
+        'sp.doc_no',
+        'sp.supplier_id',
+        'sp.amount',
+        'sp.note',
+        'sp.payment_date',
+        'sp.branch_id',
+        'sp.location_id',
+        'sp.created_by',
+        'sp.created_at',
+        's.name as supplier_name',
+      ])
+      .where('sp.id', '=', paymentId)
+      .where(sql<boolean>`sp.tenant_id = ${scope.tenantId}`)
+      .executeTakeFirst();
+    if (!payment) {
+      this.logger.warn(`Supplier payment ${paymentId} not found; skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    if (!settings) throw new Error(`Accounting settings missing while posting supplier payment ${paymentId}`);
+
+    const amount = this.toMoney(payment.amount);
+    if (!(amount > 0)) {
+      this.logger.warn(`Supplier payment ${paymentId} has non-positive amount; skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const branchId = payment.branch_id ? Number(payment.branch_id) : null;
+    const locationId = payment.location_id ? Number(payment.location_id) : null;
+    const supplierName = String(payment.supplier_name || '').trim();
+    const docNo = String(payment.doc_no || `PO-${paymentId}`).trim();
+
+    // No explicit payment method is stored for supplier_payments in current schema.
+    // Fallback to cash account to match existing treasury flow behavior for this endpoint.
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: Number(settings.supplier_payable_account_id || 0),
+      description: 'سداد مستحقات مورد',
+      debit: amount,
+      credit: 0,
+      partnerType: payment.supplier_id ? 'supplier' : 'none',
+      partnerId: payment.supplier_id ? Number(payment.supplier_id) : null,
+      branchId,
+      locationId,
+    });
+    this.addLine(lines, {
+      accountId: Number(settings.cash_account_id || 0),
+      description: 'خروج نقدية لسداد مورد',
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId,
+      locationId,
+    });
+
+    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    for (const line of lines) {
+      if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting supplier payment ${paymentId}`);
+      if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting supplier payment ${paymentId}`);
+      if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting supplier payment ${paymentId}`);
+    }
+
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced supplier payment journal for payment ${paymentId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'supplier_payment',
+      sourceId: paymentId,
+      entryDate: payment.payment_date ? new Date(payment.payment_date) : (payment.created_at ? new Date(payment.created_at) : new Date()),
+      description: `قيد سداد مورد رقم ${docNo}${supplierName ? ` - ${supplierName}` : ''}`,
+      branchId,
+      locationId,
+      createdBy: payment.created_by ? Number(payment.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: normalizedLines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  async postSupplierPaymentScheduleSettlement(queryable: DbOrTx, settlementId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    const existing = await this.getExistingSupplierPaymentScheduleSettlementJournal(queryable, settlementId);
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const settlement = await queryable
+      .selectFrom('supplier_payment_schedule_logs as l')
+      .leftJoin('supplier_payment_schedules as sch', 'sch.id', 'l.schedule_id')
+      .leftJoin('suppliers as s', 's.id', 'l.supplier_id')
+      .select([
+        'l.id',
+        'l.schedule_id',
+        'l.supplier_id',
+        'l.amount',
+        'l.note',
+        'l.created_by',
+        'l.created_at',
+        'sch.purchase_id',
+        's.name as supplier_name',
+      ])
+      .where('l.id', '=', settlementId)
+      .where(sql<boolean>`l.tenant_id = ${scope.tenantId}`)
+      .executeTakeFirst();
+    if (!settlement) {
+      this.logger.warn(`Supplier payment schedule settlement ${settlementId} not found; skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    if (!settings) throw new Error(`Accounting settings missing while posting supplier payment schedule settlement ${settlementId}`);
+
+    const amount = this.toMoney(settlement.amount);
+    if (!(amount > 0)) {
+      this.logger.warn(`Supplier payment schedule settlement ${settlementId} has non-positive amount; skipping accounting post`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const purchase = settlement.purchase_id
+      ? await queryable
+        .selectFrom('purchases')
+        .select(['branch_id', 'location_id'])
+        .where('id', '=', Number(settlement.purchase_id))
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst()
+      : null;
+
+    const branchId = purchase?.branch_id ? Number(purchase.branch_id) : null;
+    const locationId = purchase?.location_id ? Number(purchase.location_id) : null;
+    const supplierName = String(settlement.supplier_name || '').trim();
+
+    // No explicit payment method is stored for schedule settlement logs.
+    // Fallback to cash account to match current treasury write behavior.
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: Number(settings.supplier_payable_account_id || 0),
+      description: 'سداد مستحقات مورد',
+      debit: amount,
+      credit: 0,
+      partnerType: settlement.supplier_id ? 'supplier' : 'none',
+      partnerId: settlement.supplier_id ? Number(settlement.supplier_id) : null,
+      branchId,
+      locationId,
+    });
+    this.addLine(lines, {
+      accountId: Number(settings.cash_account_id || 0),
+      description: 'خروج نقدية لسداد مورد',
+      debit: 0,
+      credit: amount,
+      partnerType: 'none',
+      partnerId: null,
+      branchId,
+      locationId,
+    });
+
+    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    for (const line of lines) {
+      if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting supplier payment schedule settlement ${settlementId}`);
+      if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting supplier payment schedule settlement ${settlementId}`);
+      if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting supplier payment schedule settlement ${settlementId}`);
+    }
+
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced supplier payment schedule settlement journal for settlement ${settlementId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'supplier_payment_schedule_settlement',
+      sourceId: settlementId,
+      entryDate: settlement.created_at ? new Date(settlement.created_at) : new Date(),
+      description: `قيد سداد مورد${supplierName ? ` - ${supplierName}` : ''}`,
+      branchId,
+      locationId,
+      createdBy: settlement.created_by ? Number(settlement.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: normalizedLines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
   }
 }

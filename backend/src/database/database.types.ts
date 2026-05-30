@@ -634,6 +634,38 @@ export interface SupplierPaymentTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface SupplierPaymentScheduleTable {
+  id: Generated<number>;
+  purchase_id: number | null;
+  supplier_id: number;
+  installment_no: number;
+  due_date: ColumnType<string, string | undefined, string | undefined>;
+  amount: number;
+  paid_amount: number;
+  status: string;
+  note: string;
+  paid_at: Date | null;
+  created_by: number | null;
+  updated_by: number | null;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  account_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface SupplierPaymentScheduleLogTable {
+  id: Generated<number>;
+  schedule_id: number;
+  supplier_id: number;
+  amount: number;
+  note: string;
+  created_by: number | null;
+  created_by_name: string;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  account_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface SupplierLedgerTable {
   id: Generated<number>;
   supplier_id: number;
@@ -996,6 +1028,8 @@ export interface Database {
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
   supplier_payments: SupplierPaymentTable;
+  supplier_payment_schedules: SupplierPaymentScheduleTable;
+  supplier_payment_schedule_logs: SupplierPaymentScheduleLogTable;
   supplier_ledger: SupplierLedgerTable;
   hr_departments: HrDepartmentTable;
   hr_job_titles: HrJobTitleTable;

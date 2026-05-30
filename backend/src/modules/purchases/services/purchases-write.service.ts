@@ -536,6 +536,7 @@ export class PurchasesWriteService {
       const paymentNote = normalizeOptionalNote(payload.note);
       await this.financeService.addSupplierLedgerEntry(trx, supplier.id, -amount, 'supplier_payment', `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
+      await this.accountingPosting.postSupplierPayment(trx, id, auth);
       return id;
     });
 

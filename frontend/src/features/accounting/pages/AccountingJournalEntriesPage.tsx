@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
@@ -22,6 +22,9 @@ function mapSourceLabel(sourceType: string) {
   if (sourceType === 'return') return 'مرتجع';
   if (sourceType === 'purchase') return 'شراء';
   if (sourceType === 'purchase_cancel' || sourceType === 'purchase_reversal') return 'عكس شراء / إلغاء شراء';
+  if (sourceType === 'supplier_payment') return 'سداد مورد';
+  if (sourceType === 'supplier_payment_reversal') return 'عكس سداد مورد';
+  if (sourceType === 'supplier_payment_schedule_settlement') return 'سداد مورد';
   if (sourceType === 'manual') return 'يدوي';
   return sourceType || '';
 }
@@ -30,6 +33,8 @@ export function AccountingJournalEntriesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [shouldAutoScrollToDetails, setShouldAutoScrollToDetails] = useState(false);
+  const detailsRef = useRef<HTMLDivElement | null>(null);
 
   const query = useQuery({
     queryKey: ['accounting', 'journal-entries', page, pageSize],
@@ -47,6 +52,17 @@ export function AccountingJournalEntriesPage() {
   const totalItems = Number((pagination as { totalItems?: number }).totalItems || rows.length);
   const detailEntry: JournalEntryDetail | null = detailQuery.data?.entry || null;
 
+  useEffect(() => {
+    if (!shouldAutoScrollToDetails || !selectedEntryId || detailQuery.isLoading) return;
+    detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setShouldAutoScrollToDetails(false);
+  }, [detailQuery.isLoading, selectedEntryId, shouldAutoScrollToDetails]);
+
+  function handleSelectEntry(entryId: string) {
+    setSelectedEntryId(entryId);
+    setShouldAutoScrollToDetails(true);
+  }
+
   return (
     <div className="page-stack page-shell">
       <PageHeader title="الحسابات" description="القيود اليومية" />
@@ -63,7 +79,7 @@ export function AccountingJournalEntriesPage() {
           <DataTable<JournalEntryListItem>
             rows={rows}
             rowKey={(row) => row.id}
-            onRowClick={(row) => setSelectedEntryId(row.id)}
+            onRowClick={(row) => handleSelectEntry(row.id)}
             rowTitle={() => 'عرض تفاصيل القيد'}
             columns={[
               {
@@ -75,7 +91,7 @@ export function AccountingJournalEntriesPage() {
                     className="button button-secondary"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setSelectedEntryId(row.id);
+                      handleSelectEntry(row.id);
                     }}
                   >
                     {row.entryNo}
@@ -103,9 +119,13 @@ export function AccountingJournalEntriesPage() {
       </Card>
 
       {selectedEntryId ? (
+        <div ref={detailsRef}>
         <Card title="تفاصيل القيد">
           <div className="actions">
-            <Button type="button" variant="secondary" onClick={() => setSelectedEntryId(null)}>
+            <Button type="button" variant="secondary" onClick={() => {
+              setSelectedEntryId(null);
+              setShouldAutoScrollToDetails(false);
+            }}>
               العودة للقيود اليومية
             </Button>
           </div>
@@ -155,6 +175,7 @@ export function AccountingJournalEntriesPage() {
             ) : null}
           </QueryFeedback>
         </Card>
+        </div>
       ) : null}
     </div>
   );
