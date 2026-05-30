@@ -2,7 +2,7 @@ import { Controller, Get, Param, ParseIntPipe, Query, Req, UseGuards } from '@ne
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { AccountingService } from './accounting.service';
-import { JournalEntriesQueryDto } from './dto/accounting.dto';
+import { FinancialSummaryQueryDto, JournalEntriesQueryDto } from './dto/accounting.dto';
 
 @Controller('api/accounting')
 @UseGuards(SessionAuthGuard)
@@ -27,6 +27,11 @@ export class AccountingController {
   @Get('journal-entries/:id')
   getJournalEntry(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.getJournalEntry(id, req.authContext!);
+  }
+
+  @Get('reports/financial-summary')
+  getFinancialSummary(@Query() query: FinancialSummaryQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.getFinancialSummary(query, req.authContext!);
   }
 }
 

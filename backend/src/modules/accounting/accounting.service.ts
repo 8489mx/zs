@@ -1,9 +1,9 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Kysely, sql } from '../../database/kysely';
+import { Kysely } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
-import { JournalEntriesQueryDto } from './dto/accounting.dto';
+import { FinancialSummaryQueryDto, JournalEntriesQueryDto } from './dto/accounting.dto';
 
 type PartnerType = 'none' | 'customer' | 'supplier';
 
@@ -121,6 +121,17 @@ export class AccountingService {
         },
         sortOrder: Number(row.sort_order || 0),
       })),
+    };
+  }
+
+  private inCodes(code: string, codes: string[]): boolean {
+    return codes.includes(String(code || '').trim());
+  }
+
+  private mapPeriod(dateFrom?: string, dateTo?: string): { from: string | null; to: string | null } {
+    return {
+      from: dateFrom ? String(dateFrom).slice(0, 10) : null,
+      to: dateTo ? String(dateTo).slice(0, 10) : null,
     };
   }
 
@@ -335,6 +346,160 @@ export class AccountingService {
           credit: totalCredit,
           balanced: Math.abs(totalDebit - totalCredit) <= 0.0001,
         },
+      },
+    };
+  }
+
+  async getFinancialSummary(filters: FinancialSummaryQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+
+    const dateFrom = filters.date_from ? new Date(filters.date_from) : null;
+    const dateTo = filters.date_to ? new Date(filters.date_to) : null;
+    const branchId = Number(filters.branch_id || 0) > 0 ? Number(filters.branch_id) : null;
+    const locationId = Number(filters.location_id || 0) > 0 ? Number(filters.location_id) : null;
+
+    let query = this.db
+      .selectFrom('journal_entry_lines as l')
+      .innerJoin('journal_entries as je', 'je.id', 'l.journal_entry_id')
+      .innerJoin('accounting_accounts as a', 'a.id', 'l.account_id')
+      .select([
+        'a.code as account_code',
+        'a.name_ar as account_name_ar',
+        'a.account_type as account_type',
+        'a.account_group as account_group',
+        'l.debit as debit',
+        'l.credit as credit',
+        'je.source_type as source_type',
+      ])
+      .where('je.status', '=', 'posted');
+
+    if (dateFrom) {
+      query = query.where('je.entry_date', '>=', dateFrom);
+    }
+    if (dateTo) {
+      query = query.where('je.entry_date', '<=', dateTo);
+    }
+    if (branchId) {
+      query = query.where('je.branch_id', '=', branchId);
+    }
+    if (locationId) {
+      query = query.where('je.location_id', '=', locationId);
+    }
+
+    const rows = await query.execute();
+
+    const REVENUE_CODES = ['4100', '4200'];
+    const CONTRA_REVENUE_CODES = ['4300', '4400'];
+    const COGS_CODES = ['5100', '5200', '5300'];
+    const CASH_BANK_CODES = ['1110', '1120'];
+
+    let grossSales = 0;
+    let salesReturns = 0;
+    let salesDiscounts = 0;
+    let cogs = 0;
+    let operatingExpenses = 0;
+    let customerCollections = 0;
+    let supplierPayments = 0;
+    let treasuryExpenses = 0;
+    let cashDebits = 0;
+    let cashCredits = 0;
+
+    const revenueBreakdown = new Map<string, { accountCode: string; accountNameAr: string; amount: number }>();
+    const expenseBreakdown = new Map<string, { accountCode: string; accountNameAr: string; amount: number }>();
+    const cashBreakdown = new Map<string, { accountCode: string; accountNameAr: string; amount: number }>();
+
+    for (const row of rows) {
+      const code = String(row.account_code || '');
+      const accountNameAr = String(row.account_name_ar || '');
+      const accountType = String(row.account_type || '');
+      const accountGroup = String(row.account_group || '');
+      const debit = this.toMoney(row.debit);
+      const credit = this.toMoney(row.credit);
+      const sourceType = String(row.source_type || '');
+      const revenueMovement = this.toMoney(credit - debit);
+      const expenseMovement = this.toMoney(debit - credit);
+
+      if (this.inCodes(code, REVENUE_CODES) || accountType === 'revenue') {
+        if (!this.inCodes(code, CONTRA_REVENUE_CODES) && accountType !== 'contra_revenue') {
+          grossSales = this.toMoney(grossSales + Math.max(0, revenueMovement));
+          const current = revenueBreakdown.get(code) || { accountCode: code, accountNameAr, amount: 0 };
+          current.amount = this.toMoney(current.amount + Math.max(0, revenueMovement));
+          revenueBreakdown.set(code, current);
+        }
+      }
+
+      if (code === '4400') {
+        salesReturns = this.toMoney(salesReturns + Math.max(0, expenseMovement));
+      }
+      if (code === '4300') {
+        salesDiscounts = this.toMoney(salesDiscounts + Math.max(0, expenseMovement));
+      }
+      if (accountType === 'contra_revenue' && !this.inCodes(code, ['4300', '4400'])) {
+        salesReturns = this.toMoney(salesReturns + Math.max(0, expenseMovement));
+      }
+
+      if (this.inCodes(code, COGS_CODES) || accountGroup === 'cogs') {
+        cogs = this.toMoney(cogs + Math.max(0, expenseMovement));
+      }
+
+      const isOperatingExpense = (accountType === 'expense' || accountGroup === 'operating_expenses')
+        && !this.inCodes(code, COGS_CODES);
+      if (isOperatingExpense) {
+        operatingExpenses = this.toMoney(operatingExpenses + Math.max(0, expenseMovement));
+        const current = expenseBreakdown.get(code) || { accountCode: code, accountNameAr, amount: 0 };
+        current.amount = this.toMoney(current.amount + Math.max(0, expenseMovement));
+        expenseBreakdown.set(code, current);
+      }
+
+      if (this.inCodes(code, CASH_BANK_CODES) || accountGroup === 'cash_bank') {
+        cashDebits = this.toMoney(cashDebits + Math.max(0, debit));
+        cashCredits = this.toMoney(cashCredits + Math.max(0, credit));
+        const movement = this.toMoney(debit - credit);
+        const current = cashBreakdown.get(code) || { accountCode: code, accountNameAr, amount: 0 };
+        current.amount = this.toMoney(current.amount + movement);
+        cashBreakdown.set(code, current);
+
+        if (sourceType === 'customer_payment' && debit > 0) {
+          customerCollections = this.toMoney(customerCollections + debit);
+        }
+        if ((sourceType === 'supplier_payment' || sourceType === 'supplier_payment_schedule_settlement') && credit > 0) {
+          supplierPayments = this.toMoney(supplierPayments + credit);
+        }
+        if ((sourceType === 'expense' || sourceType === 'treasury_expense') && credit > 0) {
+          treasuryExpenses = this.toMoney(treasuryExpenses + credit);
+        }
+      }
+    }
+
+    const netSales = this.toMoney(grossSales - salesReturns - salesDiscounts);
+    const grossProfit = this.toMoney(netSales - cogs);
+    const netProfit = this.toMoney(grossProfit - operatingExpenses);
+    // This is period movement only (not an opening/closing balance).
+    const netCashMovement = this.toMoney(cashDebits - cashCredits);
+
+    const asArray = (map: Map<string, { accountCode: string; accountNameAr: string; amount: number }>) =>
+      Array.from(map.values()).sort((a, b) => Number(a.accountCode || 0) - Number(b.accountCode || 0));
+
+    return {
+      period: this.mapPeriod(filters.date_from, filters.date_to),
+      cards: {
+        grossSales,
+        salesReturns,
+        salesDiscounts,
+        netSales,
+        cogs,
+        grossProfit,
+        operatingExpenses,
+        netProfit,
+        customerCollections,
+        supplierPayments,
+        treasuryExpenses,
+        netCashMovement,
+      },
+      breakdowns: {
+        revenueAccounts: asArray(revenueBreakdown),
+        expenseAccounts: asArray(expenseBreakdown),
+        cashMovements: asArray(cashBreakdown),
       },
     };
   }

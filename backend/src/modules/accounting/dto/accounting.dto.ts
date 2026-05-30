@@ -33,3 +33,25 @@ export class JournalEntriesQueryDto {
   pageSize?: number;
 }
 
+export class FinancialSummaryQueryDto {
+  @IsOptional()
+  @IsDateString()
+  date_from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date_to?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  branch_id?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  location_id?: number;
+}
+

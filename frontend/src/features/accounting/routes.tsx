@@ -15,10 +15,15 @@ export const accountingRouteModule: FeatureRouteModule = {
       path: 'accounting/settings',
       element: createLazyRoute(() => import('@/features/accounting/pages/AccountingSettingsPage').then((module) => ({ default: module.AccountingSettingsPage }))),
     },
+    {
+      path: 'accounting/financial-summary',
+      element: createLazyRoute(() => import('@/features/accounting/pages/AccountingFinancialSummaryPage').then((module) => ({ default: module.AccountingFinancialSummaryPage }))),
+    },
   ],
   navigation: [
     { key: 'accounting-accounts', label: 'شجرة الحسابات', to: '/accounting/accounts' },
     { key: 'accounting-journal-entries', label: 'القيود اليومية', to: '/accounting/journal-entries' },
     { key: 'accounting-settings', label: 'إعدادات الحسابات', to: '/accounting/settings' },
+    { key: 'accounting-financial-summary', label: 'الملخص المالي', to: '/accounting/financial-summary' },
   ],
 };
