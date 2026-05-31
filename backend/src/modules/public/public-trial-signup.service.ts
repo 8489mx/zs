@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, TooManyRequestsException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -32,7 +32,7 @@ export class PublicTrialSignupService {
     ];
     const results = await Promise.all(checks);
     if (results.some((entry) => !entry.allowed)) {
-      throw new TooManyRequestsException('تم تجاوز عدد المحاولات المسموح به. حاول مرة أخرى لاحقًا.');
+      throw new HttpException('تم تجاوز عدد المحاولات المسموح به. حاول مرة أخرى لاحقًا.', HttpStatus.TOO_MANY_REQUESTS);
     }
   }
 
