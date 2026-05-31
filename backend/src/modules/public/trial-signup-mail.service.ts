@@ -1,7 +1,4 @@
-import { createRequire } from 'node:module';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-
-const require = createRequire(import.meta.url);
 
 type TrialSignupMailPayload = {
   businessName: string;
