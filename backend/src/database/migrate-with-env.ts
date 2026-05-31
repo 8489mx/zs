@@ -2,7 +2,13 @@ import 'reflect-metadata';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as dotenv from 'dotenv';
-import { formatErrorDetails, getSanitizedDatabaseTarget, runMigrationCommand, type MigrationCommand } from './migration-runner';
+import {
+  formatErrorDetails,
+  getSanitizedDatabaseTarget,
+  resolveMigrationSslModeFromEnv,
+  runMigrationCommand,
+  type MigrationCommand,
+} from './migration-runner';
 
 type ParsedArgs = {
   command: MigrationCommand;
@@ -39,13 +45,18 @@ function clearDbEnv(): void {
     'DATABASE_PASSWORD',
     'DATABASE_NAME',
     'DATABASE_SSL',
+    'DATABASE_SSL_MODE',
     'DATABASE_SCHEMA',
+    'DATABASE_SSL_REJECT_UNAUTHORIZED',
+    'DATABASE_SSL_CA_CERT',
+    'DATABASE_SSL_CA_CERT_B64',
     'DB_HOST',
     'DB_PORT',
     'DB_USER',
     'DB_PASSWORD',
     'DB_NAME',
     'DB_SSL',
+    'PGSSLMODE',
     'PGHOST',
     'PGPORT',
     'PGUSER',
@@ -75,6 +86,7 @@ async function run(): Promise<void> {
   process.stdout.write(`Migration command: ${command}\n`);
   process.stdout.write(`Using env file: ${envFile}\n`);
   process.stdout.write(`Database target: ${getSanitizedDatabaseTarget()}\n`);
+  process.stdout.write(`SSL mode: ${resolveMigrationSslModeFromEnv()}\n`);
 
   await runMigrationCommand(command);
 }

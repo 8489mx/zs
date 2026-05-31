@@ -25,6 +25,7 @@ type ResolvedDbConfig = {
   ssl: boolean;
   sslRejectUnauthorized: boolean;
   sslCaCert: string;
+  sslMode: 'existing' | 'disable' | 'require' | 'no-verify';
 };
 
 function readSslCaCertFromEnv(): string {
@@ -35,8 +36,65 @@ function readSslCaCertFromEnv(): string {
   return process.env.DATABASE_SSL_CA_CERT ?? '';
 }
 
+function normalizeSslMode(value: unknown): 'disable' | 'require' | 'no-verify' | null {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized === 'disable' || normalized === 'require' || normalized === 'no-verify') return normalized;
+  throw new Error(`Unsupported database SSL mode: ${String(value)}`);
+}
+
+function hasExplicitEnv(key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(process.env, key);
+}
+
+export function resolveMigrationSslModeFromEnv(): 'existing' | 'disable' | 'require' | 'no-verify' {
+  const explicitMode = normalizeSslMode(process.env.DATABASE_SSL_MODE ?? process.env.PGSSLMODE);
+  if (explicitMode) return explicitMode;
+
+  const explicitRejectUnauthorizedFalse =
+    hasExplicitEnv('DATABASE_SSL_REJECT_UNAUTHORIZED')
+    && String(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED || '').trim().toLowerCase() === 'false';
+  const explicitSslTrue =
+    String(process.env.DATABASE_SSL ?? process.env.DB_SSL ?? '').trim().toLowerCase() === 'true';
+  const explicitSslFalse =
+    hasExplicitEnv('DATABASE_SSL')
+    && String(process.env.DATABASE_SSL || '').trim().toLowerCase() === 'false';
+
+  if (explicitSslTrue && explicitRejectUnauthorizedFalse) return 'no-verify';
+  if (explicitSslTrue) return 'require';
+  if (explicitSslFalse) return 'disable';
+  return 'existing';
+}
+
 export function resolveDatabaseConfigFromEnv(): ResolvedDbConfig {
-  const parsed = validateEnv(process.env as Record<string, unknown>);
+  const sslMode = resolveMigrationSslModeFromEnv();
+  const validationEnv = { ...process.env } as Record<string, unknown>;
+  if (sslMode === 'require' || sslMode === 'no-verify') {
+    validationEnv.DATABASE_SSL = 'true';
+  }
+  if (sslMode === 'disable') {
+    validationEnv.DATABASE_SSL = 'false';
+  }
+  // The migration runner may intentionally use no-verify for hosted poolers with
+  // self-signed chains; keep app-runtime validation strict while overriding only
+  // the migration pg connection config below.
+  if (sslMode === 'no-verify') {
+    validationEnv.DATABASE_SSL_REJECT_UNAUTHORIZED = 'true';
+  }
+
+  const parsed = validateEnv(validationEnv);
+  const ssl =
+    sslMode === 'require' || sslMode === 'no-verify'
+      ? true
+      : sslMode === 'disable'
+        ? false
+        : parsed.DATABASE_SSL;
+  const sslRejectUnauthorized = sslMode === 'no-verify'
+    ? false
+    : sslMode === 'require'
+      ? true
+      : parsed.DATABASE_SSL_REJECT_UNAUTHORIZED;
+
   return {
     host: parsed.DATABASE_HOST,
     port: parsed.DATABASE_PORT,
@@ -44,9 +102,10 @@ export function resolveDatabaseConfigFromEnv(): ResolvedDbConfig {
     password: parsed.DATABASE_PASSWORD,
     name: parsed.DATABASE_NAME,
     schema: parsed.DATABASE_SCHEMA,
-    ssl: parsed.DATABASE_SSL,
-    sslRejectUnauthorized: parsed.DATABASE_SSL_REJECT_UNAUTHORIZED,
+    ssl,
+    sslRejectUnauthorized,
     sslCaCert: readSslCaCertFromEnv(),
+    sslMode,
   };
 }
 
