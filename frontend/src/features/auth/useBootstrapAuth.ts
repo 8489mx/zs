@@ -47,9 +47,13 @@ export function useBootstrapAuth() {
 
         if (meResult.status === 'fulfilled') {
           const response = meResult.value;
+          const tenantId = String(response.user?.tenantId || response.tenant?.id || '').trim();
+          const accountId = String(response.user?.accountId || response.tenant?.accountId || '').trim();
           setSession({
             user: {
               ...response.user,
+              tenantId: tenantId || response.user?.tenantId,
+              accountId: accountId || response.user?.accountId,
               mustChangePassword: response.security?.mustChangePassword === true,
               usingDefaultAdminPassword: response.security?.usingDefaultAdminPassword === true,
             },
