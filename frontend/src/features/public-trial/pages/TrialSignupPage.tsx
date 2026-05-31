@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { ApiError } from '@/lib/http';
 import { publicTrialApi } from '@/features/public-trial/api/public-trial.api';
+import type { PublicTrialSignupResponse } from '@/features/public-trial/api/public-trial.api';
 
 const formSchema = z.object({
   businessName: z.string().trim().min(2, 'اسم المتجر مطلوب.').max(80, 'اسم المتجر طويل جدًا.'),
@@ -16,10 +17,12 @@ const formSchema = z.object({
 });
 
 type TrialSignupForm = z.infer<typeof formSchema>;
+type TrialDebugCredentials = NonNullable<PublicTrialSignupResponse['debug']>;
 
 export function TrialSignupPage() {
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [debugCredentials, setDebugCredentials] = useState<TrialDebugCredentials | null>(null);
 
   const form = useForm<TrialSignupForm>({
     resolver: zodResolver(formSchema),
@@ -34,9 +37,11 @@ export function TrialSignupPage() {
   async function onSubmit(values: TrialSignupForm) {
     setSubmitError('');
     setSuccessMessage('');
+    setDebugCredentials(null);
     try {
       const response = await publicTrialApi.signup(values);
       setSuccessMessage(response.message || 'تم إنشاء نسختك التجريبية بنجاح.');
+      setDebugCredentials(response.debug ?? null);
       form.reset();
     } catch (error) {
       if (error instanceof ApiError) {
@@ -82,6 +87,14 @@ export function TrialSignupPage() {
               <strong>تم إنشاء نسختك التجريبية بنجاح</strong>
               <div>أرسلنا بيانات الدخول على بريدك الإلكتروني</div>
               <div className="muted small">راجع البريد غير الهام إذا لم تجد الرسالة</div>
+              {debugCredentials ? (
+                <div className="stack gap-8" style={{ marginTop: 12, textAlign: 'right' }}>
+                  <div className="muted small">بيانات دخول التطوير المحلي فقط:</div>
+                  <div><strong>اسم المستخدم:</strong> {debugCredentials.username}</div>
+                  <div><strong>كلمة المرور المؤقتة:</strong> {debugCredentials.temporaryPassword}</div>
+                  <div className="muted small">لا تظهر هذه البيانات في الإنتاج.</div>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
