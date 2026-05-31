@@ -13,6 +13,7 @@ import {
   PostOpeningBalancesDto,
   ReceivablesPayablesQueryDto,
 } from './dto/accounting.dto';
+import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 
 type PartnerType = 'none' | 'customer' | 'supplier';
 
@@ -57,7 +58,10 @@ type OpeningBalanceLine = {
 
 @Injectable()
 export class AccountingService {
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly accountingTenantFoundation: AccountingTenantFoundationService,
+  ) {}
 
   private assertAccountingAccess(auth: AuthContext): void {
     if (auth.role === 'super_admin' || auth.role === 'admin' || auth.permissions.includes('accounting')) {
@@ -80,6 +84,7 @@ export class AccountingService {
 
   async listAccounts(auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
+    await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
     const rows = await this.db
       .selectFrom('accounting_accounts')
       .select([
@@ -102,6 +107,7 @@ export class AccountingService {
         'is_tax',
         'sort_order',
       ])
+      .where(this.tenantPredicate(auth))
       .orderBy('code asc')
       .execute();
 
@@ -192,10 +198,12 @@ export class AccountingService {
     return row ? { id: Number(row.id) } : null;
   }
 
-  private async resolveOpeningAccount(code: string, expectedTypes: string[]): Promise<OpeningBalanceAccount> {
+  private async resolveOpeningAccount(auth: AuthContext, code: string, expectedTypes: string[]): Promise<OpeningBalanceAccount> {
+    const scope = requireTenantScope(auth);
     const row = await this.db
       .selectFrom('accounting_accounts')
       .select(['id', 'code', 'name_ar', 'account_type', 'is_active', 'allow_manual_entries'])
+      .where('tenant_id', '=', scope.tenantId)
       .where('code', '=', code)
       .executeTakeFirst();
 
@@ -303,12 +311,12 @@ export class AccountingService {
     const operational = await this.calculateOpeningOperationalTotals(auth);
 
     const [cash, bank, receivable, inventory, payable, capital] = await Promise.all([
-      this.resolveOpeningAccount('1110', ['asset']),
-      this.resolveOpeningAccount('1120', ['asset']),
-      this.resolveOpeningAccount('1130', ['asset']),
-      this.resolveOpeningAccount('1140', ['asset']),
-      this.resolveOpeningAccount('2110', ['liability']),
-      this.resolveOpeningAccount('3100', ['equity']),
+      this.resolveOpeningAccount(auth, '1110', ['asset']),
+      this.resolveOpeningAccount(auth, '1120', ['asset']),
+      this.resolveOpeningAccount(auth, '1130', ['asset']),
+      this.resolveOpeningAccount(auth, '1140', ['asset']),
+      this.resolveOpeningAccount(auth, '2110', ['liability']),
+      this.resolveOpeningAccount(auth, '3100', ['equity']),
     ]);
 
     const lines: OpeningBalanceLine[] = [];
@@ -361,7 +369,14 @@ export class AccountingService {
 
   async getAccountingSettings(auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
-    const settings = await this.db.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
+    const scope = requireTenantScope(auth);
+    const settings = await this.db
+      .selectFrom('accounting_settings')
+      .selectAll()
+      .where('tenant_id', '=', scope.tenantId)
+      .where('id', '=', 1)
+      .executeTakeFirst();
     if (!settings) {
       return { settings: null };
     }
@@ -382,7 +397,12 @@ export class AccountingService {
     ].filter((value): value is number => Number(value || 0) > 0);
 
     const accounts = accountIds.length
-      ? await this.db.selectFrom('accounting_accounts').select(['id', 'code', 'name_ar', 'name_en']).where('id', 'in', accountIds).execute()
+      ? await this.db
+        .selectFrom('accounting_accounts')
+        .select(['id', 'code', 'name_ar', 'name_en'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', 'in', accountIds)
+        .execute()
       : [];
 
     const accountById = new Map(accounts.map((row) => [Number(row.id), row]));
@@ -1068,11 +1088,13 @@ export class AccountingService {
 
   async previewOpeningBalances(query: OpeningBalancesPreviewQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
+    await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
     return this.buildOpeningBalancesPreview(query, auth);
   }
 
   async postOpeningBalances(body: PostOpeningBalancesDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
+    await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
     const scope = requireTenantScope(auth);
     const preview = await this.buildOpeningBalancesPreview(body, auth);
 
