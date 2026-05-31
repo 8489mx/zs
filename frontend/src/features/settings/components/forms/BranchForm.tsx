@@ -30,9 +30,10 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
   });
 
   const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
+  const handleSaveBranch = form.handleSubmit((values) => mutation.mutate(values as BranchFormValues));
 
   return (
-    <form className="form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values as BranchFormValues))}>
+    <div className="form-grid">
       <Field label={SINGLE_STORE_MODE ? 'اسم المتجر الرئيسي' : 'اسم الفرع'} error={form.formState.errors.name?.message}>
         <input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} />
       </Field>
@@ -63,17 +64,22 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
         isError={mutation.isError}
         isSuccess={mutation.isSuccess}
         error={mutation.error}
-        errorFallback={SINGLE_STORE_MODE ? 'هذا الاسم أو الكود مستخدم بالفعل.' : 'هذا الاسم أو الكود مستخدم بالفعل.'}
+        errorFallback="هذا الاسم أو الكود مستخدم بالفعل."
         successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات المتجر الرئيسي بنجاح.' : 'تمت إضافة الفرع بنجاح.'}
       />
 
       <SubmitButton
-        type="submit"
+        type="button"
         variant="secondary"
         disabled={mutation.isPending || !canManageSettings}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void handleSaveBranch();
+        }}
         idleText={SINGLE_STORE_MODE ? 'حفظ بيانات المتجر الرئيسي' : 'حفظ الفرع'}
         pendingText="جارٍ الحفظ..."
       />
-    </form>
+    </div>
   );
 }

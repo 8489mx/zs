@@ -150,6 +150,32 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const branchMenuHasContent = filteredBranches.length > 0 || branchCreateOptionVisible;
   const warehouseMenuHasContent = filteredWarehouses.length > 0 || warehouseCreateOptionVisible;
 
+  const commitSelectedBranch = (branchId: string, branchName?: string) => {
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) return;
+    form.setValue('currentBranchId', normalizedBranchId, { shouldDirty: true, shouldValidate: true });
+    form.clearErrors('currentBranchId');
+    form.clearErrors('currentLocationId');
+    form.clearErrors('root.serverError');
+    setWarehouseAddError('');
+    if (typeof branchName === 'string' && branchName.trim()) {
+      setBranchQuery(branchName.trim());
+    }
+    setBranchMenuOpen(false);
+  };
+
+  const commitSelectedWarehouse = (locationId: string, locationName?: string) => {
+    const normalizedLocationId = String(locationId || '').trim();
+    if (!normalizedLocationId) return;
+    form.setValue('currentLocationId', normalizedLocationId, { shouldDirty: true, shouldValidate: true });
+    form.clearErrors('currentLocationId');
+    form.clearErrors('root.serverError');
+    if (typeof locationName === 'string' && locationName.trim()) {
+      setWarehouseQuery(locationName.trim());
+    }
+    setWarehouseMenuOpen(false);
+  };
+
   useEffect(() => {
     if (!settings) return;
     const clothingEnabled = settings.clothingModuleEnabled === true;
@@ -307,11 +333,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                       style={comboRowStyle}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => {
-                        form.setValue('currentBranchId', String(branch.id), { shouldDirty: true, shouldValidate: true });
-                        form.clearErrors('currentBranchId');
-                        form.clearErrors('root.serverError');
-                        setBranchQuery(String(branch.name || ''));
-                        setBranchMenuOpen(false);
+                        commitSelectedBranch(String(branch.id), String(branch.name || ''));
                       }}
                     >
                       {branch.name}
@@ -366,11 +388,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                       style={comboRowStyle}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => {
-                        form.setValue('currentLocationId', String(location.id), { shouldDirty: true, shouldValidate: true });
-                        form.clearErrors('currentLocationId');
-                        form.clearErrors('root.serverError');
-                        setWarehouseQuery(String(location.name || ''));
-                        setWarehouseMenuOpen(false);
+                        commitSelectedWarehouse(String(location.id), String(location.name || ''));
                       }}
                     >
                       {location.name}
@@ -382,7 +400,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                       style={comboCreateStyle}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => {
-                        if (!String(form.getValues('currentBranchId') || '').trim()) {
+                        if (!String(currentBranchId || '').trim()) {
                           setWarehouseAddError('اختر الفرع الرئيسي أولًا قبل إضافة مخزن.');
                           return;
                         }
@@ -612,9 +630,16 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             hasExistingLocations={locations.length > 0}
             initialValues={{ name: branchPrefillName }}
             onCreated={(payload) => {
-              if (payload.branchId) {
-                form.setValue('currentBranchId', String(payload.branchId), { shouldDirty: true, shouldValidate: true });
-                setBranchQuery(payload.name || branchPrefillName);
+              const nextBranchId = String(payload.branchId || '').trim();
+              if (nextBranchId) {
+                commitSelectedBranch(nextBranchId, payload.name || branchPrefillName);
+              } else if (payload.name) {
+                const matched = branches.find((branch) => normalizeText(String(branch.name || '')) === normalizeText(payload.name || ''));
+                if (matched?.id) {
+                  commitSelectedBranch(String(matched.id), String(matched.name || payload.name));
+                } else {
+                  setBranchQuery(payload.name || branchPrefillName);
+                }
               }
               setShowBranchQuickAdd(false);
             }}
@@ -633,11 +658,17 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             canManageSettings={canManageSettings}
             setupMode={setupMode}
             onSetupAdvance={onSetupAdvance}
-            initialValues={{ name: warehousePrefillName, branchId: String(form.getValues('currentBranchId') || '') }}
+            initialValues={{ name: warehousePrefillName, branchId: String(currentBranchId || '') }}
             onCreated={(payload) => {
               if (payload.locationId) {
-                form.setValue('currentLocationId', String(payload.locationId), { shouldDirty: true, shouldValidate: true });
-                setWarehouseQuery(payload.name || warehousePrefillName);
+                commitSelectedWarehouse(String(payload.locationId), payload.name || warehousePrefillName);
+              } else if (payload.name) {
+                const matched = visibleLocations.find((location) => normalizeText(String(location.name || '')) === normalizeText(payload.name || ''));
+                if (matched?.id) {
+                  commitSelectedWarehouse(String(matched.id), String(matched.name || payload.name));
+                } else {
+                  setWarehouseQuery(payload.name || warehousePrefillName);
+                }
               }
               setShowWarehouseQuickAdd(false);
             }}

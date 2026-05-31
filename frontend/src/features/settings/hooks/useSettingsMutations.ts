@@ -34,9 +34,23 @@ export function useCreateBranchMutation(onSuccess?: (result: { branchId?: string
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: BranchFormValues) => settingsApi.createBranch(buildBranchPayload(values)),
-    onSuccess: async (result) => {
+    onSuccess: async (result, values) => {
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: false });
-      onSuccess?.({ branchId: result?.branchId });
+      const responseBranchId = String(result?.branchId || '').trim();
+      const normalizedName = String(values?.name || '').trim().toLowerCase();
+      const normalizedCode = String(values?.code || '').trim().toLowerCase();
+      const matchedBranch = Array.isArray(result?.branches)
+        ? result.branches.find((branch) => {
+            const sameName = String(branch?.name || '').trim().toLowerCase() === normalizedName;
+            if (normalizedCode) {
+              return sameName && String(branch?.code || '').trim().toLowerCase() === normalizedCode;
+            }
+            return sameName;
+          })
+        : null;
+      const fallbackBranchId = String(matchedBranch?.id || '').trim()
+        || (Array.isArray(result?.branches) && result.branches.length ? String(result.branches[result.branches.length - 1]?.id || '').trim() : '');
+      onSuccess?.({ branchId: responseBranchId || fallbackBranchId || null });
     }
   });
 }
@@ -69,9 +83,25 @@ export function useCreateLocationMutation(onSuccess?: (result: { locationId?: st
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: LocationFormValues) => settingsApi.createLocation(buildLocationPayload(values)),
-    onSuccess: async (result) => {
+    onSuccess: async (result, values) => {
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: true });
-      onSuccess?.({ locationId: result?.locationId });
+      const responseLocationId = String(result?.locationId || '').trim();
+      const normalizedName = String(values?.name || '').trim().toLowerCase();
+      const normalizedCode = String(values?.code || '').trim().toLowerCase();
+      const normalizedBranchId = String(values?.branchId || '').trim();
+      const matchedLocation = Array.isArray(result?.locations)
+        ? result.locations.find((location) => {
+            const sameName = String(location?.name || '').trim().toLowerCase() === normalizedName;
+            const sameBranch = normalizedBranchId ? String(location?.branchId || '') === normalizedBranchId : true;
+            if (normalizedCode) {
+              return sameName && sameBranch && String(location?.code || '').trim().toLowerCase() === normalizedCode;
+            }
+            return sameName && sameBranch;
+          })
+        : null;
+      const fallbackLocationId = String(matchedLocation?.id || '').trim()
+        || (Array.isArray(result?.locations) && result.locations.length ? String(result.locations[result.locations.length - 1]?.id || '').trim() : '');
+      onSuccess?.({ locationId: responseLocationId || fallbackLocationId || null });
     }
   });
 }

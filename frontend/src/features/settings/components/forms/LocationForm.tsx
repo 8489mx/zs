@@ -31,14 +31,12 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
   });
 
   const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
+  const handleSaveWarehouse = form.handleSubmit((values) =>
+    mutation.mutate(({ ...values, branchId: SINGLE_STORE_MODE ? (values.branchId || branches[0]?.id || '') : values.branchId }) as LocationFormValues)
+  );
 
   return (
-    <form
-      className="form-grid"
-      onSubmit={form.handleSubmit((values) =>
-        mutation.mutate(({ ...values, branchId: SINGLE_STORE_MODE ? (values.branchId || branches[0]?.id || '') : values.branchId }) as LocationFormValues)
-      )}
-    >
+    <div className="form-grid">
       <Field label={SINGLE_STORE_MODE ? 'اسم المخزن الأساسي' : 'اسم المخزن'} error={form.formState.errors.name?.message}>
         <input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} />
       </Field>
@@ -81,17 +79,22 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
         isError={mutation.isError}
         isSuccess={mutation.isSuccess}
         error={mutation.error}
-        errorFallback={SINGLE_STORE_MODE ? 'هذا الاسم أو الكود مستخدم بالفعل.' : 'هذا الاسم أو الكود مستخدم بالفعل.'}
+        errorFallback="هذا الاسم أو الكود مستخدم بالفعل."
         successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات المخزن الأساسي بنجاح.' : 'تمت إضافة المخزن بنجاح.'}
       />
 
       <SubmitButton
-        type="submit"
+        type="button"
         variant="secondary"
         disabled={mutation.isPending || !canManageSettings}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void handleSaveWarehouse();
+        }}
         idleText={SINGLE_STORE_MODE ? 'حفظ بيانات المخزن الأساسي' : 'حفظ المخزن'}
         pendingText="جارٍ الحفظ..."
       />
-    </form>
+    </div>
   );
 }
