@@ -35,6 +35,7 @@ export function useCreateBranchMutation(onSuccess?: (result: { branchId?: string
   return useMutation({
     mutationFn: (values: BranchFormValues) => settingsApi.createBranch(buildBranchPayload(values)),
     onSuccess: async (result, values) => {
+      const createdBranchId = String(result?.branch?.id || result?.branchId || '').trim();
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: false });
       const responseBranchId = String(result?.branchId || '').trim();
       const normalizedName = String(values?.name || '').trim().toLowerCase();
@@ -50,7 +51,7 @@ export function useCreateBranchMutation(onSuccess?: (result: { branchId?: string
         : null;
       const fallbackBranchId = String(matchedBranch?.id || '').trim()
         || (Array.isArray(result?.branches) && result.branches.length ? String(result.branches[result.branches.length - 1]?.id || '').trim() : '');
-      onSuccess?.({ branchId: responseBranchId || fallbackBranchId || null });
+      onSuccess?.({ branchId: createdBranchId || responseBranchId || fallbackBranchId || null });
     }
   });
 }
@@ -84,6 +85,7 @@ export function useCreateLocationMutation(onSuccess?: (result: { locationId?: st
   return useMutation({
     mutationFn: (values: LocationFormValues) => settingsApi.createLocation(buildLocationPayload(values)),
     onSuccess: async (result, values) => {
+      const createdLocationId = String(result?.location?.id || result?.locationId || '').trim();
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: true });
       const responseLocationId = String(result?.locationId || '').trim();
       const normalizedName = String(values?.name || '').trim().toLowerCase();
@@ -101,7 +103,7 @@ export function useCreateLocationMutation(onSuccess?: (result: { locationId?: st
         : null;
       const fallbackLocationId = String(matchedLocation?.id || '').trim()
         || (Array.isArray(result?.locations) && result.locations.length ? String(result.locations[result.locations.length - 1]?.id || '').trim() : '');
-      onSuccess?.({ locationId: responseLocationId || fallbackLocationId || null });
+      onSuccess?.({ locationId: createdLocationId || responseLocationId || fallbackLocationId || null });
     }
   });
 }
