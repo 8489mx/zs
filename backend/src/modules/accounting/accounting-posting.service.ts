@@ -47,6 +47,17 @@ export class AccountingPostingService {
       .executeTakeFirst();
   }
 
+  private async getExistingSaleEditJournal(queryable: DbOrTx, saleId: number) {
+    return queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', '=', 'sale_edit')
+      .where('source_id', '=', saleId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id desc')
+      .executeTakeFirst();
+  }
+
   private async getExistingPurchaseJournal(queryable: DbOrTx, purchaseId: number) {
     return queryable
       .selectFrom('journal_entries')
@@ -546,6 +557,186 @@ export class AccountingPostingService {
       accountId: scope.accountId,
       entryDate: sale.created_at ? new Date(sale.created_at) : new Date(),
       description: `قيد بيع تلقائي للفاتورة رقم ${sale.doc_no || `S-${saleId}`}`,
+      branchId: sale.branch_id ? Number(sale.branch_id) : null,
+      locationId: sale.location_id ? Number(sale.location_id) : null,
+      createdBy: sale.created_by ? Number(sale.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: normalizedLines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  async postSaleEdit(queryable: DbOrTx, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+    const scope = requireTenantScope(auth);
+    const existing = await this.getExistingSaleEditJournal(queryable, saleId);
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const sale = await queryable
+      .selectFrom('sales')
+      .select([
+        'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
+        'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
+      ])
+      .where('id', '=', saleId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .executeTakeFirstOrThrow();
+
+    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    if (!settings) throw new Error(`Accounting settings missing while posting edited sale ${saleId}`);
+
+    const payments = await queryable
+      .selectFrom('sale_payments')
+      .select(['payment_channel', 'amount'])
+      .where('sale_id', '=', saleId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .execute();
+
+    const cashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
+    const nonCashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
+
+    const subtotal = this.toMoney(sale.subtotal);
+    const discount = this.toMoney(sale.discount);
+    const taxAmount = this.toMoney(sale.tax_amount);
+    const paidAmount = this.toMoney(sale.paid_amount);
+    const storeCreditUsed = this.toMoney(sale.store_credit_used);
+    const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed));
+    const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - paidAmount));
+    const revenueCredit = this.toMoney(subtotal - discount);
+
+    const lines: JournalLineDraft[] = [];
+    const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
+
+    if (cashAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.cash_account_id || 0),
+        description: 'تحصيل نقدي من تعديل فاتورة بيع',
+        debit: cashAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (nonCashAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.bank_account_id || 0),
+        description: 'تحصيل غير نقدي من تعديل فاتورة بيع',
+        debit: nonCashAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (receivableAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.customer_receivable_account_id || 0),
+        description: 'مديونية عميل من تعديل فاتورة بيع',
+        debit: receivableAmount,
+        credit: 0,
+        partnerType: customerPartnerId ? 'customer' : 'none',
+        partnerId: customerPartnerId,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (discount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.sales_discount_account_id || 0),
+        description: 'خصم مبيعات على تعديل الفاتورة',
+        debit: discount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (revenueCredit > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.sales_revenue_account_id || 0),
+        description: 'إيراد تعديل فاتورة بيع',
+        debit: 0,
+        credit: revenueCredit,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (taxAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.sales_tax_account_id || 0),
+        description: 'ضريبة مبيعات مستحقة من تعديل الفاتورة',
+        debit: 0,
+        credit: taxAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    const saleItems = await queryable
+      .selectFrom('sale_items')
+      .select(['qty', 'cost_price'])
+      .where('sale_id', '=', saleId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .execute();
+    const cogsAmount = this.toMoney(saleItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.cost_price || 0)), 0));
+
+    if (cogsAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.cogs_account_id || 0),
+        description: 'تكلفة البضاعة المباعة بعد تعديل البيع',
+        debit: cogsAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+      this.addLine(lines, {
+        accountId: Number(settings.inventory_account_id || 0),
+        description: 'إخراج مخزون بعد تعديل البيع',
+        debit: 0,
+        credit: cogsAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    for (const line of lines) {
+      if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting edited sale ${saleId}`);
+      if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting edited sale ${saleId}`);
+      if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting edited sale ${saleId}`);
+    }
+
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced edited sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'sale_edit',
+      sourceId: saleId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description: `قيد تعديل بيع تلقائي للفاتورة رقم ${sale.doc_no || `S-${saleId}`}`,
       branchId: sale.branch_id ? Number(sale.branch_id) : null,
       locationId: sale.location_id ? Number(sale.location_id) : null,
       createdBy: sale.created_by ? Number(sale.created_by) : auth.userId,

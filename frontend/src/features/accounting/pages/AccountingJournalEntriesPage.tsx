@@ -17,6 +17,8 @@ function mapStatusLabel(status: string) {
 
 function mapSourceLabel(sourceType: string) {
   if (sourceType === 'sale') return 'بيع';
+  if (sourceType === 'sale_edit') return 'تعديل بيع';
+  if (sourceType === 'sale_edit_reversal') return 'عكس تعديل بيع';
   if (sourceType === 'sale_cancel' || sourceType === 'sale_reversal') return 'عكس بيع / إلغاء بيع';
   if (sourceType === 'sales_return') return 'مرتجع بيع';
   if (sourceType === 'return') return 'مرتجع';

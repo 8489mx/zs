@@ -15,6 +15,7 @@ type Props = {
   onExportTopCustomers: () => void | Promise<void>;
   onPrintTopCustomers: () => void | Promise<void>;
   onPrintSale: () => void;
+  onEditSale: () => void;
   onCancelSale: () => void;
 };
 
@@ -27,6 +28,7 @@ export function SalesSidePanel({
   onExportTopCustomers,
   onPrintTopCustomers,
   onPrintSale,
+  onEditSale,
   onCancelSale,
 }: Props) {
   return (
@@ -49,6 +51,7 @@ export function SalesSidePanel({
         sale={selectedSale || undefined}
         isLoading={isLoading}
         onPrint={canPrint && selectedSale ? onPrintSale : undefined}
+        onEdit={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? onEditSale : undefined}
         onCancel={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? onCancelSale : undefined}
       />
     </div>

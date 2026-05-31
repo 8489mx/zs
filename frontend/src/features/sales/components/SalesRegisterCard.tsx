@@ -42,6 +42,7 @@ type Props = {
   onCashierFilterChange: (value: string) => void;
   onReset: () => void;
   onSelectSale: (saleId: string) => void;
+  onEditSale: (sale: Sale) => void;
   onCancelSale: (sale: Sale) => void;
   onExportCsv: () => void | Promise<void>;
   onPrintRegister: () => void | Promise<void>;
@@ -77,6 +78,7 @@ export function SalesRegisterCard(props: Props) {
     onCashierFilterChange,
     onReset,
     onSelectSale,
+    onEditSale,
     onCancelSale,
     onExportCsv,
     onPrintRegister,
@@ -147,6 +149,7 @@ export function SalesRegisterCard(props: Props) {
           rows={rows}
           selectedId={selectedSaleId}
           onSelect={(sale) => onSelectSale(sale.id)}
+          onEdit={canEditInvoices ? onEditSale : undefined}
           onCancel={canEditInvoices ? onCancelSale : undefined}
           onPrint={canPrint ? onPrintSale : undefined}
         />

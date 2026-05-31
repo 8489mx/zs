@@ -315,6 +315,263 @@ export class SalesWriteService {
     return { ok: true, sale: sale.sale };
   }
 
+  async updateSale(saleId: number, payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
+    const normalized = normalizeSalePayload(payload);
+    const editReason = String((payload as unknown as { editReason?: string })?.editReason || '').trim();
+    const managerPin = String((payload as unknown as { managerPin?: string })?.managerPin || '').trim();
+
+    if (!normalized.items.length) throw new AppError('Sale must include at least one item', 'SALE_ITEMS_REQUIRED', 400);
+    ensureUniqueFlowItems(normalized.items, 'SALE_DUPLICATE_PRODUCT', 'Sale must not contain duplicate product rows with the same unit');
+    if (normalized.discount < 0) throw new AppError('Discount cannot be negative', 'INVALID_DISCOUNT', 400);
+    if (editReason.length < 5) throw new AppError('سبب التعديل مطلوب بشكل واضح.', 'SALE_EDIT_REASON_REQUIRED', 400);
+    if (!managerPin) throw new AppError('رمز اعتماد المدير مطلوب قبل تعديل الفاتورة.', 'MANAGER_AUTH_REQUIRED', 400);
+    await this.authz.authorizeDiscountOverride(managerPin, auth, this.db);
+
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const sale = await trx
+        .selectFrom('sales')
+        .selectAll()
+        .where('id', '=', saleId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+      if (!sale) throw new AppError('الفاتورة غير موجودة.', 'SALE_NOT_FOUND', 404);
+      if (sale.status === 'cancelled') throw new AppError('لا يمكن تعديل الفاتورة بعد إلغائها أو وجود عمليات مرتبطة تمنع التعديل.', 'SALE_EDIT_CANCELLED_FORBIDDEN', 400);
+
+      const existingReturns = await trx
+        .selectFrom('return_documents')
+        .select((eb) => eb.fn.countAll<number>().as('count'))
+        .where('return_type', '=', 'sale')
+        .where('invoice_id', '=', saleId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+      if (Number(existingReturns?.count || 0) > 0) {
+        throw new AppError('لا يمكن تعديل هذه الفاتورة بعد إلغائها أو وجود عمليات مرتبطة تمنع التعديل.', 'SALE_EDIT_LINKED_OPERATIONS_FORBIDDEN', 400);
+      }
+
+      const existingEditedJournal = await trx
+        .selectFrom('journal_entries')
+        .select(['id'])
+        .where('source_type', '=', 'sale_edit')
+        .where('source_id', '=', saleId)
+        .where('status', 'in', ['draft', 'posted'])
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+      if (existingEditedJournal) {
+        throw new AppError('تم تعديل هذه الفاتورة سابقًا. أنشئ فاتورة جديدة بدلًا من إعادة التعديل.', 'SALE_EDIT_ALREADY_APPLIED', 400);
+      }
+
+      const currentItems = await trx
+        .selectFrom('sale_items')
+        .selectAll()
+        .where('sale_id', '=', saleId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+      const currentPayments = await trx
+        .selectFrom('sale_payments')
+        .select(['amount', 'payment_channel'])
+        .where('sale_id', '=', saleId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+
+      for (const item of currentItems) {
+        if (!item.product_id) continue;
+        const restoreQty = Number((Number(item.qty || 0) * Number(item.unit_multiplier || 1)).toFixed(3));
+        const stockChange = await applyStockDelta(trx, {
+          productId: Number(item.product_id),
+          delta: restoreQty,
+          branchId: sale.branch_id,
+          locationId: sale.location_id,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+        });
+        await trx.insertInto('stock_movements').values({
+          product_id: item.product_id,
+          movement_type: 'sale_edit_reversal',
+          qty: restoreQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'sale_edit_reversal',
+          note: `Edit reversal S-${saleId}`,
+          reference_type: 'sale',
+          reference_id: saleId,
+          branch_id: sale.branch_id,
+          location_id: sale.location_id,
+          created_by: auth.userId,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
+      }
+
+      const oldCollectibleTotal = Math.max(0, Number(sale.total || 0) - Number(sale.store_credit_used || 0));
+      if (sale.payment_type === 'credit' && sale.customer_id && oldCollectibleTotal > 0) {
+        await this.finance.createCustomerLedgerEntry(trx, sale.customer_id, -oldCollectibleTotal, `عكس تعديل فاتورة بيع S-${saleId}`, saleId, auth);
+      } else {
+        for (const payment of currentPayments) {
+          if (payment.payment_channel !== 'cash') continue;
+          await this.finance.addTreasuryTransaction(trx, -Number(payment.amount || 0), `عكس تعديل فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
+        }
+      }
+
+      if (Number(sale.store_credit_used || 0) > 0 && sale.customer_id) {
+        const customerBefore = await trx
+          .selectFrom('customers')
+          .select(['store_credit_balance'])
+          .where('id', '=', sale.customer_id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+        if (customerBefore) {
+          await trx.updateTable('customers').set({
+            store_credit_balance: Number((Number(customerBefore.store_credit_balance || 0) + Number(sale.store_credit_used || 0)).toFixed(2)),
+            updated_at: sql`NOW()`,
+          }).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+        }
+      }
+
+      await this.accountingPosting.reverseSaleJournal(trx, saleId, `تعديل فاتورة: ${editReason}`, auth);
+
+      await trx.deleteFrom('sale_payments').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      await trx.deleteFrom('sale_items').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+      const customer = normalized.customerId
+        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
+        : null;
+      if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
+      if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
+      const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx, scope.tenantId);
+
+      let subtotal = 0;
+      const preparedItems = [];
+      for (const item of normalized.items) {
+        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+        if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        const activeOffers = await this.getCurrentProductOffers(trx, item.productId, scope.tenantId);
+        const allowedUnitPrice = calculateAllowedSaleUnitPrice({
+          retailPrice: product.retail_price,
+          wholesalePrice: product.wholesale_price,
+          priceType: item.priceType,
+          offers: activeOffers,
+          qty: item.qty,
+        });
+        this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
+        const availableStockQty = normalized.locationId
+          ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId, tenantId: scope.tenantId, accountId: scope.accountId })
+          : Number(product.stock_qty || 0);
+        const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item, { allowNegativeStockSales });
+        subtotal += preparedItem.lineTotal;
+        preparedItems.push(preparedItem);
+      }
+
+      await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, managerPin);
+      if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
+      const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax);
+      if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
+      const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
+      if (normalized.paymentType === 'credit' && customer) {
+        const nextBalance = Number(customer.balance || 0) + collectibleTotal;
+        if (Number(customer.credit_limit || 0) > 0 && nextBalance > Number(customer.credit_limit || 0)) throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);
+      }
+      if (normalized.storeCreditUsed > 0) {
+        if (!customer) throw new AppError('Store credit requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
+        if (normalized.storeCreditUsed > Number(customer.store_credit_balance || 0) + 0.0001) throw new AppError('Store credit exceeds available balance', 'STORE_CREDIT_EXCEEDED', 400);
+      }
+
+      const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
+      const paidAmount = calculatePaidAmount(payments);
+      if (normalized.paymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
+
+      await trx.updateTable('sales').set({
+        customer_id: normalized.customerId,
+        customer_name: customer?.name || 'عميل نقدي',
+        payment_type: normalized.paymentType,
+        payment_channel: resolvePostedSalePaymentChannel(normalized.paymentType, payments),
+        subtotal: Number(subtotal.toFixed(2)),
+        discount: normalized.discount,
+        tax_rate: normalized.taxRate,
+        tax_amount: taxAmount,
+        prices_include_tax: normalized.pricesIncludeTax,
+        total,
+        paid_amount: paidAmount,
+        store_credit_used: normalized.storeCreditUsed,
+        note: normalized.note,
+        branch_id: normalized.branchId,
+        location_id: normalized.locationId,
+        updated_at: sql`NOW()`,
+      } as any).where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+      for (const payment of payments) {
+        await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId } as any).execute();
+      }
+
+      for (const item of preparedItems) {
+        await trx.insertInto('sale_items').values({
+          sale_id: saleId,
+          product_id: item.productId,
+          product_name: item.productName,
+          qty: item.qty,
+          unit_price: item.unitPrice,
+          line_total: item.lineTotal,
+          unit_name: item.unitName,
+          unit_multiplier: item.unitMultiplier,
+          cost_price: item.costPrice,
+          price_type: item.priceType as 'retail' | 'wholesale',
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
+
+        const stockChange = await applyStockDelta(trx, {
+          productId: item.productId,
+          delta: -item.requiredQty,
+          branchId: normalized.branchId,
+          locationId: normalized.locationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          errorCode: 'INSUFFICIENT_STOCK',
+          errorMessage: `Insufficient stock for ${item.productName}`,
+          allowNegative: allowNegativeStockSales,
+        });
+        await trx.insertInto('stock_movements').values({
+          product_id: item.productId,
+          movement_type: 'sale_edit',
+          qty: -item.requiredQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'sale_edit',
+          note: `Sale edit S-${saleId}`,
+          reference_type: 'sale',
+          reference_id: saleId,
+          branch_id: normalized.branchId,
+          location_id: normalized.locationId,
+          created_by: auth.userId,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
+      }
+
+      if (normalized.storeCreditUsed > 0 && customer) {
+        await trx.updateTable('customers').set({
+          store_credit_balance: Number((Number(customer.store_credit_balance || 0) - normalized.storeCreditUsed).toFixed(2)),
+          updated_at: sql`NOW()`,
+        }).where('id', '=', customer.id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      }
+
+      if (normalized.paymentType === 'credit' && customer && collectibleTotal > 0) {
+        await this.finance.createCustomerLedgerEntry(trx, customer.id, collectibleTotal, `تعديل فاتورة بيع S-${saleId}`, saleId, auth);
+      } else {
+        for (const payment of payments) {
+          if (payment.paymentChannel !== 'cash') continue;
+          await this.finance.addTreasuryTransaction(trx, payment.amount, `تعديل فاتورة بيع S-${saleId}`, saleId, auth, normalized.branchId, normalized.locationId);
+        }
+      }
+
+      await this.accountingPosting.postSaleEdit(trx, saleId, auth);
+    });
+
+    await this.audit.log('تعديل فاتورة بيع', `تم تعديل الفاتورة S-${saleId} بواسطة ${auth.username} | السبب: ${editReason}`, auth);
+    const sale = await this.query.getSaleById(saleId, auth);
+    return { ok: true, sale: sale.sale };
+  }
+
   async cancelSale(saleId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {

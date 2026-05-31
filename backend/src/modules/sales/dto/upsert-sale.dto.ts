@@ -87,6 +87,10 @@ export class UpsertSaleDto {
   @IsString()
   managerPin?: string;
 
+  @IsOptional()
+  @IsString()
+  editReason?: string;
+
   @Type(() => Number)
   @IsOptional()
   @IsNumber()

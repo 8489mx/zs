@@ -33,6 +33,10 @@ export class SalesService {
     return this.write.cancelSale(saleId, reason, auth);
   }
 
+  async updateSale(saleId: number, payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.write.updateSale(saleId, payload, auth);
+  }
+
   async listHeldSales(auth: AuthContext): Promise<Record<string, unknown>> {
     return this.query.listHeldSales(auth);
   }
