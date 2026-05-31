@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/card';
-import { DataTable } from '@/shared/ui/data-table';
+import { DataTable } from '@/shared/components/data-table';
 import { Field } from '@/shared/ui/field';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -145,30 +145,51 @@ export function AuditPage() {
           emptyHint="ستظهر العمليات هنا بمجرد وجود أنشطة أو بعد توسيع الفلاتر."
         >
           {selectedUserLabel ? <div className="muted small">عرض نشاط الموظف: <strong>{selectedUserLabel}</strong></div> : null}
-          <DataTable rows={visibleRows} columns={[
-            {
-              key: 'action',
-              header: 'النشاط',
-              className: 'audit-col-activity',
-              cell: (row: AuditLog) => {
-                const activityMeta = getAuditActivityMeta(row);
-                const actionLabel = getAuditActionLabel(row.action || '');
-                const rawDetail = formatAuditDetails(row);
-                const detailText = normalizeAuditDetailText(rawDetail);
-                return (
-                  <div className="audit-action-cell">
-                    <div className="audit-action-head">
-                      <span className={`audit-activity-badge ${activityMeta.badgeClass}`}>{activityMeta.label}</span>
-                      <strong className="audit-action-label">{actionLabel}</strong>
+          <DataTable<AuditLog>
+            data={visibleRows}
+            getRowKey={(row, rowIndex) => String(row.id || row.createdAt || row.created_at || rowIndex)}
+            defaultSort={{ columnId: 'date', direction: 'desc' }}
+            columns={[
+              {
+                id: 'action',
+                header: 'النشاط',
+                className: 'audit-col-activity',
+                sortable: true,
+                sortValue: (row) => getAuditActionLabel(row.action || ''),
+                render: (row) => {
+                  const activityMeta = getAuditActivityMeta(row);
+                  const actionLabel = getAuditActionLabel(row.action || '');
+                  const rawDetail = formatAuditDetails(row);
+                  const detailText = normalizeAuditDetailText(rawDetail);
+                  return (
+                    <div className="audit-action-cell">
+                      <div className="audit-action-head">
+                        <span className={`audit-activity-badge ${activityMeta.badgeClass}`}>{activityMeta.label}</span>
+                        <strong className="audit-action-label">{actionLabel}</strong>
+                      </div>
+                      <span className="audit-detail-text" title={detailText}>{detailText}</span>
                     </div>
-                    <span className="audit-detail-text" title={detailText}>{detailText}</span>
-                  </div>
-                );
+                  );
+                }
+              },
+              {
+                id: 'user',
+                header: 'المنفذ',
+                className: 'audit-col-user',
+                sortable: true,
+                sortValue: (row) => normalizeAuditUserDisplay(row),
+                render: (row) => normalizeAuditUserDisplay(row),
+              },
+              {
+                id: 'date',
+                header: 'التاريخ والوقت',
+                className: 'audit-col-date',
+                sortable: true,
+                sortValue: (row) => row.createdAt || row.created_at || '',
+                render: (row) => formatDate(row.createdAt || row.created_at || ''),
               }
-            },
-            { key: 'user', header: 'المنفذ', className: 'audit-col-user', cell: (row: AuditLog) => normalizeAuditUserDisplay(row) },
-            { key: 'date', header: 'التاريخ والوقت', className: 'audit-col-date', cell: (row) => formatDate(row.createdAt || row.created_at || '') }
-          ]} />
+            ]}
+          />
           <PaginationControls
             page={pagination?.page || 1}
             totalPages={pagination?.totalPages || 1}
