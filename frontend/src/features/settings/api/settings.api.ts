@@ -72,6 +72,20 @@ interface ManagedUsersResponse {
   summary?: ManagedUsersSummary;
 }
 
+interface CreateBranchResponse {
+  ok: boolean;
+  branchId?: string;
+  branch?: Branch;
+  branches: Branch[];
+}
+
+interface CreateLocationResponse {
+  ok: boolean;
+  locationId?: string;
+  location?: Location;
+  locations: Location[];
+}
+
 function sanitizeUserPayload(payload: ManagedUserRecord) {
   const password = String(payload.password || '').trim();
 
@@ -94,10 +108,10 @@ export const settingsApi = {
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),
   locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/settings/locations'), 'locations'),
   update: (payload: unknown) => http<AppSettings>('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }),
-  createBranch: (payload: unknown) => http<{ ok: boolean; branchId: string; branches: Branch[] }>('/api/branches', { method: 'POST', body: JSON.stringify(payload) }),
+  createBranch: (payload: unknown) => http<CreateBranchResponse>('/api/branches', { method: 'POST', body: JSON.stringify(payload) }),
   updateBranch: (branchId: string, payload: unknown) => http<{ ok: boolean; branchId: string; branches: Branch[] }>(`/api/branches/${branchId}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteBranch: (branchId: string) => http<{ ok: boolean; removedBranchId: string; branches: Branch[] }>(`/api/branches/${branchId}`, { method: 'DELETE' }),
-  createLocation: (payload: unknown) => http<{ ok: boolean; locationId: string; locations: Location[] }>('/api/settings/locations', { method: 'POST', body: JSON.stringify(payload) }),
+  createLocation: (payload: unknown) => http<CreateLocationResponse>('/api/settings/locations', { method: 'POST', body: JSON.stringify(payload) }),
   updateLocation: (locationId: string, payload: unknown) => http<{ ok: boolean; locationId: string; locations: Location[] }>(`/api/settings/locations/${locationId}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteLocation: (locationId: string) => http<{ ok: boolean; removedLocationId: string; locations: Location[] }>(`/api/settings/locations/${locationId}`, { method: 'DELETE' }),
   diagnostics: () => http<Record<string, unknown>>('/api/admin/diagnostics'),
