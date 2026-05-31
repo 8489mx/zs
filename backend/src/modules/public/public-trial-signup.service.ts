@@ -66,6 +66,12 @@ export class PublicTrialSignupService {
     }
   }
 
+  private shouldRequireMailDelivery(): boolean {
+    const mode = String(process.env.MAIL_DELIVERY_MODE || '').trim().toLowerCase();
+    const isProduction = String(process.env.NODE_ENV || '').trim() === 'production';
+    return isProduction || mode === 'smtp';
+  }
+
   async signup(payload: PublicTrialSignupDto, ip: string): Promise<Record<string, unknown>> {
     if (String(payload.honeypot || '').trim()) {
       throw new BadRequestException('تعذر تنفيذ الطلب.');
@@ -100,7 +106,7 @@ export class PublicTrialSignupService {
         temporaryPassword: provisioned.owner.temporaryPassword,
       });
     } catch {
-      if (isProduction) {
+      if (this.shouldRequireMailDelivery()) {
         await this.db.transaction().execute(async (trx) => {
           await trx.deleteFrom('users').where('tenant_id', '=', provisioned.tenant.id).execute();
           await trx.deleteFrom('trial_signups').where('tenant_id', '=', provisioned.tenant.id).execute();
