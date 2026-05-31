@@ -1,3 +1,4 @@
+﻿import { Link } from 'react-router-dom';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
@@ -29,6 +30,9 @@ export function LoginPage() {
           <Button type="submit" className="full-width" disabled={isSubmitting}>
             {isSubmitting ? 'جارٍ الدخول...' : 'تسجيل الدخول'}
           </Button>
+          <div className="login-support">
+            <Link className="login-support-link" to="/trial">جرّب النظام مجانًا 14 يوم</Link>
+          </div>
           <div className="login-support">
             <span className="muted small">بحاجة إلى مساعدة؟</span>
             {SUPPORT_URL ? (
