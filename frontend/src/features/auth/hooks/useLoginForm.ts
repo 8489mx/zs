@@ -8,7 +8,7 @@ import { DEFAULT_STORE_NAME, DEFAULT_THEME, useAuthStore } from '@/stores/auth-s
 import { authApi } from '@/features/auth/api/auth.api';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import { clearQueryClientData } from '@/lib/query-client-session';
-import { setLocalSessionFallback } from '@/lib/http';
+import { ApiError, setLocalSessionFallback } from '@/lib/http';
 import type { AuthTenant } from '@/types/auth';
 
 const loginSchema = z.object({
@@ -55,6 +55,8 @@ export function useLoginForm() {
       let tenant: AuthTenant | null = loginResult.tenant ?? null;
       let user = {
         ...loginResult.user,
+        tenantId: String(loginResult.user?.tenantId || loginResult.tenant?.id || '').trim() || loginResult.user?.tenantId,
+        accountId: String(loginResult.user?.accountId || loginResult.tenant?.accountId || '').trim() || loginResult.user?.accountId,
         mustChangePassword: loginResult.mustChangePassword === true,
         usingDefaultAdminPassword: false,
       };
@@ -66,13 +68,16 @@ export function useLoginForm() {
         tenant = me.tenant ?? tenant;
         user = {
           ...me.user,
+          tenantId: String(me.user?.tenantId || me.tenant?.id || '').trim() || me.user?.tenantId,
+          accountId: String(me.user?.accountId || me.tenant?.accountId || '').trim() || me.user?.accountId,
           mustChangePassword: me.security?.mustChangePassword === true,
           usingDefaultAdminPassword: me.security?.usingDefaultAdminPassword === true,
         };
       } catch (sessionError) {
-        if (!(sessionError instanceof Error)) {
-          throw sessionError;
+        if (sessionError instanceof ApiError && sessionError.status === 401) {
+          throw new Error('تم تحديث الجلسة. من فضلك سجّل الدخول مرة أخرى.');
         }
+        if (!(sessionError instanceof Error)) throw sessionError;
       }
 
       await clearQueryClientData(queryClient);

@@ -16,6 +16,8 @@ function sourceLabel(sourceType: string) {
   if (sourceType === 'supplier_payment_schedule_settlement') return 'سداد مورد';
   if (sourceType === 'expense' || sourceType === 'treasury_expense') return 'مصروف';
   if (sourceType === 'sales_return' || sourceType === 'return') return 'مرتجع بيع';
+  if (sourceType === 'sale_edit') return 'تعديل بيع';
+  if (sourceType === 'sale_edit_reversal') return 'عكس تعديل بيع';
   if (sourceType === 'sale_reversal' || sourceType === 'sale_cancel') return 'إلغاء بيع';
   if (sourceType === 'purchase_reversal' || sourceType === 'purchase_cancel') return 'إلغاء شراء';
   if (sourceType === 'opening_balance') return 'أرصدة افتتاحية';

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -49,6 +49,16 @@ export class SalesController {
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     return this.salesService.cancelSale(id, String(body?.reason || ''), req.authContext!);
+  }
+
+  @Put('sales/:id')
+  @RequirePermissions('canEditInvoices')
+  updateSale(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: UpsertSaleDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.salesService.updateSale(id, payload, req.authContext!);
   }
 
   @Get('held-sales')

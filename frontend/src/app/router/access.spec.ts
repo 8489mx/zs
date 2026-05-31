@@ -19,6 +19,8 @@ const superAdminUser: AuthUser = {
   username: 'root',
   role: 'super_admin',
   permissions: [],
+  tenantId: 'default',
+  accountId: 'default',
 };
 
 const navigationItems: NavigationItemDefinition[] = [
@@ -56,5 +58,17 @@ describe('router access guards', () => {
   it('grants all permissions to super admins', () => {
     expect(hasAnyPermission(superAdminUser, ['settings', 'canManageSettings'])).toBe(true);
     expect(canAccessPath(superAdminUser, '/settings')).toBe(true);
+  });
+
+  it('allows platform admin only to access saas admin route', () => {
+    expect(canAccessPath(superAdminUser, '/saas-admin/tenants')).toBe(true);
+    expect(canAccessNavigationItem(superAdminUser, { key: 'saas-admin-tenants', label: 'إدارة النسخ', to: '/saas-admin/tenants', platformOnly: true })).toBe(true);
+    expect(canAccessPath({ ...superAdminUser, tenantId: 'demo-trial' }, '/saas-admin/tenants')).toBe(false);
+    expect(canAccessNavigationItem({ ...superAdminUser, tenantId: 'demo-trial' }, { key: 'saas-admin-tenants', label: 'إدارة النسخ', to: '/saas-admin/tenants', platformOnly: true })).toBe(false);
+  });
+
+  it('allows account fallback only when tenant id is missing and account is default', () => {
+    expect(canAccessPath({ ...superAdminUser, tenantId: '', accountId: 'default' }, '/saas-admin/tenants')).toBe(true);
+    expect(canAccessPath({ ...superAdminUser, tenantId: '', accountId: 'demo:main' }, '/saas-admin/tenants')).toBe(false);
   });
 });

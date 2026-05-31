@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Field } from '@/shared/ui/field';
@@ -10,27 +11,75 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { BranchFormProps } from '@/features/settings/components/forms/settings-forms.shared';
 
-export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvance, hasExistingLocations = false }: BranchFormProps) {
+export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvance, hasExistingLocations = false, initialValues, onCreated }: BranchFormProps) {
   const form = useForm<BranchFormInput, undefined, BranchFormOutput>({
     resolver: zodResolver(branchFormSchema),
-    defaultValues: { name: '', code: '' }
+    defaultValues: { name: initialValues?.name || '', code: initialValues?.code || '' },
   });
-  const mutation = useCreateBranchMutation(() => {
+
+  useEffect(() => {
+    if (!initialValues) return;
+    form.reset({ name: initialValues.name || '', code: initialValues.code || '' });
+  }, [form, initialValues?.code, initialValues?.name]);
+
+  const mutation = useCreateBranchMutation((result) => {
+    const savedName = String(form.getValues('name') || '').trim();
     form.reset({ name: '', code: '' });
+    onCreated?.({ branchId: result?.branchId, name: savedName });
     if (setupMode && hasExistingLocations) onSetupAdvance?.();
   });
+
   const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
+  const handleSaveBranch = form.handleSubmit((values) => mutation.mutate(values as BranchFormValues));
 
   return (
-    <form className="form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values as BranchFormValues))}>
-      <Field label={SINGLE_STORE_MODE ? 'اسم المتجر الرئيسي' : 'اسم الفرع'} error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} /></Field>
-      <Field label={SINGLE_STORE_MODE ? 'كود المتجر' : 'كود الفرع'}><input {...form.register('code')} disabled={mutation.isPending || !canManageSettings} /></Field>
-      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title={SINGLE_STORE_MODE ? 'بيانات المتجر الرئيسي غير محفوظة' : 'بيانات الفرع الجديدة غير محفوظة'} hint={SINGLE_STORE_MODE ? 'احفظ تعريف المتجر الرئيسي قبل الانتقال إلى بقية الإعدادات.' : 'يمكنك الإضافة أو تفريغ النموذج قبل الانتقال إلى جزء آخر من الإعدادات.'} />
+    <div className="form-grid">
+      <Field label={SINGLE_STORE_MODE ? 'اسم المتجر الرئيسي' : 'اسم الفرع'} error={form.formState.errors.name?.message}>
+        <input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} />
+      </Field>
+      <Field label={SINGLE_STORE_MODE ? 'كود المتجر' : 'كود الفرع'}>
+        <input {...form.register('code')} disabled={mutation.isPending || !canManageSettings} />
+      </Field>
+
+      <DraftStateNotice
+        visible={form.formState.isDirty && !mutation.isPending}
+        title={SINGLE_STORE_MODE ? 'بيانات المتجر الرئيسي غير محفوظة' : 'بيانات الفرع الجديد غير محفوظة'}
+        hint={SINGLE_STORE_MODE ? 'احفظ تعريف المتجر الرئيسي قبل الانتقال إلى بقية الإعدادات.' : 'يمكنك الإضافة أو تفريغ النموذج قبل الانتقال إلى جزء آخر من الإعدادات.'}
+      />
+
       <div className="actions compact-actions sticky-form-actions">
-        <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset({ name: '', code: '' }); }} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ</button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            if (canNavigateAway()) form.reset({ name: '', code: '' });
+          }}
+          disabled={mutation.isPending || !form.formState.isDirty}
+        >
+          تفريغ
+        </button>
       </div>
-      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback={SINGLE_STORE_MODE ? 'تعذر حفظ بيانات المتجر الرئيسي' : 'تعذر إضافة الفرع'} successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات المتجر الرئيسي بنجاح.' : 'تمت إضافة الفرع بنجاح.'} />
-      <SubmitButton type="submit" variant="secondary" disabled={mutation.isPending || !canManageSettings} idleText={SINGLE_STORE_MODE ? 'حفظ بيانات المتجر الرئيسي' : 'إضافة فرع'} pendingText="جارٍ الإضافة..." />
-    </form>
+
+      <MutationFeedback
+        isError={mutation.isError}
+        isSuccess={mutation.isSuccess}
+        error={mutation.error}
+        errorFallback="هذا الاسم أو الكود مستخدم بالفعل."
+        successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات المتجر الرئيسي بنجاح.' : 'تمت إضافة الفرع بنجاح.'}
+      />
+
+      <SubmitButton
+        type="button"
+        variant="secondary"
+        disabled={mutation.isPending || !canManageSettings}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void handleSaveBranch();
+        }}
+        idleText={SINGLE_STORE_MODE ? 'حفظ بيانات المتجر الرئيسي' : 'حفظ الفرع'}
+        pendingText="جارٍ الحفظ..."
+      />
+    </div>
   );
 }

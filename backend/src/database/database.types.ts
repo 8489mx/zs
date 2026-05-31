@@ -70,6 +70,8 @@ export interface SettingTable {
 
 export interface AccountingAccountTable {
   id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   code: string;
   name_ar: string;
   name_en: string;
@@ -130,6 +132,8 @@ export interface JournalEntryLineTable {
 }
 
 export interface AccountingSettingsTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: number;
   cash_account_id: number | null;
   bank_account_id: number | null;
@@ -979,6 +983,8 @@ export interface HrPayrollItemAdjustmentTable {
 }
 
 export interface HrSettingsTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   key: string;
   value: string;
   updated_by: number | null;

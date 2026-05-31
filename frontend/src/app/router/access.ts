@@ -85,6 +85,8 @@ const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/hr/settings': 'hr',
   'pricing-center': 'pricingCenterView',
   '/pricing-center': 'pricingCenterView',
+  'saas-admin/tenants': null,
+  '/saas-admin/tenants': null,
   settings: ['settings', 'canManageSettings'],
   '/settings': ['settings', 'canManageSettings'],
 };
@@ -111,6 +113,21 @@ export function hasAnyPermission(user: AuthUser | null | undefined, required: Ro
   return needed.some((permission) => userPermissions.has(permission));
 }
 
+export function isPlatformAdmin(user: AuthUser | null | undefined) {
+  const tenantId = String(user?.tenantId || '').trim();
+  const accountId = String(user?.accountId || '').trim();
+  const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || '').trim();
+
+  return Boolean(
+    user?.role === 'super_admin'
+    && (
+      tenantId === 'default'
+      || accountId === 'default'
+      || (configuredPlatformTenantId.length > 0 && tenantId === configuredPlatformTenantId)
+    )
+  );
+}
+
 export function getRoutePermissionRequirement(target: string) {
   const normalized = normalizeAccessKey(target);
   const directMatch = routePermissionMap[normalized] ?? routePermissionMap[`/${normalized}`];
@@ -133,10 +150,15 @@ export function getRoutePermissionRequirement(target: string) {
 }
 
 export function canAccessPath(user: AuthUser | null | undefined, target: string) {
+  const normalized = normalizeAccessKey(target);
+  if (normalized === 'saas-admin' || normalized === 'saas-admin/tenants' || normalized.startsWith('saas-admin/')) {
+    return isPlatformAdmin(user);
+  }
   return hasAnyPermission(user, getRoutePermissionRequirement(target));
 }
 
 export function canAccessNavigationItem(user: AuthUser | null | undefined, item: NavigationItemDefinition) {
+  if (item.platformOnly) return isPlatformAdmin(user);
   return hasAnyPermission(user, getRoutePermissionRequirement(item.key || item.to));
 }
 

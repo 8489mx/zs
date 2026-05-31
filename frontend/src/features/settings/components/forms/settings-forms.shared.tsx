@@ -44,6 +44,8 @@ export interface BranchFormProps {
   setupMode?: boolean;
   onSetupAdvance?: () => void;
   hasExistingLocations?: boolean;
+  initialValues?: { name?: string; code?: string };
+  onCreated?: (payload: { branchId?: string | null; name: string }) => void;
 }
 
 export interface LocationFormProps {
@@ -51,4 +53,7 @@ export interface LocationFormProps {
   canManageSettings: boolean;
   setupMode?: boolean;
   onSetupAdvance?: () => void;
+  initialValues?: { name?: string; code?: string; branchId?: string };
+  onCreated?: (payload: { locationId?: string | null; name: string; branchId: string }) => void;
 }
+

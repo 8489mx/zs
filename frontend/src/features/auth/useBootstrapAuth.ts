@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DEFAULT_STORE_NAME, DEFAULT_THEME } from '@/config/app-defaults';
-import { ApiError } from '@/lib/http';
+import { ApiError, ensureAuthStateVersion } from '@/lib/http';
 import { clearQueryClientData } from '@/lib/query-client-session';
 import { authApi } from '@/shared/api/auth';
 import { activationApi } from '@/shared/api/activation';
@@ -17,6 +17,7 @@ export function useBootstrapAuth() {
   useEffect(() => {
     if (hasRun.current) return;
     hasRun.current = true;
+    ensureAuthStateVersion();
 
     const resetTo = async (gate: 'activation' | 'setup' | 'login', status?: Awaited<ReturnType<typeof activationApi.status>>) => {
       await clearQueryClientData(queryClient);
@@ -46,9 +47,13 @@ export function useBootstrapAuth() {
 
         if (meResult.status === 'fulfilled') {
           const response = meResult.value;
+          const tenantId = String(response.user?.tenantId || response.tenant?.id || '').trim();
+          const accountId = String(response.user?.accountId || response.tenant?.accountId || '').trim();
           setSession({
             user: {
               ...response.user,
+              tenantId: tenantId || response.user?.tenantId,
+              accountId: accountId || response.user?.accountId,
               mustChangePassword: response.security?.mustChangePassword === true,
               usingDefaultAdminPassword: response.security?.usingDefaultAdminPassword === true,
             },

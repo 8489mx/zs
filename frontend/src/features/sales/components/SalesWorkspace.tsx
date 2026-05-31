@@ -11,6 +11,7 @@ import { useSalesWorkspaceActions } from '@/features/sales/hooks/useSalesWorkspa
 import { SalesWorkspaceHeader } from '@/features/sales/components/SalesWorkspaceHeader';
 import { SalesRegisterCard, type SalesPaymentFilter } from '@/features/sales/components/SalesRegisterCard';
 import { SalesSidePanel } from '@/features/sales/components/SalesSidePanel';
+import { SaleEditDialog } from '@/features/sales/components/SaleEditDialog';
 import {
   getSaleCancelDescription,
   getSalesNextStep,
@@ -28,11 +29,13 @@ export function SalesWorkspace() {
   const [cashierFilter, setCashierFilter] = useState('all');
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
+  const [saleToEdit, setSaleToEdit] = useState<Sale | null>(null);
+  const [editFeedback, setEditFeedback] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
 
   const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter, cashier: cashierFilter });
-  const { saleDetailQuery, cancelMutation } = useSaleActions(selectedSaleId);
+  const { saleDetailQuery, cancelMutation, updateMutation } = useSaleActions(selectedSaleId);
   const usersQuery = useQuery({ queryKey: ['sales-cashier-filter-users'], queryFn: userDirectoryApi.users, staleTime: 60_000 });
   const settingsQuery = useSettingsQuery();
 
@@ -107,6 +110,7 @@ export function SalesWorkspace() {
   return (
     <div className="page-stack page-shell sales-workspace">
       <SalesWorkspaceHeader totalItems={totalItems} description={headerDescription} onCopySummary={copySalesSummary} />
+      {editFeedback ? <div className="success-box">{editFeedback}</div> : null}
 
       {!hasSellableProducts ? (
         <Card title="جاهزية البيع" actions={<span className="nav-pill">التحقق قبل البيع</span>} className="workspace-panel">
@@ -144,6 +148,12 @@ export function SalesWorkspace() {
           onCashierFilterChange={(value) => { setCashierFilter(value); setPage(1); }}
           onReset={resetSalesView}
           onSelectSale={setSelectedSaleId}
+          onEditSale={(sale) => {
+            if (sale.status === 'cancelled') return;
+            setSelectedSaleId(sale.id);
+            setSaleToEdit(sale);
+            setEditFeedback('');
+          }}
           onCancelSale={setSaleToCancel}
           onExportCsv={exportSalesCsv}
           onPrintRegister={printSalesRegister}
@@ -161,9 +171,30 @@ export function SalesWorkspace() {
           onExportTopCustomers={exportTopCustomersCsv}
           onPrintTopCustomers={printTopCustomers}
           onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, 'receipt') : undefined}
+          onEditSale={() => {
+            if (!selectedSale || selectedSale.status === 'cancelled') return;
+            setSaleToEdit(selectedSale);
+            setEditFeedback('');
+          }}
           onCancelSale={() => selectedSale ? setSaleToCancel(selectedSale) : undefined}
         />
       </div>
+
+      <SaleEditDialog
+        open={Boolean(saleToEdit)}
+        sale={selectedSale && saleToEdit && selectedSale.id === saleToEdit.id ? selectedSale : saleToEdit || undefined}
+        isBusy={updateMutation.isPending}
+        errorMessage={updateMutation.error instanceof Error ? updateMutation.error.message : ''}
+        onCancel={() => setSaleToEdit(null)}
+        onSave={async (payload) => {
+          const activeSale = selectedSale && saleToEdit && selectedSale.id === saleToEdit.id ? selectedSale : saleToEdit;
+          if (!activeSale) return;
+          await updateMutation.mutateAsync({ sale: activeSale, payload });
+          setSaleToEdit(null);
+          setEditFeedback('تم تعديل الفاتورة بنجاح.');
+          setSelectedSaleId(activeSale.id);
+        }}
+      />
 
       <ActionConfirmDialog
         open={Boolean(saleToCancel)}

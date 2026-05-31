@@ -30,13 +30,28 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
   });
 }
 
-export function useCreateBranchMutation(onSuccess?: () => void) {
+export function useCreateBranchMutation(onSuccess?: (result: { branchId?: string | null }) => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: BranchFormValues) => settingsApi.createBranch(buildBranchPayload(values)),
-    onSuccess: async () => {
+    onSuccess: async (result, values) => {
+      const createdBranchId = String(result?.branch?.id || result?.branchId || '').trim();
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: false });
-      onSuccess?.();
+      const responseBranchId = String(result?.branchId || '').trim();
+      const normalizedName = String(values?.name || '').trim().toLowerCase();
+      const normalizedCode = String(values?.code || '').trim().toLowerCase();
+      const matchedBranch = Array.isArray(result?.branches)
+        ? result.branches.find((branch) => {
+            const sameName = String(branch?.name || '').trim().toLowerCase() === normalizedName;
+            if (normalizedCode) {
+              return sameName && String(branch?.code || '').trim().toLowerCase() === normalizedCode;
+            }
+            return sameName;
+          })
+        : null;
+      const fallbackBranchId = String(matchedBranch?.id || '').trim()
+        || (Array.isArray(result?.branches) && result.branches.length ? String(result.branches[result.branches.length - 1]?.id || '').trim() : '');
+      onSuccess?.({ branchId: createdBranchId || responseBranchId || fallbackBranchId || null });
     }
   });
 }
@@ -65,13 +80,30 @@ export function useDeleteBranchMutation(onSuccess?: () => void) {
   });
 }
 
-export function useCreateLocationMutation(onSuccess?: () => void) {
+export function useCreateLocationMutation(onSuccess?: (result: { locationId?: string | null }) => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: LocationFormValues) => settingsApi.createLocation(buildLocationPayload(values)),
-    onSuccess: async () => {
+    onSuccess: async (result, values) => {
+      const createdLocationId = String(result?.location?.id || result?.locationId || '').trim();
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: true });
-      onSuccess?.();
+      const responseLocationId = String(result?.locationId || '').trim();
+      const normalizedName = String(values?.name || '').trim().toLowerCase();
+      const normalizedCode = String(values?.code || '').trim().toLowerCase();
+      const normalizedBranchId = String(values?.branchId || '').trim();
+      const matchedLocation = Array.isArray(result?.locations)
+        ? result.locations.find((location) => {
+            const sameName = String(location?.name || '').trim().toLowerCase() === normalizedName;
+            const sameBranch = normalizedBranchId ? String(location?.branchId || '') === normalizedBranchId : true;
+            if (normalizedCode) {
+              return sameName && sameBranch && String(location?.code || '').trim().toLowerCase() === normalizedCode;
+            }
+            return sameName && sameBranch;
+          })
+        : null;
+      const fallbackLocationId = String(matchedLocation?.id || '').trim()
+        || (Array.isArray(result?.locations) && result.locations.length ? String(result.locations[result.locations.length - 1]?.id || '').trim() : '');
+      onSuccess?.({ locationId: createdLocationId || responseLocationId || fallbackLocationId || null });
     }
   });
 }

@@ -11,6 +11,7 @@ export interface NavigationItemDefinition {
   label: string;
   to: string;
   end?: boolean;
+  platformOnly?: boolean;
 }
 
 export interface FeatureRouteModule {

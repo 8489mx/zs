@@ -18,6 +18,9 @@ export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 const REQUEST_TIMEOUT_MS = 15_000;
 const LOCAL_SESSION_STORAGE_KEY = 'zs.localSessionId';
+export const AUTH_STATE_VERSION_KEY = 'zs.authStateVersion';
+export const AUTH_STATE_VERSION = '2';
+let unauthorizedRecoveryDispatched = false;
 
 export interface HttpRequestInit extends RequestInit {
   timeoutMs?: number;
@@ -34,6 +37,10 @@ export function setLocalSessionFallback(sessionId: string | null | undefined): v
   } else {
     window.sessionStorage.removeItem(LOCAL_SESSION_STORAGE_KEY);
   }
+}
+
+export function clearLocalSessionFallback(): void {
+  setLocalSessionFallback(null);
 }
 
 function getLocalSessionFallback(): string {
@@ -83,6 +90,24 @@ const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE);
 function emitWindowEvent<T>(name: string, detail: T) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
+function clearClientAuthStorage(): void {
+  if (typeof window === 'undefined') return;
+  clearLocalSessionFallback();
+}
+
+export function ensureAuthStateVersion(): void {
+  if (typeof window === 'undefined') return;
+  const current = window.localStorage.getItem(AUTH_STATE_VERSION_KEY);
+  if (current !== AUTH_STATE_VERSION) {
+    clearClientAuthStorage();
+    window.localStorage.setItem(AUTH_STATE_VERSION_KEY, AUTH_STATE_VERSION);
+  }
+}
+
+export function resetUnauthorizedRecoverySignal(): void {
+  unauthorizedRecoveryDispatched = false;
 }
 
 function extractCode(payload: unknown): string | undefined {
@@ -209,7 +234,15 @@ export async function http<T>(path: string, init?: HttpRequestInit): Promise<T> 
 
     if (!response.ok) {
       if (response.status === 401) {
-        emitWindowEvent(APP_UNAUTHORIZED_EVENT, { path, status: response.status });
+        clearClientAuthStorage();
+        if (!unauthorizedRecoveryDispatched) {
+          unauthorizedRecoveryDispatched = true;
+          emitWindowEvent(APP_UNAUTHORIZED_EVENT, {
+            path,
+            status: response.status,
+            message: 'تم تحديث الجلسة. من فضلك سجّل الدخول مرة أخرى.',
+          });
+        }
       }
 
       throw new ApiError(

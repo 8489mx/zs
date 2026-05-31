@@ -1,8 +1,10 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
 import { SessionService } from '../../../core/auth/services/session.service';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { CSRF_HEADER_NAME, verifyCsrfToken } from '../utils/csrf-token';
+import { clearKnownAuthCookies } from '../utils/auth-cookie-cleanup';
 
 function parseCookie(request: RequestWithAuth, name: string): string {
   const cookieHeader = request.headers.cookie;
@@ -63,19 +65,32 @@ export class SessionAuthGuard implements CanActivate {
     return nodeEnv === 'development' && appMode !== 'CLOUD_SAAS';
   }
 
+  private clearAuthCookies(response: Response): void {
+    clearKnownAuthCookies(response, {
+      sessionCookieName: this.configService.get<string>('SESSION_COOKIE_NAME')?.trim() || 'session_id',
+      csrfCookieName: this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token',
+      sameSite: this.configService.get<'lax' | 'strict' | 'none'>('SESSION_COOKIE_SAME_SITE') ?? 'lax',
+      secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
+      domain: this.configService.get<string>('SESSION_COOKIE_DOMAIN')?.trim() || undefined,
+    });
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
+    const response = context.switchToHttp().getResponse<Response>();
     const allowHeaderAuth = this.allowSessionIdHeaderFallback();
     const sessionCookieName = this.configService.get<string>('SESSION_COOKIE_NAME')?.trim() || 'session_id';
     const csrfCookieName = this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token';
     const sessionId = readSessionId(request, allowHeaderAuth, sessionCookieName);
 
     if (!sessionId) {
+      this.clearAuthCookies(response);
       throw new UnauthorizedException('Unauthorized');
     }
 
     const auth = await this.sessionService.resolveAuthContext(sessionId);
     if (!auth) {
+      this.clearAuthCookies(response);
       throw new UnauthorizedException('Unauthorized');
     }
 
@@ -88,6 +103,7 @@ export class SessionAuthGuard implements CanActivate {
       const usingHeaderFallback = allowHeaderAuth && readHeaderValue(request.headers['x-session-id']) === sessionId;
 
       if (!usingHeaderFallback && (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader || !verifyCsrfToken(sessionId, csrfSecret, csrfHeader))) {
+        this.clearAuthCookies(response);
         throw new ForbiddenException('CSRF validation failed');
       }
     }

@@ -3,6 +3,7 @@ import { Kysely, Transaction, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -30,117 +31,156 @@ type ExpenseAccountCandidate = {
 export class AccountingPostingService {
   private readonly logger = new Logger(AccountingPostingService.name);
 
+  constructor(
+    private readonly accountingTenantFoundation: AccountingTenantFoundationService,
+  ) {}
+
+  private async ensureTenantFoundation(queryable: DbOrTx, auth: AuthContext): Promise<void> {
+    await this.accountingTenantFoundation.ensureForAuth(queryable, auth);
+  }
+
+  private async getTenantAccountingSettings(queryable: DbOrTx, tenantId: string) {
+    return queryable
+      .selectFrom('accounting_settings')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', 1)
+      .executeTakeFirst();
+  }
+
   private toMoney(value: unknown): number {
     const amount = Number(value || 0);
     if (!Number.isFinite(amount)) return 0;
     return Number(amount.toFixed(2));
   }
 
-  private async getExistingSaleJournal(queryable: DbOrTx, saleId: number) {
+  private async getExistingSaleJournal(queryable: DbOrTx, saleId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', '=', 'sale')
       .where('source_id', '=', saleId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getExistingPurchaseJournal(queryable: DbOrTx, purchaseId: number) {
+  private async getExistingSaleEditJournal(queryable: DbOrTx, saleId: number, tenantId: string) {
+    return queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'status'])
+      .where('source_type', '=', 'sale_edit')
+      .where('source_id', '=', saleId)
+      .where('tenant_id', '=', tenantId)
+      .where('status', 'in', ['draft', 'posted'])
+      .orderBy('id desc')
+      .executeTakeFirst();
+  }
+
+  private async getExistingPurchaseJournal(queryable: DbOrTx, purchaseId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', '=', 'purchase')
       .where('source_id', '=', purchaseId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getExistingSupplierPaymentJournal(queryable: DbOrTx, paymentId: number) {
+  private async getExistingSupplierPaymentJournal(queryable: DbOrTx, paymentId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', '=', 'supplier_payment')
       .where('source_id', '=', paymentId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getExistingSupplierPaymentScheduleSettlementJournal(queryable: DbOrTx, settlementId: number) {
+  private async getExistingSupplierPaymentScheduleSettlementJournal(queryable: DbOrTx, settlementId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', '=', 'supplier_payment_schedule_settlement')
       .where('source_id', '=', settlementId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getExistingCustomerPaymentJournal(queryable: DbOrTx, paymentId: number) {
+  private async getExistingCustomerPaymentJournal(queryable: DbOrTx, paymentId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', '=', 'customer_payment')
       .where('source_id', '=', paymentId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getExistingExpenseJournal(queryable: DbOrTx, expenseId: number) {
+  private async getExistingExpenseJournal(queryable: DbOrTx, expenseId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', 'in', ['expense', 'treasury_expense'])
       .where('source_id', '=', expenseId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getExistingSaleReversalJournal(queryable: DbOrTx, saleId: number) {
+  private async getExistingSaleReversalJournal(queryable: DbOrTx, saleId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', 'in', ['sale_reversal', 'sale_cancel'])
       .where('source_id', '=', saleId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getExistingPurchaseReversalJournal(queryable: DbOrTx, purchaseId: number) {
+  private async getExistingPurchaseReversalJournal(queryable: DbOrTx, purchaseId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', 'in', ['purchase_reversal', 'purchase_cancel'])
       .where('source_id', '=', purchaseId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getExistingSalesReturnJournal(queryable: DbOrTx, returnId: number) {
+  private async getExistingSalesReturnJournal(queryable: DbOrTx, returnId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
       .select(['id', 'status'])
       .where('source_type', 'in', ['sales_return', 'return'])
       .where('source_id', '=', returnId)
+      .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
       .orderBy('id desc')
       .executeTakeFirst();
   }
 
-  private async getActiveAccountMap(queryable: DbOrTx, accountIds: number[]): Promise<Map<number, boolean>> {
+  private async getActiveAccountMap(queryable: DbOrTx, tenantId: string, accountIds: number[]): Promise<Map<number, boolean>> {
     const uniqueIds = Array.from(new Set(accountIds.filter((id) => id > 0)));
     if (!uniqueIds.length) return new Map();
     const rows = await queryable
       .selectFrom('accounting_accounts')
       .select(['id', 'is_active'])
+      .where('tenant_id', '=', tenantId)
       .where('id', 'in', uniqueIds)
       .execute();
     return new Map(rows.map((row) => [Number(row.id), Boolean(row.is_active)]));
@@ -233,10 +273,11 @@ export class AccountingPostingService {
     return 'ok';
   }
 
-  private async findAccountByCode(queryable: DbOrTx, code: string): Promise<ExpenseAccountCandidate | undefined> {
+  private async findAccountByCode(queryable: DbOrTx, tenantId: string, code: string): Promise<ExpenseAccountCandidate | undefined> {
     const row = await queryable
       .selectFrom('accounting_accounts')
       .select(['id', 'code', 'name_ar', 'account_type', 'is_active', 'allow_manual_entries'])
+      .where('tenant_id', '=', tenantId)
       .where('code', '=', code)
       .executeTakeFirst();
     if (!row) return undefined;
@@ -250,11 +291,12 @@ export class AccountingPostingService {
     };
   }
 
-  private async findAccountById(queryable: DbOrTx, accountId: number): Promise<ExpenseAccountCandidate | undefined> {
+  private async findAccountById(queryable: DbOrTx, tenantId: string, accountId: number): Promise<ExpenseAccountCandidate | undefined> {
     if (!(accountId > 0)) return undefined;
     const row = await queryable
       .selectFrom('accounting_accounts')
       .select(['id', 'code', 'name_ar', 'account_type', 'is_active', 'allow_manual_entries'])
+      .where('tenant_id', '=', tenantId)
       .where('id', '=', accountId)
       .executeTakeFirst();
     if (!row) return undefined;
@@ -270,6 +312,7 @@ export class AccountingPostingService {
 
   private async resolveExpenseDebitAccountId(
     queryable: DbOrTx,
+    tenantId: string,
     settings: { expenses_account_id: number | null },
     expenseTitle: string,
     expenseId: number,
@@ -277,7 +320,7 @@ export class AccountingPostingService {
     const mappedCode = this.mapExpenseTitleToAccountCode(expenseTitle);
     const normalizedTitle = this.normalizeExpenseText(expenseTitle);
     const isUnknownCategory = mappedCode === '6900' && normalizedTitle.length > 0;
-    const mappedAccount = await this.findAccountByCode(queryable, mappedCode);
+    const mappedAccount = await this.findAccountByCode(queryable, tenantId, mappedCode);
     if (this.isValidExpensePostingAccount(mappedAccount)) {
       if (isUnknownCategory) {
         this.logger.warn(`Expense ${expenseId} category "${expenseTitle}" is unknown; mapped to 6900 by default`);
@@ -289,7 +332,7 @@ export class AccountingPostingService {
       `Expense ${expenseId} fallback: mapped category account ${mappedCode} failed (${mappedReason})`,
     );
 
-    const settingsAccount = await this.findAccountById(queryable, Number(settings.expenses_account_id || 0));
+    const settingsAccount = await this.findAccountById(queryable, tenantId, Number(settings.expenses_account_id || 0));
     if (this.isValidExpensePostingAccount(settingsAccount)) {
       this.logger.warn(`Expense ${expenseId} fallback: using accounting_settings.expenses_account_id (${settingsAccount!.code})`);
       return Number(settingsAccount!.id);
@@ -297,7 +340,7 @@ export class AccountingPostingService {
     const settingsReason = this.expenseAccountInvalidReason(settingsAccount);
     this.logger.warn(`Expense ${expenseId} fallback: accounting_settings.expenses_account_id failed (${settingsReason})`);
 
-    const fallback6900 = await this.findAccountByCode(queryable, '6900');
+    const fallback6900 = await this.findAccountByCode(queryable, tenantId, '6900');
     if (this.isValidExpensePostingAccount(fallback6900)) {
       this.logger.warn(`Expense ${expenseId} fallback: using code 6900 (مصروفات أخرى)`);
       return Number(fallback6900!.id);
@@ -375,7 +418,8 @@ export class AccountingPostingService {
 
   async postSale(queryable: DbOrTx, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
     const scope = requireTenantScope(auth);
-    const existing = await this.getExistingSaleJournal(queryable, saleId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await this.getExistingSaleJournal(queryable, saleId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
     const sale = await queryable
@@ -388,7 +432,7 @@ export class AccountingPostingService {
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .executeTakeFirstOrThrow();
 
-    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting sale ${saleId}`);
 
     const payments = await queryable
@@ -525,7 +569,7 @@ export class AccountingPostingService {
       });
     }
 
-    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
     for (const line of lines) {
       if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting sale ${saleId}`);
       if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting sale ${saleId}`);
@@ -556,9 +600,191 @@ export class AccountingPostingService {
     return { posted: true, journalEntryId: entryId };
   }
 
+  async postSaleEdit(queryable: DbOrTx, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await this.getExistingSaleEditJournal(queryable, saleId, scope.tenantId);
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const sale = await queryable
+      .selectFrom('sales')
+      .select([
+        'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
+        'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
+      ])
+      .where('id', '=', saleId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .executeTakeFirstOrThrow();
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    if (!settings) throw new Error(`Accounting settings missing while posting edited sale ${saleId}`);
+
+    const payments = await queryable
+      .selectFrom('sale_payments')
+      .select(['payment_channel', 'amount'])
+      .where('sale_id', '=', saleId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .execute();
+
+    const cashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
+    const nonCashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
+
+    const subtotal = this.toMoney(sale.subtotal);
+    const discount = this.toMoney(sale.discount);
+    const taxAmount = this.toMoney(sale.tax_amount);
+    const paidAmount = this.toMoney(sale.paid_amount);
+    const storeCreditUsed = this.toMoney(sale.store_credit_used);
+    const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed));
+    const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - paidAmount));
+    const revenueCredit = this.toMoney(subtotal - discount);
+
+    const lines: JournalLineDraft[] = [];
+    const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
+
+    if (cashAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.cash_account_id || 0),
+        description: 'تحصيل نقدي من تعديل فاتورة بيع',
+        debit: cashAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (nonCashAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.bank_account_id || 0),
+        description: 'تحصيل غير نقدي من تعديل فاتورة بيع',
+        debit: nonCashAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (receivableAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.customer_receivable_account_id || 0),
+        description: 'مديونية عميل من تعديل فاتورة بيع',
+        debit: receivableAmount,
+        credit: 0,
+        partnerType: customerPartnerId ? 'customer' : 'none',
+        partnerId: customerPartnerId,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (discount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.sales_discount_account_id || 0),
+        description: 'خصم مبيعات على تعديل الفاتورة',
+        debit: discount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (revenueCredit > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.sales_revenue_account_id || 0),
+        description: 'إيراد تعديل فاتورة بيع',
+        debit: 0,
+        credit: revenueCredit,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    if (taxAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.sales_tax_account_id || 0),
+        description: 'ضريبة مبيعات مستحقة من تعديل الفاتورة',
+        debit: 0,
+        credit: taxAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    const saleItems = await queryable
+      .selectFrom('sale_items')
+      .select(['qty', 'cost_price'])
+      .where('sale_id', '=', saleId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .execute();
+    const cogsAmount = this.toMoney(saleItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.cost_price || 0)), 0));
+
+    if (cogsAmount > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.cogs_account_id || 0),
+        description: 'تكلفة البضاعة المباعة بعد تعديل البيع',
+        debit: cogsAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+      this.addLine(lines, {
+        accountId: Number(settings.inventory_account_id || 0),
+        description: 'إخراج مخزون بعد تعديل البيع',
+        debit: 0,
+        credit: cogsAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
+    for (const line of lines) {
+      if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting edited sale ${saleId}`);
+      if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting edited sale ${saleId}`);
+      if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting edited sale ${saleId}`);
+    }
+
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > 0.0001) {
+      throw new Error(`Unbalanced edited sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'sale_edit',
+      sourceId: saleId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description: `قيد تعديل بيع تلقائي للفاتورة رقم ${sale.doc_no || `S-${saleId}`}`,
+      branchId: sale.branch_id ? Number(sale.branch_id) : null,
+      locationId: sale.location_id ? Number(sale.location_id) : null,
+      createdBy: sale.created_by ? Number(sale.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: normalizedLines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
+  }
+
   async reverseSaleJournal(queryable: DbOrTx, saleId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const existingReversal = await this.getExistingSaleReversalJournal(queryable, saleId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existingReversal = await this.getExistingSaleReversalJournal(queryable, saleId, scope.tenantId);
     if (existingReversal) {
       this.logger.warn(`Skipping duplicate sale reversal journal for sale ${saleId}; existing entry ${existingReversal.id}`);
       return { reversed: false, journalEntryId: Number(existingReversal.id) };
@@ -631,7 +857,8 @@ export class AccountingPostingService {
 
   async postSalesReturn(queryable: DbOrTx, returnId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const existing = await this.getExistingSalesReturnJournal(queryable, returnId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await this.getExistingSalesReturnJournal(queryable, returnId, scope.tenantId);
     if (existing) {
       this.logger.warn(`Skipping duplicate sales return journal for return ${returnId}; existing entry ${existing.id}`);
       return { posted: false, journalEntryId: Number(existing.id) };
@@ -670,12 +897,13 @@ export class AccountingPostingService {
         .executeTakeFirst()
       : null;
 
-    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting sales return ${returnId}`);
 
     const salesReturnsAccount = await queryable
       .selectFrom('accounting_accounts')
       .select(['id', 'is_active'])
+      .where('tenant_id', '=', scope.tenantId)
       .where('code', '=', '4400')
       .executeTakeFirst();
     const fallbackRevenueAccountId = Number(settings.sales_revenue_account_id || 0);
@@ -817,7 +1045,7 @@ export class AccountingPostingService {
       this.logger.warn(`Sales return ${returnId} has no reliable cost lines; posting revenue/refund side only`);
     }
 
-    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
     for (const line of lines) {
       if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting sales return ${returnId}`);
       if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting sales return ${returnId}`);
@@ -850,7 +1078,8 @@ export class AccountingPostingService {
 
   async postPurchase(queryable: DbOrTx, purchaseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
     const scope = requireTenantScope(auth);
-    const existing = await this.getExistingPurchaseJournal(queryable, purchaseId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await this.getExistingPurchaseJournal(queryable, purchaseId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
     const purchase = await queryable
@@ -863,7 +1092,7 @@ export class AccountingPostingService {
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .executeTakeFirstOrThrow();
 
-    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting purchase ${purchaseId}`);
 
     const lines: JournalLineDraft[] = [];
@@ -944,7 +1173,7 @@ export class AccountingPostingService {
       });
     }
 
-    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
     for (const line of lines) {
       if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting purchase ${purchaseId}`);
       if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting purchase ${purchaseId}`);
@@ -977,7 +1206,8 @@ export class AccountingPostingService {
 
   async reversePurchaseJournal(queryable: DbOrTx, purchaseId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const existingReversal = await this.getExistingPurchaseReversalJournal(queryable, purchaseId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existingReversal = await this.getExistingPurchaseReversalJournal(queryable, purchaseId, scope.tenantId);
     if (existingReversal) {
       this.logger.warn(`Skipping duplicate purchase reversal journal for purchase ${purchaseId}; existing entry ${existingReversal.id}`);
       return { reversed: false, journalEntryId: Number(existingReversal.id) };
@@ -1050,7 +1280,8 @@ export class AccountingPostingService {
 
   async postSupplierPayment(queryable: DbOrTx, paymentId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const existing = await this.getExistingSupplierPaymentJournal(queryable, paymentId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await this.getExistingSupplierPaymentJournal(queryable, paymentId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
     const payment = await queryable
@@ -1077,7 +1308,7 @@ export class AccountingPostingService {
       return { posted: false, journalEntryId: null };
     }
 
-    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting supplier payment ${paymentId}`);
 
     const amount = this.toMoney(payment.amount);
@@ -1115,7 +1346,7 @@ export class AccountingPostingService {
       locationId,
     });
 
-    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
     for (const line of lines) {
       if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting supplier payment ${paymentId}`);
       if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting supplier payment ${paymentId}`);
@@ -1148,7 +1379,8 @@ export class AccountingPostingService {
 
   async postSupplierPaymentScheduleSettlement(queryable: DbOrTx, settlementId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const existing = await this.getExistingSupplierPaymentScheduleSettlementJournal(queryable, settlementId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await this.getExistingSupplierPaymentScheduleSettlementJournal(queryable, settlementId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
     const settlement = await queryable
@@ -1174,7 +1406,7 @@ export class AccountingPostingService {
       return { posted: false, journalEntryId: null };
     }
 
-    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting supplier payment schedule settlement ${settlementId}`);
 
     const amount = this.toMoney(settlement.amount);
@@ -1220,7 +1452,7 @@ export class AccountingPostingService {
       locationId,
     });
 
-    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
     for (const line of lines) {
       if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting supplier payment schedule settlement ${settlementId}`);
       if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting supplier payment schedule settlement ${settlementId}`);
@@ -1253,7 +1485,8 @@ export class AccountingPostingService {
 
   async postCustomerPayment(queryable: DbOrTx, paymentId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const existing = await this.getExistingCustomerPaymentJournal(queryable, paymentId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await this.getExistingCustomerPaymentJournal(queryable, paymentId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
     const payment = await queryable
@@ -1279,7 +1512,7 @@ export class AccountingPostingService {
       return { posted: false, journalEntryId: null };
     }
 
-    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting customer payment ${paymentId}`);
 
     const amount = this.toMoney(payment.amount);
@@ -1316,7 +1549,7 @@ export class AccountingPostingService {
       locationId,
     });
 
-    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
     for (const line of lines) {
       if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting customer payment ${paymentId}`);
       if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting customer payment ${paymentId}`);
@@ -1349,7 +1582,8 @@ export class AccountingPostingService {
 
   async postExpense(queryable: DbOrTx, expenseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const existing = await this.getExistingExpenseJournal(queryable, expenseId);
+    await this.ensureTenantFoundation(queryable, auth);
+    const existing = await this.getExistingExpenseJournal(queryable, expenseId, scope.tenantId);
     if (existing) {
       this.logger.warn(`Skipping duplicate expense journal for expense ${expenseId}; existing entry ${existing.id}`);
       return { posted: false, journalEntryId: Number(existing.id) };
@@ -1377,7 +1611,7 @@ export class AccountingPostingService {
       return { posted: false, journalEntryId: null };
     }
 
-    const settings = await queryable.selectFrom('accounting_settings').selectAll().where('id', '=', 1).executeTakeFirst();
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting expense ${expenseId}`);
 
     const amount = this.toMoney(expense.amount);
@@ -1389,7 +1623,7 @@ export class AccountingPostingService {
     const branchId = expense.branch_id ? Number(expense.branch_id) : null;
     const locationId = expense.location_id ? Number(expense.location_id) : null;
     const expenseTitle = String(expense.title || '').trim();
-    const expenseDebitAccountId = await this.resolveExpenseDebitAccountId(queryable, settings, expenseTitle, expenseId);
+    const expenseDebitAccountId = await this.resolveExpenseDebitAccountId(queryable, scope.tenantId, settings, expenseTitle, expenseId);
     const expenseLabel = expenseTitle || 'مصروف عام';
 
     // Current expense flow is cash-based and does not persist payment method.
@@ -1416,7 +1650,7 @@ export class AccountingPostingService {
       locationId,
     });
 
-    const accountMap = await this.getActiveAccountMap(queryable, lines.map((line) => line.accountId));
+    const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
     for (const line of lines) {
       if (!(line.accountId > 0)) throw new Error(`Invalid accounting setting account id while posting expense ${expenseId}`);
       if (!accountMap.has(line.accountId)) throw new Error(`Configured account ${line.accountId} was not found while posting expense ${expenseId}`);
