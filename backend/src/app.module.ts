@@ -25,6 +25,7 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { ManagerActionsModule } from './modules/manager-actions/manager-actions.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { SaasAdminModule } from './modules/saas-admin/saas-admin.module';
+import { PublicModule } from './modules/public/public.module';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { LoginRateLimitMiddleware } from './common/middleware/login-rate-limit.middleware';
 import { AuthBurstRateLimitMiddleware } from './common/middleware/auth-burst-rate-limit.middleware';
@@ -58,6 +59,7 @@ import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit
     ManagerActionsModule,
     AccountingModule,
     SaasAdminModule,
+    PublicModule,
   ],
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })

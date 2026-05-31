@@ -1,4 +1,4 @@
-# Z Systems SaaS Trial + Tenant Lifecycle Foundation
+﻿# Z Systems SaaS Trial + Tenant Lifecycle Foundation
 
 This document records the current SaaS trial, tenant isolation, and tenant lifecycle admin foundation for Z Systems.
 
@@ -81,7 +81,7 @@ Blocked actions for the platform tenant:
 - Expire
 - Extend trial
 
-The UI should show a passive label such as `نسخة المنصة` for the platform tenant row instead of lifecycle buttons.
+The UI should show a passive label such as `ظ†ط³ط®ط© ط§ظ„ظ…ظ†طµط©` for the platform tenant row instead of lifecycle buttons.
 
 ## SaaS Tenant Lifecycle Admin UI
 
@@ -94,7 +94,7 @@ Route:
 Sidebar label:
 
 ```text
-إدارة النسخ
+ط¥ط¯ط§ط±ط© ط§ظ„ظ†ط³ط®
 ```
 
 Access:
@@ -118,10 +118,10 @@ Main capabilities:
 
 Recommended fields:
 
-- `slug` / `معرّف النسخة`
-- `businessName` / اسم النشاط
-- `ownerName` / اسم المالك
-- `ownerPhone` / هاتف المالك
+- `slug` / `ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ†ط³ط®ط©`
+- `businessName` / ط§ط³ظ… ط§ظ„ظ†ط´ط§ط·
+- `ownerName` / ط§ط³ظ… ط§ظ„ظ…ط§ظ„ظƒ
+- `ownerPhone` / ظ‡ط§طھظپ ط§ظ„ظ…ط§ظ„ظƒ
 - `ownerEmail` optional
 - `activityType` optional
 - `username`
@@ -298,3 +298,9 @@ Recommended roadmap:
 - Do not audit-log generated temporary passwords.
 - Never allow tenant owners to access SaaS tenant lifecycle admin.
 - Never allow lifecycle mutation actions against the platform tenant itself.
+
+## Related documentation
+
+- Production readiness guide: docs/PRODUCTION_READINESS.md
+
+

@@ -98,6 +98,10 @@ function LoginRoute() {
 const router = createBrowserRouter([
   { path: '/activate', element: <AppGateGuard expected="activation"><ActivationPage /></AppGateGuard> },
   { path: '/setup', element: <AppGateGuard expected="setup"><FirstRunSetupPage /></AppGateGuard> },
+  {
+    path: '/trial',
+    element: createLazyRoute(() => import('@/features/public-trial/pages/TrialSignupPage').then((module) => ({ default: module.TrialSignupPage }))),
+  },
   { path: '/login', element: <AppGateGuard expected="login"><LoginRoute /></AppGateGuard> },
   {
     path: '/',
