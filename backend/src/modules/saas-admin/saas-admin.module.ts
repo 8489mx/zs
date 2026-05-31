@@ -4,10 +4,12 @@ import { AuthFoundationModule } from '../../core/auth/auth.module';
 import { AuditModule } from '../../core/audit/audit.module';
 import { SaasAdminController } from './saas-admin.controller';
 import { SaasAdminService } from './saas-admin.service';
+import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
 
 @Module({
   imports: [DatabaseModule, AuthFoundationModule, AuditModule],
   controllers: [SaasAdminController],
-  providers: [SaasAdminService],
+  providers: [SaasAdminService, TrialTenantProvisioningService],
+  exports: [TrialTenantProvisioningService],
 })
 export class SaasAdminModule {}
