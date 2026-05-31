@@ -30,13 +30,13 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
   });
 }
 
-export function useCreateBranchMutation(onSuccess?: () => void) {
+export function useCreateBranchMutation(onSuccess?: (result: { branchId?: string | null }) => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: BranchFormValues) => settingsApi.createBranch(buildBranchPayload(values)),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: false });
-      onSuccess?.();
+      onSuccess?.({ branchId: result?.branchId });
     }
   });
 }
@@ -65,13 +65,13 @@ export function useDeleteBranchMutation(onSuccess?: () => void) {
   });
 }
 
-export function useCreateLocationMutation(onSuccess?: () => void) {
+export function useCreateLocationMutation(onSuccess?: (result: { locationId?: string | null }) => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: LocationFormValues) => settingsApi.createLocation(buildLocationPayload(values)),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: true });
-      onSuccess?.();
+      onSuccess?.({ locationId: result?.locationId });
     }
   });
 }

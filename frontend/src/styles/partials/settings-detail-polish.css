@@ -142,3 +142,93 @@
     grid-template-columns: 1fr;
   }
 }
+.settings-page-shell .settings-main-grid {
+  max-width: 1160px;
+  margin-inline: auto;
+}
+
+.settings-page-shell .settings-primary-card .section-body {
+  gap: 10px;
+}
+
+.settings-page-shell .settings-core-form {
+  gap: 10px;
+}
+
+.settings-page-shell .settings-core-form .panel {
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.settings-page-shell .settings-core-form .panel.page-stack {
+  gap: 8px;
+}
+
+.settings-page-shell .settings-core-form .form-grid {
+  gap: 8px;
+}
+
+.settings-page-shell .settings-required-card {
+  border-color: color-mix(in srgb, var(--primary, #2563eb) 28%, var(--border, #dbe2ea));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface, #fff) 90%, var(--primary, #2563eb)), var(--surface, #fff));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.settings-page-shell .settings-quick-add-actions .btn,
+.settings-page-shell .settings-quick-add-actions .button {
+  min-height: 32px;
+  padding-inline: 10px;
+  font-size: 12px;
+}
+
+.settings-page-shell .settings-quick-add-panel {
+  margin-top: 4px;
+}
+
+.settings-page-shell .settings-print-options-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.settings-page-shell .settings-print-option {
+  min-height: 34px;
+  padding: 6px 8px !important;
+  border-radius: 9px !important;
+  font-size: 12px;
+  line-height: 1.25;
+  gap: 6px !important;
+}
+
+.settings-page-shell .settings-print-option input[type='checkbox'] {
+  margin: 0;
+}
+
+.settings-page-shell .settings-core-form > .btn.btn-primary {
+  width: fit-content;
+  min-width: 180px;
+  align-self: flex-start;
+}
+
+.settings-page-shell .settings-save-actions {
+  margin-top: 4px;
+}
+
+@media (max-width: 960px) {
+  .settings-page-shell .settings-main-grid {
+    max-width: 100%;
+  }
+
+  .settings-page-shell .settings-core-form .panel {
+    padding: 10px;
+  }
+
+  .settings-page-shell .settings-print-options-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-page-shell .settings-print-options-grid {
+    grid-template-columns: 1fr;
+  }
+}

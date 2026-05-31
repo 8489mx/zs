@@ -42,6 +42,39 @@ export class SettingsService {
   async saveSettings(payload: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new AppError('Settings payload must be an object', 'SETTINGS_INVALID', 400);
     const scope = this.scope(actor);
+    const currentBranchIdRaw = String(payload.currentBranchId ?? '').trim();
+    const currentLocationIdRaw = String(payload.currentLocationId ?? '').trim();
+    if (!currentBranchIdRaw || !currentLocationIdRaw) {
+      throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
+    }
+
+    const currentBranchId = Number(currentBranchIdRaw);
+    const currentLocationId = Number(currentLocationIdRaw);
+    if (!Number.isFinite(currentBranchId) || currentBranchId <= 0 || !Number.isFinite(currentLocationId) || currentLocationId <= 0) {
+      throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
+    }
+
+    const [branch, location] = await Promise.all([
+      this.db
+        .selectFrom('branches')
+        .select(['id'])
+        .where('id', '=', currentBranchId)
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(actor))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('stock_locations')
+        .select(['id', 'branch_id'])
+        .where('id', '=', currentLocationId)
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(actor))
+        .executeTakeFirst(),
+    ]);
+
+    if (!branch || !location || Number(location.branch_id || 0) !== currentBranchId) {
+      throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
+    }
+
     for (const [key, value] of Object.entries(payload)) {
       await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db);
     }
