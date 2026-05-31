@@ -53,8 +53,12 @@ describe('http client', () => {
     });
 
     expect(listener).toHaveBeenCalledTimes(1);
-    const event = listener.mock.calls[0][0] as CustomEvent<{ path: string; status: number }>;
-    expect(event.detail).toEqual({ path: '/secure', status: 401 });
+    const event = listener.mock.calls[0][0] as CustomEvent<{ path: string; status: number; message: string }>;
+    expect(event.detail).toEqual({
+      path: '/secure',
+      status: 401,
+      message: 'تم تحديث الجلسة. من فضلك سجّل الدخول مرة أخرى.',
+    });
   });
 
   it('maps transport failures to a network api error and emits a network-state event', async () => {

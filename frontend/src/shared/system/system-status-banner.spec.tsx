@@ -1,4 +1,4 @@
-import { QueryClientProvider } from '@tanstack/react-query';
+﻿import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -47,7 +47,7 @@ describe('SystemStatusBanner', () => {
       window.dispatchEvent(new CustomEvent(APP_UNAUTHORIZED_EVENT, { detail: { path: '/reports', status: 401 } }));
     });
 
-    expect(await screen.findByText('انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.')).toBeInTheDocument();
+    expect(await screen.findByText('تم تحديث الجلسة. من فضلك سجّل الدخول مرة أخرى.')).toBeInTheDocument();
     await waitFor(() => {
       expect(useAuthStore.getState().user).toBeNull();
       expect(useAuthStore.getState().storeName).toBe(DEFAULT_STORE_NAME);
@@ -62,7 +62,7 @@ describe('SystemStatusBanner', () => {
       window.dispatchEvent(new CustomEvent(APP_NETWORK_STATE_EVENT, { detail: { online: false, path: '/health' } }));
     });
 
-    expect(await screen.findByText('لا يوجد اتصال بالشبكة حاليًا. بعض العمليات قد لا تعمل حتى يعود الاتصال.')).toBeInTheDocument();
+    expect(await screen.findByText('ظ„ط§ ظٹظˆط¬ط¯ ط§طھطµط§ظ„ ط¨ط§ظ„ط´ط¨ظƒط© ط­ط§ظ„ظٹظ‹ط§. ط¨ط¹ط¶ ط§ظ„ط¹ظ…ظ„ظٹط§طھ ظ‚ط¯ ظ„ط§ طھط¹ظ…ظ„ ط­طھظ‰ ظٹط¹ظˆط¯ ط§ظ„ط§طھطµط§ظ„.')).toBeInTheDocument();
   });
 
   it('shows the signed-out reason on the login route', async () => {

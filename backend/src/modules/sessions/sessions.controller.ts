@@ -21,6 +21,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { createCsrfToken } from '../../core/auth/utils/csrf-token';
 import { ActivationService } from '../activation/activation.service';
+import { clearKnownAuthCookies } from '../../core/auth/utils/auth-cookie-cleanup';
 
 @Controller('api/auth')
 export class SessionsController {
@@ -80,8 +81,13 @@ export class SessionsController {
   }
 
   private clearAuthCookies(res: Response): void {
-    res.clearCookie(this.getSessionCookieName(), this.cookieOptions());
-    res.clearCookie(this.getCsrfCookieName(), this.csrfCookieOptions());
+    clearKnownAuthCookies(res, {
+      sessionCookieName: this.getSessionCookieName(),
+      csrfCookieName: this.getCsrfCookieName(),
+      sameSite: this.configService.get<'lax' | 'strict' | 'none'>('SESSION_COOKIE_SAME_SITE') ?? 'lax',
+      secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
+      domain: this.sharedCookieDomain(),
+    });
   }
 
   @Post('login')
@@ -121,14 +127,31 @@ export class SessionsController {
   }
 
   @Post('logout')
-  @UseGuards(SessionAuthGuard)
   async logout(
     @Req() req: RequestWithAuth,
     @Res({ passthrough: true }) res: Response,
   ): Promise<Record<string, unknown>> {
-    await this.sessionService.logout(req.authContext!.sessionId, req.authContext!);
+    const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : '';
+    const sessionCookieName = this.getSessionCookieName();
+    const sessionFromCookie = cookieHeader
+      .split(';')
+      .map((entry) => entry.trim())
+      .find((entry) => entry.startsWith(`${sessionCookieName}=`))
+      ?.slice(sessionCookieName.length + 1)
+      .trim();
+    const sessionFromHeader = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'].trim() : '';
+    const sessionId = String(req.authContext?.sessionId || sessionFromCookie || sessionFromHeader || '').trim();
+
+    if (sessionId) {
+      await this.sessionService.logout(sessionId, req.authContext);
+    }
+
     this.clearAuthCookies(res);
-    await this.auditService.log('تسجيل خروج', `تم تسجيل خروج المستخدم ${req.authContext!.username}`, req.authContext!);
+
+    if (req.authContext) {
+      await this.auditService.log('تسجيل خروج', `تم تسجيل خروج المستخدم ${req.authContext.username}`, req.authContext);
+    }
+
     return { ok: true };
   }
 
