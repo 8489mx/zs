@@ -32,7 +32,7 @@ function mapSourceLabel(sourceType: string) {
   if (sourceType === 'expense') return 'مصروف';
   if (sourceType === 'treasury_expense') return 'مصروف خزنة';
   if (sourceType === 'expense_reversal') return 'عكس مصروف';
-  if (sourceType === 'opening_balance') return 'أرصدة افتتاحية';
+  if (sourceType === 'opening_balance') return 'رصيد افتتاحي';
   if (sourceType === 'manual') return 'يدوي';
   return sourceType || '';
 }

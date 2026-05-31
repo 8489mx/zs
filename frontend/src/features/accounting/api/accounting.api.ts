@@ -172,6 +172,39 @@ export type InventoryValueResponse = {
   items: InventoryValueItem[];
 };
 
+export type OpeningBalancePreviewLine = {
+  accountId: number;
+  accountCode: string;
+  accountNameAr: string;
+  description: string;
+  debit: number;
+  credit: number;
+};
+
+export type OpeningBalancesPreviewResponse = {
+  alreadyPosted: boolean;
+  existingOpeningEntryId: number | null;
+  systemStartDate: string;
+  totals: {
+    cashOpening: number;
+    bankOpening: number;
+    customerReceivables: number;
+    supplierPayables: number;
+    inventoryValue: number;
+    balancingCapital: number;
+  };
+  linesPreview: OpeningBalancePreviewLine[];
+  warnings: string[];
+};
+
+export type OpeningBalancesPostResponse = {
+  posted: boolean;
+  alreadyPosted: boolean;
+  journalEntryId: string;
+  message: string;
+  preview: OpeningBalancesPreviewResponse;
+};
+
 export const accountingApi = {
   accounts: () => http<{ accounts: AccountingAccount[] }>('/api/accounting/accounts'),
   settings: () => http<{ settings: Record<string, unknown> | null }>('/api/accounting/settings'),
@@ -221,5 +254,18 @@ export const accountingApi = {
     const suffix = search.toString();
     return http<InventoryValueResponse>(`/api/accounting/reports/inventory-value${suffix ? `?${suffix}` : ''}`);
   },
+  openingBalancesPreview: (query: { system_start_date?: string; cash_opening?: number; bank_opening?: number }) => {
+    const search = new URLSearchParams();
+    if (query.system_start_date) search.set('system_start_date', String(query.system_start_date));
+    if (typeof query.cash_opening === 'number' && Number.isFinite(query.cash_opening)) search.set('cash_opening', String(query.cash_opening));
+    if (typeof query.bank_opening === 'number' && Number.isFinite(query.bank_opening)) search.set('bank_opening', String(query.bank_opening));
+    const suffix = search.toString();
+    return http<OpeningBalancesPreviewResponse>(`/api/accounting/opening-balances/preview${suffix ? `?${suffix}` : ''}`);
+  },
+  postOpeningBalances: (body: { system_start_date: string; cash_opening?: number; bank_opening?: number; note?: string }) =>
+    http<OpeningBalancesPostResponse>('/api/accounting/opening-balances/post', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
 
