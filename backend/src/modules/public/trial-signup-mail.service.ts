@@ -1,4 +1,7 @@
+import { createRequire } from 'node:module';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+
+const require = createRequire(import.meta.url);
 
 type TrialSignupMailPayload = {
   businessName: string;
@@ -55,7 +58,11 @@ export class TrialSignupMailService {
       throw new InternalServerErrorException('MAIL_CONFIG_MISSING');
     }
 
-    const nodemailer = await import('nodemailer');
+    const nodemailer = require('nodemailer') as {
+      createTransport(config: Record<string, unknown>): {
+        sendMail(payload: Record<string, unknown>): Promise<unknown>;
+      };
+    };
     const transporter = nodemailer.createTransport({
       host,
       port,
@@ -71,4 +78,3 @@ export class TrialSignupMailService {
     });
   }
 }
-
