@@ -1,16 +1,68 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Logger, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { PublicTrialSignupDto } from './dto/public-trial-signup.dto';
 import { PublicTrialSignupService } from './public-trial-signup.service';
 
 @Controller('api/public')
 export class PublicController {
+  private readonly logger = new Logger(PublicController.name);
+
   constructor(private readonly service: PublicTrialSignupService) {}
 
+  private maskEmail(value: unknown): string {
+    const email = String(value || '').trim().toLowerCase();
+    const [localRaw, domainRaw] = email.split('@');
+    const local = localRaw || '';
+    const domain = domainRaw || '';
+    if (!local || !domain) return '***';
+    return `${local.slice(0, 2)}***@${domain}`;
+  }
+
+  private maskPhone(value: unknown): string {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return '***';
+    return `${'*'.repeat(Math.max(8, digits.length - 3))}${digits.slice(-3)}`;
+  }
+
+  private sanitizeError(error: unknown): Record<string, unknown> {
+    const candidate = (error ?? {}) as Record<string, unknown>;
+    const status = typeof (candidate as { status?: unknown }).status === 'number'
+      ? (candidate as { status: number }).status
+      : typeof (candidate as { statusCode?: unknown }).statusCode === 'number'
+        ? (candidate as { statusCode: number }).statusCode
+        : undefined;
+
+    return {
+      name: typeof candidate.name === 'string' ? candidate.name : 'Error',
+      message: typeof candidate.message === 'string' ? candidate.message : 'Unknown error',
+      code: typeof candidate.code === 'string' ? candidate.code : undefined,
+      constraint: typeof candidate.constraint === 'string' ? candidate.constraint : undefined,
+      table: typeof candidate.table === 'string' ? candidate.table : undefined,
+      column: typeof candidate.column === 'string' ? candidate.column : undefined,
+      status,
+    };
+  }
+
   @Post('trial-signup')
-  signup(@Body() body: PublicTrialSignupDto, @Req() req: Request) {
+  async signup(@Body() body: PublicTrialSignupDto, @Req() req: Request) {
     const ip = String(req.ip || req.socket?.remoteAddress || 'unknown').trim() || 'unknown';
-    return this.service.signup(body, ip);
+    const maskedEmail = this.maskEmail(body.ownerEmail);
+    const maskedPhone = this.maskPhone(body.ownerPhone);
+
+    this.logger.log(`POST /api/public/trial-signup start | email=${maskedEmail} | phone=${maskedPhone}`);
+    this.logger.log(`POST /api/public/trial-signup before service | email=${maskedEmail} | phone=${maskedPhone}`);
+
+    try {
+      const result = await this.service.signup(body, ip);
+      this.logger.log(`POST /api/public/trial-signup after service | email=${maskedEmail} | phone=${maskedPhone}`);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `POST /api/public/trial-signup service threw | email=${maskedEmail} | phone=${maskedPhone}`,
+        JSON.stringify(this.sanitizeError(error)),
+      );
+      throw error;
+    }
   }
 }
 
