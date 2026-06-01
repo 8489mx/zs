@@ -35,6 +35,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const sanitizedError = this.sanitizeError(exception);
 
     if (status >= 500) {
+      console.error(
+        '[global-exception]',
+        JSON.stringify({
+          method: request.method,
+          path: request.url,
+          status,
+          requestId,
+          error: sanitizedError,
+        }),
+      );
+
       this.logger.error(
         {
           method: request.method,
