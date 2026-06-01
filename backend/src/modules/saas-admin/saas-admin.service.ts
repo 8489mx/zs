@@ -1,4 +1,5 @@
-﻿import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -6,6 +7,7 @@ import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AuditService } from '../../core/audit/audit.service';
 import { CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, TenantStatusActionDto } from './dto/saas-admin.dto';
 import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
+import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 
 type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
 
@@ -56,6 +58,27 @@ export class SaasAdminService {
     if (!trialEndsAt) return null;
     const diffMs = trialEndsAt.getTime() - Date.now();
     return Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  }
+
+  private generateStrongTemporaryPassword(): string {
+    return `Owner-${randomBytes(10).toString('base64url')}@Zs1`;
+  }
+
+  private async getOwnerUserForTenant(tenantId: string) {
+    const owner = await this.db
+      .selectFrom('users')
+      .select(['id', 'username', 'tenant_id', 'is_active', 'must_change_password', 'failed_login_count', 'locked_until'])
+      .where('tenant_id', '=', tenantId)
+      .where('role', '=', 'super_admin')
+      .orderBy('created_at asc')
+      .orderBy('id asc')
+      .executeTakeFirst();
+
+    if (!owner) {
+      throw new NotFoundException('مستخدم مالك النسخة غير موجود.');
+    }
+
+    return owner;
   }
 
   async listTenants(query: ListSaasTenantsQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -115,7 +138,34 @@ export class SaasAdminService {
     }
 
     const rows = await listQuery.execute();
-    const tenants = rows.map((row) => ({
+    const tenantIds = rows.map((row) => row.id);
+    const ownerRows = tenantIds.length
+      ? await this.db
+          .selectFrom('users')
+          .select(['tenant_id', 'username', 'is_active', 'failed_login_count', 'locked_until'])
+          .where('tenant_id', 'in', tenantIds)
+          .where('role', '=', 'super_admin')
+          .orderBy('created_at asc')
+          .orderBy('id asc')
+          .execute()
+      : [];
+
+    const ownerByTenant = new Map<string, { username: string; isActive: boolean; locked: boolean }>();
+    for (const owner of ownerRows) {
+      const key = String(owner.tenant_id || '');
+      if (ownerByTenant.has(key)) continue;
+      const lockedUntilMs = owner.locked_until ? new Date(owner.locked_until).getTime() : 0;
+      const isLocked = Number(owner.failed_login_count || 0) > 0 || lockedUntilMs > Date.now();
+      ownerByTenant.set(key, {
+        username: String(owner.username || ''),
+        isActive: Boolean(owner.is_active),
+        locked: isLocked,
+      });
+    }
+
+    const tenants = rows.map((row) => {
+      const owner = ownerByTenant.get(String(row.id || ''));
+      return {
       id: row.id,
       slug: row.slug,
       businessName: row.business_name,
@@ -132,7 +182,11 @@ export class SaasAdminService {
       trialDaysRemaining: this.trialDaysRemaining(row.trial_ends_at ? new Date(row.trial_ends_at) : null),
       usersCount: Number(row.users_count || 0),
       activeUsersCount: Number(row.active_users_count || 0),
-    }));
+      ownerLocked: Boolean(owner?.locked),
+      ownerIsActive: owner ? Boolean(owner.isActive) : false,
+      ownerUsername: owner?.username || '',
+      };
+    });
 
     return { tenants };
   }
@@ -275,5 +329,57 @@ export class SaasAdminService {
     await this.audit.log('تمديد نسخة تجريبية', `تم تمديد النسخة ${tenant.slug} (${tenant.id}) لمدة ${days} يوم`, auth);
 
     return { ok: true, trialEndsAt: nextTrialEnd.toISOString(), daysAdded: days };
+  }
+
+  async unlockOwner(id: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertPlatformAccess(auth);
+    const tenant = await this.getTenantForMutation(id);
+    this.assertNotPlatformTenantTarget(tenant.id);
+    const owner = await this.getOwnerUserForTenant(tenant.id);
+
+    await this.db
+      .updateTable('users')
+      .set({
+        failed_login_count: 0,
+        locked_until: null,
+        is_active: true,
+      } as any)
+      .where('id', '=', owner.id)
+      .execute();
+
+    await this.audit.log('فك قفل مالك النسخة', `تم فك قفل مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth);
+    return { ok: true };
+  }
+
+  async resetOwnerPassword(id: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertPlatformAccess(auth);
+    const tenant = await this.getTenantForMutation(id);
+    this.assertNotPlatformTenantTarget(tenant.id);
+    const owner = await this.getOwnerUserForTenant(tenant.id);
+    const temporaryPassword = this.generateStrongTemporaryPassword();
+    const passwordRecord = await createPasswordRecord(temporaryPassword);
+
+    await this.db
+      .updateTable('users')
+      .set({
+        password_hash: passwordRecord.hash,
+        password_salt: passwordRecord.salt,
+        must_change_password: true,
+        failed_login_count: 0,
+        locked_until: null,
+        is_active: true,
+      } as any)
+      .where('id', '=', owner.id)
+      .execute();
+
+    await this.audit.log('إعادة كلمة مرور مالك النسخة', `تمت إعادة كلمة مرور مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth);
+    return {
+      ok: true,
+      owner: {
+        username: owner.username,
+        temporaryPassword,
+        mustChangePassword: true,
+      },
+    };
   }
 }

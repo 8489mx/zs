@@ -43,4 +43,14 @@ export class SaasAdminController {
   extendTrial(@Param('id') id: string, @Body() body: ExtendTrialDto, @Req() req: RequestWithAuth) {
     return this.service.extendTrial(id, body, req.authContext!);
   }
+
+  @Post('tenants/:id/unlock-owner')
+  unlockOwner(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.service.unlockOwner(id, req.authContext!);
+  }
+
+  @Post('tenants/:id/reset-owner-password')
+  resetOwnerPassword(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.service.resetOwnerPassword(id, req.authContext!);
+  }
 }

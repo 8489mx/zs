@@ -15,7 +15,7 @@ import { ApiError } from '@/lib/http';
 import { isPlatformAdmin } from '@/app/router/access';
 import { saasAdminApi, SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
 
-type TenantActionKey = 'activate' | 'suspend' | 'expire';
+type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner';
 type SaasTenantsResponse = { tenants: SaasTenantRow[] };
 
 function statusLabel(status: SaasTenantStatus): string {
@@ -47,6 +47,7 @@ export function SaasTenantsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [createResult, setCreateResult] = useState<{ username: string; temporaryPassword: string; trialEndsAt: string } | null>(null);
+  const [ownerResetResult, setOwnerResetResult] = useState<{ tenantName: string; username: string; temporaryPassword: string } | null>(null);
   const [createForm, setCreateForm] = useState({
     slug: '',
     businessName: '',
@@ -93,6 +94,7 @@ export function SaasTenantsPage() {
     mutationFn: async (input: { action: TenantActionKey; tenantId: string }) => {
       if (input.action === 'activate') return saasAdminApi.activateTenant(input.tenantId);
       if (input.action === 'suspend') return saasAdminApi.suspendTenant(input.tenantId);
+      if (input.action === 'unlockOwner') return saasAdminApi.unlockOwner(input.tenantId);
       return saasAdminApi.expireTenant(input.tenantId);
     },
     onSuccess: async () => {
@@ -109,6 +111,21 @@ export function SaasTenantsPage() {
       await invalidateTenants();
     },
     onError: (error) => setFeedback(getFriendlyApiErrorMessage(error, 'تعذر تمديد الفترة التجريبية.')),
+  });
+
+  const resetOwnerPasswordMutation = useMutation({
+    mutationFn: (input: { tenantId: string; tenantName: string }) =>
+      saasAdminApi.resetOwnerPassword(input.tenantId).then((res) => ({ ...res, tenantName: input.tenantName })),
+    onSuccess: async (payload) => {
+      setOwnerResetResult({
+        tenantName: payload.tenantName,
+        username: payload.owner.username,
+        temporaryPassword: payload.owner.temporaryPassword,
+      });
+      setFeedback('تمت إعادة كلمة مرور مالك النسخة بنجاح.');
+      await invalidateTenants();
+    },
+    onError: (error) => setFeedback(getFriendlyApiErrorMessage(error, 'تعذر إعادة كلمة مرور مالك النسخة.')),
   });
 
   const createTrialMutation = useMutation({
@@ -165,6 +182,15 @@ export function SaasTenantsPage() {
 
       {feedback ? <div className={isForbiddenByApi ? 'warning-box' : 'success-box'}>{feedback}</div> : null}
       {isForbiddenByApi ? <div className="warning-box">هذه الصفحة مخصّصة لإدارة المنصة فقط.</div> : null}
+      {ownerResetResult ? (
+        <div className="warning-box">
+          <div><strong>تم إعادة كلمة مرور مالك النسخة</strong></div>
+          <div>النسخة: <strong>{ownerResetResult.tenantName}</strong></div>
+          <div>اسم المستخدم: <strong>{ownerResetResult.username}</strong></div>
+          <div>كلمة المرور المؤقتة: <strong>{ownerResetResult.temporaryPassword}</strong></div>
+          <div className="muted small">تظهر كلمة المرور مرة واحدة فقط. انسخها الآن.</div>
+        </div>
+      ) : null}
 
       <Card title="نسخ العملاء">
         <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالاسم أو slug أو المالك أو الهاتف">
@@ -217,6 +243,7 @@ export function SaasTenantsPage() {
                   <div className="stack gap-4">
                     <span>{row.ownerName}</span>
                     <span className="muted small">{row.ownerPhone}</span>
+                    <span className="muted small">{row.ownerLocked ? 'المالك: مقفول' : 'المالك: غير مقفول'}</span>
                   </div>
                 ),
               },
@@ -253,6 +280,8 @@ export function SaasTenantsPage() {
                       <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'suspend', tenantId: row.id })}>إيقاف</button>
                       <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'expire', tenantId: row.id })}>إنهاء</button>
                       <button type="button" className="button button-secondary" onClick={() => extendTrialMutation.mutate({ tenantId: row.id, days: 7 })}>+7 أيام</button>
+                      <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'unlockOwner', tenantId: row.id })}>فك قفل المالك</button>
+                      <button type="button" className="button button-secondary" onClick={() => resetOwnerPasswordMutation.mutate({ tenantId: row.id, tenantName: row.businessName })}>إعادة كلمة المرور</button>
                     </div>
                   );
                 },

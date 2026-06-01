@@ -19,6 +19,9 @@ export type SaasTenantRow = {
   trialDaysRemaining: number | null;
   usersCount: number;
   activeUsersCount: number;
+  ownerLocked: boolean;
+  ownerIsActive: boolean;
+  ownerUsername: string;
 };
 
 export type CreateTrialTenantPayload = {
@@ -60,4 +63,10 @@ export const saasAdminApi = {
       method: 'POST',
       body: JSON.stringify({ days }),
     }),
+  unlockOwner: (id: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/unlock-owner`, { method: 'POST', body: JSON.stringify({}) }),
+  resetOwnerPassword: (id: string) =>
+    http<{ ok: boolean; owner: { username: string; temporaryPassword: string; mustChangePassword: boolean } }>(
+      `/api/saas-admin/tenants/${encodeURIComponent(id)}/reset-owner-password`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
 };
