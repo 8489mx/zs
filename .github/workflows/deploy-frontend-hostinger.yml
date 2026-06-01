@@ -44,6 +44,7 @@ jobs:
         env:
           VITE_API_BASE_URL: https://api.karimzakaria.com
           VITE_PLATFORM_TENANT_ID: karimzakaria-demo
+          VITE_CSRF_COOKIE_NAME: zs_cloud_csrf_token
         run: npm run build
 
       - name: Deploy dist to Hostinger FTP
