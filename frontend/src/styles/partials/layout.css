@@ -82,6 +82,22 @@
   letter-spacing: 0.2px;
 }
 .trial-subtitle-nowrap { white-space: nowrap; }
+.trial-subtitle-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.trial-subtitle-lines > span {
+  display: block;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 720px) {
   .trial-subtitle-nowrap { white-space: normal; }
 }

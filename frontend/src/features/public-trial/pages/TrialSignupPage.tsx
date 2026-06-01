@@ -59,7 +59,10 @@ export function TrialSignupPage() {
           <div className="login-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
           <div className="login-header">
             <h1>ابدأ التجربة المجانية</h1>
-            <p className="login-subtitle muted trial-subtitle-nowrap">ابدأ تجربتك المجانية لمدة 14 يوم واستلم بيانات الدخول على بريدك الالكتروني.</p>
+            <div className="login-subtitle muted trial-subtitle-lines">
+              <span>ابدأ تجربتك المجانية لمدة 14 يوم</span>
+              <span>واستلم بيانات الدخول على بريدك الالكتروني</span>
+            </div>
           </div>
 
           <Field label="اسم المتجر / النشاط" error={form.formState.errors.businessName?.message}>
