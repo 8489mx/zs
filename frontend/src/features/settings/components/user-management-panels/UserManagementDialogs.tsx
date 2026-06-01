@@ -20,7 +20,30 @@ export function UserDeleteDialog({ open, draft, isBusy, onCancel, onConfirm }: {
   );
 }
 
-export function UserBulkActionDialog({ open, action, selectedUsers, isBusy, onCancel, onConfirm }: { open: boolean; action: UserBulkAction | null; selectedUsers: ManagedUserRecord[]; isBusy: boolean; onCancel: () => void; onConfirm: () => void; }) {
+export function UserBulkActionDialog({
+  open,
+  action,
+  selectedUsers,
+  disableBulkSummary,
+  isBusy,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  action: UserBulkAction | null;
+  selectedUsers: ManagedUserRecord[];
+  disableBulkSummary?: {
+    selectedCount: number;
+    disableEligibleCount: number;
+    protectedCount: number;
+    canRunDisable: boolean;
+    reasonSummaries: string[];
+    helperText: string;
+  };
+  isBusy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void | Promise<void>;
+}) {
   const actionConfig = action === 'unlock'
     ? { title: 'فتح قفل المستخدمين المحددين', confirmLabel: 'فتح القفل', confirmVariant: 'secondary' as const, confirmationKeyword: 'UNLOCK', confirmationLabel: 'اكتب UNLOCK لتأكيد فتح القفل', description: 'سيتم تصفير محاولات الدخول الفاشلة وإزالة حالة القفل للحسابات المحددة.' }
     : action === 'require-password-change'
@@ -31,7 +54,21 @@ export function UserBulkActionDialog({ open, action, selectedUsers, isBusy, onCa
     <ActionConfirmDialog
       open={open}
       title={actionConfig.title}
-      description={(<div className="page-stack" style={{ gap: 8 }}><span>{actionConfig.description}</span><strong>عدد الحسابات المحددة: {selectedUsers.length}</strong><div className="muted small">{selectedUsers.slice(0, 5).map((user) => user.username).join('، ')}{selectedUsers.length > 5 ? ' …' : ''}</div></div>)}
+      description={(
+        <div className="page-stack" style={{ gap: 8 }}>
+          <span>{actionConfig.description}</span>
+          {action === 'deactivate' && disableBulkSummary ? (
+            <>
+              <strong>عدد المستخدمين القابلين للإيقاف: {disableBulkSummary.disableEligibleCount}</strong>
+              <strong>عدد الحسابات المحمية التي سيتم تخطيها: {disableBulkSummary.protectedCount}</strong>
+              {disableBulkSummary.reasonSummaries.length ? <div className="muted small">الأسباب: {disableBulkSummary.reasonSummaries.join('، ')}</div> : null}
+            </>
+          ) : (
+            <strong>عدد الحسابات المحددة: {selectedUsers.length}</strong>
+          )}
+          <div className="muted small">{selectedUsers.slice(0, 5).map((user) => user.username).join('، ')}{selectedUsers.length > 5 ? ' …' : ''}</div>
+        </div>
+      )}
       confirmLabel={actionConfig.confirmLabel}
       confirmVariant={actionConfig.confirmVariant}
       confirmationKeyword={actionConfig.confirmationKeyword}

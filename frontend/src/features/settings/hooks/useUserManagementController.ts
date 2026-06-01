@@ -64,6 +64,63 @@ export function useUserManagementController({
 
   const selectedUsers = useMemo(() => managedUsers.filter((user) => selectedIds.includes(String(user.id || user.username))), [managedUsers, selectedIds]);
   const operationalAdmins = useMemo(() => managedUsers.filter((user) => user.isActive !== false && user.role === 'admin'), [managedUsers]);
+  const activePrivilegedUsers = useMemo(
+    () => managedUsers.filter((user) => user.isActive !== false && (user.role === 'admin' || user.role === 'super_admin')),
+    [managedUsers],
+  );
+
+  const disableProtectionByUserId = useMemo(() => {
+    const map = new Map<string, 'super_admin' | 'current_user' | 'last_active_privileged'>();
+    const disableCandidateAdmins = selectedUsers.filter((user) => {
+      const id = String(user.id || '');
+      return id && id !== currentUserId && user.role === 'admin' && user.isActive !== false;
+    });
+    const remainingPrivilegedIfDisable = activePrivilegedUsers.length - disableCandidateAdmins.length;
+    const shouldProtectLastPrivileged = remainingPrivilegedIfDisable < 1 && disableCandidateAdmins.length > 0;
+
+    for (const user of selectedUsers) {
+      const id = String(user.id || '');
+      if (!id) continue;
+      if (user.role === 'super_admin') {
+        map.set(id, 'super_admin');
+        continue;
+      }
+      if (id === currentUserId) {
+        map.set(id, 'current_user');
+        continue;
+      }
+      if (shouldProtectLastPrivileged && user.role === 'admin' && user.isActive !== false) {
+        map.set(id, 'last_active_privileged');
+      }
+    }
+    return map;
+  }, [selectedUsers, currentUserId, activePrivilegedUsers.length]);
+
+  const disableBulkSummary = useMemo(() => {
+    const selectedCount = selectedUsers.length;
+    const protectedUsers = selectedUsers.filter((user) => disableProtectionByUserId.has(String(user.id || '')));
+    const disableEligibleUsers = selectedUsers.filter((user) => !disableProtectionByUserId.has(String(user.id || '')));
+    const reasonLabels: Record<'super_admin' | 'current_user' | 'last_active_privileged', string> = {
+      super_admin: 'سوبر أدمن',
+      current_user: 'الحساب الحالي',
+      last_active_privileged: 'آخر حساب إداري فعّال',
+    };
+    const reasonCounts: Record<string, number> = {};
+    for (const user of protectedUsers) {
+      const key = disableProtectionByUserId.get(String(user.id || ''));
+      if (!key) continue;
+      reasonCounts[reasonLabels[key]] = Number(reasonCounts[reasonLabels[key]] || 0) + 1;
+    }
+    const reasonSummaries = Object.entries(reasonCounts).map(([reason, count]) => `${reason} (${count})`);
+    return {
+      selectedCount,
+      disableEligibleCount: disableEligibleUsers.length,
+      protectedCount: protectedUsers.length,
+      canRunDisable: disableEligibleUsers.length > 0,
+      reasonSummaries,
+      helperText: protectedUsers.length ? 'سيتم تخطي الحسابات المحمية عند تنفيذ الإيقاف.' : '',
+    };
+  }, [selectedUsers, disableProtectionByUserId]);
 
   const loadUser = useCallback((user?: ManagedUserRecord | null) => {
     if (!user) return;
@@ -120,6 +177,16 @@ export function useUserManagementController({
   const canDeleteSelected = Boolean(draft.id && managedUsers.length > 1 && String(draft.id) !== currentUserId);
   const canUnlockSelected = Boolean(draft.id && draft.lockedUntil);
   const isCurrentUserSelected = Boolean(draft.id && String(draft.id) === currentUserId);
+  type DisableProtectionReason = 'super_admin' | 'current_user' | 'last_active_privileged';
+  const selectedDraftDisableProtection = useMemo<DisableProtectionReason | null>(() => {
+    const id = String(draft.id || '');
+    if (!id) return null;
+    if (draft.role === 'super_admin') return 'super_admin';
+    if (id === currentUserId) return 'current_user';
+    if (draft.role === 'admin' && draft.isActive !== false && activePrivilegedUsers.length <= 1) return 'last_active_privileged';
+    return null;
+  }, [draft.id, draft.role, draft.isActive, currentUserId, activePrivilegedUsers.length]);
+  const canDirectlyDisableSelected = !selectedDraftDisableProtection;
 
   function applyDefaultPermissions(role: 'super_admin' | 'admin' | 'cashier') {
     setDraft((current) => ({ ...current, role, permissions: applyRolePermissions(role) }));
@@ -183,6 +250,11 @@ export function useUserManagementController({
   async function runBulkAction() {
     try {
       setStatusMessage('');
+      if (bulkAction === 'deactivate' && !disableBulkSummary.canRunDisable) {
+        setStatusMessage('لا يوجد مستخدم قابل للإيقاف ضمن التحديد الحالي.');
+        setBulkAction(null);
+        return;
+      }
       const hasRun = await runUserBulkAction({
         bulkAction,
         selectedUsers,
@@ -200,11 +272,20 @@ export function useUserManagementController({
     }
   }
 
+  function openBulkAction(action: UserBulkAction) {
+    if (action === 'deactivate' && !disableBulkSummary.canRunDisable) {
+      setStatusMessage('لا يوجد مستخدم قابل للإيقاف ضمن التحديد الحالي.');
+      return;
+    }
+    setBulkAction(action);
+  }
+
   return {
     currentUserRole,
     usersQuery,
     managedUsers,
     userSummary,
+    disableBulkSummary,
     selectedUsers,
     selectedUserKey,
     setSelectedUserKey,
@@ -223,11 +304,14 @@ export function useUserManagementController({
     setPageSize,
     bulkAction,
     setBulkAction,
+    openBulkAction,
     deleteDialogOpen,
     setDeleteDialogOpen,
     canDeleteSelected,
     canUnlockSelected,
     isCurrentUserSelected,
+    selectedDraftDisableProtection,
+    canDirectlyDisableSelected,
     actionMutation,
     loadUser,
     startNewUser,

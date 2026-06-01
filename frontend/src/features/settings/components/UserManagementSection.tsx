@@ -35,6 +35,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
     usersQuery,
     managedUsers,
     userSummary,
+    disableBulkSummary,
     selectedUsers,
     selectedUserKey,
     draft,
@@ -52,11 +53,14 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
     setPageSize,
     bulkAction,
     setBulkAction,
+    openBulkAction,
     deleteDialogOpen,
     setDeleteDialogOpen,
     canDeleteSelected,
     canUnlockSelected,
     isCurrentUserSelected,
+    selectedDraftDisableProtection,
+    canDirectlyDisableSelected,
     actionMutation,
     loadUser,
     startNewUser,
@@ -116,7 +120,8 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               onSelectedIdsChange={setSelectedIds}
               onPageChange={setPage}
               onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
-              onBulkAction={setBulkAction}
+              onBulkAction={openBulkAction}
+              disableBulkSummary={disableBulkSummary}
               onOpenDetails={(user) => setDetailsUserId(String(user.id || ''))}
               setupMode={setupMode}
             />
@@ -125,6 +130,8 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               draft={draft}
               currentUserRole={currentUserRole}
               isCurrentUserSelected={isCurrentUserSelected}
+              selectedDraftDisableProtection={selectedDraftDisableProtection}
+              canDirectlyDisableSelected={canDirectlyDisableSelected}
               canUnlockSelected={canUnlockSelected}
               canDeleteSelected={canDeleteSelected}
               isPending={actionMutation.isPending}
@@ -193,9 +200,10 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         open={Boolean(bulkAction)}
         action={bulkAction}
         selectedUsers={selectedUsers}
+        disableBulkSummary={disableBulkSummary}
         isBusy={actionMutation.isPending}
         onCancel={() => setBulkAction(null)}
-        onConfirm={() => void runBulkAction()}
+        onConfirm={() => runBulkAction()}
       />
     </>
   );

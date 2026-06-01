@@ -46,6 +46,7 @@ export function UserManagementListPanel({
   onPageChange,
   onPageSizeChange,
   onBulkAction,
+  disableBulkSummary,
   onOpenDetails,
   setupMode = false
 }: {
@@ -69,6 +70,14 @@ export function UserManagementListPanel({
   onPageSizeChange: (pageSize: number) => void;
   totalItems: number;
   onBulkAction: (action: UserBulkAction) => void;
+  disableBulkSummary: {
+    selectedCount: number;
+    disableEligibleCount: number;
+    protectedCount: number;
+    canRunDisable: boolean;
+    reasonSummaries: string[];
+    helperText: string;
+  };
   onOpenDetails: (user: ManagedUserRecord) => void;
   setupMode?: boolean;
 }) {
@@ -90,7 +99,14 @@ export function UserManagementListPanel({
           onUserFilterChange={onUserFilterChange}
         />
       ) : null}
-      {!setupMode ? <UserManagementBulkToolbar selectedIds={selectedIds} onSelectedIdsChange={onSelectedIdsChange} onBulkAction={onBulkAction} /> : null}
+      {!setupMode ? (
+        <UserManagementBulkToolbar
+          selectedIds={selectedIds}
+          onSelectedIdsChange={onSelectedIdsChange}
+          onBulkAction={onBulkAction}
+          disableBulkSummary={disableBulkSummary}
+        />
+      ) : null}
       <DataTable
         rows={managedUsers}
         rowKey={(user) => String(user.id || user.username)}
@@ -163,6 +179,8 @@ export function UserManagementEditorPanel({
   draft,
   currentUserRole,
   isCurrentUserSelected,
+  selectedDraftDisableProtection,
+  canDirectlyDisableSelected,
   canUnlockSelected,
   canDeleteSelected,
   isPending,
@@ -185,6 +203,8 @@ export function UserManagementEditorPanel({
   draft: ManagedUserRecord;
   currentUserRole: string;
   isCurrentUserSelected: boolean;
+  selectedDraftDisableProtection: 'super_admin' | 'current_user' | 'last_active_privileged' | null;
+  canDirectlyDisableSelected: boolean;
   canUnlockSelected: boolean;
   canDeleteSelected: boolean;
   isPending: boolean;
@@ -210,10 +230,28 @@ export function UserManagementEditorPanel({
     <div className="page-stack">
       {setupMode
         ? <UserManagementSetupHeader draft={draft} setupMode={setupMode} setupStepKey={setupStepKey} isCurrentUserSelected={isCurrentUserSelected} />
-        : <UserManagementEditorCard branches={branches} draft={draft} currentUserRole={currentUserRole} isCurrentUserSelected={isCurrentUserSelected} onDraftChange={onDraftChange} onApplyRolePermissions={onApplyRolePermissions} />}
+        : <UserManagementEditorCard
+            branches={branches}
+            draft={draft}
+            currentUserRole={currentUserRole}
+            isCurrentUserSelected={isCurrentUserSelected}
+            onDraftChange={onDraftChange}
+            onApplyRolePermissions={onApplyRolePermissions}
+            selectedDraftDisableProtection={selectedDraftDisableProtection}
+            canDirectlyDisableSelected={canDirectlyDisableSelected}
+          />}
 
       {setupMode ? (
-        <UserManagementEditorCard branches={branches} draft={draft} currentUserRole={currentUserRole} isCurrentUserSelected={isCurrentUserSelected} onDraftChange={onDraftChange} onApplyRolePermissions={onApplyRolePermissions} />
+        <UserManagementEditorCard
+          branches={branches}
+          draft={draft}
+          currentUserRole={currentUserRole}
+          isCurrentUserSelected={isCurrentUserSelected}
+          onDraftChange={onDraftChange}
+          onApplyRolePermissions={onApplyRolePermissions}
+          selectedDraftDisableProtection={selectedDraftDisableProtection}
+          canDirectlyDisableSelected={canDirectlyDisableSelected}
+        />
       ) : null}
 
       {!SINGLE_STORE_MODE ? <UserManagementBranchAccess branches={branches} selectedBranchIds={draft.branchIds} onToggleBranch={onToggleBranch} /> : null}

@@ -10,6 +10,8 @@ export function UserManagementEditorCard({
   draft,
   currentUserRole,
   isCurrentUserSelected,
+  selectedDraftDisableProtection,
+  canDirectlyDisableSelected,
   onDraftChange,
   onApplyRolePermissions,
 }: {
@@ -17,9 +19,19 @@ export function UserManagementEditorCard({
   draft: ManagedUserRecord;
   currentUserRole: string;
   isCurrentUserSelected: boolean;
+  selectedDraftDisableProtection: 'super_admin' | 'current_user' | 'last_active_privileged' | null;
+  canDirectlyDisableSelected: boolean;
   onDraftChange: (updater: (current: ManagedUserRecord) => ManagedUserRecord) => void;
   onApplyRolePermissions: (role: 'super_admin' | 'admin' | 'cashier') => void;
 }) {
+  const disableReasonLabel = selectedDraftDisableProtection === 'super_admin'
+    ? 'سوبر أدمن'
+    : selectedDraftDisableProtection === 'current_user'
+      ? 'الحساب الحالي'
+      : selectedDraftDisableProtection === 'last_active_privileged'
+        ? 'آخر حساب إداري فعّال'
+        : '';
+
   return (
     <>
       <div className="card-surface" style={{ padding: 12, borderRadius: 16, border: '1px solid #e2e8f0' }}>
@@ -52,12 +64,19 @@ export function UserManagementEditorCard({
         <div className="field">
           <span>الحالة</span>
           <div className="actions compact-actions">
-            <label><input type="checkbox" checked={draft.isActive !== false} onChange={(e) => onDraftChange((current) => ({ ...current, isActive: e.target.checked }))} /> نشط</label>
+            <label>
+              <input
+                type="checkbox"
+                checked={draft.isActive !== false}
+                disabled={!canDirectlyDisableSelected && draft.isActive !== false}
+                onChange={(e) => onDraftChange((current) => ({ ...current, isActive: e.target.checked }))}
+              /> نشط
+            </label>
             <label><input type="checkbox" checked={draft.mustChangePassword === true} onChange={(e) => onDraftChange((current) => ({ ...current, mustChangePassword: e.target.checked }))} /> يجب تغيير كلمة المرور</label>
           </div>
+          {!canDirectlyDisableSelected ? <div className="muted small">لا يمكن إيقاف هذا الحساب مباشرة: {disableReasonLabel}.</div> : null}
         </div>
       </div>
     </>
   );
 }
-

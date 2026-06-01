@@ -66,7 +66,7 @@ export function UserManagementStatsFilters({
             ['admins', 'مديرو النظام'],
             ['cashiers', 'الكاشير'],
             ['inactive', 'الموقوفون'],
-            ['locked', 'المقفولون']
+            ['locked', 'المقفلون']
           ].map(([value, label]) => (
             <Button key={value} type="button" variant={userFilter === value ? 'primary' : 'secondary'} onClick={() => onUserFilterChange(value as 'all' | 'super-admins' | 'admins' | 'cashiers' | 'inactive' | 'locked')}>
               {label}
@@ -82,23 +82,41 @@ export function UserManagementBulkToolbar({
   selectedIds,
   onSelectedIdsChange,
   onBulkAction,
+  disableBulkSummary,
 }: {
   selectedIds: string[];
   onSelectedIdsChange: (ids: string[]) => void;
   onBulkAction: (action: UserBulkAction) => void;
+  disableBulkSummary: {
+    selectedCount: number;
+    disableEligibleCount: number;
+    protectedCount: number;
+    canRunDisable: boolean;
+    reasonSummaries: string[];
+    helperText: string;
+  };
 }) {
   if (!selectedIds.length) return null;
   return (
     <div className="bulk-toolbar">
       <div className="bulk-toolbar-meta">
         <strong>تحديد نشط: {selectedIds.length}</strong>
-        <span className="muted small">يمكنك فتح القفل للحسابات المحددة، فرض تغيير كلمة المرور، أو إيقاف الحسابات غير الإدارية دفعة واحدة.</span>
+        <span className="muted small">
+          يمكنك فتح القفل للحسابات المحددة، فرض تغيير كلمة المرور، أو إيقاف الحسابات المسموح بها.
+          {disableBulkSummary.helperText ? ` ${disableBulkSummary.helperText}` : ''}
+        </span>
+        {disableBulkSummary.protectedCount > 0 ? (
+          <span className="muted small">
+            قابل للإيقاف: {disableBulkSummary.disableEligibleCount} · محمي: {disableBulkSummary.protectedCount}
+            {disableBulkSummary.reasonSummaries.length ? ` · ${disableBulkSummary.reasonSummaries.join('، ')}` : ''}
+          </span>
+        ) : null}
       </div>
       <div className="actions compact-actions">
         <Button type="button" variant="secondary" onClick={() => onSelectedIdsChange([])}>مسح التحديد</Button>
         <Button type="button" variant="secondary" onClick={() => onBulkAction('unlock')}>فتح القفل</Button>
         <Button type="button" variant="secondary" onClick={() => onBulkAction('require-password-change')}>فرض تغيير كلمة المرور</Button>
-        <Button type="button" variant="danger" onClick={() => onBulkAction('deactivate')}>إيقاف المحدد</Button>
+        <Button type="button" variant="danger" onClick={() => onBulkAction('deactivate')} disabled={!disableBulkSummary.canRunDisable}>إيقاف المحدد</Button>
       </div>
     </div>
   );
