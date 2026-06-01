@@ -17,15 +17,17 @@ export class TrialSignupMailService {
   private buildBody(payload: TrialSignupMailPayload): string {
     const loginUrl = String(process.env.APP_LOGIN_URL || '').trim() || 'http://localhost:5173/login';
     return [
-      `مرحبًا ${payload.businessName}،`,
+      `مرحبا ${payload.businessName}،`,
       '',
-      'تم إنشاء نسختك التجريبية في Z Systems بنجاح.',
+      'تم انشاء نسختك التجريبية في Z Systems بنجاح.',
       '',
       `رابط تسجيل الدخول: ${loginUrl}`,
       `اسم المستخدم: ${payload.username}`,
+      `البريد الالكتروني: ${payload.ownerEmail}`,
       `كلمة المرور المؤقتة: ${payload.temporaryPassword}`,
+      'يمكنك تسجيل الدخول باسم المستخدم او البريد الالكتروني.',
       '',
-      'مهم: يجب تغيير كلمة المرور عند أول تسجيل دخول.',
+      'مهم: يجب تغيير كلمة المرور عند اول تسجيل دخول.',
       'للدعم عبر واتساب، تواصل مع فريق الدعم المعتمد لديك.',
     ].join('\n');
   }
@@ -33,7 +35,7 @@ export class TrialSignupMailService {
   async sendTrialCredentials(payload: TrialSignupMailPayload): Promise<void> {
     const fromName = String(process.env.MAIL_FROM_NAME || 'Z Systems').trim();
     const fromEmail = String(process.env.MAIL_FROM_EMAIL || '').trim();
-    const subject = 'بيانات الدخول إلى النسخة التجريبية - Z Systems';
+    const subject = 'بيانات الدخول الى النسخة التجريبية - Z Systems';
     const text = this.buildBody(payload);
     const mode = this.getDeliveryMode();
     const isProduction = String(process.env.NODE_ENV || '').trim() === 'production';

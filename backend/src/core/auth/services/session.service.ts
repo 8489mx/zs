@@ -116,9 +116,57 @@ export class SessionService {
     return { userId: row.user_id, sessionId: row.session_id, username: row.username, role: row.role, permissions: safeJsonArray(row.permissions_json), ...tenantContext };
   }
 
-  async authenticate(username: string, password: string, meta?: { ipAddress?: string; userAgent?: string }): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
-    const normalized = username.trim();
-    const user = await this.db.selectFrom('users').select(['id', 'username', 'password_hash', 'password_salt', 'role', 'permissions_json', 'is_active', 'locked_until', 'failed_login_count', 'tenant_id', 'account_id']).where('username', '=', normalized).executeTakeFirst();
+  async authenticate(identifier: string, password: string, meta?: { ipAddress?: string; userAgent?: string }): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
+    const normalized = identifier.trim();
+    let user: {
+      id: number;
+      username: string;
+      password_hash: string;
+      password_salt: string;
+      role: 'super_admin' | 'admin' | 'cashier';
+      permissions_json: string;
+      is_active: boolean;
+      locked_until: Date | null;
+      failed_login_count: number;
+      tenant_id: string;
+      account_id: string;
+    } | undefined;
+
+    if (normalized.includes('@')) {
+      const matchedByEmail = await this.db
+        .selectFrom('users as u')
+        .innerJoin('tenants as t', 't.id', 'u.tenant_id')
+        .select([
+          'u.id',
+          'u.username',
+          'u.password_hash',
+          'u.password_salt',
+          'u.role',
+          'u.permissions_json',
+          'u.is_active',
+          'u.locked_until',
+          'u.failed_login_count',
+          'u.tenant_id',
+          'u.account_id',
+        ])
+        .where(sql<string>`LOWER(COALESCE(t.owner_email, ''))`, '=', normalized.toLowerCase())
+        .where('u.is_active', '=', true)
+        .where('u.role', '=', 'super_admin')
+        .orderBy('u.id asc')
+        .execute();
+
+      if (matchedByEmail.length > 1) {
+        throw new UnauthorizedException('تم العثور على اكثر من حساب بهذا البريد. سجل الدخول باسم المستخدم.');
+      }
+      user = matchedByEmail[0];
+    } else {
+      user = await this.db
+        .selectFrom('users')
+        .select(['id', 'username', 'password_hash', 'password_salt', 'role', 'permissions_json', 'is_active', 'locked_until', 'failed_login_count', 'tenant_id', 'account_id'])
+        .where('username', '=', normalized)
+        .executeTakeFirst();
+    }
+
     if (!user) return null;
     if (!user.is_active) return null;
     if (user.locked_until && user.locked_until > new Date()) return null;

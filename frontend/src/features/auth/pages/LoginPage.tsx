@@ -4,8 +4,9 @@ import { Button } from '@/shared/ui/button';
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 
-const SUPPORT_URL = (import.meta.env?.VITE_SUPPORT_URL || '').trim();
-const SUPPORT_LABEL = (import.meta.env?.VITE_SUPPORT_LABEL || 'الدعم الفني').trim() || 'الدعم الفني';
+const SUPPORT_WHATSAPP_NUMBER = String(import.meta.env?.VITE_SUPPORT_WHATSAPP_NUMBER || '201018017523').trim();
+const SUPPORT_WHATSAPP_TEXT = 'مرحبا، احتاج مساعدة في تسجيل الدخول الى Z Systems';
+const SUPPORT_WHATSAPP_URL = `https://wa.me/${SUPPORT_WHATSAPP_NUMBER}?text=${encodeURIComponent(SUPPORT_WHATSAPP_TEXT)}`;
 
 export function LoginPage() {
   const { form, onSubmit, submitError, isSubmitting } = useLoginForm();
@@ -20,7 +21,7 @@ export function LoginPage() {
             <h1>Z Systems</h1>
             <p className="login-subtitle muted">نظام إدارة وتشغيل الأعمال</p>
           </div>
-          <Field label="اسم المستخدم" error={form.formState.errors.username?.message}>
+          <Field label="اسم المستخدم او البريد الالكتروني" error={form.formState.errors.username?.message}>
             <input {...form.register('username')} autoComplete="off" />
           </Field>
           <Field label="كلمة المرور" error={form.formState.errors.password?.message}>
@@ -31,17 +32,13 @@ export function LoginPage() {
             {isSubmitting ? 'جارٍ الدخول...' : 'تسجيل الدخول'}
           </Button>
           <div className="login-support">
-            <Link className="login-support-link" to="/trial">جرّب النظام مجانًا 14 يوم</Link>
+            <Link className="login-support-link" to="/trial">جرب النظام مجانا 14 يوم</Link>
           </div>
-          <div className="login-support">
-            <span className="muted small">بحاجة إلى مساعدة؟</span>
-            {SUPPORT_URL ? (
-              <a className="login-support-link" href={SUPPORT_URL} target="_blank" rel="noreferrer">
-                {SUPPORT_LABEL}
-              </a>
-            ) : (
-              <span className="muted small">راجع مسؤول النظام أو قناة الدعم المخصّصة لهذا العميل.</span>
-            )}
+          <div className="login-support login-support-whatsapp">
+            <a className="login-support-link login-support-whatsapp-link" href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noreferrer">
+              <span className="wa-icon" aria-hidden="true">WA</span>
+              <span>تحتاج مساعدة؟ تواصل معنا عبر واتساب</span>
+            </a>
           </div>
         </form>
       </div>

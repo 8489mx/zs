@@ -12,7 +12,7 @@ import { ApiError, setLocalSessionFallback } from '@/lib/http';
 import type { AuthTenant } from '@/types/auth';
 
 const loginSchema = z.object({
-  username: z.string().trim().min(1, 'اسم المستخدم مطلوب'),
+  username: z.string().trim().min(1, 'اسم المستخدم او البريد الالكتروني مطلوب'),
   password: z.string().min(1, 'كلمة المرور مطلوبة')
 });
 
@@ -75,7 +75,7 @@ export function useLoginForm() {
         };
       } catch (sessionError) {
         if (sessionError instanceof ApiError && sessionError.status === 401) {
-          throw new Error('تم تحديث الجلسة. من فضلك سجّل الدخول مرة أخرى.');
+          throw new Error('تم تحديث الجلسة. من فضلك سجل الدخول مرة اخرى.');
         }
         if (!(sessionError instanceof Error)) throw sessionError;
       }

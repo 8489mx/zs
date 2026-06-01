@@ -99,16 +99,17 @@ export class TrialTenantProvisioningService {
   }
 
   private async makeUniqueUsername(base: string, trx: Kysely<Database>): Promise<string> {
-    let candidate = base.toLowerCase();
-    let suffix = 2;
+    const baseName = String(base || '').trim();
+    let candidate = baseName;
+    let suffix = 1;
     while (true) {
       const row = await trx
         .selectFrom('users')
         .select('id')
-        .where(sql<string>`LOWER(username)`, '=', candidate)
+        .where(sql<string>`LOWER(username)`, '=', candidate.toLowerCase())
         .executeTakeFirst();
       if (!row) return candidate;
-      candidate = `${base}-${suffix++}`.toLowerCase();
+      candidate = `${baseName}${suffix++}`;
     }
   }
 
@@ -190,13 +191,13 @@ export class TrialTenantProvisioningService {
         if (exists) throw new BadRequestException('اسم النسخة مستخدم بالفعل.');
         slug = slugBase;
       }
-      const usernameBase = (providedUsername || `${slug}-owner`).replace(/\s+/g, '-').toLowerCase();
+      const usernameBase = String(providedUsername || businessName).trim();
       let username = await this.makeUniqueUsername(usernameBase, trx);
       if (providedUsername && options?.strictProvidedUsername) {
         const exists = await trx
           .selectFrom('users')
           .select('id')
-          .where(sql<string>`LOWER(username)`, '=', usernameBase)
+          .where(sql<string>`LOWER(username)`, '=', usernameBase.toLowerCase())
           .executeTakeFirst();
         if (exists) throw new BadRequestException('اسم المستخدم مستخدم بالفعل.');
         username = usernameBase;
