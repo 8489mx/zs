@@ -32,6 +32,14 @@ export interface ManagedUsersSummary {
   activePrivilegedUsers: number;
 }
 
+export interface BulkDisableUsersResponse {
+  ok: boolean;
+  disabledCount: number;
+  skippedCount: number;
+  skipped: Array<{ id: string; username: string; reason: string }>;
+  message?: string;
+}
+
 export interface ManagedUsersQueryParams {
   page?: number;
   pageSize?: number;
@@ -165,6 +173,13 @@ export const settingsApi = {
   updateUser: (userId: string, payload: ManagedUserRecord) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify(sanitizeUserPayload(payload)) }),
   deleteUser: (userId: string) => http<{ ok: boolean; removedUserId: string; users: ManagedUserRecord[] }>(`/api/users/${userId}`, { method: 'DELETE' }),
   unlockUser: (userId: string) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>(`/api/users/${userId}/unlock`, { method: 'POST' }),
+  bulkDisableUsers: (userIds: string[]) =>
+    http<BulkDisableUsersResponse>('/api/users/bulk-disable', {
+      method: 'POST',
+      body: JSON.stringify({
+        userIds: (userIds || []).map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0),
+      }),
+    }),
   saveUsers: (users: ManagedUserRecord[]) => http<{ ok: boolean; users: ManagedUserRecord[] }>('/api/users', { method: 'PUT', body: JSON.stringify({ users: users.map(sanitizeUserPayload) }) }),
   backupDownloadUrl: () => resolveRequestUrl('/api/backup')
 };

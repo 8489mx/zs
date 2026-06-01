@@ -5,6 +5,7 @@ import { RequirePermissions } from '../../core/auth/decorators/permissions.decor
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { UpsertUserDto } from './dto/upsert-user.dto';
 import { SyncUsersDto } from './dto/sync-users.dto';
+import { BulkDisableUsersDto } from './dto/bulk-disable-users.dto';
 import { UsersService } from './users.service';
 
 @Controller('api/users')
@@ -53,5 +54,11 @@ export class UsersController {
   @RequirePermissions('canManageUsers')
   unlock(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.usersService.unlockUser(id, req.authContext!);
+  }
+
+  @Post('bulk-disable')
+  @RequirePermissions('canManageUsers')
+  bulkDisable(@Body() payload: BulkDisableUsersDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.usersService.bulkDisableUsers(payload.userIds ?? [], req.authContext!, req.authContext?.sessionId);
   }
 }

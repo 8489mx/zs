@@ -25,7 +25,7 @@ export function UserBulkActionDialog({ open, action, selectedUsers, isBusy, onCa
     ? { title: 'فتح قفل المستخدمين المحددين', confirmLabel: 'فتح القفل', confirmVariant: 'secondary' as const, confirmationKeyword: 'UNLOCK', confirmationLabel: 'اكتب UNLOCK لتأكيد فتح القفل', description: 'سيتم تصفير محاولات الدخول الفاشلة وإزالة حالة القفل للحسابات المحددة.' }
     : action === 'require-password-change'
       ? { title: 'فرض تغيير كلمة المرور', confirmLabel: 'فرض التغيير', confirmVariant: 'primary' as const, confirmationKeyword: 'FORCE', confirmationLabel: 'اكتب FORCE لتأكيد فرض التغيير', description: 'سيتم تعليم الحسابات المحددة بحيث يُطلب منها تغيير كلمة المرور عند الدخول التالي.' }
-      : { title: 'إيقاف المستخدمين المحددين', confirmLabel: 'إيقاف المحدد', confirmVariant: 'danger' as const, confirmationKeyword: 'DISABLE', confirmationLabel: 'اكتب DISABLE لتأكيد إيقاف المحدد', description: 'سيتم إيقاف الحسابات التشغيلية المحددة. الحسابات الإدارية الحرجة والحساب الحالي ستُتجاوز تلقائيًا حمايةً للنظام.' };
+      : { title: 'إيقاف المستخدمين المحددين', confirmLabel: 'إيقاف المحدد', confirmVariant: 'danger' as const, confirmationKeyword: 'DISABLE', confirmationLabel: 'اكتب DISABLE لتأكيد إيقاف المحدد', description: 'يمكن إيقاف الكاشير والأدمن العادي. لا يمكن إيقاف السوبر أدمن أو الحساب الحالي أو آخر حساب إداري فعّال.' };
 
   return (
     <ActionConfirmDialog

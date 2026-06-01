@@ -270,4 +270,123 @@ export class UsersService {
       users: usersState.users,
     };
   }
+
+  async bulkDisableUsers(userIds: number[], actor: AuthContext, actorSessionId?: string): Promise<Record<string, unknown>> {
+    const requestedIds = Array.from(new Set((userIds || []).map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)));
+    if (!requestedIds.length) {
+      throw new AppError('لا يوجد مستخدمون ضمن التحديد.', 'BULK_DISABLE_EMPTY_SELECTION', 400);
+    }
+
+    const selectedRows = await this.db
+      .selectFrom('users')
+      .selectAll()
+      .where('id', 'in', requestedIds)
+      .where(this.tenantPredicate(actor))
+      .orderBy('id asc')
+      .execute();
+
+    if (!selectedRows.length) {
+      return {
+        ok: true,
+        disabledCount: 0,
+        skippedCount: requestedIds.length,
+        skipped: requestedIds.map((id) => ({ id: String(id), username: `user-${id}`, reason: 'المستخدم غير موجود ضمن نفس النسخة.' })),
+        message: 'لا يوجد مستخدم قابل للإيقاف ضمن التحديد الحالي.',
+      };
+    }
+
+    const allTenantUsers = await this.db
+      .selectFrom('users')
+      .select(['id', 'role', 'is_active'])
+      .where(this.tenantPredicate(actor))
+      .execute();
+
+    const activePrivilegedIds = new Set(
+      allTenantUsers
+        .filter((row) => row.is_active !== false && (row.role === 'admin' || row.role === 'super_admin'))
+        .map((row) => Number(row.id)),
+    );
+
+    const skipped: Array<{ id: string; username: string; reason: string }> = [];
+    const allowedIds: number[] = [];
+    const selectedActivePrivilegedAllowedIds: number[] = [];
+
+    for (const row of selectedRows) {
+      const id = Number(row.id);
+      const username = String(row.username || '');
+
+      if (id === Number(actor.userId)) {
+        skipped.push({ id: String(id), username, reason: 'لا يمكن إيقاف الحساب الحالي.' });
+        continue;
+      }
+
+      if (row.role === 'super_admin') {
+        skipped.push({ id: String(id), username, reason: 'لا يمكن إيقاف حساب السوبر أدمن.' });
+        continue;
+      }
+
+      allowedIds.push(id);
+     const rowRole = String(row.role || '');
+if (row.is_active !== false && (rowRole === 'admin' || rowRole === 'super_admin')) {
+        selectedActivePrivilegedAllowedIds.push(id);
+      }
+    }
+
+    const remainingPrivilegedIfDisabled = activePrivilegedIds.size - selectedActivePrivilegedAllowedIds.length;
+    if (remainingPrivilegedIfDisabled < 1 && selectedActivePrivilegedAllowedIds.length > 0) {
+      const protectedSet = new Set(selectedActivePrivilegedAllowedIds);
+      for (const row of selectedRows) {
+        const id = Number(row.id);
+        if (!protectedSet.has(id)) continue;
+        skipped.push({
+          id: String(id),
+          username: String(row.username || ''),
+          reason: 'لا يمكن إيقاف آخر حساب إداري فعّال.',
+        });
+      }
+      for (let i = allowedIds.length - 1; i >= 0; i -= 1) {
+        if (protectedSet.has(allowedIds[i])) {
+          allowedIds.splice(i, 1);
+        }
+      }
+    }
+
+    if (allowedIds.length) {
+      const { tenantId } = this.scope(actor);
+      await this.db
+        .updateTable('users')
+        .set({ is_active: false } as any)
+        .where('id', 'in', allowedIds)
+        .where(this.tenantPredicate(actor))
+        .execute();
+
+      let sessionCleanup = this.db
+        .deleteFrom('sessions')
+        .where('user_id', 'in', allowedIds)
+        .where(sql<boolean>`tenant_id = ${tenantId}`);
+      if (actorSessionId && allowedIds.includes(Number(actor.userId))) {
+        sessionCleanup = sessionCleanup.where('id', '!=', actorSessionId);
+      }
+      await sessionCleanup.execute();
+    }
+
+    const disabledUsers = selectedRows.filter((row) => allowedIds.includes(Number(row.id)));
+    if (disabledUsers.length) {
+      await this.audit.log(
+        'إيقاف مستخدمين (دفعة)',
+        `تم إيقاف ${disabledUsers.length} مستخدم/مستخدمين بواسطة ${actor.username}${skipped.length ? ` مع تخطي ${skipped.length}` : ''}`,
+        actor,
+      );
+    }
+
+    return {
+      ok: true,
+      disabledCount: disabledUsers.length,
+      skippedCount: skipped.length,
+      skipped,
+      message: disabledUsers.length
+        ? `تم إيقاف ${disabledUsers.length} مستخدم.`
+        : 'لا يوجد مستخدم قابل للإيقاف ضمن التحديد الحالي.',
+    };
+  }
 }

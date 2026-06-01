@@ -1,5 +1,5 @@
 import { normalizeUserRecord } from '@/features/settings/components/user-management.shared';
-import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
+import type { BulkDisableUsersResponse, ManagedUserRecord } from '@/features/settings/api/settings.api';
 import type { UserBulkAction } from '@/features/settings/hooks/user-management/user-management.types';
 
 export async function runUserBulkAction({
@@ -18,8 +18,11 @@ export async function runUserBulkAction({
   settingsApi: {
     unlockUser: (id: string) => Promise<unknown>;
     updateUser: (id: string, payload: ManagedUserRecord) => Promise<unknown>;
+    bulkDisableUsers: (userIds: string[]) => Promise<BulkDisableUsersResponse>;
   };
 }) {
+  void currentUserId;
+  void userSummary;
   if (!bulkAction || !selectedUsers.length) return false;
 
   if (bulkAction === 'unlock') {
@@ -40,18 +43,21 @@ export async function runUserBulkAction({
     return true;
   }
 
-  const eligibleUsers = selectedUsers.filter((user) => String(user.id || '') !== currentUserId && user.role !== 'super_admin');
-  const selectedPrivilegedUsers = eligibleUsers.filter((user) => ['super_admin', 'admin'].includes(user.role) && user.isActive !== false);
-  if (selectedPrivilegedUsers.length && selectedPrivilegedUsers.length >= Number(userSummary.activePrivilegedUsers || 0)) {
-    throw new Error('لا يمكن إيقاف جميع المدراء النشطين دفعة واحدة');
-  }
-  if (!eligibleUsers.length) throw new Error('لا توجد حسابات قابلة للإيقاف ضمن التحديد الحالي');
+  const ids = selectedUsers.map((user) => String(user.id || '')).filter(Boolean);
+  if (!ids.length) throw new Error('لا يوجد مستخدم قابل للإيقاف ضمن التحديد الحالي.');
 
-  for (const user of eligibleUsers) {
-    const payload = normalizeUserRecord(user);
-    payload.isActive = false;
-    await settingsApi.updateUser(String(user.id), payload);
+  const result = await settingsApi.bulkDisableUsers(ids);
+  const parts: string[] = [];
+  if (Number(result.disabledCount || 0) > 0) {
+    parts.push(`تم إيقاف ${result.disabledCount} مستخدم.`);
   }
-  setStatusMessage(`تم إيقاف ${eligibleUsers.length} مستخدم/مستخدمين، مع تجاوز الحساب الحالي والسوبر أدمن تلقائيًا.`);
+  if (Number(result.skippedCount || 0) > 0) {
+    parts.push(`تم تخطي ${result.skippedCount} حساب محمي.`);
+  }
+  if (!Number(result.disabledCount || 0)) {
+    parts.push('لا يوجد مستخدم قابل للإيقاف ضمن التحديد الحالي.');
+  }
+
+  setStatusMessage(parts.join(' '));
   return true;
 }
