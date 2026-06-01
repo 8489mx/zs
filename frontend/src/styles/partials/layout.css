@@ -46,6 +46,41 @@
   font-weight: 800;
   letter-spacing: 0.3px;
 }
+.login-support-whatsapp-compact {
+  margin-top: 8px;
+  gap: 4px;
+}
+.support-label {
+  font-size: 13px;
+  color: #64748b;
+}
+.login-support-whatsapp-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  direction: rtl;
+  color: #128c4b;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.login-support-whatsapp-inline:hover {
+  color: #0d7a3f;
+  text-decoration: underline;
+}
+.wa-icon-inline {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #25d366;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
 .trial-subtitle-nowrap { white-space: nowrap; }
 @media (max-width: 720px) {
   .trial-subtitle-nowrap { white-space: normal; }

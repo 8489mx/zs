@@ -5,7 +5,7 @@ import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 
 const SUPPORT_WHATSAPP_NUMBER = String(import.meta.env?.VITE_SUPPORT_WHATSAPP_NUMBER || '201018017523').trim();
-const SUPPORT_WHATSAPP_TEXT = 'مرحبا، احتاج مساعدة في تسجيل الدخول الى Z Systems';
+const SUPPORT_WHATSAPP_TEXT = 'مرحبا، احتاج مساعدة في استخدام Z Systems';
 const SUPPORT_WHATSAPP_URL = `https://wa.me/${SUPPORT_WHATSAPP_NUMBER}?text=${encodeURIComponent(SUPPORT_WHATSAPP_TEXT)}`;
 
 export function LoginPage() {
@@ -34,10 +34,11 @@ export function LoginPage() {
           <div className="login-support">
             <Link className="login-support-link" to="/trial">جرب النظام مجانا 14 يوم</Link>
           </div>
-          <div className="login-support login-support-whatsapp">
-            <a className="login-support-link login-support-whatsapp-link" href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noreferrer">
-              <span className="wa-icon" aria-hidden="true">WA</span>
-              <span>تحتاج مساعدة؟ تواصل معنا عبر واتساب</span>
+          <div className="login-support login-support-whatsapp-compact">
+            <span className="muted small support-label">تحتاج مساعدة؟</span>
+            <a className="login-support-link login-support-whatsapp-inline" href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noreferrer">
+              <span className="wa-icon-inline" aria-hidden="true">WA</span>
+              <span>تواصل مع الدعم الفني</span>
             </a>
           </div>
         </form>
