@@ -23,13 +23,15 @@ export class InMemoryRateLimitService {
   private ensureTablePromise: Promise<void> | null = null;
   private lastPruneAt = 0;
   private readonly failClosedWithoutPersistentStore: boolean;
+  private readonly isProduction: boolean;
 
   constructor(
     @Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>,
     @Optional() private readonly configService?: ConfigService,
   ) {
     const nodeEnv = this.configService?.get<string>('NODE_ENV') || process.env.NODE_ENV || 'development';
-    this.failClosedWithoutPersistentStore = nodeEnv === 'production';
+    this.isProduction = nodeEnv === 'production';
+    this.failClosedWithoutPersistentStore = this.isProduction;
   }
 
   async hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
@@ -43,7 +45,10 @@ export class InMemoryRateLimitService {
     try {
       await this.ensurePersistentStore();
       return await this.hitInDatabase(key, limit, windowSeconds);
-    } catch {
+    } catch (error) {
+      if (this.isProduction) {
+        this.logRateLimitDbError(error, 'hit');
+      }
       if (this.failClosedWithoutPersistentStore) {
         throw new Error('Rate limit persistent store is unavailable in production');
       }
@@ -59,9 +64,34 @@ export class InMemoryRateLimitService {
     try {
       await this.ensurePersistentStore();
       await sql`DELETE FROM auth_rate_limits WHERE key = ${key}`.execute(this.db);
-    } catch {
+    } catch (error) {
+      if (this.isProduction) {
+        this.logRateLimitDbError(error, 'reset');
+      }
       // fall back to memory-only reset when the persistent store is unavailable
     }
+  }
+
+  private logRateLimitDbError(error: unknown, operation: 'hit' | 'reset'): void {
+    const candidate = (error ?? {}) as Record<string, unknown>;
+    const stack = typeof candidate.stack === 'string' ? candidate.stack : '';
+    const stackFirstLine = stack ? stack.split('\n')[0]?.trim() : undefined;
+
+    console.error(
+      '[rate-limit]',
+      JSON.stringify({
+        operation,
+        error: {
+          name: typeof candidate.name === 'string' ? candidate.name : 'Error',
+          message: typeof candidate.message === 'string' ? candidate.message : 'Unknown error',
+          code: typeof candidate.code === 'string' ? candidate.code : undefined,
+          constraint: typeof candidate.constraint === 'string' ? candidate.constraint : undefined,
+          table: typeof candidate.table === 'string' ? candidate.table : undefined,
+          column: typeof candidate.column === 'string' ? candidate.column : undefined,
+          stackFirstLine,
+        },
+      }),
+    );
   }
 
   private hitInMemory(key: string, limit: number, windowSeconds: number): RateLimitResult {
@@ -134,6 +164,7 @@ export class InMemoryRateLimitService {
 
   private async ensurePersistentStore(): Promise<void> {
     if (!this.db) return;
+    if (this.isProduction) return;
     if (!this.ensureTablePromise) {
       this.ensureTablePromise = sql`
         CREATE TABLE IF NOT EXISTS auth_rate_limits (
