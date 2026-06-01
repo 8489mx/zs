@@ -1,0 +1,56 @@
+name: Deploy Frontend to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend-hostinger.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend-hostinger
+  cancel-in-progress: true
+
+jobs:
+  deploy-frontend:
+    name: Build and deploy frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: https://api.karimzakaria.com
+          VITE_PLATFORM_TENANT_ID: karimzakaria-demo
+        run: npm run build
+
+      - name: Deploy dist to Hostinger FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          port: ${{ secrets.HOSTINGER_FTP_PORT }}
+          local-dir: frontend/dist/
+          server-dir: ${{ secrets.HOSTINGER_FTP_DIR }}
