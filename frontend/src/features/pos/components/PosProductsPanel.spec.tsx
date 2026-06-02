@@ -58,4 +58,34 @@ describe('PosProductsPanel', () => {
     expect(screen.getByText('Product 061')).toBeInTheDocument();
     expect(screen.getByText('Product 085')).toBeInTheDocument();
   });
+
+  it('uses the current input value on Enter and does not fall back to the previously selected product', async () => {
+    const user = userEvent.setup();
+    const onSearchSubmitFirstResult = vi.fn(() => false);
+    const onAddProduct = vi.fn();
+    const products = Array.from({ length: 3 }, (_, index) => createProduct(index + 1));
+
+    render(
+      <PosProductsPanel
+        search="barcode-002"
+        onSearchChange={vi.fn()}
+        onSearchSubmitFirstResult={onSearchSubmitFirstResult}
+        priceType="retail"
+        onPriceTypeChange={vi.fn()}
+        products={products}
+        recentProducts={[]}
+        onAddProduct={onAddProduct}
+        productFilter="all"
+        onProductFilterChange={vi.fn()}
+        searchInputRef={createRef<HTMLInputElement>()}
+        posMode="scanner"
+      />,
+    );
+
+    await user.click(screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter'));
+    await user.keyboard('{Enter}');
+
+    expect(onSearchSubmitFirstResult).toHaveBeenCalledWith('barcode-002');
+    expect(onAddProduct).not.toHaveBeenCalled();
+  });
 });

@@ -18,7 +18,7 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 interface PosProductsPanelProps {
   search: string;
   onSearchChange: (value: string) => void;
-  onSearchSubmitFirstResult: () => boolean;
+  onSearchSubmitFirstResult: (rawQuery?: string) => boolean;
   priceType: PosPriceType;
   onPriceTypeChange: (value: PosPriceType) => void;
   products: Product[];
@@ -309,6 +309,7 @@ function PosProductsPanelComponent({
   }
 
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    const currentQuery = event.currentTarget.value;
     const pageStep = 8;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -354,16 +355,16 @@ function PosProductsPanelComponent({
     }
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (hasExactCodeMatch(products, search) && onSearchSubmitFirstResult()) {
-        setOpenGroupKey(null);
-        setSelectedIndex(0);
+      if (currentQuery.trim()) {
+        if (hasExactCodeMatch(products, currentQuery) && onSearchSubmitFirstResult(currentQuery)) {
+          setOpenGroupKey(null);
+          setSelectedIndex(0);
+          return;
+        }
+        onSearchSubmitFirstResult(currentQuery);
         return;
       }
-      if (selectedGroup) {
-        activateGroup(selectedGroup);
-        return;
-      }
-      onSearchSubmitFirstResult();
+      if (selectedGroup) activateGroup(selectedGroup);
     }
   }
 

@@ -179,8 +179,8 @@ export function PosWorkspace() {
     })();
   }, [focusBarcodeEntry, pos]);
 
-  const submitFirstSearchResult = useCallback(() => {
-    const query = pos.search.trim();
+  const submitFirstSearchResult = useCallback((rawQuery?: string) => {
+    const query = String(rawQuery ?? pos.search).trim();
     if (!query) {
       pos.setSubmitMessage('اكتب اسم الصنف أو اضرب الباركود أولًا.');
       focusBarcodeEntry();
