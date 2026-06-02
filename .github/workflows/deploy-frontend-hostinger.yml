@@ -1,10 +1,7 @@
 name: Deploy Frontend to Hostinger
 
 on:
-  workflow_run:
-    workflows: ["ci"]
-    types:
-      - completed
+  push:
     branches:
       - main
   workflow_dispatch:
@@ -16,7 +13,6 @@ concurrency:
 jobs:
   deploy-frontend:
     name: Build and deploy frontend
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

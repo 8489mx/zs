@@ -30,9 +30,10 @@
     "check:release-gate": "npm run typecheck && npm run build && npm run test:infra && npm run check:readiness && npm run check:permissions && npm run check:env-safety",
     "check:go-live": "npm run check:release-gate && node scripts/check-go-live.cjs",
     "check:commercial-ready": "npm run check:go-live && node scripts/check-commercial-ready.cjs",
-    "test:e2e:auth": "ts-node test/e2e/auth-session.e2e.ts",
-    "test:e2e:catalog": "ts-node test/e2e/catalog-master-data.e2e.ts",
-    "test:e2e:flows": "ts-node test/e2e/commercial-flows.e2e.ts",
+    "test:e2e:prepare": "ts-node test/e2e/ensure-e2e-admin.ts",
+    "test:e2e:auth": "npm run test:e2e:prepare && ts-node test/e2e/auth-session.e2e.ts",
+    "test:e2e:catalog": "npm run test:e2e:prepare && ts-node test/e2e/catalog-master-data.e2e.ts",
+    "test:e2e:flows": "npm run test:e2e:prepare && ts-node test/e2e/commercial-flows.e2e.ts",
     "test:e2e": "npm run test:e2e:auth && npm run test:e2e:catalog && npm run test:e2e:flows",
     "check:architecture": "node scripts/check-architecture-guardrails.cjs",
     "db:check-connection": "ts-node src/database/check-connection.ts"

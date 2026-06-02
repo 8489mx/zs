@@ -5,6 +5,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { createPasswordRecord } from '../utils/password-hasher';
 import { assertStrongPassword } from '../utils/password-policy';
+import { resolveTenantContext } from '../utils/tenant-context';
 
 import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
 
@@ -24,6 +25,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     displayName: string;
     permissions: string[];
   }): Promise<void> {
+    const scope = resolveTenantContext(this.configService);
     const existing = await this.db
       .selectFrom('users')
       .select('id')
@@ -52,6 +54,8 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
         locked_until: null,
         last_login_at: null,
         must_change_password: true,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
       })
       .onConflict((oc) => oc.column('username').doNothing())
       .execute();
