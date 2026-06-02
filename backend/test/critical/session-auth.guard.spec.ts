@@ -26,9 +26,18 @@ class FakeConfigService {
 }
 
 function createContext(request: Record<string, unknown>) {
+  const response = {
+    cookie: () => response,
+    clearCookie: () => response,
+    setHeader: () => response,
+    status: () => response,
+    json: () => response,
+  };
+
   return {
     switchToHttp: () => ({
       getRequest: () => request,
+      getResponse: () => response,
     }),
   } as any;
 }
@@ -96,7 +105,7 @@ async function run(): Promise<void> {
 
   const blockedHeaderSessionGuard = new SessionAuthGuard(
     new FakeSessionService() as any,
-    new FakeConfigService({ SESSION_CSRF_SECRET: csrfSecret, ALLOW_SESSION_ID_HEADER: false }) as any,
+    new FakeConfigService({ SESSION_CSRF_SECRET: csrfSecret, ALLOW_SESSION_ID_HEADER: false, NODE_ENV: 'production' }) as any,
   );
   await expectThrows(
     () => blockedHeaderSessionGuard.canActivate(createContext({ method: 'GET', headers: { 'x-session-id': 'session-1' } } as any)),
