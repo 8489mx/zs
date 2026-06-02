@@ -137,7 +137,7 @@ function buildCustomerPortableRelease(options = {}) {
   if (!options.skipBuild) {
     const npm = npmCommand();
     run(npm, ['--prefix', 'backend', 'run', 'build']);
-    run(npm, ['--prefix', 'frontend', 'run', 'build']);
+    run(npm, ['--prefix', 'frontend', 'run', 'build:portable']);
   }
 
   cleanOutputDir(outputDir);
