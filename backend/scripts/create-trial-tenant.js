@@ -125,7 +125,7 @@ async function main() {
   const ownerEmail = optionalValue(args['owner-email']);
   const activityType = optionalValue(args['activity-type']);
   const username = requireValue(args.username, 'Pass --username=<trial-owner-username>.');
-  const days = getNumber(args.days, 14);
+  const days = getNumber(args.days, 3);
   const temporaryPassword = String(args.password || generatePassword()).trim();
   assertStrongTrialPassword(temporaryPassword);
 

@@ -4,6 +4,7 @@ import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { InMemoryRateLimitService } from '../../common/security/in-memory-rate-limit.service';
 import { TrialTenantProvisioningService } from '../saas-admin/trial-tenant-provisioning.service';
+import { DEFAULT_TRIAL_DAYS } from '../saas-admin/trial.constants';
 import { PublicTrialSignupDto } from './dto/public-trial-signup.dto';
 import { TrialSignupMailService } from './trial-signup-mail.service';
 
@@ -132,7 +133,7 @@ export class PublicTrialSignupService {
           ownerName: String(payload.businessName || '').trim(),
           ownerPhone: phone,
           ownerEmail: email,
-          days: 14,
+          days: DEFAULT_TRIAL_DAYS,
           source: 'public-trial-signup',
         },
         { enforceStrongProvidedPassword: false },

@@ -8,6 +8,11 @@ import { Field } from '@/shared/ui/field';
 import { ApiError } from '@/lib/http';
 import { publicTrialApi } from '@/features/public-trial/api/public-trial.api';
 import type { PublicTrialSignupResponse } from '@/features/public-trial/api/public-trial.api';
+import {
+  PUBLIC_TRIAL_HELPER_TEXT,
+  PUBLIC_TRIAL_TITLE_LINE_1,
+  PUBLIC_TRIAL_TITLE_LINE_2,
+} from '@/features/public-trial/trial.constants';
 
 const formSchema = z.object({
   businessName: z.string().trim().min(2, 'اسم المتجر مطلوب.').max(80, 'اسم المتجر طويل جدا.'),
@@ -60,9 +65,10 @@ export function TrialSignupPage() {
           <div className="login-header">
             <h1>ابدأ التجربة المجانية</h1>
             <div className="login-subtitle muted trial-subtitle-lines">
-              <span>ابدأ تجربتك المجانية لمدة 14 يوم</span>
-              <span>واستلم بيانات الدخول على بريدك الالكتروني</span>
+              <span>{PUBLIC_TRIAL_TITLE_LINE_1}</span>
+              <span>{PUBLIC_TRIAL_TITLE_LINE_2}</span>
             </div>
+            <div className="muted small" style={{ textAlign: 'center', lineHeight: 1.6, maxWidth: '100%' }}>{PUBLIC_TRIAL_HELPER_TEXT}</div>
           </div>
 
           <Field label="اسم المتجر / النشاط" error={form.formState.errors.businessName?.message}>

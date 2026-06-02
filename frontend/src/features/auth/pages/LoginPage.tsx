@@ -3,6 +3,7 @@ import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
+import { PUBLIC_TRIAL_LOGIN_CTA } from '@/features/public-trial/trial.constants';
 
 const SUPPORT_WHATSAPP_NUMBER = String(import.meta.env?.VITE_SUPPORT_WHATSAPP_NUMBER || '201018017523').trim();
 const SUPPORT_WHATSAPP_TEXT = 'مرحبا، احتاج مساعدة في استخدام Z Systems';
@@ -32,7 +33,7 @@ export function LoginPage() {
             {isSubmitting ? 'جارٍ الدخول...' : 'تسجيل الدخول'}
           </Button>
           <div className="login-support">
-            <Link className="login-support-link" to="/trial">جرب النظام مجانا 14 يوم</Link>
+            <Link className="login-support-link" to="/trial">{PUBLIC_TRIAL_LOGIN_CTA}</Link>
           </div>
           <div className="login-support login-support-whatsapp-compact">
             <span className="muted small support-label">تحتاج مساعدة؟</span>

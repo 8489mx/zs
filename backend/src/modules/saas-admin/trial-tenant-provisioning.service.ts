@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
+import { DEFAULT_TRIAL_DAYS } from './trial.constants';
 
 export type TrialTenantProvisioningInput = {
   slug?: string;
@@ -176,7 +177,7 @@ export class TrialTenantProvisioningService {
     const ownerPhone = this.normalizeRequired(this.normalizePhoneDigits(payload.ownerPhone), 'رقم الهاتف مطلوب.');
     const ownerEmail = this.normalizeOptional(payload.ownerEmail);
     const activityType = this.normalizeOptional(payload.activityType);
-    const days = Number.isFinite(Number(payload.days)) ? Math.max(1, Math.min(365, Number(payload.days))) : 14;
+    const days = Number.isFinite(Number(payload.days)) ? Math.max(1, Math.min(365, Number(payload.days))) : DEFAULT_TRIAL_DAYS;
     const providedSlug = this.normalizeOptional(payload.slug);
     const providedUsername = this.normalizeOptional(payload.username);
     const providedPassword = this.normalizeOptional(payload.password);

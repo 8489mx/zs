@@ -1,4 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { DEFAULT_TRIAL_DAYS } from '../saas-admin/trial.constants';
 
 type TrialSignupMailPayload = {
   businessName: string;
@@ -20,6 +21,7 @@ export class TrialSignupMailService {
       `مرحبا ${payload.businessName}،`,
       '',
       'تم انشاء نسختك التجريبية في Z Systems بنجاح.',
+      `مدة التجربة المجانية: ${DEFAULT_TRIAL_DAYS} ايام.`,
       '',
       `رابط تسجيل الدخول: ${loginUrl}`,
       `اسم المستخدم: ${payload.username}`,
