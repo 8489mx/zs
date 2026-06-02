@@ -16,7 +16,7 @@ interface PosWorkspaceMainContentProps {
   searchInputRef: RefObject<HTMLInputElement | null>;
   cartPiecesCount: number;
   cartItemsCount: number;
-  onSubmitFirstSearchResult: () => boolean;
+  onSubmitFirstSearchResult: (rawQuery?: string) => boolean;
   onRequestDiscountAuthorization: () => void;
   onRequestLineDelete: (lineKey: string) => void;
   onRequestSelectedLineDelete: () => void;
