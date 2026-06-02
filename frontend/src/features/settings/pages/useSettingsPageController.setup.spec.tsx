@@ -145,7 +145,7 @@ describe('useSettingsPageController setup flow', () => {
     flowMock.mockReturnValue({
       enabled: true,
       steps: [],
-      currentStep: { key: 'store', title: 'بيانات المنشأة', section: 'core', to: '/settings/core?setup=1', done: false, ctaLabel: '', nextLabel: '' },
+      currentStep: { key: 'store', title: 'بيانات النشاط', section: 'core', to: '/settings/core?setup=1', done: false, ctaLabel: '', nextLabel: '' },
       nextStep: { key: 'branch-location', title: 'الفرع والمخزن الأساسي', section: 'reference', to: '/settings/reference?setup=1', done: false, ctaLabel: '', nextLabel: '' },
       previousStep: null,
       currentStepIndex: 0,

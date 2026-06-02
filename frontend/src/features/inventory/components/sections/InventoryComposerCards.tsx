@@ -319,7 +319,7 @@ export function StockCountComposerCard({
             <div className="stock-count-mode-grid">
               <div className="stock-count-mode-card">
                 <strong>جرد ورقي</strong>
-                <span>اطبع شيت العد وروح عدّ فعليًا داخل المحل.</span>
+                <span>اطبع شيت العد وروح عدّ فعليا داخل النشاط.</span>
               </div>
               <div className="stock-count-mode-card">
                 <strong>جرد إلكتروني</strong>

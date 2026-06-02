@@ -20,14 +20,14 @@ export function BranchRowActions({ branch, isEditing, onStartEdit, onCancelEdit,
     return (
       <div className="list-row settings-reference-row editing-row">
         <div className="form-grid" style={{ flex: 1 }}>
-          <Field label={SINGLE_STORE_MODE ? 'اسم المتجر' : 'اسم الفرع'}><input value={branch.name} onChange={(event) => onChange('name', event.target.value)} disabled={isBusy} /></Field>
+          <Field label={SINGLE_STORE_MODE ? 'اسم النشاط' : 'اسم الفرع'}><input value={branch.name} onChange={(event) => onChange('name', event.target.value)} disabled={isBusy} /></Field>
           <Field label={SINGLE_STORE_MODE ? 'كود المتجر' : 'كود الفرع'}><input value={branch.code || ''} onChange={(event) => onChange('code', event.target.value)} disabled={isBusy} /></Field>
         </div>
         <div className="actions compact-actions">
           <Button variant="primary" onClick={onSave} disabled={isBusy || !branch.name.trim()}>{isBusy ? 'جارٍ الحفظ...' : 'حفظ'}</Button>
           <Button variant="secondary" onClick={onCancelEdit} disabled={isBusy}>إلغاء</Button>
         </div>
-        <MutationFeedback isError={Boolean(mutationError)} isSuccess={false} error={mutationError} errorFallback={SINGLE_STORE_MODE ? 'تعذر تحديث بيانات المتجر' : 'تعذر تحديث الفرع'} />
+        <MutationFeedback isError={Boolean(mutationError)} isSuccess={false} error={mutationError} errorFallback={SINGLE_STORE_MODE ? 'تعذر تحديث بيانات النشاط' : 'تعذر تحديث الفرع'} />
       </div>
     );
   }

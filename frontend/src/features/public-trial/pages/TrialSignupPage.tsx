@@ -15,7 +15,7 @@ import {
 } from '@/features/public-trial/trial.constants';
 
 const formSchema = z.object({
-  businessName: z.string().trim().min(2, 'اسم المتجر مطلوب.').max(80, 'اسم المتجر طويل جدا.'),
+  businessName: z.string().trim().min(2, 'اسم النشاط / المتجر مطلوب.').max(80, 'اسم النشاط / المتجر طويل جدا.'),
   ownerPhone: z.string().trim().min(6, 'رقم واتساب مطلوب.').max(30, 'رقم واتساب غير صحيح.'),
   ownerEmail: z.string().trim().email('البريد الالكتروني غير صحيح.'),
   honeypot: z.string().optional(),
@@ -71,7 +71,7 @@ export function TrialSignupPage() {
             <div className="muted small" style={{ textAlign: 'center', lineHeight: 1.6, maxWidth: '100%' }}>{PUBLIC_TRIAL_HELPER_TEXT}</div>
           </div>
 
-          <Field label="اسم المتجر / النشاط" error={form.formState.errors.businessName?.message}>
+          <Field label="اسم النشاط / المتجر" error={form.formState.errors.businessName?.message}>
             <input {...form.register('businessName')} autoComplete="organization" />
           </Field>
           <Field label="رقم واتساب" error={form.formState.errors.ownerPhone?.message}>

@@ -2,7 +2,7 @@ export type SettingsSectionKey = 'overview' | 'core' | 'reference' | 'backup' | 
 
 export const settingsSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean }> = [
   { key: 'overview', label: 'ملخص سريع' },
-  { key: 'core', label: 'بيانات المتجر' },
+  { key: 'core', label: 'بيانات النشاط' },
   { key: 'reference', label: 'المخازن' },
   { key: 'users', label: 'المستخدمون والصلاحيات', adminOnly: true },
   { key: 'backup', label: 'النسخ والاستيراد' }

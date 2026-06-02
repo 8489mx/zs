@@ -81,7 +81,7 @@ export function ProductsWorkspace() {
         <Card title="ابدأ بإضافة أول صنف" actions={<span className="nav-pill">خطوة البداية</span>} className="workspace-panel">
           <div className="page-stack">
             <div className="muted">
-              لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للمحل، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
+              لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للنشاط، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
             </div>
             <div className="actions compact-actions">
               <Button onClick={() => scrollToRef(addProductRef.current)}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>

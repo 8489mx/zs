@@ -52,7 +52,7 @@ export function SalesReportSection({
           <ReportMetricCard label="مجمل الربح" value={grossProfit} helper="بعد تكلفة البضاعة" tone="success" formatter={formatCurrency} progress={relativePercent(grossProfit, values)} />
         </div>
         <div className="two-column-grid" style={{ marginTop: 16 }}>
-          <Card title="قراءة يومية سريعة" description="أرقام مختصرة لصاحب المحل بدون فتح جداول إضافية.">
+          <Card title="قراءة يومية سريعة" description="أرقام مختصرة لصاحب النشاط بدون فتح جداول إضافية.">
             <div className="detail-grid">
               <div className="detail-item"><div className="detail-label">متوسط البيع اليومي</div><div className="detail-value">{formatCurrency(salesDailyAverage)}</div></div>
               <div className="detail-item"><div className="detail-label">متوسط الشراء اليومي</div><div className="detail-value">{formatCurrency(purchaseDailyAverage)}</div></div>

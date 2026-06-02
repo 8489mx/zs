@@ -63,12 +63,12 @@ export function SettingsSetupFlowCard({ currentSection }: SettingsSetupFlowCardP
             <Link className="button button-secondary" to={activeStep.to}>{activeStep.ctaLabel}</Link>
           ) : null}
           {canSubmitCurrentStep ? (
-            <Button variant="primary" type="submit" form="settings-main-form" title="احفظ بيانات المتجر أولًا للانتقال إلى الخطوة التالية">
+            <Button variant="primary" type="submit" form="settings-main-form" title="احفظ بيانات النشاط اولا للانتقال إلى الخطوة التالية">
               حفظ والانتقال للخطوة التالية
             </Button>
           ) : canSubmitReferenceStep ? (
-            <Button variant="secondary" disabled title="أكمل تجهيز المتجر والمخزن الأساسي للمتابعة">
-              أكمل تعريف المتجر ونقطة التشغيل أولًا
+            <Button variant="secondary" disabled title="أكمل تجهيز النشاط ونقطة التشغيل للمتابعة">
+              أكمل تعريف النشاط ونقطة التشغيل اولا
             </Button>
           ) : canSecureBootstrapAccount ? (
             <Button variant="secondary" disabled title="استخدم نموذج المستخدم الحالي أو نافذة تغيير كلمة المرور لتأمين حساب التثبيت">

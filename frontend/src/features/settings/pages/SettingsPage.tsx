@@ -26,7 +26,7 @@ export function SettingsPage() {
 
   return (
     <SettingsPageShell
-      title={page.setupMode ? 'تهيئة البرنامج' : 'إعدادات المتجر'}
+      title={page.setupMode ? 'تهيئة البرنامج' : 'إعدادات النشاط'}
       description={page.setupMode ? 'اتبع الخطوات بالترتيب حتى يصبح التشغيل الأول واضحًا وآمنًا.' : getSettingsSectionDescription(resolvedSection)}
       badgeLabel={page.setupMode ? 'تجهيز البداية' : page.sectionMeta.label}
       setupMode={page.setupMode}

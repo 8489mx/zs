@@ -138,7 +138,7 @@ function buildBrandPanelHtml(branding: ReturnType<typeof resolvePrintSettings>) 
   const identityLetter = Array.from(identity)[0] || 'Z';
   const details = [branding.phone, branding.address].filter(Boolean);
   return `
-    <section class="brand-panel" aria-label="بيانات المتجر">
+    <section class="brand-panel" aria-label="بيانات النشاط">
       <div class="brand-copy">
         <div class="brand-name">${escapeHtml(identity)}</div>
         ${details.length ? `<div class="brand-meta">${details.map((item) => `<span>${escapeHtml(item)}</span>`).join('<span class="brand-meta-sep">•</span>')}</div>` : ''}

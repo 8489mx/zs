@@ -86,7 +86,7 @@ function renderSettingsShell(currentSection: 'core' | 'reference' | 'users' | 'b
     <MemoryRouter initialEntries={[`/settings/${currentSection}`]}>
       <AppProviders>
         <SettingsPageShell
-          title="إعدادات المتجر"
+          title="إعدادات النشاط"
           description="اختبار واجهة الإعدادات"
           badgeLabel="اختبار"
           setupMode={false}
@@ -191,9 +191,9 @@ describe('app ui coverage', () => {
         canManageSettings={true}
       />,
     );
-    expect(await screen.findByRole('heading', { level: 1, name: 'إعدادات المتجر' })).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: 'بيانات المتجر' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'بيانات المتجر' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'إعدادات النشاط' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'بيانات النشاط' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 3, name: 'بيانات النشاط' })).toBeInTheDocument();
     expect(await screen.findByText('الإعدادات العامة')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 3, name: 'الفرع والمخزن الأساسي' })).toBeInTheDocument();
 

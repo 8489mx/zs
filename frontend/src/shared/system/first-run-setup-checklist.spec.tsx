@@ -21,8 +21,8 @@ describe('FirstRunSetupChecklist', () => {
       completedCount: 3,
       totalCount: 4,
       steps: [
-        { key: 'store', title: 'بيانات المنشأة', to: '/settings/core?setup=1', done: true, ctaLabel: 'افتح الإعدادات الأساسية' },
-        { key: 'branch-location', title: 'تعريف نقطة التشغيل', to: '/settings/reference?setup=1', done: true, ctaLabel: 'افتح بيانات المتجر ونقطة التشغيل' },
+        { key: 'store', title: 'بيانات النشاط', to: '/settings/core?setup=1', done: true, ctaLabel: 'افتح الإعدادات الأساسية' },
+        { key: 'branch-location', title: 'تعريف نقطة التشغيل', to: '/settings/reference?setup=1', done: true, ctaLabel: 'افتح بيانات النشاط ونقطة التشغيل' },
         { key: 'admin-user', title: 'مستخدم الإدارة اليومي', to: '/settings/users?setup=1', done: true, ctaLabel: 'افتح إدارة المستخدمين' },
         { key: 'secure-account', title: 'تأمين حساب التثبيت', to: '/settings/users?setup=1', done: false, ctaLabel: 'افتح حساب التثبيت' },
       ],

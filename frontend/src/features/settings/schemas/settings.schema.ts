@@ -5,7 +5,7 @@ const accentColorSchema = z
   .regex(/^#[0-9a-fA-F]{6}$/, 'اكتب لونًا صحيحًا مثل #2563eb');
 
 export const settingsFormSchema = z.object({
-  storeName: z.string().min(2, 'اسم المحل مطلوب'),
+  storeName: z.string().min(2, 'اسم النشاط / المتجر مطلوب'),
   brandName: z.string().min(2, 'الاسم التجاري مطلوب').default('Z Systems'),
   phone: z.string().optional(),
   address: z.string().optional(),

@@ -31,7 +31,7 @@ export type ShiftPreset = {
 };
 
 export const shiftPresets: ShiftPreset[] = [
-  { label: 'وردية المحل الأساسية', description: '10:00 صباحًا إلى 10:00 مساءً · 12 ساعة', checkIn: '10:00', checkOut: '22:00', hours: '12', grace: '15' },
+  { label: 'وردية النشاط الأساسية', description: '10:00 صباحًا إلى 10:00 مساءً · 12 ساعة', checkIn: '10:00', checkOut: '22:00', hours: '12', grace: '15' },
   { label: 'وردية صباحية', description: '9:00 صباحًا إلى 5:00 مساءً · 8 ساعات', checkIn: '09:00', checkOut: '17:00', hours: '8', grace: '15' },
   { label: 'وردية مسائية', description: '2:00 ظهرًا إلى 10:00 مساءً · 8 ساعات', checkIn: '14:00', checkOut: '22:00', hours: '8', grace: '15' },
 ];

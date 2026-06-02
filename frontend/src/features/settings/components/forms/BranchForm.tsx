@@ -34,7 +34,7 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
 
   return (
     <div className="form-grid">
-      <Field label={SINGLE_STORE_MODE ? 'اسم المتجر الرئيسي' : 'اسم الفرع'} error={form.formState.errors.name?.message}>
+      <Field label={SINGLE_STORE_MODE ? 'اسم النشاط الرئيسي' : 'اسم الفرع'} error={form.formState.errors.name?.message}>
         <input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} />
       </Field>
       <Field label={SINGLE_STORE_MODE ? 'كود المتجر' : 'كود الفرع'}>
@@ -43,8 +43,8 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
 
       <DraftStateNotice
         visible={form.formState.isDirty && !mutation.isPending}
-        title={SINGLE_STORE_MODE ? 'بيانات المتجر الرئيسي غير محفوظة' : 'بيانات الفرع الجديد غير محفوظة'}
-        hint={SINGLE_STORE_MODE ? 'احفظ تعريف المتجر الرئيسي قبل الانتقال إلى بقية الإعدادات.' : 'يمكنك الإضافة أو تفريغ النموذج قبل الانتقال إلى جزء آخر من الإعدادات.'}
+        title={SINGLE_STORE_MODE ? 'بيانات النشاط الرئيسي غير محفوظة' : 'بيانات الفرع الجديد غير محفوظة'}
+        hint={SINGLE_STORE_MODE ? 'احفظ تعريف النشاط الرئيسي قبل الانتقال إلى بقية الإعدادات.' : 'يمكنك الإضافة أو تفريغ النموذج قبل الانتقال إلى جزء آخر من الإعدادات.'}
       />
 
       <div className="actions compact-actions sticky-form-actions">
@@ -65,7 +65,7 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
         isSuccess={mutation.isSuccess}
         error={mutation.error}
         errorFallback="هذا الاسم أو الكود مستخدم بالفعل."
-        successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات المتجر الرئيسي بنجاح.' : 'تمت إضافة الفرع بنجاح.'}
+        successText={SINGLE_STORE_MODE ? 'تم حفظ بيانات النشاط الرئيسي بنجاح.' : 'تمت إضافة الفرع بنجاح.'}
       />
 
       <SubmitButton
@@ -77,7 +77,7 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
           event.stopPropagation();
           void handleSaveBranch();
         }}
-        idleText={SINGLE_STORE_MODE ? 'حفظ بيانات المتجر الرئيسي' : 'حفظ الفرع'}
+        idleText={SINGLE_STORE_MODE ? 'حفظ بيانات النشاط الرئيسي' : 'حفظ الفرع'}
         pendingText="جارٍ الحفظ..."
       />
     </div>

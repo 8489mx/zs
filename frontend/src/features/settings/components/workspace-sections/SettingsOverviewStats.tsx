@@ -19,7 +19,7 @@ export function SettingsOverviewStats({
 }: SettingsOverviewStatsProps) {
   return (
     <div className="stats-grid compact-grid workspace-stats-grid settings-overview-grid">
-      <div className="stat-card"><span>{SINGLE_STORE_MODE ? 'المتجر الرئيسي' : 'الفرع الرئيسي'}</span><strong>{branchesCount ? 'جاهز' : 'غير مضاف'}</strong></div>
+      <div className="stat-card"><span>{SINGLE_STORE_MODE ? 'النشاط الرئيسي' : 'الفرع الرئيسي'}</span><strong>{branchesCount ? 'جاهز' : 'غير مضاف'}</strong></div>
       <div className="stat-card"><span>المخزن الأساسي</span><strong>{locationsCount ? 'جاهز' : 'غير مضاف'}</strong></div>
       <div className="stat-card"><span>النقاط المحفوظة</span><strong>{snapshotsCount}</strong></div>
       <div className="stat-card"><span>الحفظ الوقائي</span><strong>{autoBackupEnabled ? 'مفعّل' : 'متوقف'}</strong></div>

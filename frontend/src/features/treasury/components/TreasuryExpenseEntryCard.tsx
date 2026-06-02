@@ -12,7 +12,7 @@ const EXPENSE_PRESETS = [
   'كهرباء',
   'مياه',
   'إنترنت',
-  'صيانة محل',
+  'صيانة نشاط',
   'صيانة أجهزة',
   'أدوات نظافة',
   'ضيافة',
@@ -67,7 +67,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
           <input
             value={expenseForm.title}
             onChange={(e) => setExpenseForm((current) => ({ ...current, title: e.target.value }))}
-            placeholder="مثال: إيجار محل أو مصروف خاص"
+            placeholder="مثال: إيجار النشاط أو مصروف خاص"
           />
         </Field>
 

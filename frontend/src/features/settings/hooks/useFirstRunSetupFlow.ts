@@ -64,7 +64,7 @@ export function buildFirstRunSetupFlowState({
   const steps: SetupFlowStep[] = [
     {
       key: 'store',
-      title: 'بيانات المنشأة',
+      title: 'بيانات النشاط',
       section: 'core',
       to: '/settings/core?setup=1',
       done: hasNamedStore,
@@ -77,7 +77,7 @@ export function buildFirstRunSetupFlowState({
       section: 'reference',
       to: '/settings/reference?setup=1',
       done: branches.length > 0 && locations.length > 0,
-      ctaLabel: SINGLE_STORE_MODE ? 'افتح بيانات المتجر ونقطة التشغيل' : 'افتح الفرع الرئيسي والمخزن الأساسي',
+      ctaLabel: SINGLE_STORE_MODE ? 'افتح بيانات النشاط ونقطة التشغيل' : 'افتح الفرع الرئيسي والمخزن الأساسي',
       nextLabel: 'تم، انتقل للخطوة التالية'
     },
     {

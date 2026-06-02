@@ -9,10 +9,10 @@ export function FirstRunSetupPage() {
 
   return (
     <div className="screen-center auth-screen-shell setup-screen-shell">
-      <Card title="التهيئة الأولى" description="أكمل بيانات المنشأة وأنشئ أول مستخدم إدارة مرة واحدة فقط." className="activation-card setup-card">
+      <Card title="التهيئة الأولى" description="أكمل بيانات النشاط وأنشئ أول مستخدم إدارة مرة واحدة فقط." className="activation-card setup-card">
         <form className="stack gap-16" onSubmit={(event) => void handleSubmit(event)}>
           <div className="grid two-columns gap-12">
-            <Field label="اسم المنشأة"><input value={form.storeName} onChange={(event) => updateField('storeName', event.target.value)} /></Field>
+            <Field label="اسم النشاط / المتجر"><input value={form.storeName} onChange={(event) => updateField('storeName', event.target.value)} /></Field>
             <Field label="اسم الفرع"><input value={form.branchName} onChange={(event) => updateField('branchName', event.target.value)} /></Field>
             <Field label="كود الفرع (اختياري)"><input value={form.branchCode} onChange={(event) => updateField('branchCode', event.target.value)} /></Field>
             <Field label="اسم المخزن"><input value={form.locationName} onChange={(event) => updateField('locationName', event.target.value)} /></Field>

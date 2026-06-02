@@ -23,7 +23,7 @@ export function BrandPreview({ form }: { form: ReturnType<typeof useForm<Setting
       </div>
       <div>
         <strong>{brandName || 'Z Systems'}</strong>
-        <div className="muted small">{storeName || 'اسم المحل سيظهر هنا'}</div>
+        <div className="muted small">{storeName || 'اسم النشاط / المتجر سيظهر هنا'}</div>
         <div className="brand-color-chip"><span className="brand-color-swatch" style={{ background: accentColor || '#2563eb' }} /> {accentColor || '#2563eb'}</div>
       </div>
     </div>

@@ -17,7 +17,7 @@ export function SettingsCoreSection({ settings, branches, locations, settingsQue
   return (
     <div className="settings-main-grid">
       <QueryCard
-        title="بيانات المتجر"
+        title="بيانات النشاط"
         actions={<span className="nav-pill">الإعدادات العامة</span>}
         className="settings-primary-card"
         isLoading={settingsQuery.isLoading}

@@ -15,7 +15,7 @@ export function CompactFirstRunSetupPrompt() {
     >
       <div className="setup-prompt-actions">
         <Link className="button button-secondary" to={flow.currentStep?.to || '/settings/core?setup=1'}>
-          ابدأ تهيئة البرنامج على محلك
+          ابدأ تهيئة البرنامج لنشاطك
         </Link>
       </div>
     </Card>

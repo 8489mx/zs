@@ -298,13 +298,13 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           <div className="muted small">الحقول المميزة بـ * مطلوبة.</div>
         </div>
         <div className="form-grid three-col-form">
-          <RequiredField label="اسم المحل" error={form.formState.errors.storeName?.message}>
+          <RequiredField label="اسم النشاط / المتجر" error={form.formState.errors.storeName?.message}>
             <input {...form.register('storeName')} disabled={disabled} />
           </RequiredField>
 
           {SINGLE_STORE_MODE ? (
             <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
-              <input value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ بيانات المتجر الرئيسي'} disabled readOnly />
+              <input value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ بيانات النشاط الرئيسي'} disabled readOnly />
             </RequiredField>
           ) : (
             <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
@@ -438,7 +438,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
       <section className="panel page-stack">
         <div>
-          <strong>بيانات المتجر</strong>
+          <strong>بيانات النشاط</strong>
         </div>
         <div className="form-grid three-col-form">
           <label className="field">
@@ -504,7 +504,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           </label>
           <label className="field">
             <span>تذييل الفاتورة</span>
-            <input {...form.register('invoiceFooter')} disabled={disabled} placeholder="مثال: الاستبدال خلال 14 يوم" />
+            <input {...form.register('invoiceFooter')} disabled={disabled} placeholder="مثال: شكرا لتعاملكم معنا" />
           </label>
         </div>
       </section>
