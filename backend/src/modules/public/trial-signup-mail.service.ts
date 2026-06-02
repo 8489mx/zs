@@ -6,6 +6,7 @@ type TrialSignupMailPayload = {
   ownerEmail: string;
   username: string;
   temporaryPassword: string;
+  trialDays?: number;
 };
 
 @Injectable()
@@ -21,7 +22,7 @@ export class TrialSignupMailService {
       `مرحبا ${payload.businessName}،`,
       '',
       'تم انشاء نسختك التجريبية في Z Systems بنجاح.',
-      `مدة التجربة المجانية: ${DEFAULT_TRIAL_DAYS} ايام.`,
+      `مدة التجربة المجانية: ${payload.trialDays ?? DEFAULT_TRIAL_DAYS} ايام.`,
       '',
       `رابط تسجيل الدخول: ${loginUrl}`,
       `اسم المستخدم: ${payload.username}`,

@@ -6,8 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { ApiError } from '@/lib/http';
-import { publicTrialApi } from '@/features/public-trial/api/public-trial.api';
-import type { PublicTrialSignupResponse } from '@/features/public-trial/api/public-trial.api';
+import { publicTrialApi, type PublicTrialSignupResponse } from '@/features/public-trial/api/public-trial.api';
 import {
   PUBLIC_TRIAL_HELPER_TEXT,
   PUBLIC_TRIAL_TITLE_LINE_1,

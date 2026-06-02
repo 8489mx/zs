@@ -151,6 +151,7 @@ export class PublicTrialSignupService {
           ownerEmail: email,
           username: provisioned.owner.username,
           temporaryPassword: provisioned.owner.temporaryPassword,
+          trialDays: DEFAULT_TRIAL_DAYS,
         });
         this.logger.log(`mail send ok | tenantId=${provisioned.tenant.id} | slug=${provisioned.tenant.slug}`);
       } catch (error) {
