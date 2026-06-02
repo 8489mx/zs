@@ -3,7 +3,7 @@ import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
-import { PUBLIC_TRIAL_LOGIN_CTA } from '@/features/public-trial/trial.constants';
+import { PUBLIC_TRIAL_LOGIN_CTA } from '@/shared/config/trial.constants';
 
 const SUPPORT_WHATSAPP_NUMBER = String(import.meta.env?.VITE_SUPPORT_WHATSAPP_NUMBER || '201018017523').trim();
 const SUPPORT_WHATSAPP_TEXT = 'مرحبا، احتاج مساعدة في استخدام Z Systems';

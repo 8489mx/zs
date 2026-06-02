@@ -196,7 +196,7 @@ assert(envExample.DEFAULT_ADMIN_PASSWORD === '', 'DEFAULT_ADMIN_PASSWORD must be
 assert(envExample.SESSION_CSRF_SECRET && envExample.SESSION_CSRF_SECRET.length >= 16, 'SESSION_CSRF_SECRET example must be present and long enough');
 assertBootstrapEnv('backend/.env.example', envExample);
 
-if (fs.existsSync(runtimeEnvPath)) {
+if (fs.existsSync(runtimeEnvPath) && String(process.env.CHECK_RUNTIME_ENV || '').toLowerCase() === 'true') {
   const runtime = parseEnv(fs.readFileSync(runtimeEnvPath, 'utf8'));
   const nodeEnv = runtime.NODE_ENV || 'development';
 

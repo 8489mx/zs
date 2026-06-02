@@ -117,14 +117,13 @@ export function isPlatformAdmin(user: AuthUser | null | undefined) {
   const tenantId = String(user?.tenantId || '').trim();
   const accountId = String(user?.accountId || '').trim();
   const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || '').trim();
+  const hasExplicitTenant = tenantId.length > 0;
+  const isPlatformTenant = tenantId === 'default' || (configuredPlatformTenantId.length > 0 && tenantId === configuredPlatformTenantId);
+  const canUseAccountFallback = !hasExplicitTenant && accountId === 'default';
 
   return Boolean(
     user?.role === 'super_admin'
-    && (
-      tenantId === 'default'
-      || accountId === 'default'
-      || (configuredPlatformTenantId.length > 0 && tenantId === configuredPlatformTenantId)
-    )
+    && (isPlatformTenant || canUseAccountFallback)
   );
 }
 

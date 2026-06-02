@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { accountingApi } from '@/features/accounting/api/accounting.api';
+import { accountingReportsApi } from '@/shared/api/accounting-reports';
 import { useReportsOverview } from '@/features/reports/hooks/useReportsOverview';
 import { useReportInventoryPage } from '@/features/reports/hooks/useReportInventoryPage';
 import { useCustomerBalancesPage } from '@/features/reports/hooks/useCustomerBalancesPage';
@@ -15,25 +15,25 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
   const { reportQuery } = useReportsOverview(state.submittedRange.from, state.submittedRange.to);
   const accountingFinancialSummaryQuery = useQuery({
     queryKey: ['reports', 'accounting-financial-summary', state.submittedRange.from, state.submittedRange.to],
-    queryFn: () => accountingApi.financialSummary({ date_from: state.submittedRange.from, date_to: state.submittedRange.to }),
+    queryFn: () => accountingReportsApi.financialSummary({ date_from: state.submittedRange.from, date_to: state.submittedRange.to }),
     enabled: Boolean(state.submittedRange.from && state.submittedRange.to),
     retry: false,
   });
   const accountingCashMovementQuery = useQuery({
     queryKey: ['reports', 'accounting-cash-movement', state.submittedRange.from, state.submittedRange.to],
-    queryFn: () => accountingApi.cashMovement({ date_from: state.submittedRange.from, date_to: state.submittedRange.to }),
+    queryFn: () => accountingReportsApi.cashMovement({ date_from: state.submittedRange.from, date_to: state.submittedRange.to }),
     enabled: Boolean(state.submittedRange.from && state.submittedRange.to),
     retry: false,
   });
   const accountingReceivablesPayablesQuery = useQuery({
     queryKey: ['reports', 'accounting-receivables-payables', state.submittedRange.to],
-    queryFn: () => accountingApi.receivablesPayables({ date_to: state.submittedRange.to }),
+    queryFn: () => accountingReportsApi.receivablesPayables({ date_to: state.submittedRange.to }),
     enabled: Boolean(state.submittedRange.to),
     retry: false,
   });
   const accountingInventoryValueQuery = useQuery({
     queryKey: ['reports', 'accounting-inventory-value'],
-    queryFn: () => accountingApi.inventoryValue({}),
+    queryFn: () => accountingReportsApi.inventoryValue({}),
     retry: false,
   });
   const inventoryQuery = useReportInventoryPage({ page: state.inventoryPage, pageSize: state.inventoryPageSize, search: state.inventorySearch, filter: state.inventoryFilter });

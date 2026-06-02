@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { ReportSummary } from '@/types/domain';
-import type { CashMovementResponse, FinancialSummaryResponse, InventoryValueResponse, ReceivablesPayablesResponse } from '@/features/accounting/api/accounting.api';
+import type { CashMovementResponse, FinancialSummaryResponse, InventoryValueResponse, ReceivablesPayablesResponse } from '@/shared/api/accounting-reports';
 import { formatCurrency } from '@/lib/format';
 import { reportsSections, type ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
 import { formatPercent, relativePercent } from '@/features/reports/lib/reports-format';

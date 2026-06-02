@@ -18,7 +18,7 @@ function parseRoutesFile(featureName) {
   const routePaths = Array.from(source.matchAll(/path:\s*'([^']+)'/g), (match) => match[1]);
   const hasIndexRoute = /index:\s*true/.test(source);
   const navigation = Array.from(
-    source.matchAll(/navigation:\s*\[\{\s*key:\s*'([^']+)',\s*label:\s*'([^']+)',\s*to:\s*'([^']+)'(?:,\s*end:\s*(true|false))?/g),
+    source.matchAll(/navigation:\s*\[\s*\{\s*key:\s*'([^']+)',\s*label:\s*'([^']+)',\s*to:\s*'([^']+)'(?:,\s*end:\s*(true|false))?/g),
     (match) => ({ key: match[1], label: match[2], to: match[3], end: match[4] === 'true' })
   );
 
@@ -31,7 +31,7 @@ function parseRoutesFile(featureName) {
   return { featureName, filePath, missing: false, routes, navigation };
 }
 
-const featureNames = readDirNames(featuresDir).filter((feature) => !['auth', 'not-found', 'activation'].includes(feature));
+const featureNames = readDirNames(featuresDir).filter((feature) => !['auth', 'not-found', 'activation', 'public-trial'].includes(feature));
 const parsedModules = featureNames.map(parseRoutesFile);
 const errors = [];
 

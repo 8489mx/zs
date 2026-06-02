@@ -84,7 +84,7 @@ describe('LoginPage', () => {
     const { queryClient } = renderLogin();
     queryClient.setQueryData(['stale-session'], { leaked: true });
 
-    await user.type(screen.getByLabelText('اسم المستخدم'), 'root');
+    await user.type(screen.getByLabelText('اسم المستخدم او البريد الالكتروني'), 'root');
     await user.type(screen.getByLabelText('كلمة المرور'), 'owner123456789');
     await user.click(screen.getByRole('button', { name: 'تسجيل الدخول' }));
 
@@ -125,7 +125,7 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     renderLogin();
 
-    await user.type(screen.getByLabelText('اسم المستخدم'), '   manager   ');
+    await user.type(screen.getByLabelText('اسم المستخدم او البريد الالكتروني'), '   manager   ');
     await user.type(screen.getByLabelText('كلمة المرور'), 'correct-password');
     await user.click(screen.getByRole('button', { name: 'تسجيل الدخول' }));
 
@@ -139,13 +139,13 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     renderLogin();
 
-    await user.type(screen.getByLabelText('اسم المستخدم'), 'manager');
+    await user.type(screen.getByLabelText('اسم المستخدم او البريد الالكتروني'), 'manager');
     await user.type(screen.getByLabelText('كلمة المرور'), 'wrong-password');
     await user.click(screen.getByRole('button', { name: 'تسجيل الدخول' }));
 
     expect(await screen.findByText('بيانات الدخول غير صحيحة')).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('اسم المستخدم'), 'x');
+    await user.type(screen.getByLabelText('اسم المستخدم او البريد الالكتروني'), 'x');
 
     await waitFor(() => {
       expect(screen.queryByText('بيانات الدخول غير صحيحة')).not.toBeInTheDocument();

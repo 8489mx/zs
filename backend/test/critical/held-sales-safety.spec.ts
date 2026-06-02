@@ -245,6 +245,7 @@ function createServices(db = new FakeDb()) {
     authz,
     {} as any,
     query,
+    { syncSalePosting: async () => undefined } as any,
   );
   return { db, query, write };
 }

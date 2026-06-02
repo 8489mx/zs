@@ -195,7 +195,8 @@ describe('app ui coverage', () => {
     expect(await screen.findByRole('link', { name: 'بيانات النشاط' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 3, name: 'بيانات النشاط' })).toBeInTheDocument();
     expect(await screen.findByText('الإعدادات العامة')).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'الفرع والمخزن الأساسي' })).toBeInTheDocument();
+    expect(await screen.findByText('الفرع الرئيسي')).toBeInTheDocument();
+    expect(await screen.findByText('المخزن الأساسي')).toBeInTheDocument();
 
     cleanup();
     installGlobalAppFetchMock();
@@ -289,7 +290,9 @@ describe('app ui coverage', () => {
       />,
     );
     expect(await screen.findByRole('link', { name: 'النسخ والاستيراد' })).toBeInTheDocument();
-    expect(await screen.findByText('نسخة احتياطية')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'تنزيل نسخة احتياطية الآن' })
+    ).toBeInTheDocument();
   });
 
   it('covers products table interactions', async () => {
@@ -310,7 +313,8 @@ describe('app ui coverage', () => {
       </MemoryRouter>,
     );
     await user.click(screen.getByText('فتح تفاصيل اختبارية'));
-    expect(await screen.findByText('مورد رئيسي')).toBeInTheDocument();
-    expect(within(screen.getByText('PO-1001').closest('article') ?? document.body).getByText('مياه معدنية')).toBeInTheDocument();
+    const detailCard = screen.getByRole('heading', { level: 3, name: 'تفاصيل PO-1001' }).closest('section') ?? document.body;
+    expect(within(detailCard).getByText('مورد رئيسي')).toBeInTheDocument();
+    expect(within(detailCard).getByText('مياه معدنية')).toBeInTheDocument();
   });
 });

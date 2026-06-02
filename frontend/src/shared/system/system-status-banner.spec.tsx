@@ -62,7 +62,7 @@ describe('SystemStatusBanner', () => {
       window.dispatchEvent(new CustomEvent(APP_NETWORK_STATE_EVENT, { detail: { online: false, path: '/health' } }));
     });
 
-    expect(await screen.findByText('ظ„ط§ ظٹظˆط¬ط¯ ط§طھطµط§ظ„ ط¨ط§ظ„ط´ط¨ظƒط© ط­ط§ظ„ظٹظ‹ط§. ط¨ط¹ط¶ ط§ظ„ط¹ظ…ظ„ظٹط§طھ ظ‚ط¯ ظ„ط§ طھط¹ظ…ظ„ ط­طھظ‰ ظٹط¹ظˆط¯ ط§ظ„ط§طھطµط§ظ„.')).toBeInTheDocument();
+    expect(await screen.findByText('لا يوجد اتصال بالشبكة حاليًا. بعض العمليات قد لا تعمل حتى يعود الاتصال.')).toBeInTheDocument();
   });
 
   it('shows the signed-out reason on the login route', async () => {

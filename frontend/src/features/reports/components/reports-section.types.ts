@@ -1,5 +1,5 @@
 import type { Customer, ReportSummary } from '@/types/domain';
-import type { CashMovementResponse, FinancialSummaryResponse, InventoryValueResponse, ReceivablesPayablesResponse } from '@/features/accounting/api/accounting.api';
+import type { CashMovementResponse, FinancialSummaryResponse, InventoryValueResponse, ReceivablesPayablesResponse } from '@/shared/api/accounting-reports';
 import type { EmployeeReportRow, EmployeeReportsSummary, ReportInventoryRow } from '@/features/reports/api/reports.api';
 import type { ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
 
