@@ -147,6 +147,7 @@ export interface AppSettings {
   printShowPaymentBreakdown?: boolean;
   printShowFooter?: boolean;
   printCompactReceipt?: boolean;
+  printNumberFormat?: 'arabic' | 'english' | string;
   clothingModuleEnabled?: boolean;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;
