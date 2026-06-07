@@ -102,6 +102,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       printShowPaymentBreakdown: true,
       printShowFooter: true,
       printCompactReceipt: true,
+      printNumberFormat: 'arabic',
     },
   });
 
@@ -220,6 +221,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       printShowPaymentBreakdown: settings.printShowPaymentBreakdown !== false,
       printShowFooter: settings.printShowFooter !== false,
       printCompactReceipt: settings.printCompactReceipt !== false,
+      printNumberFormat: settings.printNumberFormat === 'english' ? 'english' : 'arabic',
     });
   }, [settings, form]);
 
@@ -492,6 +494,14 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <option value="exclusive">تضاف فوق السعر</option>
               <option value="inclusive">ضمن السعر</option>
             </select>
+          </label>
+          <label className="field">
+            <span>تنسيق أرقام الفاتورة</span>
+            <select {...form.register('printNumberFormat')} disabled={disabled}>
+              <option value="arabic">أرقام عربية: ١٢٣٤</option>
+              <option value="english">أرقام إنجليزية: 1234</option>
+            </select>
+            <div className="muted small">اختر شكل الأرقام المطبوعة في الإيصال حسب وضوح الطابعة وراحة العميل.</div>
           </label>
           <label className="field">
             <span>محتوى QR في الفاتورة</span>
