@@ -48,6 +48,7 @@ export const settingsFormSchema = z.object({
   printShowPaymentBreakdown: z.boolean().default(true),
   printShowFooter: z.boolean().default(true),
   printCompactReceipt: z.boolean().default(true),
+  printNumberFormat: z.enum(['arabic', 'english']).default('arabic'),
 });
 
 export const branchFormSchema = z.object({
