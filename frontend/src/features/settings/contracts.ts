@@ -59,6 +59,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     printShowPaymentBreakdown: values.printShowPaymentBreakdown !== false,
     printShowFooter: values.printShowFooter !== false,
     printCompactReceipt: values.printCompactReceipt !== false,
+    printNumberFormat: values.printNumberFormat === 'english' ? 'english' : 'arabic',
   };
 
   return { settings };
