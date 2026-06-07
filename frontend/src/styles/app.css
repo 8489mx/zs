@@ -3,7 +3,6 @@
 @import './partials/dashboard.css';
 @import './partials/features.css';
 @import './partials/pos-compact-fix.css';
-@import './partials/pos-empty-cart-polish.css';
 @import './partials/dashboard-compact-fix.css';
 @import './partials/cash-drawer-compact-fix.css';
 @import './partials/inventory-compact-fix.css';
@@ -41,3 +40,4 @@
 @import './partials/z-erp-brand.css';
 @import './partials/supplier-payment-schedule-polish.css';
 @import './partials/stock-count-workflow-polish.css';
+@import './partials/document-form-prototype.css';
