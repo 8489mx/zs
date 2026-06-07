@@ -63,7 +63,8 @@ export function useSettingsPageController(section: SettingsSectionKey) {
       return;
     }
 
-    navigate(getPostLoginRoute(currentUser, latestFlow.resolvedStoreName), { replace: true });
+    const authState = useAuthStore.getState();
+    navigate(getPostLoginRoute(currentUser, latestFlow.resolvedStoreName, { tenant: authState.tenant, deploymentMode: authState.activationStatus?.deploymentMode }), { replace: true });
   };
 
   const settingsGuidanceCards = useMemo(() => buildSettingsGuidanceCards({

@@ -265,6 +265,7 @@ export class ActivationService {
         }
 
         await this.setSetting('storeName', dto.storeName.trim(), trx);
+        await this.setSetting('uiLanguage', dto.uiLanguage?.trim().toLowerCase() === 'en' ? 'en' : 'ar', trx);
         if (dto.theme?.trim()) await this.setSetting('theme', dto.theme.trim(), trx);
 
         const now = new Date();

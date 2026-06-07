@@ -82,7 +82,7 @@ export function useLoginForm() {
 
       await clearQueryClientData(queryClient);
       setSession({ user, tenant, storeName, theme });
-      navigate(getPostLoginRoute(user, storeName), { replace: true });
+      navigate(getPostLoginRoute(user, storeName, { tenant, deploymentMode: useAuthStore.getState().activationStatus?.deploymentMode }), { replace: true });
     } catch (err) {
       setLocalSessionFallback(null);
       const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول';

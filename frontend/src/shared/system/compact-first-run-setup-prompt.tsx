@@ -7,15 +7,18 @@ export function CompactFirstRunSetupPrompt() {
 
   if (!flow.enabled || flow.isComplete) return null;
 
+  const primaryActionLabel = flow.completedCount > 0 ? 'استكمال الإعداد' : 'ابدأ الإعداد';
+
   return (
     <Card
-      title="أول مرة تستخدم البرنامج؟"
+      title="جهز نظامك في دقائق"
       actions={<span className="status-badge">{flow.completedCount}/{flow.totalCount}</span>}
       className="setup-prompt-card"
     >
+      <p className="muted" style={{ marginTop: 0 }}>أكمل الإعدادات الأساسية عشان تظهر الفواتير والتقارير بشكل صحيح.</p>
       <div className="setup-prompt-actions">
         <Link className="button button-secondary" to={flow.currentStep?.to || '/settings/core?setup=1'}>
-          ابدأ تهيئة البرنامج لنشاطك
+          {primaryActionLabel}
         </Link>
       </div>
     </Card>

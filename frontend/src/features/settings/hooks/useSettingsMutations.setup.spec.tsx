@@ -70,6 +70,11 @@ const baseSettingsMutationValues = {
   printShowFooter: true,
   printCompactReceipt: true,
   printNumberFormat: 'arabic' as const,
+  uiLanguage: 'ar' as const,
+  currency: 'EGP',
+  timezone: 'Africa/Cairo',
+  dateFormat: 'yyyy-MM-dd' as const,
+  timeFormat: '24h' as const,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {

@@ -13,6 +13,7 @@ import { runUserBulkAction } from '@/features/settings/hooks/user-management/use
 import { useUserManagementEffects } from '@/features/settings/hooks/user-management/useUserManagementEffects';
 import { useUserManagementMutation } from '@/features/settings/hooks/user-management/useUserManagementMutation';
 import type { UserBulkAction } from '@/features/settings/hooks/user-management/user-management.types';
+import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import { useAuthStore } from '@/stores/auth-store';
 
 export type { UserBulkAction } from '@/features/settings/hooks/user-management/user-management.types';
@@ -23,7 +24,7 @@ export function useUserManagementController({
   onSetupAdvance,
 }: {
   setupMode?: boolean;
-  setupStepKey?: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null;
+  setupStepKey?: SetupStepKey | null;
   onSetupAdvance?: () => void;
 }) {
   const currentUserId = useAuthStore((state) => state.user?.id || '');

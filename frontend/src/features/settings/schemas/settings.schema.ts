@@ -49,6 +49,11 @@ export const settingsFormSchema = z.object({
   printShowFooter: z.boolean().default(true),
   printCompactReceipt: z.boolean().default(true),
   printNumberFormat: z.enum(['arabic', 'english']).default('arabic'),
+  uiLanguage: z.enum(['ar', 'en']).default('ar'),
+  currency: z.string().trim().min(2).default('EGP'),
+  timezone: z.string().trim().min(2).default('Africa/Cairo'),
+  dateFormat: z.enum(['yyyy-MM-dd', 'dd/MM/yyyy']).default('yyyy-MM-dd'),
+  timeFormat: z.enum(['24h', '12h']).default('24h'),
 });
 
 export const branchFormSchema = z.object({

@@ -75,7 +75,12 @@ export class SettingsService {
       throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
     }
 
-    for (const [key, value] of Object.entries(payload)) {
+    const normalizedPayload = { ...payload };
+    if ('uiLanguage' in normalizedPayload) {
+      normalizedPayload.uiLanguage = String(normalizedPayload.uiLanguage || '').trim().toLowerCase() === 'en' ? 'en' : 'ar';
+    }
+
+    for (const [key, value] of Object.entries(normalizedPayload)) {
       await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db);
     }
     await this.audit.log('تعديل الإعدادات', `تم تعديل الإعدادات بواسطة ${actor.username}`, actor);

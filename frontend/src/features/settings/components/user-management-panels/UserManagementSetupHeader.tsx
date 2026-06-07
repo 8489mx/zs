@@ -1,5 +1,6 @@
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { formatDateTime } from '@/features/settings/components/user-management.shared';
+import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 
 export function UserManagementSetupHeader({
   draft,
@@ -9,7 +10,7 @@ export function UserManagementSetupHeader({
 }: {
   draft: ManagedUserRecord;
   setupMode: boolean;
-  setupStepKey: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null;
+  setupStepKey: SetupStepKey | null;
   isCurrentUserSelected: boolean;
 }) {
   return (

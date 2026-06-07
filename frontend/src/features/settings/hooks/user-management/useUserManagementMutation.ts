@@ -4,6 +4,7 @@ import { queryKeys } from '@/app/query-keys';
 import { settingsApi, type ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { normalizeUserRecord } from '@/features/settings/components/user-management.shared';
 import type { UserMutationAction } from '@/features/settings/hooks/user-management/user-management.types';
+import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function useUserManagementMutation({
@@ -23,7 +24,7 @@ export function useUserManagementMutation({
 }: {
   draft: ManagedUserRecord;
   setupMode: boolean;
-  setupStepKey: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null;
+  setupStepKey: SetupStepKey | null;
   currentUserId: string;
   loadUser: (user?: ManagedUserRecord | null) => void;
   startNewUser: (role?: 'super_admin' | 'admin' | 'cashier') => void;

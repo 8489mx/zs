@@ -2,7 +2,6 @@
 import { PageHeader } from '@/shared/components/page-header';
 import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
-import { CompactFirstRunSetupPrompt } from '@/shared/system/compact-first-run-setup-prompt';
 import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
 import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
@@ -68,6 +67,8 @@ export function DashboardPage() {
         )}
       />
 
+      <FirstRunSetupChecklist />
+
       <section className="dashboard-daily-kpi-grid dashboard-primary-kpi-grid" aria-label="ملخص التشغيل">
         <DashboardMetricCard label="مبيعات اليوم" value={Number(stats.todaySalesAmount || 0)} helper="إجمالي البيع المسجل اليوم" tone="primary" />
         <DashboardMetricCard label="عدد فواتير اليوم" value={Number(stats.todaySalesCount || 0)} helper="عدد فواتير البيع" tone="success" formatter={formatInteger} />
@@ -113,9 +114,6 @@ export function DashboardPage() {
         customerDebt={Number(stats.customerDebt || 0)}
         supplierDebt={Number(stats.supplierDebt || 0)}
       />
-
-      <CompactFirstRunSetupPrompt />
-      <FirstRunSetupChecklist />
 
       <h2 className="dashboard-section-heading">اختصارات إدارية</h2>
       <DashboardCompactManagerActions

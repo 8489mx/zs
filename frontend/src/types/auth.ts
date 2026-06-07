@@ -32,6 +32,7 @@ export interface AuthMeResponse {
   settings: {
     storeName: string;
     theme: string;
+    uiLanguage?: 'ar' | 'en' | string;
   };
   security: {
     mustChangePassword: boolean;

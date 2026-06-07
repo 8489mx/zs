@@ -12,6 +12,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { BranchForm } from '@/features/settings/components/forms/BranchForm';
 import { LocationForm } from '@/features/settings/components/forms/LocationForm';
 import { BrandPreview, readFileAsDataUrl, type SettingsMainFormProps } from '@/features/settings/components/forms/settings-forms.shared';
+import { useLocalePreference } from '@/shared/locale/LocaleProvider';
 
 const checkboxGridStyle: CSSProperties = {
   display: 'grid',
@@ -59,6 +60,8 @@ function RequiredField({ label, error, children }: RequiredFieldProps) {
 }
 
 export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance }: SettingsMainFormProps) {
+  const locale = useLocalePreference();
+  const setLocaleLanguage = locale.setLanguage;
   const form = useForm<SettingsFormInput, undefined, SettingsFormOutput>({
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
@@ -103,6 +106,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       printShowFooter: true,
       printCompactReceipt: true,
       printNumberFormat: 'arabic',
+      uiLanguage: locale.language,
+      currency: 'EGP',
+      timezone: 'Africa/Cairo',
+      dateFormat: 'yyyy-MM-dd',
+      timeFormat: '24h',
     },
   });
 
@@ -222,6 +230,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       printShowFooter: settings.printShowFooter !== false,
       printCompactReceipt: settings.printCompactReceipt !== false,
       printNumberFormat: settings.printNumberFormat === 'english' ? 'english' : 'arabic',
+      uiLanguage: settings.uiLanguage === 'en' ? 'en' : 'ar',
+      currency: String(settings.currency || 'EGP').trim() || 'EGP',
+      timezone: String(settings.timezone || 'Africa/Cairo').trim() || 'Africa/Cairo',
+      dateFormat: settings.dateFormat === 'dd/MM/yyyy' ? 'dd/MM/yyyy' : 'yyyy-MM-dd',
+      timeFormat: settings.timeFormat === '12h' ? '12h' : '24h',
     });
   }, [settings, form]);
 
@@ -259,6 +272,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   }, [warehouseMenuOpen, selectedLocation?.name]);
 
   const disabled = mutation.isPending || !canManageSettings;
+  const watchedLanguage = form.watch('uiLanguage');
+
+  useEffect(() => {
+    setLocaleLanguage(watchedLanguage === 'en' ? 'en' : 'ar');
+  }, [setLocaleLanguage, watchedLanguage]);
 
   const submit = form.handleSubmit((values) => {
     const missingBranchOrWarehouse = !String(values.currentBranchId || '').trim() || !String(values.currentLocationId || '').trim();
@@ -292,6 +310,55 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   return (
     <form id="settings-main-form" className="page-stack settings-core-form" onSubmit={submit}>
       <BrandPreview form={form} />
+
+
+      <section className="panel page-stack">
+        <div>
+          <strong>اللغة والمنطقة</strong>
+          <div className="muted small">اضبط لغة الواجهة والعملة والمنطقة الزمنية المستخدمة في شاشة النظام والتقارير.</div>
+        </div>
+        <div className="form-grid three-col-form">
+          <label className="field">
+            <span>لغة النظام</span>
+            <select {...form.register('uiLanguage')} disabled={disabled}>
+              <option value="ar">العربية</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>العملة</span>
+            <select {...form.register('currency')} disabled={disabled}>
+              <option value="EGP">EGP - جنيه مصري</option>
+              <option value="SAR">SAR - ريال سعودي</option>
+              <option value="AED">AED - درهم إماراتي</option>
+              <option value="USD">USD - US Dollar</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>المنطقة الزمنية</span>
+            <select {...form.register('timezone')} disabled={disabled}>
+              <option value="Africa/Cairo">Africa/Cairo</option>
+              <option value="Asia/Riyadh">Asia/Riyadh</option>
+              <option value="Asia/Dubai">Asia/Dubai</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>صيغة التاريخ</span>
+            <select {...form.register('dateFormat')} disabled={disabled}>
+              <option value="yyyy-MM-dd">2026-06-07</option>
+              <option value="dd/MM/yyyy">07/06/2026</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>صيغة الوقت</span>
+            <select {...form.register('timeFormat')} disabled={disabled}>
+              <option value="24h">24 ساعة</option>
+              <option value="12h">12 ساعة</option>
+            </select>
+          </label>
+        </div>
+      </section>
 
       <section className="panel page-stack settings-required-card">
         <div>

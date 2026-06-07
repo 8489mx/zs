@@ -1,6 +1,7 @@
 import { PropsWithChildren } from 'react';
 import { keepPreviousData, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
+import { LocaleProvider } from '@/shared/locale/LocaleProvider';
 
 function shouldRetry(failureCount: number, error: unknown) {
   if (error instanceof ApiError) {
@@ -29,5 +30,9 @@ export const queryClient = new QueryClient({
 });
 
 export function AppProviders({ children }: PropsWithChildren) {
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <LocaleProvider>{children}</LocaleProvider>
+    </QueryClientProvider>
+  );
 }

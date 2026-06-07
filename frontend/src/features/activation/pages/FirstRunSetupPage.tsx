@@ -12,6 +12,12 @@ export function FirstRunSetupPage() {
       <Card title="التهيئة الأولى" description="أكمل بيانات النشاط وأنشئ أول مستخدم إدارة مرة واحدة فقط." className="activation-card setup-card">
         <form className="stack gap-16" onSubmit={(event) => void handleSubmit(event)}>
           <div className="grid two-columns gap-12">
+            <Field label="لغة النظام">
+              <select value={form.uiLanguage} onChange={(event) => updateField('uiLanguage', event.target.value)}>
+                <option value="ar">العربية</option>
+                <option value="en">English</option>
+              </select>
+            </Field>
             <Field label="اسم النشاط / المتجر"><input value={form.storeName} onChange={(event) => updateField('storeName', event.target.value)} /></Field>
             <Field label="اسم الفرع"><input value={form.branchName} onChange={(event) => updateField('branchName', event.target.value)} /></Field>
             <Field label="كود الفرع (اختياري)"><input value={form.branchCode} onChange={(event) => updateField('branchCode', event.target.value)} /></Field>
@@ -23,7 +29,7 @@ export function FirstRunSetupPage() {
           </div>
           {error ? <ErrorState title="فشل التهيئة" hint={error} /> : null}
           <div className="inline-actions inline-actions-end">
-            <Button type="submit" disabled={submitting}>{submitting ? 'جارٍ تجهيز البرنامج...' : 'إنشاء الحساب وبدء الاستخدام'}</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? 'جاري تجهيز النظام...' : 'إنشاء الحساب وبدء الاستخدام'}</Button>
           </div>
         </form>
       </Card>

@@ -20,8 +20,9 @@ import { DataTable } from '@/shared/ui/data-table';
 import { ReportMetricCard } from '@/shared/components/report-metric-card';
 import { employeeReportsApi } from '@/shared/api/employee-reports';
 import { formatCurrency, formatDate } from '@/lib/format';
+import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 
-export function UserManagementSection({ branches, setupMode = false, setupStepKey = null, onSetupAdvance }: { branches: Branch[]; setupMode?: boolean; setupStepKey?: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null; onSetupAdvance?: () => void }) {
+export function UserManagementSection({ branches, setupMode = false, setupStepKey = null, onSetupAdvance }: { branches: Branch[]; setupMode?: boolean; setupStepKey?: SetupStepKey | null; onSetupAdvance?: () => void }) {
   const controller = useUserManagementController({ setupMode, setupStepKey, onSetupAdvance });
   const [detailsUserId, setDetailsUserId] = useState('');
   const detailsQuery = useQuery({

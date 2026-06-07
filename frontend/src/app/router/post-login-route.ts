@@ -1,6 +1,6 @@
 import { DEFAULT_STORE_NAME } from '@/config/app-defaults';
 import { canAccessPath } from '@/app/router/access';
-import type { AuthUser } from '@/types/auth';
+import type { AuthTenant, AuthUser } from '@/types/auth';
 
 const SETUP_ENTRY_ROUTE = '/settings/core?setup=1';
 
@@ -19,14 +19,25 @@ function pickOperationalLandingRoute(user: AuthUser) {
   return preferredRoutes.find((route) => canAccessPath(user, route)) || '/';
 }
 
-export function shouldStartSetupFlow(user: AuthUser | null | undefined, storeName: string | null | undefined) {
+interface PostLoginContext {
+  tenant?: AuthTenant | null;
+  deploymentMode?: 'desktop' | 'server' | string | null;
+}
+
+function isSaasOrTrialContext(context?: PostLoginContext) {
+  const tenant = context?.tenant;
+  return context?.deploymentMode === 'server' || tenant?.isTrial === true || tenant?.status === 'trial';
+}
+
+export function shouldStartSetupFlow(user: AuthUser | null | undefined, storeName: string | null | undefined, context?: PostLoginContext) {
   if (!user || user.role !== 'super_admin') return false;
+  if (isSaasOrTrialContext(context)) return false;
   if (user.usingDefaultAdminPassword === true) return true;
   return normalizeValue(storeName) === DEFAULT_STORE_NAME;
 }
 
-export function getPostLoginRoute(user: AuthUser | null | undefined, storeName: string | null | undefined) {
+export function getPostLoginRoute(user: AuthUser | null | undefined, storeName: string | null | undefined, context?: PostLoginContext) {
   if (!user) return '/login';
-  if (shouldStartSetupFlow(user, storeName)) return SETUP_ENTRY_ROUTE;
+  if (shouldStartSetupFlow(user, storeName, context)) return SETUP_ENTRY_ROUTE;
   return pickOperationalLandingRoute(user);
 }

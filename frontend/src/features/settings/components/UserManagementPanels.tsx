@@ -6,6 +6,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { USER_ROLE_TEMPLATES, formatDateTime } from '@/features/settings/components/user-management.shared';
 import type { UserBulkAction } from '@/features/settings/hooks/useUserManagementController';
+import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import {
   UserManagementBulkToolbar,
   UserManagementQuickActions,
@@ -221,7 +222,7 @@ export function UserManagementEditorPanel({
   onDelete: () => void;
   onSave: () => void;
   setupMode?: boolean;
-  setupStepKey?: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null;
+  setupStepKey?: SetupStepKey | null;
 }) {
   const showInlineValidationError = Boolean(statusMessage) && !isPending && !isSuccess && !isError;
   const feedbackError = isError ? error : (showInlineValidationError ? statusMessage : null);

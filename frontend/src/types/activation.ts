@@ -12,6 +12,7 @@ export interface ActivationStatusResponse {
 export interface ActivationInitializePayload {
   storeName: string;
   theme?: string;
+  uiLanguage?: 'ar' | 'en' | string;
   branchName: string;
   branchCode?: string;
   locationName: string;

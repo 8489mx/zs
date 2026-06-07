@@ -9,6 +9,10 @@ export class InitializeAppDto {
   @IsString()
   theme?: string;
 
+  @IsOptional()
+  @IsString()
+  uiLanguage?: string;
+
   @IsString()
   @IsNotEmpty()
   branchName!: string;

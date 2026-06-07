@@ -5,6 +5,7 @@ import {
   SettingsReferenceSection,
   SettingsBackupImportSection,
 } from '@/features/settings/components/SettingsWorkspaceSections';
+import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import type { BackupConfigQueryState } from '@/features/settings/components/workspace-sections/SettingsBackupImportSection';
 import type { Branch, Location, AppSettings } from '@/types/domain';
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
@@ -79,7 +80,7 @@ export interface SharedSettingsSectionProps {
   importOpeningStock: (rows: Record<string, string>[]) => Promise<unknown>;
   downloadTemplate: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => void;
   setupMode?: boolean;
-  setupStepKey?: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null;
+  setupStepKey?: SetupStepKey | null;
   onSetupAdvance?: () => void;
 }
 

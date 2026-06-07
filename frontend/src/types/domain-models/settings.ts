@@ -43,4 +43,9 @@ export interface AppSettings {
   weightedBarcodeWeightDigits?: number;
   weightedBarcodeWeightDecimals?: number;
   theme?: string;
+  uiLanguage?: 'ar' | 'en' | string;
+  currency?: string;
+  timezone?: string;
+  dateFormat?: string;
+  timeFormat?: '12h' | '24h' | string;
 }

@@ -60,6 +60,11 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     printShowFooter: values.printShowFooter !== false,
     printCompactReceipt: values.printCompactReceipt !== false,
     printNumberFormat: values.printNumberFormat === 'english' ? 'english' : 'arabic',
+    uiLanguage: values.uiLanguage === 'en' ? 'en' : 'ar',
+    currency: cleanText(values.currency, 'EGP').toUpperCase(),
+    timezone: cleanText(values.timezone, 'Africa/Cairo'),
+    dateFormat: values.dateFormat === 'dd/MM/yyyy' ? 'dd/MM/yyyy' : 'yyyy-MM-dd',
+    timeFormat: values.timeFormat === '12h' ? '12h' : '24h',
   };
 
   return { settings };

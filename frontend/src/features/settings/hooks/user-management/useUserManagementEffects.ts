@@ -1,5 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
+import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 
 function joined(values?: string[]) {
   return Array.isArray(values) ? values.join('|') : '';
@@ -48,7 +49,7 @@ export function useUserManagementEffects({
   userSearch: string;
   userFilter: 'all' | 'super-admins' | 'admins' | 'cashiers' | 'inactive' | 'locked';
   setupMode: boolean;
-  setupStepKey: 'store' | 'branch-location' | 'admin-user' | 'secure-account' | null;
+  setupStepKey: SetupStepKey | null;
   currentUserId: string;
   operationalAdminsCount: number;
   startNewUser: (role?: 'super_admin' | 'admin' | 'cashier') => void;

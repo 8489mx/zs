@@ -49,7 +49,10 @@ function AppGateGuard({ expected, children }: { expected: 'activation' | 'setup'
 
   if (appGate === 'activation') return <Navigate to="/activate" replace />;
   if (appGate === 'setup') return <Navigate to="/setup" replace />;
-  if (user) return <Navigate to={getPostLoginRoute(user, useAuthStore.getState().storeName)} replace />;
+  if (user) {
+    const state = useAuthStore.getState();
+    return <Navigate to={getPostLoginRoute(user, state.storeName, { tenant: state.tenant, deploymentMode: state.activationStatus?.deploymentMode })} replace />;
+  }
   return <Navigate to="/login" replace />;
 }
 
@@ -74,7 +77,8 @@ function ProtectedLayout() {
   }
 
   if (location.pathname === '/') {
-    const postLoginRoute = getPostLoginRoute(user, useAuthStore.getState().storeName);
+    const state = useAuthStore.getState();
+    const postLoginRoute = getPostLoginRoute(user, state.storeName, { tenant: state.tenant, deploymentMode: state.activationStatus?.deploymentMode });
     if (postLoginRoute !== '/') return <Navigate to={postLoginRoute} replace />;
   }
 
@@ -90,7 +94,10 @@ function LoginRoute() {
 
   if (appGate === 'activation') return <Navigate to="/activate" replace />;
   if (appGate === 'setup') return <Navigate to="/setup" replace />;
-  if (user) return <Navigate to={getPostLoginRoute(user, useAuthStore.getState().storeName)} replace />;
+  if (user) {
+    const state = useAuthStore.getState();
+    return <Navigate to={getPostLoginRoute(user, state.storeName, { tenant: state.tenant, deploymentMode: state.activationStatus?.deploymentMode })} replace />;
+  }
 
   return createLazyRoute(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 }
