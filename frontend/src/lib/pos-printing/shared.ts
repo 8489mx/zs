@@ -18,15 +18,20 @@ export function getPrintOption(settings: Partial<AppSettings> | null | undefined
   return typeof value === 'boolean' ? value : defaultValue;
 }
 
+export function getReceiptNumberLocale(settings?: Partial<AppSettings> | null) {
+  return settings?.printNumberFormat === 'english' ? 'en-US' : 'ar-EG';
+}
+
 export function isCompactReceipt(pageSize?: PosPrintPageSize, settings?: Partial<AppSettings> | null) {
   return pageSize === 'receipt' && getPrintOption(settings, 'printCompactReceipt', true);
 }
 
-export function formatDateTime(value?: string) {
-  if (!value) return new Date().toLocaleString('ar-EG');
+export function formatDateTime(value?: string, settings?: Partial<AppSettings> | null) {
+  const locale = getReceiptNumberLocale(settings);
+  if (!value) return new Date().toLocaleString(locale);
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString('ar-EG');
+  return parsed.toLocaleString(locale);
 }
 
 export function defaultInvoiceFooter(settings?: Partial<AppSettings> | null) {
