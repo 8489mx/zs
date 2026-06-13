@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { useAuthStore } from '@/stores/auth-store';
 import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 
@@ -623,8 +622,13 @@ const searchProject = (project: ProjectOption, query: string) => {
   return [project.name, project.code].some((value) => includesNormalized(value, query));
 };
 export function PurchaseOdooPrototypePage() {
-  const { theme, updateSessionMeta } = useAuthStore();
-  const isDarkMode = theme === 'dark';
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.localStorage.getItem('z-erp-prototype-theme') === 'dark';
+  });
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
   const [activeQuickAction, setActiveQuickAction] = useState<'tax' | 'discount' | null>(null);
   const [discountMode, setDiscountMode] = useState<'percent' | 'value'>('value');
@@ -668,8 +672,6 @@ export function PurchaseOdooPrototypePage() {
   const [documentStatus, setDocumentStatus] = useState<DocumentStatus>('draft');
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({ rows: {} });
   const [inlineMessage, setInlineMessage] = useState<{ tone: InlineMessageTone; text: string } | null>(null);
-  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
-  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const purchaseDropdownClassName = isDarkMode
     ? 'purchase-new-prototype-dropdown purchase-new-prototype-dropdown-dark'
     : 'purchase-new-prototype-dropdown';
@@ -1299,6 +1301,14 @@ export function PurchaseOdooPrototypePage() {
   };
 
   useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem('z-erp-prototype-theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  useEffect(() => {
     if (hasLoadedDraftRef.current || typeof window === 'undefined') {
       return;
     }
@@ -1407,15 +1417,6 @@ export function PurchaseOdooPrototypePage() {
 
     return () => window.clearTimeout(timer);
   }, [pendingFocusQtyLineId, lines]);
-  const filteredSearchProducts = useMemo(() => {
-    if (!globalSearchQuery) return [];
-    return products.filter((p) => includesNormalized(p.name, globalSearchQuery) || includesNormalized(p.code || '', globalSearchQuery)).slice(0, 3);
-  }, [globalSearchQuery, products]);
-
-  const filteredSearchSuppliers = useMemo(() => {
-    if (!globalSearchQuery) return [];
-    return suppliers.filter((s) => includesNormalized(s.name, globalSearchQuery) || includesNormalized(s.code || '', globalSearchQuery)).slice(0, 3);
-  }, [globalSearchQuery, suppliers]);
 
   return (
     <div className={`page-shell document-prototype-shell purchase-new-prototype${isDarkMode ? ' purchase-prototype-dark' : ''}`} dir="rtl">
@@ -1431,53 +1432,9 @@ export function PurchaseOdooPrototypePage() {
             </div>
 
             <div className="purchase-prototype-toolbar-actions">
-              <div className="purchase-prototype-search-container" role="search">
-                <div className="purchase-prototype-search">
-                  <span aria-hidden="true">⌕</span>
-                  <input 
-                    type="search" 
-                    className="purchase-prototype-toolbar-search-input" 
-                    placeholder="بحث..." 
-                    aria-label="بحث"
-                    value={globalSearchQuery}
-                    onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                    onFocus={() => setGlobalSearchOpen(true)}
-                    onBlur={() => setTimeout(() => setGlobalSearchOpen(false), 200)}
-                  />
-                </div>
-                {globalSearchOpen && globalSearchQuery && (
-                  <div className="purchase-prototype-search-dropdown">
-                    {filteredSearchSuppliers.length > 0 && (
-                      <div className="purchase-prototype-search-group">
-                        <div className="purchase-prototype-search-group-title">الموردون</div>
-                        {filteredSearchSuppliers.map(s => (
-                          <div key={s.id} className="purchase-prototype-search-item" onMouseDown={(e) => { e.preventDefault(); setPayload(prev => ({ ...prev, supplier: s.id })); setGlobalSearchOpen(false); }}>
-                            <span className="purchase-prototype-search-item-icon">👤</span>
-                            {s.name} {s.code && <span style={{ opacity: 0.5, marginRight: '4px' }}>({s.code})</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {filteredSearchProducts.length > 0 && (
-                      <div className="purchase-prototype-search-group">
-                        <div className="purchase-prototype-search-group-title">المنتجات</div>
-                        {filteredSearchProducts.map(p => (
-                          <div key={p.id} className="purchase-prototype-search-item">
-                            <span className="purchase-prototype-search-item-icon">📦</span>
-                            {p.name} {p.code && <span style={{ opacity: 0.5, marginRight: '4px' }}>({p.code})</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="purchase-prototype-search-group">
-                      <div className="purchase-prototype-search-group-title">أوامر سريعة</div>
-                      <div className="purchase-prototype-search-item">
-                        <span className="purchase-prototype-search-item-icon">📄</span>
-                        بحث في المستندات: "{globalSearchQuery}"
-                      </div>
-                    </div>
-                  </div>
-                )}
+              <div className="purchase-prototype-search" role="search">
+                <span aria-hidden="true">⌕</span>
+                <input type="search" className="purchase-prototype-toolbar-search-input" placeholder="بحث..." aria-label="بحث" />
               </div>
               <button
                 type="button"
@@ -1485,7 +1442,7 @@ export function PurchaseOdooPrototypePage() {
                 aria-label="الوضع الداكن"
                 aria-pressed={isDarkMode}
                 title="الوضع الداكن"
-                onClick={() => updateSessionMeta({ theme: isDarkMode ? 'light' : 'dark' })}
+                onClick={() => setIsDarkMode((current) => !current)}
               >
                 {isDarkMode ? '☀' : '◐'}
               </button>
@@ -1499,75 +1456,24 @@ export function PurchaseOdooPrototypePage() {
             <div className="document-prototype-topbar-right">
               <button type="button" className="document-prototype-back-link" aria-label="العودة إلى المشتريات">←</button>
               <h1>طلب شراء جديد</h1>
-              
-              <span className={`document-prototype-status-badge is-${documentStatus}`}>
-                {documentStatus === 'confirmed' ? 'مؤكد' : 'مسودة'}
-              </span>
-          </div>
-          
-          <div className="document-smart-buttons-box">
-             <button className="document-smart-button">
-               <span className="document-smart-button-value">3</span>
-               <span className="document-smart-button-label">أوامر سابقة</span>
-             </button>
-             <button className="document-smart-button">
-               <span className="document-smart-button-value">0 ج.م</span>
-               <span className="document-smart-button-label">رصيد دائن</span>
-             </button>
+              <span className={`document-prototype-status${documentStatus === 'confirmed' ? ' is-confirmed' : ''}`}>{documentStatus === 'confirmed' ? 'مؤكد' : 'مسودة'}</span>
           </div>
           <div className="document-prototype-topbar-actions">
-            <Button 
-              variant="secondary" 
-              type="button" 
-              className={`purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary ${inlineMessage?.text === 'تم حفظ المسودة بنجاح' ? 'is-success-state' : ''}`} 
-              onClick={handleSaveDraft} 
-              disabled={documentStatus === 'confirmed'}
-              style={inlineMessage?.text === 'تم حفظ المسودة بنجاح' ? { backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', borderColor: 'rgba(34, 197, 94, 0.3)' } : {}}
-            >
-              {inlineMessage?.text === 'تم حفظ المسودة بنجاح' ? (
-                <>
-                  <span aria-hidden="true" className="purchase-prototype-save-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </span>
-                  <span>تم حفظ المسودة بنجاح</span>
-                </>
-              ) : (
-                <>
-                  <span aria-hidden="true" className="purchase-prototype-save-icon">
-                    <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
-                      <path d="M5 3.75h10.4L19 7.35V20.25H5V3.75Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                      <path d="M7.2 3.75v5.1h6.8v-5.1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                      <path d="M8 20.25v-5.4h8v5.4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                  <span>حفظ كمسودة</span>
-                </>
-              )}
+            <Button variant="secondary" type="button" className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary" onClick={handleSaveDraft} disabled={documentStatus === 'confirmed'}>
+              <span aria-hidden="true" className="purchase-prototype-save-icon">
+                <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+                  <path d="M5 3.75h10.4L19 7.35V20.25H5V3.75Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                  <path d="M7.2 3.75v5.1h6.8v-5.1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                  <path d="M8 20.25v-5.4h8v5.4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span>حفظ كمسودة</span>
             </Button>
-            <Button 
-              type="button" 
-              className={`purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary ${inlineMessage?.text === 'تم تأكيد الفاتورة بنجاح' ? 'is-success-state' : ''}`} 
-              onClick={handleConfirmInvoice} 
-              disabled={documentStatus === 'confirmed'}
-              style={inlineMessage?.text === 'تم تأكيد الفاتورة بنجاح' ? { backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', borderColor: 'rgba(34, 197, 94, 0.3)' } : {}}
-            >
-              {inlineMessage?.text === 'تم تأكيد الفاتورة بنجاح' ? (
-                <>
-                  <span aria-hidden="true" className="purchase-prototype-save-icon" style={{ marginLeft: '4px' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </span>
-                  <span>تم تأكيد الفاتورة بنجاح</span>
-                </>
-              ) : (
-                <span>تأكيد الفاتورة</span>
-              )}
+            <Button type="button" className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary" onClick={handleConfirmInvoice} disabled={documentStatus === 'confirmed'}>
+              تأكيد الفاتورة
             </Button>
-            {inlineMessage && inlineMessage.tone === 'error' ? (
-              <div className={`purchase-prototype-inline-message is-${inlineMessage.tone}`} role="alert" aria-live="polite">
+            {inlineMessage ? (
+              <div className={`purchase-prototype-inline-message is-${inlineMessage.tone}`} role={inlineMessage.tone === 'error' ? 'alert' : 'status'} aria-live="polite">
                 {inlineMessage.text}
               </div>
             ) : null}

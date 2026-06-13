@@ -1,4 +1,4 @@
-﻿import { CSSProperties, PropsWithChildren, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, PropsWithChildren, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -110,6 +110,18 @@ export function AppShell({ children }: PropsWithChildren) {
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
   const [expandedSidebarGroupKey, setExpandedSidebarGroupKey] = useState<string | null>(null);
   const [quickAttendanceOpen, setQuickAttendanceOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') return window.localStorage.getItem('zsystems_sidebar_collapsed') === 'true';
+    return false;
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      window.localStorage.setItem('zsystems_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   const visibleNavigationItems = useMemo(() => {
     const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory', 'products', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
@@ -274,7 +286,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }
 
   return (
-    <div className={`app-layout ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
+    <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
       {!isPosRoute || !isPosChromeHidden ? (
         <aside className="sidebar-fixed">
           <div className="brand">
@@ -296,20 +308,39 @@ export function AppShell({ children }: PropsWithChildren) {
               const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
               const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
               return (
-                <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>
-                  <button type="button" className="sidebar-group-trigger" aria-expanded={isOpen} onClick={() => setExpandedSidebarGroupKey((current) => current === group.key ? null : group.key)} style={toneStyle}>
+                <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen && !isSidebarCollapsed ? 'is-open' : ''}`.trim()}>
+                  <button type="button" className="sidebar-group-trigger" aria-expanded={isOpen && !isSidebarCollapsed} onClick={() => {
+                    if (isSidebarCollapsed) toggleSidebar();
+                    setExpandedSidebarGroupKey((current) => current === group.key ? null : group.key);
+                  }} style={toneStyle}>
                     <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
                     <span className="sidebar-label">{group.label}</span>
                     <span className="sidebar-group-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
                   </button>
-                  {isOpen ? <div className="sidebar-group-items">{groupItems.map((item) => renderNavItem(item, 'group'))}</div> : null}
+                  {isOpen && !isSidebarCollapsed ? <div className="sidebar-group-items">{groupItems.map((item) => renderNavItem(item, 'group'))}</div> : null}
                 </div>
               );
             })}
           </nav>
           <div className="sidebar-footer">
-            <div className="stack gap-8" style={{ marginBottom: 12 }}><div className="muted small">مرحبًا {displayName}</div></div>
-            <Button variant="danger" onClick={handleLogout} className="full-width">تسجيل الخروج</Button>
+            <div className="sidebar-footer-info" style={{ marginBottom: 12 }}>
+              <div className="muted small">مرحبًا {displayName}</div>
+            </div>
+            <div className="sidebar-footer-actions">
+              <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" title="تسجيل الخروج">
+                <span className="btn-label">تسجيل الخروج</span>
+                <span className="btn-icon">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </span>
+              </Button>
+              <button type="button" onClick={toggleSidebar} className="sidebar-toggle-btn" title={isSidebarCollapsed ? "توسيع القائمة" : "طي القائمة"}>
+                {isSidebarCollapsed ? (
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                )}
+              </button>
+            </div>
           </div>
         </aside>
       ) : null}

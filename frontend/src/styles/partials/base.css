@@ -159,6 +159,7 @@ th, td {
   border-bottom: 1px solid var(--border);
   text-align: right;
   vertical-align: top;
+  white-space: nowrap;
 }
 th {
   background: var(--surface-2);
@@ -325,4 +326,49 @@ h1, h2, h3, h4, h5, h6 {
     padding: 8px 10px;
     font-size: 12px;
   }
+}
+
+/* ========================================================= */
+/* GLOBAL DARK MODE VARIABLES                                */
+/* ========================================================= */
+.dark, [data-theme="dark"] {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --primary: #3b82f6;
+  --primary2: #60a5fa;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --border: #334155;
+  --surface: #1e293b;
+  --surface-2: #0f172a;
+  --sidebar: #1e293b;
+  --sidebar-text: #f8fafc;
+  --sidebar-border: #334155;
+  --shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+}
+
+.dark input, 
+.dark select, 
+.dark textarea {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.dark .btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.dark .app-layout-sidebar {
+  background: var(--sidebar);
+  border-left-color: var(--sidebar-border);
+}
+
+.dark .app-sidebar-logo-text {
+  color: var(--sidebar-text);
 }

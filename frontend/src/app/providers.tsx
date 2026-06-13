@@ -3,6 +3,26 @@ import { keepPreviousData, QueryClient, QueryClientProvider } from '@tanstack/re
 import { ApiError } from '@/lib/http';
 import { LocaleProvider } from '@/shared/locale/LocaleProvider';
 
+import { useEffect } from 'react';
+import { useAuthStore } from '@/stores/auth-store';
+
+function ThemeProvider({ children }: PropsWithChildren) {
+  const theme = useAuthStore((state) => state.theme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+    }
+  }, [theme]);
+
+  return <>{children}</>;
+}
+
 function shouldRetry(failureCount: number, error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403 || error.status === 404) {
@@ -32,7 +52,9 @@ export const queryClient = new QueryClient({
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
-      <LocaleProvider>{children}</LocaleProvider>
+      <ThemeProvider>
+        <LocaleProvider>{children}</LocaleProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
