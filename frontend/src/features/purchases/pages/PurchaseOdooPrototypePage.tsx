@@ -1451,7 +1451,7 @@ export function PurchaseOdooPrototypePage() {
                       <div className="purchase-prototype-search-group">
                         <div className="purchase-prototype-search-group-title">الموردون</div>
                         {filteredSearchSuppliers.map(s => (
-                          <div key={s.id} className="purchase-prototype-search-item" onMouseDown={(e) => { e.preventDefault(); setPayload(prev => ({ ...prev, supplier: s.id })); setGlobalSearchOpen(false); }}>
+                          <div key={s.id} className="purchase-prototype-search-item" onMouseDown={(e) => { e.preventDefault(); handleSupplierSelect(s); setGlobalSearchOpen(false); }}>
                             <span className="purchase-prototype-search-item-icon">👤</span>
                             {s.name} {s.code && <span style={{ opacity: 0.5, marginRight: '4px' }}>({s.code})</span>}
                           </div>

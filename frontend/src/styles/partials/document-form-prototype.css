@@ -789,13 +789,21 @@
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  min-height: 100%;
+  min-height: 100vh;
   padding: 18px;
   padding-top: 0;
+  margin: -18px;
+  width: calc(100% + 36px);
+}
+@media (max-width: 640px) {
+  .document-prototype-shell {
+    margin: -14px;
+    width: calc(100% + 28px);
+  }
 }
 
 .purchase-prototype-document-surface {
-  margin: 0.3rem auto 0;
+  margin: 0 auto 0;
   max-width: 920px;
   width: min(100%, 920px);
 }
@@ -978,7 +986,7 @@
 }
 
 .purchase-prototype-sticky-stack.is-scrolled .purchase-prototype-document-surface {
-  margin-top: 0.28rem;
+  margin-top: 0;
 }
 
 .purchase-prototype-sticky-stack.is-scrolled .document-prototype-topbar {
@@ -4443,7 +4451,6 @@
 
 /* Pull the shell up to negate the 14px content-wrap padding, and remove inner padding */
 .page-shell.document-prototype-shell {
-  margin-top: -14px !important;
   padding-top: 0 !important;
 }
 
@@ -4459,7 +4466,7 @@
   Set solid background to match the page, preventing transparency.
 */
 .purchase-prototype-sticky-stack {
-  top: -14px !important;
+  top: 0 !important;
   background: #f6f8fb !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -4490,6 +4497,11 @@
 
 .app-layout:has(.purchase-new-prototype) .content-wrap {
   background: #f6f8fb !important;
+  padding-top: 0 !important;
+}
+
+.app-layout:has(.purchase-new-prototype) .content-wrap > .stack:first-child {
+  display: none !important;
 }
 
 .app-layout:has(.purchase-new-prototype.purchase-prototype-dark) .content-wrap {
