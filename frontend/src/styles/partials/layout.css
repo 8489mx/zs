@@ -543,3 +543,56 @@
   .brand-sub { font-size: 9px; }
   .brand-copy { gap: 3px; }
 }
+
+
+/* =========================================
+   LTR OVERRIDES FOR SIDEBAR
+   ========================================= */
+[dir="ltr"] .sidebar-link,
+[dir="ltr"] .sidebar-group-trigger {
+  direction: ltr;
+  grid-template-areas: "icon label chevron";
+  grid-template-columns: 38px minmax(0, 1fr) 30px;
+}
+[dir="ltr"] .sidebar-link .sidebar-label,
+[dir="ltr"] .sidebar-link-sub .sidebar-label,
+[dir="ltr"] .sidebar-group-label,
+[dir="ltr"] .sidebar-group-trigger .sidebar-label {
+  direction: ltr;
+  text-align: left;
+}
+[dir="ltr"] .sidebar-link-sub {
+  grid-template-areas: "icon label chevron";
+  grid-template-columns: 24px minmax(0, max-content) 12px;
+  justify-content: start;
+  justify-items: start;
+}
+[dir="ltr"] .sidebar-link-sub .sidebar-icon {
+  grid-column: 1;
+  justify-self: start;
+}
+[dir="ltr"] .sidebar-link-sub .sidebar-label {
+  grid-column: 2;
+  justify-self: start;
+}
+[dir="ltr"] .sidebar-link .sidebar-icon,
+[dir="ltr"] .sidebar-group-trigger .sidebar-group-icon {
+  grid-column: 1;
+  justify-self: center;
+}
+[dir="ltr"] .sidebar-link .sidebar-label,
+[dir="ltr"] .sidebar-group-trigger .sidebar-label {
+  grid-column: 2;
+}
+[dir="ltr"] .sidebar-link-chevron-spacer,
+[dir="ltr"] .sidebar-group-chevron {
+  grid-column: 3;
+  justify-self: center;
+}
+[dir="ltr"] .sidebar-collapsed .sidebar-group-trigger {
+  grid-template-columns: 1fr;
+  grid-template-areas: "icon";
+}
+[dir="ltr"] .brand {
+  flex-direction: row;
+}

@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePurchaseComposerCatalog } from '@/features/purchases/hooks/usePurchaseComposerCatalog';
+import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
+import { useNavigate } from 'react-router-dom';
+
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -18,11 +22,7 @@ type PrototypeLine = {
   isService?: boolean;
 };
 
-const initialLines: PrototypeLine[] = [
-  { id: 1, productId: 'prd-001', itemName: 'Accounting Notebooks', qty: 5, unitPrice: 80, warehouse: 'Main Warehouse' },
-  { id: 2, productId: 'prd-002', itemName: 'A4 Copy Paper', qty: 10, unitPrice: 55, warehouse: 'Stationery Store' },
-  { id: 3, productId: 'prd-003', itemName: 'Ink Pens', qty: 12, unitPrice: 15, warehouse: 'Main Warehouse' }
-];
+
 
 const formatMoney = (value: number, lang?: string) => `${value.toFixed(2)} ${lang === 'en' ? 'EGP' : 'ج.م'}`;
 
@@ -91,62 +91,15 @@ type QuickCreateState =
   | { kind: 'project'; query: string }
   | null;
 
-const initialSuppliers: SupplierOption[] = [
-  {
-    id: 'sup-001',
-    name: 'Al-Noor Supplies',
-    code: 'SUP-001',
-    phone: '01000000000',
-    taxNumber: '123456789',
-    contactName: 'Ahmed Hassan',
-    shippingAddress: 'Cairo Warehouse - Nasr City',
-    company: 'Z ERP Trading'
-  },
-  {
-    id: 'sup-002',
-    name: 'Capital Co.',
-    code: 'SUP-002',
-    phone: '01111111111',
-    taxNumber: '987654321',
-    contactName: 'Mohamed Ali',
-    shippingAddress: 'Giza Warehouse - Mohandeseen',
-    company: 'Z ERP Trading'
-  },
-  {
-    id: 'sup-003',
-    name: 'City Supplier',
-    code: 'SUP-003',
-    phone: '01222222222',
-    taxNumber: '555666777',
-    contactName: 'Sarah Ahmed',
-    shippingAddress: 'Alex Warehouse - Smouha',
-    company: 'Z ERP Trading'
-  }
-];
 
-const initialContacts: ContactOption[] = [
-  { id: 'con-001', name: 'Ahmed Hassan', phone: '01012345678', supplierName: 'Al-Noor Supplies' },
-  { id: 'con-002', name: 'Mohamed Ali', phone: '01112345678', supplierName: 'Capital Co.' },
-  { id: 'con-003', name: 'Sarah Ahmed', phone: '01234567890', supplierName: 'City Supplier' }
-];
 
-const initialAddresses: AddressOption[] = [
-  { id: 'addr-001', label: 'Cairo Warehouse - Nasr City', city: 'Cairo', supplierName: 'Al-Noor Supplies' },
-  { id: 'addr-002', label: 'Giza Warehouse - Mohandeseen', city: 'Giza', supplierName: 'Capital Co.' },
-  { id: 'addr-003', label: 'Alex Warehouse - Smouha', city: 'Alexandria', supplierName: 'City Supplier' }
-];
 
-const initialProducts: ProductOption[] = [
-  { id: 'prd-001', name: 'Accounting Notebooks', englishName: 'Accounting Notebooks', code: 'PRD-001', barcode: '622100001', price: 80, warehouse: 'Main Warehouse', type: 'stock' },
-  { id: 'prd-002', name: 'A4 Copy Paper', englishName: 'A4 Copy Paper', code: 'PRD-002', barcode: '622100002', price: 55, warehouse: 'Stationery Store', type: 'stock' },
-  { id: 'prd-003', name: 'Ink Pens', englishName: 'Ink Pens', code: 'PRD-003', barcode: '622100003', price: 15, warehouse: 'Main Warehouse', type: 'stock' },
-  { id: 'prd-004', name: 'Additional Service', englishName: 'Additional Service', code: 'SRV-001', barcode: '', price: 0, warehouse: 'Does not affect stock', type: 'service' }
-];
 
-const initialWarehouses: WarehouseOption[] = [
-  { id: 'wh-001', name: 'Main Warehouse', code: 'WH-001' },
-  { id: 'wh-002', name: 'Stationery Store', code: 'WH-002' }
-];
+
+
+
+
+
 
 const initialCostCenters: CostCenterOption[] = [
   { id: 'cc-001', name: 'Operational Purchases', code: 'CC-001' },
@@ -626,7 +579,7 @@ const searchProject = (project: ProjectOption, query: string) => {
 
   return [project.name, project.code].some((value) => includesNormalized(value, query));
 };
-export function PurchaseOdooPrototypePage() {
+export function NewPurchaseOrderPage() {
   const { t, language } = useTranslation();
   const { theme, updateSessionMeta } = useAuthStore();
   const isDarkMode = theme === 'dark';
@@ -635,29 +588,80 @@ export function PurchaseOdooPrototypePage() {
   const [discountMode, setDiscountMode] = useState<'percent' | 'value'>('value');
   const [customTaxRate, setCustomTaxRate] = useState('14');
   const [pendingFocusLineId, setPendingFocusLineId] = useState<number | null>(null);
-  const [lines, setLines] = useState<PrototypeLine[]>(initialLines);
-  const [supplier, setSupplier] = useState('Al-Noor Supplies');
+  const [lines, setLines] = useState<PrototypeLine[]>([]);
+  const [supplier, setSupplier] = useState('');
   const [date, setDate] = useState('2026-05-19');
   const [requiredDate, setRequiredDate] = useState('2026-05-24');
   const [currency, setCurrency] = useState('EGP');
   const [company, setCompany] = useState(t('demo_company'));
-  const [contact, setContact] = useState('Ahmed Hassan');
-  const [shippingAddress, setShippingAddress] = useState('Cairo Warehouse - Nasr City');
+  const [contact, setContact] = useState('');
+  const [shippingAddress, setShippingAddress] = useState('');
   const [taxRate, setTaxRate] = useState(14);
   const [discount, setDiscount] = useState(0);
-  const [costCenter, setCostCenter] = useState('Operational Purchases');
-  const [project, setProject] = useState('New Branch Setup');
-  const [termsTemplate, setTermsTemplate] = useState('Standard PO Template');
+  const [costCenter, setCostCenter] = useState('');
+  const [project, setProject] = useState('');
+  const [termsTemplate, setTermsTemplate] = useState('');
   const [notes, setNotes] = useState(t('review_quantities_note'));
   const [pendingFocusQtyLineId, setPendingFocusQtyLineId] = useState<number | null>(null);
   const [quickCreateState, setQuickCreateState] = useState<QuickCreateState>(null);
   const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
   const [barcodeScanQuery, setBarcodeScanQuery] = useState('');
-  const [suppliers, setSuppliers] = useState<SupplierOption[]>(initialSuppliers);
-  const [contactsList, setContactsList] = useState<ContactOption[]>(initialContacts);
-  const [addressesList, setAddressesList] = useState<AddressOption[]>(initialAddresses);
-  const [products, setProducts] = useState<ProductOption[]>(initialProducts);
-  const [warehouses, setWarehouses] = useState<WarehouseOption[]>(initialWarehouses);
+  const navigate = useNavigate();
+  const catalog = usePurchaseComposerCatalog();
+  const createMutation = useCreatePurchaseMutation(() => {
+    navigate('/purchases');
+  });
+
+  const rawSuppliers = catalog.suppliersQuery.data || [];
+  const rawProducts = catalog.productsQuery.data || [];
+  const rawLocations = catalog.locationsQuery.data || [];
+  const rawBranches = catalog.branchesQuery.data || [];
+
+  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
+  const [contactsList, setContactsList] = useState<ContactOption[]>([]);
+  const [addressesList, setAddressesList] = useState<AddressOption[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
+
+  useEffect(() => {
+    if (rawSuppliers.length) {
+      setSuppliers(rawSuppliers.map((s: any) => ({
+        id: s.id.toString(),
+        name: s.name,
+        code: s.code || '',
+        phone: s.phone || '',
+        taxNumber: s.taxNumber || '',
+        contactName: s.primaryContactName || ''
+      })));
+    }
+  }, [rawSuppliers]);
+
+  useEffect(() => {
+    if (rawProducts.length) {
+      setProducts(rawProducts.map((p: any) => ({
+        id: p.id.toString(),
+        name: p.name,
+        englishName: p.englishName || p.name,
+        code: p.styleCode || '',
+        barcode: p.barcode || '',
+        price: p.costPrice || 0,
+        warehouse: '',
+        type: p.itemKind === 'service' ? 'service' : 'stock'
+      })));
+    }
+  }, [rawProducts]);
+
+  useEffect(() => {
+    if (rawLocations.length) {
+      setWarehouses(rawLocations.map((l: any) => ({
+        id: l.id.toString(),
+        name: l.name,
+        code: l.code || ''
+      })));
+    }
+  }, [rawLocations]);
+
+
   const [costCenters, setCostCenters] = useState<CostCenterOption[]>(initialCostCenters);
   const [projects, setProjects] = useState<ProjectOption[]>(initialProjects);
   const supplierInputRef = useRef<HTMLInputElement | null>(null);
@@ -1285,7 +1289,7 @@ export function PurchaseOdooPrototypePage() {
     setInlineMessage({ tone: 'success', text: t('draft_saved') });
   };
 
-  const handleConfirmInvoice = () => {
+  const handleConfirmInvoice = async () => {
     const validation = validateBeforeConfirm();
     if (!validation.valid) {
       setValidationErrors(validation.errors);
@@ -1295,12 +1299,55 @@ export function PurchaseOdooPrototypePage() {
       return;
     }
 
-    const payload = buildDraftPayload('confirmed');
-    window.localStorage.setItem(PURCHASE_DRAFT_STORAGE_KEY, JSON.stringify(payload));
-    lastSavedSnapshotRef.current = JSON.stringify(payload);
-    setDocumentStatus('confirmed');
-    setValidationErrors({ rows: {} });
-    setInlineMessage({ tone: 'success', text: t('invoice_confirmed') });
+    const selectedSupplierObj = suppliers.find(s => s.name === supplier);
+    const supplierId = selectedSupplierObj?.id || '';
+    if (!supplierId) {
+      setInlineMessage({ tone: 'error', text: t('please_complete_data') });
+      return;
+    }
+
+    const extraFields = {
+      date,
+      requiredDate,
+      currency,
+      company,
+      contact,
+      shippingAddress,
+      costCenter,
+      project,
+      termsTemplate,
+      notes
+    };
+
+    const values = {
+      supplierId,
+      paymentType: 'credit' as const,
+      discount: discount || 0,
+      branchId: rawBranches[0]?.id?.toString() || '',
+      locationId: rawLocations[0]?.id?.toString() || '',
+      note: JSON.stringify(extraFields)
+    };
+
+    const items = lines.filter(line => line.productId).map(line => ({
+      productId: line.productId as string,
+      name: line.itemName,
+      qty: line.qty,
+      cost: line.unitPrice,
+      total: line.qty * line.unitPrice,
+      unitName: 'Piece',
+      unitMultiplier: 1
+    }));
+
+    try {
+      await createMutation.mutateAsync({
+        values,
+        items,
+        taxRate: taxRate,
+        pricesIncludeTax: false
+      });
+    } catch (e) {
+      setInlineMessage({ tone: 'error', text: 'Error saving invoice' });
+    }
   };
 
   useEffect(() => {

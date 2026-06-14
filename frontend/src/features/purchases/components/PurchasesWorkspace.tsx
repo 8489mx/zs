@@ -1,7 +1,6 @@
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
-import { PurchaseComposer } from '@/features/purchases/components/PurchaseComposer';
 import { PurchaseDetailCard } from '@/features/purchases/components/PurchaseDetailCard';
 import { PurchaseEditDialog } from '@/features/purchases/components/PurchaseEditDialog';
 import { QuickSupplierCard } from '@/features/purchases/components/QuickSupplierCard';
@@ -28,17 +27,23 @@ export function PurchasesWorkspace() {
       <PurchasesKpiSection totalItems={controller.totalItems} summary={controller.summary || null} />
 
       <div className="two-column-grid workspace-grid-balanced purchases-primary-grid">
-        <PurchaseComposer
-          products={controller.purchaseCatalog.productsQuery.data || []}
-          suppliers={controller.purchaseCatalog.suppliersQuery.data || []}
-          categories={controller.purchaseCatalog.categoriesQuery.data || []}
-          branches={controller.purchaseCatalog.branchesQuery.data || []}
-          locations={controller.purchaseCatalog.locationsQuery.data || []}
-          settings={controller.purchaseCatalog.settingsQuery.data}
-          isCatalogLoading={controller.purchaseCatalog.isLoading}
-          isCatalogError={controller.purchaseCatalog.isError}
-          catalogError={controller.purchaseCatalog.error}
-        />
+        <div className="page-stack">
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-xl)', minHeight: '300px', textAlign: 'center' }}>
+            <div style={{ backgroundColor: 'var(--blue-50)', color: 'var(--blue-600)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--spacing-md)' }}>
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                <path d="M14 3v5h5M12 18v-6M9 15h6" />
+              </svg>
+            </div>
+            <h3 style={{ marginBottom: 'var(--spacing-sm)' }}>إصدار فاتورة شراء جديدة</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' }}>
+              قم بإنشاء فاتورة شراء جديدة مفصلة مع خيارات الدفع والخصم والمزيد من التفاصيل.
+            </p>
+            <Button variant="primary" onClick={() => window.location.href = '/purchases/new'}>
+              إنشاء فاتورة شراء
+            </Button>
+          </div>
+        </div>
 
         <div className="page-stack purchases-side-stack">
           <QuickSupplierCard canManageSuppliers={controller.canManageSuppliers} />

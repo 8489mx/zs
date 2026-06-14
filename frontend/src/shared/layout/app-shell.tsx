@@ -97,6 +97,80 @@ function AppNavIcon({ itemKey }: { itemKey: string }) {
   );
 }
 
+
+const shellTranslations = {
+  ar: {
+    dashboard: 'الرئيسية',
+    'cash-drawer': 'الورديات والدرج النقدي',
+    pos: 'نقطة البيع',
+    sales: 'سجل الفواتير',
+    returns: 'مرتجعات المبيعات',
+    customers: 'العملاء',
+    reports: 'التقارير',
+    purchases: 'المشتريات',
+    suppliers: 'الموردين',
+    inventory: 'المخزون',
+    products: 'المنتجات',
+    treasury: 'الخزينة',
+    services: 'الخدمات',
+    accounts: 'حسابات العملاء والموردين',
+    'accounting-accounts': 'شجرة الحسابات',
+    'accounting-journal-entries': 'القيود اليومية',
+    'accounting-settings': 'إعدادات الحسابات',
+    'pricing-center': 'مركز التسعير',
+    hr: 'الموارد البشرية',
+    audit: 'سجل النشاط',
+    'saas-admin-tenants': 'إدارة النسخ',
+    settings: 'الإعدادات',
+    'sales-group': 'المبيعات',
+    'purchases-group': 'المشتريات والموردين',
+    'inventory-group': 'المخزون والأصناف',
+    'services-group': 'الخدمات والحسابات',
+    'admin-group': 'الإدارة',
+    'platform_sub': 'منصة Z Systems',
+    'platform_desc': 'لإدارة المبيعات والمخزون',
+    'logout': 'تسجيل الخروج',
+    'welcome_msg': 'مرحبًا',
+    'expand_menu': 'توسيع القائمة',
+    'collapse_menu': 'طي القائمة'
+  },
+  en: {
+    dashboard: 'Dashboard',
+    'cash-drawer': 'Cash Drawer / Shifts',
+    pos: 'Point of Sale',
+    sales: 'Sales History',
+    returns: 'Sales Returns',
+    customers: 'Customers',
+    reports: 'Reports',
+    purchases: 'Purchases',
+    suppliers: 'Suppliers',
+    inventory: 'Inventory',
+    products: 'Products',
+    treasury: 'Treasury',
+    services: 'Services',
+    accounts: 'Customers & Suppliers',
+    'accounting-accounts': 'Chart of Accounts',
+    'accounting-journal-entries': 'Journal Entries',
+    'accounting-settings': 'Accounting Settings',
+    'pricing-center': 'Pricing Center',
+    hr: 'Human Resources',
+    audit: 'Activity Log',
+    'saas-admin-tenants': 'Tenants Management',
+    settings: 'Settings',
+    'sales-group': 'Sales',
+    'purchases-group': 'Purchases & Suppliers',
+    'inventory-group': 'Inventory & Items',
+    'services-group': 'Services & Accounts',
+    'admin-group': 'Administration',
+    'platform_sub': 'Z Systems Platform',
+    'platform_desc': 'Sales and Inventory Management',
+    'logout': 'Logout',
+    'welcome_msg': 'Welcome',
+    'expand_menu': 'Expand Menu',
+    'collapse_menu': 'Collapse Menu'
+  }
+};
+
 export function AppShell({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -104,6 +178,8 @@ export function AppShell({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user);
   const storeName = useAuthStore((state) => state.storeName);
   const clearSession = useAuthStore((state) => state.clearSession);
+  const language = useAuthStore((state) => state.language || 'ar');
+  const t = (key: keyof typeof shellTranslations.ar) => shellTranslations[language][key] || key;
   const displayName = user?.displayName || user?.username || 'المستخدم';
   const workspaceName = storeName || DEFAULT_STORE_NAME;
   const isPosRoute = location.pathname.startsWith('/pos');
@@ -126,23 +202,28 @@ export function AppShell({ children }: PropsWithChildren) {
   const visibleNavigationItems = useMemo(() => {
     const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory', 'products', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
-      dashboard: 'الرئيسية',
-      pos: 'نقطة البيع',
-      sales: 'سجل الفواتير',
-      'cash-drawer': 'وردية نقطة البيع',
-      accounts: 'حسابات العملاء والموردين',
-      'accounting-accounts': 'شجرة الحسابات',
-      'accounting-journal-entries': 'القيود اليومية',
-      'accounting-financial-summary': 'الملخص المالي',
-      'accounting-receivables-payables': 'الذمم والمستحقات',
-      'accounting-cash-movement': 'حركة الخزنة والبنك',
-      'accounting-inventory-value': 'قيمة المخزون',
-      'accounting-settings': 'إعدادات الحسابات',
-      treasury: 'الخزينة',
-      services: 'الخدمات',
-      hr: 'الموارد البشرية',
-      audit: 'سجل النشاط',
-      'saas-admin-tenants': 'إدارة النسخ',
+      dashboard: t('dashboard'),
+      'cash-drawer': t('cash-drawer'),
+      pos: t('pos'),
+      sales: t('sales'),
+      returns: t('returns'),
+      customers: t('customers'),
+      reports: t('reports'),
+      purchases: t('purchases'),
+      suppliers: t('suppliers'),
+      inventory: t('inventory'),
+      products: t('products'),
+      treasury: t('treasury'),
+      services: t('services'),
+      accounts: t('accounts'),
+      'accounting-accounts': t('accounting-accounts'),
+      'accounting-journal-entries': t('accounting-journal-entries'),
+      'accounting-settings': t('accounting-settings'),
+      'pricing-center': t('pricing-center'),
+      hr: t('hr'),
+      audit: t('audit'),
+      'saas-admin-tenants': t('saas-admin-tenants'),
+      settings: t('settings'),
     };
     return navigationItems
       .filter((item) => user && canAccessNavigationItem(user, item))
@@ -152,17 +233,17 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user]);
+  }, [user, language]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
-    { key: 'sales-group', label: 'المبيعات', itemKeys: ['sales', 'returns', 'customers', 'reports'] },
-    { key: 'purchases-group', label: 'المشتريات والموردين', itemKeys: ['purchases', 'suppliers'] },
-    { key: 'inventory-group', label: 'المخزون والأصناف', itemKeys: ['inventory', 'products', 'treasury'] },
-    { key: 'services-group', label: 'الخدمات والحسابات', itemKeys: ['services', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },
-    { key: 'admin-group', label: 'الإدارة', itemKeys: ['hr', 'audit', 'saas-admin-tenants', 'settings'] },
-  ]), []);
+    { key: 'sales-group', label: t('sales-group'), itemKeys: ['sales', 'returns', 'customers', 'reports'] },
+    { key: 'purchases-group', label: t('purchases-group'), itemKeys: ['purchases', 'suppliers'] },
+    { key: 'inventory-group', label: t('inventory-group'), itemKeys: ['inventory', 'products', 'treasury'] },
+    { key: 'services-group', label: t('services-group'), itemKeys: ['services', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },
+    { key: 'admin-group', label: t('admin-group'), itemKeys: ['hr', 'audit', 'saas-admin-tenants', 'settings'] },
+  ]), [language]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {
@@ -292,8 +373,8 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="brand">
             <div className="brand-copy">
               <div className="brand-title">{cleanWorkspaceName}</div>
-              <div className="brand-sub">منصة Z Systems</div>
-              <div className="brand-sub muted">لإدارة المبيعات والمخزون</div>
+              <div className="brand-sub">{t("platform_sub")}</div>
+              <div className="brand-sub muted">{t("platform_desc")}</div>
             </div>
             <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
           </div>
@@ -324,16 +405,16 @@ export function AppShell({ children }: PropsWithChildren) {
           </nav>
           <div className="sidebar-footer">
             <div className="sidebar-footer-info" style={{ marginBottom: 12 }}>
-              <div className="muted small">مرحبًا {displayName}</div>
+              <div className="muted small">{t("welcome_msg")} {displayName}</div>
             </div>
             <div className="sidebar-footer-actions">
-              <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" title="تسجيل الخروج">
-                <span className="btn-label">تسجيل الخروج</span>
+              <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" title={t("logout")}>
+                <span className="btn-label">{t("logout")}</span>
                 <span className="btn-icon">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 </span>
               </Button>
-              <button type="button" onClick={toggleSidebar} className="sidebar-toggle-btn" title={isSidebarCollapsed ? "توسيع القائمة" : "طي القائمة"}>
+              <button type="button" onClick={toggleSidebar} className="sidebar-toggle-btn" title={isSidebarCollapsed ? t("expand_menu") : t("collapse_menu")}>
                 {isSidebarCollapsed ? (
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 ) : (

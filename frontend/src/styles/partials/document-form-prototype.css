@@ -49,7 +49,7 @@
 }
 
 .purchase-new-prototype .app-account-menu {
-  direction: rtl;
+  /* direction: rtl; removed to allow LTR */
   display: inline-flex;
   flex-shrink: 0;
   position: relative;
@@ -150,7 +150,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  text-align: right;
+  text-align: start;
   justify-content: center;
 }
 
@@ -206,7 +206,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  text-align: right;
+  text-align: start;
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 700;
@@ -508,7 +508,7 @@
   min-height: 28px !important;
   max-height: 28px !important;
   padding: 0 0.48rem;
-  text-align: right;
+  text-align: start;
   white-space: nowrap;
 }
 
@@ -572,7 +572,7 @@
   box-shadow: 0 24px 52px rgba(15, 23, 42, 0.22);
   box-sizing: border-box;
   color: #0f172a;
-  direction: rtl;
+  /* direction: rtl; removed to allow LTR */
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
 }
 
@@ -828,7 +828,7 @@
 
 .document-prototype-shell {
   background: #f6f8fb;
-  direction: rtl;
+  /* direction: rtl; removed to allow LTR */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -1224,7 +1224,7 @@
 .document-line-items-table td {
   border-bottom: 1px solid #edf2f7;
   padding: 0.2rem 0.3rem;
-  text-align: right;
+  text-align: start;
   vertical-align: middle;
 }
 
@@ -1481,7 +1481,7 @@
   gap: 0.14rem;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
   padding: 0.48rem 0.62rem;
-  text-align: right;
+  text-align: start;
   width: 100%;
 }
 
@@ -1511,7 +1511,7 @@
   display: grid;
   gap: 0.42rem;
   padding: 0.46rem 0.58rem;
-  text-align: right;
+  text-align: start;
 }
 
 .purchase-prototype-combobox-create {

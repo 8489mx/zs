@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { PurchaseRepricingInsights } from '@/features/purchases/api/purchases.api';
 import { usePurchasesPage } from '@/features/purchases/hooks/usePurchasesPage';
-import { usePurchaseComposerCatalog } from '@/features/purchases/hooks/usePurchaseComposerCatalog';
 import { usePurchaseActions } from '@/features/purchases/hooks/usePurchaseActions';
 import { usePurchasesWorkspaceActions } from '@/features/purchases/hooks/usePurchasesWorkspaceActions';
 import {
@@ -25,7 +24,6 @@ export function usePurchasesWorkspaceController() {
   const [repricingInsights, setRepricingInsights] = useState<PurchaseRepricingInsights | null>(null);
 
   const purchasesQuery = usePurchasesPage({ page, pageSize, search, filter: viewFilter });
-  const purchaseCatalog = usePurchaseComposerCatalog();
   const { cancelMutation, updateMutation } = usePurchaseActions((result) => setRepricingInsights(result.repricingInsights || null));
   const canPrint = useHasAnyPermission('canPrint');
   const canEditInvoices = useHasAnyPermission('canEditInvoices');
@@ -104,7 +102,6 @@ export function usePurchasesWorkspaceController() {
     rows,
     pagination,
     summary,
-    purchaseCatalog,
     cancelMutation,
     updateMutation,
     selectedPurchase,
