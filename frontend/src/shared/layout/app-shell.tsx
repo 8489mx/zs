@@ -389,16 +389,12 @@ export function AppShell({ children }: PropsWithChildren) {
               const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
               const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
               return (
-                <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen && !isSidebarCollapsed ? 'is-open' : ''}`.trim()}>
-                  <button type="button" className="sidebar-group-trigger" aria-expanded={isOpen && !isSidebarCollapsed} onClick={() => {
-                    if (isSidebarCollapsed) toggleSidebar();
-                    setExpandedSidebarGroupKey((current) => current === group.key ? null : group.key);
-                  }} style={toneStyle}>
+                <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${!isSidebarCollapsed ? 'is-open' : ''}`.trim()}>
+                  <div className="sidebar-group-trigger" style={toneStyle}>
                     <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
                     <span className="sidebar-label">{group.label}</span>
-                    <span className="sidebar-group-chevron" aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
-                  </button>
-                  {isOpen && !isSidebarCollapsed ? <div className="sidebar-group-items">{groupItems.map((item) => renderNavItem(item, 'group'))}</div> : null}
+                  </div>
+                  {!isSidebarCollapsed ? <div className="sidebar-group-items">{groupItems.map((item) => renderNavItem(item, 'group'))}</div> : null}
                 </div>
               );
             })}

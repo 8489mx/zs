@@ -1,0 +1,121 @@
+import { useState } from 'react';
+
+import { useFirstRunSetupPageController } from '@/features/activation/hooks/useFirstRunSetupPageController';
+import { Step1Welcome } from './Step1Welcome';
+import { Step2Details } from './Step2Details';
+import { Step3Industry } from './Step3Industry';
+import { Step4Loading } from './Step4Loading';
+import { Step5Success } from './Step5Success';
+
+export function OnboardingWizard() {
+  const { form, updateField, handleSubmit, error } = useFirstRunSetupPageController();
+  const [step, setStep] = useState(1);
+
+  // Extra state for visual steps not in the backend yet
+  const [extraData, setExtraData] = useState({
+    role: '',
+    companySize: '',
+    taxId: '',
+    address: '',
+    city: '',
+    industry: ''
+  });
+
+  const updateExtra = (key: keyof typeof extraData, value: string) => {
+    setExtraData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleNext = () => setStep(s => Math.min(s + 1, 5));
+  const handleBack = () => setStep(s => Math.max(s - 1, 1));
+
+  // Step 4 triggers the actual submit
+  const submitWizard = async () => {
+    setStep(4); // Move to loading screen
+    
+    const syntheticEvent = { preventDefault: () => {} } as React.FormEvent<HTMLFormElement>;
+    
+    // Fill in default required backend fields if not asked in UI
+    if (!form.branchName) updateField('branchName', 'الفرع الرئيسي');
+    if (!form.locationName) updateField('locationName', 'المخزن الرئيسي');
+    
+    // We let the loading screen show for a few seconds before actually submitting
+    // because the user requested an animation.
+    setTimeout(async () => {
+      try {
+        await handleSubmit(syntheticEvent);
+        // Note: handleSubmit calls navigate to /login. If we want Step5, we intercept.
+        // Wait, the controller handles navigation on success. Let's let it navigate.
+        // Or if we want Step5, we modify the controller. 
+        // For now, let's let the loading step finish and handleSubmit will redirect them.
+      } catch (err) {
+        setStep(3); // Go back if error
+      }
+    }, 2500);
+  };
+
+  const stepsCount = 3;
+
+  return (
+    <div className="onboarding-screen">
+      <div className="onboarding-container">
+        {/* Left side (or Right in RTL) Hero section */}
+        <div className="onboarding-hero">
+          <div className="onboarding-hero-logo">
+            <span className="z-mark">Z</span>
+            <span>منظومة</span>
+          </div>
+          <h1>أدر أعمالك بالكامل من مكان واحد</h1>
+          <p>منصة سحابية متكاملة مدعومة بالذكاء الاصطناعي لتسهيل إدارتك اليومية.</p>
+        </div>
+
+        {/* Wizard Form Area */}
+        <div className="onboarding-card">
+          {step <= stepsCount && (
+            <div className="wizard-progress">
+              <div className="wizard-progress-bar-fill" style={{ width: `${((step - 1) / (stepsCount - 1)) * 100}%` }} />
+              {[1, 2, 3].map((num) => (
+                <div key={num} className={`wizard-step-node ${step === num ? 'active' : step > num ? 'completed' : ''}`}>
+                  {step > num ? '✓' : num}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {error && step <= 3 && (
+            <div className="error-box" style={{ marginBottom: 20 }}>
+              {error}
+            </div>
+          )}
+
+          {step === 1 && (
+            <Step1Welcome 
+              form={form} 
+              updateField={updateField} 
+              extraData={extraData}
+              updateExtra={updateExtra}
+              onNext={handleNext} 
+            />
+          )}
+          {step === 2 && (
+            <Step2Details 
+              extraData={extraData} 
+              updateExtra={updateExtra}
+              onNext={handleNext} 
+              onBack={handleBack} 
+            />
+          )}
+          {step === 3 && (
+            <Step3Industry 
+              extraData={extraData} 
+              updateExtra={updateExtra}
+              onNext={submitWizard} 
+              onBack={handleBack} 
+            />
+          )}
+          {step === 4 && <Step4Loading />}
+          {step === 5 && <Step5Success />}
+        </div>
+      </div>
+    </div>
+  );
+}

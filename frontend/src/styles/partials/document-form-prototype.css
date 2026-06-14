@@ -73,20 +73,20 @@
 }
 
 .purchase-new-prototype .app-account-menu-trigger:hover {
-  border-color: rgba(108, 99, 255, 0.24);
+  border-color: rgba(71, 85, 105, 0.24);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
 .purchase-new-prototype .app-account-menu-trigger:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.16), 0 6px 14px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.16), 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
 .purchase-new-prototype .app-account-menu-avatar {
   align-items: center;
-  background: linear-gradient(180deg, rgba(108, 99, 255, 0.12), rgba(108, 99, 255, 0.06));
+  background: linear-gradient(180deg, rgba(71, 85, 105, 0.12), rgba(71, 85, 105, 0.06));
   border-radius: 999px;
-  color: #4f46e5;
+  color: #475569;
   display: inline-flex;
   font-size: 0.7rem;
   font-weight: 800;
@@ -137,12 +137,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+  background: linear-gradient(135deg, #334155, #475569);
   color: #fff;
   font-size: 18px;
   font-weight: 900;
   flex: 0 0 auto;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 14px rgba(71, 85, 105, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .purchase-new-prototype .app-account-menu-identity-copy {
@@ -172,8 +172,8 @@
 
 .purchase-new-prototype .app-account-menu-identity-copy small {
   font-size: 11px;
-  color: #4f46e5;
-  background: rgba(99, 102, 241, 0.12);
+  color: #475569;
+  background: rgba(71, 85, 105, 0.12);
   padding: 3px 8px;
   border-radius: 6px;
   font-weight: 800;
@@ -218,14 +218,14 @@
 }
 
 .purchase-new-prototype .app-account-menu-item:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.08);
-  color: #2563eb;
+  background: rgba(71, 85, 105, 0.08);
+  color: #475569;
   transform: translateX(-2px);
 }
 
 .purchase-new-prototype .app-account-menu-item:focus-visible {
   outline: none;
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(71, 85, 105, 0.08);
 }
 
 .purchase-new-prototype .app-account-menu-item:disabled,
@@ -314,8 +314,8 @@
 }
 
 .purchase-new-prototype.purchase-prototype-dark .app-account-menu-identity-copy small {
-  background: rgba(129, 140, 248, 0.15);
-  color: #818cf8;
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
 }
 
 .purchase-new-prototype.purchase-prototype-dark .app-account-menu-divider {
@@ -409,13 +409,13 @@
 
 .purchase-prototype-icon-button:hover,
 .purchase-prototype-avatar:hover {
-  border-color: rgba(108, 99, 255, 0.24);
+  border-color: rgba(71, 85, 105, 0.24);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
 .purchase-prototype-avatar {
-  background: linear-gradient(180deg, rgba(108, 99, 255, 0.12), rgba(108, 99, 255, 0.06));
-  color: #4f46e5;
+  background: linear-gradient(180deg, rgba(71, 85, 105, 0.12), rgba(71, 85, 105, 0.06));
+  color: #475569;
   font-size: 0.7rem;
   font-weight: 800;
   width: 30px;
@@ -475,7 +475,7 @@
 }
 
 .purchase-prototype-quick-action:hover {
-  border-color: rgba(108, 99, 255, 0.18);
+  border-color: rgba(71, 85, 105, 0.18);
   box-shadow: 0 6px 12px rgba(15, 23, 42, 0.035);
   color: #5163a8;
 }
@@ -536,10 +536,10 @@
 }
 
 .purchase-prototype-popover-apply {
-  background: #eef2ff;
-  border: 1px solid rgba(108, 99, 255, 0.2);
+  background: #f8fafc;
+  border: 1px solid rgba(71, 85, 105, 0.2);
   border-radius: 9px;
-  color: #4f46e5;
+  color: #475569;
   cursor: pointer;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
   font-size: 13.5px;
@@ -637,9 +637,9 @@
 }
 
 .purchase-prototype-create-close:hover {
-  background: #eef2ff;
-  border-color: rgba(59, 130, 246, 0.24);
-  color: #2563eb;
+  background: #f8fafc;
+  border-color: rgba(71, 85, 105, 0.24);
+  color: #475569;
 }
 
 .purchase-prototype-create-grid {
@@ -721,7 +721,7 @@
 }
 
 .purchase-prototype-dark .purchase-prototype-create-close:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(71, 85, 105, 0.16);
   border-color: rgba(96, 165, 250, 0.3);
   color: #dbeafe;
 }
@@ -756,7 +756,7 @@
 }
 
 .purchase-prototype-popover-input:focus {
-  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.08);
 }
 
 .purchase-prototype-breadcrumb {
@@ -886,8 +886,8 @@
 }
 
 .document-prototype-status {
-  background: rgba(108, 99, 255, 0.06);
-  border: 1px solid rgba(108, 99, 255, 0.14);
+  background: rgba(71, 85, 105, 0.06);
+  border: 1px solid rgba(71, 85, 105, 0.14);
   border-radius: var(--radius-chip);
   color: #5c658f;
   font-size: 0.69rem;
@@ -939,9 +939,9 @@
 }
 
 .purchase-prototype-inline-message.is-info {
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.18);
-  color: #1d4ed8;
+  background: rgba(71, 85, 105, 0.08);
+  border: 1px solid rgba(71, 85, 105, 0.18);
+  color: #334155;
 }
 
 .document-prototype-back-link {
@@ -982,13 +982,13 @@
 }
 
 .document-prototype-back-link:hover {
-  border-color: rgba(108, 99, 255, 0.28);
+  border-color: rgba(71, 85, 105, 0.28);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
   color: #334155;
 }
 
 .document-prototype-back-link:focus-visible {
-  outline: 2px solid rgba(108, 99, 255, 0.32);
+  outline: 2px solid rgba(71, 85, 105, 0.32);
   outline-offset: 2px;
 }
 
@@ -1138,8 +1138,8 @@
 
 .document-prototype-shell input:focus,
 .document-prototype-shell textarea:focus {
-  border-color: rgba(108, 99, 255, 0.45);
-  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.09);
+  border-color: rgba(71, 85, 105, 0.45);
+  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.09);
   outline: none;
 }
 
@@ -1241,8 +1241,8 @@
 
 .document-line-items-table td input:focus {
   background: #ffffff;
-  border-color: rgba(108, 99, 255, 0.22);
-  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.07);
+  border-color: rgba(71, 85, 105, 0.22);
+  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.07);
 }
 
 .document-line-items-table .line-total {
@@ -1258,7 +1258,7 @@
 }
 
 .document-line-items-table tbody tr:hover {
-  background: rgba(37, 99, 235, 0.025);
+  background: rgba(71, 85, 105, 0.025);
 }
 
 .document-line-service td {
@@ -1266,8 +1266,8 @@
 }
 
 .document-line-service td:first-child input {
-  border-color: rgba(108, 99, 255, 0.18);
-  color: #4f46e5;
+  border-color: rgba(71, 85, 105, 0.18);
+  color: #475569;
   font-weight: 700;
 }
 
@@ -1406,7 +1406,7 @@
 }
 
 .document-total-grand strong {
-  color: #1d4ed8;
+  color: #334155;
   font-size: 1.04rem;
 }
 
@@ -1586,7 +1586,7 @@
 
 .purchase-prototype-dark .purchase-prototype-icon-button.is-active,
 .purchase-prototype-dark .purchase-prototype-avatar {
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.18), rgba(59, 130, 246, 0.08));
+  background: linear-gradient(180deg, rgba(71, 85, 105, 0.18), rgba(71, 85, 105, 0.08));
   border-color: rgba(96, 165, 250, 0.32);
   color: #dbeafe;
 }
@@ -1623,13 +1623,13 @@
 }
 
 .purchase-prototype-dark .document-prototype-topbar-actions .btn:last-child {
-  background: linear-gradient(180deg, #2563eb, #1d4ed8);
-  border-color: rgba(59, 130, 246, 0.55);
+  background: linear-gradient(180deg, #475569, #334155);
+  border-color: rgba(71, 85, 105, 0.55);
   color: #ffffff;
 }
 
 .purchase-prototype-dark .document-prototype-topbar-actions .btn:last-child:hover {
-  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  background: linear-gradient(180deg, #475569, #475569);
 }
 
 .purchase-prototype-dark .document-prototype-section-title,
@@ -1853,7 +1853,7 @@
 .purchase-prototype-dark .document-prototype-shell input:focus,
 .purchase-prototype-dark .document-prototype-shell textarea:focus {
   border-color: rgba(96, 165, 250, 0.55);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.15);
 }
 
 .purchase-prototype-dark .document-prototype-shell input:disabled,
@@ -1915,7 +1915,7 @@
 
 .purchase-prototype-dark .purchase-prototype-quick-action:hover,
 .purchase-prototype-dark .purchase-prototype-quick-action.is-active {
-  background: rgba(37, 99, 235, 0.14);
+  background: rgba(71, 85, 105, 0.14);
   border-color: rgba(96, 165, 250, 0.28);
   color: #e0f2fe;
 }
@@ -1939,7 +1939,7 @@
 .purchase-prototype-dark .purchase-prototype-combobox-option.is-highlighted,
 .purchase-prototype-dark .purchase-prototype-combobox-create:hover,
 .purchase-prototype-dark .purchase-prototype-combobox-create.is-highlighted {
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(71, 85, 105, 0.12);
 }
 
 .purchase-prototype-dark .purchase-prototype-combobox-create {
@@ -2107,7 +2107,7 @@
 }
 
 .document-prototype-shell .document-line-items-table tbody tr:hover {
-  background: rgba(59, 130, 246, 0.035);
+  background: rgba(71, 85, 105, 0.035);
 }
 
 .document-prototype-shell .document-line-items-table tbody tr:hover .document-row-delete {
@@ -2126,7 +2126,7 @@
 .document-prototype-shell .purchase-prototype-combobox-create.is-highlighted,
 .document-prototype-shell .purchase-prototype-popover-option:hover,
 .document-prototype-shell .purchase-prototype-popover-option.is-active {
-  background: rgba(59, 130, 246, 0.06);
+  background: rgba(71, 85, 105, 0.06);
 }
 
 .document-prototype-shell .purchase-prototype-combobox-option-meta,
@@ -2308,7 +2308,7 @@
   --dark-text-secondary: #cbd5e1;
   --dark-text-muted: #94a3b8;
   --dark-purple: #8b5cf6;
-  --dark-blue: #3b82f6;
+  --dark-blue: #475569;
 }
 
 .purchase-prototype-dark .purchase-prototype-document-surface {
@@ -2630,13 +2630,13 @@
 }
 
 .purchase-prototype-dark .document-prototype-shell .document-prototype-topbar-actions .btn:last-child {
-  background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
-  border-color: rgba(59, 130, 246, 0.55) !important;
+  background: linear-gradient(180deg, #475569, #334155) !important;
+  border-color: rgba(71, 85, 105, 0.55) !important;
   color: #ffffff !important;
 }
 
 .purchase-prototype-dark .document-prototype-shell .document-prototype-topbar-actions .btn:last-child:hover {
-  background: linear-gradient(180deg, #3b82f6, #2563eb) !important;
+  background: linear-gradient(180deg, #475569, #475569) !important;
 }
 
 .purchase-prototype-dark .document-prototype-shell .document-prototype-topbar-right h1,
@@ -3540,8 +3540,8 @@
 .dark .purchase-new-prototype .document-prototype-status,
 [data-theme="dark"] .purchase-new-prototype .document-prototype-status,
 .purchase-new-prototype.purchase-prototype-dark .document-prototype-status {
-  background: rgba(99, 102, 241, 0.12) !important;
-  border-color: rgba(129, 140, 248, 0.22) !important;
+  background: rgba(71, 85, 105, 0.12) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
   color: #c7d2fe !important;
 }
 
@@ -3575,7 +3575,7 @@
 .dark .purchase-new-prototype .purchase-prototype-inline-message.is-info,
 [data-theme="dark"] .purchase-new-prototype .purchase-prototype-inline-message.is-info,
 .purchase-new-prototype.purchase-prototype-dark .purchase-prototype-inline-message.is-info {
-  color: #bfdbfe !important;
+  color: #e2e8f0 !important;
 }
 
 .dark .purchase-new-prototype .document-total-grand::before,
@@ -3699,8 +3699,8 @@
 }
 
 .purchase-prototype-dark .document-prototype-shell .purchase-prototype-toolbar-action-primary {
-  background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
-  border-color: rgba(59, 130, 246, 0.55) !important;
+  background: linear-gradient(180deg, #475569, #334155) !important;
+  border-color: rgba(71, 85, 105, 0.55) !important;
   color: #ffffff !important;
 }
 
@@ -3912,8 +3912,8 @@
 .document-prototype-shell .document-prototype-field-select:focus,
 .document-prototype-shell .document-prototype-field-textarea:focus {
   background-color: #fff !important;
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+  border-color: #475569 !important;
+  box-shadow: 0 0 0 2px rgba(71, 85, 105, 0.1) !important;
   border-radius: 6px !important;
 }
 
@@ -3945,7 +3945,7 @@
   margin-inline-start: 0;
 }
 .purchase-prototype-status-step.is-active {
-  background: #3b82f6;
+  background: #475569;
   color: #fff;
 }
 .purchase-prototype-status-step.is-done {
@@ -4017,10 +4017,10 @@
 
 /* Fix for section title vertical bar color */
 .document-prototype-shell .document-prototype-section-title::before {
-  background: var(--primary, #3b82f6) !important;
+  background: var(--primary, #475569) !important;
 }
 .purchase-prototype-dark .document-prototype-shell .document-prototype-section-title::before {
-  background: var(--primary, #3b82f6) !important;
+  background: var(--primary, #475569) !important;
 }
 
 
@@ -4053,9 +4053,9 @@
 }
 
 .document-prototype-status-badge.is-confirmed {
-  background-color: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }
 
 .purchase-prototype-dark .document-prototype-status-badge.is-draft {
@@ -4065,9 +4065,9 @@
 }
 
 .purchase-prototype-dark .document-prototype-status-badge.is-confirmed {
-  background-color: rgba(59, 130, 246, 0.15);
+  background-color: rgba(71, 85, 105, 0.15);
   color: #60a5fa;
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: rgba(71, 85, 105, 0.3);
 }
 
 /* ========================================================= */
@@ -4084,8 +4084,8 @@
 .document-prototype-shell input:focus-visible,
 .document-prototype-shell textarea:focus-visible,
 .document-prototype-shell select:focus-visible {
-  border-color: var(--primary, #3b82f6) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  border-color: var(--primary, #475569) !important;
+  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.15) !important;
 }
 
 /* 2. Fix Dropdown Radius */
@@ -4097,7 +4097,7 @@
 /* 3. Clean up the Create Button inside Combobox */
 .document-prototype-shell .purchase-prototype-combobox-create {
   background: transparent !important;
-  color: var(--primary, #3b82f6) !important;
+  color: var(--primary, #475569) !important;
   font-weight: 600 !important;
   border-radius: 6px !important;
   margin: 4px 8px !important;
@@ -4112,14 +4112,14 @@
 
 .document-prototype-shell .purchase-prototype-combobox-create:hover,
 .document-prototype-shell .purchase-prototype-combobox-create.is-highlighted {
-  background: rgba(59, 130, 246, 0.06) !important;
-  border-color: rgba(59, 130, 246, 0.15) !important;
+  background: rgba(71, 85, 105, 0.06) !important;
+  border-color: rgba(71, 85, 105, 0.15) !important;
 }
 
 .purchase-prototype-dark .document-prototype-shell .purchase-prototype-combobox-create:hover,
 .purchase-prototype-dark .document-prototype-shell .purchase-prototype-combobox-create.is-highlighted {
-  background: rgba(59, 130, 246, 0.15) !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+  background: rgba(71, 85, 105, 0.15) !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
 }
 
 /* 4. Make all hover states in dropdowns use Primary Blue instead of Purple */
@@ -4127,14 +4127,14 @@
 .document-prototype-shell .purchase-prototype-combobox-option.is-highlighted,
 .document-prototype-shell .purchase-prototype-popover-option:hover,
 .document-prototype-shell .purchase-prototype-popover-option.is-active {
-  background: rgba(59, 130, 246, 0.08) !important;
+  background: rgba(71, 85, 105, 0.08) !important;
 }
 
 .purchase-prototype-dark .document-prototype-shell .purchase-prototype-combobox-option:hover,
 .purchase-prototype-dark .document-prototype-shell .purchase-prototype-combobox-option.is-highlighted,
 .purchase-prototype-dark .document-prototype-shell .purchase-prototype-popover-option:hover,
 .purchase-prototype-dark .document-prototype-shell .purchase-prototype-popover-option.is-active {
-  background: rgba(59, 130, 246, 0.18) !important;
+  background: rgba(71, 85, 105, 0.18) !important;
 }
 
 /* ========================================================= */
@@ -4148,7 +4148,7 @@
 
 .purchase-prototype-combobox-create {
   background: transparent !important;
-  color: var(--primary, #3b82f6) !important;
+  color: var(--primary, #475569) !important;
   font-weight: 600 !important;
   border-radius: 6px !important;
   margin: 4px 8px !important;
@@ -4163,23 +4163,23 @@
 
 .purchase-prototype-combobox-create:hover,
 .purchase-prototype-combobox-create.is-highlighted {
-  background: rgba(59, 130, 246, 0.06) !important;
-  border-color: rgba(59, 130, 246, 0.15) !important;
+  background: rgba(71, 85, 105, 0.06) !important;
+  border-color: rgba(71, 85, 105, 0.15) !important;
 }
 
 .dark .purchase-prototype-combobox-create:hover,
 .dark .purchase-prototype-combobox-create.is-highlighted,
 .purchase-prototype-dark .purchase-prototype-combobox-create:hover,
 .purchase-prototype-dark .purchase-prototype-combobox-create.is-highlighted {
-  background: rgba(59, 130, 246, 0.15) !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+  background: rgba(71, 85, 105, 0.15) !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
 }
 
 .purchase-prototype-combobox-option:hover,
 .purchase-prototype-combobox-option.is-highlighted,
 .purchase-prototype-popover-option:hover,
 .purchase-prototype-popover-option.is-active {
-  background: rgba(59, 130, 246, 0.08) !important;
+  background: rgba(71, 85, 105, 0.08) !important;
 }
 
 .dark .purchase-prototype-combobox-option:hover,
@@ -4190,7 +4190,7 @@
 .purchase-prototype-dark .purchase-prototype-combobox-option.is-highlighted,
 .purchase-prototype-dark .purchase-prototype-popover-option:hover,
 .purchase-prototype-dark .purchase-prototype-popover-option.is-active {
-  background: rgba(59, 130, 246, 0.18) !important;
+  background: rgba(71, 85, 105, 0.18) !important;
 }
 
 /* ========================================================= */
@@ -4232,7 +4232,7 @@
 
 .purchase-new-prototype .app-account-menu-avatar,
 .purchase-new-prototype .app-account-menu-identity-avatar {
-  background: var(--primary, #3b82f6) !important;
+  background: var(--primary, #475569) !important;
   color: #ffffff !important;
   border-radius: 50% !important; 
 }
@@ -4251,8 +4251,8 @@
 }
 
 .purchase-new-prototype .app-account-menu-item:hover {
-  background: rgba(59, 130, 246, 0.08) !important;
-  color: var(--primary, #3b82f6) !important;
+  background: rgba(71, 85, 105, 0.08) !important;
+  color: var(--primary, #475569) !important;
 }
 
 .purchase-new-prototype .app-account-menu-identity {
@@ -4330,12 +4330,12 @@
 }
 
 .purchase-prototype-search-item:hover {
-  background: rgba(59, 130, 246, 0.08);
-  color: var(--primary, #3b82f6);
+  background: rgba(71, 85, 105, 0.08);
+  color: var(--primary, #475569);
 }
 
 .purchase-prototype-dark .purchase-prototype-search-item:hover {
-  background: rgba(59, 130, 246, 0.18);
+  background: rgba(71, 85, 105, 0.18);
   color: #60a5fa;
 }
 
@@ -4351,8 +4351,8 @@
 
 
 .purchase-prototype-search:focus-within {
-  border-color: var(--primary, #3b82f6) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  border-color: var(--primary, #475569) !important;
+  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.1) !important;
 }
 
 .purchase-prototype-search input {

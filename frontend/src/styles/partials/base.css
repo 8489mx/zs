@@ -1,21 +1,21 @@
 :root {
-  --bg:#f3f6fb;
+  --bg:#f8fafc;
   --card:#ffffff;
-  --text:#0f172a;
+  --text:#1e293b;
   --muted:#64748b;
-  --primary:#2563eb;
-  --primary2:#1d4ed8;
+  --primary:#3b82f6;
+  --primary2:#2563eb;
   --success:#059669;
   --danger:#dc2626;
   --warning:#d97706;
-  --border:#dce5f1;
+  --border:#e2e8f0;
   --surface:#ffffff;
-  --surface-2:#f8fbff;
-  --sidebar:#eef4ff;
-  --sidebar-text:#0f172a;
-  --sidebar-border:#dbe7f7;
-  --shadow:0 14px 34px rgba(15, 23, 42, 0.08);
-  --radius:22px;
+  --surface-2:#f1f5f9;
+  --sidebar:#ffffff;
+  --sidebar-text:#1e293b;
+  --sidebar-border:#e2e8f0;
+  --shadow:0 8px 30px rgba(15, 23, 42, 0.04);
+  --radius:16px;
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; min-height: 100%; }
