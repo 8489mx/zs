@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
@@ -17,7 +17,9 @@ export function LoginPage() {
       <div className="login-stack">
         <SystemStatusBanner />
         <form className="login-card" onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="login-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
+          <div className="login-logo">
+            <img src="/brand/z-erp-approved-icon.png" alt="Z Systems Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
           <div className="login-header">
             <h1>Z Systems</h1>
             <p className="login-subtitle muted">نظام إدارة وتشغيل الأعمال</p>
