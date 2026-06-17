@@ -9,8 +9,10 @@ import { PurchasesRegisterCard } from '@/features/purchases/components/purchases
 import { PurchaseRepricingDialog } from '@/features/purchases/components/PurchaseRepricingDialog';
 import { usePurchasesWorkspaceController } from '@/features/purchases/components/purchases-workspace/usePurchasesWorkspaceController';
 import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';
+import { useNavigate } from 'react-router-dom';
 
 export function PurchasesWorkspace() {
+  const navigate = useNavigate();
   const controller = usePurchasesWorkspaceController();
   const selectedPurchase = controller.selectedPurchase;
   const canEditSelectedPurchase = Boolean(controller.canEditInvoices && selectedPurchase && selectedPurchase.status !== 'cancelled');
@@ -39,7 +41,7 @@ export function PurchasesWorkspace() {
             <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' }}>
               قم بإنشاء فاتورة شراء جديدة مفصلة مع خيارات الدفع والخصم والمزيد من التفاصيل.
             </p>
-            <Button variant="primary" onClick={() => window.location.href = '/purchases/new'}>
+            <Button variant="primary" onClick={() => navigate('/purchases/new')}>
               إنشاء فاتورة شراء
             </Button>
           </div>

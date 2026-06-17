@@ -173,7 +173,7 @@
   flex-direction: column;
   gap: 2px;
   width: 100%;
-  margin: 0;
+  margin: 10px 0 0 0;
   padding: 0;
   box-sizing: border-box;
   background: transparent;
@@ -188,9 +188,10 @@
   box-sizing: border-box;
   padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid #f1f5f9;
-  background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.01);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px) saturate(140%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: flex-start;
