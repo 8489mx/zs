@@ -9,14 +9,15 @@ interface CreatePurchaseArgs {
   items: PurchaseDraftItem[];
   taxRate: number;
   pricesIncludeTax: boolean;
+  attachments?: any[];
 }
 
 export function useCreatePurchaseMutation(onSuccess?: (result: PurchaseMutationResult) => void) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ values, items, taxRate, pricesIncludeTax }: CreatePurchaseArgs) =>
-      purchasesApi.create(buildPurchasePayload(values, items, taxRate, pricesIncludeTax)),
+    mutationFn: ({ values, items, taxRate, pricesIncludeTax, attachments }: CreatePurchaseArgs) =>
+      purchasesApi.create(buildPurchasePayload(values, items, taxRate, pricesIncludeTax, attachments)),
     onSuccess: async (result) => {
       await invalidatePurchasesDomain(queryClient);
       onSuccess?.(result);

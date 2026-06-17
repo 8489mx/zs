@@ -6,7 +6,15 @@ export const purchaseHeaderSchema = z.object({
   discount: z.coerce.number().min(0, 'الخصم لا يكون سالبًا').default(0),
   branchId: z.string().trim().optional().default(''),
   locationId: z.string().trim().optional().default(''),
-  note: z.string().trim().optional().default('')
+  note: z.string().trim().optional().default(''),
+  requiredDate: z.string().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  companyName: z.string().optional().nullable(),
+  contactId: z.string().optional().nullable(),
+  shippingAddressId: z.string().optional().nullable(),
+  costCenterId: z.string().optional().nullable(),
+  projectId: z.string().optional().nullable(),
+  termsTemplate: z.string().optional().nullable(),
 });
 
 export const purchaseLineSchema = z.object({

@@ -21,9 +21,16 @@ function formatErrorDetails(error: unknown): string {
   return `Failed to bootstrap application: ${typeof error === 'string' ? error : JSON.stringify(error)}`;
 }
 
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
+  });
+
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
   });
 
   const logger = app.get(LoggerService);

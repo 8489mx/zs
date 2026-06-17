@@ -74,9 +74,66 @@ export class UpsertPurchaseDto {
   @Min(1)
   locationId?: number;
 
+  @IsOptional()
+  @Type(() => Date)
+  requiredDate?: Date;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsString()
+  companyName?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  contactId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  shippingAddressId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  costCenterId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  projectId?: number;
+
+  @IsOptional()
+  @IsString()
+  termsTemplate?: string;
+
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => PurchaseItemDto)
   items!: PurchaseItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PurchaseAttachmentDto)
+  attachments?: PurchaseAttachmentDto[];
+}
+
+export class PurchaseAttachmentDto {
+  @IsString()
+  fileName!: string;
+
+  @IsString()
+  fileUrl!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  fileSize!: number;
+
+  @IsString()
+  fileType!: string;
 }

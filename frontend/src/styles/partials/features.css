@@ -49,7 +49,7 @@
 .detail-item { padding: 12px 14px; background: #fff; }
 .detail-label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
 .detail-value { font-weight: 700; }
-.detail-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 16px; }
+.detail-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
 .surface-note { padding: 12px 14px; border-radius: 14px; background: #f8fafc; color: #334155; line-height: 1.7; }
 .section-separator { border: none; border-top: 1px dashed var(--border); margin: 2px 0; }
 .selected-row { border-color: rgba(37,99,235,.35); box-shadow: 0 12px 26px rgba(37,99,235,.08); }
@@ -79,7 +79,7 @@
 .first-run-checklist-row .status-badge { white-space: nowrap; }
 .inventory-master-detail-wide { grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr); }
 .detail-table-panel { min-width: 0; }
-.detail-table-panel .table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 16px; }
+.detail-table-panel .table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 6px; }
 
 .setup-prompt-card { border-color: #dbeafe; background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%); }
 .setup-prompt-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

@@ -208,6 +208,14 @@ export class PurchasesWriteService {
           location_id: locationId,
           created_by: auth.userId,
           cancel_reason: '',
+          required_date: payload.requiredDate || null,
+          currency: payload.currency || '',
+          company_name: payload.companyName || '',
+          contact_id: payload.contactId || null,
+          shipping_address_id: payload.shippingAddressId || null,
+          cost_center_id: payload.costCenterId || null,
+          project_id: payload.projectId || null,
+          terms_template: payload.termsTemplate || '',
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any)
@@ -231,6 +239,7 @@ export class PurchasesWriteService {
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any).execute();
+
 
         const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
         const stockChange = await applyStockDelta(trx, {
@@ -258,6 +267,18 @@ export class PurchasesWriteService {
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any).execute();
+      }
+
+      if (payload.attachments && payload.attachments.length > 0) {
+        for (const attachment of payload.attachments) {
+          await trx.insertInto('purchase_attachments').values({
+            purchase_id: id,
+            file_name: attachment.fileName,
+            file_url: attachment.fileUrl,
+            file_size: attachment.fileSize,
+            file_type: attachment.fileType,
+          } as any).execute();
+        }
       }
 
       if (paymentType === 'credit') {
@@ -429,6 +450,14 @@ export class PurchasesWriteService {
         note: String(payload.note || '').trim(),
         branch_id: branchId,
         location_id: locationId,
+        required_date: payload.requiredDate || null,
+        currency: payload.currency || '',
+        company_name: payload.companyName || '',
+        contact_id: payload.contactId || null,
+        shipping_address_id: payload.shippingAddressId || null,
+        cost_center_id: payload.costCenterId || null,
+        project_id: payload.projectId || null,
+        terms_template: payload.termsTemplate || '',
         updated_at: sql`NOW()`,
       }).where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 

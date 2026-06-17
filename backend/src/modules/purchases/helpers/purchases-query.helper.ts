@@ -40,6 +40,14 @@ export function mapPurchaseRows(
     locationId: entry.location_id ? String(entry.location_id) : '',
     branchName: entry.branch_name || '',
     locationName: entry.location_name || '',
+    requiredDate: entry.required_date || null,
+    currency: entry.currency || '',
+    companyName: entry.company_name || '',
+    contactId: entry.contact_id ? String(entry.contact_id) : '',
+    shippingAddressId: entry.shipping_address_id ? String(entry.shipping_address_id) : '',
+    costCenterId: entry.cost_center_id ? String(entry.cost_center_id) : '',
+    projectId: entry.project_id ? String(entry.project_id) : '',
+    termsTemplate: entry.terms_template || '',
     items: byPurchase.get(String(entry.id)) || [],
   }));
 }

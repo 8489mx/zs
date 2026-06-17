@@ -1,4 +1,7 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -93,5 +96,26 @@ export class PurchasesController {
   @RequirePermissions('accounts')
   createCustomerPayment(@Body() payload: CreateCustomerPaymentDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.purchasesService.createCustomerPayment(payload, req.authContext!);
+  }
+
+  @Post('purchases/attachments/upload')
+  @RequirePermissions('purchases')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads/purchases',
+      filename: (req: any, file: any, cb: any) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + extname(file.originalname));
+      }
+    })
+  }))
+  uploadAttachment(@UploadedFile() file: any) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    return {
+      fileName: file.originalname,
+      fileUrl: `/uploads/purchases/${file.filename}`,
+      fileSize: file.size,
+      fileType: file.mimetype
+    };
   }
 }

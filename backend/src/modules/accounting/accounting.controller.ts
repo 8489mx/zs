@@ -66,5 +66,15 @@ export class AccountingController {
   postOpeningBalances(@Body() body: PostOpeningBalancesDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.postOpeningBalances(body, req.authContext!);
   }
+
+  @Get('cost-centers')
+  listCostCenters(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.listCostCenters(req.authContext!);
+  }
+
+  @Get('projects')
+  listProjects(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.listProjects(req.authContext!);
+  }
 }
 

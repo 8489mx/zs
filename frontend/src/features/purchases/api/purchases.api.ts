@@ -114,5 +114,13 @@ export const purchasesApi = {
     const response = await http<Purchase | PurchaseMutationResult>(`/api/purchases/${purchaseId}`, { method: 'PUT', body: JSON.stringify(payload) });
     if (response && typeof response === 'object' && 'purchase' in response) return response as PurchaseMutationResult;
     return { purchase: response as Purchase, repricingInsights: null } satisfies PurchaseMutationResult;
-  }
+  },
+  uploadAttachment: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return http<{ fileName: string; fileUrl: string; fileSize: number; fileType: string }>('/api/purchases/attachments/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 };

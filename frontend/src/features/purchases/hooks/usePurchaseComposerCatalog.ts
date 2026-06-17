@@ -11,6 +11,9 @@ export function usePurchaseComposerCatalog() {
   const settingsQuery = useQuery({ queryKey: queryKeys.settings, queryFn: referenceDataApi.settings });
   const branchesQuery = useQuery({ queryKey: queryKeys.branches, queryFn: referenceDataApi.branches });
   const locationsQuery = useQuery({ queryKey: queryKeys.locations, queryFn: referenceDataApi.locations });
+  const purchasesQuery = useQuery({ queryKey: queryKeys.purchases, queryFn: purchasesApi.list });
+  const costCentersQuery = useQuery({ queryKey: ['cost-centers'], queryFn: referenceDataApi.costCenters });
+  const projectsQuery = useQuery({ queryKey: ['projects'], queryFn: referenceDataApi.projects });
 
   return {
     productsQuery,
@@ -19,8 +22,11 @@ export function usePurchaseComposerCatalog() {
     settingsQuery,
     branchesQuery,
     locationsQuery,
-    isLoading: productsQuery.isLoading || suppliersQuery.isLoading || categoriesQuery.isLoading || settingsQuery.isLoading || branchesQuery.isLoading || locationsQuery.isLoading,
-    isError: productsQuery.isError || suppliersQuery.isError || categoriesQuery.isError || settingsQuery.isError || branchesQuery.isError || locationsQuery.isError,
-    error: productsQuery.error || suppliersQuery.error || categoriesQuery.error || settingsQuery.error || branchesQuery.error || locationsQuery.error
+    purchasesQuery,
+    costCentersQuery,
+    projectsQuery,
+    isLoading: productsQuery.isLoading || suppliersQuery.isLoading || categoriesQuery.isLoading || settingsQuery.isLoading || branchesQuery.isLoading || locationsQuery.isLoading || purchasesQuery.isLoading || costCentersQuery.isLoading || projectsQuery.isLoading,
+    isError: productsQuery.isError || suppliersQuery.isError || categoriesQuery.isError || settingsQuery.isError || branchesQuery.isError || locationsQuery.isError || purchasesQuery.isError || costCentersQuery.isError || projectsQuery.isError,
+    error: productsQuery.error || suppliersQuery.error || categoriesQuery.error || settingsQuery.error || branchesQuery.error || locationsQuery.error || purchasesQuery.error || costCentersQuery.error || projectsQuery.error
   };
 }

@@ -593,6 +593,66 @@ export interface PriceChangeItemTable {
   has_customer_price: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
 }
+
+export interface PartnerContactTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  partner_type: string;
+  partner_id: number;
+  name: string;
+  phone: ColumnType<string, string | undefined, string | undefined>;
+  email: ColumnType<string, string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface PartnerAddressTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  partner_type: string;
+  partner_id: number;
+  label: string;
+  city: ColumnType<string, string | undefined, string | undefined>;
+  address_line: ColumnType<string, string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface CostCenterTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  code: string;
+  name: string;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface ProjectTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  code: string;
+  name: string;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface PurchaseAttachmentTable {
+  id: Generated<number>;
+  purchase_id: number;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  file_type: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
 export interface PurchaseTable {
   id: Generated<number>;
   doc_no: string | null;
@@ -611,7 +671,17 @@ export interface PurchaseTable {
   created_by: number | null;
   cancelled_at: Date | null;
   cancelled_by: number | null;
-  cancel_reason: string;
+  cancel_reason: ColumnType<string, string | undefined, string | undefined>;
+  required_date: Date | null;
+  currency: ColumnType<string, string | undefined, string | undefined>;
+  company_name: ColumnType<string, string | undefined, string | undefined>;
+  contact_id: number | null;
+  shipping_address_id: number | null;
+  cost_center_id: number | null;
+  project_id: number | null;
+  terms_template: ColumnType<string, string | undefined, string | undefined>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
@@ -1061,5 +1131,10 @@ export interface Database {
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;
   hr_hr_settings: HrSettingsTable;
   price_change_runs: PriceChangeRunTable;
-  price_change_items: PriceChangeItemTable;
+    price_change_items: PriceChangeItemTable;
+  partner_contacts: PartnerContactTable;
+  partner_addresses: PartnerAddressTable;
+  cost_centers: CostCenterTable;
+  projects: ProjectTable;
+  purchase_attachments: PurchaseAttachmentTable;
 }

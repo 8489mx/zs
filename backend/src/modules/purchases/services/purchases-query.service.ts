@@ -27,6 +27,7 @@ export class PurchasesQueryService {
       .select([
         'p.id', 'p.doc_no', 'p.supplier_id', 's.name as supplier_name', 'p.payment_type', 'p.subtotal', 'p.discount', 'p.tax_rate', 'p.tax_amount',
         'p.prices_include_tax', 'p.total', 'p.note', 'p.status', 'p.branch_id', 'p.location_id', 'p.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
+        'p.required_date', 'p.currency', 'p.company_name', 'p.contact_id', 'p.shipping_address_id', 'p.cost_center_id', 'p.project_id', 'p.terms_template'
       ])
       .where(this.tenantPredicate(auth, 'p'))
       .orderBy('p.id desc')

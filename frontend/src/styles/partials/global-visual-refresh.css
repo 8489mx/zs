@@ -99,7 +99,7 @@ textarea {
 .detail-table-panel .table-wrap,
 .purchase-detail-card .table-wrap,
 .import-preview-table {
-  border-radius: 18px;
+  border-radius: 6px;
   border-color: var(--panel-border);
 }
 

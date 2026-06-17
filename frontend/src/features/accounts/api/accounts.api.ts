@@ -70,6 +70,8 @@ export const accountsApi = {
   suppliers: async () => unwrapArray<Supplier>(await http<Supplier[] | { suppliers: Supplier[] }>('/api/suppliers'), 'suppliers'),
   customerBalances: async () => unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>('/api/reports/customer-balances'), 'customers'),
   supplierBalances: async () => unwrapArray<Supplier>(await http<Supplier[] | { suppliers: Supplier[] }>('/api/reports/supplier-balances'), 'suppliers'),
+  partnerContacts: async (type: string, id: string) => unwrapArray<any>(await http<any>(`/api/partners/${type}/${id}/contacts`), 'contacts'),
+  partnerAddresses: async (type: string, id: string) => unwrapArray<any>(await http<any>(`/api/partners/${type}/${id}/addresses`), 'addresses'),
   customerLedger: async (id: string, params?: LedgerQueryParams) => normalizeCustomerLedger(await http<CustomerLedger>(`/api/reports/customers/${id}/ledger${buildQueryString(params || {})}`)),
   supplierLedger: async (id: string, params?: LedgerQueryParams) => normalizeSupplierLedger(await http<SupplierLedger>(`/api/reports/suppliers/${id}/ledger${buildQueryString(params || {})}`)),
   listAllCustomerLedger: async (id: string, search = '') => {

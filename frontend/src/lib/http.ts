@@ -180,7 +180,7 @@ function isUnsafeMethod(method: string | undefined): boolean {
 function buildHeaders(init?: HttpRequestInit): Headers {
   const headers = new Headers(init?.headers || {});
 
-  if (!headers.has('Content-Type') && init?.body != null) {
+  if (!headers.has('Content-Type') && init?.body != null && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 

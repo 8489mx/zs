@@ -6,6 +6,8 @@ import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PartnersService } from './partners.service';
 import { UpsertCustomerDto } from './dto/upsert-customer.dto';
 import { UpsertSupplierDto } from './dto/upsert-supplier.dto';
+import { UpsertContactDto } from './dto/upsert-contact.dto';
+import { UpsertAddressDto } from './dto/upsert-address.dto';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -70,4 +72,43 @@ export class PartnersController {
   deleteSupplier(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.partnersService.deleteSupplier(id, req.authContext!);
   }
+
+  @Get(':partnerType/:partnerId/contacts')
+  listContacts(
+    @Param('partnerType') partnerType: string,
+    @Param('partnerId', ParseIntPipe) partnerId: number,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.partnersService.listContacts(partnerType, partnerId, req.authContext!);
+  }
+
+  @Post(':partnerType/:partnerId/contacts')
+  createContact(
+    @Param('partnerType') partnerType: string,
+    @Param('partnerId', ParseIntPipe) partnerId: number,
+    @Body() payload: UpsertContactDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.partnersService.createContact(partnerType, partnerId, payload, req.authContext!);
+  }
+
+  @Get(':partnerType/:partnerId/addresses')
+  listAddresses(
+    @Param('partnerType') partnerType: string,
+    @Param('partnerId', ParseIntPipe) partnerId: number,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.partnersService.listAddresses(partnerType, partnerId, req.authContext!);
+  }
+
+  @Post(':partnerType/:partnerId/addresses')
+  createAddress(
+    @Param('partnerType') partnerType: string,
+    @Param('partnerId', ParseIntPipe) partnerId: number,
+    @Body() payload: UpsertAddressDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.partnersService.createAddress(partnerType, partnerId, payload, req.authContext!);
+  }
 }
+

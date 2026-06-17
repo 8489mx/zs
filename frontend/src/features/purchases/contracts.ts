@@ -40,7 +40,7 @@ export function upsertPurchaseDraftItem(items: PurchaseDraftItem[], incoming: Pu
   return next;
 }
 
-export function buildPurchasePayload(values: PurchaseHeaderOutput, items: PurchaseDraftItem[], taxRate: number, pricesIncludeTax: boolean) {
+export function buildPurchasePayload(values: PurchaseHeaderOutput, items: PurchaseDraftItem[], taxRate: number, pricesIncludeTax: boolean, attachments?: any[]) {
   const discount = Number(Math.max(0, Number(values.discount || 0)).toFixed(2));
   return {
     supplierId: Number(values.supplierId),
@@ -51,6 +51,15 @@ export function buildPurchasePayload(values: PurchaseHeaderOutput, items: Purcha
     note: values.note || '',
     taxRate: Number(taxRate || 0),
     pricesIncludeTax: Boolean(pricesIncludeTax),
+    requiredDate: values.requiredDate ? new Date(values.requiredDate).toISOString() : null,
+    currency: values.currency || '',
+    companyName: values.companyName || '',
+    contactId: values.contactId ? Number(values.contactId) : null,
+    shippingAddressId: values.shippingAddressId ? Number(values.shippingAddressId) : null,
+    costCenterId: values.costCenterId ? Number(values.costCenterId) : null,
+    projectId: values.projectId ? Number(values.projectId) : null,
+    termsTemplate: values.termsTemplate || '',
+    attachments,
     items: items.map((item) => ({
       productId: Number(item.productId),
       qty: Number(item.qty),

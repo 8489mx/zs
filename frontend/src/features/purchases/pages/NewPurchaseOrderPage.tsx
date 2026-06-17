@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePurchaseComposerCatalog } from '@/features/purchases/hooks/usePurchaseComposerCatalog';
+import imageCompression from 'browser-image-compression';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -10,6 +11,7 @@ import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { useTranslation } from '../utils/i18n-purchase-prototype';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 
 type PrototypeLine = {
   id: number;
@@ -34,6 +36,7 @@ type SupplierOption = {
   contactName?: string;
   shippingAddress?: string;
   company?: string;
+  balance?: number;
 };
 
 type ContactOption = {
@@ -100,15 +103,7 @@ type QuickCreateState =
 
 
 
-const initialCostCenters: CostCenterOption[] = [
-  { id: 'cc-001', name: 'Operational Purchases', code: 'CC-001' },
-  { id: 'cc-002', name: 'General Expenses', code: 'CC-002' }
-];
 
-const initialProjects: ProjectOption[] = [
-  { id: 'prj-001', name: 'New Branch Setup', code: 'PRJ-001' },
-  { id: 'prj-002', name: 'Warehouse Upgrade', code: 'PRJ-002' }
-];
 
 const normalizeSearchText = (value: string) =>
   value
@@ -587,12 +582,12 @@ export function NewPurchaseOrderPage() {
   const [discountMode, setDiscountMode] = useState<'percent' | 'value'>('value');
   const [customTaxRate, setCustomTaxRate] = useState('14');
   const [pendingFocusLineId, setPendingFocusLineId] = useState<number | null>(null);
-  const [lines, setLines] = useState<PrototypeLine[]>([]);
+  const [lines, setLines] = useState<PrototypeLine[]>([{ id: Date.now(), productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: '' }]);
   const [supplier, setSupplier] = useState('');
-  const [date, setDate] = useState('2026-05-19');
-  const [requiredDate, setRequiredDate] = useState('2026-05-24');
-  const [currency, setCurrency] = useState('EGP');
-  const [company, setCompany] = useState(t('demo_company'));
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [requiredDate, setRequiredDate] = useState(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [currency, setCurrency] = useState('');
+  const [company, setCompany] = useState('');
   const [contact, setContact] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
   const [taxRate, setTaxRate] = useState(14);
@@ -600,8 +595,11 @@ export function NewPurchaseOrderPage() {
   const [costCenter, setCostCenter] = useState('');
   const [project, setProject] = useState('');
   const [termsTemplate, setTermsTemplate] = useState('');
-  const [notes, setNotes] = useState(t('review_quantities_note'));
+  const [notes, setNotes] = useState('');
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [pendingFocusQtyLineId, setPendingFocusQtyLineId] = useState<number | null>(null);
+
   const [quickCreateState, setQuickCreateState] = useState<QuickCreateState>(null);
   const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
   const [barcodeScanQuery, setBarcodeScanQuery] = useState('');
@@ -611,14 +609,13 @@ export function NewPurchaseOrderPage() {
     navigate('/purchases');
   });
 
+  const rawSettings = catalog.settingsQuery.data;
   const rawSuppliers = catalog.suppliersQuery.data || [];
   const rawProducts = catalog.productsQuery.data || [];
   const rawLocations = catalog.locationsQuery.data || [];
   const rawBranches = catalog.branchesQuery.data || [];
 
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
-  const [contactsList, setContactsList] = useState<ContactOption[]>([]);
-  const [addressesList, setAddressesList] = useState<AddressOption[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
 
@@ -630,7 +627,8 @@ export function NewPurchaseOrderPage() {
         code: s.code || '',
         phone: s.phone || '',
         taxNumber: s.taxNumber || '',
-        contactName: s.primaryContactName || ''
+        contactName: s.primaryContactName || '',
+        balance: s.balance || 0
       })));
     }
   }, [rawSuppliers]);
@@ -660,9 +658,52 @@ export function NewPurchaseOrderPage() {
     }
   }, [rawLocations]);
 
+  // Load default currency from system settings
+  useEffect(() => {
+    if (rawSettings?.currency && !currency) {
+      setCurrency(rawSettings.currency);
+    }
+  }, [rawSettings?.currency, currency]);
 
-  const [costCenters, setCostCenters] = useState<CostCenterOption[]>(initialCostCenters);
-  const [projects, setProjects] = useState<ProjectOption[]>(initialProjects);
+  const [costCenters, setCostCenters] = useState<CostCenterOption[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [contactsList, setContactsList] = useState<ContactOption[]>([]);
+  const [addressesList, setAddressesList] = useState<AddressOption[]>([]);
+
+  useEffect(() => {
+    if (catalog.costCentersQuery.data && costCenters.length === 0) {
+      setCostCenters(catalog.costCentersQuery.data.map((cc: any) => ({ id: String(cc.id), name: cc.name, code: cc.code })));
+    }
+  }, [catalog.costCentersQuery.data, costCenters.length]);
+
+  useEffect(() => {
+    if (catalog.projectsQuery.data && projects.length === 0) {
+      setProjects(catalog.projectsQuery.data.map((p: any) => ({ id: String(p.id), name: p.name, code: p.code })));
+    }
+  }, [catalog.projectsQuery.data, projects.length]);
+
+  useEffect(() => {
+    if (!supplier) {
+      setContactsList([]);
+      setAddressesList([]);
+      return;
+    }
+    const load = async () => {
+      try {
+        const { accountsApi } = await import('@/features/accounts/api/accounts.api');
+        const [contacts, addresses] = await Promise.all([
+          accountsApi.partnerContacts('supplier', supplier),
+          accountsApi.partnerAddresses('supplier', supplier)
+        ]);
+        setContactsList(contacts.map((c: any) => ({ id: String(c.id), name: c.name, phone: c.phone || '' })));
+        setAddressesList(addresses.map((a: any) => ({ id: String(a.id), label: a.label, city: a.city || '' })));
+      } catch (err) {
+        console.error('Failed to load supplier contacts/addresses', err);
+      }
+    };
+    load();
+  }, [supplier]);
+
   const supplierInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const requiredDateInputRef = useRef<HTMLInputElement | null>(null);
@@ -814,6 +855,20 @@ export function NewPurchaseOrderPage() {
   const taxableBase = Math.max(subtotal - discountAmount, 0);
   const tax = useMemo(() => (taxableBase * taxRate) / 100, [taxableBase, taxRate]);
   const total = taxableBase + tax;
+
+  const selectedSupplierStats = useMemo(() => {
+    if (!supplier) return { ordersCount: 0, balance: 0 };
+    
+    const matchedSupplier = suppliers.find(s => s.name === supplier);
+    const balance = matchedSupplier?.balance || 0;
+    
+    const rawPurchases = catalog.purchasesQuery?.data?.rows || catalog.purchasesQuery?.data || [];
+    const ordersCount = Array.isArray(rawPurchases) 
+      ? rawPurchases.filter((p: any) => p.supplier?.name === supplier || p.supplierName === supplier).length
+      : 0;
+
+    return { ordersCount, balance };
+  }, [supplier, suppliers, catalog.purchasesQuery?.data]);
 
   const addLine = () => {
     const newLineId = Date.now();
@@ -1277,6 +1332,28 @@ export function NewPurchaseOrderPage() {
     };
   };
 
+  const handleResetDraft = () => {
+    window.localStorage.removeItem(PURCHASE_DRAFT_STORAGE_KEY);
+    hasLoadedDraftRef.current = false;
+    setSupplier('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setRequiredDate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    setCurrency('EGP');
+    setCompany('');
+    setContact('');
+    setShippingAddress('');
+    setTaxRate(14);
+    setDiscount(0);
+    setCostCenter('');
+    setProject('');
+    setTermsTemplate('');
+    setNotes('');
+    setLines([]);
+    setAttachments([]);
+    setDocumentStatus('draft');
+    setInlineMessage({ tone: 'success', text: 'تم إفراغ الصفحة ومسح المسودة القديمة' });
+  };
+
   const handleSaveDraft = () => {
     if (!computeHasMeaningfulData()) {
       setInlineMessage({ tone: 'error', text: t('no_data_to_save') });
@@ -1305,26 +1382,21 @@ export function NewPurchaseOrderPage() {
       return;
     }
 
-    const extraFields = {
-      date,
-      requiredDate,
-      currency,
-      company,
-      contact,
-      shippingAddress,
-      costCenter,
-      project,
-      termsTemplate,
-      notes
-    };
-
     const values = {
       supplierId,
       paymentType: 'credit' as const,
       discount: discount || 0,
       branchId: rawBranches[0]?.id?.toString() || '',
       locationId: rawLocations[0]?.id?.toString() || '',
-      note: JSON.stringify(extraFields)
+      note: notes,
+      requiredDate,
+      currency,
+      companyName: company,
+      contactId: contact,
+      shippingAddressId: shippingAddress,
+      costCenterId: costCenter,
+      projectId: project,
+      termsTemplate,
     };
 
     const items = lines.filter(line => line.productId).map(line => ({
@@ -1342,11 +1414,50 @@ export function NewPurchaseOrderPage() {
         values,
         items,
         taxRate: taxRate,
-        pricesIncludeTax: false
+        pricesIncludeTax: false,
+        attachments
       });
     } catch (e) {
       setInlineMessage({ tone: 'error', text: 'Error saving invoice' });
     }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const newAttachments = [];
+      for (let i = 0; i < files.length; i++) {
+        let file = files[i];
+        if (file.type.startsWith('image/')) {
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          };
+          try {
+            file = await imageCompression(file, options);
+          } catch (e) {
+            console.error('Image compression failed', e);
+          }
+        }
+        
+        const uploaded = await purchasesApi.uploadAttachment(file);
+        newAttachments.push(uploaded);
+      }
+      setAttachments(prev => [...prev, ...newAttachments]);
+    } catch (e) {
+      setInlineMessage({ tone: 'error', text: 'Error uploading attachment' });
+    } finally {
+      setIsUploading(false);
+      event.target.value = ''; // clear input
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   useEffect(() => {
@@ -1559,15 +1670,31 @@ export function NewPurchaseOrderPage() {
           
           <div className="document-smart-buttons-box">
              <button className="document-smart-button">
-               <span className="document-smart-button-value">3</span>
+               <span className="document-smart-button-value">{selectedSupplierStats.ordersCount}</span>
                <span className="document-smart-button-label">{t('previous_orders')}</span>
              </button>
              <button className="document-smart-button">
-               <span className="document-smart-button-value">0 EGP</span>
+               <span className="document-smart-button-value">{formatMoney(selectedSupplierStats.balance, language)}</span>
                <span className="document-smart-button-label">{t('credit_balance')}</span>
              </button>
           </div>
           <div className="document-prototype-topbar-actions">
+            <Button 
+              variant="secondary" 
+              type="button" 
+              className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary" 
+              onClick={handleResetDraft} 
+              style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+            >
+              <span aria-hidden="true" className="purchase-prototype-save-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+              </span>
+              <span>إلغاء المسودة</span>
+            </Button>
             <Button 
               variant="secondary" 
               type="button" 
@@ -1663,11 +1790,22 @@ export function NewPurchaseOrderPage() {
               clearDocumentFieldError('requiredDate');
               setRequiredDate(event.target.value);
             }} /></Field>
-            <Field label={t('currency')} error={validationErrors.currency}><input ref={currencyInputRef} className="purchase-prototype-field-input purchase-prototype-meta-input" value={currency} onChange={(event) => {
-              markDocumentDirty();
-              clearDocumentFieldError('currency');
-              setCurrency(event.target.value);
-            }} /></Field>
+            <Field label={t('currency')} error={validationErrors.currency}>
+              <select
+                ref={currencyInputRef as any}
+                className="purchase-prototype-field-input purchase-prototype-meta-input"
+                value={currency}
+                onChange={(event) => {
+                  markDocumentDirty();
+                  clearDocumentFieldError('currency');
+                  setCurrency(event.target.value);
+                }}
+              >
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </select>
+            </Field>
             <Field label={t("company_label")}><input className="purchase-prototype-field-input purchase-prototype-meta-input" value={company} onChange={(event) => {
               markDocumentDirty();
               setCompany(event.target.value);
@@ -1717,14 +1855,29 @@ export function NewPurchaseOrderPage() {
 
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">{t('attach_docs')}</h3>
-          <button type="button" className="document-prototype-upload">
+          <label className="document-prototype-upload" style={{ display: 'flex', cursor: 'pointer' }}>
+            <input type="file" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
             <span aria-hidden="true" className="document-prototype-upload-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12.5 12.8 20.7a5 5 0 0 1-7.1-7.1L14.2 5.1a3.5 3.5 0 0 1 4.9 4.9L9.9 19.2" />
               </svg>
             </span>
-            <span>{t('drag_drop_docs')}</span>
-          </button>
+            <span>{isUploading ? 'جاري الرفع...' : t('drag_drop_docs')}</span>
+          </label>
+          
+          {attachments.length > 0 && (
+            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {attachments.map((att, index) => (
+                <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', border: '1px solid var(--border-light)', borderRadius: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '13px' }}>{att.fileName}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{(att.fileSize / 1024).toFixed(1)} KB</span>
+                  </div>
+                  <button type="button" onClick={() => handleRemoveAttachment(index)} style={{ color: 'var(--danger-color)', background: 'none', border: 'none', cursor: 'pointer' }}>حذف</button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="document-prototype-section">

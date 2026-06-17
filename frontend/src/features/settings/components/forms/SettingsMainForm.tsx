@@ -8,6 +8,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { useSettingsUpdateMutation } from '@/features/settings/hooks/useSettingsMutations';
 import { settingsFormSchema, type SettingsFormInput, type SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
+import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { BranchForm } from '@/features/settings/components/forms/BranchForm';
 import { LocationForm } from '@/features/settings/components/forms/LocationForm';
@@ -328,10 +329,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           <label className="field">
             <span>العملة</span>
             <select {...form.register('currency')} disabled={disabled}>
-              <option value="EGP">EGP - جنيه مصري</option>
-              <option value="SAR">SAR - ريال سعودي</option>
-              <option value="AED">AED - درهم إماراتي</option>
-              <option value="USD">USD - US Dollar</option>
+              {SUPPORTED_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
             </select>
           </label>
           <label className="field">

@@ -1300,4 +1300,22 @@ export class AccountingService {
 
     return { ok: true, lines: normalized };
   }
+
+  async listCostCenters(actor: AuthContext): Promise<Record<string, unknown>> {
+    const records = await this.db
+      .selectFrom('cost_centers')
+      .selectAll()
+      .where('tenant_id', '=', requireTenantScope(actor).tenantId)
+      .execute();
+    return { ok: true, costCenters: records };
+  }
+
+  async listProjects(actor: AuthContext): Promise<Record<string, unknown>> {
+    const records = await this.db
+      .selectFrom('projects')
+      .selectAll()
+      .where('tenant_id', '=', requireTenantScope(actor).tenantId)
+      .execute();
+    return { ok: true, projects: records };
+  }
 }

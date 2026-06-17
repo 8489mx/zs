@@ -464,4 +464,60 @@ export class PartnersService {
     const listing = await this.listSuppliers({}, actor);
     return { ok: true, suppliers: listing.suppliers };
   }
+
+  async listContacts(partnerType: string, partnerId: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const contacts = await this.db
+      .selectFrom('partner_contacts')
+      .selectAll()
+      .where('partner_type', '=', partnerType)
+      .where('partner_id', '=', partnerId)
+      .where(this.tenantPredicate(actor))
+      .execute();
+    return { ok: true, contacts };
+  }
+
+  async createContact(partnerType: string, partnerId: number, payload: any, actor: AuthContext): Promise<Record<string, unknown>> {
+    const [id] = await this.db
+      .insertInto('partner_contacts')
+      .values({
+        partner_type: partnerType,
+        partner_id: partnerId,
+        name: payload.name,
+        phone: payload.phone || null,
+        email: payload.email || null,
+        ...this.tenantFields(actor),
+      } as any)
+      .returning(['id'])
+      .execute();
+      
+    return this.listContacts(partnerType, partnerId, actor);
+  }
+
+  async listAddresses(partnerType: string, partnerId: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const addresses = await this.db
+      .selectFrom('partner_addresses')
+      .selectAll()
+      .where('partner_type', '=', partnerType)
+      .where('partner_id', '=', partnerId)
+      .where(this.tenantPredicate(actor))
+      .execute();
+    return { ok: true, addresses };
+  }
+
+  async createAddress(partnerType: string, partnerId: number, payload: any, actor: AuthContext): Promise<Record<string, unknown>> {
+    const [id] = await this.db
+      .insertInto('partner_addresses')
+      .values({
+        partner_type: partnerType,
+        partner_id: partnerId,
+        label: payload.label,
+        city: payload.city || null,
+        address_line: payload.addressLine || null,
+        ...this.tenantFields(actor),
+      } as any)
+      .returning(['id'])
+      .execute();
+      
+    return this.listAddresses(partnerType, partnerId, actor);
+  }
 }
