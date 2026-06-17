@@ -184,7 +184,6 @@ export function AppShell({ children }: PropsWithChildren) {
   const workspaceName = storeName || DEFAULT_STORE_NAME;
   const isPosRoute = location.pathname.startsWith('/pos');
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
-  const [expandedSidebarGroupKey, setExpandedSidebarGroupKey] = useState<string | null>(null);
   const [quickAttendanceOpen, setQuickAttendanceOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') return window.localStorage.getItem('zsystems_sidebar_collapsed') === 'true';
@@ -252,8 +251,6 @@ export function AppShell({ children }: PropsWithChildren) {
     if (navItem.end) return location.pathname === navItem.to;
     return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`);
   }))?.key ?? null, [location.pathname, navigationMap, sidebarGroups]);
-
-  useEffect(() => { setExpandedSidebarGroupKey(activeSidebarGroupKey); }, [activeSidebarGroupKey]);
 
   useEffect(() => {
     if (!isPosRoute) {
@@ -383,7 +380,6 @@ export function AppShell({ children }: PropsWithChildren) {
             {sidebarGroups.map((group) => {
               const groupItems = group.itemKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item));
               if (!groupItems.length) return null;
-              const isOpen = expandedSidebarGroupKey === group.key;
               const isActive = activeSidebarGroupKey === group.key;
               const groupIconItemKey = groupItems[0]?.key || 'settings';
               const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;

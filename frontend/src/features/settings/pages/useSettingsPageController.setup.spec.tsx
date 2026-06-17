@@ -238,7 +238,7 @@ describe('useSettingsPageController setup flow', () => {
       await result.current.handleSetupAdvance();
     });
 
-    expect(getPostLoginRouteMock).toHaveBeenCalledWith(useAuthStore.getState().user, 'My Store');
+    expect(getPostLoginRouteMock).toHaveBeenCalledWith(useAuthStore.getState().user, 'My Store', { deploymentMode: 'server', tenant: null });
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true });
     expect(useAuthStore.getState().appGate).toBe('ready');
   });

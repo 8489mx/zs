@@ -61,7 +61,7 @@ describe('useFirstRunSetupFlow', () => {
 
     await waitFor(() => {
       expect(result.current.enabled).toBe(true);
-      expect(result.current.currentStep?.key).toBe('store');
+      expect(result.current.currentStep?.key).toBe('language');
     });
 
     expect(branchesMock).toHaveBeenCalledTimes(1);
@@ -72,7 +72,15 @@ describe('useFirstRunSetupFlow', () => {
     branchesMock.mockResolvedValueOnce([{ id: 'b-1', name: 'Main Branch' }]);
     locationsMock.mockResolvedValueOnce([{ id: 'l-1', name: 'Main Stock', branchId: 'b-1' }]);
     usersMock.mockResolvedValueOnce([{ id: 'u-admin', username: 'manager', role: 'admin', permissions: ['dashboard'], name: 'Manager', branchIds: ['b-1'], defaultBranchId: 'b-1', isActive: true }]);
-    settingsMock.mockResolvedValueOnce({ storeName: 'My Store' });
+    settingsMock.mockResolvedValueOnce({
+      storeName: 'My Store',
+      uiLanguage: 'ar',
+      currency: 'SAR',
+      timezone: 'Asia/Riyadh',
+      taxMode: 'inclusive',
+      taxRate: 15,
+      paperSize: '80mm',
+    });
 
     useAuthStore.setState({
       user: {
@@ -95,21 +103,26 @@ describe('useFirstRunSetupFlow', () => {
 
     await waitFor(() => {
       expect(result.current.currentStep?.key).toBe('secure-account');
-      expect(result.current.completedCount).toBe(3);
-      expect(result.current.totalCount).toBe(4);
+      expect(result.current.completedCount).toBe(6);
+      expect(result.current.totalCount).toBe(7);
     });
 
-    expect(result.current.steps.map((step) => step.key)).toEqual(['store', 'branch-location', 'admin-user', 'secure-account']);
+    expect(result.current.steps.map((step) => step.key)).toEqual(['language', 'store', 'locale', 'invoice-tax', 'branch-location', 'admin-user', 'secure-account']);
     expect(result.current.currentStep?.to).toBe('/settings/users?setup=1');
   });
 
   it('keeps the setup flow disabled for operational admins', async () => {
+    branchesMock.mockResolvedValueOnce([]);
+    locationsMock.mockResolvedValueOnce([]);
+    usersMock.mockResolvedValueOnce([]);
+    settingsMock.mockResolvedValueOnce({ storeName: 'My Store' });
+
     useAuthStore.setState({
       user: {
         id: 'u-admin',
         username: 'manager',
         role: 'admin',
-        permissions: ['settings'],
+        permissions: ['dashboard'],
         displayName: 'Operational Admin',
         branchIds: ['b-1'],
         defaultBranchId: 'b-1',

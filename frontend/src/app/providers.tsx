@@ -1,9 +1,8 @@
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useEffect } from 'react';
 import { keepPreviousData, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { LocaleProvider } from '@/shared/locale/LocaleProvider';
 
-import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 
 function ThemeProvider({ children }: PropsWithChildren) {
