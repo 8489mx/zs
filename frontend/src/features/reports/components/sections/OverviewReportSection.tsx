@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import type { CSSProperties } from 'react';
+import React, { useState, type CSSProperties } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { AnimatedValue } from '@/shared/components/animated-value';
 import { Card } from '@/shared/ui/card';
