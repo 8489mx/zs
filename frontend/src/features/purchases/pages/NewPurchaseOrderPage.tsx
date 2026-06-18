@@ -541,7 +541,7 @@ const searchContact = (contact: ContactOption, query: string) => {
   return [contact.name, contact.phone, contact.supplierName ?? ''].some((value) => includesNormalized(value, query));
 };
 
-// @ts-ignore
+// @ts-expect-error unused function
 const searchAddress = (address: AddressOption, query: string) => {
   if (!normalizeSearchText(query)) {
     return true;
@@ -583,7 +583,7 @@ const searchProject = (project: ProjectOption, query: string) => {
 };
 export function NewPurchaseOrderPage() {
   const { t, language } = useTranslation();
-  // @ts-ignore
+  // @ts-expect-error unused variable
   const { theme, updateSessionMeta } = useAuthStore();
   const isDarkMode = theme === 'dark';
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
