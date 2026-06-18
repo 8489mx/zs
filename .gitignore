@@ -5,6 +5,7 @@
 **/dist/
 **/build/
 **/.vite/
+**/dev-dist/
 
 # environment files
 **/.env
