@@ -1122,6 +1122,29 @@
   border-color: rgba(37, 99, 235, 0.45);
 }
 
+/* Premium Border Radii for POS (Strict) */
+.pos-workspace .card,
+.pos-workspace .workspace-panel,
+.pos-workspace .pos-cart-panel,
+.pos-workspace .pos-workspace-dock,
+.pos-workspace .pos-workspace-header,
+.pos-workspace .pos-workspace-dock-ribbon-track {
+  border-radius: 12px !important;
+}
+
+.pos-workspace .btn,
+.pos-workspace button,
+.pos-workspace input,
+.pos-workspace .form-control,
+.pos-workspace .pos-toolbar-shell,
+.pos-workspace .pos-workspace-dock-pill,
+.pos-workspace .pos-cart-grid-row,
+.pos-workspace .pos-cart-row-upgraded,
+.pos-workspace .rounded-pill,
+.pos-workspace .nav-pill {
+  border-radius: 8px !important;
+}
+
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-highlight:not(.pos-cart-row-selected) {
   background: #fde68a !important;
 }
