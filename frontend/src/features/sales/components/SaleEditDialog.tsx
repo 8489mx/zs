@@ -19,7 +19,6 @@ interface SaleEditDialogProps {
     paymentChannel: string;
     discount: number;
     note: string;
-    paidAmount: number;
     editReason: string;
     managerPin: string;
     items: Array<{ productId: string; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: string }>;
@@ -30,7 +29,6 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
   const [paymentType, setPaymentType] = useState('cash');
   const [paymentChannel, setPaymentChannel] = useState('cash');
   const [discount, setDiscount] = useState(0);
-  const [paidAmount, setPaidAmount] = useState(0);
   const [note, setNote] = useState('');
   const [items, setItems] = useState<Array<{ productId: string; name: string; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: string }>>([]);
   const [editReason, setEditReason] = useState('');
@@ -42,7 +40,6 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
     setPaymentType(sale.paymentType || 'cash');
     setPaymentChannel(sale.paymentChannel || (sale.paymentType === 'credit' ? 'credit' : 'cash'));
     setDiscount(Number(sale.discount || 0));
-    setPaidAmount(Number(sale.paidAmount || 0));
     setNote(sale.note || '');
     setItems((sale.items || []).map((item) => ({
       productId: String(item.productId),
@@ -80,11 +77,10 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
       paymentType !== (sale.paymentType || 'cash')
       || paymentChannel !== (sale.paymentChannel || (sale.paymentType === 'credit' ? 'credit' : 'cash'))
       || Number(discount || 0) !== Number(sale.discount || 0)
-      || Number(paidAmount || 0) !== Number(sale.paidAmount || 0)
       || note !== (sale.note || '')
       || JSON.stringify(normalizedItems) !== JSON.stringify(baselineItems)
     );
-  }, [baselineItems, discount, normalizedItems, note, paidAmount, paymentChannel, paymentType, sale]);
+  }, [baselineItems, discount, normalizedItems, note, paymentChannel, paymentType, sale]);
   const canNavigateAway = useUnsavedChangesGuard(open && isDirty && !isBusy);
 
   const computedSubTotal = useMemo(() => Number(items.reduce((sum, item) => sum + item.qty * item.price, 0).toFixed(2)), [items]);
@@ -113,7 +109,6 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
     setPaymentType(sale.paymentType || 'cash');
     setPaymentChannel(sale.paymentChannel || (sale.paymentType === 'credit' ? 'credit' : 'cash'));
     setDiscount(Number(sale.discount || 0));
-    setPaidAmount(Number(sale.paidAmount || 0));
     setNote(sale.note || '');
     setItems((sale.items || []).map((item) => ({
       productId: String(item.productId),
@@ -154,7 +149,6 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
             </select>
           </Field>
           <Field label="خصم الفاتورة"><input type="number" min="0" step="0.01" value={discount} onChange={(e) => setDiscount(Number(e.target.value || 0))} disabled={isBusy} /></Field>
-          <Field label="المدفوع الآن"><input type="number" min="0" step="0.01" value={paidAmount} onChange={(e) => setPaidAmount(Number(e.target.value || 0))} disabled={isBusy} /></Field>
           <div style={{ gridColumn: '1 / -1' }}><Field label="ملاحظات"><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} disabled={isBusy} /></Field></div>
           <div style={{ gridColumn: '1 / -1' }}><Field label="سبب التعديل"><textarea rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} disabled={isBusy} placeholder="مثال: تعديل الكمية بعد اكتشاف خطأ في الإدخال" /></Field></div>
           <Field label="رمز اعتماد المدير"><input type="password" inputMode="numeric" value={managerPin} onChange={(e) => setManagerPin(e.target.value)} disabled={isBusy} placeholder="أدخل رمز المدير" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>
@@ -206,10 +200,6 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
               setLocalError('لا يمكن جعل الفاتورة آجلة بدون عميل');
               return;
             }
-            if (paymentType !== 'credit' && paidAmount < computedTotal) {
-              setLocalError('المدفوع يجب أن يغطي إجمالي الفاتورة');
-              return;
-            }
             if (String(editReason || '').trim().length < 8) {
               setLocalError('سبب التعديل يجب أن يكون واضحًا');
               return;
@@ -224,7 +214,6 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
               paymentChannel: paymentType === 'credit' ? 'credit' : paymentChannel,
               discount: Number(discount || 0),
               note,
-              paidAmount: Number(paidAmount || 0),
               editReason: String(editReason || '').trim(),
               managerPin: String(managerPin || '').trim(),
               items: normalizedItems

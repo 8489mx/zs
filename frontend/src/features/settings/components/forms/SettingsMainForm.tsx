@@ -519,10 +519,6 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <input {...form.register('phone')} disabled={disabled} />
           </label>
           <label className="field">
-            <span>العنوان</span>
-            <input {...form.register('address')} disabled={disabled} />
-          </label>
-          <label className="field">
             <span>رفع الشعار</span>
             <input
               type="file"

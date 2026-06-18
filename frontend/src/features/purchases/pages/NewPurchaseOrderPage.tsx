@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePurchaseComposerCatalog } from '@/features/purchases/hooks/usePurchaseComposerCatalog';
 import imageCompression from 'browser-image-compression';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
+import { purchasesApi } from '@/features/purchases/api/purchases.api';
 import { useNavigate, Link } from 'react-router-dom';
 
 import { Button } from '@/shared/ui/button';
@@ -187,7 +188,7 @@ type InlineMessageTone = 'success' | 'error' | 'info';
 const PURCHASE_DRAFT_STORAGE_KEY = 'purchase-new-prototype-draft';
 
 type QuickCreateResult =
-  | { kind: 'supplier'; name: string; phone?: string; taxNumber?: string; notes?: string }
+  | { kind: 'supplier'; name: string; contactName?: string; phone?: string; taxNumber?: string; notes?: string }
   | { kind: 'product'; name: string; productType: 'stock' | 'service'; price?: number; unit?: string; warehouse?: string; barcode?: string }
   | { kind: 'contact'; name: string; phone?: string }
   | { kind: 'address'; label: string; city?: string; supplier?: string }
@@ -206,6 +207,7 @@ function QuickCreateDialog({
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
+  const [contactName, setContactName] = useState('');
   const [phone, setPhone] = useState('');
   const [taxNumber, setTaxNumber] = useState('');
   const [notes, setNotes] = useState('');
@@ -221,6 +223,7 @@ function QuickCreateDialog({
 
   const snapshot = JSON.stringify({
     name,
+    contactName,
     phone,
     taxNumber,
     notes,
@@ -241,6 +244,7 @@ function QuickCreateDialog({
 
     const query = state.query;
     setName(query);
+    setContactName('');
     setPhone('');
     setTaxNumber('');
     setNotes('');
@@ -264,6 +268,7 @@ function QuickCreateDialog({
 
     initialSnapshotRef.current = JSON.stringify({
       name: state.query,
+      contactName: '',
       phone: '',
       taxNumber: '',
       notes: '',
@@ -318,7 +323,7 @@ function QuickCreateDialog({
     }
 
     if (state.kind === 'supplier') {
-      onSubmit({ kind: 'supplier', name: trimmedName, phone: phone.trim(), taxNumber: taxNumber.trim(), notes: notes.trim() });
+      onSubmit({ kind: 'supplier', name: trimmedName, contactName: contactName.trim(), phone: phone.trim(), taxNumber: taxNumber.trim(), notes: notes.trim() });
       return;
     }
 
@@ -389,7 +394,10 @@ function QuickCreateDialog({
 
           {state.kind === 'supplier' ? (
             <>
-              <Field label={t("phone_number")}><input className="purchase-prototype-create-input" value={phone} onChange={(event) => setPhone(event.target.value)} /></Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <Field label={t("contact_name") || "اسم المسئول"}><input className="purchase-prototype-create-input" value={contactName} onChange={(event) => setContactName(event.target.value)} /></Field>
+                <Field label={t("phone_number")}><input className="purchase-prototype-create-input" value={phone} onChange={(event) => setPhone(event.target.value)} /></Field>
+              </div>
               <Field label={t("tax_number")}><input className="purchase-prototype-create-input" value={taxNumber} onChange={(event) => setTaxNumber(event.target.value)} /></Field>
               <Field label={t('notes_section')}><textarea className="purchase-prototype-create-textarea" rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} /></Field>
             </>
@@ -658,6 +666,25 @@ export function NewPurchaseOrderPage() {
     }
   }, [rawLocations]);
 
+  const deliveryDestinations = useMemo(() => {
+    const destinations: WarehouseOption[] = [];
+    if (rawBranches.length) {
+      destinations.push(...rawBranches.map((b: any) => ({
+        id: `branch_${b.id}`,
+        name: `[فرع] ${b.name}`,
+        code: b.code || ''
+      })));
+    }
+    if (rawLocations.length) {
+      destinations.push(...rawLocations.map((l: any) => ({
+        id: `wh_${l.id}`,
+        name: `[مخزن] ${l.name}`,
+        code: l.code || ''
+      })));
+    }
+    return destinations;
+  }, [rawBranches, rawLocations]);
+
   // Load default currency from system settings
   useEffect(() => {
     if (rawSettings?.currency && !currency) {
@@ -691,14 +718,10 @@ export function NewPurchaseOrderPage() {
     const load = async () => {
       try {
         const { accountsApi } = await import('@/features/accounts/api/accounts.api');
-        const [contacts, addresses] = await Promise.all([
-          accountsApi.partnerContacts('supplier', supplier),
-          accountsApi.partnerAddresses('supplier', supplier)
-        ]);
+        const contacts = await accountsApi.partnerContacts('supplier', supplier);
         setContactsList(contacts.map((c: any) => ({ id: String(c.id), name: c.name, phone: c.phone || '' })));
-        setAddressesList(addresses.map((a: any) => ({ id: String(a.id), label: a.label, city: a.city || '' })));
       } catch (err) {
-        console.error('Failed to load supplier contacts/addresses', err);
+        console.error('Failed to load supplier contacts', err);
       }
     };
     load();
@@ -1047,11 +1070,15 @@ export function NewPurchaseOrderPage() {
         code: `SUP-${suppliers.length + 1}`,
         phone: result.phone ?? '',
         taxNumber: result.taxNumber ?? '',
+        contactName: result.contactName ?? '',
         shippingAddress: '',
         company: company
       };
       setSuppliers((items) => [...items, createdSupplier]);
       handleSupplierSelect(createdSupplier);
+      if (result.contactName) {
+        setContact(result.contactName);
+      }
     }
 
     if (result.kind === 'contact') {
@@ -1641,7 +1668,7 @@ export function NewPurchaseOrderPage() {
                   </div>
                 )}
               </div>
-              <button
+              {/* <button
                 type="button"
                 className={`purchase-prototype-icon-button purchase-prototype-toolbar-icon-button${isDarkMode ? ' is-active' : ''}`}
                 aria-label={t('dark_mode')}
@@ -1649,9 +1676,9 @@ export function NewPurchaseOrderPage() {
                 title={t('dark_mode')}
                 onClick={() => updateSessionMeta({ theme: isDarkMode ? 'light' : 'dark' })}
               >
-                {isDarkMode ? '☀' : '◐'}
+                {isDarkMode ? '🌙' : '☀️'}
               </button>
-              <LanguageSwitcher />
+              <LanguageSwitcher /> */}
               <AppAccountMenu />
             </div>
           </div>
@@ -1832,20 +1859,22 @@ export function NewPurchaseOrderPage() {
           </div>
           <div className="document-prototype-grid compact-grid-1">
             <SearchableCombobox
-              label={t("shipping_address")}
-              placeholder={t("search_address")}
+              label={t("shipping_address") || "وجهة الاستلام (المخزن أو الفرع)"}
+              placeholder="اختر المخزن أو الفرع..."
               value={shippingAddress}
               onChange={(value) => {
                 markDocumentDirty();
                 setShippingAddress(value);
               }}
-              options={addressesList}
-              search={searchAddress}
-              getLabel={(option) => option.label}
-              getMeta={(option) => [option.city, option.supplierName].filter(Boolean).join(' · ')}
-              onSelect={handleAddressSelect}
-              onCreate={(query) => openQuickCreate('address', query)}
-              createLabel={(query) => `+ إنشاء عنوان جديد "${query}"`}
+              options={deliveryDestinations}
+              search={searchWarehouse}
+              getLabel={(option) => option.name}
+              getMeta={(option) => option.code}
+              onSelect={(option) => {
+                markDocumentDirty();
+                setShippingAddress(option.name);
+              }}
+              onCreateNew={(query) => setQuickCreateState({ kind: 'warehouse', query })}
               inputRef={shippingInputRef}
               inputClassName="purchase-prototype-field-input purchase-prototype-address-input"
               dropdownClassName={purchaseDropdownClassName}
