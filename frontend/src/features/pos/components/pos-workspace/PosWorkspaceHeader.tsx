@@ -7,8 +7,10 @@ import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
+import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
 
-function buildDescription(pos: PosWorkspaceState) {
+function buildDescription(pos: PosWorkspaceState, offlineQueueCount: number) {
+  if (offlineQueueCount > 0) return `يوجد ${offlineQueueCount} فواتير معلقة تنتظر عودة الإنترنت ليتم مزامنتها.`;
   if (!pos.hasOperationalSetup) return 'أكمل تعريف المتجر ونقطة التشغيل أولًا، ثم ارجع لنقطة البيع لإتمام البيع من نفس الشاشة.';
   if (!pos.hasCatalogReady) return 'أضف صنفًا واحدًا على الأقل حتى تظهر تجربة البيع اليومية بشكل كامل.';
   if (pos.requiresCashierShift && !pos.ownOpenShift) return 'افتح وردية لهذا المستخدم أولًا حتى يبدأ البيع النقدي أو الشبكة بدون تعطيل.';
@@ -35,15 +37,21 @@ interface PosWorkspaceHeaderProps {
 
 function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onPrintDraft }: PosWorkspaceHeaderProps) {
   const paymentMode = paymentLabel(pos.paymentType, pos.paymentChannel);
+  const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
 
   return (
     <PageHeader
       title="نقطة البيع"
-      description={buildDescription(pos)}
+      description={buildDescription(pos, offlineQueue.length)}
       badge={(
         <span className="pos-title-brand-mark" aria-label="Z ERP">
           <ZErpIcon size={28} />
           <strong>Z ERP</strong>
+          {offlineQueue.length > 0 && (
+            <span style={{ background: hasFailedSales ? '#dc3545' : '#fd7e14', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', marginRight: '8px' }}>
+              {isSyncing ? 'جاري المزامنة...' : `أوفلاين (${offlineQueue.length})`}
+            </span>
+          )}
         </span>
       )}
       className="page-header--dense pos-page-header pos-page-header-streamlined"
