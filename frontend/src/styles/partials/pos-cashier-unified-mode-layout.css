@@ -7,7 +7,7 @@
 @media (min-width: 1080px) {
   .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
   .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
-    grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr) !important;
+    grid-template-columns: var(--pos-grid-cols, minmax(0, 0.45fr) minmax(0, 0.55fr)) !important;
     gap: 12px !important;
     max-width: 100%;
     min-width: 0;
@@ -18,7 +18,7 @@
     /* Explicit scanner mapping for RTL:
        right column = products (25%), left column = cart (75%). */
     direction: rtl !important;
-    grid-template-columns: minmax(0, 0.25fr) minmax(0, 0.75fr) !important;
+    grid-template-columns: var(--pos-grid-cols, minmax(0, 0.25fr) minmax(0, 0.75fr)) !important;
     grid-template-areas: "products cart" !important;
   }
 
@@ -209,7 +209,7 @@
   height: clamp(28px, 2.55vw, 34px);
   padding-block: 1px;
   padding-inline: clamp(4px, 0.48vw, 8px);
-  border-radius: clamp(9px, 0.8vw, 12px);
+  border-radius: 8px;
   font-size: clamp(10px, 0.78vw, 13px);
   font-weight: 800;
   white-space: nowrap;
@@ -221,7 +221,7 @@
   min-width: clamp(34px, 3.2vw, 48px) !important;
   height: clamp(23px, 2.2vw, 28px);
   padding-inline: clamp(4px, 0.45vw, 7px);
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: clamp(9px, 0.68vw, 11px);
   line-height: 1;
   white-space: nowrap;
@@ -276,7 +276,7 @@
 .pos-workspace.pos-sale-mode-touch .pos-cart-row-upgraded {
   min-height: 46px;
   padding: 7px 10px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(odd),
@@ -296,8 +296,8 @@
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected,
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
   background: #dbeafe !important;
-  border-color: rgba(37, 99, 235, 0.48) !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16) !important;
+  border-color: rgba(23, 12, 92, 0.48) !important;
+  box-shadow: 0 0 0 2px rgba(23, 12, 92, 0.16) !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-highlight:not(.pos-cart-row-selected),
@@ -308,7 +308,7 @@
 @media (max-width: 1080px) {
   .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
   .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: var(--pos-grid-cols, 1fr) !important;
   }
 }
 

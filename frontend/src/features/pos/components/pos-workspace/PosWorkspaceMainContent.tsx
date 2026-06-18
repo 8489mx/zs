@@ -3,6 +3,8 @@ import { Button } from '@/shared/ui/button';
 import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
 import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWorkspaceDock';
+import { useSplitter } from '@/shared/hooks/useSplitter';
+import { useAuthStore } from '@/stores/auth-store';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import type { RefObject } from 'react';
@@ -52,6 +54,17 @@ export function PosWorkspaceMainContent({
   onPrintCurrentDraft,
   onFocusBarcodeEntry,
 }: PosWorkspaceMainContentProps) {
+  const user = useAuthStore((state) => state.user);
+  const defaultLeft = posMode === 'scanner' ? 75 : 65;
+  const { leftRatio, rightRatio, startDrag } = useSplitter(`pos_split_${posMode}_${user?.id || 'default'}`, defaultLeft);
+
+  // CSS grid with direction:rtl renders Col1 on the RIGHT, Col2 on the LEFT.
+  // leftRatio = percentage from the left edge of the grid = width of the LEFT panel (Col2).
+  // rightRatio = width of the RIGHT panel (Col1).
+  const gridStyle = {
+    '--pos-grid-cols': `minmax(0, ${rightRatio}fr) minmax(0, ${leftRatio}fr)`,
+  } as React.CSSProperties;
+
   return (
     <QueryFeedback
       isLoading={catalogsLoading}
@@ -62,8 +75,10 @@ export function PosWorkspaceMainContent({
       errorHint="تحقق من الاتصال ثم أعد المحاولة."
       errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
     >
-      <div className="pos-grid-premium">
-        <PosProductsPanel
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="pos-grid-premium" style={gridStyle}>
+
+          <PosProductsPanel
           search={pos.search}
           onSearchChange={pos.setSearch}
           onSearchSubmitFirstResult={onSubmitFirstSearchResult}
@@ -173,6 +188,28 @@ export function PosWorkspaceMainContent({
             onOpenHeldDrafts={onOpenHeldDrafts}
             onSubmit={onRequestCheckout}
           />
+        </div>
+        </div>
+
+        {/* Resizer handle — positioned absolutely over the gap between the two columns */}
+        <div
+          className="pos-resizer-handle"
+          onPointerDown={startDrag}
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: `calc(${leftRatio}% - 12px)`,
+            width: '24px',
+            cursor: 'col-resize',
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title="اسحب لتعديل مقاس الشاشة"
+        >
+          <div style={{ width: '4px', height: '40px', background: 'rgba(15, 23, 42, 0.15)', borderRadius: '4px' }} />
         </div>
       </div>
     </QueryFeedback>
