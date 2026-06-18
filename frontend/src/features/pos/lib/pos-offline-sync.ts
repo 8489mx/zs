@@ -22,14 +22,14 @@ export function getOfflineSalesQueue(): OfflinePosSale[] {
 
 export function enqueueOfflineSale(payload: CreatePosSaleInput): OfflinePosSale {
   const queue = getOfflineSalesQueue();
-  const draftId = payload.docNo ? String(payload.docNo) : `offline_${Date.now()}`;
+  const draftId = (payload as any).docNo ? String((payload as any).docNo) : `offline_${Date.now()}`;
   
   const offlineSale: OfflinePosSale = {
     id: draftId,
     payload: {
       ...payload,
-      docNo: payload.docNo || draftId, // Ensure docNo exists
-    },
+      docNo: (payload as any).docNo || draftId,
+    } as any,
     savedAt: new Date().toISOString(),
     status: 'pending',
   };

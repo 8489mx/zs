@@ -25,19 +25,10 @@ export function PosWorkspaceDock({
   checkoutDisabledReason,
   isPending,
   heldDraftsCount,
-  onFocusSearch,
-  onPrintPreview,
-  onResetDraft,
   onHoldDraft,
   onOpenHeldDrafts,
   onSubmit,
 }: PosWorkspaceDockProps) {
-  const summaryItems = [
-    { key: 'pieces', label: 'عدد القطع', value: String(piecesCount), tone: 'surface' },
-    { key: 'items', label: 'عدد العناصر', value: String(itemsCount), tone: 'surface' },
-    { key: 'total', label: 'المطلوب دفعه', value: formatCurrency(total), tone: 'primary' },
-  ];
-
   return (
     <section className="pos-workspace-dock" aria-label="شريط الكاشير السريع" style={{ padding: '0', margin: '0' }}>
       <div className="pos-workspace-dock-ribbon-track" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', width: '100%', gap: '16px', padding: '4px 8px', minHeight: 'unset' }}>

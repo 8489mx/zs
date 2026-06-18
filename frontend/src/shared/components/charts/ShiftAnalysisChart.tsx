@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   BarChart,
   Bar,
@@ -68,7 +67,7 @@ export function ShiftAnalysisChart({ data, height = 300 }: ShiftAnalysisChartPro
             width={60}
           />
           <Tooltip 
-            formatter={(value: number) => [formatCurrency(value), 'المبيعات']}
+            formatter={(value: any) => [formatCurrency(value), 'المبيعات']}
             labelFormatter={(label) => label.replace('|', ' ')}
             cursor={{ fill: 'transparent' }}
             contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}

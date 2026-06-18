@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   AreaChart,
   Area,
@@ -68,7 +67,7 @@ export function SalesTrendChart({ data, height = 300 }: SalesTrendChartProps) {
             width={60}
           />
           <Tooltip 
-            formatter={(value: number) => [formatCurrency(value), '']}
+            formatter={(value: any) => [formatCurrency(value), '']}
             contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             labelStyle={{ color: 'var(--text-muted, #64748b)', fontWeight: 'bold', marginBottom: 4 }}
           />

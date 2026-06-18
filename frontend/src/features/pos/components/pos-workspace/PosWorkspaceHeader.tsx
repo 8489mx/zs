@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
-import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
+
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
@@ -19,13 +19,7 @@ function buildDescription(pos: PosWorkspaceState, offlineQueueCount: number) {
   return `راجع السلة الحالية. ${pos.canSubmitHint || 'أكمل المطلوب أولًا قبل تأكيد الفاتورة.'}`;
 }
 
-function getShiftHeaderLabel(pos: PosWorkspaceState) {
-  if (!pos.ownOpenShift) return 'لا توجد وردية';
-  const openedByName = String(pos.ownOpenShift.openedByName || '').trim();
-  const docNo = String(pos.ownOpenShift.docNo || '').trim();
-  if (openedByName && docNo) return `الوردية ${openedByName} — ${docNo}`;
-  return `الوردية ${openedByName || docNo || 'مفتوحة'}`;
-}
+
 
 interface PosWorkspaceHeaderProps {
   pos: PosWorkspaceState;
@@ -35,8 +29,7 @@ interface PosWorkspaceHeaderProps {
   onPrintDraft: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onPrintDraft }: PosWorkspaceHeaderProps) {
-  const paymentMode = paymentLabel(pos.paymentType, pos.paymentChannel);
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
 
   return (

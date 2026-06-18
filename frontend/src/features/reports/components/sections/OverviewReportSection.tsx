@@ -1,4 +1,4 @@
-import React, { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { AnimatedValue } from '@/shared/components/animated-value';
 import { Card } from '@/shared/ui/card';
@@ -36,10 +36,6 @@ export function OverviewReportSection({
   const salesShare = Math.round((Math.abs(netSales) / flowTotal) * 100);
   const purchasesShare = Math.round((Math.abs(report?.purchases.netPurchases || 0) / flowTotal) * 100);
   const profitShare = Math.max(0, 100 - salesShare - purchasesShare);
-  const executiveRingStyle = {
-    '--reports-sales-share': `${salesShare}%`,
-    '--reports-purchases-share': `${Math.min(100, salesShare + purchasesShare)}%`,
-  } as CSSProperties;
 
   return (
     <div className="page-stack">

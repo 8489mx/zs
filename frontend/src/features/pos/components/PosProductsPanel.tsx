@@ -2,7 +2,6 @@
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
-import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
 import {
   buildPosProductGroups,
