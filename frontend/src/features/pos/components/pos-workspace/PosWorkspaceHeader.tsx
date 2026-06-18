@@ -57,19 +57,13 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
       className="page-header--dense pos-page-header pos-page-header-streamlined"
       actions={(
         <div className="actions compact-actions pos-header-actions-row pos-header-toolbar-single">
-          <span className="toolbar-meta-pill">{getShiftHeaderLabel(pos)}</span>
-          <span className="toolbar-meta-pill">الدفع {paymentMode}</span>
-
           <div className="pos-mode-toggle" role="group" aria-label="POS mode">
             <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
             <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
           </div>
-          <Button type="button" variant="secondary" onClick={() => { if (pos.selectedLineKey) pos.editSelectedQty(); else onFocusSearch(); }}>تعديل الكمية</Button>
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
-          <Button type="button" variant="secondary" onClick={() => { void pos.holdDraft(); }} disabled={!pos.cart.length}>تعليق F4</Button>
           <Button type="button" variant="secondary" onClick={onPrintDraft} disabled={!pos.cart.length}>طباعة F8</Button>
-          <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>إعادة طباعة آخر فاتورة</Button>
-          <span className="toolbar-meta-pill">F9 إعادة طباعة آخر فاتورة</span>
+          <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
           <Link to="/cash-drawer"><Button type="button" variant={pos.ownOpenShift ? 'secondary' : 'primary'}>{pos.ownOpenShift ? 'الوردية' : 'فتح وردية'}</Button></Link>

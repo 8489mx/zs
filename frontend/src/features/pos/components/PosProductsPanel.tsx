@@ -370,77 +370,69 @@ function PosProductsPanelComponent({
 
   return (
     <Card
-      title="1. اختيار الأصناف"
-      actions={<span className="nav-pill">{displayedGroups.length} مجموعة</span>}
       className={`workspace-panel pos-products-card pos-products-card-compact pos-products-card-density-compact pos-products-card-mode-${posMode}`.trim()}
     >
       <div className="pos-products-static">
 
         <div className="pos-toolbar-shell pos-toolbar-shell-compact">
-          <div className="pos-products-toolbar-stack">
-            <div className="pos-products-top-row pos-products-top-row-unified">
-              <div className="pos-products-unified-search-field">
-                <Field label="امسح الباركود أو اكتب الاسم">
-                  <input
-                    ref={searchInputRef}
-                    autoFocus
-                    value={search}
-                    onChange={(event) => onSearchChange(event.target.value)}
-                    onKeyDown={handleSearchKeyDown}
-                    placeholder="اضرب الباركود هنا أو اكتب الاسم ثم Enter"
-                  />
-                </Field>
+          <div className="pos-products-toolbar-stack" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="pos-products-unified-search-field">
+              <div className="field" style={{ margin: 0 }}>
+                <input
+                  ref={searchInputRef}
+                  autoFocus
+                  value={search}
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="اضرب الباركود هنا أو اكتب الاسم ثم Enter"
+                  style={{ borderRadius: '8px', width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                />
               </div>
+            </div>
 
-              <div className="field pos-price-toggle-field">
-                <div className="pos-price-toggle-buttons">
-                  <Button type="button" variant={priceType === 'retail' ? 'primary' : 'secondary'} onClick={() => onPriceTypeChange('retail')}>قطاعي</Button>
-                  <Button type="button" variant={priceType === 'wholesale' ? 'primary' : 'secondary'} onClick={() => onPriceTypeChange('wholesale')}>جملة</Button>
-                </div>
-              </div>
-
-              <div className="field pos-products-reset-field">
-                <Button
+            <div className="pos-price-toggle-container" style={{ width: '100%' }}>
+              <div className="pos-price-toggle-buttons" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <button
                   type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    onSearchChange('');
-                    onProductFilterChange('all');
-                    setShelf('all');
-                    setOpenGroupKey(null);
-                    setSelectedIndex(0);
-                    focusSearchInput(searchInputRef);
-                  }}
+                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: priceType === 'retail' ? 'bold' : 'normal', borderRadius: '6px', border: 'none', background: priceType === 'retail' ? 'var(--primary, #382088)' : 'transparent', color: priceType === 'retail' ? '#ffffff' : '#64748b', boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onClick={() => onPriceTypeChange('retail')}
                 >
-                  تفريغ
-                </Button>
+                  سعر القطاعي
+                </button>
+                <button
+                  type="button"
+                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: priceType === 'wholesale' ? 'bold' : 'normal', borderRadius: '6px', border: 'none', background: priceType === 'wholesale' ? '#b91c1c' : 'transparent', color: priceType === 'wholesale' ? '#ffffff' : '#64748b', boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onClick={() => onPriceTypeChange('wholesale')}
+                >
+                  سعر الجملة
+                </button>
               </div>
             </div>
 
           </div>
         </div>
 
-        <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single">
-          <Button
+        <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '8px', marginTop: '12px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
+          <button
             type="button"
-            variant={shelf === 'all' && productFilter === 'all' ? 'primary' : 'secondary'}
             onClick={() => {
               setShelf('all');
               onProductFilterChange('all');
               setSelectedIndex(0);
             }}
+            style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '20px', border: shelf === 'all' && productFilter === 'all' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'all' && productFilter === 'all' ? '#0f172a' : '#ffffff', color: shelf === 'all' && productFilter === 'all' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
           >
             الكل
-          </Button>
-          <Button type="button" variant={shelf === 'favorites' ? 'primary' : 'secondary'} onClick={() => { setShelf('favorites'); onProductFilterChange('all'); setSelectedIndex(0); }}>
+          </button>
+          <button type="button" onClick={() => { setShelf('favorites'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '20px', border: shelf === 'favorites' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'favorites' ? '#0f172a' : '#ffffff', color: shelf === 'favorites' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
             المفضلة
-          </Button>
-          <Button type="button" variant={productFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => { onProductFilterChange('offers'); setShelf('all'); setSelectedIndex(0); }}>
+          </button>
+          <button type="button" onClick={() => { onProductFilterChange('offers'); setShelf('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '20px', border: productFilter === 'offers' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: productFilter === 'offers' ? '#0f172a' : '#ffffff', color: productFilter === 'offers' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
             بعروض
-          </Button>
-          <Button type="button" variant={shelf === 'recent' ? 'primary' : 'secondary'} onClick={() => { setShelf('recent'); onProductFilterChange('all'); setSelectedIndex(0); }}>
+          </button>
+          <button type="button" onClick={() => { setShelf('recent'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '20px', border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'recent' ? '#0f172a' : '#ffffff', color: shelf === 'recent' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
             آخر استخدام
-          </Button>
+          </button>
         </div>
 
         {visibleRecentGroups.length ? (

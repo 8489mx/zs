@@ -290,7 +290,7 @@
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even,
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(even),
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even {
-  background: #fffbeb !important;
+  background: #fff8d6 !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected,
