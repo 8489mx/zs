@@ -135,7 +135,7 @@ export function ServiceFormCard({
                 left: 0,
                 background: '#ffffff',
                 border: '1px solid #dbe4f0',
-                borderRadius: '14px',
+                borderRadius: '8px',
                 boxShadow: '0 12px 30px rgba(15, 23, 42, 0.12)',
                 padding: '6px',
                 zIndex: 30,
@@ -160,7 +160,7 @@ export function ServiceFormCard({
                     border: 'none',
                     background: 'transparent',
                     padding: '10px 12px',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
                   }}

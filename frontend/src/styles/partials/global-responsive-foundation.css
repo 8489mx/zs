@@ -186,7 +186,7 @@ body,
 
   :where(.card):not(.pos-workspace *, .pos-sale-success-modal-shell, .dialog-shell) {
     padding: 12px;
-    border-radius: 16px;
+    border-radius: 8px;
   }
 
   :where(.stats-grid, .compact-grid, .panel-grid, .three-column-grid):not(.pos-workspace *) {

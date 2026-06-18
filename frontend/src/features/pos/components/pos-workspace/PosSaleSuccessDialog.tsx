@@ -151,7 +151,7 @@ export function PosSaleSuccessDialog({
           width: 'min(660px, calc(100vw - 32px))',
           maxHeight: 'calc(100vh - 32px)',
           overflowY: 'auto',
-          borderRadius: 24,
+          borderRadius: 8,
           border: '1px solid rgba(148, 163, 184, 0.26)',
           background: '#ffffff',
           boxShadow: '0 28px 70px rgba(15, 23, 42, 0.28)',

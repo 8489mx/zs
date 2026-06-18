@@ -60,7 +60,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid rgba(203, 213, 225, 0.78);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #475569;
   display: inline-flex;
   height: 30px;
@@ -85,7 +85,7 @@
 .purchase-new-prototype .app-account-menu-avatar {
   align-items: center;
   background: linear-gradient(180deg, rgba(108, 99, 255, 0.12), rgba(108, 99, 255, 0.06));
-  border-radius: 999px;
+  border-radius: 8px;
   color: #4f46e5;
   display: inline-flex;
   font-size: 0.7rem;
@@ -101,7 +101,7 @@
   top: 38px;
   inset-inline-end: 0;
   width: min(260px, calc(100vw - 24px));
-  border-radius: 18px;
+  border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 24px 56px rgba(15, 23, 42, 0.18);
@@ -121,7 +121,7 @@
 .purchase-new-prototype .app-account-menu-identity-avatar {
   width: 42px;
   height: 42px;
-  border-radius: 14px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -179,7 +179,7 @@
   min-height: 38px;
   padding: 8px 10px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
   color: #0f172a;
   display: flex;
@@ -195,12 +195,12 @@
 }
 
 .purchase-new-prototype .app-account-menu-item:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.06);
+  background: rgba(23, 12, 92, 0.06);
 }
 
 .purchase-new-prototype .app-account-menu-item:focus-visible {
   outline: none;
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(23, 12, 92, 0.08);
 }
 
 .purchase-new-prototype .app-account-menu-item:disabled,
@@ -236,7 +236,7 @@
 .purchase-new-prototype .app-account-menu-item-badge {
   margin-inline-start: auto;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(148, 163, 184, 0.14);
   color: #64748b;
   font-size: 11px;
@@ -307,7 +307,7 @@
   align-items: center;
   background: #f3f4f6;
   border: 1px solid rgba(203, 213, 225, 0.82);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #64748b;
   display: inline-flex;
   gap: 0.22rem;
@@ -350,7 +350,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid rgba(203, 213, 225, 0.78);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #475569;
   display: inline-flex;
   height: 30px;
@@ -403,7 +403,7 @@
   align-items: center;
   background: #fcfdff;
   border: 1px solid rgba(203, 213, 225, 0.72);
-  border-radius: var(--radius-chip);
+  border-radius: 8px;
   color: #66758d;
   cursor: pointer;
   display: inline-flex;
@@ -439,7 +439,7 @@
 .purchase-prototype-popover {
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.8);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
   display: inline-flex;
   gap: 0.35rem;
@@ -455,7 +455,7 @@
 .purchase-prototype-popover-option {
   background: #f8fbff;
   border: 1px solid rgba(203, 213, 225, 0.7);
-  border-radius: 10px;
+  border-radius: 8px;
   color: #1f2937;
   cursor: pointer;
   font-size: 12px;
@@ -494,7 +494,7 @@
 .purchase-prototype-popover-apply {
   background: #eef2ff;
   border: 1px solid rgba(108, 99, 255, 0.2);
-  border-radius: 9px;
+  border-radius: 8px;
   color: #4f46e5;
   cursor: pointer;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
@@ -524,7 +524,7 @@
 .purchase-prototype-create-confirm {
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.82);
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: 0 24px 52px rgba(15, 23, 42, 0.22);
   box-sizing: border-box;
   color: #0f172a;
@@ -578,7 +578,7 @@
   align-items: center;
   background: #f8fafc;
   border: 1px solid rgba(203, 213, 225, 0.9);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #475569;
   cursor: pointer;
   display: inline-flex;
@@ -594,8 +594,8 @@
 
 .purchase-prototype-create-close:hover {
   background: #eef2ff;
-  border-color: rgba(59, 130, 246, 0.24);
-  color: #2563eb;
+  border-color: rgba(23, 12, 92, 0.24);
+  color: #170c5c;
 }
 
 .purchase-prototype-create-grid {
@@ -677,7 +677,7 @@
 }
 
 .purchase-prototype-dark .purchase-prototype-create-close:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(23, 12, 92, 0.16);
   border-color: rgba(96, 165, 250, 0.3);
   color: #dbeafe;
 }
@@ -701,7 +701,7 @@
 .purchase-prototype-popover-input {
   background: #fbfcfe;
   border: 1px solid rgba(203, 213, 225, 0.78);
-  border-radius: 10px;
+  border-radius: 8px;
   color: #0f172a;
   font-size: 12px;
   height: 28px !important;
@@ -813,7 +813,7 @@
   box-sizing: border-box;
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.75);
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
 }
 
@@ -836,7 +836,7 @@
 .document-prototype-status {
   background: rgba(108, 99, 255, 0.06);
   border: 1px solid rgba(108, 99, 255, 0.14);
-  border-radius: var(--radius-chip);
+  border-radius: 8px;
   color: #5c658f;
   font-size: 0.69rem;
   font-weight: 700;
@@ -865,7 +865,7 @@
 }
 
 .purchase-prototype-inline-message {
-  border-radius: 10px;
+  border-radius: 8px;
   flex-basis: 100%;
   font-size: 0.75rem;
   font-weight: 700;
@@ -887,8 +887,8 @@
 }
 
 .purchase-prototype-inline-message.is-info {
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.18);
+  background: rgba(23, 12, 92, 0.08);
+  border: 1px solid rgba(23, 12, 92, 0.18);
   color: #1d4ed8;
 }
 
@@ -896,7 +896,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 10px;
+  border-radius: 8px;
   color: #475569;
   display: inline-flex;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
@@ -993,7 +993,7 @@
 .document-prototype-section {
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.75);
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
   padding: 1.18rem 1.2rem;
 }
@@ -1014,7 +1014,7 @@
 
 .document-prototype-section-title::before {
   background: #7c3aed;
-  border-radius: 999px;
+  border-radius: 8px;
   content: "";
   flex: none;
   height: 28px;
@@ -1066,7 +1066,7 @@
 .document-prototype-shell textarea {
   background: #fbfcfe;
   border: 1px solid rgba(203, 213, 225, 0.9);
-  border-radius: 9px;
+  border-radius: 8px;
   color: #0f172a;
   font-size: 0.93rem;
   min-height: 45px;
@@ -1108,7 +1108,7 @@
 .document-prototype-upload {
   background: #fbfcfe;
   border: 1px dashed #cfdae8;
-  border-radius: 10px;
+  border-radius: 8px;
   color: #64748b;
   cursor: pointer;
   display: inline-flex;
@@ -1141,7 +1141,7 @@
 
 .document-line-items-table-wrap {
   border: 1px solid rgba(203, 213, 225, 0.74);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow-x: auto;
 }
 
@@ -1179,7 +1179,7 @@
 .document-line-items-table td input {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   color: #0f172a;
   font-size: 13.5px;
   min-height: 36px;
@@ -1206,7 +1206,7 @@
 }
 
 .document-line-items-table tbody tr:hover {
-  background: rgba(37, 99, 235, 0.025);
+  background: rgba(23, 12, 92, 0.025);
 }
 
 .document-line-service td {
@@ -1246,7 +1246,7 @@
   align-items: center;
   background: rgba(124, 58, 237, 0.05);
   border: 1px solid rgba(124, 58, 237, 0.12);
-  border-radius: var(--radius-button-sm);
+  border-radius: 8px;
   color: #5b6476;
   cursor: pointer;
   display: inline-flex;
@@ -1349,7 +1349,7 @@
   top: 0;
   inset-inline: 0;
   height: 1px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #e2e8f0;
 }
 
@@ -1400,7 +1400,7 @@
 .purchase-prototype-combobox-dropdown {
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.82);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
   box-sizing: border-box;
   display: grid;
@@ -1422,7 +1422,7 @@
   align-items: flex-start;
   background: transparent;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   color: #0f172a;
   cursor: pointer;
   display: grid;
@@ -1534,7 +1534,7 @@
 
 .purchase-prototype-dark .purchase-prototype-icon-button.is-active,
 .purchase-prototype-dark .purchase-prototype-avatar {
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.18), rgba(59, 130, 246, 0.08));
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.18), rgba(23, 12, 92, 0.08));
   border-color: rgba(96, 165, 250, 0.32);
   color: #dbeafe;
 }
@@ -1571,13 +1571,13 @@
 }
 
 .purchase-prototype-dark .document-prototype-topbar-actions .btn:last-child {
-  background: linear-gradient(180deg, #2563eb, #1d4ed8);
-  border-color: rgba(59, 130, 246, 0.55);
+  background: linear-gradient(180deg, #170c5c, #1d4ed8);
+  border-color: rgba(23, 12, 92, 0.55);
   color: #ffffff;
 }
 
 .purchase-prototype-dark .document-prototype-topbar-actions .btn:last-child:hover {
-  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  background: linear-gradient(180deg, #3b82f6, #170c5c);
 }
 
 .purchase-prototype-dark .document-prototype-section-title,
@@ -1680,7 +1680,7 @@
   background: #7c3aed;
   width: 4px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: 8px;
   margin-inline-start: 10px;
 }
 
@@ -1801,7 +1801,7 @@
 .purchase-prototype-dark .document-prototype-shell input:focus,
 .purchase-prototype-dark .document-prototype-shell textarea:focus {
   border-color: rgba(96, 165, 250, 0.55);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(23, 12, 92, 0.15);
 }
 
 .purchase-prototype-dark .document-prototype-shell input:disabled,
@@ -1861,7 +1861,7 @@
 
 .purchase-prototype-dark .purchase-prototype-quick-action:hover,
 .purchase-prototype-dark .purchase-prototype-quick-action.is-active {
-  background: rgba(37, 99, 235, 0.14);
+  background: rgba(23, 12, 92, 0.14);
   border-color: rgba(96, 165, 250, 0.28);
   color: #e0f2fe;
 }
@@ -1885,7 +1885,7 @@
 .purchase-prototype-dark .purchase-prototype-combobox-option.is-highlighted,
 .purchase-prototype-dark .purchase-prototype-combobox-create:hover,
 .purchase-prototype-dark .purchase-prototype-combobox-create.is-highlighted {
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(23, 12, 92, 0.12);
 }
 
 .purchase-prototype-dark .purchase-prototype-combobox-create {
@@ -2053,7 +2053,7 @@
 }
 
 .document-prototype-shell .document-line-items-table tbody tr:hover {
-  background: rgba(59, 130, 246, 0.035);
+  background: rgba(23, 12, 92, 0.035);
 }
 
 .document-prototype-shell .document-line-items-table tbody tr:hover .document-row-delete {
@@ -2062,7 +2062,7 @@
 
 .document-prototype-shell .purchase-prototype-combobox-dropdown,
 .document-prototype-shell .purchase-prototype-popover {
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
 }
 
@@ -2072,7 +2072,7 @@
 .document-prototype-shell .purchase-prototype-combobox-create.is-highlighted,
 .document-prototype-shell .purchase-prototype-popover-option:hover,
 .document-prototype-shell .purchase-prototype-popover-option.is-active {
-  background: rgba(59, 130, 246, 0.06);
+  background: rgba(23, 12, 92, 0.06);
 }
 
 .document-prototype-shell .purchase-prototype-combobox-option-meta,
@@ -2411,7 +2411,7 @@
 
 .document-prototype-shell .document-prototype-section-title::before {
   background: #7c3aed !important;
-  border-radius: 999px !important;
+  border-radius: 8px;
   height: 28px !important;
   margin-inline-start: 10px !important;
   width: 4px !important;
@@ -2576,13 +2576,13 @@
 }
 
 .purchase-prototype-dark .document-prototype-shell .document-prototype-topbar-actions .btn:last-child {
-  background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
-  border-color: rgba(59, 130, 246, 0.55) !important;
+  background: linear-gradient(180deg, #170c5c, #1d4ed8) !important;
+  border-color: rgba(23, 12, 92, 0.55) !important;
   color: #ffffff !important;
 }
 
 .purchase-prototype-dark .document-prototype-shell .document-prototype-topbar-actions .btn:last-child:hover {
-  background: linear-gradient(180deg, #3b82f6, #2563eb) !important;
+  background: linear-gradient(180deg, #3b82f6, #170c5c) !important;
 }
 
 .purchase-prototype-dark .document-prototype-shell .document-prototype-topbar-right h1,
@@ -3643,8 +3643,8 @@
 }
 
 .purchase-prototype-dark .document-prototype-shell .purchase-prototype-toolbar-action-primary {
-  background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
-  border-color: rgba(59, 130, 246, 0.55) !important;
+  background: linear-gradient(180deg, #170c5c, #1d4ed8) !important;
+  border-color: rgba(23, 12, 92, 0.55) !important;
   color: #ffffff !important;
 }
 

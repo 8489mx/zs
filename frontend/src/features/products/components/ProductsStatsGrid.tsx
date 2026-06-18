@@ -18,7 +18,7 @@ const gridStyle: CSSProperties = {
 
 const cardStyle: CSSProperties = {
   padding: '10px 12px',
-  borderRadius: 14,
+  borderRadius: 8,
 };
 
 const labelStyle: CSSProperties = {

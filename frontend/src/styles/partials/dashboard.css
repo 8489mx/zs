@@ -1,11 +1,11 @@
 ﻿.alert-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.alert-card { border:1px solid var(--border); border-radius:18px; padding:14px; background:#f8fafc; }
+.alert-card { border:1px solid var(--border); border-radius: 8px; padding:14px; background:#f8fafc; }
 .alert-warning { background:#fff7ed; border-color:#fed7aa; }
 .alert-critical { background:#fef2f2; border-color:#fecaca; }
-.alert-info { background:#eff6ff; border-color:#bfdbfe; }
+.alert-info { background:#f1f0fa; border-color:#bfdbfe; }
 
 .dashboard-premium-shell {
-  --dashboard-primary: #2563eb;
+  --dashboard-primary: #170c5c;
   --dashboard-success: #059669;
   --dashboard-warning: #d97706;
   --dashboard-danger: #dc2626;
@@ -35,7 +35,7 @@
 
 .dashboard-hero-card {
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 28px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
@@ -53,8 +53,8 @@
   display: inline-flex;
   align-items: center;
   padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.1);
+  border-radius: 8px;
+  background: rgba(23, 12, 92, 0.1);
   color: var(--dashboard-primary);
   font-size: 12px;
   font-weight: 800;
@@ -72,7 +72,7 @@
 }
 .dashboard-hero-chip {
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 14px 16px;
   background: #ffffff;
 }
@@ -104,7 +104,7 @@
 
 .dashboard-metric-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 24px;
+  border-radius: 8px;
   padding: 18px;
   background: #ffffff;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
@@ -142,7 +142,7 @@
 .dashboard-metric-glow {
   width: 100%;
   height: 10px;
-  border-radius: 999px;
+  border-radius: 8px;
   margin-top: 14px;
   background: linear-gradient(90deg, color-mix(in srgb, var(--dashboard-tone) 14%, #e2e8f0), #e2e8f0);
 }
@@ -151,7 +151,7 @@
 .dashboard-card-compact,
 .dashboard-trend-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 24px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
 }
@@ -181,7 +181,7 @@
   width: 40px;
   height: 40px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #ffffff;
   color: #0f172a;
   cursor: pointer;
@@ -204,7 +204,7 @@
   height: 20px;
   padding: 0 5px;
   border: 2px solid #ffffff;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #dc2626;
   color: #ffffff;
   font-size: 11px;
@@ -219,7 +219,7 @@
   z-index: 1000;
   width: min(360px, calc(100vw - 32px));
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 18px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 20px 44px rgba(15, 23, 42, 0.16);
   padding: 12px;
@@ -256,8 +256,8 @@
   display: grid;
   gap: 4px;
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-right: 4px solid #2563eb;
-  border-radius: 14px;
+  border-right: 4px solid #170c5c;
+  border-radius: 8px;
   padding: 10px;
   text-decoration: none;
   color: inherit;
@@ -272,7 +272,7 @@
 }
 .manager-notification-row > span {
   width: fit-content;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 2px 7px;
   background: rgba(15, 23, 42, 0.06);
   color: #334155;
@@ -288,7 +288,7 @@
   line-height: 1.6;
 }
 .manager-notification-row em {
-  color: #2563eb;
+  color: #170c5c;
   font-size: 12px;
   font-style: normal;
   font-weight: 800;
@@ -299,7 +299,7 @@
   margin: 10px 0;
   padding: 14px;
   border: 1px dashed #bbf7d0;
-  border-radius: 14px;
+  border-radius: 8px;
   background: #f0fdf4;
 }
 .manager-notifications-center-link {
@@ -307,8 +307,8 @@
   justify-content: center;
   align-items: center;
   min-height: 34px;
-  border-radius: 12px;
-  background: #eff6ff;
+  border-radius: 8px;
+  background: #f1f0fa;
   color: #1d4ed8;
   font-size: 13px;
   font-weight: 800;
@@ -325,7 +325,7 @@
   min-height: 34px;
   margin-top: 2px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: #ffffff;
   color: #334155;
   font-size: 12px;
@@ -346,7 +346,7 @@
 
 .dashboard-daily-brief-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 20px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
 }
@@ -366,7 +366,7 @@
 .daily-brief-comparison,
 .daily-brief-action {
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 18px;
+  border-radius: 8px;
   background: #ffffff;
 }
 .daily-brief-copy {
@@ -376,9 +376,9 @@
 .daily-brief-kicker {
   display: inline-flex;
   width: fit-content;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 5px 10px;
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(23, 12, 92, 0.1);
   color: var(--dashboard-primary);
   font-size: 11px;
   font-weight: 800;
@@ -420,7 +420,7 @@
 .daily-brief-action.manager-action-item-info { border-right-color: var(--dashboard-primary); background: #f8fbff; }
 .daily-brief-action span {
   width: fit-content;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 3px 8px;
   background: rgba(15, 23, 42, 0.06);
   color: #334155;
@@ -468,14 +468,14 @@
 .dashboard-action-link {
   text-decoration: none;
   color: inherit;
-  border-radius: 18px;
+  border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
 .dashboard-quick-link:hover,
 .dashboard-action-link:hover {
   transform: translateY(-1px);
-  border-color: rgba(59, 130, 246, 0.36);
+  border-color: rgba(23, 12, 92, 0.36);
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 .dashboard-actions-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
@@ -490,7 +490,7 @@
 }
 .dashboard-alert-grid { display: grid; grid-template-columns: 1fr; gap: 10px; align-content: start; }
 .dashboard-empty-state { padding: 14px 16px; }
-.dashboard-empty-state .status-surface-icon { width: 34px; height: 34px; border-radius: 12px; font-size: 15px; }
+.dashboard-empty-state .status-surface-icon { width: 34px; height: 34px; border-radius: 8px; font-size: 15px; }
 .dashboard-inline-empty { padding: 6px 0 0; }
 .dashboard-inline-state { padding: 10px 12px; min-height: 72px; }
 
@@ -507,7 +507,7 @@
   gap: 12px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-right: 4px solid #3b82f6;
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 12px;
   background: #ffffff;
 }
@@ -546,7 +546,7 @@
   margin-top: 2px;
 }
 .manager-action-metadata span {
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 3px 8px;
   background: rgba(15, 23, 42, 0.06);
   color: #475569 !important;
@@ -556,7 +556,7 @@
 .manager-action-severity {
   display: inline-flex;
   width: fit-content;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 3px 8px;
   background: rgba(15, 23, 42, 0.06);
   color: #334155;
@@ -599,7 +599,7 @@
   gap: 6px;
   min-height: 82px;
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 12px;
   background: #f8fbff;
 }
@@ -632,7 +632,7 @@
 }
 .manager-overview-list-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 12px;
   background: #ffffff;
 }
@@ -651,7 +651,7 @@
   justify-content: space-between;
   gap: 10px;
   border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 10px;
   background: #f8fafc;
 }
@@ -672,7 +672,7 @@
 }
 .manager-overview-inline-empty {
   border: 1px dashed #cbd5e1;
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 10px;
   color: var(--muted);
   font-size: 11px;
@@ -738,7 +738,7 @@
 
 .dashboard-quick-action {
   border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #ffffff;
   padding: 10px 12px;
   display: grid;
@@ -765,7 +765,7 @@
 
 .dashboard-secondary-kpi-item {
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 12px;
+  border-radius: 8px;
   background: #fbfdff;
   padding: 10px 12px;
   display: grid;
@@ -837,7 +837,7 @@
 .dashboard-mini-bar-track {
   height: 10px;
   background: #e8eef8;
-  border-radius: 999px;
+  border-radius: 8px;
   overflow: hidden;
 }
 .dashboard-mini-bar-fill {

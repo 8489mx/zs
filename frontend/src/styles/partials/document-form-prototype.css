@@ -60,7 +60,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid rgba(203, 213, 225, 0.78);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #475569;
   display: inline-flex;
   height: 30px;
@@ -85,7 +85,7 @@
 .purchase-new-prototype .app-account-menu-avatar {
   align-items: center;
   background: linear-gradient(180deg, rgba(71, 85, 105, 0.12), rgba(71, 85, 105, 0.06));
-  border-radius: 999px;
+  border-radius: 8px;
   color: #475569;
   display: inline-flex;
   font-size: 0.7rem;
@@ -101,7 +101,7 @@
   top: 38px;
   inset-inline-end: 0;
   width: min(280px, calc(100vw - 24px));
-  border-radius: 20px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.85);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.02);
@@ -124,7 +124,7 @@
   gap: 12px;
   padding: 12px;
   background: linear-gradient(135deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.5));
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid rgba(203, 213, 225, 0.4);
   box-shadow: inset 0 1px 0 #fff, 0 2px 6px rgba(15, 23, 42, 0.02);
   margin-bottom: 8px;
@@ -133,7 +133,7 @@
 .purchase-new-prototype .app-account-menu-identity-avatar {
   width: 46px;
   height: 46px;
-  border-radius: 16px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -175,7 +175,7 @@
   color: #475569;
   background: rgba(71, 85, 105, 0.12);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 800;
   line-height: 1;
   display: inline-block;
@@ -200,7 +200,7 @@
   min-height: 40px;
   padding: 8px 12px;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   background: transparent;
   color: #1e293b;
   display: flex;
@@ -268,7 +268,7 @@
 .purchase-new-prototype .app-account-menu-item-badge {
   margin-inline-start: auto;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #fff;
   font-size: 11px;
@@ -351,7 +351,7 @@
   align-items: center;
   background: #f3f4f6;
   border: 1px solid rgba(203, 213, 225, 0.82);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #64748b;
   display: inline-flex;
   gap: 0.22rem;
@@ -394,7 +394,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid rgba(203, 213, 225, 0.78);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #475569;
   display: inline-flex;
   height: 30px;
@@ -447,7 +447,7 @@
   align-items: center;
   background: #fcfdff;
   border: 1px solid rgba(203, 213, 225, 0.72);
-  border-radius: var(--radius-chip);
+  border-radius: 8px;
   color: #66758d;
   cursor: pointer;
   display: inline-flex;
@@ -483,7 +483,7 @@
 .purchase-prototype-popover {
   background: #ffffff;
   border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   display: inline-flex;
   padding: 8px;
@@ -549,12 +549,12 @@
 
 .purchase-prototype-popover-row input:focus {
   background: #ffffff;
-  border-color: var(--primary, #382088);
-  box-shadow: 0 0 0 3px rgba(56, 32, 136, 0.15);
+  border-color: var(--primary, #170c5c);
+  box-shadow: 0 0 0 3px rgba(23, 12, 92, 0.15);
 }
 
 .purchase-prototype-popover-apply {
-  background: var(--primary, #382088);
+  background: var(--primary, #170c5c);
   border: none;
   border-radius: 8px;
   color: white;
@@ -591,7 +591,7 @@
 .purchase-prototype-create-confirm {
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.82);
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: 0 24px 52px rgba(15, 23, 42, 0.22);
   box-sizing: border-box;
   color: #0f172a;
@@ -645,7 +645,7 @@
   align-items: center;
   background: #f8fafc;
   border: 1px solid rgba(203, 213, 225, 0.9);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #475569;
   cursor: pointer;
   display: inline-flex;
@@ -768,7 +768,7 @@
 .purchase-prototype-popover-input {
   background: #fbfcfe;
   border: 1px solid rgba(203, 213, 225, 0.78);
-  border-radius: 10px;
+  border-radius: 8px;
   color: #0f172a;
   font-size: 12px;
   height: 28px !important;
@@ -888,7 +888,7 @@
   box-sizing: border-box;
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.75);
-  border-radius: 10px; /* Reduced border radius */
+  border-radius: 8px; /* Reduced border radius */
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
 }
 
@@ -911,7 +911,7 @@
 .document-prototype-status {
   background: rgba(71, 85, 105, 0.06);
   border: 1px solid rgba(71, 85, 105, 0.14);
-  border-radius: var(--radius-chip);
+  border-radius: 8px;
   color: #5c658f;
   font-size: 0.69rem;
   font-weight: 700;
@@ -940,7 +940,7 @@
 }
 
 .purchase-prototype-inline-message {
-  border-radius: 10px;
+  border-radius: 8px;
   flex-basis: 100%;
   font-size: 0.75rem;
   font-weight: 700;
@@ -971,7 +971,7 @@
   align-items: center;
   background: #fff;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 10px;
+  border-radius: 8px;
   color: #475569;
   display: inline-flex;
   font-family: "IBM Plex Sans Arabic", "Cairo", "Tajawal", system-ui, sans-serif;
@@ -1068,7 +1068,7 @@
 .document-prototype-section {
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.75);
-  border-radius: 10px; /* Reduced border radius */
+  border-radius: 8px; /* Reduced border radius */
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
   padding: 1.18rem 1.2rem;
 }
@@ -1088,8 +1088,8 @@
 }
 
 .document-prototype-section-title::before {
-  background: var(--primary, #382088);
-  border-radius: 999px;
+  background: var(--primary, #170c5c);
+  border-radius: 8px;
   content: "";
   flex: none;
   height: 28px;
@@ -1141,7 +1141,7 @@
 .document-prototype-shell textarea {
   background: #fbfcfe;
   border: 1px solid rgba(203, 213, 225, 0.9);
-  border-radius: 9px;
+  border-radius: 8px;
   color: #0f172a;
   font-size: 0.93rem;
   min-height: 45px;
@@ -1183,7 +1183,7 @@
 .document-prototype-upload {
   background: #fbfcfe;
   border: 1px dashed #cfdae8;
-  border-radius: 10px;
+  border-radius: 8px;
   color: #64748b;
   cursor: pointer;
   display: inline-flex;
@@ -1216,7 +1216,7 @@
 
 .document-line-items-table-wrap {
   border: 1px solid rgba(203, 213, 225, 0.74);
-  border-radius: 6px;
+  border-radius: 8px;
   overflow-x: auto;
 }
 
@@ -1254,7 +1254,7 @@
 .document-line-items-table td input {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   color: #0f172a;
   font-size: 13.5px;
   min-height: 36px;
@@ -1321,7 +1321,7 @@
   align-items: center;
   background: rgba(124, 58, 237, 0.05);
   border: 1px solid rgba(124, 58, 237, 0.12);
-  border-radius: var(--radius-button-sm);
+  border-radius: 8px;
   color: #5b6476;
   cursor: pointer;
   display: inline-flex;
@@ -1424,7 +1424,7 @@
   top: 0;
   inset-inline: 0;
   height: 1px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #e2e8f0;
 }
 
@@ -1475,7 +1475,7 @@
 .purchase-prototype-combobox-dropdown {
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.82);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
   box-sizing: border-box;
   display: grid;
@@ -1497,7 +1497,7 @@
   align-items: flex-start;
   background: transparent;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   color: #0f172a;
   cursor: pointer;
   display: grid;
@@ -1642,11 +1642,11 @@
 
 .purchase-prototype-dark .document-prototype-topbar-actions .btn:hover {
   background: #283548;
-  border-color: var(--primary, #5b3ac8);
+  border-color: var(--primary, #170c5c);
 }
 
 .purchase-prototype-dark .document-prototype-topbar-actions .btn:last-child {
-  background: var(--primary, #5b3ac8);
+  background: var(--primary, #170c5c);
   border-color: transparent;
   color: #ffffff;
 }
@@ -1758,7 +1758,7 @@
   background: #7c3aed;
   width: 4px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: 8px;
   margin-inline-start: 10px;
 }
 
@@ -1916,7 +1916,7 @@
 .purchase-prototype-dark .document-line-items-table td input {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  border-radius: 8px;
   color: #e5e7eb;
   font-size: 13.5px;
 }
@@ -2142,7 +2142,7 @@
 
 .document-prototype-shell .purchase-prototype-combobox-dropdown,
 .document-prototype-shell .purchase-prototype-popover {
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
 }
 
@@ -2491,7 +2491,7 @@
 
 .document-prototype-shell .document-prototype-section-title::before {
   background: #7c3aed !important;
-  border-radius: 999px !important;
+  border-radius: 8px;
   height: 28px !important;
   margin-inline-start: 10px !important;
   width: 4px !important;
@@ -3941,7 +3941,7 @@
   background-color: #fff !important;
   border-color: #475569 !important;
   box-shadow: 0 0 0 2px rgba(71, 85, 105, 0.1) !important;
-  border-radius: 6px !important;
+  border-radius: 8px;
 }
 
 /* 2. Chevron Status Bar */
@@ -3951,7 +3951,7 @@
   background: transparent;
   overflow: hidden;
   height: 32px;
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid rgba(203, 213, 225, 0.6);
 }
 .purchase-prototype-status-step {
@@ -4068,7 +4068,7 @@
 .document-prototype-shell .purchase-prototype-status-pipeline,
 .document-prototype-shell .document-smart-button,
 .document-prototype-shell .purchase-prototype-icon-button {
-  border-radius: 6px !important;
+  border-radius: 8px;
 }
 
 /* Modern Status Badge instead of Chevron Pipeline */
@@ -4077,7 +4077,7 @@
   align-items: center;
   justify-content: center;
   padding: 4px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
   margin-inline-start: 16px;
@@ -4130,7 +4130,7 @@
 /* 2. Fix Dropdown Radius */
 .document-prototype-shell .purchase-prototype-combobox-dropdown,
 .document-prototype-shell .purchase-prototype-popover-panel {
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 /* 3. Clean up the Create Button inside Combobox */
@@ -4138,7 +4138,7 @@
   background: transparent !important;
   color: var(--primary, #475569) !important;
   font-weight: 600 !important;
-  border-radius: 6px !important;
+  border-radius: 8px;
   margin: 4px 8px !important;
   padding: 8px 12px !important;
   border: 1px solid transparent !important;
@@ -4182,14 +4182,14 @@
 
 .purchase-prototype-combobox-dropdown,
 .purchase-prototype-popover-panel {
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .purchase-prototype-combobox-create {
   background: transparent !important;
   color: var(--primary, #475569) !important;
   font-weight: 600 !important;
-  border-radius: 6px !important;
+  border-radius: 8px;
   margin: 4px 8px !important;
   padding: 8px 12px !important;
   border: 1px solid transparent !important;
@@ -4279,7 +4279,7 @@
 }
 
 .purchase-new-prototype .app-account-menu-panel {
-  border-radius: 12px !important;
+  border-radius: 8px;
   padding: 4px 0 !important; /* Tighter padding */
   border: 1px solid rgba(226, 232, 240, 0.8) !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
@@ -4472,7 +4472,7 @@
 }
 
 .purchase-prototype-search-input {
-  border-radius: 6px !important;
+  border-radius: 8px;
 }
 
 
@@ -4535,7 +4535,7 @@
 /* ========================================================= */
 
 .purchase-new-prototype .app-account-menu-panel {
-  border-radius: 12px !important;
+  border-radius: 8px;
   padding: 8px !important;
   box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15) !important;
   border: 1px solid rgba(148, 163, 184, 0.2) !important;
@@ -4548,7 +4548,7 @@
 }
 
 .purchase-new-prototype .app-account-menu-item {
-  border-radius: 8px !important;
+  border-radius: 8px;
   margin: 2px 0 !important;
   padding: 8px 12px !important;
   transition: all 0.2s ease !important;
@@ -4556,7 +4556,7 @@
 
 .purchase-new-prototype .app-account-menu-identity {
   padding: 16px !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   background: rgba(148, 163, 184, 0.05) !important;
   margin-bottom: 8px !important;
 }
@@ -4575,7 +4575,7 @@
 /* ========================================================= */
 
 .purchase-prototype-search {
-  border-radius: 8px !important;
+  border-radius: 8px;
   height: 32px !important;
   max-height: 32px !important;
   min-height: 32px !important;

@@ -4,7 +4,7 @@
   gap: 4px;
   padding: 3px;
   border: 1px solid rgba(148, 163, 184, 0.26);
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(248, 250, 252, 0.92);
 }
 
@@ -12,7 +12,7 @@
 .pos-workspace .pos-mode-toggle .button {
   min-height: 30px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 12px;
 }
 
@@ -165,8 +165,8 @@
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-group-card.is-selected {
-  background: #eff6ff;
-  box-shadow: inset 3px 0 0 #2563eb !important;
+  background: #f1f0fa;
+  box-shadow: inset 3px 0 0 #170c5c !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-group-card-top {
@@ -239,8 +239,8 @@
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-row-selected {
-  background: #eff6ff;
-  box-shadow: inset 3px 0 0 #2563eb !important;
+  background: #f1f0fa;
+  box-shadow: inset 3px 0 0 #170c5c !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-row-highlight:not(.pos-cart-row-selected) {

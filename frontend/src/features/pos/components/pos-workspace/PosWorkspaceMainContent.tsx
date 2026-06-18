@@ -209,7 +209,7 @@ export function PosWorkspaceMainContent({
           }}
           title="اسحب لتعديل مقاس الشاشة"
         >
-          <div style={{ width: '4px', height: '40px', background: 'rgba(15, 23, 42, 0.15)', borderRadius: '4px' }} />
+          <div style={{ width: '4px', height: '40px', background: 'rgba(15, 23, 42, 0.15)', borderRadius: '8px' }} />
         </div>
       </div>
     </QueryFeedback>

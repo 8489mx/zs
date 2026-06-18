@@ -44,11 +44,11 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
       title="نقطة البيع"
       description={buildDescription(pos, offlineQueue.length)}
       badge={(
-        <span className="pos-title-brand-mark" aria-label="Z ERP">
-          <ZErpIcon size={28} />
-          <strong>Z ERP</strong>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', direction: 'ltr', color: '#0f172a' }} aria-label="Z ERP">
+          <ZErpIcon size={38} />
+          <strong style={{ fontSize: '16px', fontWeight: 900, letterSpacing: '0.04em', lineHeight: 1 }}>ERP</strong>
           {offlineQueue.length > 0 && (
-            <span style={{ background: hasFailedSales ? '#dc3545' : '#fd7e14', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', marginRight: '8px' }}>
+            <span style={{ background: hasFailedSales ? '#dc3545' : '#fd7e14', color: 'white', padding: '2px 8px', borderRadius: '8px', fontSize: '12px', marginRight: '8px', direction: 'rtl' }}>
               {isSyncing ? 'جاري المزامنة...' : `أوفلاين (${offlineQueue.length})`}
             </span>
           )}
@@ -62,11 +62,10 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
             <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
           </div>
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
-          <Button type="button" variant="secondary" onClick={onPrintDraft} disabled={!pos.cart.length}>طباعة F8</Button>
           <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
-          <Link to="/cash-drawer"><Button type="button" variant={pos.ownOpenShift ? 'secondary' : 'primary'}>{pos.ownOpenShift ? 'الوردية' : 'فتح وردية'}</Button></Link>
+          <Link to="/cash-drawer"><Button type="button" variant={pos.ownOpenShift ? 'secondary' : 'primary'}>{pos.ownOpenShift ? 'تقفيل الوردية' : 'فتح وردية'}</Button></Link>
         </div>
       )}
     />

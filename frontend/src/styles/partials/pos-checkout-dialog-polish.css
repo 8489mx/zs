@@ -25,7 +25,7 @@
   min-width: 0;
   padding: 12px;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 18px;
+  border-radius: 8px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
 }
 
@@ -78,7 +78,7 @@
   min-height: 64px;
   padding: 12px 14px;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 16px;
+  border-radius: 8px;
   background: #fff;
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
 }
@@ -99,13 +99,13 @@
 }
 
 .pos-checkout-dialog-chip.is-total {
-  border-color: rgba(37, 99, 235, 0.26);
-  background: linear-gradient(180deg, #ffffff, #eff6ff);
+  border-color: rgba(23, 12, 92, 0.26);
+  background: linear-gradient(180deg, #ffffff, #f1f0fa);
 }
 
 .pos-checkout-dialog-chip .is-primary,
 .pos-checkout-dialog-chip strong.is-primary {
-  color: #2563eb;
+  color: #170c5c;
 }
 
 .pos-checkout-dialog-chip strong.is-success {
@@ -129,7 +129,7 @@
 
 .pos-checkout-customer-actions .btn {
   min-height: 36px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .pos-checkout-customer-picker {
@@ -137,8 +137,8 @@
   gap: 10px;
   min-width: 0;
   padding: 10px;
-  border: 1px solid rgba(37, 99, 235, 0.2);
-  border-radius: 16px;
+  border: 1px solid rgba(23, 12, 92, 0.2);
+  border-radius: 8px;
   background: #f8fbff;
 }
 
@@ -164,7 +164,7 @@
   min-width: 0;
   padding: 10px 12px;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #fff;
   text-align: right;
   cursor: pointer;
@@ -185,9 +185,9 @@
 }
 
 .pos-checkout-customer-result.is-selected {
-  border-color: rgba(37, 99, 235, 0.38);
-  background: #eff6ff;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+  border-color: rgba(23, 12, 92, 0.38);
+  background: #f1f0fa;
+  box-shadow: 0 0 0 2px rgba(23, 12, 92, 0.08);
 }
 
 .pos-checkout-quick-customer-form {
@@ -205,7 +205,7 @@
 
 .pos-checkout-quick-customer-form .btn {
   min-height: 42px;
-  border-radius: 12px;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
@@ -224,16 +224,16 @@
 .pos-checkout-transfer-methods {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 10px;
-  border: 1px dashed rgba(37, 99, 235, 0.24);
-  border-radius: 16px;
-  background: #eff6ff;
+  border: 1px dashed rgba(23, 12, 92, 0.24);
+  border-radius: 8px;
+  background: #f1f0fa;
 }
 
 .pos-checkout-payment-methods .btn,
 .pos-checkout-transfer-methods .btn {
   min-width: 0;
   min-height: 42px;
-  border-radius: 14px;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
@@ -252,7 +252,7 @@
 
 .pos-checkout-payment-inputs .btn {
   min-height: 42px;
-  border-radius: 12px;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
@@ -266,7 +266,7 @@
 
 .pos-checkout-dialog .error-box {
   margin: 0;
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 10px 12px;
 }
 
@@ -290,7 +290,7 @@
 
 .pos-checkout-dialog-actions .btn {
   min-height: 40px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 @media (max-width: 860px) {
@@ -336,7 +336,7 @@
 
   .pos-checkout-dialog-section {
     padding: 10px;
-    border-radius: 16px;
+    border-radius: 8px;
   }
 
   .pos-checkout-payment-inputs {

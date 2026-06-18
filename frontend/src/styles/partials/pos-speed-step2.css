@@ -21,9 +21,9 @@
 }
 
 .pos-workspace .pos-cart-row-selected {
-  border-color: color-mix(in srgb, var(--accent, #2563eb) 38%, white);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #2563eb) 20%, transparent);
-  background: color-mix(in srgb, var(--accent, #2563eb) 7%, white);
+  border-color: color-mix(in srgb, var(--accent, #170c5c) 38%, white);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #170c5c) 20%, transparent);
+  background: color-mix(in srgb, var(--accent, #170c5c) 7%, white);
 }
 
 .pos-workspace .pos-cart-badges-inline {
@@ -31,7 +31,7 @@
 }
 
 .pos-workspace .pos-cart-selected-badge {
-  color: var(--accent, #2563eb);
+  color: var(--accent, #170c5c);
 }
 
 .pos-workspace .pos-cart-shortcut-hint {

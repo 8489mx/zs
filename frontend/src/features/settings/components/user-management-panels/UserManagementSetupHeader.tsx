@@ -14,7 +14,7 @@ export function UserManagementSetupHeader({
   isCurrentUserSelected: boolean;
 }) {
   return (
-    <div className="card-surface" style={{ padding: 12, borderRadius: 16, border: '1px solid #e2e8f0' }}>
+    <div className="card-surface" style={{ padding: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}>
       <div className="muted small">المستخدم المحدد</div>
       <strong>{draft.name || draft.username || 'مستخدم جديد'}</strong>
       <div className="muted small" style={{ marginTop: 6 }}>

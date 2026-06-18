@@ -1868,7 +1868,7 @@ export function NewPurchaseOrderPage() {
           {attachments.length > 0 && (
             <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {attachments.map((att, index) => (
-                <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', border: '1px solid var(--border-light)', borderRadius: '6px' }}>
+                <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', border: '1px solid var(--border-light)', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '13px' }}>{att.fileName}</span>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{(att.fileSize / 1024).toFixed(1)} KB</span>

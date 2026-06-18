@@ -142,7 +142,7 @@ export function printProductBarcodeLabels(product: Product, unit: ProductUnit | 
       .barcode-print-page{width:100%;}
       .barcode-print-page.page-break{page-break-after:always;break-after:page;}
       .barcode-print-grid{display:grid;align-items:stretch;width:100%;}
-      .barcode-label-card{border:1px dashed #94a3b8;border-radius:8px;padding:1.6mm 2mm;text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:${preset.labelHeightMm}mm;height:${preset.labelHeightMm}mm;background:#fff;overflow:hidden;}
+      .barcode-label-card{border:1px dashed #94a3b8;border-radius: 8px;padding:1.6mm 2mm;text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:${preset.labelHeightMm}mm;height:${preset.labelHeightMm}mm;background:#fff;overflow:hidden;}
       .barcode-label-card.compact{padding:1.4mm 1.8mm;}
       .barcode-label-name{font-weight:800;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;direction:rtl;margin-bottom:.8mm;}
       .barcode-label-svg{margin:.6mm 0 .7mm;height:${Math.max(9, preset.labelHeightMm * 0.42)}mm;display:flex;align-items:center;justify-content:center;min-height:8mm;}

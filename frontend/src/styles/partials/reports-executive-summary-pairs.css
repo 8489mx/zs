@@ -56,7 +56,7 @@
 .reports-executive-card .reports-metric-list .metric-row {
   min-width: 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .reports-executive-card .reports-metric-list .metric-row span,

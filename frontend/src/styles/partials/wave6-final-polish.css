@@ -7,7 +7,7 @@
 .accounts-workspace .stat-card,
 .treasury-workspace .stat-card {
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .accounts-workspace .stat-card span,
@@ -40,7 +40,7 @@
 .cash-drawer-page .stat-card,
 .audit-page .stat-card {
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .customers-page .stat-card span,
@@ -91,7 +91,7 @@
 
 .services-page .services-insights-list .metric-row {
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .audit-page .card > .stats-grid.compact-grid {
@@ -160,7 +160,7 @@
 .audit-page .audit-activity-badge {
   width: fit-content;
   flex: 0 0 auto;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 2px 8px;
   font-size: 10px;
   font-weight: 800;
@@ -169,7 +169,7 @@
 
 .audit-page .audit-badge-auth {
   color: #1d4ed8;
-  background: #eff6ff;
+  background: #f1f0fa;
   border-color: #bfdbfe;
 }
 
@@ -287,7 +287,7 @@
 
 .settings-users-stats-grid .stat-card {
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .settings-users-stats-grid .stat-card span {

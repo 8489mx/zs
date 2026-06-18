@@ -8,7 +8,7 @@ const optionStyle: React.CSSProperties = {
   gap: 12,
   padding: '12px 14px',
   border: '1px solid #dbe4f0',
-  borderRadius: 16,
+  borderRadius: 8,
   background: '#fff',
 };
 
@@ -57,7 +57,7 @@ export function UserManagementPermissionGroups({
       <span>الصلاحيات</span>
       <div className="page-stack">
         {USER_PERMISSION_GROUPS.map((group) => (
-          <div key={group.title} className="card-surface" style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 18 }}>
+          <div key={group.title} className="card-surface" style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 8 }}>
             <strong style={{ display: 'block', marginBottom: 12, fontSize: 18 }}>{group.title}</strong>
             <div className="two-column-grid" style={{ gap: 10 }}>
               {group.items.map((permission) => (

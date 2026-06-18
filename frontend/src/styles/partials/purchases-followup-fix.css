@@ -42,7 +42,7 @@
 .purchase-detail-card .stat-card {
   min-height: 88px;
   padding: 10px 12px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .purchase-detail-card .stat-card span {

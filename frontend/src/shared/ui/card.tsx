@@ -11,7 +11,7 @@ const reportSectionTitleStyle: CSSProperties = {
   alignItems: 'center',
   background: 'rgba(239, 246, 255, 0.96)',
   border: '1px solid rgba(37, 99, 235, 0.22)',
-  borderRadius: 999,
+  borderRadius: 8,
   boxShadow: '0 6px 16px rgba(37, 99, 235, 0.08)',
   color: 'rgb(30, 64, 175)',
   display: 'inline-flex',

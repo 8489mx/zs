@@ -8,7 +8,7 @@
   align-items: stretch;
   gap: 10px;
   padding: 14px 18px;
-  border-radius: 18px;
+  border-radius: 8px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
 }
 
@@ -50,14 +50,14 @@
 .page-header-toolbar .button {
   min-height: 36px;
   padding: 8px 12px;
-  border-radius: 12px;
+  border-radius: 8px;
   white-space: nowrap;
   box-shadow: none;
 }
 
 .card {
   padding: 16px;
-  border-radius: 20px;
+  border-radius: 8px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
 }
 
@@ -69,7 +69,7 @@
 .button {
   min-height: 38px;
   padding: 9px 13px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 input,
@@ -77,7 +77,7 @@ select,
 textarea {
   min-height: 40px;
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 textarea {
@@ -92,7 +92,7 @@ textarea {
 .inline-create-panel,
 .toolbar-stack {
   padding: 12px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .toolbar-stack {
@@ -113,7 +113,7 @@ textarea {
 
 .list-row {
   padding: 10px 12px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .filter-chip-row .btn,
@@ -128,7 +128,7 @@ textarea {
 .pos-inline-warning-strip {
   margin-top: 0;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .pos-inline-warning-strip ul,
@@ -241,12 +241,12 @@ textarea {
 .pos-compact-message {
   margin-top: 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .pos-recent-panel-compact {
   padding: 10px 12px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .pos-recent-panel-compact strong {
@@ -271,7 +271,7 @@ textarea {
 
 .pos-product-card-compact {
   padding: 12px;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: none;
 }
 
@@ -297,7 +297,7 @@ textarea {
 
 .pos-checkout-summary {
   padding: 10px 12px;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: none;
 }
 
@@ -317,7 +317,7 @@ textarea {
 
 .pos-decision-card {
   padding: 10px 12px;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: none;
 }
 
@@ -357,7 +357,7 @@ textarea {
 
 .pos-payment-shell-compact {
   padding: 10px 12px;
-  border-radius: 18px;
+  border-radius: 8px;
 }
 
 .pos-payment-grid-premium-compact {
@@ -380,7 +380,7 @@ textarea {
 
 .pos-cart-list-premium .list-row {
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .pos-cart-title-row strong {
@@ -400,7 +400,7 @@ textarea {
 .strong-amount {
   min-height: 38px;
   padding: 0 10px;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 13px;
 }
 
@@ -412,7 +412,7 @@ textarea {
 
 .pos-totals-list-premium .metric-row {
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .pos-totals-list-premium .metric-row span {
@@ -429,7 +429,7 @@ textarea {
 
 .pos-primary-actions-sticky {
   padding: 10px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .pos-primary-actions .btn {
@@ -439,7 +439,7 @@ textarea {
 
 .pos-held-row {
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .divider {

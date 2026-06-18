@@ -33,7 +33,7 @@
 .dashboard-premium-shell .dashboard-trend-card .list-row,
 .dashboard-premium-shell .dashboard-side-card .dashboard-action-link {
   padding: 9px 11px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .dashboard-premium-shell .dashboard-side-card .dashboard-action-link {
@@ -43,7 +43,7 @@
 .dashboard-premium-shell .dashboard-premium-stats-grid .dashboard-metric-card,
 .dashboard-premium-shell .dashboard-hero-spotlight .dashboard-metric-card {
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 8px;
 }
 
 .dashboard-premium-shell .dashboard-metric-copy strong {
@@ -109,7 +109,7 @@
 .settings-page-shell .settings-overview-grid .stat-card,
 .settings-page-shell .settings-reference-stats .stat-card {
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .settings-page-shell .settings-users-stats-grid .stat-card span,
@@ -142,7 +142,7 @@
 .settings-page-shell .settings-primary-card .list-row,
 .settings-page-shell .bulk-toolbar {
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .settings-page-shell .toolbar-meta-pill {
@@ -177,7 +177,7 @@
   margin-bottom: 12px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #f8fafc;
 }
 
@@ -197,7 +197,7 @@
 .accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid) .stat-card {
   min-height: 0;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .accounts-workspace .stats-grid.compact-grid:not(.accounts-stats-grid) .stat-card span {
@@ -235,7 +235,7 @@
 .treasury-workspace .metric-row,
 .treasury-workspace .list-row {
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .treasury-workspace .toolbar,
@@ -281,7 +281,7 @@
 
 .products-workspace-page details {
   padding: 12px !important;
-  border-radius: 16px !important;
+  border-radius: 8px;
 }
 
 .products-workspace-page details summary {
@@ -290,7 +290,7 @@
 
 .products-workspace-page .barcode-preview-panel {
   padding: 12px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .products-workspace-page .list-row.stacked-row {
@@ -318,7 +318,7 @@
 .purchases-workspace .purchase-totals-grid .stat-card {
   min-height: 82px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .purchases-workspace .purchase-totals-grid .stat-card span {
@@ -359,7 +359,7 @@
 .returns-workspace .returns-detail-card .metric-row {
   min-height: 0;
   padding: 9px 11px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 /* Reports internals */
@@ -384,7 +384,7 @@
 
 .reports-workspace .report-metric-card {
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 8px;
   min-height: 112px;
 }
 
@@ -401,7 +401,7 @@
 .reports-workspace .reports-metric-list .metric-row,
 .reports-workspace .list-row {
   padding: 9px 11px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .reports-workspace .toolbar-grid.compact-toolbar-grid,
@@ -413,7 +413,7 @@
 .reports-workspace .reports-mini-overview-grid--compact .stat-card,
 .reports-workspace .reports-range-card--compact .report-mini-stat-card {
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .reports-workspace .reports-mini-overview-grid--compact .stat-card span,
@@ -468,7 +468,7 @@
 .products-workspace-page .barcode-label-preview-shell {
   background: linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(255,255,255,0.98));
   border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 18px;
+  border-radius: 8px;
   padding: 14px;
   overflow: auto;
 }
@@ -478,7 +478,7 @@
   align-items: stretch;
   background: #fff;
   border: 1px dashed #cbd5e1;
-  border-radius: 16px;
+  border-radius: 8px;
   min-height: 420px;
 }
 
@@ -489,7 +489,7 @@
 
 .products-workspace-page .barcode-label-preview-shell .barcode-label-card {
   border: 1px dashed #94a3b8;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 10px;
   text-align: center;
   background: #fff;
@@ -534,7 +534,7 @@
 
 .products-workspace-page .fashion-group-editor__intro {
   padding: 14px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .products-workspace-page .fashion-group-editor__badges,
@@ -545,7 +545,7 @@
 .products-workspace-page .fashion-group-editor__table-wrap {
   overflow: auto;
   border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 16px;
+  border-radius: 8px;
   background: #fff;
 }
 

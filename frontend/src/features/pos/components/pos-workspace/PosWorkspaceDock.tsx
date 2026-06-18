@@ -42,16 +42,16 @@ export function PosWorkspaceDock({
     <section className="pos-workspace-dock" aria-label="شريط الكاشير السريع" style={{ padding: '0', margin: '0' }}>
       <div className="pos-workspace-dock-ribbon-track" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', width: '100%', gap: '16px', padding: '4px 8px', minHeight: 'unset' }}>
         
-        <div className="pos-workspace-dock-summary pos-workspace-dock-summary-extended" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0, padding: '0' }}>
-          <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 12px' }}>
+        <div className="pos-workspace-dock-summary pos-workspace-dock-summary-extended" style={{ display: 'flex', alignItems: 'stretch', gap: '0', flexShrink: 0, padding: '0' }}>
+          <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 20px' }}>
             <span style={{ fontSize: '13px', fontWeight: 'bold' }}>عدد القطع</span>
             <strong style={{ fontSize: '20px', lineHeight: '1' }}>{piecesCount.toLocaleString('ar-EG')}</strong>
           </div>
-          <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 12px' }}>
+          <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 20px' }}>
             <span style={{ fontSize: '13px', fontWeight: 'bold' }}>عدد العناصر</span>
             <strong style={{ fontSize: '20px', lineHeight: '1' }}>{itemsCount.toLocaleString('ar-EG')}</strong>
           </div>
-          <div className="pos-workspace-dock-chip" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '16px', padding: '0' }}>
+          <div className="pos-workspace-dock-chip" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 24px' }}>
             <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المطلوب دفعه</span>
             <strong style={{ fontSize: '28px', lineHeight: '1', color: '#0f172a' }}>{formatCurrency(total)}</strong>
           </div>

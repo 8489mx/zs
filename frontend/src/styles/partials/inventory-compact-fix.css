@@ -7,7 +7,7 @@
 .inventory-workspace .inventory-spotlight-card {
   min-height: 0;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
@@ -58,7 +58,7 @@
 .inventory-workspace .inventory-overview-card {
   min-height: 0;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .inventory-workspace .inventory-overview-card span {
@@ -79,7 +79,7 @@
 
 .inventory-action-disclosure {
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 16px;
+  border-radius: 8px;
   background: #fff;
   overflow: hidden;
 }
@@ -115,12 +115,12 @@
   content: '+';
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #2563eb;
+  color: #170c5c;
   font-weight: 800;
   flex: 0 0 auto;
 }
@@ -205,7 +205,7 @@
 .inventory-workspace .inventory-section-tab {
   min-height: 0;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 8px;
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
@@ -222,7 +222,7 @@
 }
 
 .inventory-workspace .inventory-section-tab.is-active {
-  border-color: rgba(37, 99, 235, 0.22);
+  border-color: rgba(23, 12, 92, 0.22);
   background: rgba(239, 246, 255, 0.95);
 }
 
@@ -268,7 +268,7 @@
   width: 100%;
   padding: 10px 12px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(248, 250, 252, 0.9);
 }
 
@@ -305,8 +305,8 @@
 
 .inventory-product-picker__clear {
   flex: 0 0 auto;
-  border: 1px solid rgba(37, 99, 235, 0.16);
-  border-radius: 999px;
+  border: 1px solid rgba(23, 12, 92, 0.16);
+  border-radius: 8px;
   background: rgba(239, 246, 255, 0.95);
   color: var(--primary);
   font-size: 12px;
@@ -324,7 +324,7 @@
   overflow: auto;
   padding: 8px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #fff;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
   direction: rtl;
@@ -339,7 +339,7 @@
   gap: 4px;
   padding: 10px 12px;
   border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(248, 250, 252, 0.75);
   text-align: right;
 }

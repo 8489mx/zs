@@ -77,7 +77,7 @@ export function ServicePresetDialog({
                   padding: '10px 12px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  borderRadius: 12,
+                  borderRadius: 8,
                 }}
               >
                 {preset.label}
@@ -96,7 +96,7 @@ export function ServicePresetDialog({
                       key={item.id}
                       style={{
                         border: '1px solid var(--border)',
-                        borderRadius: 12,
+                        borderRadius: 8,
                         padding: '10px 12px',
                         background: 'var(--surface)',
                         display: 'grid',
@@ -137,7 +137,7 @@ export function ServicePresetDialog({
                 <div
                   style={{
                     border: '1px solid var(--border)',
-                    borderRadius: 12,
+                    borderRadius: 8,
                     padding: 12,
                     background: 'var(--surface-soft)',
                     display: 'grid',

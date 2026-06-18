@@ -394,14 +394,14 @@ function PosProductsPanelComponent({
               <div className="pos-price-toggle-buttons" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <button
                   type="button"
-                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: priceType === 'retail' ? 'bold' : 'normal', borderRadius: '6px', border: 'none', background: priceType === 'retail' ? 'var(--primary, #382088)' : 'transparent', color: priceType === 'retail' ? '#ffffff' : '#64748b', boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: priceType === 'retail' ? 'bold' : 'normal', borderRadius: '8px', border: 'none', background: priceType === 'retail' ? 'var(--primary, #170c5c)' : 'transparent', color: priceType === 'retail' ? '#ffffff' : '#64748b', boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}
                   onClick={() => onPriceTypeChange('retail')}
                 >
                   سعر القطاعي
                 </button>
                 <button
                   type="button"
-                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: priceType === 'wholesale' ? 'bold' : 'normal', borderRadius: '6px', border: 'none', background: priceType === 'wholesale' ? '#b91c1c' : 'transparent', color: priceType === 'wholesale' ? '#ffffff' : '#64748b', boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: priceType === 'wholesale' ? 'bold' : 'normal', borderRadius: '8px', border: 'none', background: priceType === 'wholesale' ? '#b91c1c' : 'transparent', color: priceType === 'wholesale' ? '#ffffff' : '#64748b', boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}
                   onClick={() => onPriceTypeChange('wholesale')}
                 >
                   سعر الجملة
@@ -420,17 +420,17 @@ function PosProductsPanelComponent({
               onProductFilterChange('all');
               setSelectedIndex(0);
             }}
-            style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '20px', border: shelf === 'all' && productFilter === 'all' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'all' && productFilter === 'all' ? '#0f172a' : '#ffffff', color: shelf === 'all' && productFilter === 'all' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
+            style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: shelf === 'all' && productFilter === 'all' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'all' && productFilter === 'all' ? '#0f172a' : '#ffffff', color: shelf === 'all' && productFilter === 'all' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
           >
             الكل
           </button>
-          <button type="button" onClick={() => { setShelf('favorites'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '20px', border: shelf === 'favorites' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'favorites' ? '#0f172a' : '#ffffff', color: shelf === 'favorites' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+          <button type="button" onClick={() => { setShelf('favorites'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: shelf === 'favorites' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'favorites' ? '#0f172a' : '#ffffff', color: shelf === 'favorites' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
             المفضلة
           </button>
-          <button type="button" onClick={() => { onProductFilterChange('offers'); setShelf('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '20px', border: productFilter === 'offers' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: productFilter === 'offers' ? '#0f172a' : '#ffffff', color: productFilter === 'offers' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+          <button type="button" onClick={() => { onProductFilterChange('offers'); setShelf('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: productFilter === 'offers' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: productFilter === 'offers' ? '#0f172a' : '#ffffff', color: productFilter === 'offers' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
             بعروض
           </button>
-          <button type="button" onClick={() => { setShelf('recent'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '20px', border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'recent' ? '#0f172a' : '#ffffff', color: shelf === 'recent' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+          <button type="button" onClick={() => { setShelf('recent'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'recent' ? '#0f172a' : '#ffffff', color: shelf === 'recent' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
             آخر استخدام
           </button>
         </div>

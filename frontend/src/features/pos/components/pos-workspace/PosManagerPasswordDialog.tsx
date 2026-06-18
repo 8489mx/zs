@@ -73,7 +73,7 @@ export function PosManagerPasswordDialog({ open, isPending = false, onClose, onA
               style={{
                 marginTop: 16,
                 padding: '10px 12px',
-                borderRadius: 10,
+                borderRadius: 8,
                 border: '1px solid rgba(220, 38, 38, 0.25)',
                 background: 'rgba(220, 38, 38, 0.08)',
                 color: '#991b1b',

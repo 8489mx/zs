@@ -7,7 +7,7 @@
 .returns-workspace .returns-detail-card,
 .returns-workspace .returns-create-card,
 .returns-workspace .returns-summary-card {
-  border-radius: 20px;
+  border-radius: 8px;
 }
 
 .returns-workspace .returns-register-card .section-title,
@@ -26,7 +26,7 @@
 
 .returns-workspace .toolbar-stack {
   padding: 12px;
-  border-radius: 18px;
+  border-radius: 8px;
   gap: 10px;
 }
 
@@ -83,7 +83,7 @@
 .returns-workspace .returns-register-card .toolbar-meta-row,
 .returns-workspace .returns-register-card .list-row,
 .returns-workspace .returns-register-card .empty-state-card {
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .returns-workspace .returns-summary-card .metric-list,

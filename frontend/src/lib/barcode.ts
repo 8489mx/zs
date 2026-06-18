@@ -120,7 +120,7 @@ export function printBarcodeSheet(options: {
     orientation: 'landscape',
     extraStyles: `
       .barcode-sheet{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-      .barcode-card{border:1px dashed #999;border-radius:12px;padding:12px;text-align:center;break-inside:avoid;background:#fff}
+      .barcode-card{border:1px dashed #999;border-radius: 8px;padding:12px;text-align:center;break-inside:avoid;background:#fff}
       .barcode-title{font-size:15px;line-height:1.4;margin-bottom:4px}
       .barcode-svg-wrap{margin:10px 0 4px;height:80px}
       .barcode-svg-wrap svg{display:block;width:100%;height:100%}

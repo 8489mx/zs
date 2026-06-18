@@ -22,7 +22,7 @@
 .settings-page-shell .settings-section-tabs .button {
   min-height: 36px;
   padding-inline: 12px;
-  border-radius: 999px;
+  border-radius: 8px;
 }
 
 .settings-overview-grid {
@@ -35,7 +35,7 @@
 .settings-page-shell .settings-backup-card .compact-stat-card,
 .settings-page-shell .settings-import-card .compact-stat-card {
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .settings-overview-grid .stat-card span,
@@ -98,7 +98,7 @@
 
 .settings-page-shell .settings-import-card .inline-create-panel {
   padding: 12px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .settings-page-shell .settings-import-card .inline-create-panel strong {
@@ -107,7 +107,7 @@
 
 .settings-page-shell .settings-import-card .table-wrap,
 .settings-page-shell .settings-backup-card .surface-card {
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .settings-page-shell .settings-users-card .two-column-grid {
@@ -116,7 +116,7 @@
 
 .settings-page-shell .settings-users-card .card-surface {
   padding: 12px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .settings-page-shell .settings-users-card .actions.compact-actions .btn,
@@ -156,7 +156,7 @@
 }
 
 .settings-page-shell .settings-core-form .panel {
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 10px 12px;
 }
 
@@ -169,8 +169,8 @@
 }
 
 .settings-page-shell .settings-required-card {
-  border-color: color-mix(in srgb, var(--primary, #2563eb) 28%, var(--border, #dbe2ea));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface, #fff) 90%, var(--primary, #2563eb)), var(--surface, #fff));
+  border-color: color-mix(in srgb, var(--primary, #170c5c) 28%, var(--border, #dbe2ea));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface, #fff) 90%, var(--primary, #170c5c)), var(--surface, #fff));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
@@ -193,7 +193,7 @@
 .settings-page-shell .settings-print-option {
   min-height: 34px;
   padding: 6px 8px !important;
-  border-radius: 9px !important;
+  border-radius: 8px;
   font-size: 12px;
   line-height: 1.25;
   gap: 6px !important;

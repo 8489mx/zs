@@ -173,7 +173,7 @@ export function FashionVariantsBuilder({
                   alignItems: 'end',
                   padding: 10,
                   border: '1px solid var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 8,
                   background: 'var(--surface)',
                 }}
               >

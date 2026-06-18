@@ -219,7 +219,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         .print-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: stretch; margin-bottom: 12px; }
         .brand-panel, .doc-panel, .meta-box, .summary-box, .totals, .print-footer {
           border: 1px solid var(--print-border);
-          border-radius: 14px;
+          border-radius: 8px;
           background: rgba(248, 250, 252, 0.58);
         }
         .brand-panel {
@@ -252,7 +252,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         .brand-logo-image, .brand-logo-fallback {
           width: 42px;
           height: 42px;
-          border-radius: 12px;
+          border-radius: 8px;
           flex-shrink: 0;
           object-fit: cover;
           border: 1px solid rgba(148, 163, 184, 0.35);

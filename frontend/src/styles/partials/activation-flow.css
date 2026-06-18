@@ -1,6 +1,6 @@
 .auth-screen-shell { padding: 24px; }
 .activation-card { width: min(760px, 100%); }
-.activation-machine-box { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px dashed #c7d2fe; border-radius: 18px; background: #f8fbff; }
+.activation-machine-box { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px dashed #c7d2fe; border-radius: 8px; background: #f8fbff; }
 .activation-machine-id { margin-top: 6px; font-size: 1rem; letter-spacing: 0.08em; }
 .setup-screen-shell .activation-card { width: min(920px, 100%); }
 .inline-actions { display: flex; gap: 10px; align-items: center; }

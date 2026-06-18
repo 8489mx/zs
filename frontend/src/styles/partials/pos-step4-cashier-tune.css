@@ -31,7 +31,7 @@
 
 .pos-workspace .product-pick-card {
   padding: 12px;
-  border-radius: 18px;
+  border-radius: 8px;
 }
 
 .pos-workspace .product-pick-card strong {
@@ -56,7 +56,7 @@
   min-height: 46px;
   height: 46px;
   padding-inline: 12px;
-  border-radius: 14px;
+  border-radius: 8px;
   align-self: start;
 }
 
@@ -74,7 +74,7 @@
   min-height: 46px;
   padding: 10px 12px;
   border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #fff;
   text-align: right;
 }
@@ -108,8 +108,8 @@
   gap: 8px;
   min-height: 46px;
   padding: 6px 10px;
-  border: 1px solid rgba(37, 99, 235, 0.2);
-  border-radius: 14px;
+  border: 1px solid rgba(23, 12, 92, 0.2);
+  border-radius: 8px;
   background: #fff;
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
 }
@@ -139,13 +139,13 @@
   overflow-y: auto;
   padding: 8px;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #fff;
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.14);
 }
 
 .pos-customer-inline-empty {
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .pos-customer-results-label {
@@ -160,8 +160,8 @@
   gap: 8px;
   margin-top: 8px;
   padding: 10px;
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  border-radius: 14px;
+  border: 1px solid rgba(23, 12, 92, 0.18);
+  border-radius: 8px;
   background: #f8fbff;
 }
 
@@ -194,13 +194,13 @@
 .pos-selected-customer-remove {
   min-height: 30px;
   padding: 5px 9px;
-  border-radius: 10px;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
 .pos-customer-risk-hint {
   width: fit-content;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 3px 8px;
   background: #fff7ed;
   color: #9a3412;
@@ -220,7 +220,7 @@
   min-width: 0;
   padding: 7px 8px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ffffff;
   color: #0f172a;
   font-size: 12px;
@@ -235,7 +235,7 @@
 
 .pos-customer-summary-note {
   padding: 6px 8px;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #eef6ff;
 }
 
@@ -274,11 +274,11 @@
 
 .pos-sale-success-head p {
   margin: 0;
-  color: #2563eb;
+  color: #170c5c;
 }
 
 .pos-sale-success-head > strong {
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 6px 10px;
   background: #ecfdf5;
   color: #047857;
@@ -296,7 +296,7 @@
   gap: 4px;
   padding: 10px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 12px;
+  border-radius: 8px;
   background: #f8fafc;
   color: #0f172a;
   font-size: 14px;
@@ -319,9 +319,9 @@
 
 .pos-sale-success-whatsapp {
   padding: 10px;
-  border: 1px dashed rgba(37, 99, 235, 0.28);
-  border-radius: 12px;
-  background: #eff6ff;
+  border: 1px dashed rgba(23, 12, 92, 0.28);
+  border-radius: 8px;
+  background: #f1f0fa;
 }
 
 .pos-sale-success-whatsapp .field {
@@ -329,7 +329,7 @@
 }
 
 .pos-sale-success-error {
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 9px 10px;
   background: #fff7ed;
   color: #9a3412;
@@ -398,7 +398,7 @@
   width: min(680px, calc(100vw - 32px));
   margin: 72px auto 0;
   padding: 18px;
-  border-radius: 24px;
+  border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.26);
   background: #fff;
   box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
@@ -438,7 +438,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: #fff;
   text-align: right;
@@ -451,8 +451,8 @@
 }
 
 .pos-customer-result.is-active {
-  border-color: rgba(37, 99, 235, 0.34);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+  border-color: rgba(23, 12, 92, 0.34);
+  box-shadow: 0 0 0 2px rgba(23, 12, 92, 0.08);
   background: rgba(239, 246, 255, 0.88);
 }
 
@@ -514,7 +514,7 @@
 
 .pos-workspace .pos-cart-row-upgraded {
   padding: 8px 10px;
-  border-radius: 18px;
+  border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: #fff;
   box-shadow: none;
@@ -540,9 +540,9 @@
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
+  border-radius: 8px;
+  background: rgba(23, 12, 92, 0.1);
+  color: #170c5c;
   font-size: 14px;
   font-weight: 800;
 }
@@ -572,7 +572,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(241, 245, 249, 0.92);
   color: #64748b;
   font-size: 11px;
@@ -598,7 +598,7 @@
   width: 100%;
   padding: 0 6px;
   border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   text-align: center;
   font-size: 16px;
@@ -609,7 +609,7 @@
 .pos-workspace .pos-cart-qty-btn {
   padding: 0;
   border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #0f172a;
   font-size: 23px;
@@ -628,14 +628,14 @@
 }
 
 .pos-workspace .pos-cart-number-total {
-  color: #2563eb;
+  color: #170c5c;
 }
 
 .pos-workspace .pos-cart-remove-button {
   min-width: 64px;
   padding: 0 10px;
   border: 1px solid rgba(239, 68, 68, 0.18);
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(254, 242, 242, 0.88);
   color: #dc2626;
   font-size: 13px;
@@ -644,8 +644,8 @@
 }
 
 .pos-workspace .pos-cart-row-selected {
-  border-color: rgba(37, 99, 235, 0.28);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.06);
+  border-color: rgba(23, 12, 92, 0.28);
+  box-shadow: 0 0 0 2px rgba(23, 12, 92, 0.06);
 }
 
 .pos-workspace .pos-cart-row-highlight {
@@ -664,7 +664,7 @@
 
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
   background: #dbeafe;
-  border-color: rgba(37, 99, 235, 0.45);
+  border-color: rgba(23, 12, 92, 0.45);
 }
 
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-highlight:not(.pos-cart-row-selected) {
@@ -856,7 +856,7 @@
 .pos-customer-trigger,
 .pos-customer-inline-search-row {
   min-height: 42px;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 8px 10px;
 }
 
@@ -886,7 +886,7 @@
 .pos-customer-inline-create .pos-inline-create-grid-compact .field {
   min-height: 42px;
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: #fff;
 }
@@ -908,7 +908,7 @@
 .pos-customer-create-actions > .button {
   min-height: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .pos-workspace .pos-payment-shell-inline {
@@ -929,7 +929,7 @@
   min-width: 0;
   padding: 8px 10px;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 12px;
+  border-radius: 8px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
 }
 
@@ -968,7 +968,7 @@
   min-height: 28px;
   height: 28px;
   padding-inline: 8px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 11px;
   white-space: nowrap;
 }
@@ -988,7 +988,7 @@
   min-height: 28px;
   height: 28px;
   padding-inline: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 12px;
 }
 
@@ -1015,7 +1015,7 @@
   align-items: center;
   min-height: 24px;
   padding: 0 8px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(241, 245, 249, 0.94);
   color: #64748b;
   font-size: 11px;
@@ -1033,7 +1033,7 @@
   gap: 8px;
   min-height: 34px;
   padding: 0 12px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid rgba(251, 191, 36, 0.22);
   background: rgba(255, 251, 235, 0.92);
   color: #b45309;
@@ -1091,7 +1091,7 @@
 .pos-workspace .pos-cart-row-upgraded {
   min-height: 46px;
   padding: 6px 10px;
-  border-radius: 14px;
+  border-radius: 8px;
   transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 
@@ -1119,7 +1119,7 @@
 
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
   background: #dbeafe;
-  border-color: rgba(37, 99, 235, 0.45);
+  border-color: rgba(23, 12, 92, 0.45);
 }
 
 /* Premium Border Radii for POS (Strict) */
@@ -1129,7 +1129,7 @@
 .pos-workspace .pos-workspace-dock,
 .pos-workspace .pos-workspace-header,
 .pos-workspace .pos-workspace-dock-ribbon-track {
-  border-radius: 12px !important;
+  border-radius: 8px;
 }
 
 .pos-workspace .btn,
@@ -1142,7 +1142,7 @@
 .pos-workspace .pos-cart-row-upgraded,
 .pos-workspace .rounded-pill,
 .pos-workspace .nav-pill {
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .pos-workspace .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-highlight:not(.pos-cart-row-selected) {
@@ -1182,12 +1182,12 @@
 }
 
 .pos-workspace .pos-cart-qty-shell input {
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 15px;
 }
 
 .pos-workspace .pos-cart-qty-btn {
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 20px;
 }
 
@@ -1198,7 +1198,7 @@
 .pos-workspace .pos-cart-remove-button {
   min-width: 54px;
   padding: 0 8px;
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 12px;
 }
 
@@ -1209,7 +1209,7 @@
 
 .pos-workspace .pos-primary-actions .btn {
   min-height: 38px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 @media (max-width: 1380px) {
@@ -1329,7 +1329,7 @@
 .pos-workspace .pos-payment-shell-inline {
   margin-bottom: 0;
   padding: 8px 10px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .pos-workspace .pos-payment-strip {
@@ -1347,7 +1347,7 @@
   min-width: 0;
   min-height: 40px;
   padding: 6px 8px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .pos-workspace .pos-strip-field > span {
@@ -1378,7 +1378,7 @@
   min-height: 26px;
   height: 26px;
   padding: 0 8px;
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 11px;
 }
 
@@ -1421,7 +1421,7 @@
   z-index: 25;
   gap: 6px;
   padding: 8px 10px;
-  border-radius: 18px;
+  border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
@@ -1432,7 +1432,7 @@
   gap: 0;
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.92);
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
 }
 
@@ -1496,7 +1496,7 @@
 .pos-workspace .pos-workspace-dock-actions .btn {
   min-height: 30px;
   padding-inline: 11px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 11px;
 }
 
@@ -1638,7 +1638,7 @@
   min-height: 38px;
   height: 38px;
   padding-inline: 10px;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 13px;
 }
 
@@ -1658,8 +1658,8 @@
 
 .content-wrap:not(.content-wrap-pos-focus) .pos-workspace:not(.pos-sale-mode-scanner):not(.pos-sale-mode-touch) .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
   background: #dbeafe;
-  border-color: rgba(37, 99, 235, 0.48);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+  border-color: rgba(23, 12, 92, 0.48);
+  box-shadow: 0 0 0 2px rgba(23, 12, 92, 0.16);
 }
 
 @media (max-width: 1100px) {
@@ -1737,5 +1737,5 @@
 
 .pos-held-draft-dialog-row.is-selected {
   background: rgba(219, 234, 254, 0.72);
-  border-color: rgba(37, 99, 235, 0.42);
+  border-color: rgba(23, 12, 92, 0.42);
 }

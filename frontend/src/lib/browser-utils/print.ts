@@ -68,7 +68,7 @@ function buildPrintHtml({ title, bodyHtml, subtitle, footerHtml, extraStyles, pa
         .print-title-wrap { min-width: 0; }
         .print-title { margin: 0; font-size: 26px; line-height: 1.25; }
         .print-subtitle { margin-top: 8px; color: var(--print-muted); font-size: 13px; }
-        .print-meta-chip { white-space: nowrap; border: 1px solid var(--print-border); border-radius: 999px; padding: 8px 12px; color: var(--print-muted); font-size: 12px; background: #fff; }
+        .print-meta-chip { white-space: nowrap; border: 1px solid var(--print-border); border-radius: 8px; padding: 8px 12px; color: var(--print-muted); font-size: 12px; background: #fff; }
         .print-content { display: flex; flex-direction: column; gap: 14px; }
         .print-footer { margin-top: 18px; padding-top: 12px; border-top: 1px dashed var(--print-border); color: var(--print-muted); font-size: 12px; }
         h1, h2, h3 { margin: 0 0 12px; }
@@ -76,13 +76,13 @@ function buildPrintHtml({ title, bodyHtml, subtitle, footerHtml, extraStyles, pa
         .meta { margin-bottom: 16px; color: var(--print-muted); }
         .section { margin-bottom: 20px; }
         .meta-grid, .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
-        .meta-box, .summary-box { border: 1px solid var(--print-border); border-radius: 14px; padding: 12px; background: rgba(248, 250, 252, 0.52); }
+        .meta-box, .summary-box { border: 1px solid var(--print-border); border-radius: 8px; padding: 12px; background: rgba(248, 250, 252, 0.52); }
         .meta-box strong, .summary-box strong { display: block; margin-bottom: 6px; color: var(--print-accent); font-size: 12px; }
         table { width: 100%; border-collapse: collapse; margin-top: 12px; }
         th, td { border: 1px solid var(--print-border); padding: 10px; text-align: right; vertical-align: top; }
         th { background: var(--print-surface); color: var(--print-muted); }
         tbody tr:nth-child(even) { background: rgba(248, 250, 252, 0.65); }
-        .totals { margin-top: 16px; border: 1px solid var(--print-border); border-radius: 14px; padding: 14px; background: rgba(248, 250, 252, 0.5); }
+        .totals { margin-top: 16px; border: 1px solid var(--print-border); border-radius: 8px; padding: 14px; background: rgba(248, 250, 252, 0.5); }
         .totals div { margin-bottom: 6px; }
         .muted { color: var(--print-muted); }
         .text-left { text-align: left; }

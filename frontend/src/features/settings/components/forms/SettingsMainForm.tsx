@@ -27,13 +27,13 @@ const checkboxStyle: CSSProperties = {
   gap: 8,
   padding: '8px 10px',
   border: '1px solid var(--border, #dbe2ea)',
-  borderRadius: 10,
+  borderRadius: 8,
   background: 'var(--surface, #fff)',
   minHeight: 36,
 };
 
 const requiredStarStyle: CSSProperties = { color: '#dc2626', fontWeight: 700, marginInlineStart: 2 };
-const comboListStyle: CSSProperties = { border: '1px solid var(--border, #dbe2ea)', borderRadius: 10, background: 'var(--surface, #fff)', marginTop: 6, maxHeight: 180, overflowY: 'auto', padding: 4 };
+const comboListStyle: CSSProperties = { border: '1px solid var(--border, #dbe2ea)', borderRadius: 8, background: 'var(--surface, #fff)', marginTop: 6, maxHeight: 180, overflowY: 'auto', padding: 4 };
 const comboRowStyle: CSSProperties = { width: '100%', textAlign: 'right', background: 'transparent', border: 'none', padding: '8px 10px', borderRadius: 8, cursor: 'pointer' };
 const comboCreateStyle: CSSProperties = { ...comboRowStyle, fontWeight: 700, color: 'var(--primary, #2563eb)' };
 

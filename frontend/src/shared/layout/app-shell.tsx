@@ -386,7 +386,15 @@ export function AppShell({ children }: PropsWithChildren) {
               const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
               return (
                 <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${!isSidebarCollapsed ? 'is-open' : ''}`.trim()}>
-                  <div className="sidebar-group-trigger" style={toneStyle}>
+                  <div 
+                    className="sidebar-group-trigger" 
+                    style={toneStyle}
+                    onClick={() => {
+                      if (isSidebarCollapsed) toggleSidebar();
+                    }}
+                    role={isSidebarCollapsed ? 'button' : undefined}
+                    tabIndex={isSidebarCollapsed ? 0 : undefined}
+                  >
                     <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
                     <span className="sidebar-label">{group.label}</span>
                   </div>

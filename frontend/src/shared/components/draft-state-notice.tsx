@@ -25,7 +25,7 @@ export function DraftStateNotice({
         width: 'min(460px, calc(100vw - 32px))',
         zIndex: 80,
         padding: '12px 14px',
-        borderRadius: '16px',
+        borderRadius: '8px',
         border: '1px solid #fde68a',
         background: 'linear-gradient(180deg, #fffdf5 0%, #ffffff 100%)',
         boxShadow: '0 12px 26px rgba(15, 23, 42, 0.10)',

@@ -240,14 +240,14 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-table.compact td:first-child { text-align: right; }
     .invoice-totals-card { padding-top: ${compact ? '4px' : '6px'}; padding-bottom: ${compact ? '4px' : '6px'}; }
     .invoice-totals-card .meta-value { text-align: left; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 600; }
-    .invoice-totals-card .total-line { margin: ${compact ? '2px -2px' : '3px -3px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px solid #555; border-radius: 5px; background: #f3f3f3; }
+    .invoice-totals-card .total-line { margin: ${compact ? '2px -2px' : '3px -3px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px solid #555; border-radius: 8px; background: #f3f3f3; }
     .invoice-totals-card .meta-line.strong .meta-value { font-weight: 900; }
     .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 900; text-align: center; padding-bottom: 4px; margin-bottom: 2px; border-bottom: 1px solid #888; }
     .payment-grid { display: grid; gap: 0; }
     .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #aaa; background: #fff; }
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 800; }
-    .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px solid #aaa; border-radius: 999px; text-align: center; line-height: 1.35; }
+    .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px solid #aaa; border-radius: 8px; text-align: center; line-height: 1.35; }
     body.receipt-mode .print-shell { max-width: 76mm; padding-top: 0; margin: 0 auto; }
     body.receipt-mode .print-header { display: none !important; }
     body.receipt-mode .print-title-wrap { min-width: 0; }

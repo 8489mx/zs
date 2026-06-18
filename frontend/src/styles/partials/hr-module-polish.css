@@ -3,7 +3,7 @@
   --hr-surface: rgba(255, 255, 255, 0.94);
   --hr-surface-soft: rgba(248, 250, 252, 0.86);
   --hr-border: rgba(148, 163, 184, 0.24);
-  --hr-border-strong: rgba(37, 99, 235, 0.20);
+  --hr-border-strong: rgba(23, 12, 92, 0.20);
   --hr-shadow: 0 14px 36px rgba(15, 23, 42, 0.07);
   --hr-shadow-soft: 0 8px 22px rgba(15, 23, 42, 0.05);
   --hr-radius: 18px;
@@ -15,7 +15,7 @@
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.72)),
     var(--hr-surface);
   border: 1px solid var(--hr-border);
-  border-radius: 22px;
+  border-radius: 8px;
   box-shadow: var(--hr-shadow-soft);
   padding: 18px 20px;
 }
@@ -39,7 +39,7 @@
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92)) !important;
   border: 1px solid var(--hr-border) !important;
-  border-radius: 22px !important;
+  border-radius: 8px;
   box-shadow: var(--hr-shadow-soft) !important;
   margin-bottom: 10px !important;
   padding: 12px 14px !important;
@@ -96,7 +96,7 @@
 .page-shell[dir='rtl']:has(.hr-section-nav) .field {
   background: var(--hr-surface-soft);
   border: 1px solid rgba(226, 232, 240, 0.82);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 12px;
 }
 
@@ -116,15 +116,15 @@
 .page-shell[dir='rtl']:has(.hr-section-nav) .field textarea {
   background: rgba(255, 255, 255, 0.96);
   border-color: rgba(148, 163, 184, 0.34);
-  border-radius: 12px;
+  border-radius: 8px;
   min-height: 38px;
 }
 
 .page-shell[dir='rtl']:has(.hr-section-nav) .field input:focus,
 .page-shell[dir='rtl']:has(.hr-section-nav) .field select:focus,
 .page-shell[dir='rtl']:has(.hr-section-nav) .field textarea:focus {
-  border-color: rgba(37, 99, 235, 0.42);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+  border-color: rgba(23, 12, 92, 0.42);
+  box-shadow: 0 0 0 3px rgba(23, 12, 92, 0.10);
   outline: none;
 }
 
@@ -137,7 +137,7 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
   border: 1px solid var(--hr-border);
-  border-radius: 18px;
+  border-radius: 8px;
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.055);
   min-height: 94px;
   padding: 14px;
@@ -151,7 +151,7 @@
 .page-shell[dir='rtl']:has(.hr-section-nav) button.stat-card:hover {
   background: linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.95));
   border-color: var(--hr-border-strong);
-  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.10);
+  box-shadow: 0 14px 32px rgba(23, 12, 92, 0.10);
   transform: translateY(-2px);
 }
 
@@ -176,7 +176,7 @@
 .page-shell[dir='rtl']:has(.hr-section-nav) .compact-actions .btn,
 .page-shell[dir='rtl']:has(.hr-section-nav) .compact-actions .button,
 .page-shell[dir='rtl']:has(.hr-section-nav) .compact-actions button {
-  border-radius: 999px;
+  border-radius: 8px;
   min-height: 36px;
 }
 
@@ -211,14 +211,14 @@
 
 .page-shell[dir='rtl']:has(.hr-section-nav) .table-wrap {
   border: 1px solid rgba(226, 232, 240, 0.82);
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: auto;
 }
 
 .page-shell[dir='rtl']:has(.hr-section-nav) details {
   background: rgba(248, 250, 252, 0.86);
   border: 1px solid rgba(226, 232, 240, 0.82);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 8px 10px;
 }
 
@@ -229,13 +229,13 @@
 
 .page-shell[dir='rtl']:has(.hr-section-nav) .notice-box,
 .page-shell[dir='rtl']:has(.hr-section-nav) .error-box {
-  border-radius: 16px;
+  border-radius: 8px;
   line-height: 1.75;
 }
 
 .page-shell[dir='rtl']:has(.hr-section-nav) .card-soft {
   border-color: var(--hr-border);
-  border-radius: 18px;
+  border-radius: 8px;
 }
 
 /* HR top navigation Arabic rendering fix: keep letters clear without increasing header height. */
@@ -334,7 +334,7 @@
   }
 
   .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav {
-    border-radius: 18px !important;
+    border-radius: 8px;
     padding: 8px 10px !important;
   }
 
@@ -365,8 +365,8 @@
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav .muted.small {
   align-items: center;
   background: rgba(239, 246, 255, 0.92);
-  border: 1px solid rgba(37, 99, 235, 0.16);
-  border-radius: 999px;
+  border: 1px solid rgba(23, 12, 92, 0.16);
+  border-radius: 8px;
   color: rgb(30, 64, 175) !important;
   font-size: 0.88rem;
   font-weight: 800;
@@ -385,7 +385,7 @@
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link.active,
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link:hover {
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 8px;
   font-size: 0.9rem !important;
   min-height: 32px !important;
   padding-block: 3px !important;
@@ -394,8 +394,8 @@
 
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link.active {
   background: rgba(219, 234, 254, 0.96) !important;
-  border-color: rgba(37, 99, 235, 0.28) !important;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.10);
+  border-color: rgba(23, 12, 92, 0.28) !important;
+  box-shadow: 0 6px 16px rgba(23, 12, 92, 0.10);
   color: rgb(29, 78, 216) !important;
   font-weight: 800 !important;
   transform: none !important;

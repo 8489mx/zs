@@ -10,7 +10,7 @@
 
 .cash-drawer-page .page-header {
   padding: 10px 14px !important;
-  border-radius: 18px !important;
+  border-radius: 8px;
   min-height: auto !important;
   margin-bottom: 0 !important;
 }
@@ -35,7 +35,7 @@
 .cash-drawer-page .sales-guidance-card {
   min-height: 0 !important;
   padding: 10px 12px !important;
-  border-radius: 14px !important;
+  border-radius: 8px;
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04) !important;
 }
 
@@ -55,7 +55,7 @@
 .cash-drawer-page .cash-drawer-shifts-card,
 .cash-drawer-page .cash-drawer-form-card {
   padding: 12px !important;
-  border-radius: 16px !important;
+  border-radius: 8px;
 }
 
 .cash-drawer-page .section-title {
@@ -81,7 +81,7 @@
 .cash-drawer-page .button {
   min-height: 34px !important;
   padding: 7px 10px !important;
-  border-radius: 10px !important;
+  border-radius: 8px;
   font-size: 12px !important;
 }
 
@@ -90,7 +90,7 @@
 .cash-drawer-page textarea {
   min-height: 34px !important;
   padding: 7px 10px !important;
-  border-radius: 10px !important;
+  border-radius: 8px;
 }
 
 .cash-drawer-page textarea {
@@ -111,7 +111,7 @@
 }
 
 .cash-drawer-page .table-wrap {
-  border-radius: 14px !important;
+  border-radius: 8px;
 }
 
 .cash-drawer-page th,
@@ -123,7 +123,7 @@
 .cash-drawer-page .pagination-bar {
   margin-top: 8px !important;
   padding: 8px 10px !important;
-  border-radius: 12px !important;
+  border-radius: 8px;
 }
 
 .cash-drawer-page .warning-box,
@@ -131,7 +131,7 @@
 .cash-drawer-page .error-box {
   padding: 8px 10px !important;
   margin-top: 6px !important;
-  border-radius: 10px !important;
+  border-radius: 8px;
   font-size: 11px !important;
 }
 
@@ -159,7 +159,7 @@
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #fff7ed;
   color: #9a3412;
   border: 1px solid #fdba74;
@@ -184,7 +184,7 @@
 .cash-drawer-review-header-item {
   border: 1px solid #e2e8f0;
   background: #f8fafc;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 8px 10px;
   display: grid;
   gap: 4px;
@@ -202,7 +202,7 @@
 
 .cash-drawer-review-banner {
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 9px 11px;
   display: grid;
   gap: 6px;
@@ -223,7 +223,7 @@
 
 .cash-drawer-review-block {
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
   background: #f8fafc;
   padding: 10px;
   display: grid;
@@ -244,7 +244,7 @@
 
 .cash-drawer-review-diff {
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 12px;
   border: 1px solid transparent;
   background: #f8fafc;
@@ -264,7 +264,7 @@
 
 .cash-drawer-review-diff-positive {
   color: #1d4ed8;
-  background: #eff6ff;
+  background: #f1f0fa;
   border-color: #93c5fd;
 }
 
@@ -280,7 +280,7 @@
 
 .cash-drawer-review-accordion {
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   padding: 6px 8px;
 }

@@ -192,7 +192,7 @@ export function PurchaseRepricingDialog({ open, insights, onClose }: PurchaseRep
         </Card>
       </div>
 
-      <div style={{ overflowX: 'auto', border: '1px solid var(--border-color, #ddd)', borderRadius: 12 }}>
+      <div style={{ overflowX: 'auto', border: '1px solid var(--border-color, #ddd)', borderRadius: 8 }}>
         <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>

@@ -24,7 +24,7 @@ html[dir="ltr"] .sidebar-link.sidebar-link-sub {
   height: 7px;
   flex: 0 0 7px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(100, 116, 139, 0.55);
   color: transparent;
   box-shadow: none;
