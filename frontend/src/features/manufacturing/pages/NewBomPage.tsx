@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
-import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 import { productsApi } from '@/features/products/api/products.api';
 import { http } from '@/lib/http';
 import type { Product } from '@/types/domain';

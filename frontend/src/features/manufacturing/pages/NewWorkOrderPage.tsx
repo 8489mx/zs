@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
-import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+
 import { http } from '@/lib/http';
 
 type BomOption = {
@@ -16,6 +16,8 @@ type BomOption = {
 type LocationOption = {
   id: string;
   name: string;
+};
+
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
 export default function NewWorkOrderPage() {

@@ -1,5 +1,5 @@
 import { type ReactNode, useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 
 interface BreadcrumbItem {
@@ -30,7 +30,6 @@ export function ManufacturingLayout({
   searchQuery = '',
   onSearchChange,
 }: ManufacturingLayoutProps) {
-  const navigate = useNavigate();
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
 
   useEffect(() => {
