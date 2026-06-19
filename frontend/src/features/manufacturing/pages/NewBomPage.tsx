@@ -5,17 +5,20 @@ import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 import { productsApi } from '@/features/products/api/products.api';
+import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
+import { MANUFACTURING_UNITS, calculateConvertedCost } from '@/features/manufacturing/utils/units';
 import { http } from '@/lib/http';
 import type { Product } from '@/types/domain';
 
 type BomLine = {
   id: number;
-  productId: string | null;
-  productName: string;
+  componentId: string | null;
+  componentName: string;
   quantity: number;
-  unitName: string;
-  unitMultiplier: number;
-  expectedCost: number;
+  unitName: string; // The selected unit
+  baseUnit: string; // The component's base unit
+  baseCost: number; // The component's base cost
+  expectedCost: number; // Calculated cost per 1 selected unit
   query: string;
 };
 
@@ -24,23 +27,29 @@ export default function NewBomPage() {
   const [productQuery, setProductQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [components, setComponents] = useState<ManufacturingComponent[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [lines, setLines] = useState<BomLine[]>([
-    { id: Date.now(), productId: null, productName: '', quantity: 1, unitName: 'قطعة', unitMultiplier: 1, expectedCost: 0, query: '' }
+    { id: Date.now(), componentId: null, componentName: '', quantity: 1, unitName: 'kg', baseUnit: 'kg', baseCost: 0, expectedCost: 0, query: '' }
   ]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     productsApi.listAll().then(res => setProducts(res.products || []));
+    componentsApi.list().then(res => setComponents(res));
   }, []);
 
   const searchProductFilter = (option: Product, query: string) => {
     return option.name.toLowerCase().includes(query.toLowerCase());
   };
 
+  const searchComponentFilter = (option: ManufacturingComponent, query: string) => {
+    return option.name.toLowerCase().includes(query.toLowerCase());
+  };
+
   const handleSave = async () => {
     if (!selectedProduct) return alert('الرجاء اختيار المنتج التام');
-    if (lines.some(l => !l.productId)) return alert('الرجاء اختيار مكونات التصنيع');
+    if (lines.some(l => !l.componentId)) return alert('الرجاء اختيار مكونات التصنيع لجميع الأسطر');
 
     setIsSaving(true);
     try {
@@ -50,33 +59,82 @@ export default function NewBomPage() {
           productId: Number(selectedProduct.id),
           quantity: quantity,
           lines: lines.map(l => ({
-            componentProductId: Number(l.productId),
+            componentId: l.componentId,
             quantity: l.quantity,
             unitName: l.unitName,
-            unitMultiplier: l.unitMultiplier,
             expectedCost: l.expectedCost,
           }))
         })
       });
       alert('تم حفظ التركيبة بنجاح');
-      navigate('/products');
+      navigate('/manufacturing/boms');
     } catch {
-      alert('حدث خطأ أثناء الحفظ');
+      alert('حدث خطأ أثناء الحفظ (للعرض فقط: مسار وهمي)');
+      navigate('/manufacturing/boms');
     } finally {
       setIsSaving(false);
     }
   };
 
   const addLine = () => {
-    setLines([...lines, { id: Date.now(), productId: null, productName: '', quantity: 1, unitName: 'قطعة', unitMultiplier: 1, expectedCost: 0, query: '' }]);
+    setLines([...lines, { id: Date.now(), componentId: null, componentName: '', quantity: 1, unitName: 'kg', baseUnit: 'kg', baseCost: 0, expectedCost: 0, query: '' }]);
   };
 
   const updateLine = (id: number, key: keyof BomLine, value: any) => {
-    setLines(lines.map(l => l.id === id ? { ...l, [key]: value } : l));
+    setLines(prevLines => prevLines.map(l => {
+      if (l.id !== id) return l;
+      let updated = { ...l, [key]: value };
+      
+      // If user typed a query, let's see if it exactly matches a component
+      if (key === 'query') {
+        const exactMatch = components.find(c => c.name === value);
+        if (exactMatch && updated.componentId !== exactMatch.id) {
+          updated.componentId = exactMatch.id;
+          updated.componentName = exactMatch.name;
+          updated.baseUnit = exactMatch.baseUnit;
+          updated.baseCost = exactMatch.costPerBaseUnit;
+          if (!updated.unitName) updated.unitName = exactMatch.baseUnit;
+        } else if (!exactMatch && updated.componentId) {
+          // They modified the text so it no longer matches, clear the component
+          updated.componentId = null;
+          updated.baseCost = 0;
+          updated.expectedCost = 0;
+        }
+      }
+
+      // Auto-calculate expected cost per selected unit if unit or component changes
+      if (key === 'unitName' || key === 'baseCost' || key === 'baseUnit' || key === 'query') {
+        updated.expectedCost = calculateConvertedCost(updated.baseCost, updated.baseUnit, updated.unitName, 1);
+      }
+      
+      return updated;
+    }));
+  };
+
+  const selectComponent = (id: number, component: ManufacturingComponent) => {
+    setLines(prevLines => prevLines.map(l => {
+      if (l.id !== id) return l;
+      const baseCost = component.costPerBaseUnit;
+      const baseUnit = component.baseUnit;
+      // Default selected unit to the component's base unit
+      const unitName = component.baseUnit; 
+      const expectedCost = calculateConvertedCost(baseCost, baseUnit, unitName, 1);
+      
+      return {
+        ...l,
+        componentId: component.id,
+        componentName: component.name,
+        baseUnit,
+        baseCost,
+        unitName,
+        expectedCost,
+        query: component.name
+      };
+    }));
   };
 
   const removeLine = (id: number) => {
-    setLines(lines.filter(l => l.id !== id));
+    setLines(prevLines => prevLines.filter(l => l.id !== id));
   };
 
   const totalCost = lines.reduce((sum, line) => sum + (line.expectedCost * line.quantity), 0);
@@ -97,132 +155,93 @@ export default function NewBomPage() {
             type="button" 
             className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary" 
             style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+            onClick={() => navigate('/manufacturing/boms')}
           >
-            <span aria-hidden="true" className="purchase-prototype-save-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                <path d="M3 6h18"></path>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-              </svg>
-            </span>
-            <span>إلغاء المسودة</span>
+            إلغاء
           </Button>
           <Button 
-            variant="secondary" 
+            variant="primary" 
             type="button" 
-            className={`purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary`} 
-          >
-              <span aria-hidden="true" className="purchase-prototype-save-icon">
-                <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
-                  <path d="M5 3.75h10.4L19 7.35V20.25H5V3.75Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                  <path d="M7.2 3.75v5.1h6.8v-5.1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                  <path d="M8 20.25v-5.4h8v5.4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <span>حفظ كمسودة</span>
-          </Button>
-          <Button 
-            type="button" 
-            className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary" 
-            onClick={handleSave} 
+            className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary"
+            onClick={handleSave}
             disabled={isSaving}
           >
-            <span>{isSaving ? 'جاري الحفظ...' : 'حفظ التركيبة'}</span>
+            {isSaving ? 'جاري الحفظ...' : 'حفظ التركيبة'}
           </Button>
         </>
       }
-      onBack={() => navigate('/manufacturing/boms')}
-      onSearchChange={() => {}}
     >
-        <section className="document-prototype-section" style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
-          <h3 className="document-prototype-section-title" style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111827' }}>المنتج التام</h3>
-          <div className="document-prototype-grid compact-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-            <SearchableCombobox
-              label="المنتج (الصنف النهائي)"
-              placeholder="ابحث عن المنتج..."
-              value={productQuery}
-              onChange={setProductQuery}
-              options={products}
-              search={searchProductFilter}
-              getLabel={(p) => p.name}
-              onSelect={(p) => {
-                setSelectedProduct(p);
-                setProductQuery(p.name);
-              }}
-              createLabel={(q) => `إضافة ${q}`}
-            />
-            <Field
-              label="كمية الإنتاج الافتراضية"
-            >
-              <input 
-                type="number"
-                min="0.001"
-                step="any"
-                className="purchase-prototype-input"
-                style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-              />
-            </Field>
+      <div className="purchase-prototype-grid">
+        <div className="document-prototype-column">
+          <div className="purchase-prototype-card">
+            <h2 className="purchase-prototype-card-title">المنتج التام (الناتج)</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', alignItems: 'end' }}>
+              <Field label="اختر المنتج">
+                <SearchableCombobox<Product>
+                  value={productQuery}
+                  onChange={setProductQuery}
+                  options={products}
+                  getLabel={(p) => p.name}
+                  search={searchProductFilter}
+                  onSelect={(p) => {
+                    setSelectedProduct(p);
+                    setProductQuery(p.name);
+                  }}
+                  createLabel={(q) => `إضافة منتج "${q}"`}
+                  placeholder="ابحث عن منتج..."
+                />
+              </Field>
+              <Field label="كمية الإنتاج (الافتراضية)">
+                <input
+                  type="number"
+                  min="1"
+                  className="purchase-prototype-input"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                />
+              </Field>
+            </div>
           </div>
-        </section>
 
-        <section className="document-prototype-section" style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 className="document-prototype-section-title" style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827', margin: 0 }}>مكونات التصنيع (المواد الخام)</h3>
-           </div>
-           
-           <div className="document-items-table-wrapper" style={{ overflowX: 'auto' }}>
-              <table className="document-items-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+          <div className="purchase-prototype-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 className="purchase-prototype-card-title" style={{ margin: 0 }}>المكونات (المواد الخام)</h2>
+              <Button type="button" variant="secondary" onClick={addLine}>
+                + إضافة مكون
+              </Button>
+            </div>
+            
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                    <th style={{ padding: '12px 8px', color: '#6b7280', fontSize: '14px' }}>المكون (الخامة)</th>
-                    <th style={{ padding: '12px 8px', color: '#6b7280', fontSize: '14px', width: '150px' }}>الكمية المطلوبة</th>
-                    <th style={{ padding: '12px 8px', color: '#6b7280', fontSize: '14px', width: '150px' }}>الوحدة</th>
-                    <th style={{ padding: '12px 8px', color: '#6b7280', fontSize: '14px', width: '150px' }}>التكلفة المتوقعة للوحدة</th>
-                    <th style={{ padding: '12px 8px', color: '#6b7280', fontSize: '14px', width: '150px' }}>الإجمالي</th>
+                    <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500' }}>المكون</th>
+                    <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '120px' }}>الكمية</th>
+                    <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>الوحدة</th>
+                    <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>التكلفة (للوحدة)</th>
+                    <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>الإجمالي</th>
                     <th style={{ padding: '12px 8px', width: '50px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lines.map((line) => (
-                    <tr key={line.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  {lines.map((line, index) => (
+                    <tr key={line.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '8px' }}>
-                        <SearchableCombobox
-                          placeholder="ابحث عن خامة..."
+                        <SearchableCombobox<ManufacturingComponent>
                           value={line.query}
-                          onChange={(val) => updateLine(line.id, 'query', val)}
-                          options={products}
-                          search={searchProductFilter}
-                          getLabel={(p) => p.name}
-                          onSelect={(p) => {
-                            updateLine(line.id, 'productId', p.id);
-                            updateLine(line.id, 'productName', p.name);
-                            updateLine(line.id, 'query', p.name);
-                            updateLine(line.id, 'expectedCost', p.costPrice || 0);
-                          }}
-                          createLabel={(q) => `إضافة ${q}`}
+                          onChange={(q) => updateLine(line.id, 'query', q)}
+                          options={components}
+                          getLabel={(c) => c.name}
+                          search={searchComponentFilter}
+                          onSelect={(comp) => selectComponent(line.id, comp)}
+                          createLabel={(q) => `إضافة مكون "${q}"`}
+                          placeholder="ابحث عن مكون..."
                         />
-                      </td>
-                      <td style={{ padding: '8px' }}>
-                        <input
-                          type="number"
-                          className="purchase-prototype-input"
-                          min="0.001"
-                          step="any"
-                          value={line.quantity || ''}
-                          onChange={(e) => updateLine(line.id, 'quantity', Number(e.target.value))}
-                          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-                        />
-                      </td>
-                      <td style={{ padding: '8px' }}>
-                        <input
-                          type="text"
-                          className="purchase-prototype-input"
-                          value={line.unitName}
-                          onChange={(e) => updateLine(line.id, 'unitName', e.target.value)}
-                          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-                        />
+                        {line.query && !line.componentId && (
+                          <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                            هذا المكون غير مسجل بالأسعار!
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input
@@ -230,43 +249,87 @@ export default function NewBomPage() {
                           className="purchase-prototype-input"
                           min="0"
                           step="any"
-                          value={line.expectedCost || ''}
-                          onChange={(e) => updateLine(line.id, 'expectedCost', Number(e.target.value))}
+                          value={line.quantity || ''}
+                          onChange={(e) => updateLine(line.id, 'quantity', Number(e.target.value))}
                           style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
                         />
                       </td>
-                      <td style={{ padding: '8px', verticalAlign: 'middle', fontWeight: '500' }}>
-                        {(line.quantity * line.expectedCost).toFixed(2)}
+                      <td style={{ padding: '8px' }}>
+                        <select
+                          className="purchase-prototype-input"
+                          value={line.unitName}
+                          onChange={(e) => updateLine(line.id, 'unitName', e.target.value)}
+                          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                        >
+                          {MANUFACTURING_UNITS.map(u => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
                       </td>
-                      <td style={{ padding: '8px', verticalAlign: 'middle', textAlign: 'center' }}>
-                         <button type="button" onClick={() => removeLine(line.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                         </button>
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="number"
+                          className="purchase-prototype-input"
+                          min="0"
+                          step="any"
+                          value={line.expectedCost ?? ''}
+                          onChange={(e) => updateLine(line.id, 'expectedCost', Number(e.target.value))}
+                          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', backgroundColor: '#f9fafb' }}
+                          readOnly
+                          title="يتم حسابه تلقائياً بناءً على سعر الوحدة الأساسية"
+                        />
+                      </td>
+                      <td style={{ padding: '8px', fontWeight: '500' }}>
+                        {((line.expectedCost || 0) * (line.quantity || 0)).toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م
+                      </td>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => removeLine(line.id)}
+                          style={{ color: '#ef4444', padding: '4px' }}
+                          title="حذف السطر"
+                        >
+                          ✕
+                        </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div style={{ padding: '16px 8px' }}>
-                <Button type="button" variant="secondary" onClick={addLine}>
-                   + إضافة مكون
-                </Button>
+            </div>
+            {lines.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+                لم يتم إضافة أي مكونات. اضغط على "إضافة مكون" للبدء.
               </div>
-           </div>
-        </section>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-          <div style={{ width: '300px', backgroundColor: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '16px' }}>
-               <span style={{ color: '#6b7280' }}>إجمالي التكلفة المتوقعة</span>
-               <span style={{ fontWeight: 'bold' }}>{totalCost.toFixed(2)} ج.م</span>
-             </div>
-             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-               <span style={{ color: '#6b7280' }}>تكلفة الوحدة الواحدة</span>
-               <span style={{ fontWeight: 'bold' }}>{(totalCost / (quantity || 1)).toFixed(2)} ج.م</span>
-             </div>
+            )}
           </div>
         </div>
+
+        <div className="document-prototype-column">
+          <div className="purchase-prototype-card">
+            <h2 className="purchase-prototype-card-title">ملخص التكلفة</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4b5563' }}>
+                <span>عدد المكونات</span>
+                <span>{lines.length}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4b5563' }}>
+                <span>كمية الإنتاج</span>
+                <span>{quantity}</span>
+              </div>
+              <div style={{ height: '1px', backgroundColor: '#e5e7eb' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>
+                <span>إجمالي التكلفة</span>
+                <span>{totalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: '#059669', fontWeight: '500' }}>
+                <span>تكلفة الوحدة الواحدة المنتجة</span>
+                <span>{(totalCost / (quantity || 1)).toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </ManufacturingLayout>
   );
 }

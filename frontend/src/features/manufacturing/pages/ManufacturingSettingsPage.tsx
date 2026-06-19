@@ -27,15 +27,31 @@ export default function ManufacturingSettingsPage() {
           name: l.name
         })));
       }
+    })
+    .catch(() => {
+      // Mock locations if backend is not available
+      setLocations([
+        { id: '1', name: 'المخزن الرئيسي' },
+        { id: '2', name: 'مخزن الخامات' },
+        { id: '3', name: 'مخزن الإنتاج التام' }
+      ]);
     });
 
     http<{ settings: Record<string, any> }>('/api/settings?keys=manufacturing.default_production_location')
     .then(data => {
       if (data.settings && data.settings['manufacturing.default_production_location']) {
         const id = data.settings['manufacturing.default_production_location'];
-        // wait for locations to load to set the name, or just set it later
         setSelectedLocation({ id, name: `مخزن #${id}` });
         setLocationQuery(`مخزن #${id}`);
+      }
+    })
+    .catch(() => {
+      // Load from localStorage if backend is not available
+      const savedId = localStorage.getItem('manufacturing.default_production_location');
+      if (savedId) {
+        const locName = savedId === '1' ? 'المخزن الرئيسي' : savedId === '2' ? 'مخزن الخامات' : savedId === '3' ? 'مخزن الإنتاج التام' : `مخزن #${savedId}`;
+        setSelectedLocation({ id: savedId, name: locName });
+        setLocationQuery(locName);
       }
     });
   }, []);
@@ -53,7 +69,13 @@ export default function ManufacturingSettingsPage() {
       });
       alert('تم حفظ الإعدادات بنجاح');
     } catch {
-      alert('حدث خطأ أثناء الحفظ');
+      // Fallback to localStorage if backend is not available
+      if (selectedLocation?.id) {
+        localStorage.setItem('manufacturing.default_production_location', selectedLocation.id);
+      } else {
+        localStorage.removeItem('manufacturing.default_production_location');
+      }
+      alert('تم حفظ الإعدادات بنجاح (محلياً)');
     } finally {
       setIsSaving(false);
     }

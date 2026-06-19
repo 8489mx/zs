@@ -89,6 +89,22 @@ const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/saas-admin/tenants': null,
   settings: ['settings', 'canManageSettings'],
   '/settings': ['settings', 'canManageSettings'],
+  'manufacturing-components': 'manufacturing',
+  'manufacturing-boms': 'manufacturing',
+  'manufacturing-work-orders': 'manufacturing',
+  'manufacturing-settings': 'manufacturing',
+  'manufacturing/boms': 'manufacturing',
+  '/manufacturing/boms': 'manufacturing',
+  'manufacturing/boms/new': 'manufacturing',
+  '/manufacturing/boms/new': 'manufacturing',
+  'manufacturing/work-orders': 'manufacturing',
+  '/manufacturing/work-orders': 'manufacturing',
+  'manufacturing/work-orders/new': 'manufacturing',
+  '/manufacturing/work-orders/new': 'manufacturing',
+  'manufacturing/settings': 'manufacturing',
+  '/manufacturing/settings': 'manufacturing',
+  'manufacturing/components': 'manufacturing',
+  '/manufacturing/components': 'manufacturing',
 };
 
 function normalizeAccessKey(value: string) {

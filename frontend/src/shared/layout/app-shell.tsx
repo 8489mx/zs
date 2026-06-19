@@ -132,6 +132,10 @@ const shellTranslations = {
     'services-group': 'الخدمات والحسابات',
     'admin-group': 'الإدارة',
     'manufacturing-group': 'التصنيع والإنتاج',
+    'manufacturing-components': 'مكونات التصنيع',
+    'manufacturing-boms': 'قوائم المكونات',
+    'manufacturing-work-orders': 'أوامر الإنتاج',
+    'manufacturing-settings': 'إعدادات التصنيع',
     'platform_sub': 'منصة Z Systems',
     'platform_desc': 'لإدارة المبيعات والمخزون',
     'logout': 'تسجيل الخروج',
@@ -238,6 +242,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'manufacturing-boms': t('manufacturing-boms'),
       'manufacturing-work-orders': t('manufacturing-work-orders'),
       'manufacturing-settings': t('manufacturing-settings'),
+      'manufacturing-components': t('manufacturing-components'),
     };
     return navigationItems
       .filter((item) => user && canAccessNavigationItem(user, item))
@@ -255,7 +260,7 @@ export function AppShell({ children }: PropsWithChildren) {
     { key: 'sales-group', label: t('sales-group'), itemKeys: ['sales', 'returns', 'customers', 'reports'] },
     { key: 'purchases-group', label: t('purchases-group'), itemKeys: ['purchases', 'suppliers'] },
     { key: 'inventory-group', label: t('inventory-group'), itemKeys: ['inventory', 'products', 'treasury'] },
-    { key: 'manufacturing-group', label: t('manufacturing-group'), itemKeys: ['manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
+    { key: 'manufacturing-group', label: t('manufacturing-group'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
     { key: 'services-group', label: t('services-group'), itemKeys: ['services', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },
     { key: 'admin-group', label: t('admin-group'), itemKeys: ['hr', 'audit', 'saas-admin-tenants', 'settings'] },
   ]), [language]);
