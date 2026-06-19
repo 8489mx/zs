@@ -57,8 +57,10 @@ const iconToneMap: Record<string, IconTone> = {
   'accounting-settings': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
   'accounting-financial-summary': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
   'accounting-receivables-payables': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'accounting-cash-movement': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
   'accounting-inventory-value': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'manufacturing-boms': { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
+  'manufacturing-work-orders': { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
+  'manufacturing-settings': { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
 };
 
 const iconPathMap: Record<string, string> = {
@@ -85,8 +87,10 @@ const iconPathMap: Record<string, string> = {
   'accounting-journal-entries': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
   'accounting-settings': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
   'accounting-financial-summary': 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
-  'accounting-cash-movement': 'M4 12h16M7 8h10M7 16h10M12 5v14',
   'accounting-inventory-value': 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
+  'manufacturing-boms': 'M4 6h16M4 12h16M4 18h16',
+  'manufacturing-work-orders': 'M2 12h4l2-2h4l2 2h8M6 14v6M18 14v6M10 6L8 10h8l-2-4h-4z',
+  'manufacturing-settings': 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19 12h2M3 12h2M12 3v2M12 19v2M17 7l1.4-1.4M5.6 18.4 7 17M17 17l1.4 1.4M5.6 5.6 7 7',
 };
 
 function AppNavIcon({ itemKey }: { itemKey: string }) {
@@ -127,12 +131,16 @@ const shellTranslations = {
     'inventory-group': 'المخزون والأصناف',
     'services-group': 'الخدمات والحسابات',
     'admin-group': 'الإدارة',
+    'manufacturing-group': 'التصنيع والإنتاج',
     'platform_sub': 'منصة Z Systems',
     'platform_desc': 'لإدارة المبيعات والمخزون',
     'logout': 'تسجيل الخروج',
     'welcome_msg': 'مرحبًا',
     'expand_menu': 'توسيع القائمة',
-    'collapse_menu': 'طي القائمة'
+    'collapse_menu': 'طي القائمة',
+    'manufacturing-boms': 'قائمة المكونات',
+    'manufacturing-work-orders': 'أوامر الإنتاج',
+    'manufacturing-settings': 'إعدادات التصنيع',
   },
   en: {
     dashboard: 'Dashboard',
@@ -162,12 +170,16 @@ const shellTranslations = {
     'inventory-group': 'Inventory & Items',
     'services-group': 'Services & Accounts',
     'admin-group': 'Administration',
+    'manufacturing-group': 'Manufacturing & Production',
     'platform_sub': 'Z Systems Platform',
     'platform_desc': 'Sales and Inventory Management',
     'logout': 'Logout',
     'welcome_msg': 'Welcome',
     'expand_menu': 'Expand Menu',
-    'collapse_menu': 'Collapse Menu'
+    'collapse_menu': 'Collapse Menu',
+    'manufacturing-boms': 'BOMs',
+    'manufacturing-work-orders': 'Work Orders',
+    'manufacturing-settings': 'Manufacturing Settings',
   }
 };
 
@@ -199,7 +211,7 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory', 'products', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory', 'products', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: t('dashboard'),
       'cash-drawer': t('cash-drawer'),
@@ -223,6 +235,9 @@ export function AppShell({ children }: PropsWithChildren) {
       audit: t('audit'),
       'saas-admin-tenants': t('saas-admin-tenants'),
       settings: t('settings'),
+      'manufacturing-boms': t('manufacturing-boms'),
+      'manufacturing-work-orders': t('manufacturing-work-orders'),
+      'manufacturing-settings': t('manufacturing-settings'),
     };
     return navigationItems
       .filter((item) => user && canAccessNavigationItem(user, item))
@@ -240,6 +255,7 @@ export function AppShell({ children }: PropsWithChildren) {
     { key: 'sales-group', label: t('sales-group'), itemKeys: ['sales', 'returns', 'customers', 'reports'] },
     { key: 'purchases-group', label: t('purchases-group'), itemKeys: ['purchases', 'suppliers'] },
     { key: 'inventory-group', label: t('inventory-group'), itemKeys: ['inventory', 'products', 'treasury'] },
+    { key: 'manufacturing-group', label: t('manufacturing-group'), itemKeys: ['manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
     { key: 'services-group', label: t('services-group'), itemKeys: ['services', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },
     { key: 'admin-group', label: t('admin-group'), itemKeys: ['hr', 'audit', 'saas-admin-tenants', 'settings'] },
   ]), [language]);

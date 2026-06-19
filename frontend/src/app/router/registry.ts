@@ -19,6 +19,7 @@ import { settingsRouteModule } from '@/features/settings/routes';
 import { pricingCenterRouteModule } from '@/features/pricing-center/routes';
 import { accountingRouteModule } from '@/features/accounting/routes';
 import { saasAdminRouteModule } from '@/features/saas-admin/routes';
+import { manufacturingRouteModule } from '@/features/manufacturing/routes';
 
 export const featureRouteModules: FeatureRouteModule[] = [
   dashboardRouteModule,
@@ -41,6 +42,7 @@ export const featureRouteModules: FeatureRouteModule[] = [
   saasAdminRouteModule,
   pricingCenterRouteModule,
   settingsRouteModule,
+  manufacturingRouteModule,
 ];
 
 export const appRoutes = featureRouteModules.flatMap((module) => module.routes);

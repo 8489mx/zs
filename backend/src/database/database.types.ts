@@ -642,6 +642,60 @@ export interface ProjectTable {
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
+export interface ManufacturingBomTable {
+  id: Generated<number>;
+  product_id: number;
+  quantity: number;
+  expected_cost: number;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+}
+
+export interface ManufacturingBomLineTable {
+  id: Generated<number>;
+  bom_id: number;
+  component_product_id: number;
+  quantity: number;
+  unit_name: string;
+  unit_multiplier: number;
+  expected_cost: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface ManufacturingWorkOrderTable {
+  id: Generated<number>;
+  doc_no: string | null;
+  bom_id: number;
+  status: 'draft' | 'in_progress' | 'done' | 'cancelled';
+  quantity_to_produce: number;
+  produced_quantity: number;
+  source_location_id: number | null;
+  destination_location_id: number | null;
+  start_date: ColumnType<Date | null, string | null | undefined, string | null | undefined>;
+  end_date: ColumnType<Date | null, string | null | undefined, string | null | undefined>;
+  total_cost: number;
+  note: string;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+}
+
+export interface ManufacturingWoConsumptionTable {
+  id: Generated<number>;
+  work_order_id: number;
+  component_product_id: number;
+  quantity_consumed: number;
+  unit_cost: number;
+  line_total: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface PurchaseAttachmentTable {
   id: Generated<number>;
   purchase_id: number;
@@ -1132,9 +1186,208 @@ export interface Database {
   hr_hr_settings: HrSettingsTable;
   price_change_runs: PriceChangeRunTable;
     price_change_items: PriceChangeItemTable;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrAttendanceExceptionTable {
+  id: Generated<number>;
+  employee_id: number;
+  attendance_record_id: number | null;
+  work_date: ColumnType<string, string | undefined, string | undefined>;
+  exception_type: 'early_check_in' | 'late_check_in' | 'early_check_out' | 'late_check_out' | 'missing_check_in' | 'missing_check_out';
+  scheduled_time: string | null;
+  actual_time: string | null;
+  duration_minutes: number;
+  status: 'pending' | 'approved' | 'skipped' | 'auto_calculated' | 'needs_review';
+  approved_duration_minutes: number | null;
+  note: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrLeaveTypeTable {
+  id: Generated<number>;
+  name: string;
+  code: string | null;
+  description: string | null;
+  is_paid: boolean;
+  is_active: boolean;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrLeaveRequestTable {
+  id: Generated<number>;
+  employee_id: number;
+  leave_type_id: number | null;
+  leave_type: string | null;
+  start_date: ColumnType<string, string | undefined, string | undefined>;
+  end_date: ColumnType<string, string | undefined, string | undefined>;
+  days_count: number;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  reason: string | null;
+  notes: string | null;
+  decision_notes: string | null;
+  decided_by: number | null;
+  decided_at: Date | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrEmployeeAssetTable {
+  id: Generated<number>;
+  employee_id: number;
+  asset_type: string;
+  asset_name: string;
+  asset_code: string | null;
+  serial_no: string | null;
+  assigned_at: ColumnType<string, string | undefined, string | undefined>;
+  returned_at: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  status: 'assigned' | 'returned' | 'lost' | 'damaged' | 'cancelled';
+  notes: string | null;
+  return_notes: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrPayrollRunTable {
+  id: Generated<number>;
+  period_month: string;
+  status: 'draft' | 'reviewed' | 'approved' | 'cancelled';
+  notes: string;
+  created_by: number | null;
+  reviewed_by: number | null;
+  approved_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  reviewed_at: Date | null;
+  approved_at: Date | null;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrPayrollRunItemTable {
+  id: Generated<number>;
+  run_id: number;
+  employee_id: number;
+  contract_id: number | null;
+  base_salary: number;
+  allowance_amount: number;
+  deduction_amount: number;
+  loan_deduction_amount: number;
+  gross_pay: number;
+  net_pay: number;
+  status: 'draft' | 'reviewed' | 'approved' | 'excluded';
+  notes: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface HrPayrollItemAdjustmentTable {
+  id: Generated<number>;
+  payroll_item_id: number;
+  adjustment_type: 'allowance' | 'deduction';
+  label: string;
+  amount: number;
+  notes: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface HrSettingsTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  key: string;
+  value: string;
+  updated_by: number | null;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface Database {
+  _phase1_bootstrap: Phase1BootstrapTable;
+  sessions: SessionTable;
+  users: UserTable;
+  tenants: TenantTable;
+  trial_signups: TrialSignupTable;
+  settings: SettingTable;
+  accounting_accounts: AccountingAccountTable;
+  journal_entries: JournalEntryTable;
+  journal_entry_lines: JournalEntryLineTable;
+  accounting_settings: AccountingSettingsTable;
+  audit_logs: AuditLogTable;
+  branches: BranchTable;
+  stock_locations: StockLocationTable;
+  user_branches: UserBranchTable;
+  product_categories: ProductCategoryTable;
+  suppliers: SupplierTable;
+  customers: CustomerTable;
+  products: ProductTable;
+  product_units: ProductUnitTable;
+  product_offers: ProductOfferTable;
+  product_customer_prices: ProductCustomerPriceTable;
+  product_pricing_profiles: ProductPricingProfileTable;
+  pricing_rules: PricingRuleTable;
+  product_location_stock: ProductLocationStockTable;
+  stock_movements: StockMovementTable;
+  stock_transfers: StockTransferTable;
+  stock_transfer_items: StockTransferItemTable;
+  stock_count_sessions: StockCountSessionTable;
+  stock_count_items: StockCountItemTable;
+  damaged_stock_records: DamagedStockRecordTable;
+  sales: SalesTable;
+  sale_items: SaleItemTable;
+  sale_payments: SalePaymentTable;
+  held_sales: HeldSaleTable;
+  held_sale_items: HeldSaleItemTable;
+  customer_payments: CustomerPaymentTable;
+  customer_ledger: CustomerLedgerTable;
+  expenses: ExpenseTable;
+  return_documents: ReturnDocumentTable;
+  return_items: ReturnItemTable;
+  treasury_transactions: TreasuryTransactionTable;
+  cashier_shifts: CashierShiftTable;
+  purchases: PurchaseTable;
+  purchase_items: PurchaseItemTable;
+  supplier_payments: SupplierPaymentTable;
+  supplier_payment_schedules: SupplierPaymentScheduleTable;
+  supplier_payment_schedule_logs: SupplierPaymentScheduleLogTable;
+  supplier_ledger: SupplierLedgerTable;
+  hr_departments: HrDepartmentTable;
+  hr_job_titles: HrJobTitleTable;
+  hr_positions: HrPositionTable;
+  hr_employees: HrEmployeeTable;
+  hr_employee_contacts: HrEmployeeContactTable;
+  hr_employee_documents: HrEmployeeDocumentTable;
+  hr_employment_contracts: HrEmploymentContractTable;
+  hr_compensation_packages: HrCompensationPackageTable;
+  hr_employee_loans: HrEmployeeLoanTable;
+  hr_employee_loan_installments: HrEmployeeLoanInstallmentTable;
+  hr_employee_ledger: HrEmployeeLedgerTable;
+  hr_attendance_records: HrAttendanceRecordTable;
+  hr_attendance_exceptions: HrAttendanceExceptionTable;
+  hr_leave_types: HrLeaveTypeTable;
+  hr_leave_requests: HrLeaveRequestTable;
+  hr_employee_assets: HrEmployeeAssetTable;
+  hr_payroll_runs: HrPayrollRunTable;
+  hr_payroll_run_items: HrPayrollRunItemTable;
+  hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;
+  hr_hr_settings: HrSettingsTable;
+  price_change_runs: PriceChangeRunTable;
+  price_change_items: PriceChangeItemTable;
   partner_contacts: PartnerContactTable;
   partner_addresses: PartnerAddressTable;
   cost_centers: CostCenterTable;
   projects: ProjectTable;
   purchase_attachments: PurchaseAttachmentTable;
+  manufacturing_boms: ManufacturingBomTable;
+  manufacturing_bom_lines: ManufacturingBomLineTable;
+  manufacturing_work_orders: ManufacturingWorkOrderTable;
+  manufacturing_wo_consumptions: ManufacturingWoConsumptionTable;
 }
