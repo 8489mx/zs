@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { Card } from '@/shared/ui/card';
@@ -11,7 +10,6 @@ import { ManufacturingLayout } from '@/features/manufacturing/components/Manufac
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
 export default function ManufacturingComponentsPage() {
-  const navigate = useNavigate();
   const [components, setComponents] = useState<ManufacturingComponent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -103,7 +101,7 @@ export default function ManufacturingComponentsPage() {
     >
       <div className="page-stack">
         {isCreating && (
-          <Card className="workspace-panel" style={{ padding: '24px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div className="workspace-panel card" style={{ padding: '24px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px' }}>إضافة مكون جديد</h3>
             <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'end' }}>
               <Field label="اسم المكون *">
@@ -127,7 +125,7 @@ export default function ManufacturingComponentsPage() {
               </Field>
               <Button type="submit" variant="primary" style={{ height: '36px' }}>حفظ المكون</Button>
             </form>
-          </Card>
+          </div>
         )}
 
         <Card className="workspace-panel">

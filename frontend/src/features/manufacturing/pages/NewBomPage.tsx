@@ -224,7 +224,7 @@ export default function NewBomPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lines.map((line, index) => (
+                  {lines.map((line) => (
                     <tr key={line.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '8px' }}>
                         <SearchableCombobox<ManufacturingComponent>
@@ -284,7 +284,7 @@ export default function NewBomPage() {
                       </td>
                       <td style={{ padding: '8px', textAlign: 'center' }}>
                         <Button 
-                          variant="ghost" 
+                          variant="secondary" 
                           onClick={() => removeLine(line.id)}
                           style={{ color: '#ef4444', padding: '4px' }}
                           title="حذف السطر"

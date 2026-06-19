@@ -142,9 +142,6 @@ const shellTranslations = {
     'welcome_msg': 'مرحبًا',
     'expand_menu': 'توسيع القائمة',
     'collapse_menu': 'طي القائمة',
-    'manufacturing-boms': 'قائمة المكونات',
-    'manufacturing-work-orders': 'أوامر الإنتاج',
-    'manufacturing-settings': 'إعدادات التصنيع',
   },
   en: {
     dashboard: 'Dashboard',
@@ -175,15 +172,16 @@ const shellTranslations = {
     'services-group': 'Services & Accounts',
     'admin-group': 'Administration',
     'manufacturing-group': 'Manufacturing & Production',
+    'manufacturing-components': 'Manufacturing Components',
+    'manufacturing-boms': 'Bill of Materials',
+    'manufacturing-work-orders': 'Work Orders',
+    'manufacturing-settings': 'Manufacturing Settings',
     'platform_sub': 'Z Systems Platform',
     'platform_desc': 'Sales and Inventory Management',
     'logout': 'Logout',
     'welcome_msg': 'Welcome',
     'expand_menu': 'Expand Menu',
     'collapse_menu': 'Collapse Menu',
-    'manufacturing-boms': 'BOMs',
-    'manufacturing-work-orders': 'Work Orders',
-    'manufacturing-settings': 'Manufacturing Settings',
   }
 };
 
