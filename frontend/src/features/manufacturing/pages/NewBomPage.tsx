@@ -4,7 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
-import { productsApi } from '@/features/products/api/products.api';
+import { productsApi } from '@/features/products';
 import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
 import { MANUFACTURING_UNITS, calculateConvertedCost } from '@/features/manufacturing/utils/units';
 import { http } from '@/lib/http';
