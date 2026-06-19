@@ -83,7 +83,7 @@ export default function NewBomPage() {
   const updateLine = (id: number, key: keyof BomLine, value: any) => {
     setLines(prevLines => prevLines.map(l => {
       if (l.id !== id) return l;
-      let updated = { ...l, [key]: value };
+      const updated = { ...l, [key]: value };
       
       // If user typed a query, let's see if it exactly matches a component
       if (key === 'query') {
