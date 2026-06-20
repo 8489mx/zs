@@ -14,6 +14,7 @@ type ProductRow = {
   id: number;
   name: string;
   barcode: string | null;
+  item_type?: 'product' | 'raw_material';
   item_kind: 'standard' | 'fashion' | null;
   style_code: string | null;
   color: string | null;
@@ -62,7 +63,7 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty'> & {
   matched_unit_id?: number | null;
   matched_unit_name?: string | null;
   matched_unit_multiplier?: string | number | null;
@@ -158,7 +159,7 @@ export class CatalogProductService {
     const [products, categories, suppliers] = await Promise.all([
       this.db
         .selectFrom('products')
-        .select(['id', 'name', 'barcode', 'item_kind', 'style_code', 'color', 'size', 'category_id', 'supplier_id', 'cost_price', 'retail_price', 'wholesale_price', 'stock_qty', 'min_stock_qty', 'notes'])
+        .select(['id', 'name', 'barcode', 'item_type', 'item_kind', 'style_code', 'color', 'size', 'category_id', 'supplier_id', 'cost_price', 'retail_price', 'wholesale_price', 'stock_qty', 'min_stock_qty', 'notes'])
         .where('is_active', '=', true)
         .where(this.tenantPredicate(actor))
         .orderBy('id', 'desc')
@@ -263,7 +264,7 @@ export class CatalogProductService {
     if (!barcode) return [];
     const productMatches = await this.db
       .selectFrom('products as p')
-      .select(['p.id', 'p.name', 'p.barcode', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty'])
+      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
@@ -282,6 +283,7 @@ export class CatalogProductService {
         'p.id',
         'p.name',
         'p.barcode',
+        'p.item_type',
         'p.item_kind',
         'p.style_code',
         'p.color',
@@ -319,6 +321,7 @@ export class CatalogProductService {
         'p.id',
         'p.name',
         'p.barcode',
+        'p.item_type',
         'p.item_kind',
         'p.style_code',
         'p.color',
@@ -464,6 +467,7 @@ export class CatalogProductService {
       id: String(product.id),
       name: product.name || '',
       barcode: product.barcode || '',
+      itemType: product.item_type === 'raw_material' ? 'raw_material' : 'product',
       itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
       styleCode: product.style_code || '',
       color: product.color || '',
@@ -706,6 +710,7 @@ export class CatalogProductService {
         barcode: product.barcode || '',
         categoryId: product.category_id ? String(product.category_id) : '',
         supplierId: product.supplier_id ? String(product.supplier_id) : '',
+        itemType: product.item_type === 'raw_material' ? 'raw_material' : 'product',
         itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
         styleCode: product.style_code || '',
         color: product.color || '',
@@ -821,6 +826,7 @@ export class CatalogProductService {
     return {
       name: normalizeArabicInput(payload.name),
       barcode: String(payload.barcode || '').trim(),
+      itemType: payload.itemType === 'raw_material' ? 'raw_material' : 'product',
       itemKind: payload.itemKind === 'fashion' ? 'fashion' : 'standard',
       styleCode: String(payload.styleCode || '').trim(),
       color: normalizeArabicInput(payload.color),
@@ -1039,6 +1045,7 @@ export class CatalogProductService {
           .values({
             name: draft.name,
             barcode: draft.barcode || null,
+            item_type: draft.itemType || 'product',
             item_kind: draft.itemKind,
             style_code: draft.styleCode || null,
             color: draft.color || null,
@@ -1117,6 +1124,7 @@ export class CatalogProductService {
       await trx.updateTable('products').set({
         name: normalized.name,
         barcode: normalized.barcode || null,
+        item_type: normalized.itemType || 'product',
         item_kind: normalized.itemKind,
         style_code: normalized.styleCode || null,
         color: normalized.color || null,

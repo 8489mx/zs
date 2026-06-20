@@ -102,6 +102,10 @@ export class UpsertProductDto {
   barcode?: string;
 
   @IsOptional()
+  @IsIn(['product', 'raw_material'])
+  itemType?: 'product' | 'raw_material';
+
+  @IsOptional()
   @IsIn(['standard', 'fashion'])
   itemKind?: 'standard' | 'fashion';
 
@@ -219,6 +223,7 @@ export type NormalizedFashionVariant = {
 export type NormalizedUpsertProduct = {
   name: string;
   barcode: string;
+  itemType: 'product' | 'raw_material';
   itemKind: 'standard' | 'fashion';
   styleCode: string;
   color: string;

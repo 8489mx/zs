@@ -222,6 +222,7 @@ export interface ProductTable {
   barcode: string | null;
   category_id: number | null;
   supplier_id: number | null;
+  item_type: ColumnType<'product' | 'raw_material', 'product' | 'raw_material' | undefined, 'product' | 'raw_material' | undefined>;
   item_kind: ColumnType<'standard' | 'fashion', 'standard' | 'fashion' | undefined, 'standard' | 'fashion' | undefined>;
   style_code: string | null;
   color: string | null;
