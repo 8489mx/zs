@@ -1,4 +1,4 @@
-﻿import { CSSProperties, KeyboardEvent, RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, KeyboardEvent, RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Field } from '@/shared/ui/field';
 
@@ -249,7 +249,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
   const dropdown = shouldRenderDropdown ? createPortal(
     <div
       ref={dropdownRef}
-      className={`purchase-prototype-combobox-dropdown ${dropdownClassName ?? ''}`.trim()}
+      className={`purchase-prototype-combobox-dropdown document-prototype-shell purchase-new-prototype ${dropdownClassName ?? ''}`.trim()}
       role="listbox"
       aria-label={label}
       style={dropdownStyle}
