@@ -5,6 +5,7 @@ import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 
 import { http } from '@/lib/http';
+import { useAuthStore } from '@/stores/auth-store';
 
 type BomOption = {
   id: string;
@@ -22,6 +23,9 @@ import { ManufacturingLayout } from '@/features/manufacturing/components/Manufac
 
 export default function NewWorkOrderPage() {
   const navigate = useNavigate();
+  const user = useAuthStore(s => s.user);
+  const userName = user?.displayName || user?.username || 'مدير النظام';
+  
   const [boms, setBoms] = useState<BomOption[]>([]);
   const [locations, setLocations] = useState<LocationOption[]>([]);
   
@@ -95,8 +99,8 @@ export default function NewWorkOrderPage() {
         produced_quantity: 0,
         start_date: new Date().toISOString(),
         end_date: null,
-        total_cost: (selectedBom.expected_cost || 0) * quantity,
-        created_by: 'مدير النظام'
+        total_cost: (selectedBom.expectedCost || 0) * quantity,
+        created_by: userName
       };
       localStorage.setItem('mock_work_orders', JSON.stringify([...existing, newWO]));
 

@@ -5,6 +5,7 @@ import { DataTable } from '@/shared/ui/data-table';
 import { Card } from '@/shared/ui/card';
 import { Field } from '@/shared/ui/field';
 import { http } from '@/lib/http';
+import { useAuthStore } from '@/stores/auth-store';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
 type WorkOrderRecord = {
@@ -45,6 +46,8 @@ export default function WorkOrdersListPage() {
   const [dateFilter, setDateFilter] = useState<'all'|'today'|'week'|'month'>('all');
   const [userFilter, setUserFilter] = useState('all');
   const [users, setUsers] = useState<{id: string, name: string}[]>([]);
+  const currentUser = useAuthStore(s => s.user);
+  const currentUserName = currentUser?.displayName || currentUser?.username || 'مدير النظام';
 
   useEffect(() => {
     http<{ users: any[] }>('/api/users')
@@ -61,7 +64,10 @@ export default function WorkOrdersListPage() {
         // Load local
         const localStr = localStorage.getItem('mock_work_orders');
         if (localStr) {
-           const local = JSON.parse(localStr);
+           let local = JSON.parse(localStr);
+           // Auto-migrate old local mock data created by 'مدير النظام' to the actual logged-in user
+           local = local.map((l: any) => l.created_by === 'مدير النظام' ? { ...l, created_by: currentUserName } : l);
+           localStorage.setItem('mock_work_orders', JSON.stringify(local));
            allWo = [...allWo, ...local];
         }
         setWorkOrders(allWo);
@@ -70,7 +76,10 @@ export default function WorkOrdersListPage() {
         // Load local only
         const localStr = localStorage.getItem('mock_work_orders');
         if (localStr) {
-           setWorkOrders(JSON.parse(localStr));
+           let local = JSON.parse(localStr);
+           local = local.map((l: any) => l.created_by === 'مدير النظام' ? { ...l, created_by: currentUserName } : l);
+           localStorage.setItem('mock_work_orders', JSON.stringify(local));
+           setWorkOrders(local);
         }
       })
       .finally(() => setIsLoading(false));
