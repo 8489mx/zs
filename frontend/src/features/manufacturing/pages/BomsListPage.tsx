@@ -86,7 +86,7 @@ export default function BomsListPage() {
         </Button>
       }
     >
-        <Card className="workspace-panel">
+        <Card className="document-prototype-section">
           <div className="page-stack">
           {isLoading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>جاري التحميل...</div>

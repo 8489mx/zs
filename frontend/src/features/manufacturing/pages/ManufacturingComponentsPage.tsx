@@ -153,7 +153,7 @@ export default function ManufacturingComponentsPage() {
     >
       <div className="page-stack">
         {isFormVisible && (
-          <div className="workspace-panel card" style={{ padding: '24px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+          <div className="document-prototype-section card" style={{ padding: '24px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px' }}>
               {editingComponent ? 'تعديل مكون: ' + editingComponent.name : 'إضافة مكون جديد'}
             </h3>
@@ -187,7 +187,7 @@ export default function ManufacturingComponentsPage() {
           </div>
         )}
 
-        <Card className="workspace-panel">
+        <Card className="document-prototype-section">
           <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb' }}>
             <input 
               type="search" 

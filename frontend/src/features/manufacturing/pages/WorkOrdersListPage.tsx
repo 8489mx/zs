@@ -164,7 +164,7 @@ export default function WorkOrdersListPage() {
         </Button>
       }
     >
-        <Card className="workspace-panel">
+        <Card className="document-prototype-section">
           <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
             <Field label="الفترة الزمنية" style={{ margin: 0, minWidth: '200px' }}>
               <select className="purchase-prototype-field-input" value={dateFilter} onChange={e => setDateFilter(e.target.value as any)}>
