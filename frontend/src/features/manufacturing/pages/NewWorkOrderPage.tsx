@@ -83,6 +83,23 @@ export default function NewWorkOrderPage() {
       alert('تم إنشاء أمر الإنتاج بنجاح');
       navigate('/products');
     } catch {
+      const existingStr = localStorage.getItem('mock_work_orders');
+      const existing = existingStr ? JSON.parse(existingStr) : [];
+      const newWO = {
+        id: Date.now(),
+        doc_no: `WO-${Date.now().toString().slice(-4)}`,
+        bom_id: selectedBom.id,
+        product_name: selectedBom.product_name || selectedBom.name,
+        status: 'draft',
+        quantity_to_produce: quantity,
+        produced_quantity: 0,
+        start_date: new Date().toISOString(),
+        end_date: null,
+        total_cost: (selectedBom.expected_cost || 0) * quantity,
+        created_by: 'مدير النظام'
+      };
+      localStorage.setItem('mock_work_orders', JSON.stringify([...existing, newWO]));
+
       alert('تم إنشاء أمر الإنتاج بنجاح (محلياً)');
       navigate('/manufacturing/work-orders');
     } finally {

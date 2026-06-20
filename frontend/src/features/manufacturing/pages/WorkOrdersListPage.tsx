@@ -21,13 +21,6 @@ type WorkOrderRecord = {
   created_by?: string;
 };
 
-const MOCK_USERS = [
-  { id: 'all', name: 'كل المستخدمين' },
-  { id: 'user1', name: 'أحمد محمود' },
-  { id: 'user2', name: 'سارة خالد' },
-  { id: 'user3', name: 'محمد علي' }
-];
-
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
 const statusLabels: Record<string, string> = {
@@ -51,16 +44,34 @@ export default function WorkOrdersListPage() {
   
   const [dateFilter, setDateFilter] = useState<'all'|'today'|'week'|'month'>('all');
   const [userFilter, setUserFilter] = useState('all');
+  const [users, setUsers] = useState<{id: string, name: string}[]>([]);
 
   useEffect(() => {
+    http<{ users: any[] }>('/api/users')
+      .then(res => {
+        if (res.users) {
+          setUsers(res.users.map(u => ({ id: u.id, name: u.displayName || u.username })));
+        }
+      })
+      .catch(() => {});
+
     http<{ workOrders: WorkOrderRecord[] }>('/api/manufacturing/work-orders')
       .then(res => {
-        // Add some mock users to the real data so the filter can be tested
-        const enriched = (res.workOrders || []).map((wo, i) => ({
-          ...wo,
-          created_by: MOCK_USERS[(i % 3) + 1].name
-        }));
-        setWorkOrders(enriched);
+        let allWo = res.workOrders || [];
+        // Load local
+        const localStr = localStorage.getItem('mock_work_orders');
+        if (localStr) {
+           const local = JSON.parse(localStr);
+           allWo = [...allWo, ...local];
+        }
+        setWorkOrders(allWo);
+      })
+      .catch(() => {
+        // Load local only
+        const localStr = localStorage.getItem('mock_work_orders');
+        if (localStr) {
+           setWorkOrders(JSON.parse(localStr));
+        }
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -68,7 +79,7 @@ export default function WorkOrdersListPage() {
   const getFilteredOrders = () => {
     return workOrders.filter(wo => {
       // User filter
-      if (userFilter !== 'all' && wo.created_by !== MOCK_USERS.find(u => u.id === userFilter)?.name) {
+      if (userFilter !== 'all' && wo.created_by !== users.find(u => u.id === userFilter)?.name) {
         return false;
       }
       
@@ -166,7 +177,8 @@ export default function WorkOrdersListPage() {
             
             <Field label="المستخدم (المنفذ)" style={{ margin: 0, minWidth: '200px' }}>
               <select className="purchase-prototype-field-input" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
-                {MOCK_USERS.map(u => (
+                <option value="all">كل المستخدمين</option>
+                {users.map(u => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
