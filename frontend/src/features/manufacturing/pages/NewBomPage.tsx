@@ -7,7 +7,7 @@ import { ManufacturingLayout } from '@/features/manufacturing/components/Manufac
 import { productsApi } from '@/features/products';
 import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
 import { MANUFACTURING_UNITS, calculateConvertedCost } from '@/features/manufacturing/utils/units';
-import { http } from '@/lib/http';
+import { bomsApi } from '@/features/manufacturing/api/boms.api';
 import type { Product } from '@/types/domain';
 
 type BomLine = {
@@ -53,45 +53,21 @@ export default function NewBomPage() {
 
     setIsSaving(true);
     try {
-      await http('/api/manufacturing/boms', {
-        method: 'POST',
-        body: JSON.stringify({
-          productId: Number(selectedProduct.id),
-          quantity: quantity,
-          lines: lines.map(l => ({
-            componentId: l.componentId,
-            quantity: l.quantity,
-            unitName: l.unitName,
-            expectedCost: l.expectedCost,
-          }))
-        })
+      await bomsApi.create({
+        productId: Number(selectedProduct.id),
+        quantity: quantity,
+        lines: lines.map(l => ({
+          componentId: Number(l.componentId),
+          quantity: l.quantity,
+          unitName: l.unitName,
+          expectedCost: l.expectedCost,
+        }))
       });
       alert('تم حفظ التركيبة بنجاح');
       navigate('/manufacturing/boms');
-    } catch {
-      // Mock Saving to localStorage if backend is not available
-      const existingStr = localStorage.getItem('mock_boms');
-      const existing = existingStr ? JSON.parse(existingStr) : [];
-      
-      const newBom = {
-        id: Date.now(),
-        product_id: selectedProduct.id,
-        product_name: selectedProduct.name,
-        quantity: quantity,
-        expected_cost: totalCost,
-        created_at: new Date().toISOString(),
-        is_active: true,
-        lines: lines.map(l => ({
-            componentId: l.componentId,
-            quantity: l.quantity,
-            unitName: l.unitName,
-            expectedCost: l.expectedCost,
-        }))
-      };
-      localStorage.setItem('mock_boms', JSON.stringify([...existing, newBom]));
-      
-      alert('تم حفظ التركيبة بنجاح (محلياً)');
-      navigate('/manufacturing/boms');
+    } catch (e) {
+      console.error(e);
+      alert('حدث خطأ أثناء حفظ التركيبة');
     } finally {
       setIsSaving(false);
     }

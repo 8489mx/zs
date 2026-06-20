@@ -8,20 +8,7 @@ import { http } from '@/lib/http';
 import { useAuthStore } from '@/stores/auth-store';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
-type WorkOrderRecord = {
-  id: string;
-  doc_no: string;
-  bom_id: string;
-  product_name: string;
-  status: 'draft' | 'in_progress' | 'done' | 'cancelled';
-  quantity_to_produce: number;
-  produced_quantity: number;
-  total_cost: number;
-  start_date?: string;
-  end_date?: string;
-  created_by?: string;
-  created_by_id?: string;
-};
+import { workOrdersApi, type WorkOrderRecord } from '@/features/manufacturing/api/work-orders.api';
 
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
@@ -59,30 +46,9 @@ export default function WorkOrdersListPage() {
       })
       .catch(() => {});
 
-    http<{ workOrders: WorkOrderRecord[] }>('/api/manufacturing/work-orders')
-      .then(res => {
-        let allWo = res.workOrders || [];
-        // Load local
-        const localStr = localStorage.getItem('mock_work_orders');
-        if (localStr) {
-           let local = JSON.parse(localStr);
-           // Auto-migrate old local mock data created by 'مدير النظام' to the actual logged-in user
-           local = local.map((l: any) => l.created_by === 'مدير النظام' ? { ...l, created_by: currentUserName } : l);
-           localStorage.setItem('mock_work_orders', JSON.stringify(local));
-           allWo = [...allWo, ...local];
-        }
-        setWorkOrders(allWo);
-      })
-      .catch(() => {
-        // Load local only
-        const localStr = localStorage.getItem('mock_work_orders');
-        if (localStr) {
-           let local = JSON.parse(localStr);
-           local = local.map((l: any) => l.created_by === 'مدير النظام' ? { ...l, created_by: currentUserName } : l);
-           localStorage.setItem('mock_work_orders', JSON.stringify(local));
-           setWorkOrders(local);
-        }
-      })
+    workOrdersApi.list()
+      .then(setWorkOrders)
+      .catch(e => console.error('Failed to load work orders', e))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -155,12 +121,12 @@ export default function WorkOrdersListPage() {
           variant="secondary" 
           onClick={() => {
             if (confirm('هل أنت متأكد من إنهاء أمر الإنتاج وسحب المواد من المخزن وإضافة المنتج التام؟')) {
-              http(`/api/manufacturing/work-orders/${row.id}/complete`, { method: 'PATCH', body: JSON.stringify({}) })
+              workOrdersApi.complete(row.id, {})
                 .then(() => {
                   alert('تم إنهاء أمر الإنتاج بنجاح');
                   setWorkOrders(workOrders.map(wo => wo.id === row.id ? { ...wo, status: 'done' } : wo));
                 })
-                .catch(() => alert('حدث خطأ أثناء إنهاء الأمر'));
+                .catch((e: any) => alert(e?.message || 'حدث خطأ أثناء إنهاء الأمر'));
             }
           }}
         >

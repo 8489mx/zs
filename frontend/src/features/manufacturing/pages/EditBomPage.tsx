@@ -7,7 +7,7 @@ import { ManufacturingLayout } from '@/features/manufacturing/components/Manufac
 import { productsApi } from '@/features/products';
 import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
 import { MANUFACTURING_UNITS, calculateConvertedCost } from '@/features/manufacturing/utils/units';
-import { http } from '@/lib/http';
+import { bomsApi } from '@/features/manufacturing/api/boms.api';
 import type { Product } from '@/types/domain';
 
 type BomLine = {
@@ -44,15 +44,13 @@ export default function EditBomPage() {
       setComponents(compRes);
 
       if (id) {
-        const existingStr = localStorage.getItem('mock_boms');
-        if (existingStr) {
-          const parsed = JSON.parse(existingStr);
-          const bom = parsed.find((b: any) => String(b.id) === id);
+        bomsApi.list().then(bomsRes => {
+          const bom = bomsRes.find((b: any) => String(b.id) === id);
           if (bom) {
             setSelectedProduct({ id: bom.product_id, name: bom.product_name } as Product);
             setProductQuery(bom.product_name);
             setQuantity(bom.quantity);
-            setLines(bom.lines.map((l: any) => {
+            setLines(bom.lines ? bom.lines.map((l: any) => {
               const comp = compRes.find(c => String(c.id) === String(l.componentId));
               return {
                 id: Date.now() + Math.random(),
@@ -65,9 +63,9 @@ export default function EditBomPage() {
                 expectedCost: l.expectedCost,
                 query: comp ? comp.name : ''
               };
-            }));
+            }) : []);
           }
-        }
+        });
       }
     });
   }, [id]);
@@ -86,46 +84,22 @@ export default function EditBomPage() {
 
     setIsSaving(true);
     try {
-      await http(`/api/manufacturing/boms/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          productId: Number(selectedProduct.id),
-          quantity: quantity,
-          lines: lines.map(l => ({
-            componentId: l.componentId,
-            quantity: l.quantity,
-            unitName: l.unitName,
-            expectedCost: l.expectedCost,
-          }))
-        })
+    try {
+      await bomsApi.update(id as string, {
+        productId: Number(selectedProduct.id),
+        quantity: quantity,
+        lines: lines.map(l => ({
+          componentId: Number(l.componentId),
+          quantity: l.quantity,
+          unitName: l.unitName,
+          expectedCost: l.expectedCost,
+        }))
       });
       alert('تم تحديث التركيبة بنجاح');
       navigate('/manufacturing/boms');
-    } catch {
-      const existingStr = localStorage.getItem('mock_boms');
-      const existing = existingStr ? JSON.parse(existingStr) : [];
-      
-      const newBom = {
-        id: Number(id),
-        product_id: selectedProduct.id,
-        product_name: selectedProduct.name,
-        quantity: quantity,
-        expected_cost: totalCost,
-        created_at: new Date().toISOString(),
-        is_active: true,
-        lines: lines.map(l => ({
-            componentId: l.componentId,
-            quantity: l.quantity,
-            unitName: l.unitName,
-            expectedCost: l.expectedCost,
-        }))
-      };
-      
-      const updated = existing.map((b: any) => String(b.id) === id ? newBom : b);
-      localStorage.setItem('mock_boms', JSON.stringify(updated));
-      
-      alert('تم تحديث التركيبة بنجاح (محلياً)');
-      navigate('/manufacturing/boms');
+    } catch (e: any) {
+      console.error(e);
+      alert('حدث خطأ أثناء تحديث التركيبة. تأكد من أن الـ Backend يدعم عملية التحديث.');
     } finally {
       setIsSaving(false);
     }

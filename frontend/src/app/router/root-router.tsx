@@ -116,6 +116,10 @@ const router = createBrowserRouter([
     children: [
       ...appRoutes.map((route) => ({ index: route.index, path: route.path, element: route.element })),
       {
+        path: 'profile',
+        element: createLazyRoute(() => import('@/features/auth/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
+      },
+      {
         path: '*',
         element: createLazyRoute(() => import('@/features/not-found/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })))
       }

@@ -8,9 +8,11 @@ import { AuditService } from '../../core/audit/audit.service';
 import { UpsertUserDto } from './dto/upsert-user.dto';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
-import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
+import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
 import { assertStrongPassword } from '../../core/auth/utils/password-policy';
 import { ensureUsersPayload, filterUsers, mapUserRow, normalizeBranchIds, normalizeUserId, normalizeUserListQuery, summarizeUsers } from './helpers/users.helper';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -196,6 +198,70 @@ export class UsersService {
       ok: true,
       user: mapUserRow(updated, branchMap.get(id) ?? []),
       users: usersState.users,
+    };
+  }
+
+  async changePassword(payload: ChangePasswordDto, actor: AuthContext): Promise<Record<string, unknown>> {
+    const id = Number(actor.userId);
+    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
+    
+    if (!existing) {
+      throw new AppError('User not found', 'USER_NOT_FOUND', 404);
+    }
+
+    const verification = await verifyPassword(payload.oldPassword, String(existing.password_hash || ''), String(existing.password_salt || ''));
+    if (!verification.valid) {
+      throw new AppError('كلمة المرور القديمة غير صحيحة', 'INVALID_OLD_PASSWORD', 400);
+    }
+
+    assertStrongPassword(payload.newPassword);
+    const passwordRecord = await createPasswordRecord(payload.newPassword);
+
+    await this.db.updateTable('users')
+      .set({
+        password_hash: passwordRecord.hash,
+        password_salt: passwordRecord.salt,
+        must_change_password: false,
+        failed_login_count: 0,
+        locked_until: null,
+      } as any)
+      .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
+      .execute();
+
+    await this.audit.log('تغيير كلمة المرور', `المستخدم ${existing.username} قام بتغيير كلمة المرور الخاصة به`, actor);
+
+    return { ok: true, message: 'تم تغيير كلمة المرور بنجاح' };
+  }
+
+  async updateProfile(payload: UpdateProfileDto, actor: AuthContext): Promise<Record<string, unknown>> {
+    const id = Number(actor.userId);
+    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
+    if (!existing) {
+      throw new AppError('User not found', 'USER_NOT_FOUND', 404);
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (payload.username) {
+      await this.ensureUniqueUsername(payload.username, actor, id);
+      updates.username = payload.username.trim();
+    }
+    if (payload.name !== undefined) {
+      updates.display_name = payload.name.trim() || (payload.username || existing.username).trim();
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await this.db.updateTable('users').set(updates as any).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      await this.audit.log('تعديل الملف الشخصي', `المستخدم ${existing.username} قام بتعديل بيانات ملفه الشخصي`, actor);
+    }
+
+    const updated = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
+    const branchMap = await this.loadBranchMap([id], actor);
+    
+    return {
+      ok: true,
+      user: mapUserRow(updated, branchMap.get(id) ?? []),
+      message: 'تم تحديث البيانات بنجاح'
     };
   }
 

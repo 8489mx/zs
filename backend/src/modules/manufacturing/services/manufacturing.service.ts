@@ -64,7 +64,76 @@ export class ManufacturingService {
       .where(sql<boolean>`b.tenant_id = ${scope.tenantId}`)
       .orderBy('b.id', 'desc')
       .execute();
+
+    for (const bom of boms) {
+      const lines = await this.db.selectFrom('manufacturing_bom_lines')
+        .selectAll()
+        .where('bom_id', '=', bom.id)
+        .execute();
+      
+      (bom as any).lines = lines.map(l => ({
+        componentId: l.component_product_id,
+        quantity: l.quantity,
+        unitName: l.unit_name,
+        expectedCost: l.expected_cost
+      }));
+    }
+
     return { ok: true, boms };
+  }
+
+  async updateBom(id: number, payload: CreateBomDto, auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const totalExpectedCost = payload.lines.reduce((sum, line) => sum + line.expectedCost * line.quantity, 0);
+
+      await trx.updateTable('manufacturing_boms')
+        .set({
+          product_id: payload.productId,
+          quantity: payload.quantity,
+          expected_cost: totalExpectedCost,
+        } as any)
+        .where('id', '=', id)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+
+      await trx.deleteFrom('manufacturing_bom_lines')
+        .where('bom_id', '=', id)
+        .execute();
+
+      const lines = payload.lines.map((line) => ({
+        bom_id: id,
+        component_product_id: line.componentProductId,
+        quantity: line.quantity,
+        unit_name: line.unitName,
+        unit_multiplier: line.unitMultiplier,
+        expected_cost: line.expectedCost,
+      } as any));
+
+      await trx.insertInto('manufacturing_bom_lines').values(lines).execute();
+    });
+
+    await this.audit.log('تعديل قائمة مكونات', `تم تعديل تركيبة المنتج #${payload.productId}`, auth);
+    return { ok: true };
+  }
+
+  async deleteBom(id: number, auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      await trx.deleteFrom('manufacturing_bom_lines')
+        .where('bom_id', '=', id)
+        .execute();
+
+      await trx.deleteFrom('manufacturing_boms')
+        .where('id', '=', id)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+    });
+
+    await this.audit.log('حذف قائمة مكونات', `تم حذف التركيبة #${id}`, auth);
+    return { ok: true };
   }
 
   async createWorkOrder(payload: CreateWorkOrderDto, auth: AuthContext) {
@@ -154,9 +223,13 @@ export class ManufacturingService {
 
       // Get BOM lines
       const lines = await trx
-        .selectFrom('manufacturing_bom_lines')
-        .selectAll()
-        .where('bom_id', '=', wo.bom_id)
+        .selectFrom('manufacturing_bom_lines as l')
+        .innerJoin('products as p', 'p.id', 'l.component_product_id')
+        .select([
+          'l.id', 'l.component_product_id', 'l.quantity', 'l.unit_name', 'l.expected_cost',
+          'p.name as component_name'
+        ])
+        .where('l.bom_id', '=', wo.bom_id)
         .execute();
 
       let totalCost = 0;
@@ -181,6 +254,8 @@ export class ManufacturingService {
         const stockChange = await applyStockDelta(trx, {
           ...stockScope,
           delta: -requiredQty,
+          errorCode: 'INSUFFICIENT_RAW_MATERIAL',
+          errorMessage: `لا يوجد رصيد كافٍ من المادة الخام: ${line.component_name}`
         });
 
         await trx.insertInto('stock_movements').values({
@@ -232,6 +307,21 @@ export class ManufacturingService {
         } as any)
         .where('id', '=', id)
         .execute();
+
+      // Update finished good average cost_price
+      const finishedProduct = await trx.selectFrom('products').select(['stock_qty', 'cost_price']).where('id', '=', Number(wo.finished_product_id)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+      if (finishedProduct) {
+        const oldStock = Number(finishedProduct.stock_qty || 0);
+        const oldCost = Number(finishedProduct.cost_price || 0);
+        // Avoid division by zero if stock is negative or exactly zero before production
+        const newCost = oldStock >= 0 ? (oldStock * oldCost + totalCost) / (oldStock + qtyToProduce) : totalCost / qtyToProduce;
+        
+        await trx.updateTable('products')
+          .set({ cost_price: newCost, updated_at: sql`NOW()` })
+          .where('id', '=', Number(wo.finished_product_id))
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+      }
     });
 
     await this.audit.log('إنهاء أمر إنتاج', `تم إنهاء أمر إنتاج #${id}`, auth);

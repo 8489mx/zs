@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, ParseIntPipe, Patch, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseIntPipe, Patch, Put, Delete, UseGuards, Req } from '@nestjs/common';
 import { ManufacturingService } from '../services/manufacturing.service';
 import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto } from '../dto/manufacturing.dto';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
@@ -21,6 +21,35 @@ export class ManufacturingController {
   @RequirePermissions('inventory:read')
   getBoms(@Req() req: RequestWithAuth) {
     return this.manufacturingService.getBoms(req.authContext!);
+  }
+
+  @Patch('boms/:id')
+  @RequirePermissions('inventory:write')
+  updateBom(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateBomDto,
+    @Req() req: RequestWithAuth
+  ) {
+    return this.manufacturingService.updateBom(id, dto, req.authContext!);
+  }
+
+  @Put('boms/:id')
+  @RequirePermissions('inventory:write')
+  updateBomPut(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateBomDto,
+    @Req() req: RequestWithAuth
+  ) {
+    return this.manufacturingService.updateBom(id, dto, req.authContext!);
+  }
+
+  @Delete('boms/:id')
+  @RequirePermissions('inventory:write')
+  deleteBom(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithAuth
+  ) {
+    return this.manufacturingService.deleteBom(id, req.authContext!);
   }
 
   @Post('work-orders')

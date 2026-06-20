@@ -6,14 +6,7 @@ import { Card } from '@/shared/ui/card';
 
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
-type BomRecord = {
-  id: string;
-  product_name: string;
-  quantity: number;
-  expected_cost: number;
-  is_active: boolean;
-  created_at: string;
-};
+import { bomsApi, type BomRecord } from '@/features/manufacturing/api/boms.api';
 
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
@@ -23,16 +16,10 @@ export default function BomsListPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load BOMs directly from localStorage for prototype
-    const existingStr = localStorage.getItem('mock_boms');
-    if (existingStr) {
-      try {
-        setBoms(JSON.parse(existingStr));
-      } catch (e) {
-        console.error('Failed to parse mock_boms', e);
-      }
-    }
-    setIsLoading(false);
+    bomsApi.list()
+      .then(setBoms)
+      .catch(e => console.error('Failed to load boms', e))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const columns: Column<BomRecord>[] = [
@@ -54,18 +41,14 @@ export default function BomsListPage() {
     )}
   ];
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string | number) => {
     if (!confirm('هل أنت متأكد من حذف هذه التركيبة؟')) return;
-    const existingStr = localStorage.getItem('mock_boms');
-    if (existingStr) {
-      try {
-        const parsed = JSON.parse(existingStr);
-        const filtered = parsed.filter((b: any) => b.id !== id);
-        localStorage.setItem('mock_boms', JSON.stringify(filtered));
-        setBoms(filtered);
-      } catch (e) {
-        console.error(e);
-      }
+    try {
+      await bomsApi.delete(id);
+      setBoms(boms.filter(b => b.id !== id));
+    } catch (e) {
+      console.error(e);
+      alert('فشل في حذف التركيبة. قد لا تكون هذه الخاصية مدعومة في الخادم حالياً.');
     }
   };
 

@@ -7,11 +7,23 @@ import { UpsertUserDto } from './dto/upsert-user.dto';
 import { SyncUsersDto } from './dto/sync-users.dto';
 import { BulkDisableUsersDto } from './dto/bulk-disable-users.dto';
 import { UsersService } from './users.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('api/users')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Put('me/password')
+  changePassword(@Body() payload: ChangePasswordDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.usersService.changePassword(payload, req.authContext!);
+  }
+
+  @Put('me')
+  updateProfile(@Body() payload: UpdateProfileDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.usersService.updateProfile(payload, req.authContext!);
+  }
 
   @Get()
   @RequirePermissions('canManageUsers')

@@ -4,7 +4,8 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 
-import { http } from '@/lib/http';
+import { bomsApi } from '@/features/manufacturing/api/boms.api';
+import { workOrdersApi } from '@/features/manufacturing/api/work-orders.api';
 import { useAuthStore } from '@/stores/auth-store';
 
 type BomOption = {
@@ -44,21 +45,15 @@ export default function NewWorkOrderPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Load BOMs directly from localStorage for prototype
-    const existingStr = localStorage.getItem('mock_boms');
-    if (existingStr) {
-      try {
-        const parsed = JSON.parse(existingStr);
-        setBoms(parsed.map((b: any) => ({
-          id: String(b.id),
-          name: `وصفة: ${b.product_name} - ${b.quantity} قطعة`,
-          productName: b.product_name,
-          expectedCost: b.expected_cost || 0
-        })));
-      } catch (e) {
-        console.error('Failed to parse mock_boms', e);
-      }
-    }
+    // Fetch BOMs from API
+    bomsApi.list().then(res => {
+      setBoms(res.map(b => ({
+        id: String(b.id),
+        name: `وصفة: ${b.product_name} - ${b.quantity} قطعة`,
+        productName: b.product_name,
+        expectedCost: b.expected_cost || 0
+      })));
+    }).catch(e => console.error('Failed to load BOMs', e));
 
     // Load Mock Locations
     setLocations([
@@ -74,39 +69,18 @@ export default function NewWorkOrderPage() {
 
     setIsSaving(true);
     try {
-      await http('/api/manufacturing/work-orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          bomId: Number(selectedBom.id),
-          quantityToProduce: quantity,
-          sourceLocationId: Number(selectedSource.id),
-          destinationLocationId: Number(selectedDest.id),
-          note
-        })
+      await workOrdersApi.create({
+        bomId: Number(selectedBom.id),
+        quantityToProduce: quantity,
+        sourceLocationId: Number(selectedSource.id),
+        destinationLocationId: Number(selectedDest.id),
+        note
       });
       alert('تم إنشاء أمر الإنتاج بنجاح');
-      navigate('/products');
-    } catch {
-      const existingStr = localStorage.getItem('mock_work_orders');
-      const existing = existingStr ? JSON.parse(existingStr) : [];
-      const newWO = {
-        id: Date.now(),
-        doc_no: `WO-${Date.now().toString().slice(-4)}`,
-        bom_id: selectedBom.id,
-        product_name: selectedBom.productName || selectedBom.name,
-        status: 'draft',
-        quantity_to_produce: quantity,
-        produced_quantity: 0,
-        start_date: new Date().toISOString(),
-        end_date: null,
-        total_cost: (selectedBom.expectedCost || 0) * quantity,
-        created_by: userName,
-        created_by_id: user?.id
-      };
-      localStorage.setItem('mock_work_orders', JSON.stringify([...existing, newWO]));
-
-      alert('تم إنشاء أمر الإنتاج بنجاح (محلياً)');
       navigate('/manufacturing/work-orders');
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || 'حدث خطأ أثناء إنشاء أمر الإنتاج');
     } finally {
       setIsSaving(false);
     }
