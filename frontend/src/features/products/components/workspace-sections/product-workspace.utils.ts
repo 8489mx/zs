@@ -10,6 +10,7 @@ export function toProductFormValues(product: Product): ProductFormOutput {
   return {
     name: product.name || '',
     barcode: product.barcode || '',
+    itemType: product.itemType || 'product',
     itemKind: product.itemKind === 'fashion' ? 'fashion' : 'standard',
     styleCode: product.styleCode || '',
     color: product.color || '',
@@ -58,6 +59,7 @@ export function buildUpdatePayload(
   return {
     name: values.name,
     barcode: values.barcode || '',
+    itemType: values.itemType || 'product',
     itemKind,
     styleCode: values.styleCode || '',
     color: values.color || '',

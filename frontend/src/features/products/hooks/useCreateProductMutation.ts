@@ -67,6 +67,7 @@ function buildProductPayload(values: ProductFormValues) {
   return {
     name: normalizeArabicInput(values.name),
     barcode: groupedEntryEnabled ? '' : (values.barcode || ''),
+    itemType: values.itemType || 'product',
     itemKind,
     styleCode: groupedEntryEnabled ? normalizeNumericStyleCode(values.styleCode || '') : (values.styleCode || ''),
     color: groupedEntryEnabled ? '' : normalizeArabicInput(values.color || ''),

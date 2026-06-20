@@ -267,6 +267,13 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
 
       <div className="surface-note" style={{ padding: 12 }}>
         <div className="actions compact-actions" style={{ flexWrap: 'wrap' }}>
+          <div className="field" style={{ minWidth: 220 }}>
+            <label>تصنيف الصنف</label>
+            <select {...form.register('itemType')} disabled={mutation.isPending}>
+              <option value="product">منتج نهائي للبيع</option>
+              <option value="raw_material">مادة خام / مكون تصنيع</option>
+            </select>
+          </div>
           {clothingModuleEnabled ? (
             <div className="field" style={{ minWidth: 220 }}><label>نوع الصنف</label>
               <select {...form.register('itemKind')} disabled={mutation.isPending}>

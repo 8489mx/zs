@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const productFormSchema = z.object({
   name: z.string().min(2, 'اسم الصنف مطلوب'),
   barcode: z.string().optional(),
+  itemType: z.enum(['product', 'raw_material']).default('product'),
   itemKind: z.enum(['standard', 'fashion']).default('standard'),
   styleCode: z.string().optional(),
   color: z.string().optional(),
