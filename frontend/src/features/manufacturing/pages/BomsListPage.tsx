@@ -25,6 +25,12 @@ export default function BomsListPage() {
   useEffect(() => {
     http<{ boms: BomRecord[] }>('/api/manufacturing/boms')
       .then(res => setBoms(res.boms || []))
+      .catch(() => {
+        const existingStr = localStorage.getItem('mock_boms');
+        if (existingStr) {
+          setBoms(JSON.parse(existingStr));
+        }
+      })
       .finally(() => setIsLoading(false));
   }, []);
 

@@ -50,6 +50,18 @@ export default function NewWorkOrderPage() {
           expectedCost: b.expected_cost
         })));
       }
+    })
+    .catch(() => {
+      const existingStr = localStorage.getItem('mock_boms');
+      if (existingStr) {
+        const parsed = JSON.parse(existingStr);
+        setBoms(parsed.map((b: any) => ({
+          id: String(b.id),
+          name: `وصفة: ${b.product_name} - ${b.quantity} قطعة`,
+          productName: b.product_name,
+          expectedCost: b.expected_cost
+        })));
+      }
     });
 
     http<{ locations: any[] }>('/api/locations')

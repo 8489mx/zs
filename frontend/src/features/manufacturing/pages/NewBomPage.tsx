@@ -69,7 +69,28 @@ export default function NewBomPage() {
       alert('تم حفظ التركيبة بنجاح');
       navigate('/manufacturing/boms');
     } catch {
-      alert('حدث خطأ أثناء الحفظ (للعرض فقط: مسار وهمي)');
+      // Mock Saving to localStorage if backend is not available
+      const existingStr = localStorage.getItem('mock_boms');
+      const existing = existingStr ? JSON.parse(existingStr) : [];
+      
+      const newBom = {
+        id: Date.now(),
+        product_id: selectedProduct.id,
+        product_name: selectedProduct.name,
+        quantity: quantity,
+        expected_cost: totalCost,
+        created_at: new Date().toISOString(),
+        is_active: true,
+        lines: lines.map(l => ({
+            componentId: l.componentId,
+            quantity: l.quantity,
+            unitName: l.unitName,
+            expectedCost: l.expectedCost,
+        }))
+      };
+      localStorage.setItem('mock_boms', JSON.stringify([...existing, newBom]));
+      
+      alert('تم حفظ التركيبة بنجاح (محلياً)');
       navigate('/manufacturing/boms');
     } finally {
       setIsSaving(false);
