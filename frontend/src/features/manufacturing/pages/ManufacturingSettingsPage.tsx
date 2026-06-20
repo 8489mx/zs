@@ -36,6 +36,7 @@ export default function ManufacturingSettingsPage() {
         { id: '3', name: 'مخزن الإنتاج التام' }
       ]);
     });
+  }, []);
 
   useEffect(() => {
     // Load from localStorage if backend is not available
