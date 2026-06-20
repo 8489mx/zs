@@ -23,7 +23,8 @@ export class ManufacturingService {
     let bomId = 0;
 
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const totalExpectedCost = payload.lines.reduce((sum, line) => sum + line.expectedCost * line.quantity, 0);
+      const overheadCost = payload.overheadCost || 0;
+      const totalExpectedCost = payload.lines.reduce((sum, line) => sum + line.expectedCost * line.quantity, 0) + overheadCost;
 
       const bom = await trx
         .insertInto('manufacturing_boms')
@@ -31,6 +32,7 @@ export class ManufacturingService {
           product_id: payload.productId,
           quantity: payload.quantity,
           expected_cost: totalExpectedCost,
+          overhead_cost: overheadCost,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any)
@@ -46,6 +48,7 @@ export class ManufacturingService {
         unit_name: line.unitName,
         unit_multiplier: line.unitMultiplier,
         expected_cost: line.expectedCost,
+        waste_percentage: line.wastePercentage || 0,
       } as any));
 
       await trx.insertInto('manufacturing_bom_lines').values(lines).execute();
@@ -60,7 +63,8 @@ export class ManufacturingService {
     const boms = await this.db
       .selectFrom('manufacturing_boms as b')
       .innerJoin('products as p', 'p.id', 'b.product_id')
-      .select(['b.id', 'b.product_id', 'p.name as product_name', 'b.quantity', 'b.expected_cost', 'b.is_active'])
+      .select(['b.id', 'b.product_id', 'p.name as product_name', 'b.quantity', 'b.expected_cost', 'b.overhead_cost', 'b.is_active', 'b.created_at'])
+      .where('b.is_active', '=', true)
       .where(sql<boolean>`b.tenant_id = ${scope.tenantId}`)
       .orderBy('b.id', 'desc')
       .execute();
@@ -75,7 +79,8 @@ export class ManufacturingService {
         componentId: l.component_product_id,
         quantity: l.quantity,
         unitName: l.unit_name,
-        expectedCost: l.expected_cost
+        expectedCost: l.expected_cost,
+        wastePercentage: l.waste_percentage
       }));
     }
 
@@ -86,13 +91,15 @@ export class ManufacturingService {
     const scope = requireTenantScope(auth);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const totalExpectedCost = payload.lines.reduce((sum, line) => sum + line.expectedCost * line.quantity, 0);
+      const overheadCost = payload.overheadCost || 0;
+      const totalExpectedCost = payload.lines.reduce((sum, line) => sum + line.expectedCost * line.quantity, 0) + overheadCost;
 
       await trx.updateTable('manufacturing_boms')
         .set({
           product_id: payload.productId,
           quantity: payload.quantity,
           expected_cost: totalExpectedCost,
+          overhead_cost: overheadCost,
         } as any)
         .where('id', '=', id)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -109,6 +116,7 @@ export class ManufacturingService {
         unit_name: line.unitName,
         unit_multiplier: line.unitMultiplier,
         expected_cost: line.expectedCost,
+        waste_percentage: line.wastePercentage || 0,
       } as any));
 
       await trx.insertInto('manufacturing_bom_lines').values(lines).execute();
@@ -122,17 +130,30 @@ export class ManufacturingService {
     const scope = requireTenantScope(auth);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
-      await trx.deleteFrom('manufacturing_bom_lines')
+      const woCount = await trx.selectFrom('manufacturing_work_orders')
+        .select(({ fn }) => fn.count('id').as('count'))
         .where('bom_id', '=', id)
-        .execute();
+        .executeTakeFirst();
+      
+      if (Number(woCount?.count || 0) > 0) {
+        await trx.updateTable('manufacturing_boms')
+          .set({ is_active: false })
+          .where('id', '=', id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+      } else {
+        await trx.deleteFrom('manufacturing_bom_lines')
+          .where('bom_id', '=', id)
+          .execute();
 
-      await trx.deleteFrom('manufacturing_boms')
-        .where('id', '=', id)
-        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .execute();
+        await trx.deleteFrom('manufacturing_boms')
+          .where('id', '=', id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+      }
     });
 
-    await this.audit.log('حذف قائمة مكونات', `تم حذف التركيبة #${id}`, auth);
+    await this.audit.log('حذف قائمة مكونات', `تم حذف/إيقاف التركيبة #${id}`, auth);
     return { ok: true };
   }
 
@@ -208,7 +229,7 @@ export class ManufacturingService {
           'wo.id', 'wo.status', 'wo.quantity_to_produce', 
           'wo.source_location_id', 'wo.destination_location_id',
           'b.product_id as finished_product_id',
-          'wo.bom_id'
+          'wo.bom_id', 'b.quantity as bom_quantity', 'b.overhead_cost'
         ])
         .where('wo.id', '=', id)
         .where(sql<boolean>`wo.tenant_id = ${scope.tenantId}`)
@@ -226,7 +247,7 @@ export class ManufacturingService {
         .selectFrom('manufacturing_bom_lines as l')
         .innerJoin('products as p', 'p.id', 'l.component_product_id')
         .select([
-          'l.id', 'l.component_product_id', 'l.quantity', 'l.unit_name', 'l.expected_cost',
+          'l.id', 'l.component_product_id', 'l.quantity', 'l.unit_name', 'l.expected_cost', 'l.waste_percentage',
           'p.name as component_name'
         ])
         .where('l.bom_id', '=', wo.bom_id)
@@ -234,10 +255,13 @@ export class ManufacturingService {
 
       let totalCost = 0;
 
+      const bomQuantity = Number(wo.bom_quantity || 1);
+
       // Deduct raw materials
       for (const line of lines) {
-        const requiredQty = Number(line.quantity) * qtyToProduce;
-        const lineTotalCost = Number(line.expected_cost) * requiredQty;
+        const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
+        const requiredQty = Number((Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
+        const lineTotalCost = Number((Number(line.expected_cost) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
         totalCost += lineTotalCost;
 
         await trx.insertInto('manufacturing_wo_consumptions').values({
@@ -275,7 +299,12 @@ export class ManufacturingService {
         } as any).execute();
       }
 
-      // Add finished good
+      // Add overhead cost
+      const overheadCost = Number(wo.overhead_cost || 0);
+      const totalOverheadCost = Number((overheadCost * (qtyToProduce / bomQuantity)).toFixed(3));
+      totalCost += totalOverheadCost;
+
+      // Add finished product
       const fgStockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(wo.finished_product_id), branchId: null, locationId: destinationLocation };
       const fgStockChange = await applyStockDelta(trx, {
         ...fgStockScope,

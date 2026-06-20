@@ -46,7 +46,9 @@ function normalizeCart(items: PosItem[]) {
     unitName: item.unitName,
     unitMultiplier: Math.max(1, Number(item.unitMultiplier || 1)),
     price: normalizeMoney(Number(item.price || 0)),
-    priceType: item.priceType
+    priceType: item.priceType,
+    notes: item.notes,
+    modifiers: item.modifiers
   }));
 }
 
@@ -134,7 +136,9 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
       unitName: item.unitName,
       unitMultiplier: item.unitMultiplier,
       price: item.price,
-      priceType: item.priceType
+      priceType: item.priceType,
+      notes: item.notes,
+      modifiers: item.modifiers
     }))
   };
 }

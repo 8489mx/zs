@@ -30,6 +30,7 @@ interface PosWorkspaceActions {
   exportPdfNow: () => void;
   completePostSaleCycle: (message?: string) => void;
   setQty: (lineKey: string, qty: number) => void;
+  setItemNote: (lineKey: string, notes: string) => void;
   removeItem: (lineKey: string) => void;
   fillPaidAmount: () => void;
   setPriceType: (nextPriceType: PosPriceType) => void;
@@ -111,6 +112,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     handleQuickAddCodeSubmit: base.handleQuickAddCodeSubmit,
     exportHeldDrafts: base.exportHeldDrafts,
     setQty: base.setQty,
+    setItemNote: base.setItemNote,
     removeItem: (lineKey: string) => {
       logCartRemoveEvent(lineKey);
       base.removeItem(lineKey);

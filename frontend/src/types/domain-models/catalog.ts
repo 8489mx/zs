@@ -48,6 +48,8 @@ export interface Product {
   size?: string;
   status?: string;
   statusLabel?: string;
+  bomId?: number;
+  hasBom?: boolean;
 }
 
 export interface Category {

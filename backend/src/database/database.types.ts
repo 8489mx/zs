@@ -438,6 +438,8 @@ export interface SaleItemTable {
   unit_multiplier: number;
   cost_price: number;
   price_type: 'retail' | 'wholesale';
+  notes: string;
+  modifiers: unknown;
 }
 
 export interface SalePaymentTable {
@@ -647,6 +649,7 @@ export interface ManufacturingBomTable {
   id: Generated<number>;
   product_id: number;
   quantity: number;
+  overhead_cost: number;
   expected_cost: number;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -662,6 +665,7 @@ export interface ManufacturingBomLineTable {
   quantity: number;
   unit_name: string;
   unit_multiplier: number;
+  waste_percentage: number;
   expected_cost: number;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, string | undefined>;

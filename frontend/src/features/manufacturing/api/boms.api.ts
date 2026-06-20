@@ -7,11 +7,13 @@ export interface BomLine {
   unitName: string;
   expectedCost: number;
   unitMultiplier: number;
+  wastePercentage: number;
 }
 
 export interface CreateBomPayload {
   productId: number;
   quantity: number;
+  overheadCost: number;
   lines: BomLine[];
 }
 
@@ -21,6 +23,7 @@ export interface BomRecord {
   product_name: string;
   quantity: number;
   expected_cost: number;
+  overhead_cost: number;
   is_active: boolean;
   created_at?: string;
   lines?: any[];

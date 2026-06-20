@@ -40,6 +40,13 @@ class SaleItemDto {
   @IsOptional()
   @IsIn(['retail', 'wholesale'])
   priceType?: 'retail' | 'wholesale';
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  modifiers?: any;
 }
 
 export class UpsertSaleDto {
@@ -128,6 +135,6 @@ export type NormalizedSalePayload = {
   managerPin: string;
   branchId: number | null;
   locationId: number | null;
-  items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale' }>;
+  items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; notes: string; modifiers: any }>;
   payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }>;
 };

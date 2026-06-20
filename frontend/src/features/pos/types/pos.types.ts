@@ -16,4 +16,6 @@ export interface PosItem {
   priceType: PosPriceType;
   isWeighted?: boolean;
   sourceBarcode?: string;
+  notes?: string;
+  modifiers?: any[];
 }

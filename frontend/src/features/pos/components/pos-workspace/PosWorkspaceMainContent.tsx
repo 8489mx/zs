@@ -150,6 +150,7 @@ export function PosWorkspaceMainContent({
             onRequestDiscountAuthorization={onRequestDiscountAuthorization}
             onNoteChange={pos.setNote}
             onQtyChange={pos.setQty}
+            onItemNoteChange={pos.setItemNote}
             onRemoveItem={onRequestLineDelete}
             onSelectLine={pos.selectCartLine}
             onFillPaidAmount={pos.fillPaidAmount}

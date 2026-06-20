@@ -153,7 +153,7 @@ export function getAvailableSaleProducts(products: Product[], search: string, al
     }
 
     const stockLimit = getStockLimit(product);
-    if (!allowNegativeStockSales && stockLimit <= 0) return false;
+    if (!allowNegativeStockSales && stockLimit <= 0 && !product.hasBom) return false;
     if (!q) return true;
     const unitMatches = safeUnits(product).some((unit) => [unit.name, unit.barcode].some((value) => String(value || '').toLowerCase().includes(q)));
     return [product.name, product.barcode].some((value) => String(value || '').toLowerCase().includes(q)) || unitMatches;
@@ -224,6 +224,13 @@ export function updatePosItemQty(cart: PosItem[], lineKey: string, qty: number, 
   });
 }
 
+export function updatePosItemNotes(cart: PosItem[], lineKey: string, notes: string) {
+  return cart.map((item) => {
+    if (item.lineKey !== lineKey) return item;
+    return { ...item, notes };
+  });
+}
+
 export function updatePosItemQtyWithOptions(
   cart: PosItem[],
   lineKey: string,
@@ -235,10 +242,14 @@ export function updatePosItemQtyWithOptions(
     if (item.lineKey !== lineKey) return item;
     const isWeighted = item.isWeighted === true;
     const normalizedQty = normalizeSaleQuantity(qty, isWeighted);
-    const nextQty = options.allowNegativeStockSales ? normalizedQty : Math.min(normalizedQty, item.stockLimit);
     const product = products.find((entry) => String(entry.id) === String(item.productId));
-    if (!product) return { ...item, qty: nextQty };
-    return repriceCartLine(item, product, nextQty);
+    if (!product) {
+      const nextQty = options.allowNegativeStockSales ? normalizedQty : Math.min(normalizedQty, item.stockLimit);
+      return { ...item, qty: nextQty };
+    }
+    const stockLimit = options.allowNegativeStockSales || !!product.hasBom ? UNBOUNDED_STOCK_LIMIT : item.stockLimit;
+    const finalQty = options.allowNegativeStockSales || !!product.hasBom ? normalizedQty : Math.min(normalizedQty, stockLimit);
+    return repriceCartLine(item, product, finalQty);
   });
 }
 
@@ -257,7 +268,7 @@ export function syncPosCartStock(cart: PosItem[], products: Product[], options: 
     const unit = safeUnits(product).find((entry) => String(entry.id || '') === String(item.unitId || '') || String(entry.name || '') === String(item.unitName || '')) || getSaleUnit(product);
     const isWeighted = item.isWeighted === true;
     const minQty = getMinimumSaleQuantity(isWeighted);
-    const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getResolvedStockLimit(product, unit, isWeighted);
+    const stockLimit = (options.allowNegativeStockSales || !!product.hasBom) ? UNBOUNDED_STOCK_LIMIT : getResolvedStockLimit(product, unit, isWeighted);
     if (stockLimit < minQty) {
       changed = true;
       removedCount += 1;

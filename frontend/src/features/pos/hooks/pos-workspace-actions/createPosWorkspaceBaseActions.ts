@@ -4,6 +4,7 @@ import {
   isNegativeStockSalesAllowed,
   removePosItem,
   updatePosItemQtyWithOptions,
+  updatePosItemNotes,
 } from '@/features/pos/lib/pos.domain';
 import { buildSaleLineKey, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import {
@@ -48,7 +49,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string } = {},
   ) {
     const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
-    const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
+    const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings) || !!product.hasBom;
     const unit = resolveSaleUnit(product, unitId);
     const isWeighted = options.isWeighted === true;
     const availableQty = allowNegativeStockSales
@@ -205,6 +206,16 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     }
   }
 
+  function setItemNote(lineKey: string, notes: string) {
+    try {
+      const nextCart = updatePosItemNotes(params.cart, lineKey, notes);
+      params.setSelectedLineKey(lineKey);
+      params.setCart(nextCart);
+    } catch (error) {
+      params.setSubmitMessage('تعذر تعديل الملاحظات.');
+    }
+  }
+
   function removeItem(lineKey: string) {
     params.setCart((current) => removePosItem(current, lineKey));
     if (params.selectedLineKey === lineKey) params.setSelectedLineKey('');
@@ -321,6 +332,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     registerRecentProduct,
     selectCartLine,
     setQty,
+    setItemNote,
     removeItem,
     fillPaidAmount,
     setPaymentPreset,

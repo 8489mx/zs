@@ -101,6 +101,8 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
         unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
         unitMultiplier: Number(item.unitMultiplier || 1) || 1,
         priceType: (item.priceType === 'wholesale' ? 'wholesale' : 'retail') as 'retail' | 'wholesale',
+        notes: String(item.notes || '').trim(),
+        modifiers: item.modifiers || [],
       }))
       .filter((item) => item.productId > 0 && item.qty > 0),
   };

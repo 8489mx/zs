@@ -35,6 +35,8 @@ export type PreparedSaleItem = {
   requiredQty: number;
   beforeQty: number;
   afterQty: number;
+  notes: string;
+  modifiers: unknown;
 };
 
 export function buildPreparedSaleItem(
@@ -65,6 +67,8 @@ export function buildPreparedSaleItem(
     requiredQty,
     beforeQty,
     afterQty: Number((beforeQty - requiredQty).toFixed(3)),
+    notes: item.notes || '',
+    modifiers: item.modifiers,
   };
 }
 

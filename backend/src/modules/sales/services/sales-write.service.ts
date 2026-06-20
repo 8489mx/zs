@@ -3,7 +3,7 @@ import { Kysely, sql, type Transaction } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
-import { applyStockDelta, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, previewConsumableStockQty, previewAssignedLocationStockQty } from '../../../common/utils/location-stock-ledger';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
@@ -101,13 +101,14 @@ export class SalesWriteService {
       const baseShortfall = Number((qtyToProduce / (item.unitMultiplier || 1)).toFixed(3)); // we need to produce in base unit since BOM is per base unit
       
       const bom = await trx.selectFrom('manufacturing_boms')
-        .select(['expected_cost'])
+        .select(['expected_cost', 'quantity'])
         .where('id', '=', item.bomId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .executeTakeFirst();
       if (!bom) continue;
 
-      const totalCost = Number(bom.expected_cost) * baseShortfall;
+      const bomQuantity = Number(bom.quantity || 1);
+      const totalCost = Number((Number(bom.expected_cost) * (qtyToProduce / bomQuantity)).toFixed(3));
       const wo = await trx.insertInto('manufacturing_work_orders').values({
         bom_id: item.bomId,
         quantity_to_produce: baseShortfall,
@@ -126,13 +127,43 @@ export class SalesWriteService {
 
       const bomLines = await trx.selectFrom('manufacturing_bom_lines as l')
         .innerJoin('products as p', 'p.id', 'l.component_product_id')
-        .select(['l.component_product_id', 'l.quantity', 'l.expected_cost', 'p.name as component_name'])
+        .select(['l.component_product_id', 'l.quantity', 'l.expected_cost', 'l.waste_percentage', 'p.name as component_name'])
         .where('l.bom_id', '=', item.bomId)
         .execute();
 
       for (const line of bomLines) {
-        const requiredMaterialQty = Number(line.quantity) * baseShortfall;
-        const lineTotalCost = Number(line.expected_cost) * requiredMaterialQty;
+        const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
+        const requiredMaterialQty = Number((Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
+        const lineTotalCost = Number((Number(line.expected_cost) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
+
+        // Recursive BOM check
+        const componentStock = await previewAssignedLocationStockQty(trx, {
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          productId: Number(line.component_product_id),
+          branchId,
+          locationId: locationId || 0
+        });
+
+        if (componentStock < requiredMaterialQty) {
+           const subBom = await trx.selectFrom('manufacturing_boms')
+            .select(['id', 'is_active'])
+            .where('product_id', '=', Number(line.component_product_id))
+            .where('is_active', '=', true)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .executeTakeFirst();
+            
+           if (subBom) {
+              await this.autoProduceShortfall(trx, [{
+                productId: Number(line.component_product_id),
+                requiredQty: requiredMaterialQty,
+                availableQty: componentStock,
+                hasBOM: true,
+                bomId: subBom.id,
+                unitMultiplier: 1 // base units
+              }], saleId, branchId, locationId, scope, auth);
+           }
+        }
 
         await trx.insertInto('manufacturing_wo_consumptions').values({
           work_order_id: woId,
@@ -388,6 +419,8 @@ export class SalesWriteService {
             unit_multiplier: item.unitMultiplier,
             cost_price: item.costPrice,
             price_type: item.priceType as 'retail' | 'wholesale',
+            notes: item.notes,
+            modifiers: item.modifiers ? JSON.stringify(item.modifiers) : '[]',
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           } as any)

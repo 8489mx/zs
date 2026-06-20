@@ -19,6 +19,7 @@ type BomLine = {
   baseUnit: string; // The component's base unit
   baseCost: number; // The component's base cost
   expectedCost: number; // Calculated cost per 1 selected unit
+  wastePercentage: number;
   query: string;
 };
 
@@ -30,8 +31,9 @@ export default function EditBomPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [components, setComponents] = useState<ManufacturingComponent[]>([]);
   const [quantity, setQuantity] = useState(1);
+  const [overheadCost, setOverheadCost] = useState(0);
   const [lines, setLines] = useState<BomLine[]>([
-    { id: Date.now(), componentId: null, componentName: '', quantity: 1, unitName: 'kg', baseUnit: 'kg', baseCost: 0, expectedCost: 0, query: '' }
+    { id: Date.now(), componentId: null, componentName: '', quantity: 1, unitName: 'kg', baseUnit: 'kg', baseCost: 0, expectedCost: 0, wastePercentage: 0, query: '' }
   ]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -50,6 +52,7 @@ export default function EditBomPage() {
             setSelectedProduct({ id: bom.product_id, name: bom.product_name } as Product);
             setProductQuery(bom.product_name);
             setQuantity(bom.quantity);
+            setOverheadCost(bom.overhead_cost || 0);
             setLines(bom.lines ? bom.lines.map((l: any) => {
               const comp = compRes.find(c => String(c.id) === String(l.componentId));
               return {
@@ -61,6 +64,7 @@ export default function EditBomPage() {
                 baseUnit: comp ? comp.baseUnit : '',
                 baseCost: comp ? comp.costPerBaseUnit : 0,
                 expectedCost: l.expectedCost,
+                wastePercentage: l.wastePercentage || 0,
                 query: comp ? comp.name : ''
               };
             }) : []);
@@ -71,6 +75,7 @@ export default function EditBomPage() {
   }, [id]);
 
   const searchProductFilter = (option: Product, query: string) => {
+    if (option.itemType === 'raw_material') return false;
     return option.name.toLowerCase().includes(query.toLowerCase());
   };
 
@@ -87,6 +92,7 @@ export default function EditBomPage() {
       await bomsApi.update(id as string, {
         productId: Number(selectedProduct.id),
         quantity: quantity,
+        overheadCost: overheadCost,
         lines: lines.map(l => {
           const unitDef = findUnit(l.unitName);
           return {
@@ -95,6 +101,7 @@ export default function EditBomPage() {
             unitName: l.unitName,
             unitMultiplier: unitDef ? unitDef.multiplier : 1,
             expectedCost: l.expectedCost,
+            wastePercentage: l.wastePercentage || 0,
           };
         })
       });
@@ -109,7 +116,7 @@ export default function EditBomPage() {
   };
 
   const addLine = () => {
-    setLines([...lines, { id: Date.now(), componentId: null, componentName: '', quantity: 1, unitName: 'kg', baseUnit: 'kg', baseCost: 0, expectedCost: 0, query: '' }]);
+    setLines([...lines, { id: Date.now(), componentId: null, componentName: '', quantity: 1, unitName: 'kg', baseUnit: 'kg', baseCost: 0, expectedCost: 0, wastePercentage: 0, query: '' }]);
   };
 
   const updateLine = (id: number, key: keyof BomLine, value: any) => {
@@ -160,6 +167,7 @@ export default function EditBomPage() {
         baseCost,
         unitName,
         expectedCost,
+        wastePercentage: 0,
         query: component.name
       };
     }));
@@ -169,8 +177,14 @@ export default function EditBomPage() {
     setLines(prevLines => prevLines.filter(l => l.id !== id));
   };
 
-  const unitCost = lines.reduce((sum, line) => sum + (line.expectedCost * line.quantity), 0);
-  const batchTotalCost = unitCost * (quantity || 1);
+  const unitCost = lines.reduce((sum, line) => {
+    const wasteFactor = 1 / (1 - ((line.wastePercentage || 0) / 100));
+    return sum + (line.expectedCost * line.quantity * wasteFactor);
+  }, 0);
+  const batchTotalCost = unitCost + (overheadCost || 0);
+  const singleUnitTotalCost = batchTotalCost / (quantity || 1);
+
+  const filteredProducts = products.filter(p => p.itemType !== 'raw_material');
 
   return (
     <ManufacturingLayout
@@ -213,7 +227,7 @@ export default function EditBomPage() {
                 <SearchableCombobox<Product>
                   value={productQuery}
                   onChange={setProductQuery}
-                  options={products}
+                  options={filteredProducts}
                   getLabel={(p) => p.name}
                   search={searchProductFilter}
                   onSelect={(p) => {
@@ -233,6 +247,16 @@ export default function EditBomPage() {
                   onChange={(e) => setQuantity(Number(e.target.value))}
                 />
               </Field>
+              <Field label="تكلفة التشغيل (الإجمالية للكمية)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="purchase-prototype-input"
+                  value={overheadCost}
+                  onChange={(e) => setOverheadCost(Number(e.target.value))}
+                />
+              </Field>
             </div>
           </div>
 
@@ -247,6 +271,7 @@ export default function EditBomPage() {
                   <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
                     <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500' }}>المكون</th>
                     <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '120px' }}>الكمية</th>
+                    <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '120px' }}>نسبة الهالك (%)</th>
                     <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>الوحدة</th>
                     <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>التكلفة (للوحدة)</th>
                     <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>الإجمالي</th>
@@ -287,6 +312,19 @@ export default function EditBomPage() {
                         />
                       </td>
                       <td style={{ padding: '8px' }}>
+                        <input
+                          type="number"
+                          className="purchase-prototype-input"
+                          min="0"
+                          max="99"
+                          step="any"
+                          value={line.wastePercentage || ''}
+                          onChange={(e) => updateLine(line.id, 'wastePercentage', Number(e.target.value))}
+                          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                          placeholder="%"
+                        />
+                      </td>
+                      <td style={{ padding: '8px' }}>
                         <select
                           className="purchase-prototype-input"
                           value={line.unitName}
@@ -312,7 +350,7 @@ export default function EditBomPage() {
                         />
                       </td>
                       <td style={{ padding: '8px', fontWeight: '500' }}>
-                        {((line.expectedCost || 0) * (line.quantity || 0)).toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م
+                        {((line.expectedCost || 0) * (line.quantity || 0) * (1 / (1 - ((line.wastePercentage || 0) / 100)))).toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م
                       </td>
                       <td style={{ padding: '8px', textAlign: 'center' }}>
                         <Button 
@@ -367,7 +405,7 @@ export default function EditBomPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: '#059669', fontWeight: '500' }}>
                 <span>تكلفة الوحدة الواحدة المنتجة</span>
-                <span>{unitCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
+                <span>{singleUnitTotalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
               </div>
             </div>
           </div>

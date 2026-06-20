@@ -1,7 +1,7 @@
 import { formatCurrency } from '@/lib/format';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
-export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onRemoveItem, onSelectLine }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onRemoveItem' | 'onSelectLine'>) {
+export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onRemoveItem, onSelectLine }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onRemoveItem' | 'onSelectLine'>) {
   if (!cart.length) {
     return (
       <section className="pos-cart-empty-state pos-cart-empty-state-guided" aria-label="السلة فارغة">
@@ -55,6 +55,32 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   <strong className="pos-cart-product-name">{item.name}</strong>
                   {itemCode ? <span className="pos-cart-product-code">#{itemCode}</span> : null}
                 </div>
+                {item.notes && (
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px', cursor: 'pointer' }} onClick={(e) => {
+                    e.stopPropagation();
+                    const newNotes = window.prompt('ملاحظات الصنف:', item.notes || '');
+                    if (newNotes !== null) {
+                      onItemNoteChange(item.lineKey, newNotes);
+                    }
+                  }}>
+                    {item.notes}
+                  </div>
+                )}
+                {!item.notes && isSelected && (
+                  <button
+                    type="button"
+                    style={{ fontSize: '0.75rem', color: '#0ea5e9', background: 'none', border: 'none', padding: 0, marginTop: '2px', cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newNotes = window.prompt('ملاحظات الصنف:', '');
+                      if (newNotes !== null) {
+                        onItemNoteChange(item.lineKey, newNotes);
+                      }
+                    }}
+                  >
+                    + إضافة ملاحظة
+                  </button>
+                )}
               </div>
 
               <div className="pos-cart-col pos-cart-col-qty">

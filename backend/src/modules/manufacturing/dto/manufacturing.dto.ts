@@ -19,6 +19,11 @@ export class CreateBomLineDto {
   @IsNumber()
   @Min(0)
   expectedCost!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  wastePercentage?: number;
 }
 
 export class CreateBomDto {
@@ -28,6 +33,11 @@ export class CreateBomDto {
   @IsNumber()
   @Min(0.001)
   quantity!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  overheadCost?: number;
 
   @IsArray()
   @ValidateNested({ each: true })

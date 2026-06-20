@@ -26,6 +26,7 @@ type ProductRow = {
   wholesale_price: string | number;
   stock_qty: string | number;
   min_stock_qty: string | number;
+  bom_id?: number | null;
   notes: string;
 };
 
@@ -63,7 +64,7 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id'> & {
   matched_unit_id?: number | null;
   matched_unit_name?: string | null;
   matched_unit_multiplier?: string | number | null;
@@ -159,9 +160,10 @@ export class CatalogProductService {
     const [products, categories, suppliers] = await Promise.all([
       this.db
         .selectFrom('products')
-        .select(['id', 'name', 'barcode', 'item_type', 'item_kind', 'style_code', 'color', 'size', 'category_id', 'supplier_id', 'cost_price', 'retail_price', 'wholesale_price', 'stock_qty', 'min_stock_qty', 'notes'])
-        .where('is_active', '=', true)
-        .where(this.tenantPredicate(actor))
+        .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
+        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'products.notes', 'b.id as bom_id'])
+        .where('products.is_active', '=', true)
+        .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
         .execute() as Promise<ProductRow[]>,
       this.db.selectFrom('product_categories').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(actor)).execute(),
@@ -264,7 +266,8 @@ export class CatalogProductService {
     if (!barcode) return [];
     const productMatches = await this.db
       .selectFrom('products as p')
-      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty'])
+      .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
@@ -279,6 +282,7 @@ export class CatalogProductService {
     let unitQuery = this.db
       .selectFrom('product_units as pu')
       .innerJoin('products as p', 'p.id', 'pu.product_id')
+      .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
       .select([
         'p.id',
         'p.name',
@@ -292,6 +296,7 @@ export class CatalogProductService {
         'p.wholesale_price',
         'p.stock_qty',
         'p.min_stock_qty',
+        'b.id as bom_id',
         'pu.id as matched_unit_id',
         'pu.name as matched_unit_name',
         'pu.multiplier as matched_unit_multiplier',
@@ -317,6 +322,7 @@ export class CatalogProductService {
     let productQuery = this.db
       .selectFrom('products as p')
       .leftJoin('product_units as pu', 'pu.product_id', 'p.id')
+      .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
       .select([
         'p.id',
         'p.name',
@@ -330,6 +336,7 @@ export class CatalogProductService {
         'p.wholesale_price',
         'p.stock_qty',
         'p.min_stock_qty',
+        'b.id as bom_id',
       ])
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(actor, 'p'));
@@ -486,6 +493,8 @@ export class CatalogProductService {
             barcode: product.matched_unit_barcode || '',
         }
         : null,
+      bomId: product.bom_id ? Number(product.bom_id) : undefined,
+      hasBom: !!product.bom_id,
       units,
       offers: context.offersByProduct.get(String(product.id)) || [],
     };
@@ -721,6 +730,8 @@ export class CatalogProductService {
         stock: this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct),
         minStock: Number(product.min_stock_qty || 0),
         notes: product.notes || '',
+        bomId: product.bom_id ? Number(product.bom_id) : undefined,
+        hasBom: !!product.bom_id,
         units: context.unitsByProduct.get(String(product.id)) || [{ id: `base-${product.id}`, name: 'قطعة', multiplier: 1, barcode: product.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
         offers: context.offersByProduct.get(String(product.id)) || [],
         customerPrices: context.pricesByProduct.get(String(product.id)) || [],
@@ -1164,10 +1175,11 @@ export class CatalogProductService {
 
     const product = await this.db
       .selectFrom('products')
-      .select(['id', 'name', 'barcode', 'item_type', 'item_kind', 'style_code', 'color', 'size', 'category_id', 'supplier_id', 'cost_price', 'retail_price', 'wholesale_price', 'stock_qty', 'min_stock_qty', 'notes'])
-      .where('id', '=', id)
-      .where('is_active', '=', true)
-      .where(this.tenantPredicate(actor))
+      .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
+      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'products.notes', 'b.id as bom_id'])
+      .where('products.id', '=', id)
+      .where('products.is_active', '=', true)
+      .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();
 
     if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
