@@ -28,6 +28,10 @@ export interface WorkOrderRecord {
   end_date?: string;
   created_by?: string;
   created_by_id?: string;
+  created_at?: string;
+  createdAt?: string;
+  note?: string;
+  notes?: string;
 }
 
 export const workOrdersApi = {
