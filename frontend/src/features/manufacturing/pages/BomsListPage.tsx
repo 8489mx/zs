@@ -23,15 +23,16 @@ export default function BomsListPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    http<{ boms: BomRecord[] }>('/api/manufacturing/boms')
-      .then(res => setBoms(res.boms || []))
-      .catch(() => {
-        const existingStr = localStorage.getItem('mock_boms');
-        if (existingStr) {
-          setBoms(JSON.parse(existingStr));
-        }
-      })
-      .finally(() => setIsLoading(false));
+    // Load BOMs directly from localStorage for prototype
+    const existingStr = localStorage.getItem('mock_boms');
+    if (existingStr) {
+      try {
+        setBoms(JSON.parse(existingStr));
+      } catch (e) {
+        console.error('Failed to parse mock_boms', e);
+      }
+    }
+    setIsLoading(false);
   }, []);
 
   const columns: Column<BomRecord>[] = [
