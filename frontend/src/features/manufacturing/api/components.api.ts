@@ -42,16 +42,13 @@ export const componentsApi = {
       const productPayload = {
         name: data.name,
         barcode: data.code || '',
-        categoryId: 'cat-1', // Default category or could be dynamic
-        supplierId: 'sup-1', // Default supplier
         costPrice: data.costPerBaseUnit,
         retailPrice: 0,
         wholesalePrice: 0,
-        stock: data.stock || 0, // Fallback if they still send stock
+        stock: 0,
         minStock: 0,
         notes: '',
         units: [{
-          id: `unit_${Date.now()}`,
           name: data.baseUnit,
           multiplier: 1,
           barcode: data.code || '',
@@ -60,8 +57,6 @@ export const componentsApi = {
           isPurchaseUnit: true
         }],
         itemType: 'raw_material',
-        status: 'available',
-        statusLabel: 'متاح'
       };
       
       const newProduct = await sharedProductsApi.create(productPayload) as Product;
