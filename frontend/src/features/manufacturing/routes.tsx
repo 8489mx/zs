@@ -6,6 +6,7 @@ export const manufacturingRouteModule: FeatureRouteModule = {
     { path: 'manufacturing/components', element: createLazyRoute(() => import('./pages/ManufacturingComponentsPage').then((m) => ({ default: m.default }))) },
     { path: 'manufacturing/boms', element: createLazyRoute(() => import('./pages/BomsListPage').then((m) => ({ default: m.default }))) },
     { path: 'manufacturing/boms/new', element: createLazyRoute(() => import('./pages/NewBomPage').then((m) => ({ default: m.default }))) },
+    { path: 'manufacturing/boms/:id/edit', element: createLazyRoute(() => import('./pages/EditBomPage').then((m) => ({ default: m.default }))) },
     { path: 'manufacturing/work-orders', element: createLazyRoute(() => import('./pages/WorkOrdersListPage').then((m) => ({ default: m.default }))) },
     { path: 'manufacturing/work-orders/new', element: createLazyRoute(() => import('./pages/NewWorkOrderPage').then((m) => ({ default: m.default }))) },
     { path: 'manufacturing/settings', element: createLazyRoute(() => import('./pages/ManufacturingSettingsPage').then((m) => ({ default: m.default }))) }

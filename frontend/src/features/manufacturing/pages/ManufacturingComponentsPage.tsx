@@ -13,13 +13,17 @@ export default function ManufacturingComponentsPage() {
   const [components, setComponents] = useState<ManufacturingComponent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Create mode state
-  const [isCreating, setIsCreating] = useState(false);
+  // Create/Edit mode state
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [editingComponent, setEditingComponent] = useState<ManufacturingComponent | null>(null);
   const [newName, setNewName] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newBaseUnit, setNewBaseUnit] = useState('kg');
   const [newCost, setNewCost] = useState('');
   const [newStock, setNewStock] = useState('');
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadComponents();
@@ -32,19 +36,38 @@ export default function ManufacturingComponentsPage() {
       .finally(() => setIsLoading(false));
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName || !newBaseUnit || !newCost) return;
     
+    // Duplicate check for new components
+    if (!editingComponent) {
+      const isDuplicate = components.some(c => c.name.trim().toLowerCase() === newName.trim().toLowerCase());
+      if (isDuplicate) {
+        return alert(`المكون "${newName}" مسجل مسبقاً! يرجى اختيار اسم آخر أو تعديل المكون الحالي.`);
+      }
+    }
+    
     try {
-      await componentsApi.create({
-        name: newName,
-        code: newCode,
-        baseUnit: newBaseUnit,
-        costPerBaseUnit: Number(newCost),
-        stock: Number(newStock) || 0
-      });
-      setIsCreating(false);
+      if (editingComponent) {
+        await componentsApi.update(editingComponent.id, {
+          name: newName,
+          code: newCode,
+          baseUnit: newBaseUnit,
+          costPerBaseUnit: Number(newCost),
+          stock: Number(newStock) || 0
+        });
+      } else {
+        await componentsApi.create({
+          name: newName,
+          code: newCode,
+          baseUnit: newBaseUnit,
+          costPerBaseUnit: Number(newCost),
+          stock: Number(newStock) || 0
+        });
+      }
+      setIsFormVisible(false);
+      setEditingComponent(null);
       setNewName('');
       setNewCode('');
       setNewBaseUnit('kg');
@@ -52,8 +75,19 @@ export default function ManufacturingComponentsPage() {
       setNewStock('');
       loadComponents();
     } catch (error) {
-      alert('حدث خطأ أثناء إضافة المكون');
+      alert('حدث خطأ أثناء الحفظ');
     }
+  };
+
+  const startEdit = (comp: ManufacturingComponent) => {
+    setEditingComponent(comp);
+    setNewName(comp.name);
+    setNewCode(comp.code || '');
+    setNewBaseUnit(comp.baseUnit);
+    setNewCost(String(comp.costPerBaseUnit));
+    setNewStock(String(comp.stock));
+    setIsFormVisible(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
@@ -76,11 +110,21 @@ export default function ManufacturingComponentsPage() {
     { key: 'cost', header: 'التكلفة للوحدة', cell: (row) => `${Number(row.costPerBaseUnit).toLocaleString('ar-EG', { maximumFractionDigits: 2 })} جنيه` },
     { key: 'stock', header: 'المخزون الحالي', cell: (row) => Number(row.stock).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'actions', header: '', cell: (row) => (
-      <Button variant="danger" onClick={() => handleDelete(row.id)} style={{ padding: '4px 8px', fontSize: '12px' }}>
-        حذف
-      </Button>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <Button variant="secondary" onClick={() => startEdit(row)} style={{ padding: '4px 8px', fontSize: '12px' }}>
+          تعديل
+        </Button>
+        <Button variant="danger" onClick={() => handleDelete(row.id)} style={{ padding: '4px 8px', fontSize: '12px' }}>
+          حذف
+        </Button>
+      </div>
     )}
   ];
+
+  const filteredComponents = components.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (c.code && c.code.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <ManufacturingLayout
@@ -93,19 +137,32 @@ export default function ManufacturingComponentsPage() {
         <Button 
           type="button" 
           className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary" 
-          onClick={() => setIsCreating(!isCreating)}
+          onClick={() => {
+            setEditingComponent(null);
+            setNewName('');
+            setNewCode('');
+            setNewBaseUnit('kg');
+            setNewCost('');
+            setNewStock('');
+            setIsFormVisible(!isFormVisible);
+          }}
         >
-          <span>{isCreating ? 'إلغاء' : 'إضافة مكون جديد'}</span>
+          <span>{isFormVisible ? 'إلغاء' : 'إضافة مكون جديد'}</span>
         </Button>
       }
     >
       <div className="page-stack">
-        {isCreating && (
+        {isFormVisible && (
           <div className="workspace-panel card" style={{ padding: '24px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px' }}>إضافة مكون جديد</h3>
-            <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'end' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px' }}>
+              {editingComponent ? 'تعديل مكون: ' + editingComponent.name : 'إضافة مكون جديد'}
+            </h3>
+            <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'end' }}>
               <Field label="اسم المكون *">
-                <input required className="purchase-prototype-field-input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="مثال: سكر، دقيق..." />
+                <input list="components-list" required className="purchase-prototype-field-input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="مثال: سكر، دقيق..." />
+                <datalist id="components-list">
+                  {components.map(c => <option key={c.id} value={c.name} />)}
+                </datalist>
               </Field>
               <Field label="الكود">
                 <input className="purchase-prototype-field-input" value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="اختياري" />
@@ -123,23 +180,35 @@ export default function ManufacturingComponentsPage() {
               <Field label="المخزون الافتتاحي">
                 <input type="number" min="0" step="any" className="purchase-prototype-field-input" value={newStock} onChange={e => setNewStock(e.target.value)} />
               </Field>
-              <Button type="submit" variant="primary" style={{ height: '36px' }}>حفظ المكون</Button>
+              <Button type="submit" variant="primary" style={{ height: '36px' }}>
+                {editingComponent ? 'تحديث المكون' : 'حفظ المكون'}
+              </Button>
             </form>
           </div>
         )}
 
         <Card className="workspace-panel">
+          <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb' }}>
+            <input 
+              type="search" 
+              placeholder="بحث في المكونات (بالاسم أو الكود)..." 
+              className="purchase-prototype-field-input"
+              style={{ width: '100%', maxWidth: '400px' }}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
           {isLoading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>جاري التحميل...</div>
-          ) : components.length === 0 ? (
+          ) : filteredComponents.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-               لا توجد مكونات تصنيع مسجلة بعد.
+               لا توجد مكونات تطابق بحثك.
                <br />
-               <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => setIsCreating(true)}>إضافة أول مكون</Button>
+               <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => setIsFormVisible(true)}>إضافة مكون جديد</Button>
             </div>
           ) : (
             <DataTable 
-              rows={components} 
+              rows={filteredComponents} 
               columns={columns} 
               rowKey={(r) => r.id}
             />

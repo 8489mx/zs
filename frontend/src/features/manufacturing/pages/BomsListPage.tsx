@@ -41,8 +41,33 @@ export default function BomsListPage() {
     { key: 'quantity', header: 'الكمية المنتجة', cell: (row) => Number(row.quantity).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'expected_cost', header: 'التكلفة المتوقعة', cell: (row) => Number(row.expected_cost).toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' }) },
     { key: 'created_at', header: 'تاريخ الإنشاء', cell: (row) => new Date(row.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' }) },
-    { key: 'is_active', header: 'الحالة', cell: (row) => row.is_active ? <span style={{ color: '#10b981', fontWeight: '500' }}>نشط</span> : <span style={{ color: '#ef4444', fontWeight: '500' }}>غير نشط</span> }
+    { key: 'is_active', header: 'الحالة', cell: (row) => row.is_active ? <span style={{ color: '#10b981', fontWeight: '500' }}>نشط</span> : <span style={{ color: '#ef4444', fontWeight: '500' }}>غير نشط</span> },
+    { key: 'actions', header: '', cell: (row) => (
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <Button variant="secondary" onClick={() => navigate(`/manufacturing/boms/${row.id}/edit`)} style={{ padding: '4px 8px', fontSize: '12px' }}>
+          تعديل
+        </Button>
+        <Button variant="danger" onClick={() => handleDelete(row.id)} style={{ padding: '4px 8px', fontSize: '12px' }}>
+          حذف
+        </Button>
+      </div>
+    )}
   ];
+
+  const handleDelete = (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذه التركيبة؟')) return;
+    const existingStr = localStorage.getItem('mock_boms');
+    if (existingStr) {
+      try {
+        const parsed = JSON.parse(existingStr);
+        const filtered = parsed.filter((b: any) => b.id !== id);
+        localStorage.setItem('mock_boms', JSON.stringify(filtered));
+        setBoms(filtered);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
 
   return (
     <ManufacturingLayout

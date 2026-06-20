@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { Card } from '@/shared/ui/card';
+import { Field } from '@/shared/ui/field';
 import { http } from '@/lib/http';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
@@ -17,7 +18,15 @@ type WorkOrderRecord = {
   start_date: string | null;
   end_date: string | null;
   total_cost: number;
+  created_by?: string;
 };
+
+const MOCK_USERS = [
+  { id: 'all', name: 'كل المستخدمين' },
+  { id: 'user1', name: 'أحمد محمود' },
+  { id: 'user2', name: 'سارة خالد' },
+  { id: 'user3', name: 'محمد علي' }
+];
 
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
@@ -39,16 +48,57 @@ export default function WorkOrdersListPage() {
   const navigate = useNavigate();
   const [workOrders, setWorkOrders] = useState<WorkOrderRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [dateFilter, setDateFilter] = useState<'all'|'today'|'week'|'month'>('all');
+  const [userFilter, setUserFilter] = useState('all');
 
   useEffect(() => {
     http<{ workOrders: WorkOrderRecord[] }>('/api/manufacturing/work-orders')
-      .then(res => setWorkOrders(res.workOrders || []))
+      .then(res => {
+        // Add some mock users to the real data so the filter can be tested
+        const enriched = (res.workOrders || []).map((wo, i) => ({
+          ...wo,
+          created_by: MOCK_USERS[(i % 3) + 1].name
+        }));
+        setWorkOrders(enriched);
+      })
       .finally(() => setIsLoading(false));
   }, []);
+
+  const getFilteredOrders = () => {
+    return workOrders.filter(wo => {
+      // User filter
+      if (userFilter !== 'all' && wo.created_by !== MOCK_USERS.find(u => u.id === userFilter)?.name) {
+        return false;
+      }
+      
+      // Date filter
+      if (dateFilter !== 'all' && wo.start_date) {
+        const orderDate = new Date(wo.start_date);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - orderDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (dateFilter === 'today' && diffDays > 1) return false;
+        if (dateFilter === 'week' && diffDays > 7) return false;
+        if (dateFilter === 'month' && diffDays > 30) return false;
+      }
+      
+      return true;
+    }).sort((a, b) => {
+      // Sort newest first
+      const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+      const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+      return dateB - dateA;
+    });
+  };
+
+  const filteredOrders = getFilteredOrders();
 
   const columns: Column<WorkOrderRecord>[] = [
     { key: 'doc_no', header: 'رقم الأمر', cell: (row) => <span style={{ fontWeight: '500', color: '#111827' }}>{row.doc_no || `#${row.id}`}</span> },
     { key: 'product_name', header: 'المنتج التام', cell: (row) => row.product_name },
+    { key: 'created_by', header: 'بواسطة', cell: (row) => <span style={{ color: '#6b7280' }}>{row.created_by}</span> },
     { key: 'quantity_to_produce', header: 'الكمية المطلوبة', cell: (row) => Number(row.quantity_to_produce).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'produced_quantity', header: 'الكمية المنتجة', cell: (row) => Number(row.produced_quantity).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'total_cost', header: 'التكلفة الإجمالية', cell: (row) => Number(row.total_cost).toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' }) },
@@ -104,18 +154,36 @@ export default function WorkOrdersListPage() {
       }
     >
         <Card className="workspace-panel">
+          <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <Field label="الفترة الزمنية" style={{ margin: 0, minWidth: '200px' }}>
+              <select className="purchase-prototype-field-input" value={dateFilter} onChange={e => setDateFilter(e.target.value as any)}>
+                <option value="all">كل الأوقات</option>
+                <option value="today">اليوم</option>
+                <option value="week">هذا الأسبوع</option>
+                <option value="month">هذا الشهر</option>
+              </select>
+            </Field>
+            
+            <Field label="المستخدم (المنفذ)" style={{ margin: 0, minWidth: '200px' }}>
+              <select className="purchase-prototype-field-input" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
+                {MOCK_USERS.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
           <div className="page-stack">
           {isLoading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>جاري التحميل...</div>
           ) : workOrders.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-               لا توجد أوامر إنتاج مسجلة بعد.
+               لا توجد أوامر إنتاج مطابقة للبحث.
                <br />
                <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => navigate('/manufacturing/work-orders/new')}>إنشاء أول أمر إنتاج</Button>
             </div>
           ) : (
             <DataTable 
-              rows={workOrders} 
+              rows={filteredOrders} 
               columns={columns} 
               rowKey={(r) => r.id}
             />
