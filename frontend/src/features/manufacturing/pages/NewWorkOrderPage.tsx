@@ -100,7 +100,8 @@ export default function NewWorkOrderPage() {
         start_date: new Date().toISOString(),
         end_date: null,
         total_cost: (selectedBom.expectedCost || 0) * quantity,
-        created_by: userName
+        created_by: userName,
+        created_by_id: user?.id
       };
       localStorage.setItem('mock_work_orders', JSON.stringify([...existing, newWO]));
 

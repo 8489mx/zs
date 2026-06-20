@@ -16,10 +16,11 @@ type WorkOrderRecord = {
   status: 'draft' | 'in_progress' | 'done' | 'cancelled';
   quantity_to_produce: number;
   produced_quantity: number;
-  start_date: string | null;
-  end_date: string | null;
   total_cost: number;
+  start_date?: string;
+  end_date?: string;
   created_by?: string;
+  created_by_id?: string;
 };
 
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
@@ -88,8 +89,16 @@ export default function WorkOrdersListPage() {
   const getFilteredOrders = () => {
     return workOrders.filter(wo => {
       // User filter
-      if (userFilter !== 'all' && wo.created_by !== users.find(u => u.id === userFilter)?.name) {
-        return false;
+      if (userFilter !== 'all') {
+        if (wo.created_by_id) {
+          if (wo.created_by_id !== userFilter) return false;
+        } else {
+          // Fallback for old records without ID
+          const selectedUserName = users.find(u => u.id === userFilter)?.name;
+          if (wo.created_by !== selectedUserName) {
+             return false;
+          }
+        }
       }
       
       // Date filter
@@ -118,7 +127,7 @@ export default function WorkOrdersListPage() {
   const columns: Column<WorkOrderRecord>[] = [
     { key: 'doc_no', header: 'رقم الأمر', cell: (row) => <span style={{ fontWeight: '500', color: '#111827' }}>{row.doc_no || `#${row.id}`}</span> },
     { key: 'product_name', header: 'المنتج التام', cell: (row) => row.product_name },
-    { key: 'created_by', header: 'بواسطة', cell: (row) => <span style={{ color: '#6b7280' }}>{row.created_by}</span> },
+    { key: 'created_by', header: 'بواسطة', cell: (row) => <span style={{ color: '#6b7280' }}>{row.created_by_id && row.created_by_id === currentUser?.id ? currentUserName : row.created_by}</span> },
     { key: 'quantity_to_produce', header: 'الكمية المطلوبة', cell: (row) => Number(row.quantity_to_produce).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'produced_quantity', header: 'الكمية المنتجة', cell: (row) => Number(row.produced_quantity).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'total_cost', header: 'التكلفة الإجمالية', cell: (row) => Number(row.total_cost).toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' }) },
