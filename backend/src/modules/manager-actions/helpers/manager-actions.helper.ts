@@ -312,7 +312,7 @@ export function buildManagerActionInsights({
         title: 'عميل متجاوز حد الائتمان',
         message: `${name}: الرصيد تجاوز حد الائتمان.`,
         actionLabel: 'افتح الحسابات',
-        actionHref: '/accounts',
+        actionHref: `/accounts?customerId=${id}`,
         metrics: { customerId: id, balance: round(balance), creditLimit: round(creditLimit) },
         rank: 90 + Math.min(30, (balance - creditLimit) / Math.max(1, creditLimit) * 100),
       }));
@@ -324,7 +324,7 @@ export function buildManagerActionInsights({
         title: 'عميل قريب من حد الائتمان',
         message: `${name}: استخدم ${round((balance / creditLimit) * 100)}% من حد الائتمان.`,
         actionLabel: 'افتح الحسابات',
-        actionHref: '/accounts',
+        actionHref: `/accounts?customerId=${id}`,
         metrics: { customerId: id, balance: round(balance), creditLimit: round(creditLimit) },
         rank: 68 + ((balance / creditLimit) * 10),
       }));
@@ -348,7 +348,7 @@ export function buildManagerActionInsights({
       title: 'أعلى مديونية عميل',
       message: `${topDebtCustomer.name}: أعلى رصيد مستحق على العملاء.`,
       actionLabel: 'افتح الحسابات',
-      actionHref: '/accounts',
+      actionHref: `/accounts?customerId=${topDebtCustomer.id}`,
       metrics: { customerId: topDebtCustomer.id, balance: round(topDebtCustomer.balance) },
       rank: 42 + Math.min(25, topDebtCustomer.balance / 1000),
     }));

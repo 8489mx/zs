@@ -189,7 +189,7 @@ body,
     border-radius: 8px;
   }
 
-  :where(.stats-grid, .compact-grid, .panel-grid, .three-column-grid):not(.pos-workspace *) {
+  :where(.stats-grid, .compact-grid, .panel-grid, .three-column-grid, .two-column-grid, .form-grid, .inline-create-grid):not(.pos-workspace *) {
     grid-template-columns: 1fr;
   }
 

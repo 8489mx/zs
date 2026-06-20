@@ -153,23 +153,26 @@ export function ManagerNotificationsBell() {
         </div>
       )}
 
-      {shouldShowExpand ? (
-        <button
-          type="button"
-          className="manager-notifications-more"
-          onClick={() => setShowAllAlerts((current) => !current)}
-        >
-          {showAllAlerts ? 'عرض أقل' : `عرض كل التنبيهات (${badgeCount})`}
+      <div style={{ marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {shouldShowExpand ? (
+          <button
+            type="button"
+            className="manager-notifications-more"
+            style={{ marginTop: 0 }}
+            onClick={() => setShowAllAlerts((current) => !current)}
+          >
+            {showAllAlerts ? 'عرض أقل' : `عرض كل التنبيهات (${badgeCount})`}
+          </button>
+        ) : null}
+
+        {!showAllAlerts && shouldShowExpand ? (
+          <div className="manager-notifications-hint" style={{ margin: 0 }}>يتم عرض أهم {compactCount} تنبيهات من {badgeCount}</div>
+        ) : null}
+
+        <button type="button" className="manager-notifications-center-link" style={{ marginTop: 0 }} onClick={handleCenterAction}>
+          عرض مركز القرارات
         </button>
-      ) : null}
-
-      {!showAllAlerts && shouldShowExpand ? (
-        <div className="manager-notifications-hint">يتم عرض أهم {compactCount} تنبيهات من {badgeCount}</div>
-      ) : null}
-
-      <button type="button" className="manager-notifications-center-link" onClick={handleCenterAction}>
-        عرض مركز القرارات
-      </button>
+      </div>
     </div>
   ) : null;
 

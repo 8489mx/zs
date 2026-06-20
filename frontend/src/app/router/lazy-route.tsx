@@ -1,11 +1,7 @@
 import { Suspense, lazy, type ComponentType, type ReactNode } from 'react';
 
 function RouteLoadingFallback() {
-  return (
-    <div className="screen-center">
-      <div className="loading-card">جاري تحميل الصفحة...</div>
-    </div>
-  );
+  return null;
 }
 
 type LazyLoader = () => Promise<{ default: ComponentType<unknown> }>;

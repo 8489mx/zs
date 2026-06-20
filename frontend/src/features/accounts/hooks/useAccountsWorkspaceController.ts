@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { catalogApi } from '@/lib/api/catalog';
 import { accountsApi } from '@/features/accounts/api/accounts.api';
@@ -10,8 +11,20 @@ import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 type BalanceCarrier = { id?: string | number; name?: string; balance?: number | string };
 
 export function useAccountsWorkspaceController() {
-  const [selectedCustomerId, setSelectedCustomerId] = useState('');
-  const [selectedSupplierId, setSelectedSupplierId] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialCustomerId = searchParams.get('customerId') || '';
+  const initialSupplierId = searchParams.get('supplierId') || '';
+
+  const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
+  const [selectedSupplierId, setSelectedSupplierId] = useState(initialSupplierId);
+
+  // Clear query params after reading them so they don't persist unnecessarily
+  useEffect(() => {
+    if (initialCustomerId || initialSupplierId) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [initialCustomerId, initialSupplierId, setSearchParams]);
+
   const [quickCustomerName, setQuickCustomerName] = useState('');
   const [quickCustomerPhone, setQuickCustomerPhone] = useState('');
   const [quickSupplierName, setQuickSupplierName] = useState('');
