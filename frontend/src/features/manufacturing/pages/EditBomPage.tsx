@@ -52,17 +52,20 @@ export default function EditBomPage() {
             setSelectedProduct({ id: bom.product_id, name: bom.product_name } as Product);
             setProductQuery(bom.product_name);
             setQuantity(bom.quantity);
-            setLines(bom.lines.map((l: any) => ({
-              id: Date.now() + Math.random(),
-              componentId: l.componentId,
-              componentName: '',
-              quantity: l.quantity,
-              unitName: l.unitName,
-              baseUnit: '',
-              baseCost: 0,
-              expectedCost: l.expectedCost,
-              query: ''
-            })));
+            setLines(bom.lines.map((l: any) => {
+              const comp = compRes.find(c => String(c.id) === String(l.componentId));
+              return {
+                id: Date.now() + Math.random(),
+                componentId: l.componentId,
+                componentName: comp ? comp.name : '',
+                quantity: l.quantity,
+                unitName: l.unitName,
+                baseUnit: comp ? comp.baseUnit : '',
+                baseCost: comp ? comp.costPerBaseUnit : 0,
+                expectedCost: l.expectedCost,
+                query: comp ? comp.name : ''
+              };
+            }));
           }
         }
       }
