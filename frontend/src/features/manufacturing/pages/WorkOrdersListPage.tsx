@@ -106,7 +106,7 @@ export default function WorkOrdersListPage() {
   const columns: Column<WorkOrderRecord>[] = [
     { key: 'doc_no', header: 'رقم الأمر', cell: (row) => <span style={{ fontWeight: '500', color: '#111827' }}>{row.doc_no || `#${row.id}`}</span> },
     { key: 'product_name', header: 'المنتج التام', cell: (row) => {
-      const isAuto = String(row.note || '').includes('إنتاج تلقائي');
+      const isAuto = String(row.notes || '').includes('إنتاج تلقائي');
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>{row.product_name}</span>
@@ -118,7 +118,7 @@ export default function WorkOrdersListPage() {
     { key: 'quantity_to_produce', header: 'الكمية المطلوبة', cell: (row) => Number(row.quantity_to_produce).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'produced_quantity', header: 'الكمية المنتجة', cell: (row) => Number(row.produced_quantity).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'total_cost', header: 'التكلفة الإجمالية', cell: (row) => Number(row.total_cost).toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' }) },
-    { key: 'start_date', header: 'التاريخ', cell: (row) => (row.start_date || row.created_at) ? new Date((row.start_date || row.created_at) as string).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-' },
+    { key: 'start_date', header: 'التاريخ', cell: (row) => (row.start_date || row.createdAt) ? new Date((row.start_date || row.createdAt) as string).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-' },
     { key: 'status', header: 'الحالة', cell: (row) => {
       const val = row.status;
       return <span style={{ 

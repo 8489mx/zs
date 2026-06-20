@@ -80,7 +80,7 @@ export function ProfilePage() {
                 <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="input" required dir="ltr" />
               </Field>
               <div style={{ marginTop: '1rem' }}>
-                <Button type="submit" isLoading={isSavingProfile}>حفظ البيانات</Button>
+                <Button type="submit" disabled={isSavingProfile}>حفظ البيانات</Button>
               </div>
             </form>
           </div>
@@ -102,7 +102,7 @@ export function ProfilePage() {
                 <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input" required dir="ltr" />
               </Field>
               <div style={{ marginTop: '1rem' }}>
-                <Button type="submit" isLoading={isSavingPassword}>تغيير كلمة المرور</Button>
+                <Button type="submit" disabled={isSavingPassword}>تغيير كلمة المرور</Button>
               </div>
             </form>
           </div>

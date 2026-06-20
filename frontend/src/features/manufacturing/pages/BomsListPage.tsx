@@ -27,7 +27,7 @@ export default function BomsListPage() {
     { key: 'product_name', header: 'المنتج التام', cell: (row) => row.product_name },
     { key: 'quantity', header: 'الكمية المنتجة', cell: (row) => Number(row.quantity).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'expected_cost', header: 'التكلفة المتوقعة', cell: (row) => Number(row.expected_cost).toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' }) },
-    { key: 'created_at', header: 'تاريخ الإنشاء', cell: (row) => new Date(row.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' }) },
+    { key: 'created_at', header: 'تاريخ الإنشاء', cell: (row) => new Date(row.created_at || Date.now()).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' }) },
     { key: 'is_active', header: 'الحالة', cell: (row) => row.is_active ? <span style={{ color: '#10b981', fontWeight: '500' }}>نشط</span> : <span style={{ color: '#ef4444', fontWeight: '500' }}>غير نشط</span> },
     { key: 'actions', header: '', cell: (row) => (
       <div style={{ display: 'flex', gap: '8px' }}>
@@ -83,7 +83,7 @@ export default function BomsListPage() {
             <DataTable 
               rows={boms} 
               columns={columns} 
-              rowKey={(r) => r.id}
+              rowKey={(r) => String(r.id)}
             />
           )}
           </div>
