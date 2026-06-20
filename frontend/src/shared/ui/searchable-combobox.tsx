@@ -249,7 +249,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
   const dropdown = shouldRenderDropdown ? createPortal(
     <div
       ref={dropdownRef}
-      className={`purchase-prototype-combobox-dropdown document-prototype-shell purchase-new-prototype ${dropdownClassName ?? ''}`.trim()}
+      className={`purchase-prototype-combobox-dropdown ${dropdownClassName ?? ''}`.trim()}
       role="listbox"
       aria-label={label}
       style={dropdownStyle}

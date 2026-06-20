@@ -3,6 +3,7 @@ export type UnitCategory = 'weight' | 'volume' | 'length' | 'quantity';
 export interface UnitDefinition {
   id: string;
   name: string;
+  aliases?: string[];
   category: UnitCategory;
   multiplier: number; // Multiplier relative to the base unit of the category
   isBase: boolean;
@@ -11,24 +12,35 @@ export interface UnitDefinition {
 // Base units: Weight = kg, Volume = liter, Length = meter, Quantity = piece
 export const MANUFACTURING_UNITS: UnitDefinition[] = [
   // Weights
-  { id: 'ton', name: 'طن', category: 'weight', multiplier: 1000, isBase: false },
-  { id: 'kg', name: 'كجم', category: 'weight', multiplier: 1, isBase: true },
-  { id: 'g', name: 'جرام', category: 'weight', multiplier: 0.001, isBase: false },
-  { id: 'mg', name: 'ملليجرام', category: 'weight', multiplier: 0.000001, isBase: false },
+  { id: 'ton', name: 'طن', aliases: ['ton', 'طن'], category: 'weight', multiplier: 1000, isBase: false },
+  { id: 'kg', name: 'كجم', aliases: ['kg', 'كجم', 'كيلو', 'كيلوجرام', 'kilo', 'kilogram'], category: 'weight', multiplier: 1, isBase: true },
+  { id: 'g', name: 'جرام', aliases: ['g', 'جرام', 'gram'], category: 'weight', multiplier: 0.001, isBase: false },
+  { id: 'mg', name: 'ملليجرام', aliases: ['mg', 'ملليجرام', 'مليجرام', 'milligram'], category: 'weight', multiplier: 0.000001, isBase: false },
   
   // Volumes
-  { id: 'liter', name: 'لتر', category: 'volume', multiplier: 1, isBase: true },
-  { id: 'ml', name: 'مليلتر', category: 'volume', multiplier: 0.001, isBase: false },
+  { id: 'liter', name: 'لتر', aliases: ['liter', 'لتر', 'لترات'], category: 'volume', multiplier: 1, isBase: true },
+  { id: 'ml', name: 'مليلتر', aliases: ['ml', 'مليلتر', 'ملي', 'milliliter'], category: 'volume', multiplier: 0.001, isBase: false },
   
   // Lengths
-  { id: 'meter', name: 'متر', category: 'length', multiplier: 1, isBase: true },
-  { id: 'cm', name: 'سم', category: 'length', multiplier: 0.01, isBase: false },
-  { id: 'mm', name: 'مم', category: 'length', multiplier: 0.001, isBase: false },
+  { id: 'meter', name: 'متر', aliases: ['meter', 'متر', 'm'], category: 'length', multiplier: 1, isBase: true },
+  { id: 'cm', name: 'سم', aliases: ['cm', 'سم', 'سنتيمتر', 'centimeter'], category: 'length', multiplier: 0.01, isBase: false },
+  { id: 'mm', name: 'مم', aliases: ['mm', 'مم', 'ملليمتر', 'millimeter'], category: 'length', multiplier: 0.001, isBase: false },
   
   // Quantities
-  { id: 'piece', name: 'قطعة', category: 'quantity', multiplier: 1, isBase: true },
-  { id: 'dozen', name: 'دستة', category: 'quantity', multiplier: 12, isBase: false },
+  { id: 'piece', name: 'قطعة', aliases: ['piece', 'قطعة', 'حبه', 'حبة', 'pcs'], category: 'quantity', multiplier: 1, isBase: true },
+  { id: 'dozen', name: 'دستة', aliases: ['dozen', 'دستة', 'دسته'], category: 'quantity', multiplier: 12, isBase: false },
 ];
+
+export function findUnit(identifier: string): UnitDefinition | undefined {
+  if (!identifier) return undefined;
+  const lowerId = identifier.trim().toLowerCase();
+  return MANUFACTURING_UNITS.find(u => 
+    u.id === lowerId || 
+    u.name === identifier.trim() || 
+    (u.aliases && u.aliases.includes(lowerId)) ||
+    (u.aliases && u.aliases.includes(identifier.trim()))
+  );
+}
 
 /**
  * Get all available units
@@ -61,8 +73,8 @@ export function calculateConvertedCost(
 ): number {
   if (!baseCost || !targetQuantity) return 0;
   
-  const baseUnitDef = MANUFACTURING_UNITS.find(u => u.name === baseUnitName || u.id === baseUnitName);
-  const targetUnitDef = MANUFACTURING_UNITS.find(u => u.name === targetUnitName || u.id === targetUnitName);
+  const baseUnitDef = findUnit(baseUnitName);
+  const targetUnitDef = findUnit(targetUnitName);
   
   // If units are not found, or they are in different categories, fallback to direct multiplication
   if (!baseUnitDef || !targetUnitDef || baseUnitDef.category !== targetUnitDef.category) {
