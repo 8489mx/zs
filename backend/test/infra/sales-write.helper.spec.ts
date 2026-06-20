@@ -100,7 +100,7 @@ function createFakeStockDb(stockQty: number, locationQty?: number): { db: FakeSt
 
 const prepared = buildPreparedSaleItem(
   { id: 2, name: 'Tea', stock_qty: '10', cost_price: '3.5' },
-  { productId: 2, qty: 2, price: 5, unitName: 'علبة', unitMultiplier: 1.5, priceType: 'retail' },
+  { productId: 2, qty: 2, price: 5, unitName: 'علبة', unitMultiplier: 1.5, priceType: 'retail', notes: '', modifiers: [] },
 );
 assert.deepEqual(prepared, {
   productId: 2,
@@ -140,14 +140,14 @@ assert.equal(resolvePostedSalePaymentChannel('cash', [{ paymentChannel: 'cash' }
 assert.deepEqual(calculateRestoredStockQuantity('4', '2', '1.5'), { restoreQty: 3, beforeQty: 4, afterQty: 7 });
 
 assert.throws(
-  () => buildPreparedSaleItem({ id: 3, name: 'Sugar', stock_qty: '1', cost_price: '2' }, { productId: 3, qty: 2, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail' }),
+  () => buildPreparedSaleItem({ id: 3, name: 'Sugar', stock_qty: '1', cost_price: '2' }, { productId: 3, qty: 2, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail', notes: '', modifiers: [] }),
   (error: unknown) => error instanceof AppError && error.code === 'INSUFFICIENT_STOCK',
 );
 
 assert.deepEqual(
   buildPreparedSaleItem(
     { id: 3, name: 'Sugar', stock_qty: '1', cost_price: '2' },
-    { productId: 3, qty: 2, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail' },
+    { productId: 3, qty: 2, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail', notes: '', modifiers: [] },
     { allowNegativeStockSales: true },
   ),
   {
@@ -170,7 +170,7 @@ async function runStockDeltaChecks(): Promise<void> {
   assert.equal(
     buildPreparedSaleItem(
       { id: 3, name: 'Sugar', stock_qty: '0', cost_price: '2' },
-      { productId: 3, qty: 1, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail' },
+      { productId: 3, qty: 1, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail', notes: '', modifiers: [] },
       { allowNegativeStockSales: true },
     ).afterQty,
     -1,
