@@ -37,24 +37,17 @@ export default function ManufacturingSettingsPage() {
       ]);
     });
 
-    http<{ settings: Record<string, any> }>('/api/settings?keys=manufacturing.default_production_location')
-    .then(data => {
-      if (data.settings && data.settings['manufacturing.default_production_location']) {
-        const id = data.settings['manufacturing.default_production_location'];
-        setSelectedLocation({ id, name: `مخزن #${id}` });
-        setLocationQuery(`مخزن #${id}`);
+  useEffect(() => {
+    // Load from localStorage if backend is not available
+    const savedId = localStorage.getItem('manufacturing.default_production_location');
+    if (savedId && locations.length > 0 && !selectedLocation) {
+      const loc = locations.find(l => l.id === savedId);
+      if (loc) {
+        setSelectedLocation(loc);
+        setLocationQuery(loc.name);
       }
-    })
-    .catch(() => {
-      // Load from localStorage if backend is not available
-      const savedId = localStorage.getItem('manufacturing.default_production_location');
-      if (savedId) {
-        const locName = savedId === '1' ? 'المخزن الرئيسي' : savedId === '2' ? 'مخزن الخامات' : savedId === '3' ? 'مخزن الإنتاج التام' : `مخزن #${savedId}`;
-        setSelectedLocation({ id: savedId, name: locName });
-        setLocationQuery(locName);
-      }
-    });
-  }, []);
+    }
+  }, [locations]);
 
   const handleSave = async () => {
     setIsSaving(true);
