@@ -90,15 +90,20 @@ export default function WorkOrdersListPage() {
     return workOrders.filter(wo => {
       // User filter
       if (userFilter !== 'all') {
-        if (wo.created_by_id) {
-          if (wo.created_by_id !== userFilter) return false;
-        } else {
-          // Fallback for old records without ID
-          const selectedUserName = users.find(u => u.id === userFilter)?.name;
-          if (wo.created_by !== selectedUserName) {
-             return false;
+        let isMatch = false;
+        if (wo.created_by_id && String(wo.created_by_id) === String(userFilter)) {
+          isMatch = true;
+        }
+        
+        // Fallback: Check by name if ID didn't match (handles mock mismatches or old records)
+        if (!isMatch) {
+          const selectedUserName = users.find(u => String(u.id) === String(userFilter))?.name;
+          if (wo.created_by === selectedUserName) {
+            isMatch = true;
           }
         }
+        
+        if (!isMatch) return false;
       }
       
       // Date filter
