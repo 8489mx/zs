@@ -14,7 +14,7 @@ import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/c
 import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
-import { AppAccountMenu } from '@/shared/layout/app-account-menu';
+
 import { useAppToolbar } from '@/stores/toolbar-store';
 
 const normalizeLookupText = (value: unknown) => String(value ?? '').trim().toLocaleLowerCase();
@@ -151,7 +151,7 @@ export function NewProductPage() {
     return Array.from(counts.values()).filter((count) => count > 1).length;
   }, [fashionVariantRows]);
   
-  const hasDraftChanges = form.formState.isDirty || hasUnitsDraftChanges || hasFashionDraftChanges || Boolean(inlineCategoryName.trim()) || Boolean(inlineSupplierName.trim()) || Boolean(inlineSupplierPhone.trim()) || groupedEntryEnabled !== defaultGroupedMode;
+  void (form.formState.isDirty || hasUnitsDraftChanges || hasFashionDraftChanges || Boolean(inlineCategoryName.trim()) || Boolean(inlineSupplierName.trim()) || Boolean(inlineSupplierPhone.trim()) || groupedEntryEnabled !== defaultGroupedMode);
 
   useEffect(() => {
     if (!usesVariantBuilder) {
@@ -381,7 +381,7 @@ export function NewProductPage() {
           <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
             <h3 className="document-prototype-section-title">ملاحظات</h3>
           </div>
-          <Field><textarea className="purchase-prototype-field-input" {...form.register('notes')} rows={4} disabled={isFormDisabled} /></Field>
+          <Field label="ملاحظات"><textarea className="purchase-prototype-field-input" {...form.register('notes')} rows={4} disabled={isFormDisabled} /></Field>
         </section>
 
         {usesVariantBuilder ? (

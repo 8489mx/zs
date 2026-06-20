@@ -253,6 +253,7 @@ export default function NewBomPage() {
                           onChange={(q) => updateLine(line.id, 'query', q)}
                           options={components}
                           getLabel={(c) => c.name}
+                          createLabel={(q) => `إضافة "${q}"`}
                           search={searchComponentFilter}
                           onSelect={(comp) => selectComponent(line.id, comp)}
                           placeholder="ابحث عن مكون..."

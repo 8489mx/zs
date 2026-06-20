@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { Card } from '@/shared/ui/card';
-import { http } from '@/lib/http';
+
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
 type BomRecord = {
@@ -54,7 +54,7 @@ export default function BomsListPage() {
     )}
   ];
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذه التركيبة؟')) return;
     const existingStr = localStorage.getItem('mock_boms');
     if (existingStr) {

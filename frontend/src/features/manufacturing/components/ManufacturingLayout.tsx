@@ -26,8 +26,8 @@ export function ManufacturingLayout({
   smartButtons,
   actions,
   onBack,
-  searchQuery = '',
-  onSearchChange,
+  searchQuery: _searchQuery = '',
+  onSearchChange: _onSearchChange,
 }: ManufacturingLayoutProps) {
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
   

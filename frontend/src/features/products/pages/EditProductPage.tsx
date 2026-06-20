@@ -9,11 +9,11 @@ import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/c
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery } from '@/shared/hooks/use-catalog-queries';
-import type { Category, Product, ProductCustomerPrice, ProductUnit, Supplier } from '@/types/domain';
+import type { ProductCustomerPrice, ProductUnit } from '@/types/domain';
 import { ProductCustomerPricesCard } from '@/features/products/components/workspace-sections/ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
-import { AppAccountMenu } from '@/shared/layout/app-account-menu';
+
 import { useAppToolbar } from '@/stores/toolbar-store';
 
 type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
@@ -66,6 +66,12 @@ export function EditProductPage() {
   const watchedItemKind = clothingModuleEnabled && form.watch('itemKind') === 'fashion' ? 'fashion' : 'standard';
   const watchedStyleCode = form.watch('styleCode') || '';
   const groupedEntry = Boolean(String(product?.styleCode || '').trim());
+
+  useAppToolbar([
+    { label: 'الرئيسية', to: '/' },
+    { label: 'الأصناف', to: '/products' },
+    { label: groupedEntry ? `تعديل المجموعة: ${product?.name ?? '...'}` : `تعديل صنف: ${product?.name ?? '...'}` }
+  ]);
 
   useEffect(() => {
     if (!product) return;
@@ -120,12 +126,6 @@ export function EditProductPage() {
       </div>
     );
   }
-
-  useAppToolbar([
-    { label: 'الرئيسية', to: '/' },
-    { label: 'الأصناف', to: '/products' },
-    { label: groupedEntry ? `تعديل المجموعة: ${product?.name}` : `تعديل صنف: ${product?.name}` }
-  ]);
 
   if (groupedEntry) {
     return (
@@ -264,7 +264,7 @@ export function EditProductPage() {
           <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
             <h3 className="document-prototype-section-title">ملاحظات</h3>
           </div>
-          <Field><textarea className="purchase-prototype-field-input" rows={4} {...form.register('notes')} disabled={isFormDisabled} /></Field>
+          <Field label="ملاحظات"><textarea className="purchase-prototype-field-input" rows={4} {...form.register('notes')} disabled={isFormDisabled} /></Field>
         </section>
 
         <div className="document-prototype-section">

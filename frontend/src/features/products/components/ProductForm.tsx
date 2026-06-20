@@ -254,7 +254,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
   }
 
   const builderMode = watchedItemKind === 'fashion' ? 'fashion' : 'standard';
-  const primaryTitle = watchedItemKind === 'fashion' ? 'موديل ملابس' : groupedEntryEnabled ? 'صنف رئيسي مع أصناف فرعية' : 'صنف مفرد';
+
   const submitText = watchedItemKind === 'fashion'
     ? 'إنشاء الموديل بكل المقاسات والألوان'
     : groupedEntryEnabled

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClientPortal } from '@/shared/components/ClientPortal';
 import { useToolbarStore } from '@/stores/toolbar-store';

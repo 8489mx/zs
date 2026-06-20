@@ -67,14 +67,14 @@ export const componentsApi = {
     }
   },
   
-  update: async (id: string, data: Partial<ManufacturingComponent>): Promise<ManufacturingComponent> => {
+  update: async (_id: string, _data: Partial<ManufacturingComponent>): Promise<ManufacturingComponent> => {
     // In a real application, you would call `productsApi.update`.
     // Since sharedProductsApi doesn't expose update yet, we'll throw an error for now
     // or you could import `productsApi` from features if necessary.
     throw new Error('Update component requires products API integration update');
   },
   
-  delete: async (id: string): Promise<void> => {
+  delete: async (_id: string): Promise<void> => {
     // Similarly, requires products API delete method
     throw new Error('Delete component requires products API integration update');
   }

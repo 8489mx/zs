@@ -7,7 +7,7 @@ import { ManagerNotificationsBell } from '@/features/dashboard/components/Manage
 
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
-  const { breadcrumbs, globalSearchQuery, setGlobalSearchQuery, toggleMobileSidebar, setGlobalSearchOpen } = useToolbarStore();
+  const { breadcrumbs, toggleMobileSidebar, setGlobalSearchOpen } = useToolbarStore();
 
   return (
     <div className="purchase-prototype-workspace-toolbar">

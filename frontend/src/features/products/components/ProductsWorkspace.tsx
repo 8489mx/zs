@@ -1,19 +1,18 @@
-import { Suspense, lazy, useEffect, useRef } from 'react';
+import { Suspense, lazy, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { ProductForm } from '@/features/products/components/ProductForm';
+
 import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsGrid';
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';
 import {
   QuickCatalogCard,
-  ProductEditorCard,
 } from '@/features/products/components/ProductsWorkspaceSections';
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
-import { invalidateCatalogDomain } from '@/app/query-invalidation';
+
 import { useAppToolbar } from '@/stores/toolbar-store';
 
 const LazyProductOfferDialog = lazy(() => import('@/features/products/components/ProductOfferDialog').then((module) => ({ default: module.ProductOfferDialog })));
@@ -66,7 +65,7 @@ export function ProductsWorkspace() {
               لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للنشاط، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
             </div>
             <div className="actions compact-actions">
-              <Button onClick={() => scrollToRef(addProductRef.current)}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
+              <Button onClick={() => scrollToRef(toolsRef.current)}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
               <Button variant="secondary" onClick={() => scrollToRef(toolsRef.current)}>إضافة قسم أو مورد</Button>
             </div>
           </div>
@@ -97,7 +96,7 @@ export function ProductsWorkspace() {
         onBulkDelete={() => controller.setBulkDeleteOpen(true)}
         visibleProducts={controller.visibleProducts}
         selectedProduct={controller.selectedProduct}
-        onSelectProduct={(product) => navigate(`/products/${product.id}/edit`)}
+        onSelectProduct={(product) => { if (product) navigate(`/products/${product.id}/edit`); }}
         onDeleteProduct={controller.setProductToDelete}
         onOpenOfferDialog={controller.openOfferDialog}
         onOpenBarcodeDialog={controller.openBarcodeDialog}

@@ -93,7 +93,7 @@ export default function NewWorkOrderPage() {
         id: Date.now(),
         doc_no: `WO-${Date.now().toString().slice(-4)}`,
         bom_id: selectedBom.id,
-        product_name: selectedBom.product_name || selectedBom.name,
+        product_name: selectedBom.productName || selectedBom.name,
         status: 'draft',
         quantity_to_produce: quantity,
         produced_quantity: 0,

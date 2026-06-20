@@ -189,23 +189,27 @@ export default function WorkOrdersListPage() {
     >
         <Card className="document-prototype-section">
           <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <Field label="الفترة الزمنية" style={{ margin: 0, minWidth: '200px' }}>
-              <select className="purchase-prototype-field-input" value={dateFilter} onChange={e => setDateFilter(e.target.value as any)}>
-                <option value="all">كل الأوقات</option>
-                <option value="today">اليوم</option>
-                <option value="week">هذا الأسبوع</option>
-                <option value="month">هذا الشهر</option>
-              </select>
-            </Field>
+            <div style={{ margin: 0, minWidth: '200px' }}>
+              <Field label="الفترة الزمنية">
+                <select className="purchase-prototype-field-input" value={dateFilter} onChange={e => setDateFilter(e.target.value as any)}>
+                  <option value="all">كل الأوقات</option>
+                  <option value="today">اليوم</option>
+                  <option value="week">هذا الأسبوع</option>
+                  <option value="month">هذا الشهر</option>
+                </select>
+              </Field>
+            </div>
             
-            <Field label="المستخدم (المنفذ)" style={{ margin: 0, minWidth: '200px' }}>
-              <select className="purchase-prototype-field-input" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
-                <option value="all">كل المستخدمين</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
-            </Field>
+            <div style={{ margin: 0, minWidth: '200px' }}>
+              <Field label="المستخدم (المنفذ)">
+                <select className="purchase-prototype-field-input" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
+                  <option value="all">كل المستخدمين</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
           </div>
           <div className="page-stack">
           {isLoading ? (

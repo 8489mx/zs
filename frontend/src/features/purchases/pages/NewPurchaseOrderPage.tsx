@@ -3,12 +3,12 @@ import { usePurchaseComposerCatalog } from '@/features/purchases/hooks/usePurcha
 import imageCompression from 'browser-image-compression';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
 import { purchasesApi } from '@/features/purchases/api/purchases.api';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { useAuthStore } from '@/stores/auth-store';
-import { AppAccountMenu } from '@/shared/layout/app-account-menu';
+
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { useTranslation } from '../utils/i18n-purchase-prototype';
@@ -742,8 +742,7 @@ export function NewPurchaseOrderPage() {
   const [documentStatus, setDocumentStatus] = useState<DocumentStatus>('draft');
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({ rows: {} });
   const [inlineMessage, setInlineMessage] = useState<{ tone: InlineMessageTone; text: string } | null>(null);
-  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
-  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [_globalSearchOpen, _setGlobalSearchOpen] = useState(false);
   const purchaseDropdownClassName = isDarkMode
     ? 'purchase-new-prototype-dropdown purchase-new-prototype-dropdown-dark'
     : 'purchase-new-prototype-dropdown';
@@ -1598,16 +1597,6 @@ export function NewPurchaseOrderPage() {
 
     return () => window.clearTimeout(timer);
   }, [pendingFocusQtyLineId, lines]);
-  const filteredSearchProducts = useMemo(() => {
-    if (!globalSearchQuery) return [];
-    return products.filter((p) => includesNormalized(p.name, globalSearchQuery) || includesNormalized(p.code || '', globalSearchQuery)).slice(0, 3);
-  }, [globalSearchQuery, products]);
-
-  const filteredSearchSuppliers = useMemo(() => {
-    if (!globalSearchQuery) return [];
-    return suppliers.filter((s) => includesNormalized(s.name, globalSearchQuery) || includesNormalized(s.code || '', globalSearchQuery)).slice(0, 3);
-  }, [globalSearchQuery, suppliers]);
-
   useAppToolbar([
     { label: t('purchases'), to: '/purchases' },
     { label: t('purchase_orders'), to: '/purchases' },
