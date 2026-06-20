@@ -224,7 +224,7 @@ export default function WorkOrdersListPage() {
                       <DataTable 
                         rows={orders} 
                         columns={columns} 
-                        rowKey={(r) => r.id}
+                        rowKey={(r) => String(r.id)}
                       />
                     </div>
                   </details>

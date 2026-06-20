@@ -202,6 +202,8 @@ export async function migrateSales(ctx: MigrationContext): Promise<EntityCounter
           unit_multiplier: 1,
           cost_price: 0,
           price_type: 'retail',
+          notes: '',
+          modifiers: '[]',
         })
         .onConflict((oc: any) => oc.column('id').doNothing())
         .execute();

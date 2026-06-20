@@ -18,6 +18,7 @@ describe('PosCartItemsList', () => {
         onQtyChange={vi.fn()}
         onRemoveItem={vi.fn()}
         onSelectLine={vi.fn()}
+        onItemNoteChange={vi.fn()}
       />,
     );
 

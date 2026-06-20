@@ -5,6 +5,8 @@ const ddlStatements = [
   `ALTER TABLE manufacturing_bom_lines ADD COLUMN IF NOT EXISTS waste_percentage NUMERIC(5,2) NOT NULL DEFAULT 0`,
   `ALTER TABLE sale_items ADD COLUMN IF NOT EXISTS notes TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE sale_items ADD COLUMN IF NOT EXISTS modifiers JSONB NOT NULL DEFAULT '[]'::jsonb`,
+  `ALTER TABLE held_sale_items ADD COLUMN IF NOT EXISTS notes TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE held_sale_items ADD COLUMN IF NOT EXISTS modifiers JSONB NOT NULL DEFAULT '[]'::jsonb`,
 ];
 
 const dropStatements = [
@@ -12,6 +14,8 @@ const dropStatements = [
   `ALTER TABLE manufacturing_bom_lines DROP COLUMN IF EXISTS waste_percentage`,
   `ALTER TABLE sale_items DROP COLUMN IF EXISTS notes`,
   `ALTER TABLE sale_items DROP COLUMN IF EXISTS modifiers`,
+  `ALTER TABLE held_sale_items DROP COLUMN IF EXISTS notes`,
+  `ALTER TABLE held_sale_items DROP COLUMN IF EXISTS modifiers`,
 ];
 
 export const migration = {

@@ -6,7 +6,6 @@ import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 
 import { bomsApi } from '@/features/manufacturing/api/boms.api';
 import { workOrdersApi } from '@/features/manufacturing/api/work-orders.api';
-import { useAuthStore } from '@/stores/auth-store';
 
 type BomOption = {
   id: string;
@@ -24,8 +23,6 @@ import { ManufacturingLayout } from '@/features/manufacturing/components/Manufac
 
 export default function NewWorkOrderPage() {
   const navigate = useNavigate();
-  const user = useAuthStore(s => s.user);
-  const userName = user?.displayName || user?.username || 'مدير النظام';
   
   const [boms, setBoms] = useState<BomOption[]>([]);
   const [locations, setLocations] = useState<LocationOption[]>([]);

@@ -878,6 +878,8 @@ export class SalesWriteService {
           unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
           unitMultiplier: Number(item.unitMultiplier || 1) || 1,
           priceType: (item.priceType === 'wholesale' ? 'wholesale' : 'retail') as 'retail' | 'wholesale',
+          notes: String(item.notes || '').trim(),
+          modifiers: item.modifiers || [],
         }))
         .filter((entry) => entry.productId > 0 && entry.qty > 0);
 
@@ -962,6 +964,8 @@ export class SalesWriteService {
             unit_name: item.unitName,
             unit_multiplier: item.unitMultiplier,
             price_type: item.priceType as 'retail' | 'wholesale',
+            notes: item.notes || '',
+            modifiers: item.modifiers ? JSON.stringify(item.modifiers) : '[]',
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           } as any)

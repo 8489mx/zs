@@ -34,6 +34,13 @@ class HeldSaleItemDto {
   @IsOptional()
   @IsIn(['retail', 'wholesale'])
   priceType?: 'retail' | 'wholesale';
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  modifiers?: any;
 }
 
 export class HeldSaleDto {

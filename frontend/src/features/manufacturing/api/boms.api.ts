@@ -1,5 +1,4 @@
 import { http } from '@/lib/http';
-import type { componentsApi } from './components.api';
 
 export interface BomLine {
   componentProductId: number;
