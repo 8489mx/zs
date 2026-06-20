@@ -15,12 +15,26 @@ const suppliers = [
   { id: 'sup-1', name: 'مورد رئيسي', phone: '02000000001', address: 'القاهرة', balance: 320, notes: 'توريد أسبوعي' },
   { id: 'sup-2', name: 'مورد سريع', phone: '02000000002', address: 'الجيزة', balance: 0, notes: '' },
 ];
-const products = [{
-  id: 'prod-1', name: 'مياه معدنية', barcode: '111', categoryId: 'cat-1', supplierId: 'sup-1',
-  costPrice: 5, retailPrice: 10, wholesalePrice: 8, stock: 20, minStock: 5, notes: '',
-  units: [{ id: 'unit-1', name: 'قطعة', multiplier: 1, barcode: '111', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
-  offers: [], customerPrices: [], status: 'available', statusLabel: 'متاح'
-}];
+const products = [
+  {
+    id: 'prod-1', name: 'مياه معدنية', barcode: '111', categoryId: 'cat-1', supplierId: 'sup-1',
+    costPrice: 5, retailPrice: 10, wholesalePrice: 8, stock: 20, minStock: 5, notes: '',
+    units: [{ id: 'unit-1', name: 'قطعة', multiplier: 1, barcode: '111', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
+    offers: [], customerPrices: [], status: 'available', statusLabel: 'متاح', itemType: 'product'
+  },
+  {
+    id: 'prod-raw-1', name: 'دقيق', barcode: 'FLR-01', categoryId: 'cat-1', supplierId: 'sup-1',
+    costPrice: 30, retailPrice: 0, wholesalePrice: 0, stock: 500, minStock: 50, notes: '',
+    units: [{ id: 'unit-raw-1', name: 'kg', multiplier: 1, barcode: 'FLR-01', isBaseUnit: true, isSaleUnit: false, isPurchaseUnit: true }],
+    offers: [], customerPrices: [], status: 'available', statusLabel: 'متاح', itemType: 'raw_material'
+  },
+  {
+    id: 'prod-raw-2', name: 'سكر', barcode: 'SGR-01', categoryId: 'cat-1', supplierId: 'sup-1',
+    costPrice: 45, retailPrice: 0, wholesalePrice: 0, stock: 250, minStock: 50, notes: '',
+    units: [{ id: 'unit-raw-2', name: 'kg', multiplier: 1, barcode: 'SGR-01', isBaseUnit: true, isSaleUnit: false, isPurchaseUnit: true }],
+    offers: [], customerPrices: [], status: 'available', statusLabel: 'متاح', itemType: 'raw_material'
+  }
+];
 const summary = {
   sales: { count: 1, total: 100, netSales: 100 },
   purchases: { count: 1, total: 50, netPurchases: 50 },

@@ -1,4 +1,5 @@
-import { http } from '@/lib/http';
+import { sharedProductsApi } from '@/shared/api/products';
+import type { Product } from '@/types/domain';
 
 export interface ManufacturingComponent {
   id: string;
@@ -9,84 +10,77 @@ export interface ManufacturingComponent {
   stock: number;
 }
 
-// Temporary in-memory store for components if backend is not ready
-const MOCK_STORAGE_KEY = 'manufacturing_mock_components';
-const defaultMockComponents: ManufacturingComponent[] = [
-  { id: 'comp_1', name: 'دقيق', code: 'FLR-01', baseUnit: 'kg', costPerBaseUnit: 30, stock: 500 },
-  { id: 'comp_2', name: 'سكر', code: 'SGR-01', baseUnit: 'kg', costPerBaseUnit: 45, stock: 250 },
-  { id: 'comp_3', name: 'زيت نباتي', code: 'OIL-01', baseUnit: 'liter', costPerBaseUnit: 60, stock: 100 },
-  { id: 'comp_4', name: 'خميرة', code: 'YST-01', baseUnit: 'g', costPerBaseUnit: 0.1, stock: 5000 },
-  { id: 'comp_5', name: 'مادة حافظة', code: 'PRV-01', baseUnit: 'g', costPerBaseUnit: 0.5, stock: 2000 },
-  { id: 'comp_6', name: 'كرتونة تغليف', code: 'BOX-01', baseUnit: 'piece', costPerBaseUnit: 2.5, stock: 1000 },
-];
-
-function getMockComponents(): ManufacturingComponent[] {
-  try {
-    const saved = localStorage.getItem(MOCK_STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return defaultMockComponents;
+// Map a Product from the inventory API to a ManufacturingComponent
+function mapProductToComponent(product: Product): ManufacturingComponent {
+  const baseUnitObj = product.units?.find(u => u.isBaseUnit) || product.units?.[0];
+  return {
+    id: product.id,
+    name: product.name,
+    code: product.barcode || '',
+    baseUnit: baseUnitObj?.name || 'kg',
+    costPerBaseUnit: product.costPrice || 0,
+    stock: product.stock || 0,
+  };
 }
-
-function saveMockComponents(comps: ManufacturingComponent[]) {
-  localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(comps));
-}
-
-let mockComponents = getMockComponents();
 
 export const componentsApi = {
   list: async (): Promise<ManufacturingComponent[]> => {
     try {
-      // Try fetching from real API first
-      const res = await http<{ components: ManufacturingComponent[] }>('/api/manufacturing/components');
-      return res.components || mockComponents;
+      const allProducts = await sharedProductsApi.list();
+      // Only return products that are classified as raw materials
+      const rawMaterials = allProducts.filter(p => p.itemType === 'raw_material');
+      return rawMaterials.map(mapProductToComponent);
     } catch (e) {
-      // Fallback to mock data if API fails (404)
-      return mockComponents;
+      console.error('Error fetching raw materials from products API', e);
+      return [];
     }
   },
   
   create: async (data: Omit<ManufacturingComponent, 'id'>): Promise<ManufacturingComponent> => {
     try {
-      const res = await http<ManufacturingComponent>('/api/manufacturing/components', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      return res;
+      // Map ManufacturingComponent data to Product creation payload
+      const productPayload = {
+        name: data.name,
+        barcode: data.code || '',
+        categoryId: 'cat-1', // Default category or could be dynamic
+        supplierId: 'sup-1', // Default supplier
+        costPrice: data.costPerBaseUnit,
+        retailPrice: 0,
+        wholesalePrice: 0,
+        stock: data.stock || 0, // Fallback if they still send stock
+        minStock: 0,
+        notes: '',
+        units: [{
+          id: `unit_${Date.now()}`,
+          name: data.baseUnit,
+          multiplier: 1,
+          barcode: data.code || '',
+          isBaseUnit: true,
+          isSaleUnit: false,
+          isPurchaseUnit: true
+        }],
+        itemType: 'raw_material',
+        status: 'available',
+        statusLabel: 'متاح'
+      };
+      
+      const newProduct = await sharedProductsApi.create(productPayload) as Product;
+      return mapProductToComponent(newProduct);
     } catch (e) {
-      // Fallback
-      const newComp = { ...data, id: `comp_${Date.now()}` };
-      mockComponents.push(newComp);
-      saveMockComponents(mockComponents);
-      return newComp;
+      console.error('Error creating raw material via products API', e);
+      throw e;
     }
   },
   
   update: async (id: string, data: Partial<ManufacturingComponent>): Promise<ManufacturingComponent> => {
-    try {
-      const res = await http<ManufacturingComponent>(`/api/manufacturing/components/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-      });
-      return res;
-    } catch (e) {
-      // Fallback
-      const index = mockComponents.findIndex(c => c.id === id);
-      if (index > -1) {
-        mockComponents[index] = { ...mockComponents[index], ...data };
-        saveMockComponents(mockComponents);
-        return mockComponents[index];
-      }
-      throw new Error('Component not found');
-    }
+    // In a real application, you would call `productsApi.update`.
+    // Since sharedProductsApi doesn't expose update yet, we'll throw an error for now
+    // or you could import `productsApi` from features if necessary.
+    throw new Error('Update component requires products API integration update');
   },
   
   delete: async (id: string): Promise<void> => {
-    try {
-      await http(`/api/manufacturing/components/${id}`, { method: 'DELETE' });
-    } catch (e) {
-      mockComponents = mockComponents.filter(c => c.id !== id);
-      saveMockComponents(mockComponents);
-    }
+    // Similarly, requires products API delete method
+    throw new Error('Delete component requires products API integration update');
   }
 };

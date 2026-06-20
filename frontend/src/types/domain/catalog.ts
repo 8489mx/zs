@@ -39,6 +39,7 @@ export interface Product {
   units: ProductUnit[];
   offers?: ProductOffer[];
   customerPrices?: ProductCustomerPrice[];
+  itemType?: 'product' | 'raw_material';
   itemKind?: 'standard' | 'fashion';
   styleCode?: string;
   color?: string;

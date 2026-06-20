@@ -20,7 +20,6 @@ export default function ManufacturingComponentsPage() {
   const [newCode, setNewCode] = useState('');
   const [newBaseUnit, setNewBaseUnit] = useState('kg');
   const [newCost, setNewCost] = useState('');
-  const [newStock, setNewStock] = useState('');
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,8 +53,7 @@ export default function ManufacturingComponentsPage() {
           name: newName,
           code: newCode,
           baseUnit: newBaseUnit,
-          costPerBaseUnit: Number(newCost),
-          stock: Number(newStock) || 0
+          costPerBaseUnit: Number(newCost)
         });
       } else {
         await componentsApi.create({
@@ -63,7 +61,7 @@ export default function ManufacturingComponentsPage() {
           code: newCode,
           baseUnit: newBaseUnit,
           costPerBaseUnit: Number(newCost),
-          stock: Number(newStock) || 0
+          stock: 0
         });
       }
       setIsFormVisible(false);
@@ -72,7 +70,6 @@ export default function ManufacturingComponentsPage() {
       setNewCode('');
       setNewBaseUnit('kg');
       setNewCost('');
-      setNewStock('');
       loadComponents();
     } catch (error) {
       alert('حدث خطأ أثناء الحفظ');
@@ -85,7 +82,6 @@ export default function ManufacturingComponentsPage() {
     setNewCode(comp.code || '');
     setNewBaseUnit(comp.baseUnit);
     setNewCost(String(comp.costPerBaseUnit));
-    setNewStock(String(comp.stock));
     setIsFormVisible(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -143,7 +139,6 @@ export default function ManufacturingComponentsPage() {
             setNewCode('');
             setNewBaseUnit('kg');
             setNewCost('');
-            setNewStock('');
             setIsFormVisible(!isFormVisible);
           }}
         >
@@ -176,9 +171,6 @@ export default function ManufacturingComponentsPage() {
               </Field>
               <Field label="التكلفة للوحدة الأساسية (جنيه) *">
                 <input required type="number" min="0" step="any" className="purchase-prototype-field-input" value={newCost} onChange={e => setNewCost(e.target.value)} />
-              </Field>
-              <Field label="المخزون الافتتاحي">
-                <input type="number" min="0" step="any" className="purchase-prototype-field-input" value={newStock} onChange={e => setNewStock(e.target.value)} />
               </Field>
               <Button type="submit" variant="primary" style={{ height: '36px' }}>
                 {editingComponent ? 'تحديث المكون' : 'حفظ المكون'}
