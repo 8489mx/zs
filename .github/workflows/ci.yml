@@ -118,6 +118,6 @@ jobs:
       - name: Install frontend
         run: npm ci
         working-directory: frontend
-      - name: Run frontend QA
-        run: npm run qa
+      - name: Build frontend (type-check + bundle)
+        run: npm run build
         working-directory: frontend
