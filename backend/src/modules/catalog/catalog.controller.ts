@@ -44,6 +44,11 @@ export class CatalogController {
     return this.catalogService.listProducts(query, req.authContext!);
   }
 
+  @Get('products/:id')
+  getProduct(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.catalogService.getProduct(id, req.authContext!);
+  }
+
   @Get('catalog/pos-products')
   @RequirePermissions('sales')
   listPosProducts(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

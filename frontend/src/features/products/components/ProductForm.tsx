@@ -267,13 +267,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
 
       <div className="surface-note" style={{ padding: 12 }}>
         <div className="actions compact-actions" style={{ flexWrap: 'wrap' }}>
-          <div className="field" style={{ minWidth: 220 }}>
-            <label>تصنيف الصنف</label>
-            <select {...form.register('itemType')} disabled={mutation.isPending}>
-              <option value="product">منتج نهائي للبيع</option>
-              <option value="raw_material">مادة خام / مكون تصنيع</option>
-            </select>
-          </div>
+
           {clothingModuleEnabled ? (
             <div className="field" style={{ minWidth: 220 }}><label>نوع الصنف</label>
               <select {...form.register('itemKind')} disabled={mutation.isPending}>
@@ -284,15 +278,20 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
           ) : null}
           {watchedItemKind === 'standard' ? (
             <>
-              <Button type="button" variant={!groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(false)} disabled={mutation.isPending}>صنف مفرد</Button>
-              <Button type="button" variant={groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(true)} disabled={mutation.isPending}>صنف رئيسي + أصناف فرعية</Button>
+              <Button type="button" variant={!groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(false)} disabled={mutation.isPending}>صنف عادي (بسيط)</Button>
+              <Button type="button" variant={groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(true)} disabled={mutation.isPending}>صنف بمتغيرات (أنواع/أحجام)</Button>
             </>
           ) : null}
-          <span className="cashier-chip">{primaryTitle}</span>
         </div>
       </div>
 
       <div className="form-grid">
+        <Field label="تصنيف الصنف">
+          <select {...form.register('itemType')} disabled={mutation.isPending}>
+            <option value="product">منتج نهائي للبيع</option>
+            <option value="raw_material">مادة خام / مكون تصنيع</option>
+          </select>
+        </Field>
         <Field label={watchedItemKind === 'fashion' ? 'اسم الموديل الأساسي' : groupedEntryEnabled ? 'اسم الصنف الأساسي' : 'اسم الصنف'} error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} placeholder={watchedItemKind === 'fashion' ? 'مثال: تيشيرت بنجول' : groupedEntryEnabled ? 'مثال: مزيل عرق X' : undefined} /></Field>
 
         {usesVariantBuilder ? (

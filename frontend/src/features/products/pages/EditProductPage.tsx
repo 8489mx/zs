@@ -1,0 +1,280 @@
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
+import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
+import { productsApi } from '@/features/products/api/products.api';
+import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
+import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery } from '@/shared/hooks/use-catalog-queries';
+import type { Category, Product, ProductCustomerPrice, ProductUnit, Supplier } from '@/types/domain';
+import { ProductCustomerPricesCard } from '@/features/products/components/workspace-sections/ProductCustomerPricesCard';
+import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
+import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
+import { AppAccountMenu } from '@/shared/layout/app-account-menu';
+import { useAppToolbar } from '@/stores/toolbar-store';
+
+type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
+  stock?: number;
+  variantStock?: number;
+  fashionColors?: string;
+  fashionSizes?: string;
+};
+
+function omitStock(values: ProductFormOutput): ProductFormOutput {
+  const { stock: _stock, variantStock: _variantStock, fashionColors: _fashionColors, fashionSizes: _fashionSizes, ...safeValues } = values as ProductFormOutputWithoutStock;
+  return safeValues as ProductFormOutput;
+}
+
+const LazyFashionGroupEditorCard = lazy(() => import('@/features/products/components/workspace-sections/FashionGroupEditorCard').then((module) => ({ default: module.FashionGroupEditorCard })));
+
+export function EditProductPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const settingsQuery = useSettingsQuery();
+  const categoriesQuery = useCategoriesQuery();
+  const suppliersQuery = useSuppliersQuery();
+  const customersQuery = useCustomersQuery();
+  
+  const categories = categoriesQuery.data || [];
+  const suppliers = suppliersQuery.data || [];
+  const customers = (customersQuery.data || []).map((customer) => ({ id: String(customer.id), name: customer.name }));
+
+  const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+
+  const { data: product, isLoading: isProductLoading, isError: isProductError } = useQuery({
+    queryKey: ['product', id],
+    queryFn: async () => productsApi.get(id as string),
+    enabled: Boolean(id)
+  });
+
+  const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(product?.units, product?.barcode || ''));
+  const [customerPrices, setCustomerPrices] = useState<ProductCustomerPrice[]>(normalizeCustomerPrices(product));
+
+  const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: {
+      name: '', barcode: '', itemKind: 'standard', styleCode: '', color: '', size: '', fashionColors: '', fashionSizes: '', variantStock: 0,
+      costPrice: 0, retailPrice: 0, wholesalePrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: ''
+    }
+  });
+
+  const watchedItemKind = clothingModuleEnabled && form.watch('itemKind') === 'fashion' ? 'fashion' : 'standard';
+  const watchedStyleCode = form.watch('styleCode') || '';
+  const groupedEntry = Boolean(String(product?.styleCode || '').trim());
+
+  useEffect(() => {
+    if (!product) return;
+    form.reset(toProductFormValues(product));
+    setUnits(normalizeProductUnits(product.units, product.barcode || ''));
+    setCustomerPrices(normalizeCustomerPrices(product));
+  }, [product, form]);
+
+  useEffect(() => {
+    if (!clothingModuleEnabled && form.getValues('itemKind') !== 'standard') {
+      form.setValue('itemKind', 'standard', { shouldDirty: false, shouldValidate: true });
+    }
+  }, [clothingModuleEnabled, form]);
+
+  const mutation = useMutation({
+    mutationFn: async (values: ProductFormOutput) => {
+      if (!product) throw new Error('اختر صنفًا أولًا');
+      return productsApi.update(product.id, buildUpdatePayload({ ...omitStock(values), itemKind: watchedItemKind }, product, units, customerPrices));
+    },
+    onSuccess: async () => {
+      if (!product) return;
+      await refetchAndSelectProduct(queryClient, product.id);
+      navigate('/products');
+    }
+  });
+
+  const hasDraftChanges = (
+    form.formState.isDirty
+    || (watchedItemKind === 'fashion' ? false : JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(product?.units, product?.barcode || '')))
+    || JSON.stringify(customerPrices) !== JSON.stringify(normalizeCustomerPrices(product))
+  );
+
+  async function saveCustomerPricesOnly() {
+    if (!product) return;
+    const values = productFormSchema.parse(form.getValues());
+    await mutation.mutateAsync({ ...omitStock(values), itemKind: watchedItemKind });
+  }
+
+  const isFormDisabled = mutation.isPending || isProductLoading || settingsQuery.isLoading;
+
+  if (isProductLoading) {
+    return <div className="screen-center"><div className="loading-card">جاري تحميل الصنف...</div></div>;
+  }
+
+  if (!product || isProductError) {
+    return (
+      <div className="screen-center">
+        <div className="loading-card">
+          <h2>تعذر تحميل الصنف</h2>
+          <Button variant="secondary" onClick={() => navigate('/products')}>العودة للسجل</Button>
+        </div>
+      </div>
+    );
+  }
+
+  useAppToolbar([
+    { label: 'الرئيسية', to: '/' },
+    { label: 'الأصناف', to: '/products' },
+    { label: groupedEntry ? `تعديل المجموعة: ${product?.name}` : `تعديل صنف: ${product?.name}` }
+  ]);
+
+  if (groupedEntry) {
+    return (
+      <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
+        <div className="purchase-prototype-sticky-stack">
+          <div className="purchase-prototype-document-surface">
+            <div className="document-prototype-topbar">
+              <div className="document-prototype-topbar-right">
+                <button type="button" className="document-prototype-back-link" onClick={() => navigate('/products')} aria-label="الرجوع">←</button>
+                <h1>تعديل المجموعة: {product.name}</h1>
+              </div>
+              <div className="document-prototype-topbar-actions">
+                <Button variant="secondary" onClick={() => navigate('/products')}>الرجوع للسجل</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <main className="document-prototype-column">
+          <Suspense fallback={<div className="loading-card">جاري التحميل...</div>}>
+            <LazyFashionGroupEditorCard
+              product={product}
+              categories={categories}
+              suppliers={suppliers}
+            />
+          </Suspense>
+        </main>
+      </div>
+    );
+  }
+
+  const onSubmit = form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }));
+
+  return (
+    <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
+      <div className="purchase-prototype-sticky-stack">
+        <div className="purchase-prototype-document-surface">
+          <div className="document-prototype-topbar">
+            <div className="document-prototype-topbar-right">
+              <button type="button" className="document-prototype-back-link" onClick={() => navigate('/products')} aria-label="الرجوع">←</button>
+              <h1>تعديل صنف: {product.name}</h1>
+            </div>
+            <div className="document-prototype-topbar-actions">
+              <Button variant="secondary" onClick={() => navigate('/products')} disabled={isFormDisabled}>
+                إلغاء
+              </Button>
+              <Button variant="primary" onClick={onSubmit} disabled={isFormDisabled}>
+                {isFormDisabled ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <main className="document-prototype-column">
+        {mutation.isError && (
+          <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444' }}>
+            <div style={{ color: '#b91c1c' }}>تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى.</div>
+          </div>
+        )}
+
+        {hasDraftChanges && !mutation.isPending && (
+          <div className="document-prototype-section" style={{ backgroundColor: '#fffbeb', borderColor: '#fcd34d' }}>
+            <div style={{ color: '#92400e' }}>تعديلات الصنف الحالية غير محفوظة. احفظ الصنف أو أعد القيم الأصلية.</div>
+          </div>
+        )}
+
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">البيانات الأساسية</h3>
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            <Field label="تصنيف الصنف">
+              <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
+                <option value="product">منتج نهائي للبيع</option>
+                <option value="raw_material">مادة خام / مكون تصنيع</option>
+              </select>
+            </Field>
+            {clothingModuleEnabled ? (
+              <Field label="نوع الصنف">
+                <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>
+                  <option value="standard">صنف عادي</option>
+                  <option value="fashion">ملابس / Variant</option>
+                </select>
+              </Field>
+            ) : null}
+            <Field label="اسم الصنف" error={form.formState.errors.name?.message}>
+              <input className="purchase-prototype-field-input" {...form.register('name')} disabled={isFormDisabled} />
+            </Field>
+            <Field label="الباركود">
+              <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} />
+            </Field>
+            {clothingModuleEnabled ? (
+              <Field label="كود الموديل">
+                <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري - أرقام فقط" />
+              </Field>
+            ) : null}
+            {clothingModuleEnabled ? <Field label="اللون"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
+            {clothingModuleEnabled ? <Field label="المقاس"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
+          </div>
+        </section>
+
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">التسعير والمخزون</h3>
+          </div>
+          <div className="document-prototype-grid compact-grid-3">
+            <Field label="سعر الشراء"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} /></Field>
+            <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
+            <Field label="سعر الجملة"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} /></Field>
+            <Field label="المخزون الحالي"><input className="purchase-prototype-field-input" type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
+            <Field label="الحد الأدنى"><input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} /></Field>
+          </div>
+        </section>
+
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">بيانات القسم والمورد</h3>
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            <Field label="القسم">
+              <select className="purchase-prototype-field-input" {...form.register('categoryId')} disabled={isFormDisabled}>
+                <option value="">بدون قسم</option>
+                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              </select>
+            </Field>
+            <Field label="المورد">
+              <select className="purchase-prototype-field-input" {...form.register('supplierId')} disabled={isFormDisabled}>
+                <option value="">بدون مورد</option>
+                {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+              </select>
+            </Field>
+          </div>
+        </section>
+
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">ملاحظات</h3>
+          </div>
+          <Field><textarea className="purchase-prototype-field-input" rows={4} {...form.register('notes')} disabled={isFormDisabled} /></Field>
+        </section>
+
+        <div className="document-prototype-section">
+          <ProductUnitsEditor units={units} onChange={setUnits} disabled={isFormDisabled} title="وحدات الصنف" />
+        </div>
+
+        <div className="document-prototype-section">
+          <ProductCustomerPricesCard product={product} customers={customers} customerPrices={customerPrices} onChange={setCustomerPrices} onSave={saveCustomerPricesOnly} isSaving={mutation.isPending} />
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -120,6 +120,7 @@ export class ManufacturingService {
         'wo.produced_quantity',
         'p.name as product_name',
         'wo.created_at',
+        'wo.created_by as created_by_id',
       ])
       .where(sql<boolean>`wo.tenant_id = ${scope.tenantId}`)
       .orderBy('wo.id', 'desc')

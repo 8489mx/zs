@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -31,15 +32,9 @@ export function ProductsWorkspace() {
   const settingsQuery = useSettingsQuery();
   const clothingEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const defaultProductKind = clothingEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
-  const addProductRef = useRef<HTMLDivElement | null>(null);
-  const editProductRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
   const toolsRef = useRef<HTMLDivElement | null>(null);
   const hasProducts = controller.metrics.total > 0;
-
-  useEffect(() => {
-    if (!controller.selectedProduct) return;
-    scrollToRef(editProductRef.current);
-  }, [controller.selectedProduct]);
 
   return (
     <div className="page-stack page-shell products-workspace-page">
@@ -49,25 +44,8 @@ export function ProductsWorkspace() {
         badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} صنف</span>}
         actions={(
           <div className="actions compact-actions page-header-actions">
-            <Button
-              onClick={() => {
-                controller.setSelectedProduct(null);
-                scrollToRef(addProductRef.current);
-              }}
-            >
+            <Button onClick={() => navigate('/products/new')}>
               {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                if (controller.selectedProduct) {
-                  scrollToRef(editProductRef.current);
-                  return;
-                }
-                scrollToRef(addProductRef.current);
-              }}
-            >
-              {controller.selectedProduct ? 'الانتقال للتعديل' : 'الانتقال للإضافة'}
             </Button>
             <Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button>
             <Button variant="secondary" onClick={() => scrollToRef(toolsRef.current)}>القسم والمورد</Button>
@@ -115,7 +93,7 @@ export function ProductsWorkspace() {
         onBulkDelete={() => controller.setBulkDeleteOpen(true)}
         visibleProducts={controller.visibleProducts}
         selectedProduct={controller.selectedProduct}
-        onSelectProduct={controller.setSelectedProduct}
+        onSelectProduct={(product) => navigate(`/products/${product.id}/edit`)}
         onDeleteProduct={controller.setProductToDelete}
         onOpenOfferDialog={controller.openOfferDialog}
         onOpenBarcodeDialog={controller.openBarcodeDialog}
@@ -137,58 +115,6 @@ export function ProductsWorkspace() {
         onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
         clothingEnabled={clothingEnabled}
       />
-
-      <div className="two-column-grid workspace-grid-balanced">
-        <div ref={addProductRef}>
-          <Card title={defaultProductKind === 'fashion' ? 'إضافة موديل جديد' : 'إضافة صنف جديد'} actions={<span className="nav-pill">الإجراء الأساسي</span>} className="workspace-panel">
-            <div className="muted" style={{ marginBottom: 12 }}>
-              {clothingEnabled ? 'إضافة الصنف أو الموديل تتم من نفس النموذج حسب النوع الافتراضي الموجود في الإعدادات، وبعدها تنفّذ العرض أو الباركود أو الملصقات من زراره المباشر داخل السجل.' : 'أضف الصنف أولًا، ثم نفّذ العرض أو الباركود أو الملصقات من زراره المباشر داخل السجل.'}
-            </div>
-            <ProductForm
-              categories={controller.categoriesQuery.data || []}
-              suppliers={controller.suppliersQuery.data || []}
-              onCategoryCreated={async () => { await invalidateCatalogDomain(controller.queryClient, { includeCategories: true }); }}
-              onSupplierCreated={async () => { await invalidateCatalogDomain(controller.queryClient, { includeSuppliers: true }); }}
-            />
-          </Card>
-        </div>
-
-        <div ref={editProductRef}>
-          <Card
-            title={controller.selectedProduct ? `تعديل: ${controller.selectedProduct.name}` : 'التعديل بعد اختيار الصنف'}
-            actions={(
-              <div className="actions compact-actions">
-                <span className="nav-pill">{controller.selectedProduct ? 'التعديل النشط' : 'اختر من السجل'}</span>
-                <Button variant="secondary" onClick={() => void controller.copySelectedProductSummary()} disabled={!controller.selectedProduct}>نسخ الملخص</Button>
-                <Button variant="secondary" onClick={() => controller.setSelectedProduct(null)} disabled={!controller.selectedProduct}>إلغاء التحديد</Button>
-              </div>
-            )}
-            className="workspace-panel"
-          >
-            {!controller.selectedProduct ? (
-              <div className="page-stack">
-                <div className="muted">اختر صنفًا من الجدول أولًا، وستجد أزرار العروض والباركود والملصقات مباشرة داخل نفس السطر وقت الحاجة.</div>
-                <div className="actions compact-actions">
-                  <Button variant="secondary" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>الرجوع للسجل</Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <ProductEditorCard
-                  product={controller.selectedProduct}
-                  categories={controller.categoriesQuery.data || []}
-                  suppliers={controller.suppliersQuery.data || []}
-                  customers={(controller.customersQuery.data || []).map((customer) => ({ id: String(customer.id), name: customer.name }))}
-                  onSaved={(product) => controller.applyProductPatch(product)}
-                />
-                <div className="actions" style={{ marginTop: 12 }}>
-                  <Button variant="danger" onClick={() => controller.setProductToDelete(controller.selectedProduct!)} disabled={!controller.canDelete}>حذف الصنف</Button>
-                </div>
-              </>
-            )}
-          </Card>
-        </div>
-      </div>
 
       <div ref={toolsRef}>
         <QuickCatalogCard canManageSuppliers={controller.canManageSuppliers} />

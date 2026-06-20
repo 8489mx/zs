@@ -9,6 +9,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { useAuthStore } from '@/stores/auth-store';
 import { AppAccountMenu } from '@/shared/layout/app-account-menu';
+import { useAppToolbar } from '@/stores/toolbar-store';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { useTranslation } from '../utils/i18n-purchase-prototype';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
@@ -1607,84 +1608,15 @@ export function NewPurchaseOrderPage() {
     return suppliers.filter((s) => includesNormalized(s.name, globalSearchQuery) || includesNormalized(s.code || '', globalSearchQuery)).slice(0, 3);
   }, [globalSearchQuery, suppliers]);
 
+  useAppToolbar([
+    { label: t('purchases'), to: '/purchases' },
+    { label: t('purchase_orders'), to: '/purchases' },
+    { label: t('new_purchase_order') }
+  ]);
+
   return (
     <div className={`page-shell document-prototype-shell purchase-new-prototype${isDarkMode ? ' purchase-prototype-dark' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className={`purchase-prototype-sticky-stack${isHeaderScrolled ? ' is-scrolled' : ''}`}>
-        <div className="purchase-prototype-workspace-toolbar">
-          <div className="purchase-prototype-toolbar-inner">
-            <div className="purchase-prototype-breadcrumb">
-              <Link to="/purchases">{t('purchases')}</Link>
-              <span>›</span>
-              <Link to="/purchases">{t('purchase_orders')}</Link>
-              <span>›</span>
-              <strong>{t('new_purchase_order')}</strong>
-            </div>
-
-            <div className="purchase-prototype-toolbar-actions">
-              <div className="purchase-prototype-search-container" role="search">
-                <div className="purchase-prototype-search">
-                  <span aria-hidden="true">⌕</span>
-                  <input 
-                    type="search" 
-                    className="purchase-prototype-toolbar-search-input" 
-                    placeholder={t('search')} 
-                    aria-label="بحث"
-                    value={globalSearchQuery}
-                    onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                    onFocus={() => setGlobalSearchOpen(true)}
-                    onBlur={() => setTimeout(() => setGlobalSearchOpen(false), 200)}
-                  />
-                </div>
-                {globalSearchOpen && globalSearchQuery && (
-                  <div className="purchase-prototype-search-dropdown">
-                    {filteredSearchSuppliers.length > 0 && (
-                      <div className="purchase-prototype-search-group">
-                        <div className="purchase-prototype-search-group-title">{t('suppliers_search')}</div>
-                        {filteredSearchSuppliers.map(s => (
-                          <div key={s.id} className="purchase-prototype-search-item" onMouseDown={(e) => { e.preventDefault(); handleSupplierSelect(s); setGlobalSearchOpen(false); }}>
-                            <span className="purchase-prototype-search-item-icon">👤</span>
-                            {s.name} {s.code && <span style={{ opacity: 0.5, marginRight: '4px' }}>({s.code})</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {filteredSearchProducts.length > 0 && (
-                      <div className="purchase-prototype-search-group">
-                        <div className="purchase-prototype-search-group-title">{t('products_tab')}</div>
-                        {filteredSearchProducts.map(p => (
-                          <div key={p.id} className="purchase-prototype-search-item">
-                            <span className="purchase-prototype-search-item-icon">📦</span>
-                            {p.name} {p.code && <span style={{ opacity: 0.5, marginRight: '4px' }}>({p.code})</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="purchase-prototype-search-group">
-                      <div className="purchase-prototype-search-group-title">{t('quick_orders')}</div>
-                      <div className="purchase-prototype-search-item">
-                        <span className="purchase-prototype-search-item-icon">📄</span>
-                        بحث في المستندات: "{globalSearchQuery}"
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* <button
-                type="button"
-                className={`purchase-prototype-icon-button purchase-prototype-toolbar-icon-button${isDarkMode ? ' is-active' : ''}`}
-                aria-label={t('dark_mode')}
-                aria-pressed={isDarkMode}
-                title={t('dark_mode')}
-                onClick={() => updateSessionMeta({ theme: isDarkMode ? 'light' : 'dark' })}
-              >
-                {isDarkMode ? '🌙' : '☀️'}
-              </button>
-              <LanguageSwitcher /> */}
-              <AppAccountMenu />
-            </div>
-          </div>
-        </div>
-
         <div className="purchase-prototype-document-surface">
         <div className="document-prototype-topbar">
             <div className="document-prototype-topbar-right">

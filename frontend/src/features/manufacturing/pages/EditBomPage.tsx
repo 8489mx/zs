@@ -285,8 +285,9 @@ export default function EditBomPage() {
                           getLabel={(c) => c.name}
                           search={searchComponentFilter}
                           onSelect={(comp) => selectComponent(line.id, comp)}
-                          createLabel={(q) => `إضافة مكون "${q}"`}
                           placeholder="ابحث عن مكون..."
+                          className="purchase-prototype-inline-combobox"
+                          inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
                         />
                         {line.query && !line.componentId && (
                           <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>

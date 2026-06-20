@@ -18,6 +18,8 @@ import {
   readPosShellPreference,
 } from '@/features/pos/lib/pos-shell';
 import { QuickAttendanceShortcut } from '@/shared/layout/quick-attendance-shortcut';
+import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
+import { useToolbarStore } from '@/stores/toolbar-store';
 
 type SidebarGroupDefinition = {
   key: string;
@@ -203,6 +205,13 @@ export function AppShell({ children }: PropsWithChildren) {
     if (typeof window !== 'undefined') return window.localStorage.getItem('zsystems_sidebar_collapsed') === 'true';
     return false;
   });
+  
+  const { isMobileSidebarOpen, setMobileSidebarOpen } = useToolbarStore();
+
+  useEffect(() => {
+    // Close mobile sidebar on route change
+    setMobileSidebarOpen(false);
+  }, [location.pathname, setMobileSidebarOpen]);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -385,8 +394,9 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
       {!isPosRoute || !isPosChromeHidden ? (
-        <aside className="sidebar-fixed">
-          <div className="brand">
+        <>
+          <aside className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
+            <div className="brand">
             <div className="brand-copy">
               <div className="brand-title">{cleanWorkspaceName}</div>
               <div className="brand-sub">{t("platform_sub")}</div>
@@ -443,14 +453,23 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
           </div>
         </aside>
+        <div 
+          className={`sidebar-mobile-overlay ${isMobileSidebarOpen ? 'is-active' : ''}`.trim()} 
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
+        />
+        </>
       ) : null}
-      <div className={`content-wrap ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
-        <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
-          <BootstrapAdminBanner />
-          <TrialStatusBanner />
-          <SystemStatusBanner />
+      <div className="main-col">
+        {!isPosRoute && <GlobalAppToolbar />}
+        <div className={`content-wrap ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
+          <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
+            <BootstrapAdminBanner />
+            <TrialStatusBanner />
+            <SystemStatusBanner />
+          </div>
+          <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>
-        <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
       </div>
       <PasswordRotationGate />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />

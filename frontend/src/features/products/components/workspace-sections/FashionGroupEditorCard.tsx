@@ -197,6 +197,12 @@ export function FashionGroupEditorCard({ product, categories, suppliers, onSaved
       </div>
 
       <div className="form-grid">
+        <Field label="تصنيف الصنف">
+          <select value={commonDraft.itemType} onChange={(event) => setCommonDraft((current) => ({ ...current, itemType: event.target.value as 'product' | 'raw_material' }))} disabled={mutation.isPending}>
+            <option value="product">منتج نهائي للبيع</option>
+            <option value="raw_material">مادة خام / مكون تصنيع</option>
+          </select>
+        </Field>
         <Field label="اسم الصنف الأساسي"><input value={commonDraft.name} onChange={(event) => setCommonDraft((current) => ({ ...current, name: normalizeArabicInput(event.target.value) }))} disabled={mutation.isPending} /></Field>
         <Field label={isFashion ? 'كود الموديل' : 'كود المجموعة / الصنف الرئيسي'}>
           <div className="muted small">التوليد يبدأ من {getStyleCodeSequenceStart()} ثم يزيد تلقائيًا.</div>

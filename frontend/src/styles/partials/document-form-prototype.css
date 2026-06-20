@@ -4,10 +4,8 @@
   border-bottom: 1px solid rgba(203, 213, 225, 0.75);
   box-sizing: border-box;
   height: 45px;
-  margin-inline: -18px;
-  margin-block-start: -18px;
   padding: 0;
-  width: calc(100% + 36px);
+  width: 100%;
 }
 
 .purchase-prototype-sticky-stack {
@@ -48,7 +46,7 @@
   flex-shrink: 0;
 }
 
-.purchase-new-prototype .app-account-menu {
+.app-account-menu {
   /* direction: rtl; removed to allow LTR */
   display: inline-flex;
   flex-shrink: 0;
@@ -56,7 +54,7 @@
   inset: auto;
 }
 
-.purchase-new-prototype .app-account-menu-trigger {
+.app-account-menu-trigger {
   align-items: center;
   background: #fff;
   border: 1px solid rgba(203, 213, 225, 0.78);
@@ -72,17 +70,17 @@
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
-.purchase-new-prototype .app-account-menu-trigger:hover {
+.app-account-menu-trigger:hover {
   border-color: rgba(71, 85, 105, 0.24);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
-.purchase-new-prototype .app-account-menu-trigger:focus-visible {
+.app-account-menu-trigger:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.16), 0 6px 14px rgba(15, 23, 42, 0.04);
 }
 
-.purchase-new-prototype .app-account-menu-avatar {
+.app-account-menu-avatar {
   align-items: center;
   background: linear-gradient(180deg, rgba(71, 85, 105, 0.12), rgba(71, 85, 105, 0.06));
   border-radius: 8px;
@@ -96,7 +94,7 @@
   width: 24px;
 }
 
-.purchase-new-prototype .app-account-menu-panel {
+.app-account-menu-panel {
   position: absolute;
   top: 38px;
   inset-inline-end: 0;
@@ -118,7 +116,7 @@
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.purchase-new-prototype .app-account-menu-identity {
+.app-account-menu-identity {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -130,7 +128,7 @@
   margin-bottom: 8px;
 }
 
-.purchase-new-prototype .app-account-menu-identity-avatar {
+.app-account-menu-identity-avatar {
   width: 46px;
   height: 46px;
   border-radius: 8px;
@@ -145,7 +143,7 @@
   box-shadow: 0 6px 14px rgba(71, 85, 105, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.purchase-new-prototype .app-account-menu-identity-copy {
+.app-account-menu-identity-copy {
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -154,14 +152,14 @@
   justify-content: center;
 }
 
-.purchase-new-prototype .app-account-menu-identity-copy strong {
+.app-account-menu-identity-copy strong {
   font-size: 15px;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.2;
 }
 
-.purchase-new-prototype .app-account-menu-identity-copy span {
+.app-account-menu-identity-copy span {
   font-size: 12px;
   color: #64748b;
   line-height: 1.2;
@@ -170,7 +168,7 @@
   white-space: nowrap;
 }
 
-.purchase-new-prototype .app-account-menu-identity-copy small {
+.app-account-menu-identity-copy small {
   font-size: 11px;
   color: #475569;
   background: rgba(71, 85, 105, 0.12);
@@ -183,19 +181,19 @@
   margin-top: 3px;
 }
 
-.purchase-new-prototype .app-account-menu-divider {
+.app-account-menu-divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.25), transparent);
   margin: 6px 10px 8px;
 }
 
-.purchase-new-prototype .app-account-menu-items {
+.app-account-menu-items {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.purchase-new-prototype .app-account-menu-item {
+.app-account-menu-item {
   width: 100%;
   min-height: 40px;
   padding: 8px 12px;
@@ -217,35 +215,35 @@
   overflow: hidden;
 }
 
-.purchase-new-prototype .app-account-menu-item:hover:not(:disabled) {
+.app-account-menu-item:hover:not(:disabled) {
   background: rgba(71, 85, 105, 0.08);
   color: #475569;
   transform: translateX(-2px);
 }
 
-.purchase-new-prototype .app-account-menu-item:focus-visible {
+.app-account-menu-item:focus-visible {
   outline: none;
   background: rgba(71, 85, 105, 0.08);
 }
 
-.purchase-new-prototype .app-account-menu-item:disabled,
-.purchase-new-prototype .app-account-menu-item[aria-disabled="true"] {
+.app-account-menu-item:disabled,
+.app-account-menu-item[aria-disabled="true"] {
   opacity: 1;
   cursor: not-allowed;
   color: #94a3b8;
 }
 
-.purchase-new-prototype .app-account-menu-item-danger {
+.app-account-menu-item-danger {
   color: #ef4444;
 }
 
-.purchase-new-prototype .app-account-menu-item-danger:hover:not(:disabled) {
+.app-account-menu-item-danger:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.1);
   color: #dc2626;
   transform: translateX(-2px);
 }
 
-.purchase-new-prototype .app-account-menu-item-icon {
+.app-account-menu-item-icon {
   width: 20px;
   height: 20px;
   flex: 0 0 20px;
@@ -256,16 +254,16 @@
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.purchase-new-prototype .app-account-menu-item:hover:not(:disabled) .app-account-menu-item-icon {
+.app-account-menu-item:hover:not(:disabled) .app-account-menu-item-icon {
   transform: scale(1.1);
 }
 
-.purchase-new-prototype .app-account-menu-item-icon svg {
+.app-account-menu-item-icon svg {
   width: 18px;
   height: 18px;
 }
 
-.purchase-new-prototype .app-account-menu-item-badge {
+.app-account-menu-item-badge {
   margin-inline-start: auto;
   padding: 4px 10px;
   border-radius: 8px;
@@ -4268,7 +4266,7 @@
 /* ACCOUNT MENU PREMIUM FIXES                                */
 /* ========================================================= */
 
-.purchase-new-prototype .app-account-menu-avatar {
+.app-account-menu-avatar {
   background: rgba(124, 58, 237, 0.1) !important;
   color: #6d28d9 !important;
   border-radius: 50% !important;
@@ -4278,7 +4276,7 @@
   box-shadow: none !important;
 }
 
-.purchase-new-prototype .app-account-menu-panel {
+.app-account-menu-panel {
   border-radius: 8px;
   padding: 4px 0 !important; /* Tighter padding */
   border: 1px solid rgba(226, 232, 240, 0.8) !important;
@@ -4287,7 +4285,7 @@
   width: auto !important; /* Auto width instead of full */
 }
 
-.purchase-new-prototype .app-account-menu-item {
+.app-account-menu-item {
   border-radius: 0 !important;
   margin: 0 !important;
   padding: 6px 14px !important; /* Even tighter padding */
@@ -4304,7 +4302,7 @@
   min-height: 28px !important; /* Smaller height */
 }
 
-.purchase-new-prototype .app-account-menu-item-icon {
+.app-account-menu-item-icon {
   color: #94a3b8 !important;
   width: 14px !important; /* Smaller icon */
   height: 14px !important;
@@ -4313,37 +4311,37 @@
   justify-content: center !important;
 }
 
-.purchase-new-prototype .app-account-menu-item-icon svg {
+.app-account-menu-item-icon svg {
   width: 100% !important;
   height: 100% !important;
 }
 
-.purchase-new-prototype .app-account-menu-item:hover {
+.app-account-menu-item:hover {
   background: #f8fafc !important;
   color: #0f172a !important;
 }
 
-.purchase-new-prototype .app-account-menu-item:hover .app-account-menu-item-icon {
+.app-account-menu-item:hover .app-account-menu-item-icon {
   color: #64748b !important;
 }
 
-.purchase-new-prototype .app-account-menu-item-danger {
+.app-account-menu-item-danger {
   color: #ef4444 !important;
   border-top: 1px solid #f1f5f9 !important;
   margin-top: 2px !important;
   padding-top: 8px !important;
 }
 
-.purchase-new-prototype .app-account-menu-item-danger .app-account-menu-item-icon {
+.app-account-menu-item-danger .app-account-menu-item-icon {
   color: #f87171 !important;
 }
 
-.purchase-new-prototype .app-account-menu-item-danger:hover {
+.app-account-menu-item-danger:hover {
   background: rgba(239, 68, 68, 0.05) !important;
   color: #dc2626 !important;
 }
 
-.purchase-new-prototype .app-account-menu-identity {
+.app-account-menu-identity {
   padding: 10px 14px !important; /* Tighter padding */
   display: flex !important;
   flex-direction: column !important;
@@ -4354,11 +4352,11 @@
   margin-bottom: 2px !important;
 }
 
-.purchase-new-prototype .app-account-menu-identity-avatar {
+.app-account-menu-identity-avatar {
   display: none !important;
 }
 
-.purchase-new-prototype .app-account-menu-identity-copy {
+.app-account-menu-identity-copy {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -4368,22 +4366,22 @@
   line-height: 1.4 !important;
 }
 
-.purchase-new-prototype .app-account-menu-identity-copy strong {
+.app-account-menu-identity-copy strong {
   font-size: 12.5px !important; /* Smaller name */
   color: #0f172a !important;
 }
 
-.purchase-new-prototype .app-account-menu-identity-copy span {
+.app-account-menu-identity-copy span {
   font-size: 11px !important; /* Smaller email */
   color: #94a3b8 !important;
   font-weight: 500 !important;
 }
 
-.purchase-new-prototype .app-account-menu-identity-copy small {
+.app-account-menu-identity-copy small {
   display: none !important;
 }
 
-.purchase-new-prototype .app-account-menu-divider {
+.app-account-menu-divider {
   margin: 0 0 2px 0 !important; /* Tighter margins */
   border-bottom: 1px solid #e2e8f0 !important;
   background: transparent !important;
@@ -4534,7 +4532,7 @@
 /* PREMIUM ACCOUNT MENU OVERRIDE                             */
 /* ========================================================= */
 
-.purchase-new-prototype .app-account-menu-panel {
+.app-account-menu-panel {
   border-radius: 8px;
   padding: 8px !important;
   box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15) !important;
@@ -4547,14 +4545,14 @@
   border-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-.purchase-new-prototype .app-account-menu-item {
+.app-account-menu-item {
   border-radius: 8px;
   margin: 2px 0 !important;
   padding: 8px 12px !important;
   transition: all 0.2s ease !important;
 }
 
-.purchase-new-prototype .app-account-menu-identity {
+.app-account-menu-identity {
   padding: 16px !important;
   border-radius: 8px;
   background: rgba(148, 163, 184, 0.05) !important;
@@ -4565,7 +4563,7 @@
   background: rgba(255, 255, 255, 0.03) !important;
 }
 
-.purchase-new-prototype .app-account-menu-divider {
+.app-account-menu-divider {
   margin: 8px 0 !important;
   opacity: 0.5 !important;
 }
@@ -4602,8 +4600,8 @@
 }
 
 .purchase-prototype-toolbar-actions .purchase-prototype-icon-button,
-.purchase-new-prototype .app-account-menu-avatar,
-.purchase-new-prototype .app-account-menu-trigger {
+.app-account-menu-avatar,
+.app-account-menu-trigger {
   flex-shrink: 0 !important;
   min-width: 28px !important;
   min-height: 28px !important;

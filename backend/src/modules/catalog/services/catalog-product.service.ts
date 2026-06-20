@@ -1157,4 +1157,35 @@ export class CatalogProductService {
     await this.audit.log('حذف صنف', `تم حذف الصنف #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
+
+  async getProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const canViewCost = this.hasPermission(actor, 'canViewCost');
+    const offerCapabilities = await this.getProductOfferColumnCapabilities();
+
+    const product = await this.db
+      .selectFrom('products')
+      .select(['id', 'name', 'barcode', 'item_type', 'item_kind', 'style_code', 'color', 'size', 'category_id', 'supplier_id', 'cost_price', 'retail_price', 'wholesale_price', 'stock_qty', 'min_stock_qty', 'notes'])
+      .where('id', '=', id)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+
+    if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+
+    const productIds = [Number(product.id)];
+    const relations = await this.fetchListProductRelations(productIds, offerCapabilities.hasMinQty, actor);
+    const scopedStockByProduct = await this.resolveScopedStockByProduct(productIds, null, [product], actor);
+
+    const mapped = this.mapListProducts([product], {
+      canViewCost,
+      scopedLocationId: null,
+      scopedStockByProduct,
+      unitsByProduct: relations.unitsByProduct,
+      offersByProduct: relations.offersByProduct,
+      pricesByProduct: relations.pricesByProduct,
+    });
+
+    return mapped[0];
+  }
 }
+

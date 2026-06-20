@@ -8,6 +8,7 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
+import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 
 function buildDescription(pos: PosWorkspaceState, offlineQueueCount: number) {
   if (offlineQueueCount > 0) return `يوجد ${offlineQueueCount} فواتير معلقة تنتظر عودة الإنترنت ليتم مزامنتها.`;
@@ -59,6 +60,9 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
           <Link to="/cash-drawer"><Button type="button" variant={pos.ownOpenShift ? 'secondary' : 'primary'}>{pos.ownOpenShift ? 'تقفيل الوردية' : 'فتح وردية'}</Button></Link>
+          <div style={{ marginInlineStart: '8px' }}>
+            <AppAccountMenu />
+          </div>
         </div>
       )}
     />

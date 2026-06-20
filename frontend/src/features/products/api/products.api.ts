@@ -37,6 +37,7 @@ export const productsApi = {
   categories: async () => unwrapArray<Category>(await http<Category[] | { categories: Category[] }>('/api/categories'), 'categories'),
   suppliers: async () => unwrapArray<Supplier>(await http<Supplier[] | { suppliers: Supplier[] }>('/api/suppliers'), 'suppliers'),
   create: (payload: unknown) => http<unknown>('/api/products', { method: 'POST', body: JSON.stringify(payload) }),
+  get: (id: string) => http<Product>(`/api/products/${id}`),
   update: (id: string, payload: unknown) => http<unknown>(`/api/products/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   remove: (id: string) => http<{ ok: boolean }>(`/api/products/${id}`, { method: 'DELETE' }),
   createCategory: (payload: { name: string }) => http<unknown>('/api/categories', { method: 'POST', body: JSON.stringify(payload) }),
