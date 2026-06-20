@@ -11,7 +11,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 export type PaymentType = 'cash' | 'credit';
 export type PaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit' | 'mixed';
-export type PosProductFilter = 'all' | 'offers' | 'priced' | 'low' | 'recent';
+export type PosProductFilter = 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials';
 
 export interface PosDraftSnapshot {
   cart: PosItem[];

@@ -6,7 +6,7 @@ import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 import { productsApi } from '@/features/products';
 import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
-import { MANUFACTURING_UNITS, calculateConvertedCost } from '@/features/manufacturing/utils/units';
+import { MANUFACTURING_UNITS, calculateConvertedCost, findUnit } from '@/features/manufacturing/utils/units';
 import { bomsApi } from '@/features/manufacturing/api/boms.api';
 import type { Product } from '@/types/domain';
 
@@ -56,12 +56,16 @@ export default function NewBomPage() {
       await bomsApi.create({
         productId: Number(selectedProduct.id),
         quantity: quantity,
-        lines: lines.map(l => ({
-          componentId: Number(l.componentId),
-          quantity: l.quantity,
-          unitName: l.unitName,
-          expectedCost: l.expectedCost,
-        }))
+        lines: lines.map(l => {
+          const unitDef = findUnit(l.unitName);
+          return {
+            componentProductId: Number(l.componentId),
+            quantity: l.quantity,
+            unitName: l.unitName,
+            unitMultiplier: unitDef ? unitDef.multiplier : 1,
+            expectedCost: l.expectedCost,
+          };
+        })
       });
       alert('تم حفظ التركيبة بنجاح');
       navigate('/manufacturing/boms');
@@ -90,7 +94,10 @@ export default function NewBomPage() {
           updated.componentName = exactMatch.name;
           updated.baseUnit = exactMatch.baseUnit;
           updated.baseCost = exactMatch.costPerBaseUnit;
-          if (!updated.unitName) updated.unitName = exactMatch.baseUnit;
+          const matchedUnit = findUnit(exactMatch.baseUnit);
+          if (!updated.unitName || updated.unitName !== matchedUnit?.id) {
+            updated.unitName = matchedUnit ? matchedUnit.id : exactMatch.baseUnit;
+          }
         } else if (!exactMatch && updated.componentId) {
           // They modified the text so it no longer matches, clear the component
           updated.componentId = null;
@@ -113,8 +120,9 @@ export default function NewBomPage() {
       if (l.id !== id) return l;
       const baseCost = component.costPerBaseUnit;
       const baseUnit = component.baseUnit;
-      // Default selected unit to the component's base unit
-      const unitName = component.baseUnit; 
+      // Default selected unit to the component's base unit ID
+      const matchedUnit = findUnit(component.baseUnit);
+      const unitName = matchedUnit ? matchedUnit.id : component.baseUnit; 
       const expectedCost = calculateConvertedCost(baseCost, baseUnit, unitName, 1);
       
       return {
@@ -134,7 +142,8 @@ export default function NewBomPage() {
     setLines(prevLines => prevLines.filter(l => l.id !== id));
   };
 
-  const totalCost = lines.reduce((sum, line) => sum + (line.expectedCost * line.quantity), 0);
+  const unitCost = lines.reduce((sum, line) => sum + (line.expectedCost * line.quantity), 0);
+  const batchTotalCost = unitCost * (quantity || 1);
 
   return (
     <ManufacturingLayout
@@ -326,12 +335,12 @@ export default function NewBomPage() {
               </div>
               <div style={{ height: '1px', backgroundColor: '#e5e7eb' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>
-                <span>إجمالي التكلفة</span>
-                <span>{totalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
+                <span>إجمالي التكلفة للكمية ({quantity})</span>
+                <span>{batchTotalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: '#059669', fontWeight: '500' }}>
                 <span>تكلفة الوحدة الواحدة المنتجة</span>
-                <span>{(totalCost / (quantity || 1)).toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
+                <span>{unitCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
               </div>
             </div>
           </div>

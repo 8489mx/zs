@@ -73,8 +73,8 @@ export default function WorkOrdersListPage() {
       }
       
       // Date filter
-      if (dateFilter !== 'all' && wo.start_date) {
-        const orderDate = new Date(wo.start_date);
+      if (dateFilter !== 'all' && (wo.start_date || wo.created_at)) {
+        const orderDate = new Date((wo.start_date || wo.created_at) as string);
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - orderDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -87,22 +87,38 @@ export default function WorkOrdersListPage() {
       return true;
     }).sort((a, b) => {
       // Sort newest first
-      const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
-      const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+      const dateA = (a.start_date || a.created_at) ? new Date((a.start_date || a.created_at) as string).getTime() : 0;
+      const dateB = (b.start_date || b.created_at) ? new Date((b.start_date || b.created_at) as string).getTime() : 0;
       return dateB - dateA;
     });
   };
 
   const filteredOrders = getFilteredOrders();
 
+  const groupedOrders = filteredOrders.reduce((groups, order) => {
+    const dateVal = order.start_date || order.created_at;
+    const dateStr = dateVal ? new Date(dateVal).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) : 'تاريخ غير محدد';
+    if (!groups[dateStr]) groups[dateStr] = [];
+    groups[dateStr].push(order);
+    return groups;
+  }, {} as Record<string, WorkOrderRecord[]>);
+
   const columns: Column<WorkOrderRecord>[] = [
     { key: 'doc_no', header: 'رقم الأمر', cell: (row) => <span style={{ fontWeight: '500', color: '#111827' }}>{row.doc_no || `#${row.id}`}</span> },
-    { key: 'product_name', header: 'المنتج التام', cell: (row) => row.product_name },
+    { key: 'product_name', header: 'المنتج التام', cell: (row) => {
+      const isAuto = String(row.note || '').includes('إنتاج تلقائي');
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>{row.product_name}</span>
+          {isAuto && <span style={{ fontSize: '11px', background: '#f3f4f6', color: '#4b5563', padding: '2px 6px', borderRadius: '4px' }}>آلي</span>}
+        </div>
+      );
+    }},
     { key: 'created_by', header: 'بواسطة', cell: (row) => <span style={{ color: '#6b7280' }}>{row.created_by_id && row.created_by_id === currentUser?.id ? currentUserName : row.created_by}</span> },
     { key: 'quantity_to_produce', header: 'الكمية المطلوبة', cell: (row) => Number(row.quantity_to_produce).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'produced_quantity', header: 'الكمية المنتجة', cell: (row) => Number(row.produced_quantity).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'total_cost', header: 'التكلفة الإجمالية', cell: (row) => Number(row.total_cost).toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' }) },
-    { key: 'start_date', header: 'تاريخ البدء', cell: (row) => row.start_date ? new Date(row.start_date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
+    { key: 'start_date', header: 'التاريخ', cell: (row) => (row.start_date || row.created_at) ? new Date((row.start_date || row.created_at) as string).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-' },
     { key: 'status', header: 'الحالة', cell: (row) => {
       const val = row.status;
       return <span style={{ 
@@ -187,11 +203,34 @@ export default function WorkOrdersListPage() {
                <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => navigate('/manufacturing/work-orders/new')}>إنشاء أول أمر إنتاج</Button>
             </div>
           ) : (
-            <DataTable 
-              rows={filteredOrders} 
-              columns={columns} 
-              rowKey={(r) => r.id}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {Object.entries(groupedOrders).map(([dateLabel, orders]) => {
+                const autoCount = orders.filter(o => String(o.note || '').includes('إنتاج تلقائي')).length;
+                const manualCount = orders.length - autoCount;
+                return (
+                  <details key={dateLabel} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }} open={dateFilter === 'today' || dateLabel === new Date().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}>
+                    <summary style={{ padding: '16px', background: '#f9fafb', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '18px' }}>📅</span>
+                        <span>{dateLabel}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', fontSize: '13px', fontWeight: 'normal', color: '#6b7280' }}>
+                        <span>إجمالي {orders.length} أمر</span>
+                        {autoCount > 0 && <span>({autoCount} آلي)</span>}
+                        {manualCount > 0 && <span>({manualCount} يدوي)</span>}
+                      </div>
+                    </summary>
+                    <div style={{ borderTop: '1px solid #e5e7eb' }}>
+                      <DataTable 
+                        rows={orders} 
+                        columns={columns} 
+                        rowKey={(r) => r.id}
+                      />
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
           )}
           </div>
         </Card>

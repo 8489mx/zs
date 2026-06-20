@@ -141,9 +141,17 @@ function repriceCartLine(item: PosItem, product: Product, qty: number) {
   };
 }
 
-export function getAvailableSaleProducts(products: Product[], search: string, allowNegativeStockSales = false) {
+export function getAvailableSaleProducts(products: Product[], search: string, allowNegativeStockSales = false, filter = 'all') {
   const q = search.trim().toLowerCase();
   return products.filter((product) => {
+    const type = product.itemType || (product as any).item_type;
+    
+    if (filter === 'raw_materials') {
+      if (type !== 'raw_material') return false;
+    } else {
+      if (type === 'raw_material') return false;
+    }
+
     const stockLimit = getStockLimit(product);
     if (!allowNegativeStockSales && stockLimit <= 0) return false;
     if (!q) return true;

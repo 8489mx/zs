@@ -23,8 +23,8 @@ interface PosProductsPanelProps {
   products: Product[];
   recentProducts: Product[];
   onAddProduct: (product: Product) => void;
-  productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent';
-  onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent') => void;
+  productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials';
+  onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials') => void;
   searchInputRef: RefObject<HTMLInputElement | null>;
   posMode: PosSaleMode;
 }
@@ -431,6 +431,9 @@ function PosProductsPanelComponent({
           </button>
           <button type="button" onClick={() => { setShelf('recent'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'recent' ? '#0f172a' : '#ffffff', color: shelf === 'recent' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
             آخر استخدام
+          </button>
+          <button type="button" onClick={() => { onProductFilterChange('raw_materials'); setShelf('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: productFilter === 'raw_materials' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: productFilter === 'raw_materials' ? '#0f172a' : '#ffffff', color: productFilter === 'raw_materials' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+            مواد خام
           </button>
         </div>
 

@@ -41,8 +41,8 @@ export function usePosCatalog(search: string, locationId: string, productFilter:
   }, [productsQuery.data]);
 
   const saleProducts = useMemo(
-    () => getAvailableSaleProducts(productsQuery.data || [], '', isNegativeStockSalesAllowed(settingsQuery.data)),
-    [productsQuery.data, settingsQuery.data],
+    () => getAvailableSaleProducts(productsQuery.data || [], '', isNegativeStockSalesAllowed(settingsQuery.data), productFilter),
+    [productsQuery.data, settingsQuery.data, productFilter],
   );
   const catalogProducts = useMemo(() => mergeLookupProducts(productsQuery.data || [], productCache), [productCache, productsQuery.data]);
 

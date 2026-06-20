@@ -2,11 +2,11 @@ import { http } from '@/lib/http';
 import type { componentsApi } from './components.api';
 
 export interface BomLine {
-  componentId: string | number;
+  componentProductId: number;
   quantity: number;
   unitName: string;
   expectedCost: number;
-  unitMultiplier?: number;
+  unitMultiplier: number;
 }
 
 export interface CreateBomPayload {

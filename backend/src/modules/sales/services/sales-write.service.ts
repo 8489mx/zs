@@ -83,6 +83,133 @@ export class SalesWriteService {
     });
   }
 
+  private async autoProduceShortfall(
+    trx: Kysely<Database> | Transaction<Database>,
+    items: { productId: number; requiredQty: number; availableQty: number; hasBOM?: boolean; bomId?: number; unitMultiplier?: number }[],
+    saleId: number,
+    branchId: number | null,
+    locationId: number | null,
+    scope: { tenantId: string; accountId: string },
+    auth: AuthContext,
+  ) {
+    for (const item of items) {
+      if (!item.hasBOM || !item.bomId) continue;
+      const shortfall = item.requiredQty - item.availableQty;
+      if (shortfall <= 0) continue;
+
+      const qtyToProduce = shortfall;
+      const baseShortfall = Number((qtyToProduce / (item.unitMultiplier || 1)).toFixed(3)); // we need to produce in base unit since BOM is per base unit
+      
+      const bom = await trx.selectFrom('manufacturing_boms')
+        .select(['expected_cost'])
+        .where('id', '=', item.bomId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+      if (!bom) continue;
+
+      const totalCost = Number(bom.expected_cost) * baseShortfall;
+      const wo = await trx.insertInto('manufacturing_work_orders').values({
+        bom_id: item.bomId,
+        quantity_to_produce: baseShortfall,
+        produced_quantity: baseShortfall,
+        status: 'done',
+        source_location_id: locationId,
+        destination_location_id: locationId,
+        total_cost: totalCost,
+        note: `إنتاج تلقائي للمبيعات فاتورة S-${saleId}`,
+        created_by: auth.userId,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+      } as any).returning('id').executeTakeFirstOrThrow();
+      
+      const woId = Number(wo.id);
+
+      const bomLines = await trx.selectFrom('manufacturing_bom_lines as l')
+        .innerJoin('products as p', 'p.id', 'l.component_product_id')
+        .select(['l.component_product_id', 'l.quantity', 'l.expected_cost', 'p.name as component_name'])
+        .where('l.bom_id', '=', item.bomId)
+        .execute();
+
+      for (const line of bomLines) {
+        const requiredMaterialQty = Number(line.quantity) * baseShortfall;
+        const lineTotalCost = Number(line.expected_cost) * requiredMaterialQty;
+
+        await trx.insertInto('manufacturing_wo_consumptions').values({
+          work_order_id: woId,
+          component_product_id: Number(line.component_product_id),
+          quantity_consumed: requiredMaterialQty,
+          unit_cost: Number(line.expected_cost),
+          line_total: lineTotalCost,
+        } as any).execute();
+
+        const stockChange = await applyStockDelta(trx, {
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          productId: Number(line.component_product_id),
+          branchId,
+          locationId,
+          delta: -requiredMaterialQty,
+          allowNegative: true,
+        });
+
+        await trx.insertInto('stock_movements').values({
+          product_id: Number(line.component_product_id),
+          movement_type: 'manufacturing_consumption',
+          qty: -requiredMaterialQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'استهلاك تصنيع تلقائي',
+          note: `أمر إنتاج تلقائي #${woId} لفاتورة S-${saleId}`,
+          reference_type: 'manufacturing_work_order',
+          reference_id: woId,
+          branch_id: branchId,
+          location_id: locationId,
+          created_by: auth.userId,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
+      }
+
+      const fgStockChange = await applyStockDelta(trx, {
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        productId: item.productId,
+        branchId,
+        locationId,
+        delta: baseShortfall,
+      });
+
+      await trx.insertInto('stock_movements').values({
+        product_id: item.productId,
+        movement_type: 'manufacturing_production',
+        qty: baseShortfall,
+        before_qty: fgStockChange.scopeBefore,
+        after_qty: fgStockChange.scopeAfter,
+        reason: 'إنتاج تام تلقائي',
+        note: `أمر إنتاج تلقائي #${woId} لفاتورة S-${saleId}`,
+        reference_type: 'manufacturing_work_order',
+        reference_id: woId,
+        branch_id: branchId,
+        location_id: locationId,
+        created_by: auth.userId,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+      } as any).execute();
+
+      const finishedProduct = await trx.selectFrom('products').select(['stock_qty', 'cost_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+      if (finishedProduct) {
+        const oldStock = Number(finishedProduct.stock_qty || 0);
+        const oldCost = Number(finishedProduct.cost_price || 0);
+        const newCost = oldStock >= 0 ? (oldStock * oldCost + totalCost) / (oldStock + baseShortfall) : totalCost / baseShortfall;
+        await trx.updateTable('products')
+          .set({ cost_price: newCost, updated_at: sql`NOW()` })
+          .where('id', '=', item.productId)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+      }
+    }
+  }
+
   async authorizeDiscountOverride(secret: string, auth: AuthContext): Promise<Record<string, unknown>> {
     const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), auth, this.db);
     return { ok: true, authorized: true, mode: result.mode, authorizedByName: result.authorizedByName };
@@ -134,9 +261,17 @@ export class SalesWriteService {
 
       let subtotal = 0;
       const preparedItems = [];
+      const autoProduceItems = [];
       for (const item of normalized.items) {
-        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products as p')
+          .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+          .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'b.id as bom_id'])
+          .where('p.id', '=', item.productId)
+          .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
+          .where('p.is_active', '=', true)
+          .executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        
         const activeOffers = await this.getCurrentProductOffers(trx, item.productId, scope.tenantId);
         const allowedUnitPrice = calculateAllowedSaleUnitPrice({
           retailPrice: product.retail_price,
@@ -150,9 +285,26 @@ export class SalesWriteService {
         const availableStockQty = normalized.locationId
           ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId, tenantId: scope.tenantId, accountId: scope.accountId })
           : Number(product.stock_qty || 0);
-        const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item, { allowNegativeStockSales });
+          
+        const hasBOM = !!product.bom_id;
+        const preparedItem = buildPreparedSaleItem(
+          { ...product, stock_qty: availableStockQty }, 
+          item, 
+          { allowNegativeStockSales: allowNegativeStockSales || hasBOM }
+        );
         subtotal += preparedItem.lineTotal;
         preparedItems.push(preparedItem);
+        
+        if (hasBOM) {
+          autoProduceItems.push({
+            productId: item.productId,
+            requiredQty: preparedItem.requiredQty,
+            availableQty: availableStockQty,
+            hasBOM: true,
+            bomId: Number(product.bom_id),
+            unitMultiplier: item.unitMultiplier,
+          });
+        }
       }
 
       await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, normalized.managerPin);
@@ -219,6 +371,8 @@ export class SalesWriteService {
       for (const payment of payments) {
         await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId } as any).execute();
       }
+
+      await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);
 
       for (const item of preparedItems) {
         await trx
@@ -442,9 +596,17 @@ export class SalesWriteService {
 
       let subtotal = 0;
       const preparedItems = [];
+      const autoProduceItems = [];
       for (const item of normalized.items) {
-        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'retail_price', 'wholesale_price', 'cost_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products as p')
+          .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+          .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'b.id as bom_id'])
+          .where('p.id', '=', item.productId)
+          .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
+          .where('p.is_active', '=', true)
+          .executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        
         const activeOffers = await this.getCurrentProductOffers(trx, item.productId, scope.tenantId);
         const allowedUnitPrice = calculateAllowedSaleUnitPrice({
           retailPrice: product.retail_price,
@@ -454,12 +616,30 @@ export class SalesWriteService {
           qty: item.qty,
         });
         this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
+        
         const availableStockQty = normalized.locationId
           ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId, tenantId: scope.tenantId, accountId: scope.accountId })
           : Number(product.stock_qty || 0);
-        const preparedItem = buildPreparedSaleItem({ ...product, stock_qty: availableStockQty }, item, { allowNegativeStockSales });
+          
+        const hasBOM = !!product.bom_id;
+        const preparedItem = buildPreparedSaleItem(
+          { ...product, stock_qty: availableStockQty }, 
+          item, 
+          { allowNegativeStockSales: allowNegativeStockSales || hasBOM }
+        );
         subtotal += preparedItem.lineTotal;
         preparedItems.push(preparedItem);
+        
+        if (hasBOM) {
+          autoProduceItems.push({
+            productId: item.productId,
+            requiredQty: preparedItem.requiredQty,
+            availableQty: availableStockQty,
+            hasBOM: true,
+            bomId: Number(product.bom_id),
+            unitMultiplier: item.unitMultiplier,
+          });
+        }
       }
 
       await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, managerPin);
@@ -502,6 +682,8 @@ export class SalesWriteService {
       for (const payment of payments) {
         await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId } as any).execute();
       }
+
+      await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
 
       for (const item of preparedItems) {
         await trx.insertInto('sale_items').values({
