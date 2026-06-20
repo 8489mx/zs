@@ -1,6 +1,5 @@
 import { type ReactNode, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { AppAccountMenu } from '@/shared/layout/app-account-menu';
+import { useAppToolbar } from '@/stores/toolbar-store';
 
 interface BreadcrumbItem {
   label: string;
@@ -31,6 +30,8 @@ export function ManufacturingLayout({
   onSearchChange,
 }: ManufacturingLayoutProps) {
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
+  
+  useAppToolbar(breadcrumbs);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -43,41 +44,6 @@ export function ManufacturingLayout({
   return (
     <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
       <div className={`purchase-prototype-sticky-stack${isHeaderScrolled ? ' is-scrolled' : ''}`}>
-        <div className="purchase-prototype-workspace-toolbar">
-          <div className="purchase-prototype-toolbar-inner">
-            <div className="purchase-prototype-breadcrumb">
-              {breadcrumbs.map((item, index) => (
-                <span key={index} style={{ display: 'contents' }}>
-                  {item.to ? (
-                    <Link to={item.to}>{item.label}</Link>
-                  ) : (
-                    <strong>{item.label}</strong>
-                  )}
-                  {index < breadcrumbs.length - 1 && <span>›</span>}
-                </span>
-              ))}
-            </div>
-
-            <div className="purchase-prototype-toolbar-actions">
-              {onSearchChange !== undefined && (
-                <div className="purchase-prototype-search-container" role="search">
-                  <div className="purchase-prototype-search">
-                    <span aria-hidden="true">⌕</span>
-                    <input 
-                      type="search" 
-                      className="purchase-prototype-toolbar-search-input" 
-                      placeholder="بحث..." 
-                      aria-label="بحث"
-                      value={searchQuery}
-                      onChange={(e) => onSearchChange(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-              <AppAccountMenu />
-            </div>
-          </div>
-        </div>
 
         <div className="purchase-prototype-document-surface">
           <div className="document-prototype-topbar">

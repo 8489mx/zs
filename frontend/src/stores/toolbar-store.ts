@@ -14,6 +14,8 @@ interface ToolbarState {
   isMobileSidebarOpen: boolean;
   toggleMobileSidebar: () => void;
   setMobileSidebarOpen: (isOpen: boolean) => void;
+  isGlobalSearchOpen: boolean;
+  setGlobalSearchOpen: (isOpen: boolean) => void;
 }
 
 export const useToolbarStore = create<ToolbarState>((set) => ({
@@ -24,6 +26,8 @@ export const useToolbarStore = create<ToolbarState>((set) => ({
   isMobileSidebarOpen: false,
   toggleMobileSidebar: () => set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen })),
   setMobileSidebarOpen: (isOpen) => set({ isMobileSidebarOpen: isOpen }),
+  isGlobalSearchOpen: false,
+  setGlobalSearchOpen: (isOpen) => set({ isGlobalSearchOpen: isOpen }),
 }));
 
 export function useAppToolbar(breadcrumbs: BreadcrumbItem[]) {

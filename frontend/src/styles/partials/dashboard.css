@@ -1,4 +1,4 @@
-﻿.alert-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.alert-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .alert-card { border:1px solid var(--border); border-radius: 8px; padding:14px; background:#f8fafc; }
 .alert-warning { background:#fff7ed; border-color:#fed7aa; }
 .alert-critical { background:#fef2f2; border-color:#fecaca; }
@@ -178,8 +178,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #ffffff;
@@ -198,18 +198,18 @@
 }
 .manager-notifications-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
   border: 2px solid #ffffff;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #dc2626;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
-  line-height: 16px;
+  line-height: 14px;
   text-align: center;
 }
 .manager-notifications-menu {

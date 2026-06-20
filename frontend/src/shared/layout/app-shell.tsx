@@ -20,6 +20,7 @@ import {
 import { QuickAttendanceShortcut } from '@/shared/layout/quick-attendance-shortcut';
 import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
 import { useToolbarStore } from '@/stores/toolbar-store';
+import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
 
 type SidebarGroupDefinition = {
   key: string;
@@ -473,6 +474,7 @@ export function AppShell({ children }: PropsWithChildren) {
       </div>
       <PasswordRotationGate />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
+      <GlobalSearchModal />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from '@/features/products/components/ProductsWorkspaceSections';
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
+import { useAppToolbar } from '@/stores/toolbar-store';
 
 const LazyProductOfferDialog = lazy(() => import('@/features/products/components/ProductOfferDialog').then((module) => ({ default: module.ProductOfferDialog })));
 const LazyProductBarcodeDialog = lazy(() => import('@/features/products/components/ProductBarcodeDialog').then((module) => ({ default: module.ProductBarcodeDialog })));
@@ -36,12 +37,15 @@ export function ProductsWorkspace() {
   const toolsRef = useRef<HTMLDivElement | null>(null);
   const hasProducts = controller.metrics.total > 0;
 
+  useAppToolbar([{ label: 'المنتجات' }]);
+
   return (
     <div className="page-stack page-shell products-workspace-page">
       <PageHeader
-        title="الأصناف"
-        description={clothingEnabled ? 'العروض والباركود والملصقات صارت مباشرة داخل سطر الصنف نفسه، مع دعم خصائص الملابس من نفس شاشة الأصناف.' : 'العروض والباركود والملصقات صارت مباشرة داخل سطر الصنف نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية.'}
-        badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} صنف</span>}
+        title="المنتجات"
+        hideTitle={true}
+        description={clothingEnabled ? 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه، مع دعم خصائص الملابس من نفس شاشة المنتجات.' : 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية.'}
+        badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} منتج</span>}
         actions={(
           <div className="actions compact-actions page-header-actions">
             <Button onClick={() => navigate('/products/new')}>

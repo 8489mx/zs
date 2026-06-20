@@ -1,4 +1,4 @@
-﻿import { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
+import { CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
@@ -22,7 +22,7 @@ export function ManagerNotificationsBell() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({ visibility: 'hidden' });
   const rootRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const managerActions = useManagerActions(20);
@@ -49,6 +49,7 @@ export function ManagerNotificationsBell() {
       left,
       width: menuWidth,
       zIndex: 1000,
+      visibility: 'visible',
     });
   }, []);
 
@@ -57,7 +58,7 @@ export function ManagerNotificationsBell() {
     setShowAllAlerts(false);
   }, [location.pathname]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen) return undefined;
     updateMenuPosition();
 

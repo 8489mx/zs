@@ -3,9 +3,11 @@ import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { Fragment } from 'react';
 
+import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
+
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
-  const { breadcrumbs, globalSearchQuery, setGlobalSearchQuery, toggleMobileSidebar } = useToolbarStore();
+  const { breadcrumbs, globalSearchQuery, setGlobalSearchQuery, toggleMobileSidebar, setGlobalSearchOpen } = useToolbarStore();
 
   return (
     <div className="purchase-prototype-workspace-toolbar">
@@ -47,19 +49,15 @@ export function GlobalAppToolbar() {
 
         <div className="purchase-prototype-toolbar-actions">
           <div className="purchase-prototype-search-container" role="search">
-            <div className="purchase-prototype-search">
+            <button className="purchase-prototype-search" onClick={() => setGlobalSearchOpen(true)} aria-label="بحث شامل">
               <span aria-hidden="true">⌕</span>
-              <input 
-                type="search" 
-                className="purchase-prototype-toolbar-search-input" 
-                placeholder="بحث"
-                aria-label="بحث"
-                value={globalSearchQuery}
-                onChange={(e) => setGlobalSearchQuery(e.target.value)}
-              />
-            </div>
-            {/* Future global search dropdown can be added here */}
+              <span style={{ flex: 1, textAlign: 'right', color: 'var(--text-muted)' }}>ابحث في أي مكان...</span>
+              <div className="purchase-prototype-search-shortcut">
+                <kbd>Ctrl</kbd>+<kbd>K</kbd>
+              </div>
+            </button>
           </div>
+          <ManagerNotificationsBell />
           <AppAccountMenu />
         </div>
       </div>

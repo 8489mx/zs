@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
@@ -12,7 +12,6 @@ import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDa
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
 import { DashboardCompactManagerActions } from '@/features/dashboard/components/DashboardCompactManagerActions';
 import { DashboardMonthlySnapshot } from '@/features/dashboard/components/DashboardMonthlySnapshot';
-import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
 import {
   buildDashboardAlerts,
   exportDashboardSnapshot,
@@ -60,7 +59,6 @@ export function DashboardPage() {
         badge={<span className="nav-pill">Daily Summary</span>}
         actions={(
           <div className="actions compact-actions dashboard-header-actions">
-            <ManagerNotificationsBell />
             <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير CSV</button>
             <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
           </div>
