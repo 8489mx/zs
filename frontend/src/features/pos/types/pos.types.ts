@@ -9,6 +9,7 @@ export interface PosItem {
   unitName: string;
   unitMultiplier: number;
   price: number;
+  costPrice: number;
   qty: number;
   stockLimit: number;
   currentStock: number;

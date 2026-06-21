@@ -202,6 +202,7 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     unitName: unit.name,
     unitMultiplier: Math.max(Number(unit.multiplier || 1), 1),
     price: getProductPrice(product, priceType, requestedQty),
+    costPrice: Number((product as any).costPrice || 0),
     qty: requestedQty,
     stockLimit,
     currentStock: Number(product.stock || 0),

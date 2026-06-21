@@ -42,6 +42,7 @@ function createSaleInput(): CreatePosSaleInput {
       unitName: 'piece',
       unitMultiplier: 1,
       price: 50,
+      costPrice: 40,
       qty: 1,
       stockLimit: 10,
       currentStock: 10,

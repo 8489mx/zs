@@ -3,6 +3,10 @@ import { usePurchaseComposerCatalog } from '@/features/purchases/hooks/usePurcha
 import imageCompression from 'browser-image-compression';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
 import { purchasesApi } from '@/features/purchases/api/purchases.api';
+import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
+import { useCreateSupplierMutation } from '@/features/suppliers/hooks/useCreateSupplierMutation';
+import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
+import { productsApi } from '@/features/products/api/products.api';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/shared/ui/button';
@@ -395,7 +399,7 @@ function QuickCreateDialog({
           {state.kind === 'supplier' ? (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <Field label={t("supplier" as any) || "اسم المسئول"}><input className="purchase-prototype-create-input" value={contactName} onChange={(event) => setContactName(event.target.value)} /></Field>
+                <Field label={t("contact_person" as any) || "اسم المسئول"}><input className="purchase-prototype-create-input" value={contactName} onChange={(event) => setContactName(event.target.value)} /></Field>
                 <Field label={t("phone_number")}><input className="purchase-prototype-create-input" value={phone} onChange={(event) => setPhone(event.target.value)} /></Field>
               </div>
               <Field label={t("tax_number")}><input className="purchase-prototype-create-input" value={taxNumber} onChange={(event) => setTaxNumber(event.target.value)} /></Field>
@@ -594,6 +598,7 @@ export function NewPurchaseOrderPage() {
   const [pendingFocusLineId, setPendingFocusLineId] = useState<number | null>(null);
   const [lines, setLines] = useState<PrototypeLine[]>([{ id: Date.now(), productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: '' }]);
   const [supplier, setSupplier] = useState('');
+  const [paymentType, setPaymentType] = useState<'cash' | 'credit'>('credit');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [requiredDate, setRequiredDate] = useState(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [currency, setCurrency] = useState('');
@@ -668,6 +673,16 @@ export function NewPurchaseOrderPage() {
     }
   }, [rawLocations]);
 
+  useEffect(() => {
+    if (warehouses.length > 0) {
+      setLines((current) => {
+        const needsUpdate = current.some(line => line.warehouse === '' && !line.isService);
+        if (!needsUpdate) return current;
+        return current.map(line => line.warehouse === '' && !line.isService ? { ...line, warehouse: warehouses[0].name } : line);
+      });
+    }
+  }, [warehouses]);
+
   const deliveryDestinations = useMemo(() => {
     const destinations: WarehouseOption[] = [];
     if (rawBranches.length) {
@@ -686,6 +701,12 @@ export function NewPurchaseOrderPage() {
     }
     return destinations;
   }, [rawBranches, rawLocations]);
+
+  useEffect(() => {
+    if (!shippingAddress && deliveryDestinations.length > 0) {
+      setShippingAddress(deliveryDestinations[0].name);
+    }
+  }, [shippingAddress, deliveryDestinations]);
 
   // Load default currency from system settings
   useEffect(() => {
@@ -897,7 +918,7 @@ export function NewPurchaseOrderPage() {
   const addLine = () => {
     const newLineId = Date.now();
     markDocumentDirty();
-    setLines((current) => [...current, { id: newLineId, productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: '' }]);
+    setLines((current) => [...current, { id: newLineId, productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: warehouses[0]?.name || '' }]);
     setPendingFocusLineId(newLineId);
   };
 
@@ -946,8 +967,8 @@ export function NewPurchaseOrderPage() {
     if (option.company) {
       setCompany(option.company);
     }
-    if (option.contactName) {
-      setContact(option.contactName);
+    if (option.phone) {
+      setContact(option.phone);
     }
     if (option.shippingAddress) {
       setShippingAddress(option.shippingAddress);
@@ -1002,7 +1023,7 @@ export function NewPurchaseOrderPage() {
           itemName: option.name,
           qty: line.qty > 0 ? line.qty : 1,
           unitPrice: option.price,
-          warehouse: option.type === 'service' ? 'Does not affect stock' : option.warehouse,
+          warehouse: option.type === 'service' ? 'Does not affect stock' : (option.warehouse || warehouses[0]?.name || ''),
           isService: option.type === 'service'
         };
       })
@@ -1021,7 +1042,7 @@ export function NewPurchaseOrderPage() {
         itemName: option.name,
         qty: 1,
         unitPrice: option.price,
-        warehouse: option.type === 'service' ? 'Does not affect stock' : option.warehouse,
+        warehouse: option.type === 'service' ? 'Does not affect stock' : (option.warehouse || warehouses[0]?.name || ''),
         isService: option.type === 'service'
       }
     ]);
@@ -1062,23 +1083,41 @@ export function NewPurchaseOrderPage() {
     });
   };
 
-  const handleQuickCreateSubmit = (result: QuickCreateResult) => {
+  const createSupplierMutation = useCreateSupplierMutation();
+  const createProductMutation = useCreateProductMutation();
+
+  const handleQuickCreateSubmit = async (result: QuickCreateResult) => {
     markDocumentDirty();
     if (result.kind === 'supplier') {
-      const createdSupplier: SupplierOption = {
-        id: createEntityId('sup'),
-        name: result.name,
-        code: `SUP-${suppliers.length + 1}`,
-        phone: result.phone ?? '',
-        taxNumber: result.taxNumber ?? '',
-        contactName: result.contactName ?? '',
-        shippingAddress: '',
-        company: company
-      };
-      setSuppliers((items) => [...items, createdSupplier]);
-      handleSupplierSelect(createdSupplier);
-      if (result.contactName) {
-        setContact(result.contactName);
+      try {
+        const payload: any = await createSupplierMutation.mutateAsync({
+          name: result.name,
+          phone: result.phone ?? '',
+          address: '',
+          balance: 0,
+          notes: result.notes ?? '',
+        });
+        
+        const createdObj = payload.suppliers?.find((s: any) => s.name === result.name) || payload.suppliers?.[payload.suppliers?.length - 1] || {};
+        const newId = createdObj.id?.toString() || createEntityId('sup');
+        
+        const createdSupplier: SupplierOption = {
+          id: newId,
+          name: result.name,
+          code: createdObj.code || `SUP-${suppliers.length + 1}`,
+          phone: createdObj.phone || result.phone || '',
+          taxNumber: createdObj.taxNumber || result.taxNumber || '',
+          contactName: createdObj.primaryContactName || result.contactName || '',
+          shippingAddress: '',
+          company: company
+        };
+        setSuppliers((items) => [...items, createdSupplier]);
+        handleSupplierSelect(createdSupplier);
+        if (result.phone) {
+          setContact(result.phone);
+        }
+      } catch (err) {
+        setInlineMessage({ tone: 'error', text: 'فشل في إنشاء المورد' });
       }
     }
 
@@ -1132,24 +1171,39 @@ export function NewPurchaseOrderPage() {
     }
 
     if (result.kind === 'product') {
-      const createdProduct: ProductOption = {
-        id: createEntityId('prd'),
-        name: result.name,
-        englishName: result.name,
-        code: `PRD-${products.length + 1}`,
-        barcode: result.barcode?.trim() || '',
-        price: Number(result.price ?? 0),
-        warehouse: result.productType === 'service' ? 'Does not affect stock' : result.warehouse || 'Main Warehouse',
-        type: result.productType
-      };
-      setProducts((items) => [...items, createdProduct]);
-      if (result.productType === 'service' && result.warehouse) {
-        setWarehouses((items) => items);
-      }
-      if (quickCreateState?.kind === 'product' && quickCreateState.lineId !== null) {
-        handleProductSelect(quickCreateState.lineId, createdProduct);
-      } else {
-        addProductAsLine(createdProduct);
+      try {
+        const payload: any = await createProductMutation.mutateAsync({
+          name: result.name,
+          itemType: 'product',
+          itemKind: 'standard',
+          costPrice: result.price ?? 0,
+          retailPrice: result.price ?? 0,
+          wholesalePrice: result.price ?? 0,
+          stock: 0,
+          minStock: 0,
+          variantStock: 0
+        });
+
+        const createdObj = payload.products?.find((p: any) => p.name === result.name) || payload.products?.[payload.products?.length - 1] || {};
+        const newId = createdObj.id?.toString() || createEntityId('prod');
+
+        const createdProduct: ProductOption = {
+          id: newId,
+          name: result.name,
+          price: result.price ?? 0,
+          type: result.productType === 'service' ? 'service' : 'stock',
+          warehouse: result.warehouse ?? '',
+          sku: `PRD-${products.length + 1}`,
+          code: `PRD-${products.length + 1}`
+        };
+        setProducts((items) => [...items, createdProduct]);
+        if (quickCreateState?.kind === 'product' && quickCreateState.lineId !== null) {
+          handleProductSelect(quickCreateState.lineId, createdProduct);
+        } else {
+          addProductAsLine(createdProduct);
+        }
+      } catch (err) {
+        setInlineMessage({ tone: 'error', text: 'فشل في إنشاء المنتج' });
       }
     }
 
@@ -1263,7 +1317,8 @@ export function NewPurchaseOrderPage() {
       }
     };
 
-    if (!supplier.trim()) {
+    const selectedSupplierObj = suppliers.find(s => s.name === supplier);
+    if (!supplier.trim() || !selectedSupplierObj) {
       nextErrors.supplier = t('select_supplier_error');
       addFirstTarget({ kind: 'field', field: 'supplier' });
     }
@@ -1410,9 +1465,14 @@ export function NewPurchaseOrderPage() {
       return;
     }
 
+    const selectedContactObj = contactsList.find(c => c.name === contact || c.phone === contact);
+    const selectedAddressObj = addressesList.find(a => a.label === shippingAddress || a.id === shippingAddress);
+    const selectedCostCenterObj = costCenters.find(c => c.name === costCenter || c.code === costCenter);
+    const selectedProjectObj = projects.find(p => p.name === project || p.code === project);
+
     const values = {
       supplierId,
-      paymentType: 'credit' as const,
+      paymentType,
       discount: discount || 0,
       branchId: rawBranches[0]?.id?.toString() || '',
       locationId: rawLocations[0]?.id?.toString() || '',
@@ -1420,10 +1480,10 @@ export function NewPurchaseOrderPage() {
       requiredDate,
       currency,
       companyName: company,
-      contactId: contact,
-      shippingAddressId: shippingAddress,
-      costCenterId: costCenter,
-      projectId: project,
+      contactId: selectedContactObj?.id ? Number(selectedContactObj.id) : undefined,
+      shippingAddressId: selectedAddressObj?.id ? Number(selectedAddressObj.id) : undefined,
+      costCenterId: selectedCostCenterObj?.id ? Number(selectedCostCenterObj.id) : undefined,
+      projectId: selectedProjectObj?.id ? Number(selectedProjectObj.id) : undefined,
       termsTemplate,
     };
 
@@ -1445,8 +1505,8 @@ export function NewPurchaseOrderPage() {
         pricesIncludeTax: false,
         attachments
       });
-    } catch (e) {
-      setInlineMessage({ tone: 'error', text: 'Error saving invoice' });
+    } catch (e: any) {
+      setInlineMessage({ tone: 'error', text: e?.message || 'Error saving invoice' });
     }
   };
 
@@ -1755,13 +1815,22 @@ export function NewPurchaseOrderPage() {
                 ))}
               </select>
             </Field>
-            <Field label={t("company_label")}><input className="purchase-prototype-field-input purchase-prototype-meta-input" value={company} onChange={(event) => {
-              markDocumentDirty();
-              setCompany(event.target.value);
-            }} /></Field>
+            <Field label="طريقة الدفع">
+              <select
+                className="purchase-prototype-field-input purchase-prototype-meta-input"
+                value={paymentType}
+                onChange={(event) => {
+                  markDocumentDirty();
+                  setPaymentType(event.target.value as 'cash' | 'credit');
+                }}
+              >
+                <option value="credit">آجل (يضاف لمديونية المورد)</option>
+                <option value="cash">كاش (دفع فوري من الخزينة)</option>
+              </select>
+            </Field>
             <SearchableCombobox
-              label={t('contact_person')}
-              placeholder={t("search_contact")}
+              label={t('phone_number') || 'رقم التليفون'}
+              placeholder="ابحث عن رقم تليفون..."
               value={contact}
               onChange={(value) => {
                 markDocumentDirty();
@@ -1937,7 +2006,7 @@ export function NewPurchaseOrderPage() {
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-product">{t("item_label")}</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-qty">{t('quantity')}</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-price">{t('price_title')}</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse">{t('warehouse_title')}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse">المخزن</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-amount">{t('total_amount')}</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-actions"></th>
                 </tr>
@@ -2010,7 +2079,7 @@ export function NewPurchaseOrderPage() {
                             className="purchase-prototype-inline-combobox"
                             inputId={`warehouse-input-${line.id}`}
                             inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                            placeholder={t("search_warehouse")}
+                            placeholder="ابحث عن مخزن..."
                             value={line.warehouse}
                             onChange={(value) => {
                               markDocumentDirty();

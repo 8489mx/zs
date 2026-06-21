@@ -1,4 +1,4 @@
-﻿import { QueryCard } from '@/shared/components/query-card';
+import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench';
@@ -252,6 +252,15 @@ export function SettingsBackupImportSection({
           <ImportWorkbench
             title="استيراد الأصناف"
             requiredColumns={['name']}
+            fieldMappings={[
+              { key: 'name', label: 'الاسم', aliases: ['اسم الصنف', 'name'] },
+              { key: 'categoryName', label: 'الصنف', aliases: ['القسم', 'category'] },
+              { key: 'itemType', label: 'النوع', aliases: ['النوع', 'تصنيف', 'type', 'itemType', 'item_type'] },
+              { key: 'barcode', label: 'الباركود', aliases: ['barcode', 'كود'] },
+              { key: 'costPrice', label: 'التكلفة', aliases: ['سعر التكلفة', 'cost', 'cost_price'] },
+              { key: 'retailPrice', label: 'السعر', aliases: ['سعر البيع', 'price', 'retail_price'] },
+              { key: 'unitName', label: 'الوحدة', aliases: ['unit', 'القياس'] },
+            ]}
             onDownloadTemplate={() => downloadTemplate('products')}
             onImportRows={importProducts}
             isPending={importProductsPending || !canManageBackups}

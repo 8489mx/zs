@@ -9,7 +9,7 @@ export function ProfilePage() {
   const updateUser = useAuthStore(s => s.updateUser);
 
   const [name, setName] = useState(user?.displayName || '');
-  const [username, setUsername] = useState(user?.username || '');
+  const username = user?.username || '';
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const [oldPassword, setOldPassword] = useState('');

@@ -104,6 +104,7 @@ describe('createPosWorkspaceBaseActions', () => {
       unitName: 'قطعة',
       unitMultiplier: 1,
       price: 4,
+      costPrice: 2,
       qty: 1,
       stockLimit: 10,
       currentStock: 10,

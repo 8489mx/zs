@@ -319,6 +319,10 @@ export class SettingsImportService {
         const categoryId = await this.ensureCategory(trx, cleanString(row.categoryName || row.category || ''), actor);
         const supplierId = await this.ensureSupplier(trx, cleanString(row.supplierName || row.supplier || ''), actor);
         const barcode = cleanString(row.barcode) || null;
+        
+        const rawType = cleanString(row.itemType || row.type || row['النوع'] || '').toLowerCase();
+        const itemType = ((rawType.includes('خام') || rawType === 'raw_material') ? 'raw_material' : 'product') as 'raw_material' | 'product';
+
         const existing = barcode
           ? await trx.selectFrom('products').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('barcode', '=', barcode).where('is_active', '=', true).executeTakeFirst()
           : await trx.selectFrom('products').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
@@ -327,10 +331,11 @@ export class SettingsImportService {
           barcode,
           category_id: categoryId,
           supplier_id: supplierId,
-          cost_price: toNumber(row.costPrice || row.cost || 0),
-          retail_price: toNumber(row.retailPrice || row.price || 0),
-          wholesale_price: toNumber(row.wholesalePrice || row.retailPrice || row.price || 0),
-          min_stock_qty: toNumber(row.minStockQty || row.minQty || 0),
+          item_type: itemType,
+          cost_price: toNumber(row.costPrice || row.cost || row['التكلفة'] || 0),
+          retail_price: toNumber(row.retailPrice || row.price || row['السعر'] || 0),
+          wholesale_price: toNumber(row.wholesalePrice || row.retailPrice || row.price || row['السعر'] || 0),
+          min_stock_qty: toNumber(row.minStockQty || row.minQty || row['الحد الأدنى'] || 0),
           notes: cleanString(row.notes),
         };
 
