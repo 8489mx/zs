@@ -203,19 +203,28 @@ export class SupplierPaymentSchedulesService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'balance']).where('id', '=', supplierId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
-      const balance = this.roundCurrency(Number(supplier.balance || 0));
-      const total = this.roundCurrency(Number(payload.scheduleAmount || balance));
-      if (!(balance > 0)) throw new AppError('Supplier has no payable balance', 'SUPPLIER_NO_PAYABLE_BALANCE', 400);
-      if (!(total > 0) || total > balance + 0.0001) throw new AppError('Schedule amount must be within supplier balance', 'INVALID_SUPPLIER_SCHEDULE_AMOUNT', 400);
       const db = this.scheduleDb(trx);
-      const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where('paid_amount', '>', 0).where(this.tenantPredicate(auth)).executeTakeFirst();
-      if (paidRow) throw new AppError('Cannot reschedule supplier balance after payments were recorded', 'SUPPLIER_SCHEDULE_HAS_PAYMENTS', 400);
+      
+      const existingRows = await db.selectFrom('supplier_payment_schedules').select(['amount', 'paid_amount']).where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where('status', '!=', 'cancelled').where(this.tenantPredicate(auth)).execute();
+      const existingUnpaid = existingRows.reduce((sum, r) => sum + (Number(r.amount) - Number(r.paid_amount)), 0);
+      
+      const balance = this.roundCurrency(Number(supplier.balance || 0));
+      const availableToSchedule = this.roundCurrency(balance - existingUnpaid);
+      
+      const total = this.roundCurrency(Number(payload.scheduleAmount || availableToSchedule));
+      if (!(balance > 0)) throw new AppError('Supplier has no payable balance', 'SUPPLIER_NO_PAYABLE_BALANCE', 400);
+      if (!(availableToSchedule > 0)) throw new AppError('No unscheduled balance available to schedule', 'SUPPLIER_NO_UNSCHEDULED_BALANCE', 400);
+      if (!(total > 0) || total > availableToSchedule + 0.0001) throw new AppError('Schedule amount must be within unscheduled supplier balance', 'INVALID_SUPPLIER_SCHEDULE_AMOUNT', 400);
+      
+      const lastRow = await db.selectFrom('supplier_payment_schedules').select('installment_no').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where(this.tenantPredicate(auth)).orderBy('installment_no', 'desc').executeTakeFirst();
+      const startInstallmentNo = lastRow ? Number(lastRow.installment_no) : 0;
+      
       const amounts = this.buildAmounts(total, payload);
       const firstDueDate = this.parseDate(payload.firstDueDate);
       const intervalDays = Number(payload.intervalDays || 1);
-      await db.deleteFrom('supplier_payment_schedules').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where(this.tenantPredicate(auth)).execute();
+      
       for (let index = 0; index < amounts.length; index += 1) {
-        await db.insertInto('supplier_payment_schedules').values({ purchase_id: null, supplier_id: supplierId, installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId, ...this.tenantFields(auth) } as any).execute();
+        await db.insertInto('supplier_payment_schedules').values({ purchase_id: null, supplier_id: supplierId, installment_no: startInstallmentNo + index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId, ...this.tenantFields(auth) } as any).execute();
       }
     });
     return this.listForSupplier(supplierId, auth);

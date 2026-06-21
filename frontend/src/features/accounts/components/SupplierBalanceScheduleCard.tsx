@@ -85,6 +85,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('all');
+  const [showAppendForm, setShowAppendForm] = useState(false);
 
   function refreshAccounts() {
     queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances });
@@ -101,7 +102,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const createMutation = useMutation({
     mutationFn: () => supplierBalanceScheduleApi.create(supplierId, {
       mode,
-      scheduleAmount: Number(scheduleAmount || supplierBalance || 0),
+      scheduleAmount: Number(scheduleAmount || (supplierBalance - summary.remaining) || 0),
       installmentCount: mode === 'count' ? Number(installmentCount || 0) : undefined,
       installmentAmount: mode === 'amount' ? Number(installmentAmount || 0) : undefined,
       firstDueDate,
@@ -140,7 +141,9 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
     return acc;
   }, { all: 0, pending: 0, partial: 0, paid: 0, overdue: 0 }), [rows]);
   const summary = useMemo(() => summarize(rows), [rows]);
-  const canSchedule = Boolean(supplierId) && supplierBalance > 0 && !disabled;
+  
+  const unscheduledBalance = Math.round((supplierBalance - summary.remaining) * 100) / 100;
+  const canSchedule = Boolean(supplierId) && unscheduledBalance > 0 && !disabled;
   const nextDue = rows.find((row) => row.status !== 'paid' && row.status !== 'cancelled');
 
   function openPaymentDialog(row: SupplierPaymentScheduleItem) {
@@ -185,10 +188,10 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
         </div>
       ) : null}
 
-      {canSchedule && !rows.length ? (
+      {canSchedule && (!rows.length || showAppendForm) ? (
         <div className="form-grid" style={{ marginTop: 12 }}>
           <Field label="المبلغ المراد جدولته">
-            <input type="number" min="1" max={supplierBalance} step="0.01" value={scheduleAmount} onChange={(event) => setScheduleAmount(event.target.value)} placeholder={String(supplierBalance || '')} />
+            <input type="number" min="1" max={unscheduledBalance} step="0.01" value={scheduleAmount} onChange={(event) => setScheduleAmount(event.target.value)} placeholder={String(unscheduledBalance || '')} />
           </Field>
           <Field label="طريقة التقسيم">
             <select value={mode} onChange={(event) => setMode(event.target.value as 'count' | 'amount')}>
@@ -209,10 +212,17 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
         </div>
       ) : null}
 
-      {canSchedule && rows.length ? <div className="surface-note" style={{ marginTop: 12 }}>تم إنشاء جدول مستحقات لهذا المورد. لا يمكن إعادة الجدولة بعد تسجيل أي دفعة، ويمكن تعديل الجدولة لاحقًا من تطوير مستقل إذا احتجنا.</div> : null}
-      {!canSchedule ? <div className="surface-note" style={{ marginTop: 12 }}>لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.</div> : null}
+      {canSchedule && rows.length && !showAppendForm ? (
+        <div className="surface-note" style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>يوجد رصيد غير مجدول بقيمة {formatCurrency(unscheduledBalance)}. يمكنك إضافته كدفعات إضافية.</span>
+          <Button type="button" variant="secondary" onClick={() => setShowAppendForm(true)}>إضافة دفعات للرصيد المتبقي</Button>
+        </div>
+      ) : null}
+      
+      {!canSchedule && supplierBalance <= 0 ? <div className="surface-note" style={{ marginTop: 12 }}>لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.</div> : null}
+      {!canSchedule && supplierBalance > 0 && unscheduledBalance <= 0 ? <div className="surface-note" style={{ marginTop: 12 }}>تمت جدولة جميع مستحقات هذا المورد بالكامل.</div> : null}
 
-      <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback="تعذر تنفيذ عملية جدولة المورد" successText="تم تحديث جدول مستحقات المورد." />
+      <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback={((createMutation.error as any)?.message) || ((settleMutation.error as any)?.message) || "تعذر تنفيذ عملية جدولة المورد"} successText="تم تحديث جدول مستحقات المورد." />
 
       {rows.length ? (
         <div className="supplier-schedule-filter-bar" aria-label="فلترة دفعات المورد">
