@@ -9,7 +9,6 @@ export function FirstRunSetupChecklist() {
   const show = flow.isError || !flow.isComplete;
   if (!show) return null;
 
-  const primaryActionLabel = flow.completedCount > 0 ? 'استكمال الإعداد' : 'ابدأ الإعداد';
   const progressPercentage = Math.round((flow.completedCount / flow.totalCount) * 100) || 0;
 
   return (
