@@ -94,8 +94,10 @@ export function buildFirstRunSetupFlowState({
   const enabled = user?.role === 'super_admin' || user?.permissions?.includes('settings') === true || user?.permissions?.includes('canManageSettings') === true;
   const saasOrTrial = isSaasOrTrialContext(tenant, deploymentMode);
   const operationalAdmins = users.filter((candidate) => candidate.isActive !== false && candidate.role === 'admin');
-  const resolvedStoreName = String(settings?.storeName || sessionStoreName || '').trim();
-  const hasNamedStore = Boolean(resolvedStoreName && resolvedStoreName !== DEFAULT_STORE_NAME);
+  const resolvedStoreName = String(settings?.storeName || tenant?.name || sessionStoreName || '').trim();
+  const hasNamedStore = saasOrTrial
+    ? Boolean(settings?.storeName) || Boolean(tenant?.name && tenant?.name !== DEFAULT_STORE_NAME)
+    : Boolean(settings?.storeName) || Boolean(resolvedStoreName && resolvedStoreName !== DEFAULT_STORE_NAME);
   const secureBootstrapAccount = hasSecureBootstrapAccount(user);
   const hasBranchAndLocation = branches.length > 0 && locations.length > 0;
   const hasLocaleSettings = hasValue(settings?.currency) && hasValue(settings?.timezone);
