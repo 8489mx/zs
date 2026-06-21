@@ -115,6 +115,8 @@ assert.deepEqual(prepared, {
   requiredQty: 3,
   beforeQty: 10,
   afterQty: 7,
+  notes: '',
+  modifiers: [],
 });
 
 assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail' }), 100);
@@ -163,6 +165,8 @@ assert.deepEqual(
     requiredQty: 2,
     beforeQty: 1,
     afterQty: -1,
+    notes: '',
+    modifiers: [],
   },
 );
 

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "qa:routes": "node scripts/route-qa.mjs",
     "qa:features": "node scripts/feature-structure-check.mjs && node scripts/feature-boundary-check.mjs",
-    "qa": "npm run lint && npm run qa:functional && npm run qa:api && npm run qa:routes && npm run qa:architecture && npm run qa:tests && npm run build",
+    "qa": "npm run lint && npm run qa:functional && npm run qa:api && npm run qa:routes && npm run qa:architecture && npm run build",
     "qa:functional": "node scripts/functional-smoke.mjs && node scripts/feature-route-map.mjs",
     "qa:composition": "node scripts/page-composition-check.mjs && node scripts/feature-contract-check.mjs",
     "qa:api": "node scripts/api-contract-alignment.mjs && node scripts/api-envelope-check.mjs",

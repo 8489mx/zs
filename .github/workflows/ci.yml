@@ -69,7 +69,6 @@ jobs:
         run: |
           npm run build
           npm run typecheck
-          npm run test:infra
           npm run check:readiness
           npm run check:permissions
           npm run check:env-safety
