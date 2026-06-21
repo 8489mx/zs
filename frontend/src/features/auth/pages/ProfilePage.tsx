@@ -23,7 +23,7 @@ export function ProfilePage() {
     try {
       const res = await http<any>('/api/users/me', {
         method: 'PUT',
-        body: JSON.stringify({ name, username })
+        body: JSON.stringify({ name })
       });
       if (res.user) {
         updateUser(res.user);
@@ -77,7 +77,7 @@ export function ProfilePage() {
                 <input type="text" value={name} onChange={e => setName(e.target.value)} className="input" required />
               </Field>
               <Field label="اسم المستخدم">
-                <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="input" required dir="ltr" />
+                <input type="text" value={username} disabled className="input" title="لا يمكن تغيير اسم المستخدم لأسباب أمنية" dir="ltr" />
               </Field>
               <div style={{ marginTop: '1rem' }}>
                 <Button type="submit" disabled={isSavingProfile}>حفظ البيانات</Button>
