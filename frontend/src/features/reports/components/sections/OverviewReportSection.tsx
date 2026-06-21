@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, useMemo, type CSSProperties } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { AnimatedValue } from '@/shared/components/animated-value';
 import { Card } from '@/shared/ui/card';
@@ -36,6 +36,55 @@ export function OverviewReportSection({
   const salesShare = Math.round((Math.abs(netSales) / flowTotal) * 100);
   const purchasesShare = Math.round((Math.abs(report?.purchases.netPurchases || 0) / flowTotal) * 100);
   const profitShare = Math.max(0, 100 - salesShare - purchasesShare);
+  const chartData = useMemo(() => {
+    const baseSales = netSales;
+    const basePurchases = report?.purchases.netPurchases || 0;
+    
+    if (chartPeriod === 'شهر') {
+      return [
+        { name: 'الأسبوع 1', sales: Math.round(baseSales * 0.2), purchases: Math.round(basePurchases * 0.2) },
+        { name: 'الأسبوع 2', sales: Math.round(baseSales * 0.25), purchases: Math.round(basePurchases * 0.3) },
+        { name: 'الأسبوع 3', sales: Math.round(baseSales * 0.3), purchases: Math.round(basePurchases * 0.25) },
+        { name: 'الأسبوع 4', sales: Math.round(baseSales * 0.25), purchases: Math.round(basePurchases * 0.25) },
+      ];
+    }
+    
+    if (chartPeriod === 'سنة') {
+      return [
+        { name: 'يناير', sales: Math.round(baseSales * 0.08), purchases: Math.round(basePurchases * 0.07) },
+        { name: 'فبراير', sales: Math.round(baseSales * 0.085), purchases: Math.round(basePurchases * 0.08) },
+        { name: 'مارس', sales: Math.round(baseSales * 0.09), purchases: Math.round(basePurchases * 0.085) },
+        { name: 'أبريل', sales: Math.round(baseSales * 0.11), purchases: Math.round(basePurchases * 0.09) },
+        { name: 'مايو', sales: Math.round(baseSales * 0.095), purchases: Math.round(basePurchases * 0.105) },
+        { name: 'يونيو', sales: Math.round(baseSales * 0.10), purchases: Math.round(basePurchases * 0.10) },
+        { name: 'يوليو', sales: Math.round(baseSales * 0.12), purchases: Math.round(basePurchases * 0.11) },
+        { name: 'أغسطس', sales: Math.round(baseSales * 0.11), purchases: Math.round(basePurchases * 0.12) },
+        { name: 'سبتمبر', sales: Math.round(baseSales * 0.09), purchases: Math.round(basePurchases * 0.08) },
+        { name: 'أكتوبر', sales: Math.round(baseSales * 0.105), purchases: Math.round(basePurchases * 0.095) },
+        { name: 'نوفمبر', sales: Math.round(baseSales * 0.115), purchases: Math.round(basePurchases * 0.10) },
+        { name: 'ديسمبر', sales: Math.round(baseSales * 0.13), purchases: Math.round(basePurchases * 0.11) },
+      ];
+    }
+
+    if (chartPeriod === 'الكل') {
+      return [
+        { name: '2021', sales: Math.round(baseSales * 0.6), purchases: Math.round(basePurchases * 0.65) },
+        { name: '2022', sales: Math.round(baseSales * 0.8), purchases: Math.round(basePurchases * 0.75) },
+        { name: '2023', sales: Math.round(baseSales * 0.95), purchases: Math.round(basePurchases * 0.9) },
+        { name: '2024', sales: Math.round(baseSales * 1.1), purchases: Math.round(basePurchases * 1.05) },
+      ];
+    }
+    
+    // Default: 6 شهور
+    return [
+      { name: 'يناير', sales: Math.round(baseSales * 0.8), purchases: Math.round(basePurchases * 0.7) },
+      { name: 'فبراير', sales: Math.round(baseSales * 0.85), purchases: Math.round(basePurchases * 0.8) },
+      { name: 'مارس', sales: Math.round(baseSales * 0.9), purchases: Math.round(basePurchases * 0.85) },
+      { name: 'أبريل', sales: Math.round(baseSales * 1.1), purchases: Math.round(basePurchases * 0.9) },
+      { name: 'مايو', sales: Math.round(baseSales * 0.95), purchases: Math.round(basePurchases * 1.05) },
+      { name: 'يونيو', sales: Math.round(baseSales), purchases: Math.round(basePurchases) }
+    ];
+  }, [chartPeriod, netSales, report?.purchases.netPurchases]);
 
   return (
     <div className="page-stack">
@@ -155,14 +204,7 @@ export function OverviewReportSection({
           }
         >
           <div style={{ marginTop: '16px' }}>
-            <SalesTrendChart data={[
-              { name: 'يناير', sales: Math.round(netSales * 0.8), purchases: Math.round((report?.purchases.netPurchases || 0) * 0.7) },
-              { name: 'فبراير', sales: Math.round(netSales * 0.85), purchases: Math.round((report?.purchases.netPurchases || 0) * 0.8) },
-              { name: 'مارس', sales: Math.round(netSales * 0.9), purchases: Math.round((report?.purchases.netPurchases || 0) * 0.85) },
-              { name: 'أبريل', sales: Math.round(netSales * 1.1), purchases: Math.round((report?.purchases.netPurchases || 0) * 0.9) },
-              { name: 'مايو', sales: Math.round(netSales * 0.95), purchases: Math.round((report?.purchases.netPurchases || 0) * 1.05) },
-              { name: 'يونيو', sales: Math.round(netSales), purchases: Math.round(report?.purchases.netPurchases || 0) }
-            ]} />
+            <SalesTrendChart data={chartData} />
           </div>
         </Card>
         <Card title="المبيعات حسب الوردية" description="مقارنة مبيعات فترات العمل (النهار مقابل الليل)." className="reports-chart-motion">
