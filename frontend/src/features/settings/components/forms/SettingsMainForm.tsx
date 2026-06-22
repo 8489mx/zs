@@ -112,6 +112,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       timezone: 'Africa/Cairo',
       dateFormat: 'yyyy-MM-dd',
       timeFormat: '24h',
+      whatsappLinkMode: 'wa_me',
     },
   });
 
@@ -236,6 +237,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       timezone: String(settings.timezone || 'Africa/Cairo').trim() || 'Africa/Cairo',
       dateFormat: settings.dateFormat === 'dd/MM/yyyy' ? 'dd/MM/yyyy' : 'yyyy-MM-dd',
       timeFormat: settings.timeFormat === '12h' ? '12h' : '24h',
+      whatsappLinkMode: ['web', 'app', 'wa_me'].includes(settings.whatsappLinkMode || '') ? settings.whatsappLinkMode : 'wa_me',
     });
   }, [settings, form]);
 
@@ -356,6 +358,15 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <option value="24h">24 ساعة</option>
               <option value="12h">12 ساعة</option>
             </select>
+          </label>
+          <label className="field">
+            <span>رابط إرسال الواتساب</span>
+            <select {...form.register('whatsappLinkMode')} disabled={disabled}>
+              <option value="wa_me">افتراضي (يسأل المستخدم)</option>
+              <option value="web">واتساب ويب مباشرة</option>
+              <option value="app">تطبيق الواتساب مباشرة</option>
+            </select>
+            <div className="muted small">اختر الطريقة الأسرع لك عند الضغط على زر "إرسال للمورد عبر واتساب".</div>
           </label>
         </div>
       </section>

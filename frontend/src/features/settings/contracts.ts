@@ -65,6 +65,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     timezone: cleanText(values.timezone, 'Africa/Cairo'),
     dateFormat: values.dateFormat === 'dd/MM/yyyy' ? 'dd/MM/yyyy' : 'yyyy-MM-dd',
     timeFormat: values.timeFormat === '12h' ? '12h' : '24h',
+    whatsappLinkMode: values.whatsappLinkMode === 'web' ? 'web' : values.whatsappLinkMode === 'app' ? 'app' : 'wa_me',
   };
 
   return { settings };

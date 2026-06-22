@@ -164,6 +164,7 @@ export interface AppSettings {
   timezone?: string;
   dateFormat?: string;
   timeFormat?: '12h' | '24h' | string;
+  whatsappLinkMode?: 'web' | 'app' | 'wa_me' | string;
 }
 
 export interface ExpenseRecord {

@@ -54,6 +54,7 @@ export const settingsFormSchema = z.object({
   timezone: z.string().trim().min(2).default('Africa/Cairo'),
   dateFormat: z.enum(['yyyy-MM-dd', 'dd/MM/yyyy']).default('yyyy-MM-dd'),
   timeFormat: z.enum(['24h', '12h']).default('24h'),
+  whatsappLinkMode: z.enum(['wa_me', 'web', 'app']).default('wa_me'),
 });
 
 export const branchFormSchema = z.object({

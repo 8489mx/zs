@@ -5,6 +5,15 @@ export function formatCurrency(value: number) {
   }).format(value || 0);
 }
 
+export function formatWhatsAppNumber(phone: string) {
+  let cleaned = String(phone || '').replace(/\D/g, '');
+  if (cleaned.startsWith('00')) cleaned = cleaned.substring(2);
+  if (cleaned.length === 11 && cleaned.startsWith('01')) {
+    cleaned = '2' + cleaned;
+  }
+  return cleaned;
+}
+
 export function formatDate(value?: string) {
   if (!value) return '—';
   const date = new Date(value);

@@ -7,7 +7,9 @@ import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { supplierBalanceScheduleApi, type SupplierPaymentScheduleItem } from '@/features/accounts/api/supplier-balance-schedule.api';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCurrency, formatDate, formatWhatsAppNumber } from '@/lib/format';
+import { openWhatsApp } from '@/lib/whatsapp';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Supplier } from '@/types/domain';
 
 function todayIso() {
@@ -69,6 +71,7 @@ interface SupplierBalanceScheduleCardProps {
 
 export function SupplierBalanceScheduleCard({ supplier, disabled = false }: SupplierBalanceScheduleCardProps) {
   const queryClient = useQueryClient();
+  const { data: settings } = useSettingsQuery();
   const supplierId = String(supplier?.id || '');
   const supplierName = String(supplier?.name || 'المورد');
   const supplierBalance = Number(supplier?.balance || 0);
@@ -86,6 +89,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const [paymentNote, setPaymentNote] = useState('');
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('all');
   const [showAppendForm, setShowAppendForm] = useState(false);
+  const [successReceipt, setSuccessReceipt] = useState<{ row: SupplierPaymentScheduleItem; amountPaid: number } | null>(null);
 
   function refreshAccounts() {
     queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances });
@@ -120,9 +124,13 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       amount,
       note: noteText || `تسجيل دفع دفعة ${row.installmentNo} من مستحقات ${supplierName}`,
     }),
-    onSuccess: (nextRows) => {
+    onSuccess: (nextRows, variables) => {
       queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), nextRows);
       refreshAccounts();
+      setSuccessReceipt({
+        row: variables.row,
+        amountPaid: variables.amount || variables.row.remainingAmount || 0,
+      });
       setPaymentTarget(null);
       setPaymentAmount('');
       setPaymentNote('');
@@ -346,6 +354,44 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
               <div className="actions compact-actions supplier-payment-dialog-actions">
                 <Button type="button" onClick={() => settleMutation.mutate({ row: paymentTarget, amount: paymentAmount ? Number(paymentAmount) : undefined, paymentNote })} disabled={settleMutation.isPending}>تأكيد تسليم الدفعة للمورد</Button>
                 <Button type="button" variant="secondary" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending}>إلغاء</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {successReceipt ? (
+        <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation">
+          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم الدفع بنجاح">
+            <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+              <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل الدفعة بنجاح</h3>
+              <p className="muted" style={{ marginBottom: '1.5rem' }}>
+                تم سداد {formatCurrency(successReceipt.amountPaid)} لصالح {supplierName}.
+              </p>
+              
+              <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Button 
+                  type="button" 
+                  onClick={() => {
+                    const rawPhone = supplier?.phone || ''; 
+                    const phone = formatWhatsAppNumber(rawPhone);
+                    const newBalance = Math.max(0, supplierBalance - successReceipt.amountPaid);
+                    const text = `مرحباً ${supplierName}،\nتم تسجيل استلام دفعة نقدية بقيمة ${formatCurrency(successReceipt.amountPaid)} (تسوية لدفعة رقم ${successReceipt.row.installmentNo}).\nإجمالي الرصيد المتبقي لكم هو ${formatCurrency(newBalance)}.\nشكراً لتعاملكم.`;
+                    const encodedText = encodeURIComponent(text);
+                    let url = `https://wa.me/${phone}?text=${encodedText}`;
+                    if (settings?.whatsappLinkMode === 'web') {
+                      url = `https://web.whatsapp.com/send/?phone=${phone}&text=${encodedText}`;
+                    } else if (settings?.whatsappLinkMode === 'app') {
+                      url = `whatsapp://send?phone=${phone}&text=${encodedText}`;
+                    }
+                    openWhatsApp(url);
+                    setSuccessReceipt(null);
+                  }}
+                >
+                  إرسال للمورد عبر واتساب 💬
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => setSuccessReceipt(null)}>إغلاق النافذة</Button>
               </div>
             </div>
           </div>

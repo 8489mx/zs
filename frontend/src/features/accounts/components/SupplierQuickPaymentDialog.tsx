@@ -6,7 +6,9 @@ import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { supplierBalanceScheduleApi, type SupplierPaymentScheduleItem } from '@/features/accounts/api/supplier-balance-schedule.api';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCurrency, formatDate, formatWhatsAppNumber } from '@/lib/format';
+import { openWhatsApp } from '@/lib/whatsapp';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Supplier } from '@/types/domain';
 
 function isIncompleteSchedule(row: SupplierPaymentScheduleItem) {
@@ -20,11 +22,13 @@ function formatDateTime(value?: string | null) {
 
 export function SupplierQuickPaymentDialog() {
   const queryClient = useQueryClient();
+  const { data: settings } = useSettingsQuery();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
   const [selectedScheduleId, setSelectedScheduleId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const [successReceipt, setSuccessReceipt] = useState<{ row: SupplierPaymentScheduleItem; supplier: Supplier; amountPaid: number } | null>(null);
 
   const suppliersQuery = useQuery({
     queryKey: [...queryKeys.suppliers, 'debt-lookup'],
@@ -54,6 +58,7 @@ export function SupplierQuickPaymentDialog() {
   function closeDialog() {
     setIsOpen(false);
     setSelectedSupplierId('');
+    setSuccessReceipt(null);
     resetPaymentFields();
   }
 
@@ -109,6 +114,15 @@ export function SupplierQuickPaymentDialog() {
         queryClient.invalidateQueries({ queryKey: queryKeys.cashierShifts });
         queryClient.invalidateQueries({ queryKey: queryKeys.supplierLedger(selectedSupplierId) });
       }
+      
+      if (selectedSchedule && selectedSupplier) {
+        setSuccessReceipt({
+          row: selectedSchedule,
+          supplier: selectedSupplier,
+          amountPaid: paymentAmount ? Number(paymentAmount) : (selectedSchedule.remainingAmount || 0),
+        });
+      }
+
       resetPaymentFields();
     },
   });
@@ -117,8 +131,9 @@ export function SupplierQuickPaymentDialog() {
 
   return (
     <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation">
-      <div className="dialog-shell supplier-payment-dialog supplier-quick-payment-dialog" role="dialog" aria-modal="true" aria-label="تسجيل دفعة مورد سريعة">
-        <div className="dialog-card supplier-payment-dialog-card supplier-quick-payment-card">
+      {!successReceipt ? (
+        <div className="dialog-shell supplier-payment-dialog supplier-quick-payment-dialog" role="dialog" aria-modal="true" aria-label="تسجيل دفعة مورد سريعة">
+          <div className="dialog-card supplier-payment-dialog-card supplier-quick-payment-card">
           <div className="supplier-payment-dialog-header supplier-payment-dialog-header--centered">
             <button type="button" className="supplier-payment-dialog-close" onClick={closeDialog} disabled={settleMutation.isPending} aria-label="إغلاق">×</button>
             <div>
@@ -205,9 +220,47 @@ export function SupplierQuickPaymentDialog() {
             </div>
           ) : null}
 
-          <MutationFeedback isError={settleMutation.isError} isSuccess={settleMutation.isSuccess} error={settleMutation.error} errorFallback="تعذر تسجيل دفعة المورد" successText="تم تسجيل دفعة المورد بنجاح." />
+          <MutationFeedback isError={settleMutation.isError} isSuccess={false} error={settleMutation.error} errorFallback="تعذر تسجيل دفعة المورد" successText="" />
         </div>
       </div>
+      ) : null}
+      
+      {successReceipt ? (
+        <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم الدفع بنجاح" style={{ zIndex: 110 }}>
+          <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+            <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل الدفعة بنجاح</h3>
+            <p className="muted" style={{ marginBottom: '1.5rem' }}>
+              تم سداد {formatCurrency(successReceipt.amountPaid)} لصالح {successReceipt.supplier.name}.
+            </p>
+            
+            <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Button 
+                type="button" 
+                onClick={() => {
+                  const rawPhone = successReceipt.supplier.phone || ''; 
+                  const phone = formatWhatsAppNumber(rawPhone);
+                  const currentBalance = Number(successReceipt.supplier.balance || 0);
+                  const newBalance = Math.max(0, currentBalance - successReceipt.amountPaid);
+                  const text = `مرحباً ${successReceipt.supplier.name}،\nتم تسجيل استلام دفعة نقدية بقيمة ${formatCurrency(successReceipt.amountPaid)} (تسوية لدفعة رقم ${successReceipt.row.installmentNo}).\nإجمالي الرصيد المتبقي لكم هو ${formatCurrency(newBalance)}.\nشكراً لتعاملكم.`;
+                  const encodedText = encodeURIComponent(text);
+                  let url = `https://wa.me/${phone}?text=${encodedText}`;
+                  if (settings?.whatsappLinkMode === 'web') {
+                    url = `https://web.whatsapp.com/send/?phone=${phone}&text=${encodedText}`;
+                  } else if (settings?.whatsappLinkMode === 'app') {
+                    url = `whatsapp://send?phone=${phone}&text=${encodedText}`;
+                  }
+                  openWhatsApp(url);
+                  closeDialog();
+                }}
+              >
+                إرسال للمورد عبر واتساب 💬
+              </Button>
+              <Button type="button" variant="secondary" onClick={closeDialog}>إغلاق النافذة</Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
