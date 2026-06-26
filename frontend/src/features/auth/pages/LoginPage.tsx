@@ -212,6 +212,7 @@ export function LoginPage() {
               </button>
             </form>
 
+            {/* 
             <div className="login-demo-widget">
               <div className="demo-sparkles"><SparklesIcon /></div>
               <div className="demo-widget-content">
@@ -228,6 +229,7 @@ export function LoginPage() {
                 </button>
               </div>
             </div>
+            */}
 
             <div className="login-signup-link">
               <p>ليس لديك حساب؟ <Link to="/trial">ابدأ تجربة مجانية الآن</Link></p>
