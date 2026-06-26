@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useFirstRunSetupPageController } from '@/features/activation/hooks/useFirstRunSetupPageController';
 import { Step1Welcome } from './Step1Welcome';
@@ -8,6 +9,7 @@ import { Step4Loading } from './Step4Loading';
 import { Step5Success } from './Step5Success';
 
 export function OnboardingWizard() {
+  const { t } = useTranslation();
   const { form, updateField, handleSubmit, error } = useFirstRunSetupPageController();
   const [step, setStep] = useState(1);
 
@@ -62,10 +64,10 @@ export function OnboardingWizard() {
         <div className="onboarding-hero">
           <div className="onboarding-hero-logo">
             <span className="z-mark">Z</span>
-            <span>منظومة</span>
+            <span>{t('firstRun.wizard.logo')}</span>
           </div>
-          <h1>أدر أعمالك بالكامل من مكان واحد</h1>
-          <p>منصة سحابية متكاملة مدعومة بالذكاء الاصطناعي لتسهيل إدارتك اليومية.</p>
+          <h1>{t('firstRun.wizard.title')}</h1>
+          <p>{t('firstRun.wizard.desc')}</p>
         </div>
 
         {/* Wizard Form Area */}

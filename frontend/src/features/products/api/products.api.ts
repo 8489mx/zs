@@ -41,6 +41,7 @@ export const productsApi = {
   update: (id: string, payload: unknown) => http<unknown>(`/api/products/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   remove: (id: string) => http<{ ok: boolean }>(`/api/products/${id}`, { method: 'DELETE' }),
   createCategory: (payload: { name: string }) => http<unknown>('/api/categories', { method: 'POST', body: JSON.stringify(payload) }),
+  updateCategory: (id: string, payload: { name: string }) => http<unknown>(`/api/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   createSupplier: (payload: { name: string; phone?: string; address?: string; balance?: number; notes?: string }) =>
     http<unknown>('/api/suppliers', { method: 'POST', body: JSON.stringify(payload) })
 };

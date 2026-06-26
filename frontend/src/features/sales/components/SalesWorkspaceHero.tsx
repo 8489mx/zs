@@ -3,6 +3,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 import { QuickCustomerCard } from '@/features/sales/components/QuickCustomerCard';
 import type { Sale } from '@/types/domain';
+import { useTranslation } from "react-i18next";
 
 type MetricRow = { label: string; value: string | number };
 type GuidanceCard = { key: string; label: string; value: string };
@@ -26,6 +27,7 @@ export function SalesWorkspaceHero({
   salesNextStep,
   canManageCustomers,
 }: Props) {
+    const { t } = useTranslation();
   return (
     <>
       <div className="dashboard-grid sales-guidance-grid">
@@ -38,7 +40,7 @@ export function SalesWorkspaceHero({
       </div>
 
       <div className="sales-hero-grid">
-        <Card title="نطاق العرض الحالي" description="اعرف بسرعة ماذا ترى الآن قبل التعديل أو الطباعة." actions={<span className="nav-pill">{activeFilterLabel}</span>} className="workspace-panel sales-scope-card">
+        <Card title={t('sales.d7fa02')} description={t('sales.5fd0f7')} actions={<span className="nav-pill">{activeFilterLabel}</span>} className="workspace-panel sales-scope-card">
           <div className="metric-list">
             {scopeRows.map((row) => (
               <div className="metric-row" key={row.label}>
@@ -49,19 +51,19 @@ export function SalesWorkspaceHero({
           </div>
         </Card>
 
-        <Card title="الفاتورة المحددة" description="راجع الفاتورة الحالية قبل أي تعديل أو إلغاء." actions={<span className="nav-pill">{selectedSale ? 'محددة' : 'اختر من الجدول'}</span>} className="workspace-panel sales-selected-card">
+        <Card title={t('sales.89282d')} description={t('sales.2a3f4e')} actions={<span className="nav-pill">{selectedSale ? t('sales.1773f6') : t('sales.a341f0')}</span>} className="workspace-panel sales-selected-card">
           {selectedSale ? (
             <>
               <div className="metric-list">
-                <div className="metric-row"><span>رقم الفاتورة</span><strong>{selectedSale.docNo || selectedSale.id}</strong></div>
-                <div className="metric-row"><span>العميل</span><strong>{selectedSale.customerName || 'عميل نقدي'}</strong></div>
-                <div className="metric-row"><span>الإجمالي</span><strong>{formatCurrency(selectedSale.total)}</strong></div>
-                <div className="metric-row"><span>الدفع</span><strong>{selectedSalePaymentLabel}</strong></div>
-                <div className="metric-row"><span>الحالة</span><strong>{selectedSale.status || 'posted'}</strong></div>
+                <div className="metric-row"><span>{t('sales.aad538')}</span><strong>{selectedSale.docNo || selectedSale.id}</strong></div>
+                <div className="metric-row"><span>{t('sales.bc9b43')}</span><strong>{selectedSale.customerName || t('sales.339465')}</strong></div>
+                <div className="metric-row"><span>{t('sales.88fc73')}</span><strong>{formatCurrency(selectedSale.total)}</strong></div>
+                <div className="metric-row"><span>{t('sales.4ee631')}</span><strong>{selectedSalePaymentLabel}</strong></div>
+                <div className="metric-row"><span>{t('sales.1253eb')}</span><strong>{selectedSale.status || 'posted'}</strong></div>
               </div>
               <div className="surface-note" style={{ marginTop: 12 }}>{salesNextStep}</div>
             </>
-          ) : <EmptyState title="اختر فاتورة من الجدول" hint="بعد الاختيار ستظهر هنا أهم البيانات السريعة." />}
+          ) : <EmptyState title={t('sales.e66aa1')} hint={t('sales.9b1794')} />}
         </Card>
 
         <QuickCustomerCard canManageCustomers={canManageCustomers} />

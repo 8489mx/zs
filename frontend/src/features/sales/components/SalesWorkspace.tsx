@@ -22,8 +22,10 @@ import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { Sale } from '@/types/domain';
+import { useTranslation } from "react-i18next";
 
 export function SalesWorkspace() {
+    const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState<SalesPaymentFilter>('all');
   const [cashierFilter, setCashierFilter] = useState('all');
@@ -55,7 +57,7 @@ export function SalesWorkspace() {
         const id = String(user.id || '').trim();
         if (!id) return null;
         const role = String(user.role || '').trim();
-        const displayName = String(user.name || user.username || 'مستخدم').trim();
+        const displayName = String(user.name || user.username || t('sales.f1beeb')).trim();
         return { id, label: role ? `${role} — ${displayName}` : displayName };
       })
       .filter((entry): entry is { id: string; label: string } => Boolean(entry));
@@ -77,7 +79,7 @@ export function SalesWorkspace() {
   const salesNextStep = useMemo(() => getSalesNextStep({ selectedSale, canEditInvoices, totalItems }), [selectedSale, canEditInvoices, totalItems]);
   const headerDescription = selectedSale
     ? `الفاتورة ${selectedSale.docNo || selectedSale.id} محددة الآن. ${salesNextStep}`
-    : 'ابدأ بتصفية السجل أو البحث عن الفاتورة المطلوبة، ثم راجع التفاصيل والإجراءات من نفس الشاشة.';
+    : t('sales.5fa1e3');
 
   const {
     exportSalesCsv,
@@ -113,11 +115,11 @@ export function SalesWorkspace() {
       {editFeedback ? <div className="success-box">{editFeedback}</div> : null}
 
       {!hasSellableProducts ? (
-        <Card title="جاهزية البيع" actions={<span className="nav-pill">التحقق قبل البيع</span>} className="workspace-panel">
-          <EmptyState title="لا توجد أصناف متاحة للبيع الآن" hint="أكمل مخزون الأصناف من صفحة المشتريات أو المخزون ثم ارجع إلى نقطة البيع." />
+        <Card title={t('sales.0189e9')} actions={<span className="nav-pill">{t('sales.b7a7f1')}</span>} className="workspace-panel">
+          <EmptyState title={t('sales.0e9afb')} hint={t('sales.0aede7')} />
           <div className="actions section-actions-clean">
-            <Link to="/purchases"><Button variant="secondary">فتح المشتريات</Button></Link>
-            <Link to="/inventory"><Button variant="secondary">فتح المخزون</Button></Link>
+            <Link to="/purchases"><Button variant="secondary">{t('sales.4a5f34')}</Button></Link>
+            <Link to="/inventory"><Button variant="secondary">{t('sales.83c654')}</Button></Link>
           </div>
         </Card>
       ) : null}
@@ -191,25 +193,25 @@ export function SalesWorkspace() {
           if (!activeSale) return;
           await updateMutation.mutateAsync({ sale: activeSale, payload });
           setSaleToEdit(null);
-          setEditFeedback('تم تعديل الفاتورة بنجاح.');
+          setEditFeedback(t('sales.9f6aed'));
           setSelectedSaleId(activeSale.id);
         }}
       />
 
       <ActionConfirmDialog
         open={Boolean(saleToCancel)}
-        title="تأكيد إلغاء فاتورة البيع"
+        title={t('sales.d35686')}
         description={cancelDescription}
-        confirmLabel="نعم، إلغاء الفاتورة"
-        confirmationKeyword="إلغاء"
-        confirmationLabel="اكتب كلمة إلغاء للتأكيد"
-        confirmationHint="سيتم عكس أثر الفاتورة على المخزون والحسابات إذا كانت العملية مسموحة."
+        confirmLabel={t('sales.5b8465')}
+        confirmationKeyword={t('sales.b9568e')}
+        confirmationLabel={t('sales.99274d')}
+        confirmationHint={t('sales.30eb1d')}
         managerPinRequired
-        managerPinHint="هذه العملية تحتاج اعتماد المدير المسجل في الإعدادات."
+        managerPinHint={t('sales.3bec5f')}
         reasonRequired
-        reasonLabel="سبب إلغاء الفاتورة"
-        reasonHint="اكتب سببًا واضحًا حتى يظهر في السجل ويكون مرجعًا لاحقًا."
-        reasonPlaceholder="مثال: تم تسجيل الفاتورة بالخطأ أو أُلغيت قبل التسليم"
+        reasonLabel={t('sales.06667e')}
+        reasonHint={t('sales.e3f046')}
+        reasonPlaceholder={t('sales.b8c40f')}
         isBusy={cancelMutation.isPending}
         onCancel={() => setSaleToCancel(null)}
         onConfirm={async ({ managerPin, reason }) => {

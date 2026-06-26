@@ -1,16 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ClientPortal } from '@/shared/components/ClientPortal';
 import { useToolbarStore } from '@/stores/toolbar-store';
+import { productsApi } from '@/features/products/api/products.api';
+import { salesApi } from '@/features/sales/api/sales.api';
+import { customersApi } from '@/features/customers/api/customers.api';
+import type { Product, Sale, Customer } from '@/types/domain';
 
 export function GlobalSearchModal() {
   const { isGlobalSearchOpen, setGlobalSearchOpen, globalSearchQuery, setGlobalSearchQuery } = useToolbarStore();
-  const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
         e.preventDefault();
         setGlobalSearchOpen(!isGlobalSearchOpen);
       }
@@ -28,47 +33,59 @@ export function GlobalSearchModal() {
     }
   }, [isGlobalSearchOpen]);
 
-  if (!isGlobalSearchOpen) return null;
-
   const handleClose = () => {
     setGlobalSearchOpen(false);
     setGlobalSearchQuery('');
   };
+
+  const hasQuery = globalSearchQuery.trim().length > 0;
+
+  // Real API queries
+  const { data: productsData, isLoading: isLoadingProducts } = useQuery({
+    queryKey: ['products-search', globalSearchQuery],
+    queryFn: () => productsApi.listPage({ q: globalSearchQuery, page: 1, pageSize: 5 }),
+    enabled: hasQuery && isGlobalSearchOpen,
+  });
+
+  const { data: salesData, isLoading: isLoadingSales } = useQuery({
+    queryKey: ['sales-search', globalSearchQuery],
+    queryFn: () => salesApi.listPage({ search: globalSearchQuery, page: 1, pageSize: 5 }),
+    enabled: hasQuery && isGlobalSearchOpen,
+  });
+
+  const { data: customersData, isLoading: isLoadingCustomers } = useQuery({
+    queryKey: ['customers-search', globalSearchQuery],
+    queryFn: () => customersApi.listPage({ q: globalSearchQuery, page: 1, pageSize: 5 }),
+    enabled: hasQuery && isGlobalSearchOpen,
+  });
+
+  const isLoading = isLoadingProducts || isLoadingSales || isLoadingCustomers;
 
   const handleNavigate = (path: string) => {
     navigate(path);
     handleClose();
   };
 
-  const hasQuery = globalSearchQuery.trim().length > 0;
-
-  // Mock results
   const renderResults = () => {
     if (!hasQuery) {
       return (
         <div className="global-search-empty">
-          <p>اكتب للبحث في الأصناف، الفواتير، الإعدادات، والعملاء...</p>
+          <p>اكتب للبحث في الأصناف، الفواتير، والعملاء...</p>
         </div>
       );
     }
 
-    const q = globalSearchQuery.toLowerCase();
-    const products = [
-      { id: 1, title: 'سكر أبيض 1 كيلو', subtitle: 'القسم: مواد غذائية | السعر: 35 ج.م', route: '/products' },
-      { id: 2, title: 'سكر أسرة 5 كيلو', subtitle: 'القسم: مواد غذائية | السعر: 170 ج.م', route: '/products' },
-      { id: 3, title: 'محمد محمود (مندوب)', subtitle: 'القسم: موظفين المبيعات', route: '/hr' },
-    ].filter(i => i.title.includes(q));
+    if (isLoading) {
+      return (
+        <div className="global-search-empty">
+          <p>جاري البحث...</p>
+        </div>
+      );
+    }
 
-    const sales = [
-      { id: 1, title: 'فاتورة مبيعات #1023', subtitle: 'تحتوي على: سكر أبيض | العميل: نقدي', route: '/sales' },
-      { id: 2, title: 'فاتورة مبيعات #1025', subtitle: 'تحتوي على: شاي العروسة | العميل: محمد علي', route: '/sales' },
-    ].filter(i => i.title.includes(q));
-
-    const customers = [
-      { id: 1, title: 'شركة سكر النيل', subtitle: 'عميل جملة | المديونية: 0', route: '/customers' },
-      { id: 2, title: 'محمد أحمد', subtitle: 'عميل قطاعي | المديونية: 150', route: '/customers' },
-      { id: 3, title: 'محمود السيد', subtitle: 'عميل جملة | المديونية: 5000', route: '/customers' },
-    ].filter(i => i.title.includes(q));
+    const products = productsData?.products || [];
+    const sales = salesData?.rows || [];
+    const customers = customersData?.customers || [];
 
     if (products.length === 0 && sales.length === 0 && customers.length === 0) {
       return (
@@ -82,13 +99,13 @@ export function GlobalSearchModal() {
       <div className="global-search-results">
         {products.length > 0 && (
           <>
-            <div className="global-search-group-title">المنتجات والموظفين</div>
-            {products.map(p => (
-              <div key={p.id} className="global-search-item" onClick={() => handleNavigate(p.route)}>
+            <div className="global-search-group-title">المنتجات</div>
+            {products.map((p: Product) => (
+              <div key={p.id} className="global-search-item" onClick={() => handleNavigate(`/products/${p.id}/edit`)}>
                 <div className="global-search-item-icon">📦</div>
                 <div className="global-search-item-content">
-                  <span className="global-search-item-title">{p.title}</span>
-                  <span className="global-search-item-subtitle">{p.subtitle}</span>
+                  <span className="global-search-item-title">{p.name}</span>
+                  <span className="global-search-item-subtitle">{p.barcode ? `باركود: ${p.barcode}` : 'بدون باركود'}</span>
                 </div>
               </div>
             ))}
@@ -98,12 +115,12 @@ export function GlobalSearchModal() {
         {sales.length > 0 && (
           <>
             <div className="global-search-group-title">فواتير المبيعات</div>
-            {sales.map(s => (
-              <div key={s.id} className="global-search-item" onClick={() => handleNavigate(s.route)}>
+            {sales.map((s: Sale) => (
+              <div key={s.id} className="global-search-item" onClick={() => handleNavigate(`/sales`)}>
                 <div className="global-search-item-icon">🧾</div>
                 <div className="global-search-item-content">
-                  <span className="global-search-item-title">{s.title}</span>
-                  <span className="global-search-item-subtitle">{s.subtitle}</span>
+                  <span className="global-search-item-title">فاتورة مبيعات #{s.docNo || s.id.slice(0, 8)}</span>
+                  <span className="global-search-item-subtitle">الإجمالي: {s.total}</span>
                 </div>
               </div>
             ))}
@@ -113,12 +130,12 @@ export function GlobalSearchModal() {
         {customers.length > 0 && (
           <>
             <div className="global-search-group-title">العملاء</div>
-            {customers.map(c => (
-              <div key={c.id} className="global-search-item" onClick={() => handleNavigate(c.route)}>
+            {customers.map((c: Customer) => (
+              <div key={c.id} className="global-search-item" onClick={() => handleNavigate(`/customers`)}>
                 <div className="global-search-item-icon">👥</div>
                 <div className="global-search-item-content">
-                  <span className="global-search-item-title">{c.title}</span>
-                  <span className="global-search-item-subtitle">{c.subtitle}</span>
+                  <span className="global-search-item-title">{c.name}</span>
+                  <span className="global-search-item-subtitle">{c.phone || 'بدون هاتف'}</span>
                 </div>
               </div>
             ))}
@@ -127,6 +144,8 @@ export function GlobalSearchModal() {
       </div>
     );
   };
+
+  if (!isGlobalSearchOpen) return null;
 
   return (
     <ClientPortal targetId="root">
@@ -141,7 +160,7 @@ export function GlobalSearchModal() {
               ref={inputRef}
               className="global-search-input"
               type="text"
-              placeholder="ابحث في أي مكان... (Ctrl+K)"
+              placeholder={`ابحث في أي مكان... (\u200ECtrl+/\u200E)`}
               value={globalSearchQuery}
               onChange={(e) => setGlobalSearchQuery(e.target.value)}
             />

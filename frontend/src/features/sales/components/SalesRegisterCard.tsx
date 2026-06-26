@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/format';
 import { SalesTable } from '@/features/sales/components/SalesTable';
 import type { SalesListFilter } from '@/features/sales/api/sales.api';
 import type { Sale } from '@/types/domain';
+import { useTranslation } from "react-i18next";
 
 export type SalesPaymentFilter = SalesListFilter;
 
@@ -52,6 +53,7 @@ type Props = {
 };
 
 export function SalesRegisterCard(props: Props) {
+    const { t } = useTranslation();
   const {
     search,
     viewFilter,
@@ -89,45 +91,45 @@ export function SalesRegisterCard(props: Props) {
 
   return (
     <Card
-      title="1. راجع سجل الفواتير"
-      description="ابحث عن الفاتورة أولًا ثم اخترها لتظهر التفاصيل والإجراءات في العمود الجانبي."
-      actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint}>طباعة السجل</Button><span className="nav-pill">السجل</span></div>}
+      title={t('sales.2a9511')}
+      description={t('sales.05777d')}
+      actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>{t('sales.91cafe')}</Button><Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint}>{t('sales.c1f6d4')}</Button><span className="nav-pill">{t('sales.ec4337')}</span></div>}
       className="workspace-panel sales-register-card"
     >
       <SearchToolbar
         search={search}
         onSearchChange={onSearchChange}
-        searchLabel="بحث الفواتير"
-        searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث بالرقم أو العميل أو الحالة أو المخزن' : 'ابحث بالرقم أو العميل أو الحالة أو الفرع'}
+        searchLabel={t('sales.4560db')}
+        searchPlaceholder={SINGLE_STORE_MODE ? t('sales.aba74b') : t('sales.2f0efb')}
         actions={<span className="nav-pill">{activeFilterLabel}</span>}
         meta={(
           <>
-            <span className="toolbar-meta-pill">النتائج: {totalItems}</span>
-            <span className="toolbar-meta-pill">المعروض: {rangeStart}-{rangeEnd}</span>
-            <span className="toolbar-meta-pill">الإجمالي: {formatCurrency(totalSales)}</span>
-            <span className="toolbar-meta-pill">المحدد: {selectedSale ? (selectedSale.docNo || selectedSale.id) : 'لا يوجد'}</span>
+            <span className="toolbar-meta-pill">{t('sales.79fb9c')}{totalItems}</span>
+            <span className="toolbar-meta-pill">{t('sales.86c80e')}{rangeStart}-{rangeEnd}</span>
+            <span className="toolbar-meta-pill">{t('sales.327511')}{formatCurrency(totalSales)}</span>
+            <span className="toolbar-meta-pill">{t('sales.1b3184')}{selectedSale ? (selectedSale.docNo || selectedSale.id) : t('sales.9d7155')}</span>
           </>
         )}
         onReset={onReset}
-        resetLabel="تفريغ"
+        resetLabel={t('sales.399328')}
       >
         <div className="filter-chip-row toolbar-chip-row sales-register-toolbar-filters">
           <div className="field sales-toolbar-filter-field">
-            <span>طريقة الدفع</span>
+            <span>{t('sales.8f31e7')}</span>
             <select value={viewFilter} onChange={(event) => onViewFilterChange(event.target.value as SalesPaymentFilter)}>
-              <option value="all">الكل</option>
-              <option value="cash">نقدي</option>
-              <option value="card">فيزا</option>
-              <option value="credit">آجل</option>
-              <option value="wallet">محفظة إلكترونية</option>
+              <option value="all">{t('sales.6d08f1')}</option>
+              <option value="cash">{t('sales.47062f')}</option>
+              <option value="card">{t('sales.197925')}</option>
+              <option value="credit">{t('sales.80106f')}</option>
+              <option value="wallet">{t('sales.52d3cb')}</option>
               <option value="instapay">InstaPay</option>
-              <option value="mixed">مختلط</option>
+              <option value="mixed">{t('sales.37b2ef')}</option>
             </select>
           </div>
           <div className="field sales-toolbar-filter-field">
-            <span>الموظف / الكاشير</span>
+            <span>{t('sales.c571ae')}</span>
             <select value={cashierFilter} onChange={(event) => onCashierFilterChange(event.target.value)}>
-              <option value="all">كل الموظفين</option>
+              <option value="all">{t('sales.554362')}</option>
               {cashierOptions.map((option) => (
                 <option key={option.id} value={option.id}>{option.label}</option>
               ))}
@@ -141,9 +143,9 @@ export function SalesRegisterCard(props: Props) {
         isError={isError}
         error={error}
         isEmpty={!rows.length && !isLoading}
-        loadingText="جاري تحميل فواتير البيع..."
-        emptyTitle="لا توجد فواتير مطابقة"
-        emptyHint="غيّر البحث أو افتح الكاشير لإنشاء فاتورة جديدة."
+        loadingText={t('sales.6e28d8')}
+        emptyTitle={t('sales.981f5a')}
+        emptyHint={t('sales.c90033')}
       >
         <SalesTable
           rows={rows}
@@ -163,7 +165,7 @@ export function SalesRegisterCard(props: Props) {
           rangeEnd={rangeEnd}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
-          itemLabel="فاتورة"
+          itemLabel={t('sales.f95919')}
         />
       </QueryFeedback>
     </Card>

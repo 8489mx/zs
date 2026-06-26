@@ -2,6 +2,7 @@ import type { Sale } from '@/types/domain';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { useTranslation } from "react-i18next";
 
 interface SaleDetailCardProps {
   sale?: Sale;
@@ -12,30 +13,31 @@ interface SaleDetailCardProps {
 }
 
 export function SaleDetailCard({ sale, isLoading = false, onEdit, onCancel, onPrint }: SaleDetailCardProps) {
-  if (isLoading) return <Card title="تفاصيل الفاتورة"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></Card>;
-  if (!sale) return <Card title="تفاصيل الفاتورة"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></Card>;
+    const { t } = useTranslation();
+  if (isLoading) return <Card title={t('sales.8f6d39')}><div className="muted">{t('sales.ff88ae')}</div></Card>;
+  if (!sale) return <Card title={t('sales.8f6d39')}><div className="muted">{t('sales.272f58')}</div></Card>;
 
   return (
     <Card
       title={`تفاصيل ${sale.docNo || sale.id}`}
       actions={sale.status !== 'cancelled' ? (
         <div className="actions">
-          {onPrint ? <Button variant="secondary" onClick={onPrint}>طباعة</Button> : null}
-          {onEdit ? <Button variant="secondary" onClick={onEdit}>تعديل الفاتورة</Button> : null}
-          {onCancel ? <Button variant="danger" onClick={onCancel}>إلغاء الفاتورة</Button> : null}
+          {onPrint ? <Button variant="secondary" onClick={onPrint}>{t('sales.88c5d1')}</Button> : null}
+          {onEdit ? <Button variant="secondary" onClick={onEdit}>{t('sales.78b222')}</Button> : null}
+          {onCancel ? <Button variant="danger" onClick={onCancel}>{t('sales.d07516')}</Button> : null}
         </div>
-      ) : <span className="status-badge status-cancelled">ملغاة</span>}
+      ) : <span className="status-badge status-cancelled">{t('sales.e92ebe')}</span>}
     >
       <div className="stats-grid compact-grid invoice-detail-summary-grid">
-        <div className="stat-card"><span>العميل</span><strong>{sale.customerName || 'عميل نقدي'}</strong></div>
-        <div className="stat-card"><span>الحالة</span><strong>{sale.status || 'draft'}</strong></div>
-        <div className="stat-card"><span>الإجمالي</span><strong>{formatCurrency(sale.total)}</strong></div>
-        <div className="stat-card"><span>التاريخ</span><strong>{formatDate(sale.date)}</strong></div>
+        <div className="stat-card"><span>{t('sales.bc9b43')}</span><strong>{sale.customerName || t('sales.339465')}</strong></div>
+        <div className="stat-card"><span>{t('sales.1253eb')}</span><strong>{sale.status || 'draft'}</strong></div>
+        <div className="stat-card"><span>{t('sales.88fc73')}</span><strong>{formatCurrency(sale.total)}</strong></div>
+        <div className="stat-card"><span>{t('sales.8456f2')}</span><strong>{formatDate(sale.date)}</strong></div>
       </div>
       <div className="table-wrap" style={{ marginTop: 12 }}>
         <table>
           <thead>
-            <tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>
+            <tr><th>{t('sales.77c42d')}</th><th>{t('sales.694ca7')}</th><th>{t('sales.510165')}</th><th>{t('sales.fa59c3')}</th><th>{t('sales.88fc73')}</th></tr>
           </thead>
           <tbody>
             {(sale.items || []).map((item) => (

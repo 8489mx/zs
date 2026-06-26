@@ -325,7 +325,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <span>لغة النظام</span>
             <select {...form.register('uiLanguage')} disabled={disabled}>
               <option value="ar">العربية</option>
-              <option value="en">English</option>
+              <option value="en" disabled>English (قريباً)</option>
             </select>
           </label>
           <label className="field">
