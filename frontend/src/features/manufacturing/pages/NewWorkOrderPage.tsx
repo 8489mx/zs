@@ -136,9 +136,11 @@ export default function NewWorkOrderPage() {
       onBack={() => navigate('/manufacturing/work-orders')}
       onSearchChange={() => {}}
     >
-        <section className="document-prototype-section" style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
-          <h3 className="document-prototype-section-title" style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111827' }}>التفاصيل الأساسية</h3>
-          <div className="document-prototype-grid compact-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">التفاصيل الأساسية</h3>
+          </div>
+          <div className="form-grid">
             <SearchableCombobox
               label="التركيبة (BOM)"
               placeholder="اختر التركيبة..."
@@ -164,9 +166,11 @@ export default function NewWorkOrderPage() {
           </div>
         </section>
 
-        <section className="document-prototype-section" style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
-          <h3 className="document-prototype-section-title" style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111827' }}>توجيهات المخازن</h3>
-          <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">توجيهات المخازن</h3>
+          </div>
+          <div className="form-grid">
             <SearchableCombobox
               label="مخزن السحب (المواد الخام)"
               placeholder="اختر المخزن..."
@@ -192,8 +196,10 @@ export default function NewWorkOrderPage() {
           </div>
         </section>
 
-        <section className="document-prototype-section" style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <h3 className="document-prototype-section-title" style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111827' }}>ملاحظات</h3>
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">ملاحظات</h3>
+          </div>
           <textarea
             className="purchase-prototype-input"
             rows={4}

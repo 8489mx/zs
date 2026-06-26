@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader } from '@/shared/components/page-header';
+
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -114,8 +114,22 @@ export function HrSettingsPage() {
   ];
 
   return (
-    <div className="page-stack page-shell" dir="rtl">
-      <PageHeader title="إعدادات الموارد البشرية" description="ابدأ من الهيكل الوظيفي وأنواع الإجازات، ثم انتقل لإضافة الموظفين وتشغيل الحضور والمرتبات." actions={<div className="compact-actions"><Button variant="secondary" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button><Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button></div>} />
+    <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
+      <div className="purchase-prototype-sticky-stack">
+        <div className="purchase-prototype-document-surface">
+          <div className="document-prototype-topbar">
+            <div>
+              <h2 className="document-prototype-topbar-title">إعدادات الموارد البشرية</h2>
+              <div className="muted small">ابدأ من الهيكل الوظيفي وأنواع الإجازات، ثم انتقل لإضافة الموظفين وتشغيل الحضور والمرتبات.</div>
+            </div>
+            <div className="actions compact-actions">
+              <Button variant="secondary" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <main className="document-prototype-column">
 
       <Card title="ترتيب الإعداد الصحيح" description="هذه هي نقطة البداية قبل إضافة الموظفين وتشغيل الحضور والمرتبات.">
         <div className="form-grid">
@@ -152,6 +166,7 @@ export function HrSettingsPage() {
         {shouldShowSection(activeSection, 'payroll') ? <HrSettingsPayrollSection navigate={navigate} /> : null}
         <HrSettingsOperationalNote />
       </QueryFeedback>
+      </main>
     </div>
   );
 }

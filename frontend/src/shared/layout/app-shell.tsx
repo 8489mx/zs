@@ -105,6 +105,18 @@ function AppNavIcon({ itemKey }: { itemKey: string }) {
   );
 }
 
+function formatWorkspaceName(name: string) {
+  const match = name.match(/^(.*?) (ل\S+.*)$/);
+  if (match) {
+    return (
+      <>
+        {match[1]}<br />{match[2]}
+      </>
+    );
+  }
+  return name;
+}
+
 export function AppShell({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -316,9 +328,11 @@ export function AppShell({ children }: PropsWithChildren) {
           <aside className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
             <div className="brand">
             <div className="brand-copy">
-              <div className="brand-title">{cleanWorkspaceName}</div>
-              <div className="brand-sub">{t("sidebar.platform_sub")}</div>
-              <div className="brand-sub muted">{t("sidebar.platform_desc")}</div>
+              <div className="brand-title" title={cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName)}</div>
+              <div className="brand-sub muted" style={{ lineHeight: 1.1 }}>
+                <span style={{ display: 'block' }}>Powered by</span>
+                <span style={{ display: 'block', fontSize: '12px', fontWeight: 800, marginTop: '2px', color: '#1e293b' }}>Z System's</span>
+              </div>
             </div>
             <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
           </div>

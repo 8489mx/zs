@@ -218,10 +218,10 @@ export default function EditBomPage() {
         </>
       }
     >
-      <div className="purchase-prototype-grid">
-        <div className="document-prototype-column">
-          <div className="purchase-prototype-card">
-            <h2 className="purchase-prototype-card-title">المنتج التام (الناتج)</h2>
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">المنتج التام (الناتج)</h3>
+          </div>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', alignItems: 'end' }}>
               <Field label="اختر المنتج">
                 <SearchableCombobox<Product>
@@ -258,11 +258,13 @@ export default function EditBomPage() {
                 />
               </Field>
             </div>
-          </div>
+        </section>
 
-          <div className="purchase-prototype-card">
+        <section className="document-prototype-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 className="purchase-prototype-card-title" style={{ margin: 0 }}>المكونات (المواد الخام)</h2>
+              <div className="document-prototype-section-header" style={{ marginBottom: 0 }}>
+                <h3 className="document-prototype-section-title" style={{ margin: 0 }}>المكونات (المواد الخام)</h3>
+              </div>
             </div>
             
             <div style={{ overflowX: 'auto' }}>
@@ -383,12 +385,12 @@ export default function EditBomPage() {
                 + إضافة مكون
               </Button>
             </div>
-          </div>
-        </div>
+        </section>
 
-        <div className="document-prototype-column">
-          <div className="purchase-prototype-card">
-            <h2 className="purchase-prototype-card-title">ملخص التكلفة</h2>
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">ملخص التكلفة</h3>
+          </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4b5563' }}>
                 <span>عدد المكونات</span>
@@ -408,9 +410,7 @@ export default function EditBomPage() {
                 <span>{singleUnitTotalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+        </section>
     </ManufacturingLayout>
   );
 }

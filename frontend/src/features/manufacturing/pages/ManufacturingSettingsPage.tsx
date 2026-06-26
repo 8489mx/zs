@@ -83,9 +83,11 @@ export default function ManufacturingSettingsPage() {
       ]}
       title="إعدادات التصنيع"
     >
-        <section className="document-prototype-section" style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <h3 className="document-prototype-section-title" style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111827' }}>المخازن الافتراضية للتصنيع</h3>
-          <p style={{ color: '#6b7280', marginBottom: '24px' }}>اختر المخزن الافتراضي الذي ستتم عليه عمليات التصنيع وصرف المواد الخام بشكل آلي ما لم يتم تحديد مخزن آخر في أمر الإنتاج.</p>
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">المخازن الافتراضية للتصنيع</h3>
+            <p className="muted small">اختر المخزن الافتراضي الذي ستتم عليه عمليات التصنيع وصرف المواد الخام بشكل آلي ما لم يتم تحديد مخزن آخر في أمر الإنتاج.</p>
+          </div>
           
           <div style={{ maxWidth: '400px', marginBottom: '24px' }}>
             <SearchableCombobox

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { PageHeader } from '@/shared/components/page-header';
+
 import { Card } from '@/shared/ui/card';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -122,16 +122,26 @@ export function AccountingSettingsPage() {
   }, [canPost, showPostConfirm]);
 
   return (
-    <div className="page-stack page-shell">
-      <PageHeader title="الحسابات" description="إعدادات الحسابات" />
-      <div className="actions">
-        <Button type="button" variant={activeSection === 'accounts-map' ? 'primary' : 'secondary'} onClick={() => setActiveSection('accounts-map')}>
-          دليل الربط المحاسبي
-        </Button>
-        <Button type="button" variant={activeSection === 'opening-balances' ? 'primary' : 'secondary'} onClick={() => setActiveSection('opening-balances')}>
-          الأرصدة الافتتاحية
-        </Button>
+    <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
+      <div className="purchase-prototype-sticky-stack">
+        <div className="purchase-prototype-document-surface">
+          <div className="document-prototype-topbar">
+            <div>
+              <h2 className="document-prototype-topbar-title">الحسابات</h2>
+              <div className="muted small">إعدادات الحسابات والأرصدة الافتتاحية</div>
+            </div>
+            <div className="actions compact-actions">
+              <Button type="button" variant={activeSection === 'accounts-map' ? 'primary' : 'secondary'} onClick={() => setActiveSection('accounts-map')}>
+                دليل الربط المحاسبي
+              </Button>
+              <Button type="button" variant={activeSection === 'opening-balances' ? 'primary' : 'secondary'} onClick={() => setActiveSection('opening-balances')}>
+                الأرصدة الافتتاحية
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
+      <main className="document-prototype-column">
 
       {activeSection === 'accounts-map' ? (
         <Card title="إعدادات الحسابات">
@@ -327,6 +337,7 @@ export function AccountingSettingsPage() {
           </div>
         </div>
       </DialogShell>
+      </main>
     </div>
   );
 }

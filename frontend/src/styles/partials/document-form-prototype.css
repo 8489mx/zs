@@ -4698,3 +4698,76 @@
 .app-layout:has(.purchase-new-prototype.purchase-prototype-dark) .content-wrap {
   background: #0f172a !important;
 }
+
+/* --- Fixes for Cards inside document prototype shell (Settings pages) --- */
+.document-prototype-shell .card {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+  margin-bottom: 32px !important;
+}
+
+.document-prototype-shell .card .card {
+  margin-top: 24px !important;
+  margin-bottom: 24px !important;
+}
+
+.document-prototype-shell .card .section-heading-copy h3 {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.document-prototype-shell .card .section-heading-copy h3::before {
+  background: var(--primary, #7c3aed) !important;
+  border-radius: 8px;
+  content: '';
+  flex: none;
+  height: 28px;
+  width: 4px;
+}
+
+.purchase-prototype-dark .document-prototype-shell .card .section-heading-copy h3::before {
+  background: #8b5cf6 !important;
+}
+
+.document-prototype-shell .card input,
+.document-prototype-shell .card select,
+.document-prototype-shell .card textarea {
+  background: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid rgba(203, 213, 225, 0.6) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  transition: all 0.2s ease;
+}
+.document-prototype-shell .card input:focus,
+.document-prototype-shell .card select:focus,
+.document-prototype-shell .card textarea:focus {
+  background: #ffffff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  outline: none;
+}
+
+.purchase-prototype-dark .document-prototype-shell .card {
+  background: rgba(30, 41, 59, 0.45);
+  border-color: rgba(71, 85, 105, 0.6);
+}
+.purchase-prototype-dark .document-prototype-shell .card input,
+.purchase-prototype-dark .document-prototype-shell .card select,
+.purchase-prototype-dark .document-prototype-shell .card textarea {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(51, 65, 85, 0.6) !important;
+  color: #f8fafc !important;
+}
+.purchase-prototype-dark .document-prototype-shell .card input:focus,
+.purchase-prototype-dark .document-prototype-shell .card select:focus,
+.purchase-prototype-dark .document-prototype-shell .card textarea:focus {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border-color: #8b5cf6 !important;
+}
+
