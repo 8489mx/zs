@@ -1179,7 +1179,9 @@ export function NewPurchaseOrderPage() {
           wholesalePrice: result.price ?? 0,
           stock: 0,
           minStock: 0,
-          variantStock: 0
+          variantStock: 0,
+          categoryId: '',
+          supplierId: ''
         });
 
         const createdObj = payload.products?.find((p: any) => p.name === result.name) || payload.products?.[payload.products?.length - 1] || {};

@@ -329,6 +329,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
             <input value={inlineCategoryName} onChange={(event) => setInlineCategoryName(event.target.value)} placeholder="إضافة قسم جديد من نفس النموذج" disabled={mutation.isPending || categoryMutation.isPending} />
             <button type="button" className="btn btn-secondary" onClick={() => categoryMutation.mutate()} disabled={mutation.isPending || categoryMutation.isPending || !inlineCategoryName.trim()}>إضافة قسم</button>
           </div>
+          {form.formState.errors.categoryId && <small className="field-error">{form.formState.errors.categoryId.message}</small>}
         </div>
 
         <div className="field">
@@ -342,6 +343,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
             <input value={inlineSupplierPhone} onChange={(event) => setInlineSupplierPhone(event.target.value)} placeholder="الهاتف" disabled={mutation.isPending || supplierMutation.isPending} />
             <button type="button" className="btn btn-secondary" onClick={() => supplierMutation.mutate()} disabled={mutation.isPending || supplierMutation.isPending || !inlineSupplierName.trim()}>إضافة مورد</button>
           </div>
+          {form.formState.errors.supplierId && <small className="field-error">{form.formState.errors.supplierId.message}</small>}
         </div>
 
         <Field label="ملاحظات"><textarea {...form.register('notes')} rows={4} disabled={mutation.isPending} /></Field>

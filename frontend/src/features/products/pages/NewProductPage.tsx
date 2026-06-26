@@ -596,6 +596,7 @@ export function NewProductPage() {
                 createLabel="إضافة قسم"
                 isPending={categoryMutation.isPending}
               />
+              {form.formState.errors.categoryId && <small className="field-error">{form.formState.errors.categoryId.message}</small>}
               {categoryMutation.isError && <small className="field-error">تعذر إضافة القسم</small>}
               {categoryMutation.isPending && <small className="muted small">جارٍ إضافة القسم...</small>}
             </div>
@@ -613,6 +614,7 @@ export function NewProductPage() {
                 createLabel="إضافة مورد"
                 isPending={supplierMutation.isPending}
               />
+              {form.formState.errors.supplierId && <small className="field-error">{form.formState.errors.supplierId.message}</small>}
               {supplierMutation.isError && <small className="field-error">تعذر إضافة المورد</small>}
               {supplierMutation.isPending && <small className="muted small">جارٍ إضافة المورد...</small>}
             </div>

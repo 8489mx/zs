@@ -248,13 +248,13 @@ export function EditProductPage() {
             <h3 className="document-prototype-section-title">بيانات القسم والمورد</h3>
           </div>
           <div className="document-prototype-grid compact-grid-2">
-            <Field label="القسم">
+            <Field label="القسم" error={form.formState.errors.categoryId?.message}>
               <select className="purchase-prototype-field-input" {...form.register('categoryId')} disabled={isFormDisabled}>
                 <option value="">بدون قسم</option>
                 {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select>
             </Field>
-            <Field label="المورد">
+            <Field label="المورد" error={form.formState.errors.supplierId?.message}>
               <select className="purchase-prototype-field-input" {...form.register('supplierId')} disabled={isFormDisabled}>
                 <option value="">بدون مورد</option>
                 {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
