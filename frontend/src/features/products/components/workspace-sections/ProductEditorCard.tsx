@@ -33,6 +33,7 @@ function omitStock(values: ProductFormOutput): ProductFormOutput {
 export function ProductEditorCard({ product, categories, suppliers, customers, onSaved }: { product?: Product; categories: Category[]; suppliers: Supplier[]; customers: Array<{ id: string; name: string }>; onSaved?: (product: Product) => void }) {
   const settingsQuery = useSettingsQuery();
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+  const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
   const queryClient = useQueryClient();
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(product?.units, product?.barcode || ''));
   const [customerPrices, setCustomerPrices] = useState<ProductCustomerPrice[]>(normalizeCustomerPrices(product));
@@ -105,12 +106,14 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
     <div className="page-stack">
       <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }))}>
         <div className="form-grid">
-          <Field label="تصنيف الصنف">
-            <select {...form.register('itemType')} disabled={mutation.isPending}>
-              <option value="product">منتج نهائي للبيع</option>
-              <option value="raw_material">مادة خام / مكون تصنيع</option>
-            </select>
-          </Field>
+          {manufacturingModuleEnabled ? (
+            <Field label="تصنيف الصنف">
+              <select {...form.register('itemType')} disabled={mutation.isPending}>
+                <option value="product">منتج نهائي للبيع</option>
+                <option value="raw_material">مادة خام / مكون تصنيع</option>
+              </select>
+            </Field>
+          ) : null}
           {clothingModuleEnabled ? <Field label="نوع الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي</option><option value="fashion">ملابس / Variant</option></select></Field> : null}
           <Field label="اسم الصنف" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
           <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>

@@ -45,6 +45,7 @@ export function EditProductPage() {
   const customers = (customersQuery.data || []).map((customer) => ({ id: String(customer.id), name: customer.name }));
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+  const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
 
   const { data: product, isLoading: isProductLoading, isError: isProductError } = useQuery({
     queryKey: ['product', id],
@@ -197,12 +198,14 @@ export function EditProductPage() {
             <h3 className="document-prototype-section-title">البيانات الأساسية</h3>
           </div>
           <div className="document-prototype-grid compact-grid-2">
-            <Field label="تصنيف الصنف">
-              <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
-                <option value="product">منتج نهائي للبيع</option>
-                <option value="raw_material">مادة خام / مكون تصنيع</option>
-              </select>
-            </Field>
+            {manufacturingModuleEnabled ? (
+              <Field label="تصنيف الصنف">
+                <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
+                  <option value="product">منتج نهائي للبيع</option>
+                  <option value="raw_material">مادة خام / مكون تصنيع</option>
+                </select>
+              </Field>
+            ) : null}
             {clothingModuleEnabled ? (
               <Field label="نوع الصنف">
                 <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>

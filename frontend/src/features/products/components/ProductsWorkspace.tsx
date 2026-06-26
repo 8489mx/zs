@@ -65,8 +65,8 @@ export function ProductsWorkspace() {
               لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للنشاط، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
             </div>
             <div className="actions compact-actions">
-              <Button onClick={() => scrollToRef(toolsRef.current)}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
-              <Button variant="secondary" onClick={() => scrollToRef(toolsRef.current)}>إضافة قسم أو مورد</Button>
+              <Button onClick={() => navigate('/products/new')}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
+              <Button variant="secondary" onClick={() => navigate('/products/categories')}>إضافة قسم أو مورد</Button>
             </div>
           </div>
         </Card>

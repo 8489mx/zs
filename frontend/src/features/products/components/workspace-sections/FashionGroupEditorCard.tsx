@@ -8,6 +8,7 @@ import { SubmitButton } from '@/shared/components/submit-button';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { productsApi } from '@/features/products/api/products.api';
 import { getNextSequentialStyleCode, getStyleCodeSequenceStart } from '@/features/products/lib/style-code.utils';
 import { normalizeArabicInput } from '@/lib/arabic-normalization';
@@ -22,6 +23,8 @@ interface FashionGroupEditorCardProps {
 }
 
 export function FashionGroupEditorCard({ product, categories, suppliers, onSaved }: FashionGroupEditorCardProps) {
+  const settingsQuery = useSettingsQuery();
+  const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
   const allProductsQuery = useQuery({ queryKey: queryKeys.products, queryFn: productsApi.list, staleTime: 30_000 });
   const queryClient = useQueryClient();
   const styleCode = String(product.styleCode || '').trim();
@@ -197,12 +200,14 @@ export function FashionGroupEditorCard({ product, categories, suppliers, onSaved
       </div>
 
       <div className="form-grid">
-        <Field label="تصنيف الصنف">
-          <select value={commonDraft.itemType} onChange={(event) => setCommonDraft((current) => ({ ...current, itemType: event.target.value as 'product' | 'raw_material' }))} disabled={mutation.isPending}>
-            <option value="product">منتج نهائي للبيع</option>
-            <option value="raw_material">مادة خام / مكون تصنيع</option>
-          </select>
-        </Field>
+        {manufacturingModuleEnabled ? (
+          <Field label="تصنيف الصنف">
+            <select value={commonDraft.itemType} onChange={(event) => setCommonDraft((current) => ({ ...current, itemType: event.target.value as 'product' | 'raw_material' }))} disabled={mutation.isPending}>
+              <option value="product">منتج نهائي للبيع</option>
+              <option value="raw_material">مادة خام / مكون تصنيع</option>
+            </select>
+          </Field>
+        ) : null}
         <Field label="اسم الصنف الأساسي"><input value={commonDraft.name} onChange={(event) => setCommonDraft((current) => ({ ...current, name: normalizeArabicInput(event.target.value) }))} disabled={mutation.isPending} /></Field>
         <Field label={isFashion ? 'كود الموديل' : 'كود المجموعة / الصنف الرئيسي'}>
           <div className="muted small">التوليد يبدأ من {getStyleCodeSequenceStart()} ثم يزيد تلقائيًا.</div>

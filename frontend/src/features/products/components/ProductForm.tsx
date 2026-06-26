@@ -93,6 +93,7 @@ async function generateNextStyleCode() {
 export function ProductForm({ categories, suppliers, onCategoryCreated, onSupplierCreated }: ProductFormProps) {
   const settingsQuery = useSettingsQuery();
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+  const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
   const defaultItemKind: 'standard' | 'fashion' = clothingModuleEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const defaultGroupedMode = defaultItemKind === 'fashion';
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(undefined, ''));
@@ -286,12 +287,14 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
       </div>
 
       <div className="form-grid">
-        <Field label="تصنيف الصنف">
-          <select {...form.register('itemType')} disabled={mutation.isPending}>
-            <option value="product">منتج نهائي للبيع</option>
-            <option value="raw_material">مادة خام / مكون تصنيع</option>
-          </select>
-        </Field>
+        {manufacturingModuleEnabled ? (
+          <Field label="تصنيف الصنف">
+            <select {...form.register('itemType')} disabled={mutation.isPending}>
+              <option value="product">منتج نهائي للبيع</option>
+              <option value="raw_material">مادة خام / مكون تصنيع</option>
+            </select>
+          </Field>
+        ) : null}
         <Field label={watchedItemKind === 'fashion' ? 'اسم الموديل الأساسي' : groupedEntryEnabled ? 'اسم الصنف الأساسي' : 'اسم الصنف'} error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} placeholder={watchedItemKind === 'fashion' ? 'مثال: تيشيرت بنجول' : groupedEntryEnabled ? 'مثال: مزيل عرق X' : undefined} /></Field>
 
         {usesVariantBuilder ? (

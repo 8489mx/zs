@@ -3,7 +3,7 @@ import { Card } from '@/shared/ui/card';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 
 interface QueryCardProps {
-  title: string;
+  title?: string;
   description?: string;
   actions?: ReactNode;
   isLoading?: boolean;

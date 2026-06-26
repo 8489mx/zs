@@ -1,12 +1,13 @@
+
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { Category, ProductUnit, Supplier } from '@/types/domain';
+import type { Category, Product, ProductUnit, Supplier } from '@/types/domain';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
-import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
+import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -14,7 +15,6 @@ import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/c
 import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
-
 import { useAppToolbar } from '@/stores/toolbar-store';
 
 const normalizeLookupText = (value: unknown) => String(value ?? '').trim().toLocaleLowerCase();
@@ -37,7 +37,7 @@ const findCreatedSupplierId = (suppliers: Supplier[], name: string, phone: strin
   return matched?.id ? String(matched.id) : '';
 };
 
-function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): ProductFormInput {
+function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard', defaultMinStock = 5): ProductFormInput {
   return {
     name: '',
     barcode: '',
@@ -52,7 +52,7 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): Produc
     retailPrice: 0,
     wholesalePrice: 0,
     stock: 0,
-    minStock: 5,
+    minStock: defaultMinStock,
     categoryId: '',
     supplierId: '',
     notes: ''
@@ -74,10 +74,216 @@ async function generateNextStyleCode() {
       .map((value) => Number(value))
       .filter((value) => Number.isFinite(value) && value >= 101),
   );
-
   let nextCode = 101;
   while (usedCodes.has(nextCode)) nextCode += 1;
   return String(nextCode);
+}
+
+// ===== Combobox Component =====
+interface ComboboxSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ id: string; label: string }>;
+  placeholder?: string;
+  emptyLabel?: string;
+  disabled?: boolean;
+  onCreateNew?: (name: string) => void;
+  createLabel?: string;
+  isPending?: boolean;
+}
+
+function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...', emptyLabel = 'بدون', disabled, onCreateNew, createLabel, isPending }: ComboboxSelectProps) {
+  const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  const selectedOption = options.find((o) => o.id === value);
+  const displayText = selectedOption ? selectedOption.label : emptyLabel;
+
+  const filteredOptions = useMemo(() => {
+    const q = normalizeLookupText(query);
+    if (!q) return options;
+    return options.filter((o) => normalizeLookupText(o.label).includes(q));
+  }, [options, query]);
+
+  const hasExactMatch = useMemo(() => {
+    const q = normalizeLookupText(query);
+    return !q || options.some((o) => normalizeLookupText(o.label) === q);
+  }, [options, query]);
+
+  function handleSelect(optionId: string) {
+    onChange(optionId);
+    setQuery('');
+    setIsOpen(false);
+  }
+
+  function handleBlur() {
+    window.setTimeout(() => setIsOpen(false), 150);
+  }
+
+  const showCreateOption = Boolean(onCreateNew && query.trim() && !hasExactMatch && !isPending);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        border: '1px solid var(--border, #dbe2ea)',
+        borderRadius: 8,
+        background: disabled ? '#f8fafc' : 'var(--surface, #fff)',
+        overflow: 'hidden',
+      }}>
+        {isOpen ? (
+          <input
+            autoFocus
+            className="purchase-prototype-field-input"
+            style={{ border: 'none', flex: 1, background: 'transparent', outline: 'none', boxShadow: 'none' }}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onBlur={handleBlur}
+            placeholder={placeholder}
+            disabled={disabled}
+          />
+        ) : (
+          <button
+            type="button"
+            style={{
+              flex: 1,
+              textAlign: 'right',
+              background: 'transparent',
+              border: 'none',
+              padding: '8px 10px',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              color: selectedOption ? 'inherit' : '#9ca3af',
+              fontSize: 'inherit',
+            }}
+            onClick={() => { if (!disabled) { setQuery(''); setIsOpen(true); } }}
+            disabled={disabled}
+          >
+            {displayText}
+          </button>
+        )}
+        <span style={{ padding: '0 8px', color: '#9ca3af', fontSize: 12, pointerEvents: 'none', userSelect: 'none' }}>▾</span>
+      </div>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          background: '#fff',
+          border: '1px solid var(--border, #dbe2ea)',
+          borderRadius: 8,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          marginTop: 4,
+          maxHeight: 240,
+          overflowY: 'auto',
+          padding: 4,
+        }}>
+          <button
+            type="button"
+            style={{ width: '100%', textAlign: 'right', background: value === '' ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: '#6b7280' }}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSelect('')}
+          >
+            {emptyLabel}
+          </button>
+          {filteredOptions.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              style={{ width: '100%', textAlign: 'right', background: value === opt.id ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: value === opt.id ? 600 : 400 }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => handleSelect(opt.id)}
+            >
+              {opt.label}
+            </button>
+          ))}
+          {filteredOptions.length === 0 && !showCreateOption && (
+            <div style={{ padding: '8px 10px', color: '#9ca3af', textAlign: 'center', fontSize: 13 }}>لا توجد نتائج</div>
+          )}
+          {showCreateOption && (
+            <button
+              type="button"
+              style={{ width: '100%', textAlign: 'right', background: 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: 'var(--primary, #2563eb)', fontWeight: 700 }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { onCreateNew?.(query.trim()); setQuery(''); setIsOpen(false); }}
+            >
+              + {createLabel || 'إضافة'}: "{query.trim()}"
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== Product Name with Duplicate Warning =====
+interface ProductNameFieldProps {
+  value: string;
+  onChange: (v: string) => void;
+  allProducts: Product[];
+  disabled?: boolean;
+  label: string;
+  placeholder?: string;
+  error?: string;
+}
+
+function ProductNameField({ value, onChange, allProducts, disabled, label, placeholder, error }: ProductNameFieldProps) {
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const similarProducts = useMemo(() => {
+    const q = normalizeLookupText(value);
+    if (!q || q.length < 2) return [];
+    return allProducts.filter((p) => normalizeLookupText(p.name).includes(q)).slice(0, 6);
+  }, [value, allProducts]);
+
+  return (
+    <div className="field">
+      <label>{label}</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          className="purchase-prototype-field-input"
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setShowSuggestions(true); }}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => window.setTimeout(() => setShowSuggestions(false), 150)}
+          disabled={disabled}
+          placeholder={placeholder}
+          style={{ width: '100%' }}
+        />
+        {showSuggestions && similarProducts.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            background: '#fff',
+            border: '1px solid #fbbf24',
+            borderRadius: 8,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+            marginTop: 4,
+            maxHeight: 200,
+            overflowY: 'auto',
+            padding: 4,
+          }}>
+            <div style={{ padding: '6px 10px', fontSize: 12, color: '#92400e', background: '#fffbeb', borderRadius: 6, marginBottom: 4 }}>
+              ⚠ أصناف مشابهة موجودة مسبقاً:
+            </div>
+            {similarProducts.map((p) => (
+              <div key={p.id} style={{ padding: '6px 10px', fontSize: 13, color: '#374151', borderRadius: 6 }}>
+                <strong>{p.name}</strong>
+                {p.barcode ? <span style={{ color: '#9ca3af', marginRight: 8, fontSize: 11 }}>{p.barcode}</span> : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {error && <small className="field-error">{error}</small>}
+    </div>
+  );
 }
 
 export function NewProductPage() {
@@ -85,27 +291,49 @@ export function NewProductPage() {
   const settingsQuery = useSettingsQuery();
   const categoriesQuery = useCategoriesQuery();
   const suppliersQuery = useSuppliersQuery();
-  
-  const categories = categoriesQuery.data || [];
-  const suppliers = suppliersQuery.data || [];
+  const productsQuery = useProductsQuery();
+
+  const defaultMinStock = Number(settingsQuery.data?.lowStockThreshold ?? 5);
+  const allProducts = productsQuery.data || [];
+
+  const rawCategories = categoriesQuery.data || [];
+  const rawSuppliers = suppliersQuery.data || [];
+
+  // Sort alphabetically
+  const categories = useMemo(
+    () => [...rawCategories].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar')),
+    [rawCategories]
+  );
+  const suppliers = useMemo(
+    () => [...rawSuppliers].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar')),
+    [rawSuppliers]
+  );
+
+  const categoryOptions = useMemo(() => categories.map((c) => ({ id: String(c.id), label: c.name })), [categories]);
+  const supplierOptions = useMemo(() => suppliers.map((s) => ({ id: String(s.id), label: s.name })), [suppliers]);
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+  const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
   const defaultItemKind: 'standard' | 'fashion' = clothingModuleEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const defaultGroupedMode = defaultItemKind === 'fashion';
-  
+
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(undefined, ''));
   const [fashionVariantRows, setFashionVariantRows] = useState<FashionVariantDraft[]>([]);
   const [variantBarcodePrefix, setVariantBarcodePrefix] = useState('');
   const [groupedEntryEnabled, setGroupedEntryEnabled] = useState(defaultGroupedMode);
-  const [inlineCategoryName, setInlineCategoryName] = useState('');
-  const [inlineSupplierName, setInlineSupplierName] = useState('');
-  const [inlineSupplierPhone, setInlineSupplierPhone] = useState('');
   const [isGeneratingStyleCode, setIsGeneratingStyleCode] = useState(false);
-  
+
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: getDefaultValues(defaultItemKind)
+    defaultValues: getDefaultValues(defaultItemKind, defaultMinStock)
   });
+
+  // Update minStock when settings load (only if user hasn't touched it)
+  useEffect(() => {
+    if (settingsQuery.data?.lowStockThreshold !== undefined && !form.formState.isDirty) {
+      form.setValue('minStock', Number(settingsQuery.data.lowStockThreshold));
+    }
+  }, [settingsQuery.data?.lowStockThreshold, form]);
 
   const queryClient = useQueryClient();
   const mutation = useCreateProductMutation(() => {
@@ -120,6 +348,8 @@ export function NewProductPage() {
   const watchedFashionColors = form.watch('fashionColors');
   const watchedFashionSizes = form.watch('fashionSizes');
   const watchedVariantStock = Number(form.watch('variantStock') || 0);
+  const watchedCategoryId = form.watch('categoryId');
+  const watchedSupplierId = form.watch('supplierId');
   const usesVariantBuilder = watchedItemKind === 'fashion' || groupedEntryEnabled;
 
   useEffect(() => {
@@ -132,7 +362,7 @@ export function NewProductPage() {
     () => buildFashionVariantDrafts(colorTokens, sizeTokens, [], watchedVariantStock),
     [colorTokens, sizeTokens, watchedVariantStock],
   );
-  
+
   const hasUnitsDraftChanges = useMemo(
     () => usesVariantBuilder ? false : JSON.stringify(units) !== JSON.stringify(normalizeProductUnits(undefined, (watchedBarcode || '').trim())),
     [units, watchedBarcode, usesVariantBuilder],
@@ -150,8 +380,8 @@ export function NewProductPage() {
     }
     return Array.from(counts.values()).filter((count) => count > 1).length;
   }, [fashionVariantRows]);
-  
-  void (form.formState.isDirty || hasUnitsDraftChanges || hasFashionDraftChanges || Boolean(inlineCategoryName.trim()) || Boolean(inlineSupplierName.trim()) || Boolean(inlineSupplierPhone.trim()) || groupedEntryEnabled !== defaultGroupedMode);
+
+  void (form.formState.isDirty || hasUnitsDraftChanges || hasFashionDraftChanges || groupedEntryEnabled !== defaultGroupedMode);
 
   useEffect(() => {
     if (!usesVariantBuilder) {
@@ -165,19 +395,16 @@ export function NewProductPage() {
     setFashionVariantRows((current) => buildFashionVariantDrafts(colorTokens, sizeTokens, current, watchedVariantStock));
   }, [usesVariantBuilder, colorTokens, sizeTokens, watchedVariantStock, form, fashionVariantRows.length, variantBarcodePrefix]);
 
-  const categoryMutation = useMutation<{ id?: string | number; category?: { id?: string | number }; data?: { id?: string | number } }, Error, void>({
-    mutationFn: async () => {
-      const name = inlineCategoryName.trim();
+  const categoryMutation = useMutation<{ id?: string | number; category?: { id?: string | number }; data?: { id?: string | number } }, Error, string>({
+    mutationFn: async (name: string) => {
       if (!name) throw new Error('اكتب اسم القسم');
       return productsApi.createCategory({ name }) as Promise<any>;
     },
-    onSuccess: async (created) => {
-      const createdName = inlineCategoryName.trim();
+    onSuccess: async (created, name) => {
       let nextId = extractCreatedEntityId(created);
-      setInlineCategoryName('');
       await invalidateCatalogDomain(queryClient, { includeCategories: true });
       if (!nextId) {
-        nextId = findCreatedCategoryId(await productsApi.categories(), createdName);
+        nextId = findCreatedCategoryId(await productsApi.categories(), name);
       }
       if (nextId) {
         form.setValue('categoryId', nextId, { shouldDirty: true, shouldValidate: true });
@@ -185,21 +412,16 @@ export function NewProductPage() {
     }
   });
 
-  const supplierMutation = useMutation<{ id?: string | number; supplier?: { id?: string | number }; data?: { id?: string | number } }, Error, void>({
-    mutationFn: async () => {
-      const name = inlineSupplierName.trim();
+  const supplierMutation = useMutation<{ id?: string | number; supplier?: { id?: string | number }; data?: { id?: string | number } }, Error, string>({
+    mutationFn: async (name: string) => {
       if (!name) throw new Error('اكتب اسم المورد');
-      return productsApi.createSupplier({ name, phone: inlineSupplierPhone.trim(), address: '', balance: 0, notes: '' }) as Promise<any>;
+      return productsApi.createSupplier({ name, phone: '', address: '', balance: 0, notes: '' }) as Promise<any>;
     },
-    onSuccess: async (created) => {
-      const createdName = inlineSupplierName.trim();
-      const createdPhone = inlineSupplierPhone.trim();
+    onSuccess: async (created, name) => {
       let nextId = extractCreatedEntityId(created);
-      setInlineSupplierName('');
-      setInlineSupplierPhone('');
       await invalidateCatalogDomain(queryClient, { includeSuppliers: true });
       if (!nextId) {
-        nextId = findCreatedSupplierId(await productsApi.suppliers(), createdName, createdPhone);
+        nextId = findCreatedSupplierId(await productsApi.suppliers(), name, '');
       }
       if (nextId) {
         form.setValue('supplierId', nextId, { shouldDirty: true, shouldValidate: true });
@@ -252,14 +474,14 @@ export function NewProductPage() {
               <button type="button" className="document-prototype-back-link" onClick={() => navigate('/products')} aria-label="الرجوع">←</button>
               <h1>إضافة صنف جديد</h1>
             </div>
-            
+
             <div className="document-prototype-topbar-actions">
               <Button variant="secondary" onClick={() => navigate('/products')} disabled={isFormDisabled}>
                 إلغاء
               </Button>
-              <Button 
-                variant="primary" 
-                onClick={onSubmit} 
+              <Button
+                variant="primary"
+                onClick={onSubmit}
                 disabled={isFormDisabled || (usesVariantBuilder && (!fashionVariantRows.length || duplicateFashionBarcodes > 0 || !String(watchedStyleCode || '').trim()))}
               >
                 {isFormDisabled ? 'جارٍ الحفظ...' : submitText}
@@ -268,14 +490,14 @@ export function NewProductPage() {
           </div>
         </div>
       </div>
-      
+
       <main className="document-prototype-column">
         {mutation.isError && (
           <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444' }}>
             <div style={{ color: '#b91c1c' }}>تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى.</div>
           </div>
         )}
-        
+
         {usesVariantBuilder && duplicateFashionBarcodes > 0 && (
           <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444' }}>
             <div style={{ color: '#b91c1c' }}>يوجد باركودات مكررة داخل نفس المجموعة. صححها قبل الحفظ.</div>
@@ -304,15 +526,24 @@ export function NewProductPage() {
           </div>
 
           <div className="document-prototype-grid compact-grid-2">
-            <Field label="تصنيف الصنف">
-              <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
-                <option value="product">منتج نهائي للبيع</option>
-                <option value="raw_material">مادة خام / مكون تصنيع</option>
-              </select>
-            </Field>
-            <Field label={watchedItemKind === 'fashion' ? 'اسم الموديل الأساسي' : groupedEntryEnabled ? 'اسم الصنف الأساسي' : 'اسم الصنف'} error={form.formState.errors.name?.message}>
-              <input className="purchase-prototype-field-input" {...form.register('name')} disabled={isFormDisabled} placeholder={watchedItemKind === 'fashion' ? 'مثال: تيشيرت بنجول' : groupedEntryEnabled ? 'مثال: مزيل عرق X' : undefined} />
-            </Field>
+            {manufacturingModuleEnabled ? (
+              <Field label="تصنيف الصنف">
+                <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
+                  <option value="product">منتج نهائي للبيع</option>
+                  <option value="raw_material">مادة خام / مكون تصنيع</option>
+                </select>
+              </Field>
+            ) : null}
+
+            <ProductNameField
+              label={watchedItemKind === 'fashion' ? 'اسم الموديل الأساسي' : groupedEntryEnabled ? 'اسم الصنف الأساسي' : 'اسم الصنف'}
+              value={watchedName || ''}
+              onChange={(v) => form.setValue('name', v, { shouldDirty: true, shouldValidate: true })}
+              allProducts={allProducts}
+              disabled={isFormDisabled}
+              placeholder={watchedItemKind === 'fashion' ? 'مثال: تيشيرت بنجول' : groupedEntryEnabled ? 'مثال: مزيل عرق X' : undefined}
+              error={form.formState.errors.name?.message}
+            />
 
             {usesVariantBuilder ? (
               <Field label={watchedItemKind === 'fashion' ? 'كود الموديل' : 'كود المجموعة / الصنف الرئيسي'}>
@@ -341,7 +572,9 @@ export function NewProductPage() {
             <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
             <Field label="سعر الجملة"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} /></Field>
             {!usesVariantBuilder ? <Field label="المخزون الافتتاحي"><input className="purchase-prototype-field-input" type="number" {...form.register('stock')} disabled={isFormDisabled} /></Field> : null}
-            <Field label="الحد الأدنى"><input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} /></Field>
+            <Field label="الحد الأدنى للمخزون">
+              <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
+            </Field>
           </div>
         </section>
 
@@ -352,27 +585,36 @@ export function NewProductPage() {
           <div className="document-prototype-grid compact-grid-2">
             <div className="field">
               <label>القسم</label>
-              <select className="purchase-prototype-field-input" {...form.register('categoryId')} disabled={isFormDisabled || categoryMutation.isPending} style={{ marginBottom: 8 }}>
-                <option value="">بدون قسم</option>
-                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input className="purchase-prototype-field-input" value={inlineCategoryName} onChange={(event) => setInlineCategoryName(event.target.value)} placeholder="إضافة قسم جديد" disabled={isFormDisabled || categoryMutation.isPending} style={{ flex: 1 }} />
-                <Button type="button" variant="secondary" onClick={() => categoryMutation.mutate()} disabled={isFormDisabled || categoryMutation.isPending || !inlineCategoryName.trim()}>إضافة</Button>
-              </div>
+              <ComboboxSelect
+                value={watchedCategoryId || ''}
+                onChange={(v) => form.setValue('categoryId', v, { shouldDirty: true })}
+                options={categoryOptions}
+                emptyLabel="بدون قسم"
+                placeholder="ابحث في الأقسام..."
+                disabled={isFormDisabled || categoryMutation.isPending}
+                onCreateNew={(name) => categoryMutation.mutate(name)}
+                createLabel="إضافة قسم"
+                isPending={categoryMutation.isPending}
+              />
+              {categoryMutation.isError && <small className="field-error">تعذر إضافة القسم</small>}
+              {categoryMutation.isPending && <small className="muted small">جارٍ إضافة القسم...</small>}
             </div>
 
             <div className="field">
               <label>المورد</label>
-              <select className="purchase-prototype-field-input" {...form.register('supplierId')} disabled={isFormDisabled || supplierMutation.isPending} style={{ marginBottom: 8 }}>
-                <option value="">بدون مورد</option>
-                {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-              </select>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input className="purchase-prototype-field-input" value={inlineSupplierName} onChange={(event) => setInlineSupplierName(event.target.value)} placeholder="اسم المورد" disabled={isFormDisabled || supplierMutation.isPending} style={{ flex: 1 }} />
-                <input className="purchase-prototype-field-input" value={inlineSupplierPhone} onChange={(event) => setInlineSupplierPhone(event.target.value)} placeholder="الهاتف" disabled={isFormDisabled || supplierMutation.isPending} style={{ width: 100 }} />
-                <Button type="button" variant="secondary" onClick={() => supplierMutation.mutate()} disabled={isFormDisabled || supplierMutation.isPending || !inlineSupplierName.trim()}>إضافة</Button>
-              </div>
+              <ComboboxSelect
+                value={watchedSupplierId || ''}
+                onChange={(v) => form.setValue('supplierId', v, { shouldDirty: true })}
+                options={supplierOptions}
+                emptyLabel="بدون مورد"
+                placeholder="ابحث في الموردين..."
+                disabled={isFormDisabled || supplierMutation.isPending}
+                onCreateNew={(name) => supplierMutation.mutate(name)}
+                createLabel="إضافة مورد"
+                isPending={supplierMutation.isPending}
+              />
+              {supplierMutation.isError && <small className="field-error">تعذر إضافة المورد</small>}
+              {supplierMutation.isPending && <small className="muted small">جارٍ إضافة المورد...</small>}
             </div>
           </div>
         </section>

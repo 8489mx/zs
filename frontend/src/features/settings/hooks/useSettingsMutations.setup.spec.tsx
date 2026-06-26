@@ -46,6 +46,7 @@ const baseSettingsMutationValues = {
   logoData: '',
   currentBranchId: '',
   currentLocationId: '',
+  manufacturingModuleEnabled: false,
   clothingModuleEnabled: false,
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,

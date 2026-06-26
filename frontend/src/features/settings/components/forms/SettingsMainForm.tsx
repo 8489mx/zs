@@ -24,12 +24,22 @@ const checkboxGridStyle: CSSProperties = {
 const checkboxStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'flex-start',
   gap: 8,
   padding: '8px 10px',
   border: '1px solid var(--border, #dbe2ea)',
   borderRadius: 8,
   background: 'var(--surface, #fff)',
   minHeight: 36,
+  cursor: 'pointer',
+};
+
+const checkboxInputStyle: CSSProperties = {
+  width: 18,
+  height: 18,
+  flexShrink: 0,
+  margin: 0,
+  cursor: 'pointer',
 };
 
 const requiredStarStyle: CSSProperties = { color: '#dc2626', fontWeight: 700, marginInlineStart: 2 };
@@ -49,14 +59,14 @@ interface RequiredFieldProps {
 
 function RequiredField({ label, error, children }: RequiredFieldProps) {
   return (
-    <label className="field">
-      <span>
+    <div className="field">
+      <label>
         {label}
         <span style={requiredStarStyle}>*</span>
-      </span>
+      </label>
       {children}
       {error ? <small className="field-error">{error}</small> : null}
-    </label>
+    </div>
   );
 }
 
@@ -311,389 +321,446 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   });
 
   return (
-    <form id="settings-main-form" className="page-stack settings-core-form" onSubmit={submit}>
-      <BrandPreview form={form} />
-
-
-      <section className="panel page-stack">
-        <div>
-          <strong>اللغة والمنطقة</strong>
-          <div className="muted small">اضبط لغة الواجهة والعملة والمنطقة الزمنية المستخدمة في شاشة النظام والتقارير.</div>
+    <form id="settings-main-form" className="page-shell document-prototype-shell purchase-new-prototype settings-core-form" dir="rtl" onSubmit={submit}>
+      {/* ===== الهيدر العلوي الثابت ===== */}
+      <div className="purchase-prototype-sticky-stack">
+        <div className="purchase-prototype-document-surface">
+          <div className="document-prototype-topbar">
+            <div className="document-prototype-topbar-right">
+              <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>إعدادات النظام</h1>
+            </div>
+            <div className="document-prototype-topbar-actions">
+              <button type="button" className="btn btn-secondary" onClick={() => form.setValue('logoData', '', { shouldDirty: true })} disabled={disabled || !form.watch('logoData')}>حذف الشعار</button>
+              <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset(); }} disabled={disabled || !form.formState.isDirty}>تفريغ التغييرات</button>
+              <button type="submit" className="btn btn-primary" disabled={disabled}>
+                {mutation.isPending ? 'جارٍ الحفظ...' : setupMode ? 'حفظ والانتقال للخطوة التالية' : 'حفظ الإعدادات'}
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="form-grid three-col-form">
-          <label className="field">
-            <span>لغة النظام</span>
-            <select {...form.register('uiLanguage')} disabled={disabled}>
-              <option value="ar">العربية</option>
-              <option value="en" disabled>English (قريباً)</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>العملة</span>
-            <select {...form.register('currency')} disabled={disabled}>
-              {SUPPORTED_CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>المنطقة الزمنية</span>
-            <select {...form.register('timezone')} disabled={disabled}>
-              <option value="Africa/Cairo">Africa/Cairo</option>
-              <option value="Asia/Riyadh">Asia/Riyadh</option>
-              <option value="Asia/Dubai">Asia/Dubai</option>
-              <option value="UTC">UTC</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>صيغة التاريخ</span>
-            <select {...form.register('dateFormat')} disabled={disabled}>
-              <option value="yyyy-MM-dd">2026-06-07</option>
-              <option value="dd/MM/yyyy">07/06/2026</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>صيغة الوقت</span>
-            <select {...form.register('timeFormat')} disabled={disabled}>
-              <option value="24h">24 ساعة</option>
-              <option value="12h">12 ساعة</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>رابط إرسال الواتساب</span>
-            <select {...form.register('whatsappLinkMode')} disabled={disabled}>
-              <option value="wa_me">افتراضي (يسأل المستخدم)</option>
-              <option value="web">واتساب ويب مباشرة</option>
-              <option value="app">تطبيق الواتساب مباشرة</option>
-            </select>
-            <div className="muted small">اختر الطريقة الأسرع لك عند الضغط على زر "إرسال للمورد عبر واتساب".</div>
-          </label>
-        </div>
-      </section>
+      </div>
 
-      <section className="panel page-stack settings-required-card">
-        <div>
-          <strong>الإعدادات المطلوبة للتشغيل</strong>
-          <div className="muted small">أكمل هذه البيانات أولًا حتى تعمل المبيعات والمخزون والقيود بشكل صحيح.</div>
-          <div className="muted small">الحقول المميزة بـ * مطلوبة.</div>
-        </div>
-        <div className="form-grid three-col-form">
-          <RequiredField label="اسم النشاط / المتجر" error={form.formState.errors.storeName?.message}>
-            <input {...form.register('storeName')} disabled={disabled} />
-          </RequiredField>
+      {/* ===== محتوى الصفحة ===== */}
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
 
-          {SINGLE_STORE_MODE ? (
-            <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
-              <input value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ بيانات النشاط الرئيسي'} disabled readOnly />
+        {/* الإشعارات والأخطاء */}
+        <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تغييرات غير محفوظة" hint="احفظ التعديلات أو أعد ضبطها قبل مغادرة الشاشة." />
+        {!canManageSettings ? <div className="muted small" style={{ marginBottom: 16 }}>هذا الحساب يملك صلاحية عرض الإعدادات فقط بدون تعديل.</div> : null}
+        <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الإعدادات" successText="تم حفظ الإعدادات بنجاح." />
+        {form.formState.errors.root?.serverError?.message ? (
+          <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444', marginBottom: 16 }}>
+            <div style={{ color: '#b91c1c' }}>{form.formState.errors.root.serverError.message}</div>
+          </div>
+        ) : null}
+
+        {/* معاينة الهوية التجارية */}
+        <section className="document-prototype-section" style={{ marginBottom: 24 }}>
+          <BrandPreview form={form} />
+        </section>
+
+        {/* ===== اللغة والمنطقة ===== */}
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">اللغة والمنطقة</h3>
+          </div>
+          <div className="muted small" style={{ marginBottom: 16 }}>اضبط لغة الواجهة والعملة والمنطقة الزمنية المستخدمة في شاشة النظام والتقارير.</div>
+          <div className="document-prototype-grid compact-grid-2">
+            <div className="field">
+              <label>لغة النظام</label>
+              <select className="purchase-prototype-field-input" {...form.register('uiLanguage')} disabled={disabled}>
+                <option value="ar">العربية</option>
+                <option value="en" disabled>English (قريباً)</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>العملة</label>
+              <select className="purchase-prototype-field-input" {...form.register('currency')} disabled={disabled}>
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>المنطقة الزمنية</label>
+              <select className="purchase-prototype-field-input" {...form.register('timezone')} disabled={disabled}>
+                <option value="Africa/Cairo">Africa/Cairo</option>
+                <option value="Asia/Riyadh">Asia/Riyadh</option>
+                <option value="Asia/Dubai">Asia/Dubai</option>
+                <option value="UTC">UTC</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>صيغة التاريخ</label>
+              <select className="purchase-prototype-field-input" {...form.register('dateFormat')} disabled={disabled}>
+                <option value="yyyy-MM-dd">2026-06-07</option>
+                <option value="dd/MM/yyyy">07/06/2026</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>صيغة الوقت</label>
+              <select className="purchase-prototype-field-input" {...form.register('timeFormat')} disabled={disabled}>
+                <option value="24h">24 ساعة</option>
+                <option value="12h">12 ساعة</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>رابط إرسال الواتساب</label>
+              <select className="purchase-prototype-field-input" {...form.register('whatsappLinkMode')} disabled={disabled}>
+                <option value="wa_me">افتراضي (يسأل المستخدم)</option>
+                <option value="web">واتساب ويب مباشرة</option>
+                <option value="app">تطبيق الواتساب مباشرة</option>
+              </select>
+              <div className="muted small" style={{ marginTop: 4 }}>اختر الطريقة الأسرع لك عند إرسال الرسائل.</div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== الإعدادات المطلوبة ===== */}
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">الإعدادات المطلوبة للتشغيل</h3>
+          </div>
+          <div className="muted small" style={{ marginBottom: 16 }}>
+            أكمل هذه البيانات أولًا حتى تعمل المبيعات والمخزون والقيود بشكل صحيح. الحقول المميزة بـ <span style={{ color: '#dc2626', fontWeight: 700 }}>*</span> مطلوبة.
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            <RequiredField label="اسم النشاط / المتجر" error={form.formState.errors.storeName?.message}>
+              <input className="purchase-prototype-field-input" {...form.register('storeName')} disabled={disabled} />
             </RequiredField>
-          ) : (
-            <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
+
+            {SINGLE_STORE_MODE ? (
+              <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
+                <input className="purchase-prototype-field-input" value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ بيانات النشاط الرئيسي'} disabled readOnly />
+              </RequiredField>
+            ) : (
+              <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
+                <input
+                  className="purchase-prototype-field-input"
+                  value={branchQuery}
+                  placeholder="ابحث أو اكتب اسم فرع جديد لإضافته"
+                  disabled={disabled}
+                  onFocus={() => setBranchMenuOpen(true)}
+                  onChange={(event) => {
+                    setBranchQuery(event.target.value);
+                    setBranchMenuOpen(true);
+                    form.clearErrors('currentBranchId');
+                    form.clearErrors('currentLocationId');
+                    form.clearErrors('root.serverError');
+                  }}
+                  onBlur={() => {
+                    window.setTimeout(() => setBranchMenuOpen(false), 120);
+                  }}
+                />
+                {branchMenuOpen && branchMenuHasContent ? (
+                  <div style={comboListStyle}>
+                    {filteredBranches.map((branch) => (
+                      <button
+                        key={branch.id}
+                        type="button"
+                        style={comboRowStyle}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          commitSelectedBranch(String(branch.id), String(branch.name || ''));
+                        }}
+                      >
+                        {branch.name}
+                      </button>
+                    ))}
+                    {branchCreateOptionVisible ? (
+                      <button
+                        type="button"
+                        style={comboCreateStyle}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setBranchPrefillName(branchQuery.trim());
+                          setShowBranchQuickAdd(true);
+                          setBranchMenuOpen(false);
+                        }}
+                      >
+                        + إضافة فرع جديد: &quot;{branchQuery.trim()}&quot;
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </RequiredField>
+            )}
+
+            {SINGLE_STORE_MODE ? (
+              <RequiredField label="المخزن الأساسي" error={form.formState.errors.currentLocationId?.message}>
+                <input className="purchase-prototype-field-input" value={selectedLocation?.name || 'سيتم الربط تلقائيًا بعد حفظ المخزن الأساسي'} disabled readOnly />
+              </RequiredField>
+            ) : (
+              <RequiredField label="المخزن الأساسي" error={form.formState.errors.currentLocationId?.message}>
+                <input
+                  className="purchase-prototype-field-input"
+                  value={warehouseQuery}
+                  placeholder="ابحث أو اكتب اسم مخزن جديد لإضافته"
+                  disabled={disabled}
+                  onFocus={() => setWarehouseMenuOpen(true)}
+                  onChange={(event) => {
+                    setWarehouseQuery(event.target.value);
+                    setWarehouseMenuOpen(true);
+                    form.clearErrors('currentLocationId');
+                    form.clearErrors('root.serverError');
+                  }}
+                  onBlur={() => {
+                    window.setTimeout(() => setWarehouseMenuOpen(false), 120);
+                  }}
+                />
+                {warehouseMenuOpen && warehouseMenuHasContent ? (
+                  <div style={comboListStyle}>
+                    {filteredWarehouses.map((location) => (
+                      <button
+                        key={location.id}
+                        type="button"
+                        style={comboRowStyle}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          commitSelectedWarehouse(String(location.id), String(location.name || ''));
+                        }}
+                      >
+                        {location.name}
+                      </button>
+                    ))}
+                    {warehouseCreateOptionVisible ? (
+                      <button
+                        type="button"
+                        style={comboCreateStyle}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          if (!String(currentBranchId || '').trim()) {
+                            setWarehouseAddError('اختر الفرع الرئيسي أولًا قبل إضافة مخزن.');
+                            return;
+                          }
+                          setWarehouseAddError('');
+                          setWarehousePrefillName(warehouseQuery.trim());
+                          setShowWarehouseQuickAdd(true);
+                          setWarehouseMenuOpen(false);
+                        }}
+                      >
+                        + إضافة مخزن جديد: &quot;{warehouseQuery.trim()}&quot;
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+                {warehouseAddError ? <small className="field-error">{warehouseAddError}</small> : null}
+              </RequiredField>
+            )}
+
+            <RequiredField label="نمط الكاشير الافتراضي">
+              <select className="purchase-prototype-field-input" {...form.register('defaultPosMode')} disabled={disabled}>
+                <option value="scanner">سكانر</option>
+                <option value="touch">تاتش</option>
+              </select>
+            </RequiredField>
+
+            <RequiredField label="مقاس الطباعة">
+              <select className="purchase-prototype-field-input" {...form.register('paperSize')} disabled={disabled}>
+                <option value="a4">A4</option>
+                <option value="receipt">Receipt</option>
+              </select>
+            </RequiredField>
+          </div>
+        </section>
+
+        {/* ===== بيانات النشاط ===== */}
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">بيانات النشاط</h3>
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            <div className="field">
+              <label>الاسم التجاري</label>
+              <input className="purchase-prototype-field-input" {...form.register('brandName')} disabled={disabled} />
+            </div>
+            <div className="field">
+              <label>الهاتف</label>
+              <input className="purchase-prototype-field-input" {...form.register('phone')} disabled={disabled} />
+            </div>
+            <div className="field">
+              <label>العنوان</label>
+              <input className="purchase-prototype-field-input" {...form.register('address')} disabled={disabled} />
+            </div>
+            <div className="field">
+              <label>رفع الشعار</label>
               <input
-                value={branchQuery}
-                placeholder="ابحث أو اكتب اسم فرع جديد لإضافته"
+                className="purchase-prototype-field-input"
+                style={{ paddingTop: 8 }}
+                type="file"
+                accept="image/*"
                 disabled={disabled}
-                onFocus={() => setBranchMenuOpen(true)}
-                onChange={(event) => {
-                  setBranchQuery(event.target.value);
-                  setBranchMenuOpen(true);
-                  form.clearErrors('currentBranchId');
-                  form.clearErrors('currentLocationId');
-                  form.clearErrors('root.serverError');
-                }}
-                onBlur={() => {
-                  window.setTimeout(() => setBranchMenuOpen(false), 120);
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    form.setValue('logoData', await readFileAsDataUrl(file), { shouldDirty: true, shouldValidate: true });
+                  } finally {
+                    event.currentTarget.value = '';
+                  }
                 }}
               />
-              {branchMenuOpen && branchMenuHasContent ? (
-                <div style={comboListStyle}>
-                  {filteredBranches.map((branch) => (
-                    <button
-                      key={branch.id}
-                      type="button"
-                      style={comboRowStyle}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        commitSelectedBranch(String(branch.id), String(branch.name || ''));
-                      }}
-                    >
-                      {branch.name}
-                    </button>
-                  ))}
-                  {branchCreateOptionVisible ? (
-                    <button
-                      type="button"
-                      style={comboCreateStyle}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        setBranchPrefillName(branchQuery.trim());
-                        setShowBranchQuickAdd(true);
-                        setBranchMenuOpen(false);
-                      }}
-                    >
-                      + إضافة فرع جديد: "{branchQuery.trim()}"
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </RequiredField>
-          )}
+            </div>
+            <div className="field">
+              <label>لون الواجهة</label>
+              <input className="purchase-prototype-field-input" style={{ height: 42, padding: 4 }} type="color" {...form.register('accentColor')} disabled={disabled} />
+            </div>
+          </div>
+        </section>
 
-          {SINGLE_STORE_MODE ? (
-            <RequiredField label="المخزن الأساسي" error={form.formState.errors.currentLocationId?.message}>
-              <input value={selectedLocation?.name || 'سيتم الربط تلقائيًا بعد حفظ المخزن الأساسي'} disabled readOnly />
-            </RequiredField>
-          ) : (
-            <RequiredField label="المخزن الأساسي" error={form.formState.errors.currentLocationId?.message}>
-              <input
-                value={warehouseQuery}
-                placeholder="ابحث أو اكتب اسم مخزن جديد لإضافته"
-                disabled={disabled}
-                onFocus={() => setWarehouseMenuOpen(true)}
-                onChange={(event) => {
-                  setWarehouseQuery(event.target.value);
-                  setWarehouseMenuOpen(true);
-                  form.clearErrors('currentLocationId');
-                  form.clearErrors('root.serverError');
-                }}
-                onBlur={() => {
-                  window.setTimeout(() => setWarehouseMenuOpen(false), 120);
-                }}
-              />
-              {warehouseMenuOpen && warehouseMenuHasContent ? (
-                <div style={comboListStyle}>
-                  {filteredWarehouses.map((location) => (
-                    <button
-                      key={location.id}
-                      type="button"
-                      style={comboRowStyle}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        commitSelectedWarehouse(String(location.id), String(location.name || ''));
-                      }}
-                    >
-                      {location.name}
-                    </button>
-                  ))}
-                  {warehouseCreateOptionVisible ? (
-                    <button
-                      type="button"
-                      style={comboCreateStyle}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        if (!String(currentBranchId || '').trim()) {
-                          setWarehouseAddError('اختر الفرع الرئيسي أولًا قبل إضافة مخزن.');
-                          return;
-                        }
-                        setWarehouseAddError('');
-                        setWarehousePrefillName(warehouseQuery.trim());
-                        setShowWarehouseQuickAdd(true);
-                        setWarehouseMenuOpen(false);
-                      }}
-                    >
-                      + إضافة مخزن جديد: "{warehouseQuery.trim()}"
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-              {warehouseAddError ? <small className="field-error">{warehouseAddError}</small> : null}
-            </RequiredField>
-          )}
+        {/* ===== إعدادات البيع والفاتورة ===== */}
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">إعدادات البيع والفاتورة</h3>
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            <div className="field">
+              <label>نسبة الضريبة</label>
+              <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('taxRate')} disabled={disabled} />
+            </div>
+            <div className="field">
+              <label>طريقة احتساب الضريبة</label>
+              <select className="purchase-prototype-field-input" {...form.register('taxMode')} disabled={disabled}>
+                <option value="exclusive">تضاف فوق السعر</option>
+                <option value="inclusive">ضمن السعر</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>الرقم الضريبي</label>
+              <input className="purchase-prototype-field-input" {...form.register('taxNumber')} disabled={disabled} />
+            </div>
+            <div className="field">
+              <label>تذييل الفاتورة</label>
+              <input className="purchase-prototype-field-input" {...form.register('invoiceFooter')} disabled={disabled} placeholder="مثال: شكرا لتعاملكم معنا" />
+            </div>
+            <div className="field">
+              <label>محتوى QR في الفاتورة</label>
+              <input className="purchase-prototype-field-input" {...form.register('invoiceQR')} disabled={disabled} placeholder="رابط أو نص اختياري" />
+            </div>
+            <div className="field">
+              <label>تنسيق أرقام الفاتورة</label>
+              <select className="purchase-prototype-field-input" {...form.register('printNumberFormat')} disabled={disabled}>
+                <option value="arabic">أرقام عربية: ١٢٣٤</option>
+                <option value="english">أرقام إنجليزية: 1234</option>
+              </select>
+            </div>
+          </div>
+        </section>
 
-          <RequiredField label="نمط الكاشير الافتراضي">
-            <select {...form.register('defaultPosMode')} disabled={disabled}>
-              <option value="scanner">سكانر</option>
-              <option value="touch">تاتش</option>
-            </select>
-          </RequiredField>
+        {/* ===== خيارات البيع والمخزون ===== */}
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">خيارات البيع والمخزون</h3>
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('allowNegativeStockSales')} disabled={disabled} />
+              السماح بالبيع بالسالب (تخطي تحذير المخزون)
+            </label>
+            <div className="field">
+              <label>حد التنبيه للمخزون</label>
+              <input className="purchase-prototype-field-input" type="number" min="0" {...form.register('lowStockThreshold')} disabled={disabled} />
+            </div>
+          </div>
+        </section>
 
-          <RequiredField label="مقاس الطباعة">
-            <select {...form.register('paperSize')} disabled={disabled}>
-              <option value="a4">A4</option>
-              <option value="receipt">Receipt</option>
-            </select>
-          </RequiredField>
-        </div>
+        {/* ===== موديولات النظام ===== */}
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">موديولات النظام</h3>
+          </div>
+          <div className="muted small" style={{ marginBottom: 16 }}>شغّل الأجزاء اللي محتاجها بس — والباقي هيتخفى تلقائيًا من الشاشات.</div>
+          <div className="document-prototype-grid compact-grid-2">
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('manufacturingModuleEnabled')} disabled={disabled} />
+              <span><strong>🏭 التصنيع والإنتاج</strong><br /><small className="muted">يضيف خيار "تصنيف الصنف" في الأصناف</small></span>
+            </label>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('clothingModuleEnabled')} disabled={disabled} />
+              <span><strong>👗 موديل الملابس والمتغيرات</strong><br /><small className="muted">يفعّل موديلات الملابس والأحجام والألوان</small></span>
+            </label>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('weightedBarcodeEnabled')} disabled={disabled} />
+              <span><strong>⚖️ باركود الميزان</strong><br /><small className="muted">باركود مضمّن فيه الوزن أو السعر مباشرةً</small></span>
+            </label>
+          </div>
 
-      </section>
+          {clothingModuleEnabled ? (
+            <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
+              <div className="field">
+                <label>الصنف الافتراضي عند الإضافة</label>
+                <select className="purchase-prototype-field-input" {...form.register('defaultProductKind')} disabled={disabled}>
+                  <option value="standard">صنف عادي</option>
+                  <option value="fashion">موديل ملابس</option>
+                </select>
+              </div>
+            </div>
+          ) : null}
 
-      <section className="panel page-stack">
-        <div>
-          <strong>بيانات النشاط</strong>
-        </div>
-        <div className="form-grid three-col-form">
-          <label className="field">
-            <span>الاسم التجاري</span>
-            <input {...form.register('brandName')} disabled={disabled} />
-          </label>
-          <label className="field">
-            <span>الهاتف</span>
-            <input {...form.register('phone')} disabled={disabled} />
-          </label>
-          <label className="field">
-            <span>رفع الشعار</span>
-            <input
-              type="file"
-              accept="image/*"
-              disabled={disabled}
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-                try {
-                  form.setValue('logoData', await readFileAsDataUrl(file), { shouldDirty: true, shouldValidate: true });
-                } finally {
-                  event.currentTarget.value = '';
-                }
-              }}
-            />
-          </label>
-          <label className="field">
-            <span>لون الواجهة</span>
-            <input type="color" {...form.register('accentColor')} disabled={disabled} />
-          </label>
-        </div>
-      </section>
+          {weightedBarcodeEnabled ? (
+            <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
+              <div className="field">
+                <label>بداية باركود الميزان</label>
+                <input className="purchase-prototype-field-input" inputMode="numeric" {...form.register('weightedBarcodePrefix')} disabled={disabled} placeholder="21" />
+              </div>
+              <div className="field">
+                <label>أرقام كود الصنف</label>
+                <input className="purchase-prototype-field-input" type="number" min="3" max="8" {...form.register('weightedBarcodeProductCodeLength')} disabled={disabled} />
+              </div>
+              <div className="field">
+                <label>أرقام الوزن</label>
+                <input className="purchase-prototype-field-input" type="number" min="3" max="8" {...form.register('weightedBarcodeWeightDigits')} disabled={disabled} />
+              </div>
+              <div className="field">
+                <label>دقة الوزن (خانات عشرية)</label>
+                <input className="purchase-prototype-field-input" type="number" min="0" max="3" {...form.register('weightedBarcodeWeightDecimals')} disabled={disabled} />
+              </div>
+            </div>
+          ) : null}
+        </section>
 
-      <section className="panel page-stack">
-        <div>
-          <strong>إعدادات البيع والفاتورة</strong>
-        </div>
-        <div className="form-grid three-col-form">
-          <label className="field">
-            <span>نسبة الضريبة</span>
-            <input type="number" step="0.01" {...form.register('taxRate')} disabled={disabled} />
-          </label>
-          <label className="field">
-            <span>طريقة الضريبة</span>
-            <select {...form.register('taxMode')} disabled={disabled}>
-              <option value="exclusive">تضاف فوق السعر</option>
-              <option value="inclusive">ضمن السعر</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>تنسيق أرقام الفاتورة</span>
-            <select {...form.register('printNumberFormat')} disabled={disabled}>
-              <option value="arabic">أرقام عربية: ١٢٣٤</option>
-              <option value="english">أرقام إنجليزية: 1234</option>
-            </select>
-            <div className="muted small">اختر شكل الأرقام المطبوعة في الإيصال حسب وضوح الطابعة وراحة العميل.</div>
-          </label>
-          <label className="field">
-            <span>محتوى QR في الفاتورة</span>
-            <input {...form.register('invoiceQR')} disabled={disabled} placeholder="اكتب رابطًا أو نصًا اختياريًا يظهر عند مسح رمز QR في الفاتورة." />
-            <div className="muted small">اكتب رابطًا أو نصًا اختياريًا يظهر عند مسح رمز QR في الفاتورة.</div>
-          </label>
-          <label className="field">
-            <span>الرقم الضريبي</span>
-            <input {...form.register('taxNumber')} disabled={disabled} />
-          </label>
-          <label className="field">
-            <span>تذييل الفاتورة</span>
-            <input {...form.register('invoiceFooter')} disabled={disabled} placeholder="مثال: شكرا لتعاملكم معنا" />
-          </label>
-        </div>
-      </section>
+        {/* ===== الأمان والنسخ الاحتياطي ===== */}
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">الأمان والنسخ الاحتياطي</h3>
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            <div className="field">
+              <label>رمز اعتماد المدير</label>
+              <input className="purchase-prototype-field-input" inputMode="numeric" {...form.register('managerPin')} disabled={disabled} placeholder={settings?.hasManagerPin ? 'اتركه فارغًا للإبقاء على الرمز الحالي' : 'مثال: 1234'} />
+              <div className="muted small" style={{ marginTop: 4 }}>{settings?.hasManagerPin ? 'يوجد رمز مدير محفوظ. اكتب رمزًا جديدًا فقط عند الحاجة للتغيير.' : 'يمكن ضبط رمز المدير لاعتماد التعديلات الحساسة.'}</div>
+            </div>
+            <div className="field">
+              <label>النسخ الاحتياطي التلقائي</label>
+              <select className="purchase-prototype-field-input" {...form.register('autoBackup')} disabled={disabled}>
+                <option value="on">مفعل</option>
+                <option value="off">متوقف</option>
+              </select>
+            </div>
+          </div>
+        </section>
 
-      <section className="panel page-stack">
-        <div>
-          <strong>خيارات البيع والمخزون</strong>
-        </div>
-        <div className="form-grid three-col-form">
-          <label style={checkboxStyle}>
-            <input type="checkbox" {...form.register('allowNegativeStockSales')} disabled={disabled} />
-            السماح بالبيع بالسالب
-          </label>
-          <label className="field">
-            <span>حد التنبيه للمخزون</span>
-            <input type="number" min="0" {...form.register('lowStockThreshold')} disabled={disabled} />
-          </label>
-        </div>
-      </section>
-
-      <section className="panel page-stack">
-        <div>
-          <strong>إعدادات الأصناف والباركود والميزان</strong>
-        </div>
-        <div className="form-grid three-col-form">
-          <label style={checkboxStyle}>
-            <input type="checkbox" {...form.register('clothingModuleEnabled')} disabled={disabled} />
-            تفعيل موديل الملابس داخل شاشة الأصناف
-          </label>
-          <label className="field">
-            <span>الصنف الافتراضي عند الضغط على إضافة صنف</span>
-            <select {...form.register('defaultProductKind')} disabled={disabled || !clothingModuleEnabled}>
-              <option value="standard">صنف عادي</option>
-              <option value="fashion">موديل ملابس</option>
-            </select>
-          </label>
-          <label style={checkboxStyle}>
-            <input type="checkbox" {...form.register('weightedBarcodeEnabled')} disabled={disabled} />
-            تفعيل باركود الميزان
-          </label>
-          <label className="field">
-            <span>بداية باركود الميزان</span>
-            <input inputMode="numeric" {...form.register('weightedBarcodePrefix')} disabled={disabled || !weightedBarcodeEnabled} placeholder="21" />
-          </label>
-          <label className="field">
-            <span>أرقام كود الصنف</span>
-            <input type="number" min="3" max="8" {...form.register('weightedBarcodeProductCodeLength')} disabled={disabled || !weightedBarcodeEnabled} />
-          </label>
-          <label className="field">
-            <span>أرقام الوزن</span>
-            <input type="number" min="3" max="8" {...form.register('weightedBarcodeWeightDigits')} disabled={disabled || !weightedBarcodeEnabled} />
-          </label>
-          <label className="field">
-            <span>دقة الوزن</span>
-            <input type="number" min="0" max="3" {...form.register('weightedBarcodeWeightDecimals')} disabled={disabled || !weightedBarcodeEnabled} />
-          </label>
-        </div>
-      </section>
-
-      <section className="panel page-stack">
-        <div>
-          <strong>إعدادات الأمان والنسخ الاحتياطي</strong>
-        </div>
-        <div className="form-grid three-col-form">
-          <label className="field">
-            <span>رمز اعتماد المدير</span>
-            <input inputMode="numeric" {...form.register('managerPin')} disabled={disabled} placeholder={settings?.hasManagerPin ? 'اتركه فارغًا للإبقاء على الرمز الحالي' : 'مثال: 1234'} />
-            <div className="muted small">{settings?.hasManagerPin ? 'يوجد رمز مدير محفوظ. اكتب رمزًا جديدًا فقط عند الحاجة للتغيير.' : 'يمكن ضبط رمز المدير لاعتماد التعديلات الحساسة.'}</div>
-          </label>
-          <label className="field">
-            <span>النسخ الاحتياطي التلقائي</span>
-            <select {...form.register('autoBackup')} disabled={disabled}>
-              <option value="on">مفعل</option>
-              <option value="off">متوقف</option>
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <section className="panel page-stack">
-        <div>
-          <strong>عناصر الطباعة على الفاتورة</strong>
-        </div>
-        <div className="settings-print-options-grid" style={checkboxGridStyle}>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printCompactReceipt')} disabled={disabled} />وضع إيصال مضغوط لتوفير الورق</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowLogo')} disabled={disabled} />إظهار الشعار</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowPhone')} disabled={disabled} />إظهار الهاتف</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowAddress')} disabled={disabled} />إظهار العنوان</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowTaxNumber')} disabled={disabled} />إظهار الرقم الضريبي</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowCustomer')} disabled={disabled} />إظهار العميل</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowCashier')} disabled={disabled} />إظهار الكاشير</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowBranch')} disabled={disabled} />إظهار الفرع</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowLocation')} disabled={disabled} />إظهار المخزن</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowTax')} disabled={disabled} />إظهار الضريبة</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowPaymentMethod')} disabled={disabled} />إظهار طريقة الدفع</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowItemSummary')} disabled={disabled} />إظهار عدد البنود والقطع</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowPaymentBreakdown')} disabled={disabled} />إظهار تفصيل المدفوعات</label>
-          <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" {...form.register('printShowFooter')} disabled={disabled} />إظهار التذييل</label>
-        </div>
-      </section>
-
-      {form.formState.errors.root?.serverError?.message ? (
-        <div className="field-error">{form.formState.errors.root.serverError.message}</div>
-      ) : null}
-
+        {/* ===== عناصر الطباعة ===== */}
+        <section className="document-prototype-section">
+          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+            <h3 className="document-prototype-section-title">عناصر الطباعة على الفاتورة</h3>
+          </div>
+          <div className="settings-print-options-grid" style={checkboxGridStyle}>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printCompactReceipt')} disabled={disabled} /> وضع إيصال مضغوط لتوفير الورق</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLogo')} disabled={disabled} /> إظهار الشعار</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPhone')} disabled={disabled} /> إظهار الهاتف</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowAddress')} disabled={disabled} /> إظهار العنوان</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTaxNumber')} disabled={disabled} /> إظهار الرقم الضريبي</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCustomer')} disabled={disabled} /> إظهار العميل</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCashier')} disabled={disabled} /> إظهار الكاشير</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowBranch')} disabled={disabled} /> إظهار الفرع</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLocation')} disabled={disabled} /> إظهار المخزن</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTax')} disabled={disabled} /> إظهار الضريبة</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentMethod')} disabled={disabled} /> إظهار طريقة الدفع</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemSummary')} disabled={disabled} /> إظهار عدد البنود والقطع</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentBreakdown')} disabled={disabled} /> إظهار تفصيل المدفوعات</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowFooter')} disabled={disabled} /> إظهار التذييل</label>
+          </div>
+        </section>
       <div className="actions compact-actions sticky-form-actions settings-save-actions">
         <button type="button" className="btn btn-secondary" onClick={() => form.setValue('logoData', '', { shouldDirty: true })} disabled={mutation.isPending || !form.watch('logoData')}>حذف الشعار</button>
         <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset(); }} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ التغييرات</button>
@@ -704,6 +771,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الإعدادات" successText="تم حفظ الإعدادات بنجاح." />
       <SubmitButton type="submit" disabled={mutation.isPending || !canManageSettings} idleText={setupMode ? 'حفظ والانتقال للخطوة التالية' : 'حفظ الإعدادات'} pendingText="جارٍ الحفظ..." />
 
+      </main>
+
+      {/* مودال إضافة فرع سريع */}
       <DialogShell open={!SINGLE_STORE_MODE && showBranchQuickAdd} onClose={() => setShowBranchQuickAdd(false)} width="min(560px, 100%)" ariaLabel="إضافة فرع جديد">
         <div className="page-stack">
           <div><strong>إضافة فرع جديد</strong></div>
@@ -734,6 +804,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         </div>
       </DialogShell>
 
+      {/* مودال إضافة مخزن سريع */}
       <DialogShell open={!SINGLE_STORE_MODE && showWarehouseQuickAdd} onClose={() => setShowWarehouseQuickAdd(false)} width="min(620px, 100%)" ariaLabel="إضافة مخزن جديد">
         <div className="page-stack">
           <div><strong>إضافة مخزن جديد</strong></div>
