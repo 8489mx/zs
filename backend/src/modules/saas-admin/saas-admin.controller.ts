@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
-import { CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, TenantStatusActionDto } from './dto/saas-admin.dto';
+import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto } from './dto/saas-admin.dto';
 import { SaasAdminService } from './saas-admin.service';
 
 @Controller('api/saas-admin')
@@ -25,8 +25,8 @@ export class SaasAdminController {
   }
 
   @Post('tenants/:id/activate')
-  activateTenant(@Param('id') id: string, @Req() req: RequestWithAuth) {
-    return this.service.activateTenant(id, req.authContext!);
+  activateTenant(@Param('id') id: string, @Body() body: ActivateTenantDto, @Req() req: RequestWithAuth) {
+    return this.service.activateTenant(id, body, req.authContext!);
   }
 
   @Post('tenants/:id/suspend')
@@ -50,7 +50,7 @@ export class SaasAdminController {
   }
 
   @Post('tenants/:id/reset-owner-password')
-  resetOwnerPassword(@Param('id') id: string, @Req() req: RequestWithAuth) {
-    return this.service.resetOwnerPassword(id, req.authContext!);
+  resetOwnerPassword(@Param('id') id: string, @Body() body: ResetOwnerPasswordDto, @Req() req: RequestWithAuth) {
+    return this.service.resetOwnerPassword(id, body, req.authContext!);
   }
 }

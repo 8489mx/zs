@@ -76,3 +76,18 @@ export class TenantStatusActionDto {
   @IsString()
   notes?: string;
 }
+
+export class ResetOwnerPasswordDto {
+  @IsOptional()
+  @IsString()
+  newPassword?: string;
+}
+
+export class ActivateTenantDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(120)
+  durationMonths?: number;
+}

@@ -5,7 +5,7 @@ import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AuditService } from '../../core/audit/audit.service';
-import { CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, TenantStatusActionDto } from './dto/saas-admin.dto';
+import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto } from './dto/saas-admin.dto';
 import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 
@@ -267,13 +267,24 @@ export class SaasAdminService {
     return tenant;
   }
 
-  async activateTenant(id: string, auth: AuthContext): Promise<Record<string, unknown>> {
+  async activateTenant(id: string, body: ActivateTenantDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertPlatformAccess(auth);
     const tenant = await this.getTenantForMutation(id);
     this.assertNotPlatformTenantTarget(tenant.id);
     const now = new Date();
-    await this.db.updateTable('tenants').set({ status: 'active', activated_at: now, updated_at: now } as any).where('id', '=', tenant.id).execute();
-    await this.audit.log('تفعيل نسخة', `تم تفعيل النسخة: ${tenant.slug} (${tenant.id})`, auth);
+    
+    let trialEndsAt = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : now;
+    if (trialEndsAt < now) trialEndsAt = now;
+    
+    const updateData: any = { status: 'active', activated_at: now, updated_at: now };
+    
+    if (body.durationMonths) {
+      trialEndsAt.setMonth(trialEndsAt.getMonth() + body.durationMonths);
+      updateData.trial_ends_at = trialEndsAt;
+    }
+    
+    await this.db.updateTable('tenants').set(updateData).where('id', '=', tenant.id).execute();
+    await this.audit.log('تفعيل نسخة', `تم تفعيل/ترقية النسخة: ${tenant.slug} (${tenant.id}) ${body.durationMonths ? `لمدة ${body.durationMonths} أشهر` : ''}`, auth);
     return { ok: true };
   }
 
@@ -351,20 +362,22 @@ export class SaasAdminService {
     return { ok: true };
   }
 
-  async resetOwnerPassword(id: string, auth: AuthContext): Promise<Record<string, unknown>> {
+  async resetOwnerPassword(id: string, body: ResetOwnerPasswordDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertPlatformAccess(auth);
     const tenant = await this.getTenantForMutation(id);
     this.assertNotPlatformTenantTarget(tenant.id);
     const owner = await this.getOwnerUserForTenant(tenant.id);
-    const temporaryPassword = this.generateStrongTemporaryPassword();
-    const passwordRecord = await createPasswordRecord(temporaryPassword);
+    
+    const isCustomPassword = Boolean(body.newPassword && body.newPassword.trim());
+    const finalPassword = isCustomPassword ? body.newPassword!.trim() : this.generateStrongTemporaryPassword();
+    const passwordRecord = await createPasswordRecord(finalPassword);
 
     await this.db
       .updateTable('users')
       .set({
         password_hash: passwordRecord.hash,
         password_salt: passwordRecord.salt,
-        must_change_password: true,
+        must_change_password: isCustomPassword ? false : true,
         failed_login_count: 0,
         locked_until: null,
         is_active: true,
@@ -377,8 +390,7 @@ export class SaasAdminService {
       ok: true,
       owner: {
         username: owner.username,
-        temporaryPassword,
-        mustChangePassword: true,
+        temporaryPassword: finalPassword,
       },
     };
   }

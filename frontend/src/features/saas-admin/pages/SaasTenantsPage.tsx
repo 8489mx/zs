@@ -48,6 +48,13 @@ export function SaasTenantsPage() {
   const [feedback, setFeedback] = useState('');
   const [createResult, setCreateResult] = useState<{ username: string; temporaryPassword: string; trialEndsAt: string } | null>(null);
   const [ownerResetResult, setOwnerResetResult] = useState<{ tenantName: string; username: string; temporaryPassword: string } | null>(null);
+  
+  const [resetTenant, setResetTenant] = useState<{ id: string; name: string } | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  
+  const [upgradeTenant, setUpgradeTenant] = useState<{ id: string } | null>(null);
+  const [upgradeDuration, setUpgradeDuration] = useState<number>(1);
+  
   const [createForm, setCreateForm] = useState({
     slug: '',
     businessName: '',
@@ -91,8 +98,8 @@ export function SaasTenantsPage() {
   const invalidateTenants = () => queryClient.invalidateQueries({ queryKey: ['saas-admin-tenants'] });
 
   const tenantActionMutation = useMutation({
-    mutationFn: async (input: { action: TenantActionKey; tenantId: string }) => {
-      if (input.action === 'activate') return saasAdminApi.activateTenant(input.tenantId);
+    mutationFn: async (input: { action: TenantActionKey; tenantId: string; durationMonths?: number }) => {
+      if (input.action === 'activate') return saasAdminApi.activateTenant(input.tenantId, input.durationMonths);
       if (input.action === 'suspend') return saasAdminApi.suspendTenant(input.tenantId);
       if (input.action === 'unlockOwner') return saasAdminApi.unlockOwner(input.tenantId);
       return saasAdminApi.expireTenant(input.tenantId);
@@ -114,8 +121,8 @@ export function SaasTenantsPage() {
   });
 
   const resetOwnerPasswordMutation = useMutation({
-    mutationFn: (input: { tenantId: string; tenantName: string }) =>
-      saasAdminApi.resetOwnerPassword(input.tenantId).then((res) => ({ ...res, tenantName: input.tenantName })),
+    mutationFn: (input: { tenantId: string; tenantName: string; newPassword?: string }) =>
+      saasAdminApi.resetOwnerPassword(input.tenantId, input.newPassword).then((res) => ({ ...res, tenantName: input.tenantName })),
     onSuccess: async (payload) => {
       setOwnerResetResult({
         tenantName: payload.tenantName,
@@ -243,6 +250,7 @@ export function SaasTenantsPage() {
                   <div className="stack gap-4">
                     <span>{row.ownerName}</span>
                     <span className="muted small">{row.ownerPhone}</span>
+                    <span className="muted small">{row.ownerUsername}</span>
                     <span className="muted small">{row.ownerLocked ? 'المالك: مقفول' : 'المالك: غير مقفول'}</span>
                   </div>
                 ),
@@ -276,12 +284,15 @@ export function SaasTenantsPage() {
                   }
                   return (
                     <div className="actions compact-actions">
-                      <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'activate', tenantId: row.id })}>تفعيل</button>
+                      <button type="button" className="button button-secondary" onClick={() => setUpgradeTenant({ id: row.id })}>تفعيل / ترقية</button>
                       <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'suspend', tenantId: row.id })}>إيقاف</button>
                       <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'expire', tenantId: row.id })}>إنهاء</button>
                       <button type="button" className="button button-secondary" onClick={() => extendTrialMutation.mutate({ tenantId: row.id, days: 7 })}>+7 أيام</button>
                       <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'unlockOwner', tenantId: row.id })}>فك قفل المالك</button>
-                      <button type="button" className="button button-secondary" onClick={() => resetOwnerPasswordMutation.mutate({ tenantId: row.id, tenantName: row.businessName })}>إعادة كلمة المرور</button>
+                      <button type="button" className="button button-secondary" onClick={() => {
+                        setResetTenant({ id: row.id, name: row.businessName });
+                        setResetPassword('');
+                      }}>إعادة كلمة المرور</button>
                     </div>
                   );
                 },
@@ -296,7 +307,7 @@ export function SaasTenantsPage() {
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إنشاء نسخة تجريبية">
             <Card title="إنشاء نسخة تجريبية" actions={<button type="button" className="button button-secondary" onClick={() => setIsCreateOpen(false)}>إغلاق</button>}>
               <div className="grid-2">
-                <Field label="Slug"><input value={createForm.slug} onChange={(event) => setCreateForm((s) => ({ ...s, slug: event.target.value }))} /></Field>
+                <Field label="المعرف (Slug - إنجليزي فقط)"><input value={createForm.slug} onChange={(event) => setCreateForm((s) => ({ ...s, slug: event.target.value }))} placeholder="أحرف إنجليزية وأرقام" dir="ltr" /></Field>
                 <Field label="اسم النشاط"><input value={createForm.businessName} onChange={(event) => setCreateForm((s) => ({ ...s, businessName: event.target.value }))} /></Field>
                 <Field label="اسم المالك"><input value={createForm.ownerName} onChange={(event) => setCreateForm((s) => ({ ...s, ownerName: event.target.value }))} /></Field>
                 <Field label="هاتف المالك"><input value={createForm.ownerPhone} onChange={(event) => setCreateForm((s) => ({ ...s, ownerPhone: event.target.value }))} /></Field>
@@ -327,6 +338,57 @@ export function SaasTenantsPage() {
           </div>
         </div>
       ) : null}
+      {resetTenant ? (
+        <div className="dialog-overlay" role="presentation">
+          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إعادة كلمة المرور">
+            <Card title={`إعادة كلمة المرور لنسخة: ${resetTenant.name}`} actions={<button type="button" className="button button-secondary" onClick={() => setResetTenant(null)}>إغلاق</button>}>
+              <div className="stack gap-12">
+                <p>اترك الحقل فارغاً لتوليد كلمة مرور عشوائية قوية، أو أدخل كلمة مرور مخصصة.</p>
+                <Field label="كلمة المرور الجديدة (اختياري)">
+                  <input type="text" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} dir="ltr" />
+                </Field>
+                <div className="actions">
+                  <button type="button" className="button" onClick={() => {
+                    resetOwnerPasswordMutation.mutate({ tenantId: resetTenant.id, tenantName: resetTenant.name, newPassword: resetPassword });
+                    setResetTenant(null);
+                  }} disabled={resetOwnerPasswordMutation.isPending}>
+                    تأكيد وإعادة التعيين
+                  </button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      ) : null}
+
+      {upgradeTenant ? (
+        <div className="dialog-overlay" role="presentation">
+          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="ترقية النسخة">
+            <Card title="تفعيل / ترقية النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إغلاق</button>}>
+              <div className="stack gap-12">
+                <Field label="مدة الاشتراك">
+                  <select value={upgradeDuration} onChange={(e) => setUpgradeDuration(Number(e.target.value))}>
+                    <option value={1}>شهر واحد</option>
+                    <option value={3}>3 أشهر</option>
+                    <option value={6}>6 أشهر</option>
+                    <option value={12}>سنة واحدة</option>
+                    <option value={60}>5 سنوات (مدى الحياة)</option>
+                  </select>
+                </Field>
+                <div className="actions">
+                  <button type="button" className="button" onClick={() => {
+                    tenantActionMutation.mutate({ action: 'activate', tenantId: upgradeTenant.id, durationMonths: upgradeDuration });
+                    setUpgradeTenant(null);
+                  }} disabled={tenantActionMutation.isPending}>
+                    تأكيد التفعيل
+                  </button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      ) : null}
+
     </div>
   );
 }

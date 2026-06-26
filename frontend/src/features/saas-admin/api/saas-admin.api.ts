@@ -55,7 +55,7 @@ export const saasAdminApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  activateTenant: (id: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/activate`, { method: 'POST', body: JSON.stringify({}) }),
+  activateTenant: (id: string, durationMonths?: number) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/activate`, { method: 'POST', body: JSON.stringify({ durationMonths }) }),
   suspendTenant: (id: string, notes?: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/suspend`, { method: 'POST', body: JSON.stringify({ notes: notes || '' }) }),
   expireTenant: (id: string, notes?: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/expire`, { method: 'POST', body: JSON.stringify({ notes: notes || '' }) }),
   extendTrial: (id: string, days: number) =>
@@ -64,9 +64,9 @@ export const saasAdminApi = {
       body: JSON.stringify({ days }),
     }),
   unlockOwner: (id: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/unlock-owner`, { method: 'POST', body: JSON.stringify({}) }),
-  resetOwnerPassword: (id: string) =>
+  resetOwnerPassword: (id: string, newPassword?: string) =>
     http<{ ok: boolean; owner: { username: string; temporaryPassword: string; mustChangePassword: boolean } }>(
       `/api/saas-admin/tenants/${encodeURIComponent(id)}/reset-owner-password`,
-      { method: 'POST', body: JSON.stringify({}) },
+      { method: 'POST', body: JSON.stringify({ newPassword }) },
     ),
 };
