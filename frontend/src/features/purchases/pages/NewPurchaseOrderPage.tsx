@@ -3,10 +3,8 @@ import { usePurchaseComposerCatalog } from '@/features/purchases/hooks/usePurcha
 import imageCompression from 'browser-image-compression';
 import { useCreatePurchaseMutation } from '@/features/purchases/hooks/useCreatePurchaseMutation';
 import { purchasesApi } from '@/features/purchases/api/purchases.api';
-import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
 import { useCreateSupplierMutation } from '@/features/suppliers/hooks/useCreateSupplierMutation';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
-import { productsApi } from '@/features/products/api/products.api';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/shared/ui/button';
@@ -1480,10 +1478,10 @@ export function NewPurchaseOrderPage() {
       requiredDate,
       currency,
       companyName: company,
-      contactId: selectedContactObj?.id ? Number(selectedContactObj.id) : undefined,
-      shippingAddressId: selectedAddressObj?.id ? Number(selectedAddressObj.id) : undefined,
-      costCenterId: selectedCostCenterObj?.id ? Number(selectedCostCenterObj.id) : undefined,
-      projectId: selectedProjectObj?.id ? Number(selectedProjectObj.id) : undefined,
+      contactId: selectedContactObj?.id ? String(selectedContactObj.id) : undefined,
+      shippingAddressId: selectedAddressObj?.id ? String(selectedAddressObj.id) : undefined,
+      costCenterId: selectedCostCenterObj?.id ? String(selectedCostCenterObj.id) : undefined,
+      projectId: selectedProjectObj?.id ? String(selectedProjectObj.id) : undefined,
       termsTemplate,
     };
 

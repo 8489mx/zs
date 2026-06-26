@@ -237,7 +237,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       timezone: String(settings.timezone || 'Africa/Cairo').trim() || 'Africa/Cairo',
       dateFormat: settings.dateFormat === 'dd/MM/yyyy' ? 'dd/MM/yyyy' : 'yyyy-MM-dd',
       timeFormat: settings.timeFormat === '12h' ? '12h' : '24h',
-      whatsappLinkMode: ['web', 'app', 'wa_me'].includes(settings.whatsappLinkMode || '') ? settings.whatsappLinkMode : 'wa_me',
+      whatsappLinkMode: (['web', 'app', 'wa_me'].includes(settings.whatsappLinkMode || '') ? settings.whatsappLinkMode : 'wa_me') as 'web' | 'app' | 'wa_me',
     });
   }, [settings, form]);
 

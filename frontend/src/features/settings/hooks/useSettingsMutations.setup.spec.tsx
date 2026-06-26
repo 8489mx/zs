@@ -75,6 +75,7 @@ const baseSettingsMutationValues = {
   timezone: 'Africa/Cairo',
   dateFormat: 'yyyy-MM-dd' as const,
   timeFormat: '24h' as const,
+  whatsappLinkMode: 'wa_me' as const,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {
