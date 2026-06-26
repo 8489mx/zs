@@ -39,6 +39,16 @@ export class CatalogController {
     return this.catalogService.deleteCategory(id, req.authContext!);
   }
 
+  @Post('categories/:id/transfer')
+  @RequirePermissions('products')
+  transferCategoryProducts(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: { targetCategoryId: number },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.catalogService.transferCategoryProducts(id, payload.targetCategoryId, req.authContext!);
+  }
+
   @Get('products')
   listProducts(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.listProducts(query, req.authContext!);

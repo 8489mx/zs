@@ -42,6 +42,8 @@ export const productsApi = {
   remove: (id: string) => http<{ ok: boolean }>(`/api/products/${id}`, { method: 'DELETE' }),
   createCategory: (payload: { name: string }) => http<unknown>('/api/categories', { method: 'POST', body: JSON.stringify(payload) }),
   updateCategory: (id: string, payload: { name: string }) => http<unknown>(`/api/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteCategory: (id: string) => http<{ ok: boolean }>(`/api/categories/${id}`, { method: 'DELETE' }),
+  transferCategory: (id: string, payload: { targetCategoryId: number }) => http<{ ok: boolean }>(`/api/categories/${id}/transfer`, { method: 'POST', body: JSON.stringify(payload) }),
   createSupplier: (payload: { name: string; phone?: string; address?: string; balance?: number; notes?: string }) =>
     http<unknown>('/api/suppliers', { method: 'POST', body: JSON.stringify(payload) })
 };

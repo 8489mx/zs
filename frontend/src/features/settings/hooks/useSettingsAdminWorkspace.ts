@@ -5,6 +5,29 @@ import { queryKeys } from '@/app/query-keys';
 import { useSettingsRouteState } from '@/features/settings/hooks/useSettingsRouteState';
 import { type BackupSnapshotRecord, settingsApi } from '@/features/settings/api/settings.api';
 import { downloadJsonFile, triggerDownload } from '@/lib/browser';
+import { useAuthStore } from '@/stores/auth-store';
+
+const arabicMap: Record<string, string> = {
+  'ا': 'a', 'أ': 'a', 'إ': 'e', 'آ': 'a',
+  'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'g', 'ح': 'h', 'خ': 'kh',
+  'د': 'd', 'ذ': 'z', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh',
+  'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a', 'غ': 'gh',
+  'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+  'ه': 'h', 'ة': 'a', 'و': 'w', 'ي': 'y', 'ى': 'a', 'ئ': 'e', 'ؤ': 'o', 'ء': 'a'
+};
+
+function slugifyArabic(str: string) {
+  let result = '';
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    result += arabicMap[char] || char;
+  }
+  return result
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'store';
+}
 
 type AdminWorkspaceSection = 'overview' | 'core' | 'reference' | 'backup' | 'users' | 'diagnostics' | 'readiness';
 type BackupMessageKind = 'success' | 'error';
@@ -38,6 +61,9 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
   const needsDiagnostics = currentSection === 'diagnostics';
   const needsReadiness = currentSection === 'readiness';
   const needsBackup = currentSection === 'backup';
+  
+  const authUser = useAuthStore(state => state.user);
+  const storeName = useAuthStore(state => state.storeName);
 
   const diagnosticsQuery = useQuery({ queryKey: queryKeys.adminDiagnostics, queryFn: settingsApi.diagnostics, enabled: needsDiagnostics });
   const maintenanceQuery = useQuery({ queryKey: queryKeys.adminMaintenance, queryFn: settingsApi.maintenanceReport, enabled: needsDiagnostics });
@@ -102,7 +128,22 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     setBackupMessageKind('success');
     try {
       const blob = await fetchBackupBlob();
-      triggerDownload(blob, `z-systems-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      
+      const now = new Date();
+      // Format as YYYY-MM-DD-HH-mm
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      
+      const datePart = `${yyyy}-${mm}-${dd}-${hh}-${min}`;
+      const storeSlug = slugifyArabic(storeName || 'store');
+      const userSlug = slugifyArabic(authUser?.username || 'user');
+      
+      const fileName = `ZERP-${storeSlug}-${userSlug}-${datePart}.json`;
+      
+      triggerDownload(blob, fileName);
       setBackupMessage('تم تنزيل النسخة الاحتياطية بنجاح.');
       setBackupMessageKind('success');
     } catch (error) {
