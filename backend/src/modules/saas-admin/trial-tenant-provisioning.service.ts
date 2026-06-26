@@ -68,7 +68,7 @@ export class TrialTenantProvisioningService {
       .trim();
   }
 
-  normalizeSlugBase(value: unknown): string {
+  normalizeSlugBase(value: unknown, isFallback = false): string {
     const normalized = String(value || '')
       .trim()
       .toLowerCase()
@@ -77,10 +77,16 @@ export class TrialTenantProvisioningService {
       .replace(/-{2,}/g, '-');
 
     if (!normalized || normalized.length < 3) {
-      throw new BadRequestException('اسم النسخة يجب أن يحتوي على 3 أحرف على الأقل.');
+      if (isFallback) {
+        return `store-${Math.floor(10000 + Math.random() * 90000)}`;
+      }
+      throw new BadRequestException('المعرف (Slug) غير صالح. يجب كتابته بحروف إنجليزية أو أرقام فقط.');
     }
     if (normalized.length > 60) {
-      throw new BadRequestException('اسم النسخة يجب ألا يتجاوز 60 حرفًا.');
+      if (isFallback) {
+        return normalized.slice(0, 60).replace(/-+$/g, '');
+      }
+      throw new BadRequestException('المعرف (Slug) يجب ألا يتجاوز 60 حرفًا.');
     }
 
     return normalized;
@@ -185,7 +191,7 @@ export class TrialTenantProvisioningService {
     const expiresAt = this.addDays(now, days);
 
     const result = await this.db.transaction().execute(async (trx) => {
-      const slugBase = this.normalizeSlugBase(providedSlug || businessName);
+      const slugBase = providedSlug ? this.normalizeSlugBase(providedSlug, false) : this.normalizeSlugBase(businessName, true);
       let slug = await this.makeUniqueSlug(slugBase, trx);
       if (providedSlug && options?.strictProvidedSlug) {
         const exists = await trx.selectFrom('tenants').select('id').where('slug', '=', slugBase).executeTakeFirst();
