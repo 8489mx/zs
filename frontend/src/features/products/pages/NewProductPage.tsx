@@ -574,8 +574,10 @@ export function NewProductPage() {
 
       <main className="document-prototype-column">
         {mutation.isError && (
-          <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444' }}>
-            <div style={{ color: '#b91c1c' }}>تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى.</div>
+          <div className="document-prototype-alert error">
+            <div style={{ color: '#b91c1c' }}>
+              تعذر حفظ الصنف. {(mutation.error as any)?.response?.data?.message || 'برجاء التحقق من البيانات والمحاولة مرة أخرى.'}
+            </div>
           </div>
         )}
 
