@@ -151,7 +151,7 @@ export function buildManagerActionInsights({
         title: 'صنف يُباع بخسارة',
         message: `${name}: سعر البيع أقل من التكلفة.`,
         actionLabel: 'راجع التسعير',
-        actionHref: '/products',
+        actionHref: `/products/${id}/edit`,
         metrics: { productId: id, retailPrice, costPrice, lossPerUnit: round(costPrice - retailPrice) },
         rank: 92 + (costPrice - retailPrice),
       }));
@@ -165,7 +165,7 @@ export function buildManagerActionInsights({
           title: 'هامش ربح ضعيف',
           message: `${name}: هامش الربح أقل من 15%.`,
           actionLabel: 'راجع التسعير',
-          actionHref: '/products',
+          actionHref: `/products/${id}/edit`,
           metrics: { productId: id, marginRate: round(marginRate * 100), retailPrice, costPrice },
           rank: 65 + ((0.15 - marginRate) * 100),
         }));
@@ -180,7 +180,7 @@ export function buildManagerActionInsights({
         title: 'نفد المخزون',
         message: `${name}: الكمية الحالية صفر أو أقل.`,
         actionLabel: 'راجع المخزون',
-        actionHref: '/inventory',
+        actionHref: `/products/${id}/edit`,
         metrics: { productId: id, stockQty, minStockQty },
         rank: 88 + Math.abs(stockQty),
       }));
@@ -192,7 +192,7 @@ export function buildManagerActionInsights({
         title: 'مخزون منخفض',
         message: `${name}: الكمية ${stockQty} والحد الأدنى ${minStockQty}.`,
         actionLabel: 'راجع المخزون',
-        actionHref: '/inventory',
+        actionHref: `/products/${id}/edit`,
         metrics: { productId: id, stockQty, minStockQty },
         rank: 62 + Math.max(0, minStockQty - stockQty),
       }));
