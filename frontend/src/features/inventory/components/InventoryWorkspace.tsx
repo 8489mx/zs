@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { InventoryWorkspaceHeader } from '@/features/inventory/components/InventoryWorkspaceHeader';
 import { InventorySectionTabs } from '@/features/inventory/pages/InventorySectionTabs';
 import { InventoryMovementCard, InventoryOverviewStats, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, StockTransferComposerCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
@@ -11,6 +12,24 @@ import type { Product } from '@/types/domain';
 export function InventoryWorkspace({ currentSection }: { currentSection: InventorySectionKey }) {
   const inventory = useInventoryWorkspaceController(currentSection);
   const [selectedInventoryProduct, setSelectedInventoryProduct] = useState<{ product: Product; token: number } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const productId = searchParams.get('productId');
+  const actionPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (productId && inventory.products.length > 0) {
+      const product = inventory.products.find(p => String(p.id) === productId);
+      if (product) {
+        setSelectedInventoryProduct({ product, token: Date.now() });
+        setTimeout(() => {
+          actionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+        // Remove productId from URL after selecting it so it doesn't trigger on every re-render
+        searchParams.delete('productId');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [productId, inventory.products, searchParams, setSearchParams]);
 
   return (
     <div className="page-stack page-shell inventory-workspace" dir="rtl">
@@ -63,7 +82,8 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             onProductSelect={(product) => setSelectedInventoryProduct({ product, token: Date.now() })}
           />
 
-          <InventoryActionsPanel
+          <div ref={actionPanelRef}>
+            <InventoryActionsPanel
             products={inventory.products}
             branches={inventory.branches}
             locations={inventory.locations}
@@ -73,7 +93,8 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             canManageInventory={inventory.canAdjustInventory}
             selectedProduct={selectedInventoryProduct?.product || null}
             selectedProductToken={selectedInventoryProduct?.token || 0}
-          />
+            />
+          </div>
         </div>
       ) : null}
 
