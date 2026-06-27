@@ -7,7 +7,7 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
-import { formatScopeLabel, type TreasuryTransactionFilter, type TreasuryTransactionRow } from '@/features/treasury/lib/treasury-page.helpers';
+import { formatScopeLabel, formatTreasuryType, type TreasuryTransactionFilter, type TreasuryTransactionRow } from '@/features/treasury/lib/treasury-page.helpers';
 
 const treasuryFilterOptions = [
   { value: 'all', label: 'الكل' },
@@ -39,12 +39,12 @@ export function TreasuryTransactionsCard({ search, onSearchChange, txnFilter, on
       <FilterChipGroup value={txnFilter} options={treasuryFilterOptions} onChange={onTxnFilterChange} />
       <QueryFeedback isLoading={transactionsQuery.isLoading} isError={transactionsQuery.isError} error={transactionsQuery.error} isEmpty={!transactionPagination?.totalItems} loadingText="جاري تحميل الخزينة..." errorTitle="تعذر تحميل حركات الخزينة" emptyTitle="لا توجد حركات خزينة حاليًا" emptyHint="ستظهر هنا الحركات المالية بعد التسجيل أو تغيير الفلاتر.">
         <DataTable rows={transactionRows} columns={[
-          { key: 'type', header: 'النوع', cell: (row: TreasuryTransactionRow) => row.txnType || row.type || '—' },
+          { key: 'type', header: 'النوع', cell: (row: TreasuryTransactionRow) => formatTreasuryType(row.txnType || row.type) },
           { key: 'amount', header: 'المبلغ', cell: (row: TreasuryTransactionRow) => formatCurrency(Number(row.amount || 0)) },
           { key: 'note', header: 'البيان', cell: (row: TreasuryTransactionRow) => row.note || '—' },
-          { key: 'ref', header: 'المرجع', cell: (row: TreasuryTransactionRow) => row.referenceType || '—' },
+          { key: 'ref', header: 'المرجع', cell: (row: TreasuryTransactionRow) => formatTreasuryType(row.referenceType) },
           { key: 'scope', header: SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/المخزن', cell: (row: TreasuryTransactionRow) => formatScopeLabel(row) },
-          { key: 'user', header: 'المنفذ', cell: (row: TreasuryTransactionRow) => row.createdByName || '—' },
+          { key: 'user', header: 'المنفذ', cell: (row: TreasuryTransactionRow) => row.createdByName || row.createdBy || '—' },
           { key: 'date', header: 'التاريخ', cell: (row: TreasuryTransactionRow) => formatDate(row.createdAt || row.date) }
         ]} />
         <PaginationControls page={transactionPagination?.page || 1} totalPages={transactionPagination?.totalPages || 1} pageSize={transactionPagination?.pageSize || txnPageSize} pageSizeOptions={[15,25,50,100]} totalItems={transactionPagination?.totalItems || 0} rangeStart={transactionPagination?.rangeStart || 0} rangeEnd={transactionPagination?.rangeEnd || 0} onPageChange={setTxnPage} onPageSizeChange={(value) => { setTxnPageSize(value); setTxnPage(1); }} itemLabel="حركة" />

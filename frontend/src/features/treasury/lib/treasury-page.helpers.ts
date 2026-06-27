@@ -13,6 +13,7 @@ export interface TreasuryTransactionRow {
   branchName?: string;
   locationName?: string;
   createdByName?: string;
+  createdBy?: string;
   createdAt?: string;
   date?: string;
 }
@@ -37,12 +38,33 @@ export function formatScopeLabel(row: { branchName?: string; locationName?: stri
   return SINGLE_STORE_MODE ? (row.locationName || 'المخزن الأساسي') : `${row.branchName || '—'} / ${row.locationName || '—'}`;
 }
 
+export function formatTreasuryType(type?: string) {
+  if (!type) return '—';
+  const map: Record<string, string> = {
+    'cashier_shift': 'وردية كاشير',
+    'supplier_payment_schedule': 'دفع مورد (مجدول)',
+    'supplier_payment': 'دفع مورد',
+    'customer_payment': 'تحصيل عميل',
+    'expense': 'مصروف',
+    'sale': 'مبيعات',
+    'sale_return': 'مرتجع مبيعات',
+    'return': 'مرتجع',
+    'return_document': 'مستند مرتجع',
+    'purchase': 'مشتريات',
+    'purchase_return': 'مرتجع مشتريات',
+    'service': 'خدمات',
+    'hr_advance': 'سلفة موظف',
+    'hr_payroll': 'مرتبات موظفين',
+  };
+  return map[type] || type;
+}
+
 export function exportTransactionCsv(rows: TreasuryTransactionRow[]) {
   downloadCsvFile(
     'treasury-transactions-results.csv',
     ['txnType', 'amount', 'referenceType', 'note', ...(SINGLE_STORE_MODE ? ['storeLocation'] : ['branch', 'location']), 'createdBy', 'createdAt'],
     rows.map((row) => [
-      row.txnType || row.type || '',
+      formatTreasuryType(row.txnType || row.type) || '',
       row.amount,
       row.referenceType || '',
       row.note || '',
