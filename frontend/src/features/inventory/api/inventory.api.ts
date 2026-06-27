@@ -62,7 +62,7 @@ interface DamagedStockPageResponse {
 
 
 export const inventoryApi = {
-  products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products'), 'products'),
+  products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products?pageSize=5000'), 'products'),
   report: async () => unwrapByKey<InventoryReport>(await http<InventoryReport | { inventory: InventoryReport }>('/api/reports/inventory'), 'inventory', {} as InventoryReport),
   createAdjustment: (payload: unknown) => http('/api/inventory-adjustments', { method: 'POST', body: JSON.stringify(payload) }),
   createDamaged: (payload: unknown) => http('/api/damaged-stock', { method: 'POST', body: JSON.stringify(payload) }),
