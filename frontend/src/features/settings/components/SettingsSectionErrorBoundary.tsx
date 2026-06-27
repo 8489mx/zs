@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 
 type Props = {
@@ -27,12 +27,12 @@ export class SettingsSectionErrorBoundary extends React.Component<Props, State> 
   render() {
     if (this.state.hasError) {
       return (
-        <Card title="تعذر فتح هذا القسم" actions={<span className="nav-pill">خطأ في العرض</span>} className="workspace-panel">
+        <FormSection title="تعذر فتح هذا القسم" actions={<span className="nav-pill">خطأ في العرض</span>} className="workspace-panel">
           <div className="warning-box">حصل خطأ داخل هذا القسم فقط. يمكنك الانتقال لقسم آخر بدون عمل ريفريش كامل.</div>
           <div className="actions compact-actions" style={{ marginTop: 12 }}>
             <Button type="button" variant="secondary" onClick={() => this.setState({ hasError: false })}>إعادة المحاولة</Button>
           </div>
-        </Card>
+        </FormSection>
       );
     }
 

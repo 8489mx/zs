@@ -1,4 +1,4 @@
-﻿import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -90,7 +90,7 @@ export function SalesRegisterCard(props: Props) {
   } = props;
 
   return (
-    <Card
+    <FormSection
       title={t('sales.2a9511')}
       description={t('sales.05777d')}
       actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>{t('sales.91cafe')}</Button><Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint}>{t('sales.c1f6d4')}</Button><span className="nav-pill">{t('sales.ec4337')}</span></div>}
@@ -168,6 +168,6 @@ export function SalesRegisterCard(props: Props) {
           itemLabel={t('sales.f95919')}
         />
       </QueryFeedback>
-    </Card>
+    </FormSection>
   );
 }

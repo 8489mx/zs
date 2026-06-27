@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { type SetupSectionKey, useFirstRunSetupFlow } from '@/features/settings/hooks/useFirstRunSetupFlow';
 
@@ -39,7 +39,7 @@ export function SettingsSetupFlowCard({ currentSection }: SettingsSetupFlowCardP
   }
 
   return (
-    <Card
+    <FormSection
       title={`تجهيز البداية · الخطوة ${flow.completedCount + 1} من ${flow.totalCount}`}
       actions={<span className="status-badge">{flow.completedCount}/{flow.totalCount}</span>}
       className="settings-setup-flow-card"
@@ -81,6 +81,6 @@ export function SettingsSetupFlowCard({ currentSection }: SettingsSetupFlowCardP
           )}
         </div>
       </div>
-    </Card>
+    </FormSection>
   );
 }

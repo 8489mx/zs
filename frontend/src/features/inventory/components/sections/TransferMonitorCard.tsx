@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { DataTable } from '@/shared/ui/data-table';
@@ -72,7 +72,7 @@ export function TransferMonitorCard({
   }, [selectedTransfer]);
 
   return (
-    <Card title="تحويلات مخزون قائمة" description="عرض table-first مع لوحة تفاصيل جانبية حتى تستطيع مراجعة البنود والجهات والحالة بسرعة قبل الاستلام أو الإلغاء." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onExportTransfers} disabled={!visibleTransfers.length}>تصدير CSV</Button><span className="nav-pill">{pendingTransfersCount} قيد الاستلام من {transferTotalItems}</span></div>}>
+    <FormSection title="تحويلات مخزون قائمة" description="عرض table-first مع لوحة تفاصيل جانبية حتى تستطيع مراجعة البنود والجهات والحالة بسرعة قبل الاستلام أو الإلغاء." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onExportTransfers} disabled={!visibleTransfers.length}>تصدير CSV</Button><span className="nav-pill">{pendingTransfersCount} قيد الاستلام من {transferTotalItems}</span></div>}>
       <QueryFeedback
         isLoading={isLoading}
         isError={isError}
@@ -210,6 +210,6 @@ export function TransferMonitorCard({
           </div>
         </div>
       </QueryFeedback>
-    </Card>
+    </FormSection>
   );
 }

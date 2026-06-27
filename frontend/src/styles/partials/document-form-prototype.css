@@ -870,7 +870,7 @@
 .purchase-prototype-document-surface {
   margin: 0 auto 0;
   max-width: 920px;
-  width: min(100%, 920px);
+  width: 100%;
 }
 
 .document-prototype-topbar {
@@ -1025,7 +1025,7 @@
   gap: 0.9rem;
   margin: 0.7rem auto 0;
   max-width: 920px;
-  width: min(100%, 920px);
+  width: 100%;
 }
 
 .purchase-prototype-sticky-stack.is-scrolled .purchase-prototype-workspace-toolbar {

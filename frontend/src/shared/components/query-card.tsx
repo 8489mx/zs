@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 
 interface QueryCardProps {
@@ -38,7 +38,7 @@ export function QueryCard({
   className
 }: QueryCardProps) {
   return (
-    <Card title={title} description={description} actions={actions} className={className}>
+    <FormSection title={title} description={description} actions={actions} className={className}>
       <QueryFeedback
         isLoading={isLoading}
         isError={isError}
@@ -53,6 +53,6 @@ export function QueryCard({
       >
         {children}
       </QueryFeedback>
-    </Card>
+    </FormSection>
   );
 }

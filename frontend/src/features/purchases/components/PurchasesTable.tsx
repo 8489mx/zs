@@ -19,7 +19,7 @@ export function PurchasesTable({ rows, selectedId, onSelect, onEdit, onCancel, o
       key: 'actions',
       header: 'إجراءات',
       cell: (purchase: Purchase) => (
-        <div className="actions compact-actions purchases-table-actions">
+        <div className="actions compact-actions purchases-table-actions" style={{ flexWrap: 'nowrap' }}>
           {onSelect ? <Button variant={selectedId === purchase.id ? 'primary' : 'secondary'} onClick={() => onSelect(purchase)}>تفاصيل</Button> : null}
           {onEdit && purchase.status !== 'cancelled' ? <Button variant="secondary" onClick={() => onEdit(purchase)}>تعديل</Button> : null}
           {onCancel && purchase.status !== 'cancelled' ? <Button variant="danger" onClick={() => onCancel(purchase)}>إلغاء</Button> : null}

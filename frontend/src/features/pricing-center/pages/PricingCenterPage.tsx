@@ -1,7 +1,7 @@
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -35,7 +35,8 @@ export function PricingCenterPage() {
   const previewRows = preview?.rows || [];
 
   return (
-    <div className="page-stack page-shell pricing-center-page">
+    <div className="page-stack page-shell pricing-center-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="مركز التسعير"
         description="نفّذ موجات تسعير جماعية بالمورد أو القسم أو النوع، مع معاينة كاملة قبل الاعتماد، وسجل للتراجع عن آخر موجة."
@@ -51,10 +52,10 @@ export function PricingCenterPage() {
 
       <StatsGrid items={stats} />
 
-      {statusMessage ? <Card className="pricing-center-status"><p>{statusMessage}</p></Card> : null}
+      {statusMessage ? <FormSection title="" className="pricing-center-status"><p>{statusMessage}</p></FormSection> : null}
 
-      <div className="two-column-grid panel-grid pricing-center-scope-grid">
-        <Card title="النطاق والعملية" description="اختر المورد والقسم ونوع العملية وقواعد الاستثناء قبل المعاينة.">
+      <div className="page-stack panel-grid pricing-center-scope-grid">
+        <FormSection title="النطاق والعملية" description="اختر المورد والقسم ونوع العملية وقواعد الاستثناء قبل المعاينة.">
           <div className="pricing-scope-stack">
             <div className="form-grid compact-form-grid pricing-scope-primary-grid">
               <Field label="المورد">
@@ -198,9 +199,9 @@ export function PricingCenterPage() {
               </div>
             </div>
           </div>
-        </Card>
+        </FormSection>
 
-        <Card title="ملخص المعاينة" description="راجع أثر الموجة على قيمة المخزون وهامش الربح قبل الاعتماد.">
+        <FormSection title="ملخص المعاينة" description="راجع أثر الموجة على قيمة المخزون وهامش الربح قبل الاعتماد.">
           <div className="stack gap-sm">
             <div className="stat-card"><span>قيمة المخزون قبل</span><strong>{formatCurrency(preview?.summary?.inventoryValueBefore || 0)}</strong></div>
             <div className="stat-card"><span>قيمة المخزون بعد</span><strong>{formatCurrency(preview?.summary?.inventoryValueAfter || 0)}</strong></div>
@@ -209,10 +210,10 @@ export function PricingCenterPage() {
             <div className="stat-card"><span>تحذير أقل من الشراء</span><strong>{preview?.summary?.belowCostCount || 0}</strong></div>
             <div className="muted small">المعاينة متاحة لمن يملك صلاحية عرض مركز التسعير، أمّا الاعتماد والتراجع فيحتاجان صلاحية إدارة مركز التسعير.</div>
           </div>
-        </Card>
+        </FormSection>
       </div>
 
-      <Card title="نتائج المعاينة" description="الجدول يعرض قبل/بعد والاستثناءات التي سيتم تخطيها عند التنفيذ.">
+      <FormSection title="نتائج المعاينة" description="الجدول يعرض قبل/بعد والاستثناءات التي سيتم تخطيها عند التنفيذ.">
         <DataTable
           density="compact"
           rows={previewRows}
@@ -228,9 +229,9 @@ export function PricingCenterPage() {
           ]}
           empty={<div className="empty-state"><p>لا توجد معاينة بعد. اختر النطاق واضغط “معاينة”.</p></div>}
         />
-      </Card>
+      </FormSection>
 
-      <Card title="سجل موجات التسعير" description="يمكن التراجع فقط عن آخر موجة مطبقة حتى لا يتداخل التاريخ السعري.">
+      <FormSection title="سجل موجات التسعير" description="يمكن التراجع فقط عن آخر موجة مطبقة حتى لا يتداخل التاريخ السعري.">
         <DataTable
           density="compact"
           rows={runs}
@@ -246,7 +247,8 @@ export function PricingCenterPage() {
           ]}
           empty={<div className="empty-state"><p>لا توجد موجات تسعير مسجلة بعد.</p></div>}
         />
-      </Card>
+      </FormSection>
+      </main>
     </div>
   );
 }

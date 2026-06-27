@@ -1,7 +1,7 @@
 // regression marker: startNewUser('admin')
 import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import type { Branch } from '@/types/domain';
@@ -81,7 +81,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
 
   return (
     <>
-      <Card
+      <FormSection
         className="settings-users-card"
         title="المستخدمون والصلاحيات"
         actions={(
@@ -153,7 +153,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
             /></div>
           </div>
         </QueryFeedback>
-      </Card>
+      </FormSection>
 
       <UserDeleteDialog
         open={deleteDialogOpen}

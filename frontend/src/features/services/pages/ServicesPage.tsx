@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
@@ -198,17 +198,18 @@ export function ServicesPage() {
   );
 
   return (
-    <div className="page-stack page-shell services-page">
+    <div className="page-stack page-shell services-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="الخدمات"
         description="أضف خدمات نشاطك وحدد أسعارها لتظهر في الكاشير عند الحاجة."
         badge={<span className="nav-pill">الخدمات</span>}
         actions={<div className="actions compact-actions"><Button type="button" variant="secondary" onClick={openPresetDialog}>تخصيص الخدمات</Button><Button type="button" onClick={openServiceFormForCreate}>إضافة خدمة جديدة</Button></div>}
       />
-      <StatsGrid items={stats} />
+      <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-3" />
       {pageNotice ? <div className={`notice-banner ${pageNoticeTone === 'error' ? 'is-error' : 'is-success'}`}>{pageNotice}</div> : null}
 
-      <Card title="سجل الخدمات">
+      <FormSection title="سجل الخدمات">
         <SearchToolbar search={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} searchPlaceholder="ابحث باسم الخدمة أو الملاحظات أو المنفذ" />
         <FilterChipGroup value={viewFilter} options={serviceFilterOptions} onChange={(value) => { setViewFilter(value); setPage(1); }} className="filter-chip-row services-filter-row" />
         <div className="actions compact-actions"><Button type="button" variant="secondary" onClick={() => { setSearch(''); setViewFilter('all'); setSelectedService(null); setPage(1); }}>إعادة الضبط</Button></div>
@@ -235,28 +236,26 @@ export function ServicesPage() {
               { key: 'notes', header: 'ملاحظات', cell: (row) => row.notes || '—' },
               { key: 'user', header: 'المنفذ', cell: (row) => row.createdByName || '—' },
               { key: 'date', header: 'التاريخ', cell: (row) => formatDate(row.serviceDate) },
-              { key: 'actions', header: 'إجراءات', cell: (row) => <div className="actions compact-actions"><Button type="button" variant="secondary" onClick={() => printServiceReceipt(row)}>طباعة</Button><Button type="button" variant="secondary" onClick={() => setSelectedService(row)}>تعديل</Button><Button type="button" variant="danger" onClick={() => setServiceToDelete(row)}>حذف</Button></div> },
+              { key: 'actions', header: 'إجراءات', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button type="button" variant="secondary" onClick={() => printServiceReceipt(row)}>طباعة</Button><Button type="button" variant="secondary" onClick={() => setSelectedService(row)}>تعديل</Button><Button type="button" variant="danger" onClick={() => setServiceToDelete(row)}>حذف</Button></div> },
             ]}
             pagination={{ page, pageSize, totalItems: insights.totalItems || rows.length, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'خدمة' }}
           />
         </QueryFeedback>
-      </Card>
+      </FormSection>
 
-      <div className="two-column-grid services-workspace-grid">
         <div ref={serviceFormSectionRef}>
-          <Card title={selectedService ? `تعديل: ${selectedService.name}` : 'إضافة خدمة جديدة'} actions={<span className="nav-pill">النموذج</span>} description="أضف خدمة يقدمها نشاطك وحدد سعرها لتظهر في الكاشير عند الحاجة.">
+          <FormSection title={selectedService ? `تعديل: ${selectedService.name}` : 'إضافة خدمة جديدة'} actions={<span className="nav-pill">النموذج</span>} description="أضف خدمة يقدمها نشاطك وحدد سعرها لتظهر في الكاشير عند الحاجة.">
             <ServiceFormCard service={selectedService || undefined} onSaved={() => setSelectedService(null)} suggestions={serviceSuggestionOptions} />
-          </Card>
+          </FormSection>
         </div>
-        <Card title="مؤشرات سريعة" actions={<div className="actions compact-actions"><Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير CSV</Button><Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة السجل</Button></div>} description="النطاق الحالي يعتمد على نتائج البحث والفلاتر النشطة.">
+        <FormSection title="مؤشرات سريعة" actions={<div className="actions compact-actions"><Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير CSV</Button><Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة السجل</Button></div>} description="النطاق الحالي يعتمد على نتائج البحث والفلاتر النشطة.">
           <div className="metric-list services-insights-list">
             <div className="metric-row"><span>خدمات مطابقة للبحث</span><strong>{insights.totalItems}</strong></div>
             <div className="metric-row"><span>آخر خدمة</span><strong>{insights.latestServiceName}</strong></div>
             <div className="metric-row"><span>آخر منفذ</span><strong>{insights.latestCreatedByName}</strong></div>
             <div className="metric-row"><span>أعلى خدمة قيمة</span><strong>{insights.totalItems ? formatCurrency(insights.highestAmount) : '—'}</strong></div>
           </div>
-        </Card>
-      </div>
+        </FormSection>
 
       <ServicePresetDialog
         open={isPresetDialogOpen}
@@ -292,6 +291,7 @@ export function ServicesPage() {
         onCancel={() => setServiceToDelete(null)}
         onConfirm={async () => { if (serviceToDelete) await deleteMutation.mutateAsync(serviceToDelete.id); }}
       />
+      </main>
     </div>
   );
 }

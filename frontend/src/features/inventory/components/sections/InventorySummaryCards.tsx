@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -32,9 +32,9 @@ export function InventoryOverviewStats({
 
 export function InventoryMovementCard() {
   return (
-    <Card title="سجل حركات المخزون" description="كل زيادة أو خصم أو تالف أو نتيجة جرد في مسار واحد قابل للتصفية والمراجعة." actions={<span className="nav-pill">سجل الحركات</span>}>
+    <FormSection title="سجل حركات المخزون" description="كل زيادة أو خصم أو تالف أو نتيجة جرد في مسار واحد قابل للتصفية والمراجعة." actions={<span className="nav-pill">سجل الحركات</span>}>
       <StockMovementRegister />
-    </Card>
+    </FormSection>
   );
 }
 
@@ -66,7 +66,7 @@ export function InventoryStatusCard({
   onProductSelect?: (product: Product) => void;
 }) {
   return (
-    <Card title="متابعة حالة الأصناف" description="ابدأ هنا: فلتر سريع ثم راجع الجدول واضغط على الصنف المطلوب لفتح تسوية سريعة مباشرة." actions={<span className="nav-pill">حالة الأصناف</span>}>
+    <FormSection title="متابعة حالة الأصناف" description="ابدأ هنا: فلتر سريع ثم راجع الجدول واضغط على الصنف المطلوب لفتح تسوية سريعة مباشرة." actions={<span className="nav-pill">حالة الأصناف</span>}>
       <div className="filter-chip-row">
         <Button type="button" variant={statusFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('all')}>الكل</Button>
         <Button type="button" variant={statusFilter === 'healthy' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('healthy')}>سليم</Button>
@@ -90,6 +90,6 @@ export function InventoryStatusCard({
       >
         <InventoryTable rows={rows.slice(0, 60)} includeSensitivePricing={includeSensitivePricing} selectedProductId={selectedProductId} onProductSelect={onProductSelect} />
       </QueryFeedback>
-    </Card>
+    </FormSection>
   );
 }

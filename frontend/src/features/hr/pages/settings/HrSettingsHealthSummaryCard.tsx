@@ -1,4 +1,4 @@
-﻿import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 
 type Props = {
   healthSummary: {
@@ -13,15 +13,21 @@ type Props = {
 
 export function HrSettingsHealthSummaryCard({ healthSummary }: Props) {
   return (
-    <Card title="ملخص صحة الإعدادات">
-      <div className="stats-grid">
-        <div><strong>عدد الأقسام:</strong> {healthSummary.departments}</div>
-        <div><strong>عدد المسميات الوظيفية:</strong> {healthSummary.jobTitles}</div>
-        <div><strong>عدد أنواع الإجازات:</strong> {healthSummary.leaveTypes}</div>
-        <div><strong>عدد أنواع المستندات:</strong> {healthSummary.documentTypes}</div>
-        <div><strong>عناصر غير نشطة:</strong> {healthSummary.inactiveTotal}</div>
-        <div><strong>عناصر تحتاج مراجعة:</strong> {healthSummary.reviewItems}</div>
+    <FormSection title="ملخص صحة الإعدادات">
+      <div className="hr-stats-grid">
+        <div className="hr-stat-box">
+          <div className="hr-stat-value">{healthSummary.departments}</div>
+          <div className="hr-stat-label">إجمالي الأقسام</div>
+        </div>
+        <div className="hr-stat-box">
+          <div className="hr-stat-value">{healthSummary.jobTitles}</div>
+          <div className="hr-stat-label">المسميات الوظيفية</div>
+        </div>
+        <div className="hr-stat-box">
+          <div className="hr-stat-value">{healthSummary.leaveTypes}</div>
+          <div className="hr-stat-label">أنواع الإجازات</div>
+        </div>
       </div>
-    </Card>
+    </FormSection>
   );
 }

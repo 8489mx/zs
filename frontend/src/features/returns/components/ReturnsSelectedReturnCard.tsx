@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -15,7 +15,7 @@ export function ReturnsSelectedReturnCard({
   onCopy: () => void;
 }) {
   return (
-    <Card title="تفاصيل المرتجع المحدد" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onPrint} disabled={!selectedReturn}>طباعة</Button><Button variant="secondary" onClick={onCopy} disabled={!selectedReturn}>نسخ التفاصيل</Button></div>} className="workspace-panel returns-detail-card">
+    <FormSection title="تفاصيل المرتجع المحدد" actions={<div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button variant="secondary" onClick={onPrint} disabled={!selectedReturn}>طباعة</Button><Button variant="secondary" onClick={onCopy} disabled={!selectedReturn}>نسخ التفاصيل</Button></div>} className="workspace-panel returns-detail-card">
       {selectedReturn ? (
         <div className="section-stack">
           <div className="metric-list">
@@ -29,6 +29,6 @@ export function ReturnsSelectedReturnCard({
           <div className="surface-note">{selectedReturn.note || 'لا توجد ملاحظات.'}</div>
         </div>
       ) : <EmptyState title="اختر مرتجعًا من الجدول" hint="ستظهر التفاصيل هنا بعد الاختيار." />}
-    </Card>
+    </FormSection>
   );
 }

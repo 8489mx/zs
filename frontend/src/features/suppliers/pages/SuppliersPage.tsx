@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
@@ -24,21 +24,29 @@ export function SuppliersPage() {
   ] as const;
 
   return (
-    <div className="page-stack page-shell suppliers-page">
-      <PageHeader title="الموردون" description="ابدأ بسجل الموردين والبحث ثم انتقل للتعديل أو الإضافة حسب المورد الذي تعمل عليه." badge={<span className="nav-pill">{controller.summary?.totalSuppliers || 0} مورد</span>} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetSuppliersView}>إعادة الضبط</Button><Button variant="secondary" onClick={controller.exportSuppliersCsv} disabled={!controller.summary?.totalSuppliers}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.copySuppliersSummary()} disabled={!controller.summary?.totalSuppliers}>نسخ الملخص</Button><Button variant="secondary" onClick={controller.printSuppliersRegister} disabled={!controller.summary?.totalSuppliers || !controller.canPrint}>طباعة السجل</Button></div>} />
+    <div className="page-stack page-shell suppliers-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+        <PageHeader title="الموردون" description="ابدأ بسجل الموردين والبحث ثم انتقل للتعديل أو الإضافة حسب المورد الذي تعمل عليه." badge={<span className="nav-pill">{controller.summary?.totalSuppliers || 0} مورد</span>} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetSuppliersView}>إعادة الضبط</Button><Button variant="secondary" onClick={controller.exportSuppliersCsv} disabled={!controller.summary?.totalSuppliers}>تصدير CSV</Button><Button variant="secondary" onClick={() => void controller.copySuppliersSummary()} disabled={!controller.summary?.totalSuppliers}>نسخ الملخص</Button><Button variant="secondary" onClick={controller.printSuppliersRegister} disabled={!controller.summary?.totalSuppliers || !controller.canPrint}>طباعة السجل</Button></div>} />
       <StatsGrid items={stats} />
 
 
       <SuppliersRegisterCard {...controller} />
 
-      <div className="two-column-grid panel-grid suppliers-editor-grid">
-        <Card title="إضافة مورد" description="أضف موردًا جديدًا ثم اختره من السجل لمراجعة بياناته أو بدء التعامل معه فورًا." actions={<span className="nav-pill">إضافة</span>}><SupplierForm /></Card>
-        <div ref={editSupplierSectionRef}><Card title={controller.selectedSupplier ? `تعديل: ${controller.selectedSupplier.name}` : 'تعديل مورد'} description="اختر موردًا من السجل لتعديل بياناته أو حذفه من نفس المكان." actions={<span className="nav-pill">تعديل وحذف</span>}><SupplierEditorCard supplier={controller.selectedSupplier || undefined} onSaved={() => controller.setSelectedSupplier(null)} />{controller.selectedSupplier ? <div className="actions section-actions"><Button variant="danger" onClick={() => controller.setSupplierToDelete(controller.selectedSupplier)} disabled={!controller.canDelete}>حذف المورد</Button></div> : null}</Card></div>
+      <div ref={editSupplierSectionRef}>
+        <FormSection title={controller.selectedSupplier ? `تعديل: ${controller.selectedSupplier.name}` : 'تعديل مورد'} description="اختر موردًا من السجل لتعديل بياناته أو حذفه من نفس المكان." actions={<span className="nav-pill">تعديل وحذف</span>}>
+          <SupplierEditorCard supplier={controller.selectedSupplier || undefined} onSaved={() => controller.setSelectedSupplier(null)} />
+          {controller.selectedSupplier ? <div className="actions section-actions"><Button variant="danger" onClick={() => controller.setSupplierToDelete(controller.selectedSupplier)} disabled={!controller.canDelete}>حذف المورد</Button></div> : null}
+        </FormSection>
       </div>
+
+      <FormSection title="إضافة مورد" description="أضف موردًا جديدًا ثم اختره من السجل لمراجعة بياناته أو بدء التعامل معه فورًا." actions={<span className="nav-pill">إضافة</span>}>
+        <SupplierForm />
+      </FormSection>
 
       <ActionConfirmDialog open={Boolean(controller.supplierToDelete)} title="تأكيد حذف المورد" description={controller.supplierToDelete ? `سيتم حذف المورد ${controller.supplierToDelete.name}. إذا كان المورد مستخدمًا داخل أصناف فعالة فسيمنع الخادم الحذف، وسيظهر السبب مباشرة.` : ''} confirmLabel="نعم، حذف المورد" isBusy={controller.deleteMutation.isPending} onCancel={() => controller.setSupplierToDelete(null)} onConfirm={async () => { if (!controller.supplierToDelete) return; await controller.deleteMutation.mutateAsync(controller.supplierToDelete.id); controller.setSelectedIds((current: string[]) => current.filter((id) => id !== String(controller.supplierToDelete?.id))); }} />
 
       <ActionConfirmDialog open={controller.bulkDeleteOpen} title="تأكيد حذف الموردين المحددين" description={controller.selectedSuppliers.length ? `سيتم محاولة حذف ${controller.selectedSuppliers.length} موردًا دفعة واحدة. أي مورد مستخدم داخل أصناف أو حركات قائمة سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : 'لا يوجد موردون محددون.'} confirmLabel="نعم، حذف المحدد" confirmationKeyword="DELETE" confirmationLabel="اكتب DELETE لتأكيد حذف المحدد" isBusy={controller.bulkDeleteMutation.isPending} onCancel={() => controller.setBulkDeleteOpen(false)} onConfirm={async () => { if (!controller.selectedIds.length) return; await controller.bulkDeleteMutation.mutateAsync(controller.selectedIds); }} />
+      </main>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { Sale } from '@/types/domain';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { useTranslation } from "react-i18next";
@@ -14,11 +14,11 @@ interface SaleDetailCardProps {
 
 export function SaleDetailCard({ sale, isLoading = false, onEdit, onCancel, onPrint }: SaleDetailCardProps) {
     const { t } = useTranslation();
-  if (isLoading) return <Card title={t('sales.8f6d39')}><div className="muted">{t('sales.ff88ae')}</div></Card>;
-  if (!sale) return <Card title={t('sales.8f6d39')}><div className="muted">{t('sales.272f58')}</div></Card>;
+  if (isLoading) return <FormSection title={t('sales.8f6d39')}><div className="muted">{t('sales.ff88ae')}</div></FormSection>;
+  if (!sale) return <FormSection title={t('sales.8f6d39')}><div className="muted">{t('sales.272f58')}</div></FormSection>;
 
   return (
-    <Card
+    <FormSection
       title={`تفاصيل ${sale.docNo || sale.id}`}
       actions={sale.status !== 'cancelled' ? (
         <div className="actions">
@@ -52,6 +52,6 @@ export function SaleDetailCard({ sale, isLoading = false, onEdit, onCancel, onPr
           </tbody>
         </table>
       </div>
-    </Card>
+    </FormSection>
   );
 }

@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { SaleDetailCard } from '@/features/sales/components/SaleDetailCard';
@@ -35,7 +35,15 @@ export function SalesSidePanel({
     const { t } = useTranslation();
   return (
     <div className="sales-side-stack">
-      <Card title={t('sales.02a675')} description={t('sales.c76fcb')} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportTopCustomers()} disabled={!topCustomers.length}>{t('sales.91cafe')}</Button><Button variant="secondary" onClick={() => void onPrintTopCustomers()} disabled={!topCustomers.length || !canPrint}>{t('sales.88c5d1')}</Button></div>} className="workspace-panel sales-insight-card">
+      <SaleDetailCard
+        sale={selectedSale || undefined}
+        isLoading={isLoading}
+        onPrint={canPrint && selectedSale ? onPrintSale : undefined}
+        onEdit={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? onEditSale : undefined}
+        onCancel={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? onCancelSale : undefined}
+      />
+
+      <FormSection title={t('sales.02a675')} description={t('sales.c76fcb')} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportTopCustomers()} disabled={!topCustomers.length}>{t('sales.91cafe')}</Button><Button variant="secondary" onClick={() => void onPrintTopCustomers()} disabled={!topCustomers.length || !canPrint}>{t('sales.88c5d1')}</Button></div>} className="workspace-panel sales-insight-card">
         <div className="list-stack">
           {topCustomers.length ? topCustomers.map((customer) => (
             <div className="list-row" key={customer.name}>
@@ -47,15 +55,7 @@ export function SalesSidePanel({
             </div>
           )) : <div className="muted">{t('sales.7bd9a1')}</div>}
         </div>
-      </Card>
-
-      <SaleDetailCard
-        sale={selectedSale || undefined}
-        isLoading={isLoading}
-        onPrint={canPrint && selectedSale ? onPrintSale : undefined}
-        onEdit={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? onEditSale : undefined}
-        onCancel={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? onCancelSale : undefined}
-      />
+      </FormSection>
     </div>
   );
 }

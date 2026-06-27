@@ -1,4 +1,4 @@
-﻿import { Button } from '@/shared/ui/button';
+import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import type { Sale } from '@/types/domain';
 import { getSalesTableColumns } from '@/features/sales/utils/sales-mappers';
@@ -21,7 +21,7 @@ export function SalesTable({ rows, selectedId, onSelect, onEdit, onCancel, onPri
       key: 'actions',
       header: t('sales.901efe'),
       cell: (sale: Sale) => (
-        <div className="actions compact-actions">
+        <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
           {onSelect ? <Button variant={selectedId === sale.id ? 'primary' : 'secondary'} onClick={() => onSelect(sale)}>{t('sales.cc0478')}</Button> : null}
           {onPrint ? <Button variant="secondary" onClick={() => onPrint(sale)}>{t('sales.88c5d1')}</Button> : null}
           {onEdit ? (

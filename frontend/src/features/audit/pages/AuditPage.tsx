@@ -1,6 +1,6 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/components/data-table';
 import { Field } from '@/shared/ui/field';
 import { PageHeader } from '@/shared/components/page-header';
@@ -105,13 +105,14 @@ export function AuditPage() {
   };
 
   return (
-    <div className="page-stack page-shell audit-page">
+    <div className="page-stack page-shell audit-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader title="سجل النشاط" description="ابدأ بالبحث والفلاتر ثم راجع السجل الحالي أو صدّر النتائج عند الحاجة." badge={<span className="nav-pill">سجل العمليات</span>} />
       {copyFeedback ? <div className={copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{copyFeedback.text}</div> : null}
-      <Card
+      <FormSection
         title="آخر الأنشطة"
         actions={
-          <div className="actions compact-actions">
+          <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
             <button className="button button-secondary" onClick={resetAuditView}>إعادة الضبط</button>
             <button className="button button-secondary" onClick={copyAuditSummary} disabled={!totalRows}>نسخ الملخص</button>
             <button className="button button-secondary" onClick={() => void exportAuditRows()} disabled={!totalRows || isExporting}>{isExporting ? 'جارٍ التصدير...' : 'تصدير النتائج'}</button>
@@ -203,7 +204,8 @@ export function AuditPage() {
             itemLabel="سجل"
           />
         </QueryFeedback>
-      </Card>
+      </FormSection>
+      </main>
     </div>
   );
 }

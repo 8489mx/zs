@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
@@ -31,7 +31,7 @@ export function EmployeeQuickSetupCard({
   onCreateQuickMaster,
 }: EmployeeQuickSetupCardProps) {
   return (
-    <Card title="تجهيز سريع قبل الإضافة" description="حتى لا تضطر للخروج من الصفحة، يمكنك إضافة قسم أو مسمى وظيفي سريعًا ثم استخدامه في بيانات الموظف.">
+    <FormSection title="تجهيز سريع قبل الإضافة" description="حتى لا تضطر للخروج من الصفحة، يمكنك إضافة قسم أو مسمى وظيفي سريعًا ثم استخدامه في بيانات الموظف.">
       {missingSetup ? (
         <div className="notice-box" style={{ marginBottom: 12 }}>
           لا توجد أقسام أو مسميات وظيفية كافية حتى الآن. الأفضل تجهيزها قبل حفظ الموظف، أو إضافتها سريعًا من هنا.
@@ -56,7 +56,7 @@ export function EmployeeQuickSetupCard({
         </label>
       </div>
       {setupError ? <div className="error-box" style={{ marginTop: 12 }}>{setupError}</div> : null}
-      {setupSuccess ? <p className="muted" style={{ margin: '12px 0 0' }}>{setupSuccess}</p> : null}
-    </Card>
+      {setupSuccess ? <div className="success-box" style={{ marginTop: 12, color: 'var(--success-text)', background: 'var(--success-bg)', padding: '8px 12px', borderRadius: 6, fontSize: '0.9rem' }}>{setupSuccess}</div> : null}
+    </FormSection>
   );
 }

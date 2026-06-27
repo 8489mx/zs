@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Field } from '@/shared/ui/field';
@@ -106,7 +106,7 @@ export function StockCountMonitorCard({
     : undefined;
 
   return (
-    <Card
+    <FormSection
       title="جلسات الجرد"
       description="مراجعة جلسات الجرد قبل الاعتماد مع عرض واضح للحالة والبنود والفروقات."
       actions={(
@@ -267,6 +267,6 @@ export function StockCountMonitorCard({
       </QueryFeedback>
 
       <MutationFeedback isError={Boolean(transferError) || Boolean(postError)} isSuccess={transferSuccess || postSuccess} error={transferError || postError} errorFallback="تعذر تنفيذ العملية" successText="تم تنفيذ العملية بنجاح." />
-    </Card>
+    </FormSection>
   );
 }

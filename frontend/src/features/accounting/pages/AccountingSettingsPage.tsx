@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -144,7 +144,7 @@ export function AccountingSettingsPage() {
       <main className="document-prototype-column">
 
       {activeSection === 'accounts-map' ? (
-        <Card title="إعدادات الحسابات">
+        <FormSection title="إعدادات الحسابات" description="تحديد الحسابات الافتراضية المرتبطة بالعمليات المختلفة بالنظام.">
           <QueryFeedback
             isLoading={query.isLoading}
             isError={query.isError}
@@ -171,13 +171,10 @@ export function AccountingSettingsPage() {
               </tbody>
             </table>
           </QueryFeedback>
-        </Card>
+        </FormSection>
       ) : (
-        <Card title="الأرصدة الافتتاحية">
+        <FormSection title="الأرصدة الافتتاحية" description="استخدم هذه الصفحة لتسجيل أرصدة بداية استخدام النظام. يتم ترحيل الأرصدة الافتتاحية مرة واحدة فقط لكل منشأة.">
           <div className="page-stack">
-            <p className="muted">
-              استخدم هذه الصفحة لتسجيل أرصدة بداية استخدام النظام. يتم ترحيل الأرصدة الافتتاحية مرة واحدة فقط لكل منشأة.
-            </p>
             <p className="muted">
               أرصدة العملاء والموردين والمخزون يتم حسابها من البيانات المسجلة داخل النظام، بينما رصيد الخزنة والبنك يتم إدخالهما يدويًا.
             </p>
@@ -313,7 +310,7 @@ export function AccountingSettingsPage() {
               </>
             ) : null}
           </div>
-        </Card>
+        </FormSection>
       )}
 
       <DialogShell

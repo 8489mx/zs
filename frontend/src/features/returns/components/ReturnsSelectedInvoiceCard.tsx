@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 import type { Purchase, Sale } from '@/types/domain';
@@ -15,7 +15,7 @@ export function ReturnsSelectedInvoiceCard({
   expectedReturnValue: number;
 }) {
   return (
-    <Card title="ملخص الفاتورة المختارة" actions={<span className="nav-pill">مرجع سريع</span>} className="workspace-panel returns-summary-card">
+    <FormSection title="ملخص الفاتورة المختارة" actions={<span className="nav-pill">مرجع سريع</span>} className="workspace-panel returns-summary-card">
       {selectedInvoice ? (
         <div className="metric-list">
           <div className="metric-row"><span>رقم الفاتورة</span><strong>{selectedInvoice.docNo || selectedInvoice.id}</strong></div>
@@ -27,6 +27,6 @@ export function ReturnsSelectedInvoiceCard({
           <div className="metric-row"><span>قيمة المرتجع المتوقعة</span><strong>{selectedItemsCount ? formatCurrency(expectedReturnValue) : '—'}</strong></div>
         </div>
       ) : <EmptyState title="اختر فاتورة أولًا" hint="بعد اختيار الفاتورة سيظهر الملخص هنا." />}
-    </Card>
+    </FormSection>
   );
 }

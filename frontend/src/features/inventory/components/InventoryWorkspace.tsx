@@ -13,7 +13,8 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
   const [selectedInventoryProduct, setSelectedInventoryProduct] = useState<{ product: Product; token: number } | null>(null);
 
   return (
-    <div className="page-stack page-shell inventory-workspace">
+    <div className="page-stack page-shell inventory-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <InventoryWorkspaceHeader
         canPrint={inventory.canPrint}
         hasRows={inventory.hasRows}
@@ -210,6 +211,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
         onCancel={() => inventory.setPostSessionConfirm(null)}
         onConfirm={() => void inventory.confirmPostSessionAction()}
       />
+      </main>
     </div>
   );
 }

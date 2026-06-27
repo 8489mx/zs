@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
@@ -131,16 +131,16 @@ export function HrSettingsPage() {
       </div>
       <main className="document-prototype-column">
 
-      <Card title="ترتيب الإعداد الصحيح" description="هذه هي نقطة البداية قبل إضافة الموظفين وتشغيل الحضور والمرتبات.">
+      <FormSection title="ترتيب الإعداد الصحيح" description="هذه هي نقطة البداية قبل إضافة الموظفين وتشغيل الحضور والمرتبات.">
         <div className="form-grid">
           {setupChecklist.map((item) => <div key={item.title} className="field" style={{ alignItems: 'flex-start' }}><strong>{item.ok ? '✓' : '•'} {item.title}</strong><span className="muted">{item.status}</span>{item.action ? <Button type="button" variant="secondary" onClick={item.action} disabled={!item.ok}>إضافة موظف</Button> : <Button type="button" variant="secondary" onClick={() => setActiveSection(item.section)}>فتح الإعداد</Button>}</div>)}
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="أقسام الإعدادات" description="اختر القسم الذي تريد تعديله بدل التمرير داخل صفحة طويلة.">
+      <FormSection title="أقسام الإعدادات" description="اختر القسم الذي تريد تعديله بدل التمرير داخل صفحة طويلة.">
         <div className="compact-actions" style={{ marginBottom: 12 }}>{SETTINGS_SECTIONS.map((section) => <Button key={section.key} type="button" variant={activeSection === section.key ? 'primary' : 'secondary'} onClick={() => setActiveSection(section.key)}>{section.label}</Button>)}</div>
         <div className="form-grid"><label className="field"><span>بحث داخل الإعدادات</span><input value={settingsSearch} onChange={(event) => setSettingsSearch(event.target.value)} placeholder="ابحث بالاسم أو الكود أو الوصف" /></label></div>
-      </Card>
+      </FormSection>
 
       <HrSettingsHealthSummaryCard healthSummary={healthSummary} />
 
@@ -148,7 +148,7 @@ export function HrSettingsPage() {
         {shouldShowSection(activeSection, 'organization') ? <HrSettingsOrganizationSection departmentStatsTotal={departmentStats.total} jobTitleStatsTotal={jobTitleStats.total} positionStatsTotal={positionStats.total} departmentDraft={departmentDraft} jobTitleDraft={jobTitleDraft} positionDraft={positionDraft} errors={{ departments: errors.departments, 'job-titles': errors['job-titles'], positions: errors.positions }} isBusy={isBusy} departments={departments} jobTitles={jobTitles} filteredDepartments={filteredDepartments} filteredJobTitles={filteredJobTitles} filteredPositions={filteredPositions} onDepartmentDraftChange={setDepartmentDraft} onJobTitleDraftChange={setJobTitleDraft} onPositionDraftChange={setPositionDraft} onSaveDepartment={() => { void saveKind('departments'); }} onSaveJobTitle={() => { void saveKind('job-titles'); }} onSavePosition={() => { void saveKind('positions'); }} /> : null}
 
         {shouldShowSection(activeSection, 'leaves') ? (
-          <Card title="الإجازات" description="إدارة أنواع الإجازات المعتمدة. هذا يؤثر على صفحة الإجازات وعلى مراجعة المرتبات إذا كانت الإجازة غير مدفوعة.">
+          <FormSection title="الإجازات" description="إدارة أنواع الإجازات المعتمدة. هذا يؤثر على صفحة الإجازات وعلى مراجعة المرتبات إذا كانت الإجازة غير مدفوعة.">
             <div className="form-grid">
               <div className="field"><span>الاسم *</span><input value={leaveTypeDraft.name} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, name: e.target.value }))} /></div>
               <div className="field"><span>الكود</span><input value={leaveTypeDraft.code} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, code: e.target.value }))} /></div>
@@ -158,7 +158,7 @@ export function HrSettingsPage() {
             {errors['leave-types'] ? <div className="error-box" style={{ marginTop: 12 }}>{errors['leave-types']}</div> : null}
             <div className="actions compact-actions" style={{ marginTop: 12 }}><Button onClick={() => { void saveLeaveType(); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ نوع الإجازة'}</Button><Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')}>فتح صفحة الإجازات</Button></div>
             {filteredLeaveTypes.length ? <DataTable rows={filteredLeaveTypes} rowKey={(row) => String(row.id)} density="compact" columns={[{ key: 'name', header: 'الاسم', cell: (row) => text(row.name) }, { key: 'code', header: 'الكود', cell: (row) => text(row.code) }, { key: 'paid', header: 'مدفوعة / غير مدفوعة', cell: (row) => paidLabel(row.isPaid) }, { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) }, { key: 'description', header: 'الوصف', cell: (row) => text(row.description) }]} /> : <p className="muted">لا توجد أنواع إجازات حتى الآن.</p>}
-          </Card>
+          </FormSection>
         ) : null}
 
         {shouldShowSection(activeSection, 'documents') ? <HrSettingsDocumentsSection navigate={navigate} /> : null}

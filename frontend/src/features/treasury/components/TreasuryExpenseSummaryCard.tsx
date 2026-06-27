@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import type { ExpenseRecord } from '@/types/domain';
@@ -13,7 +13,7 @@ export function TreasuryExpenseSummaryCard({ expenseSummary, expenses, canPrintS
   isExportingExpenses: boolean;
 }) {
   return (
-    <Card title="ملخص المصروفات" actions={<span className="nav-pill">المصروفات</span>}>
+    <FormSection title="ملخص المصروفات" actions={<span className="nav-pill">المصروفات</span>}>
       <div className="metric-list">
         <div className="metric-row"><span>عدد المصروفات المطابقة</span><strong>{expenseSummary.totalItems}</strong></div>
         <div className="metric-row"><span>إجمالي المصروفات</span><strong>{formatCurrency(expenseSummary.totalAmount)}</strong></div>
@@ -25,6 +25,6 @@ export function TreasuryExpenseSummaryCard({ expenseSummary, expenses, canPrintS
         <Button variant="secondary" onClick={onPrintExpenses} disabled={!expenseSummary.totalItems || isExportingExpenses}>طباعة النتائج</Button>
         <Button onClick={onPrintSummary} disabled={!canPrintSummary}>طباعة الملخص</Button>
       </div>
-    </Card>
+    </FormSection>
   );
 }

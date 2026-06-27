@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SERVICE_PRESETS, type PresetServiceDraft, type ServicePresetKey } from '@/features/services/lib/services-page.constants';
@@ -57,7 +57,7 @@ export function ServicePresetDialog({
 }: ServicePresetDialogProps) {
   return (
     <DialogShell open={open} onClose={onClose} width="min(760px, 100%)" zIndex={75}>
-      <Card
+      <FormSection
         title="تخصيص خدمات النشاط"
         className="dialog-card"
         description="اختر قالبًا جاهزًا أو أضف خدماتك يدويًا حسب طبيعة نشاطك."
@@ -85,7 +85,7 @@ export function ServicePresetDialog({
             ))}
           </div>
 
-          <Card title="الخدمات المقترحة" description="يمكنك تعديل الأسعار أو إلغاء أي خدمة قبل الحفظ.">
+          <FormSection title="الخدمات المقترحة" description="يمكنك تعديل الأسعار أو إلغاء أي خدمة قبل الحفظ.">
             <div className="page-stack" style={{ gap: 10 }}>
               {!presetDrafts.length ? (
                 <div className="muted">لا توجد خدمات مقترحة لهذا الاختيار. أضف خدماتك يدويًا من الزر التالي.</div>
@@ -179,7 +179,7 @@ export function ServicePresetDialog({
                 </div>
               ) : null}
             </div>
-          </Card>
+          </FormSection>
 
           {presetMessage ? (
             <div className={`notice-banner ${presetMessageTone === 'error' ? 'is-error' : 'is-success'}`}>{presetMessage}</div>
@@ -192,7 +192,7 @@ export function ServicePresetDialog({
             </Button>
           </div>
         </div>
-      </Card>
+      </FormSection>
     </DialogShell>
   );
 }

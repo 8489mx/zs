@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import type { PurchasesListSummary } from '@/features/purchases/api/purchases.api';
@@ -28,7 +28,7 @@ export function PurchasesKpiSection(props: Pick<BaseProps, 'totalItems' | 'summa
 
 export function TopSuppliersCard(props: Pick<BaseProps, 'topSuppliers' | 'exportTopSuppliersCsv' | 'printTopSuppliers'>) {
   return (
-    <Card
+    <FormSection
       title="أعلى الموردين"
       actions={<div className="actions compact-actions"><Button variant="secondary" onClick={props.exportTopSuppliersCsv} disabled={!props.topSuppliers.length}>CSV</Button><Button variant="secondary" onClick={props.printTopSuppliers} disabled={!props.topSuppliers.length}>طباعة</Button></div>}
       className="workspace-panel purchases-insight-card"
@@ -38,6 +38,6 @@ export function TopSuppliersCard(props: Pick<BaseProps, 'topSuppliers' | 'export
           <div className="list-row" key={supplier.name}><div><strong>{supplier.name}</strong><div className="muted small">{supplier.count} فاتورة</div></div><strong>{formatCurrency(supplier.total)}</strong></div>
         )) : <div className="muted">لا توجد نتائج كافية.</div>}
       </div>
-    </Card>
+    </FormSection>
   );
 }

@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -166,14 +166,14 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
 
   if (!supplier) {
     return (
-      <Card title="جدولة مستحقات المورد" description="اختر موردًا أولًا لعرض أو إنشاء جدول دفعات لمستحقاته.">
+      <FormSection title="جدولة مستحقات المورد" description="اختر موردًا أولًا لعرض أو إنشاء جدول دفعات لمستحقاته.">
         <EmptyState title="لم يتم اختيار مورد" hint="اختر المورد من كشف حساب الموردين حتى تظهر أداة الجدولة." />
-      </Card>
+      </FormSection>
     );
   }
 
   return (
-    <Card
+    <FormSection
       title={`مستحقات المورد: ${supplierName}`}
       description="قسّم رصيد المورد الحالي أو جزءًا منه إلى دفعات مستحقة وتابع المدفوع والمتبقي."
       actions={<span className="nav-pill">{rows.length ? `${rows.length} دفعات` : 'رصيد المورد'}</span>}
@@ -397,6 +397,6 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
           </div>
         </div>
       ) : null}
-    </Card>
+    </FormSection>
   );
 }

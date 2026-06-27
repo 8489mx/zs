@@ -1,57 +1,50 @@
-import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
+import { FormSection } from '@/shared/components/form-section';
 
 type NavigateTo = (path: string) => void;
 
 export function HrSettingsDocumentsSection({ navigate }: { navigate: NavigateTo }) {
   return (
-    <Card title="المستندات" description="القوائم المتقدمة لأنواع المستندات وإعدادات الصلاحية.">
-      <p className="muted" style={{ margin: 0 }}>
-        يمكن متابعة المستندات من صفحة مستندات الموظفين.
-      </p>
-      <div className="actions compact-actions" style={{ marginTop: 12 }}>
-        <Button type="button" variant="secondary" onClick={() => navigate('/hr/documents')}>فتح المستندات</Button>
+    <FormSection title="المستندات" description="القوائم المتقدمة لأنواع المستندات وإعدادات الصلاحية.">
+      <div className="card-soft" style={{ padding: 16 }}>
+        <p className="muted" style={{ margin: '0 0 12px 0' }}>إدارة أنواع المستندات وتنبيهات انتهاء الصلاحية.</p>
+        <div className="compact-actions"><Button type="button" variant="secondary" onClick={() => navigate('/hr/documents')}>الذهاب لصفحة المستندات</Button></div>
       </div>
-    </Card>
+    </FormSection>
   );
 }
 
 export function HrSettingsAttendanceSection({ navigate }: { navigate: NavigateTo }) {
   return (
-    <Card title="الحضور والانصراف" description="إعدادات القواعد التشغيلية للحضور.">
-      <p className="muted" style={{ margin: 0 }}>
-        يمكن ضبط مواعيد الدوام لكل موظف من صفحة إضافة أو تعديل الموظف.
-      </p>
-      <div className="actions compact-actions" style={{ marginTop: 12 }}>
-        <Button type="button" variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>
+    <FormSection title="الحضور والانصراف" description="إعدادات القواعد التشغيلية للحضور.">
+      <div className="card-soft" style={{ padding: 16 }}>
+        <p className="muted" style={{ margin: '0 0 12px 0' }}>تتضمن إعدادات الحضور، أجهزة البصمة، سياسات التأخير.</p>
+        <div className="compact-actions"><Button type="button" variant="secondary" onClick={() => navigate('/hr/attendance')}>الذهاب لصفحة الحضور</Button></div>
       </div>
-    </Card>
+    </FormSection>
   );
 }
 
 export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo }) {
   return (
-    <Card title="المرتبات" description="إعدادات مكونات المرتبات الأساسية.">
-      <p className="muted" style={{ marginTop: 0, marginBottom: 8 }}>
-        لا توجد إعدادات متقدمة للبدلات والخصومات ضمن صفحة الإعدادات الحالية.
-      </p>
-      <p className="muted" style={{ margin: 0 }}>
-        إعدادات الضرائب والتأمينات تحتاج ضبطًا مستقلًا ومراجعة محاسب قبل الاعتماد.
-      </p>
-      <div className="actions compact-actions" style={{ marginTop: 12 }}>
-        <Button type="button" variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
-        <Button type="button" variant="secondary" onClick={() => navigate('/hr/loans')}>فتح السلف</Button>
+    <FormSection title="المرتبات" description="إعدادات مكونات المرتبات الأساسية.">
+      <div className="card-soft" style={{ padding: 16 }}>
+        <p className="muted" style={{ margin: '0 0 12px 0' }}>إدارة بدلات وخصومات الموظفين وإعدادات المرتبات.</p>
+        <div className="compact-actions" style={{ display: 'flex', gap: 8 }}>
+          <Button type="button" variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
+          <Button type="button" variant="secondary" onClick={() => navigate('/hr/loans')}>فتح السلف</Button>
+        </div>
       </div>
-    </Card>
+    </FormSection>
   );
 }
 
 export function HrSettingsOperationalNote() {
   return (
-    <Card title="ملاحظة تشغيلية">
+    <FormSection title="ملاحظة تشغيلية">
       <p className="muted" style={{ margin: 0 }}>
-        أضف البيانات الأساسية أولًا حتى تظهر في صفحات الموظفين والحضور والإجازات. صفحة إضافة الموظف تحتوي أيضًا على إضافة سريعة للقسم والمسمى عند الحاجة.
+        نوصي بمراجعة وتحديث هذه الإعدادات دوريًا لضمان توافقها مع الهيكل الإداري للشركة، مما يقلل من الأخطاء أثناء إضافة الموظفين الجدد أو إعداد كشوف المرتبات.
       </p>
-    </Card>
+    </FormSection>
   );
 }

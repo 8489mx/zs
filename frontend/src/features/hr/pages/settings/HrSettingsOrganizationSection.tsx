@@ -1,4 +1,4 @@
-﻿import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { statusLabel, text } from '@/features/hr/pages/settings/hr-settings.helpers';
@@ -59,7 +59,7 @@ export function HrSettingsOrganizationSection(props: Props) {
   } = props;
 
   return (
-    <Card title="الهيكل التنظيمي" description="إدارة الأقسام والمسميات الوظيفية والمناصب المستخدمة في ملفات الموظفين والتقارير.">
+    <FormSection title="الهيكل التنظيمي" description="إدارة الأقسام والمسميات الوظيفية والمناصب المستخدمة في ملفات الموظفين والتقارير.">
       <div className="stats-grid" style={{ marginBottom: 12 }}>
         <div><strong>الأقسام:</strong> {departmentStatsTotal}</div>
         <div><strong>المسميات الوظيفية:</strong> {jobTitleStatsTotal}</div>
@@ -67,7 +67,7 @@ export function HrSettingsOrganizationSection(props: Props) {
         <div><strong>الفروع/المواقع:</strong> غير متاح</div>
       </div>
 
-      <Card title="الأقسام" description="القوائم التي يتم ربط الموظفين بها داخل الهيكل التنظيمي.">
+      <FormSection title="الأقسام" description="القوائم التي يتم ربط الموظفين بها داخل الهيكل التنظيمي.">
         <div className="form-grid">
           <div className="field"><span>الاسم *</span><input value={departmentDraft.name} onChange={(e) => onDepartmentDraftChange((current) => ({ ...current, name: e.target.value }))} /></div>
           <div className="field"><span>الكود</span><input value={departmentDraft.code} onChange={(e) => onDepartmentDraftChange((current) => ({ ...current, code: e.target.value }))} /></div>
@@ -91,9 +91,9 @@ export function HrSettingsOrganizationSection(props: Props) {
             ]}
           />
         ) : <p className="muted">لا توجد أقسام حتى الآن.</p>}
-      </Card>
+      </FormSection>
 
-      <Card title="المسميات الوظيفية" description="المسميات التي تظهر في بيانات الموظفين والتقارير.">
+      <FormSection title="المسميات الوظيفية" description="المسميات التي تظهر في بيانات الموظفين والتقارير.">
         <div className="form-grid">
           <div className="field"><span>الاسم *</span><input value={jobTitleDraft.name} onChange={(e) => onJobTitleDraftChange((current) => ({ ...current, name: e.target.value }))} /></div>
           <div className="field"><span>الكود</span><input value={jobTitleDraft.code} onChange={(e) => onJobTitleDraftChange((current) => ({ ...current, code: e.target.value }))} /></div>
@@ -117,9 +117,9 @@ export function HrSettingsOrganizationSection(props: Props) {
             ]}
           />
         ) : <p className="muted">لا توجد مسميات وظيفية حتى الآن.</p>}
-      </Card>
+      </FormSection>
 
-      <Card title="المناصب / الوظائف" description="الوظائف التفصيلية المرتبطة بالأقسام والمسميات الوظيفية.">
+      <FormSection title="المناصب / الوظائف" description="الوظائف التفصيلية المرتبطة بالأقسام والمسميات الوظيفية.">
         <div className="form-grid">
           <div className="field"><span>الاسم *</span><input value={positionDraft.name} onChange={(e) => onPositionDraftChange((current) => ({ ...current, name: e.target.value }))} /></div>
           <div className="field"><span>الكود</span><input value={positionDraft.code} onChange={(e) => onPositionDraftChange((current) => ({ ...current, code: e.target.value }))} /></div>
@@ -146,7 +146,7 @@ export function HrSettingsOrganizationSection(props: Props) {
             ]}
           />
         ) : <p className="muted">لا توجد وظائف أو مناصب حتى الآن.</p>}
-      </Card>
-    </Card>
+      </FormSection>
+    </FormSection>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Field } from '@/shared/ui/field';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -135,7 +135,7 @@ export function LedgerPanel({
   }
 
   return (
-    <Card title={title}>
+    <FormSection title={title}>
       <div className="inline-create-grid">
         <Field label={emptyLabel}>
           <select value={value} onChange={(event) => onChange(event.target.value)}>
@@ -216,6 +216,6 @@ export function LedgerPanel({
           purchase={purchaseDetailQuery.data || null}
         />
       </div>
-    </Card>
+    </FormSection>
   );
 }

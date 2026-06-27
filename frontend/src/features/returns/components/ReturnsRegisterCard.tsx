@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -46,7 +46,7 @@ export function ReturnsRegisterCard({
   onPageSizeChange,
 }: Props) {
   return (
-    <Card title="سجل المرتجعات" actions={<span className="nav-pill">السجل</span>} className="workspace-panel returns-register-card">
+    <FormSection title="سجل المرتجعات" actions={<span className="nav-pill">السجل</span>} className="workspace-panel returns-register-card">
       <SearchToolbar search={search} onSearchChange={onSearchChange} searchPlaceholder="ابحث برقم المستند أو الصنف أو الملاحظات">
         <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
       </SearchToolbar>
@@ -86,10 +86,10 @@ export function ReturnsRegisterCard({
             { key: 'note', header: 'ملاحظات', cell: (row) => row.note || '—' },
             { key: 'date', header: 'التاريخ', cell: (row) => formatDate(getReturnDateValue(row)) },
             { key: 'createdBy', header: 'منفذ المرتجع', cell: (row) => row.createdByName || row.createdBy || '—' },
-            { key: 'actions', header: 'إجراءات', cell: (row) => <Button variant="secondary" onClick={(event) => { event.stopPropagation(); onPrintReturn(row); }}>طباعة</Button> }
+            { key: 'actions', header: 'إجراءات', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button variant="secondary" onClick={(event) => { event.stopPropagation(); onPrintReturn(row); }}>طباعة</Button></div> }
           ]}
         />
       ) : <div className="empty-state-card">لا توجد مرتجعات حاليًا</div>}
-    </Card>
+    </FormSection>
   );
 }

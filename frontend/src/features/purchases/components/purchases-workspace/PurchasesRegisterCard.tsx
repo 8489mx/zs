@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -42,7 +42,7 @@ export function PurchasesRegisterCard(props: Props) {
   const selectedLabel = props.selectedPurchase ? (props.selectedPurchase.docNo || props.selectedPurchase.id) : 'لا يوجد';
 
   return (
-    <Card
+    <FormSection
       title="سجل فواتير الشراء"
       description="راجع الفواتير بسرعة، فلتر النتائج، وافتح التفاصيل من نفس المكان."
       actions={
@@ -113,6 +113,6 @@ export function PurchasesRegisterCard(props: Props) {
           itemLabel="فاتورة"
         />
       </QueryFeedback>
-    </Card>
+    </FormSection>
   );
 }

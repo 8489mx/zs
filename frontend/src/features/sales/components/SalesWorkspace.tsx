@@ -1,7 +1,7 @@
-﻿import { Link } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
@@ -35,6 +35,7 @@ export function SalesWorkspace() {
   const [editFeedback, setEditFeedback] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
   const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter, cashier: cashierFilter });
   const { saleDetailQuery, cancelMutation, updateMutation } = useSaleActions(selectedSaleId);
@@ -111,19 +112,19 @@ export function SalesWorkspace() {
 
   return (
     <div className="page-stack page-shell sales-workspace">
-      <SalesWorkspaceHeader totalItems={totalItems} description={headerDescription} onCopySummary={copySalesSummary} />
-      {editFeedback ? <div className="success-box">{editFeedback}</div> : null}
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+        <SalesWorkspaceHeader totalItems={totalItems} description={headerDescription} onCopySummary={copySalesSummary} />
+        {editFeedback ? <div className="success-box">{editFeedback}</div> : null}
 
-      {!hasSellableProducts ? (
-        <Card title={t('sales.0189e9')} actions={<span className="nav-pill">{t('sales.b7a7f1')}</span>} className="workspace-panel">
-          <EmptyState title={t('sales.0e9afb')} hint={t('sales.0aede7')} />
-          <div className="actions section-actions-clean">
-            <Link to="/purchases"><Button variant="secondary">{t('sales.4a5f34')}</Button></Link>
-            <Link to="/inventory"><Button variant="secondary">{t('sales.83c654')}</Button></Link>
-          </div>
-        </Card>
-      ) : null}
-      <div className="sales-main-grid">
+        {!hasSellableProducts ? (
+          <FormSection title={t('sales.0189e9')} actions={<span className="nav-pill">{t('sales.b7a7f1')}</span>} className="workspace-panel">
+            <EmptyState title={t('sales.0e9afb')} hint={t('sales.0aede7')} />
+            <div className="actions section-actions-clean">
+              <Link to="/purchases"><Button variant="secondary">{t('sales.4a5f34')}</Button></Link>
+              <Link to="/inventory"><Button variant="secondary">{t('sales.83c654')}</Button></Link>
+            </div>
+          </FormSection>
+        ) : null}
         <SalesRegisterCard
           search={search}
           viewFilter={viewFilter}
@@ -149,7 +150,10 @@ export function SalesWorkspace() {
           onViewFilterChange={handleViewFilterChange}
           onCashierFilterChange={(value) => { setCashierFilter(value); setPage(1); }}
           onReset={resetSalesView}
-          onSelectSale={setSelectedSaleId}
+          onSelectSale={(id) => {
+            setSelectedSaleId(id);
+            setTimeout(() => detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+          }}
           onEditSale={(sale) => {
             if (sale.status === 'cancelled') return;
             setSelectedSaleId(sale.id);
@@ -164,23 +168,25 @@ export function SalesWorkspace() {
           onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
         />
 
-        <SalesSidePanel
-          topCustomers={topCustomers}
-          canPrint={canPrint}
-          canEditInvoices={canEditInvoices}
-          selectedSale={selectedSale}
-          isLoading={saleDetailQuery.isLoading}
-          onExportTopCustomers={exportTopCustomersCsv}
-          onPrintTopCustomers={printTopCustomers}
-          onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, 'receipt') : undefined}
-          onEditSale={() => {
-            if (!selectedSale || selectedSale.status === 'cancelled') return;
-            setSaleToEdit(selectedSale);
-            setEditFeedback('');
-          }}
-          onCancelSale={() => selectedSale ? setSaleToCancel(selectedSale) : undefined}
-        />
-      </div>
+        <div ref={detailsRef}>
+          <SalesSidePanel
+            topCustomers={topCustomers}
+            canPrint={canPrint}
+            canEditInvoices={canEditInvoices}
+            selectedSale={selectedSale}
+            isLoading={saleDetailQuery.isLoading}
+            onExportTopCustomers={exportTopCustomersCsv}
+            onPrintTopCustomers={printTopCustomers}
+            onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, 'receipt') : undefined}
+            onEditSale={() => {
+              if (!selectedSale || selectedSale.status === 'cancelled') return;
+              setSaleToEdit(selectedSale);
+              setEditFeedback('');
+            }}
+            onCancelSale={() => selectedSale ? setSaleToCancel(selectedSale) : undefined}
+          />
+        </div>
+      </main>
 
       <SaleEditDialog
         open={Boolean(saleToEdit)}

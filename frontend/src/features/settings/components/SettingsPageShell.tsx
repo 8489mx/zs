@@ -28,7 +28,8 @@ export function SettingsPageShell({
   const setupSection = currentSection as SetupSectionKey | 'overview' | 'backup';
 
   return (
-    <div className="page-stack page-shell settings-page-shell">
+    <div className="page-stack page-shell settings-page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader title={title} description={description} badge={<span className="nav-pill">{badgeLabel}</span>} />
 
       {setupMode ? <SettingsSetupFlowCard currentSection={setupSection} /> : null}
@@ -40,6 +41,7 @@ export function SettingsPageShell({
       ) : null}
 
       {children}
+      </main>
     </div>
   );
 }

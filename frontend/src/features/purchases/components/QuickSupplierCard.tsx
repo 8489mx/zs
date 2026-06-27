@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { queryKeys } from '@/app/query-keys';
 import { catalogApi } from '@/lib/api/catalog';
@@ -72,7 +72,7 @@ export function QuickSupplierCard({ canManageSuppliers, inline = false }: QuickS
   }
 
   return (
-    <Card title="إضافة مورد سريع" actions={<span className="nav-pill">من نفس الشاشة</span>} className="workspace-panel purchases-quick-supplier-card">
+    <FormSection title="إضافة مورد سريع" actions={<span className="nav-pill">من نفس الشاشة</span>} className="workspace-panel purchases-quick-supplier-card">
       <div className="form-grid compact-form-grid">
         <Field label="اسم المورد"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="اسم المورد" disabled={mutation.isPending || !canManageSuppliers} /></Field>
         <Field label="الهاتف"><input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="اختياري" disabled={mutation.isPending || !canManageSuppliers} /></Field>
@@ -83,6 +83,6 @@ export function QuickSupplierCard({ canManageSuppliers, inline = false }: QuickS
       {!canManageSuppliers ? <div className="muted small">هذا الحساب لا يملك صلاحية إضافة مورد جديد من شاشة المشتريات.</div> : null}
       <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback="تعذر إضافة المورد" />
       <MutationFeedback isSuccess={mutation.isSuccess} successText="تمت إضافة المورد وتحديث القوائم." />
-    </Card>
+    </FormSection>
   );
 }

@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -21,7 +21,7 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
   setExpensePageSize: (pageSize: number) => void;
 }) {
   return (
-    <Card title="سجل المصروفات">
+    <FormSection title="سجل المصروفات">
       <SearchToolbar search={expenseSearch} onSearchChange={onExpenseSearchChange} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث باسم المصروف أو الملاحظات أو المخزن' : 'ابحث باسم المصروف أو الملاحظات أو الفرع'} onReset={onReset} resetLabel="تفريغ" />
       <QueryFeedback isLoading={expensesQuery.isLoading} isError={expensesQuery.isError} error={expensesQuery.error} isEmpty={!expenseSummary.totalItems} loadingText="جاري تحميل المصروفات..." errorTitle="تعذر تحميل المصروفات" emptyTitle="لا توجد مصروفات مسجلة حاليًا" emptyHint="سجل أول مصروف من النموذج أعلاه وسيظهر هنا مباشرة.">
         <DataTable rows={expenses} columns={[
@@ -34,6 +34,6 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
         ]} />
         <PaginationControls page={expensePagination?.page || 1} totalPages={expensePagination?.totalPages || 1} pageSize={expensePagination?.pageSize || expensePageSize} pageSizeOptions={[10,20,50,100]} totalItems={expensePagination?.totalItems || 0} rangeStart={expensePagination?.rangeStart || 0} rangeEnd={expensePagination?.rangeEnd || 0} onPageChange={setExpensePage} onPageSizeChange={(value) => { setExpensePageSize(value); setExpensePage(1); }} itemLabel="مصروف" />
       </QueryFeedback>
-    </Card>
+    </FormSection>
   );
 }

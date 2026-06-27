@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { FormSection } from '@/shared/components/form-section';
 
 import { bomsApi } from '@/features/manufacturing/api/boms.api';
 import { workOrdersApi } from '@/features/manufacturing/api/work-orders.api';
@@ -136,10 +137,7 @@ export default function NewWorkOrderPage() {
       onBack={() => navigate('/manufacturing/work-orders')}
       onSearchChange={() => {}}
     >
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">التفاصيل الأساسية</h3>
-          </div>
+        <FormSection title="التفاصيل الأساسية">
           <div className="form-grid">
             <SearchableCombobox
               label="التركيبة (BOM)"
@@ -164,12 +162,9 @@ export default function NewWorkOrderPage() {
               />
             </Field>
           </div>
-        </section>
+        </FormSection>
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">توجيهات المخازن</h3>
-          </div>
+        <FormSection title="توجيهات المخازن">
           <div className="form-grid">
             <SearchableCombobox
               label="مخزن السحب (المواد الخام)"
@@ -194,12 +189,9 @@ export default function NewWorkOrderPage() {
               createLabel={(q) => `إضافة ${q}`}
             />
           </div>
-        </section>
+        </FormSection>
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">ملاحظات</h3>
-          </div>
+        <FormSection title="ملاحظات">
           <textarea
             className="purchase-prototype-input"
             rows={4}
@@ -208,7 +200,7 @@ export default function NewWorkOrderPage() {
             placeholder="اكتب ملاحظات حول أمر الإنتاج..."
             style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical' }}
           />
-        </section>
+        </FormSection>
     </ManufacturingLayout>
   );
 }

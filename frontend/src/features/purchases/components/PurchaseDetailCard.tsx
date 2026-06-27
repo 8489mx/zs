@@ -1,5 +1,5 @@
 import type { Purchase } from '@/types/domain';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
@@ -14,16 +14,16 @@ interface PurchaseDetailCardProps {
 }
 
 export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCancel, onPrint }: PurchaseDetailCardProps) {
-  if (isLoading) return <Card title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></Card>;
-  if (!purchase) return <Card title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></Card>;
+  if (isLoading) return <FormSection title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></FormSection>;
+  if (!purchase) return <FormSection title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></FormSection>;
 
   return (
     <>
-      <Card
+      <FormSection
         className="purchase-detail-card"
         title={`تفاصيل ${purchase.docNo || purchase.id}`}
         actions={purchase.status !== 'cancelled' ? (
-          <div className="actions compact-actions">
+          <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
             {onPrint ? <Button variant="secondary" onClick={onPrint}>طباعة الفاتورة</Button> : null}
             {onEdit ? <Button variant="secondary" onClick={onEdit}>تعديل الفاتورة</Button> : null}
             {onCancel ? <Button variant="danger" onClick={onCancel}>إلغاء الفاتورة</Button> : null}
@@ -56,7 +56,7 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
             </tbody>
           </table>
         </div>
-      </Card>
+      </FormSection>
 
       <PurchasePaymentScheduleCard purchase={purchase} />
     </>

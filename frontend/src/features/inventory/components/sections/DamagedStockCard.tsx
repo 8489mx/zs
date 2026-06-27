@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { DataTable } from '@/shared/ui/data-table';
@@ -18,7 +18,7 @@ interface DamagedStockCardProps {
 
 export function DamagedStockCard({ damagedRecords, totalItems, page, pageSize, onPageChange, onPageSizeChange, onPrintDamagedRecords, onExportDamagedCsv }: DamagedStockCardProps) {
   return (
-    <Card title="سجل الأصناف التالفة" description="تبويب مستقل للتالف حتى يستطيع المستخدم مراجعة السجلات والطباعة والتصدير بدون تشتيت بجلسات الجرد." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onPrintDamagedRecords} disabled={!damagedRecords.length}>طباعة التالف</Button><Button variant="secondary" onClick={onExportDamagedCsv} disabled={!damagedRecords.length}>تصدير التالف</Button><span className="nav-pill">{totalItems} سجل</span></div>}>
+    <FormSection title="سجل الأصناف التالفة" description="تبويب مستقل للتالف حتى يستطيع المستخدم مراجعة السجلات والطباعة والتصدير بدون تشتيت بجلسات الجرد." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onPrintDamagedRecords} disabled={!damagedRecords.length}>طباعة التالف</Button><Button variant="secondary" onClick={onExportDamagedCsv} disabled={!damagedRecords.length}>تصدير التالف</Button><span className="nav-pill">{totalItems} سجل</span></div>}>
       <DataTable
         rows={damagedRecords}
         rowKey={(row) => String(row.id)}
@@ -61,6 +61,6 @@ export function DamagedStockCard({ damagedRecords, totalItems, page, pageSize, o
           },
         ]}
       />
-    </Card>
+    </FormSection>
   );
 }

@@ -1,10 +1,10 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
 import { accountingApi, type JournalEntryDetail, type JournalEntryLine, type JournalEntryListItem } from '@/features/accounting/api/accounting.api';
 
@@ -72,9 +72,10 @@ export function AccountingJournalEntriesPage() {
   }
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader title="الحسابات" description="القيود اليومية" />
-      <Card title="القيود اليومية">
+      <FormSection title="القيود اليومية">
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
@@ -145,11 +146,11 @@ export function AccountingJournalEntriesPage() {
             }}
           />
         </QueryFeedback>
-      </Card>
+      </FormSection>
 
       {selectedEntryId ? (
         <div ref={detailsRef}>
-          <Card title="تفاصيل القيد">
+          <FormSection title="تفاصيل القيد">
             <div className="actions">
               <Button
                 type="button"
@@ -184,7 +185,7 @@ export function AccountingJournalEntriesPage() {
                     <div><strong>إجمالي الدائن:</strong> {formatCurrency(Number(detailEntry.totals?.credit || 0))}</div>
                   </div>
 
-                  <Card title="سطور القيد">
+                  <FormSection title="سطور القيد">
                     {detailEntry.lines?.length ? (
                       <DataTable<JournalEntryLine>
                         data={detailEntry.lines}
@@ -203,13 +204,14 @@ export function AccountingJournalEntriesPage() {
                     ) : (
                       <div className="muted">لا توجد سطور لهذا القيد</div>
                     )}
-                  </Card>
+                  </FormSection>
                 </div>
               ) : null}
             </QueryFeedback>
-          </Card>
+          </FormSection>
         </div>
       ) : null}
+      </main>
     </div>
   );
 }

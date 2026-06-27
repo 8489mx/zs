@@ -70,7 +70,8 @@ export function TreasuryPage() {
   };
 
   return (
-    <div className="page-stack page-shell treasury-workspace treasury-workspace--compact">
+    <div className="page-stack page-shell treasury-workspace treasury-workspace--compact" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
       <PageHeader title="الخزينة" description="ابدأ بحركة الخزينة أولًا، وسجل المصروف عند الحاجة من العمود الجانبي مباشرة." badge={<span className="nav-pill">الحركات المالية</span>} />
       <div className="stats-grid compact-grid treasury-stats-grid">
         <div className="stat-card"><span>عدد الحركات المطابقة</span><strong>{transactionPagination?.totalItems || 0}</strong></div>
@@ -79,7 +80,6 @@ export function TreasuryPage() {
         <div className="stat-card"><span>صافي الخزينة</span><strong>{formatCurrency(transactionSummary.net)}</strong></div>
       </div>
 
-      <div className="treasury-primary-grid">
         <TreasuryTransactionsCard
           search={search}
           onSearchChange={setSearch}
@@ -96,9 +96,7 @@ export function TreasuryPage() {
           setTxnPage={setTxnPage}
           setTxnPageSize={setTxnPageSize}
         />
-
-        <div className="treasury-side-stack">
-          <TreasuryExpenseSummaryCard
+        <TreasuryExpenseSummaryCard
             expenseSummary={expenseSummary}
             expenses={expenses}
             canPrintSummary={Boolean(transactionPagination?.totalItems || expensePagination?.totalItems)}
@@ -117,10 +115,7 @@ export function TreasuryPage() {
             expenseMutation={expenseMutation}
             onReset={() => setExpenseForm(initialExpenseForm())}
           />
-        </div>
-      </div>
-
-      <TreasuryExpensesRegisterCard
+        <TreasuryExpensesRegisterCard
         expenseSearch={expenseSearch}
         onExpenseSearchChange={setExpenseSearch}
         onReset={() => { setExpenseSearch(''); setExpensePage(1); }}
@@ -132,6 +127,7 @@ export function TreasuryPage() {
         setExpensePage={setExpensePage}
         setExpensePageSize={setExpensePageSize}
       />
+      </main>
     </div>
   );
 }

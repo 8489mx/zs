@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { FormSection } from '@/shared/components/form-section';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 import { productsApi } from '@/features/products';
 import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
@@ -189,10 +190,7 @@ export default function NewBomPage() {
         </>
       }
     >
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">المنتج التام (الناتج)</h3>
-          </div>
+        <FormSection title="المنتج التام (الناتج)">
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', alignItems: 'end' }}>
               <Field label="اختر المنتج">
                 <SearchableCombobox<Product>
@@ -229,14 +227,9 @@ export default function NewBomPage() {
                 />
               </Field>
             </div>
-        </section>
+        </FormSection>
 
-        <section className="document-prototype-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div className="document-prototype-section-header" style={{ marginBottom: 0 }}>
-                <h3 className="document-prototype-section-title" style={{ margin: 0 }}>المكونات (المواد الخام)</h3>
-              </div>
-            </div>
+        <FormSection title="المكونات (المواد الخام)">
             
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
@@ -356,12 +349,9 @@ export default function NewBomPage() {
                 + إضافة مكون
               </Button>
             </div>
-        </section>
+        </FormSection>
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">ملخص التكلفة</h3>
-          </div>
+        <FormSection title="ملخص التكلفة">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4b5563' }}>
                 <span>عدد المكونات</span>
@@ -381,7 +371,7 @@ export default function NewBomPage() {
                 <span>{singleUnitTotalCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} ج.م</span>
               </div>
             </div>
-        </section>
+        </FormSection>
     </ManufacturingLayout>
   );
 }

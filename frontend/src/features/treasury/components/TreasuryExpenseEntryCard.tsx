@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -42,7 +42,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
   const selectedExpensePreset = EXPENSE_PRESETS.includes(expenseForm.title) ? expenseForm.title : (expenseForm.title ? CUSTOM_EXPENSE_VALUE : '');
 
   return (
-    <Card title="تسجيل مصروف" actions={<span className="nav-pill">مصروف</span>}>
+    <FormSection title="تسجيل مصروف" actions={<span className="nav-pill">مصروف</span>}>
       <div className="form-grid">
         <Field label="نوع المصروف">
           <select
@@ -165,6 +165,6 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
           />
         </div>
       </div>
-    </Card>
+    </FormSection>
   );
 }

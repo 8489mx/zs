@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -51,7 +51,7 @@ export function ReturnsCreateCard(props: Props) {
   } = props;
 
   return (
-    <Card title="إنشاء مرتجع جديد" actions={<span className="nav-pill">إنشاء</span>} className="workspace-panel returns-create-card">
+    <FormSection title="إنشاء مرتجع جديد" actions={<span className="nav-pill">إنشاء</span>} className="workspace-panel returns-create-card">
       <div className="form-grid">
         <Field label="نوع المرتجع">
           <select value={form.type} onChange={(e) => onFormChange((current) => ({ ...current, type: e.target.value as 'sale' | 'purchase', invoiceId: '', settlementMode: 'refund', refundMethod: 'cash' }))}>
@@ -100,6 +100,6 @@ export function ReturnsCreateCard(props: Props) {
           <SubmitButton type="button" onClick={onOpenConfirm} disabled={isBusy || !form.invoiceId || !selectedItemsCount} idleText={form.type === 'sale' ? 'تسجيل مرتجع البيع' : 'تسجيل مرتجع الشراء'} pendingText="جارٍ الحفظ..." />
         </div>
       </div>
-    </Card>
+    </FormSection>
   );
 }

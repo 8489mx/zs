@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Field } from '@/shared/ui/field';
@@ -43,7 +43,7 @@ export function StockTransferComposerCard({
 }: StockTransferComposerCardProps) {
   const warehouseList = warehouses || locations || [];
   return (
-    <Card title="تحويل مخزون بين المخازن" description="تجميع العناصر أولًا ثم اعتماد التحويل مع إبقاء المراجعة السريعة للعناصر قبل الإرسال." actions={<span className="nav-pill">التحويلات</span>}>
+    <FormSection title="تحويل مخزون بين المخازن" description="تجميع العناصر أولًا ثم اعتماد التحويل مع إبقاء المراجعة السريعة للعناصر قبل الإرسال." actions={<span className="nav-pill">التحويلات</span>}>
       <div className="form-grid">
         <Field label="من مخزن">
           <select value={form.fromLocationId} onChange={(e) => onFormChange({ fromLocationId: e.target.value })}>
@@ -92,7 +92,7 @@ export function StockTransferComposerCard({
           </div>
         )) : <EmptyState title="لا توجد عناصر مضافة للتحويل" hint="أضف صنفًا واحدًا على الأقل ثم احفظ التحويل." />}
       </div>
-    </Card>
+    </FormSection>
   );
 }
 
@@ -243,7 +243,7 @@ export function StockCountComposerCard({
   }
 
   return (
-    <Card
+    <FormSection
       title="جلسة جرد مخزون"
       description={isCountStarted ? 'راجع الأصناف، أدخل الكميات الفعلية، ثم أنشئ جلسة الجرد بعد المراجعة.' : 'ابدأ بخطوات قليلة: اختر طريقة الجرد، النطاق، وطريقة العد.'}
       actions={<span className="nav-pill">{isCountStarted ? 'مرحلة العد والمراجعة' : 'إنشاء الجلسة'}</span>}
@@ -439,6 +439,6 @@ export function StockCountComposerCard({
           </div>
         </div>
       )}
-    </Card>
+    </FormSection>
   );
 }

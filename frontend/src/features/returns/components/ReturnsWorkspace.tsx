@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateReturnsDomain } from '@/app/query-invalidation';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
@@ -33,6 +33,7 @@ export function ReturnsWorkspace() {
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
   const query = useReturnsPage({ page, pageSize, search, filter: viewFilter, employee: employeeFilter });
   const salesQuery = useQuery({ queryKey: ['sales'], queryFn: catalogApi.listSales });
@@ -207,8 +208,9 @@ export function ReturnsWorkspace() {
   };
 
   return (
-    <div className="page-stack page-shell returns-workspace">
-      <ReturnsWorkspaceHeader
+    <div className="page-stack page-shell returns-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+        <ReturnsWorkspaceHeader
         totalItems={summary?.totalItems || 0}
         salesReturns={salesReturns}
         purchaseReturns={purchaseReturns}
@@ -233,13 +235,15 @@ export function ReturnsWorkspace() {
         onFilterChange={handleFilterChange}
         employeeFilter={employeeFilter}
         onEmployeeFilterChange={(value) => { setEmployeeFilter(value); setPage(1); }}
-        onSelectReturn={setSelectedReturnId}
+        onSelectReturn={(id) => {
+          setSelectedReturnId(id);
+          setTimeout(() => detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+        }}
         onPrintReturn={printReturnRecord}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />
 
-      <div className="returns-layout-grid">
         <ReturnsCreateCard
           form={form}
           invoiceRows={invoiceRows}
@@ -260,22 +264,21 @@ export function ReturnsWorkspace() {
           onOpenConfirm={() => setConfirmReturn(true)}
           returnedQtyByProduct={returnedQtyByProduct}
         />
-
-        <div className="returns-side-stack">
-          <ReturnsSelectedInvoiceCard
+        <ReturnsSelectedInvoiceCard
             selectedInvoice={selectedInvoice}
             selectedItemsCount={selectedItemsCount}
             selectedQtyTotal={selectedQtyTotal}
             expectedReturnValue={expectedReturnValue}
           />
 
+        <div ref={detailsRef}>
           <ReturnsSelectedReturnCard
             selectedReturn={selectedReturn}
             onPrint={() => selectedReturn ? printReturnRecord(selectedReturn) : undefined}
             onCopy={() => void copySelectedReturn()}
           />
         </div>
-      </div>
+      </main>
 
       <ActionConfirmDialog
         open={confirmReturn}

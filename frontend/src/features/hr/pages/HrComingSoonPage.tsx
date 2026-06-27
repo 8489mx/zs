@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
@@ -155,6 +155,7 @@ export function HrComingSoonPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="الموارد البشرية"
         description="نظرة تشغيلية مختصرة: ابدأ من العناصر التي تحتاج إجراء، أو انتقل مباشرة للقسم المطلوب."
@@ -174,7 +175,7 @@ export function HrComingSoonPage() {
         loadingText="جاري تحميل نظرة الموارد البشرية..."
         errorTitle="تعذر تحميل نظرة الموارد البشرية"
       >
-        <Card title="ملخص سريع" description="الأرقام المهمة اليوم بدون ازدحام.">
+        <FormSection title="ملخص سريع" description="الأرقام المهمة اليوم بدون ازدحام.">
           <div className="stats-grid">
             <div className="stat-card"><span>إجمالي الموظفين</span><strong>{totalEmployees}</strong></div>
             <div className="stat-card"><span>نشط</span><strong>{activeEmployees}</strong></div>
@@ -185,9 +186,9 @@ export function HrComingSoonPage() {
             <div className="stat-card"><span>أقساط سلف مستحقة</span><strong>{money(dueLoanAmount)}</strong></div>
             <div className="stat-card"><span>مرتبات تحتاج مراجعة</span><strong>{payrollReviewCount}</strong></div>
           </div>
-        </Card>
+        </FormSection>
 
-        <Card title="اختصارات العمل" description="ادخل مباشرة على المكان الصحيح بدل الرجوع للسايد بار.">
+        <FormSection title="اختصارات العمل" description="ادخل مباشرة على المكان الصحيح بدل الرجوع للسايد بار.">
           <div className="form-grid">
             {navCards.map((card) => (
               <div key={card.to} className="field" style={{ alignItems: 'flex-start' }}>
@@ -197,9 +198,9 @@ export function HrComingSoonPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </FormSection>
 
-        <Card title="يحتاج إجراء" description="أهم العناصر التي تستحق المتابعة الآن.">
+        <FormSection title="يحتاج إجراء" description="أهم العناصر التي تستحق المتابعة الآن.">
           <DataTable
             rows={reviewItems}
             rowKey={(row) => row.id}
@@ -217,8 +218,9 @@ export function HrComingSoonPage() {
             ]}
           />
           {!reviewItems.length ? <p className="muted" style={{ margin: '12px 0 0' }}>لا توجد عناصر عاجلة ظاهرة حاليًا.</p> : null}
-        </Card>
+        </FormSection>
       </QueryFeedback>
+      </main>
     </div>
   );
 }

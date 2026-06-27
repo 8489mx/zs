@@ -1,7 +1,7 @@
-﻿import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { getErrorMessage } from '@/lib/errors';
 import { useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
@@ -128,7 +128,7 @@ export function EmployeeCreatePage() {
       <EmployeeQuickSetupCard missingSetup={missingSetup} quickDepartmentName={quickDepartmentName} quickJobTitleName={quickJobTitleName} quickPositionName={quickPositionName} setupError={setupError} setupSuccess={setupSuccess} isBusy={isBusy} onQuickDepartmentNameChange={setQuickDepartmentName} onQuickJobTitleNameChange={setQuickJobTitleName} onQuickPositionNameChange={setQuickPositionName} onCreateQuickMaster={(kind, name) => { void createQuickMaster(kind, name); }} />
 
       <form onSubmit={(event) => { void handleSubmit(event); }}>
-        <Card title="البيانات الأساسية" description="أدخل بيانات التعريف الأساسية للموظف.">
+        <FormSection title="البيانات الأساسية" description="أدخل بيانات التعريف الأساسية للموظف.">
           <div className="form-grid">
             <div className="field"><span>كود الموظف</span><input value={draft.employeeNo} onChange={(e) => setDraft((current) => ({ ...current, employeeNo: e.target.value }))} /></div>
             <div className="field"><span>الاسم الأول *</span><input value={draft.firstName} onChange={(e) => setDraft((current) => ({ ...current, firstName: e.target.value }))} required /></div>
@@ -136,9 +136,9 @@ export function EmployeeCreatePage() {
             <div className="field"><span>الموبايل *</span><input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} inputMode="tel" required /></div>
             <div className="field"><span>الرقم القومي</span><input value={draft.nationalId} onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))} inputMode="numeric" maxLength={14} placeholder="اختياري" /></div>
           </div>
-        </Card>
+        </FormSection>
 
-        <Card title="البيانات الوظيفية" description="حدد القسم والمسمى الوظيفي وتاريخ التعيين.">
+        <FormSection title="البيانات الوظيفية" description="حدد القسم والمسمى الوظيفي وتاريخ التعيين.">
           <div className="form-grid">
             <div className="field"><span>القسم</span><select value={draft.departmentId} onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}><option value="">اختيار</option>{departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></div>
             <div className="field"><span>المسمى الوظيفي</span><select value={draft.jobTitleId} onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}><option value="">اختيار</option>{jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></div>
@@ -146,11 +146,11 @@ export function EmployeeCreatePage() {
             <div className="field"><span>تاريخ التعيين *</span><input type="date" value={draft.hireDate} onChange={(e) => setDraft((current) => ({ ...current, hireDate: e.target.value }))} required /></div>
             <div className="field"><span>الحالة</span><select value={draft.status} onChange={(e) => setDraft((current) => ({ ...current, status: e.target.value === 'inactive' ? 'inactive' : 'active' }))}><option value="active">نشط</option><option value="inactive">غير نشط</option></select></div>
           </div>
-        </Card>
+        </FormSection>
 
-        <Card title="العقد والراتب" description="اختياري. لو أدخلت نوع التعاقد أو الراتب الأساسي سيتم إنشاء عقد مبدئي للموظف، ويمكن استكمال التفاصيل داخل ملف الموظف لاحقًا."><div className="form-grid"><div className="field"><span>نوع التعاقد</span><input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="اختياري" /></div><div className="field"><span>الراتب الأساسي</span><input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" /></div></div></Card>
+        <FormSection title="العقد والراتب" description="اختياري. لو أدخلت نوع التعاقد أو الراتب الأساسي سيتم إنشاء عقد مبدئي للموظف، ويمكن استكمال التفاصيل داخل ملف الموظف لاحقًا."><div className="form-grid"><div className="field"><span>نوع التعاقد</span><input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="اختياري" /></div><div className="field"><span>الراتب الأساسي</span><input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" /></div></div></FormSection>
 
-        <Card title="بيانات الدوام والأجر" description="اختر وردية جاهزة لتعبئة مواعيد الحضور والانصراف بسرعة، أو عدّل القيم يدويًا حسب الموظف.">
+        <FormSection title="بيانات الدوام والأجر" description="اختر وردية جاهزة لتعبئة مواعيد الحضور والانصراف بسرعة، أو عدّل القيم يدويًا حسب الموظف.">
           <div className="card-soft" style={{ marginBottom: 12, padding: 12 }}><strong style={{ display: 'block', marginBottom: 8 }}>ورديات جاهزة</strong><div className="form-grid">{shiftPresets.map((preset) => <div key={preset.label} className="field" style={{ alignItems: 'flex-start' }}><strong>{preset.label}</strong><span className="muted">{preset.description}</span><Button type="button" variant="secondary" onClick={() => applyShiftPreset(preset)}>استخدام الوردية</Button></div>)}</div></div>
           <div className="form-grid">
             <label className="field"><span>نوع الأجر</span><select value={draft.compensationType} onChange={(e) => setDraft((current) => ({ ...current, compensationType: e.target.value === 'hourly' ? 'hourly' : 'monthly' }))}><option value="monthly">راتب شهري</option><option value="hourly">أجر بالساعة</option></select></label>
@@ -160,10 +160,10 @@ export function EmployeeCreatePage() {
             <label className="field"><span>فترة السماح بالدقائق</span><input inputMode="numeric" min="0" value={draft.graceMinutes} onChange={(e) => setDraft((current) => ({ ...current, graceMinutes: e.target.value }))} /></label>
             <label className="field"><span>سياسة الوقت الإضافي</span><select value={draft.overtimePolicy} onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: (e.target.value as 'review_only' | 'disabled' | 'auto_approved') || 'review_only' }))}><option value="review_only">مراجعة واعتماد قبل الاحتساب</option><option value="disabled">غير محتسب</option><option value="auto_approved">محتسب تلقائيًا</option></select></label>
           </div>
-        </Card>
+        </FormSection>
 
-        <Card title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">{reviewWarnings.length ? <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>{reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}</Card>
-        <Card title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف."><div className="field field-wide"><span>ملاحظات</span><textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} /></div>{submitError ? <div className="error-box" style={{ marginTop: 12 }}>{submitError}</div> : null}<div className="actions compact-actions" style={{ marginTop: 16 }}><Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>إلغاء</Button><Button type="submit" disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ الموظف'}</Button></div></Card>
+        <FormSection title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">{reviewWarnings.length ? <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>{reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}</FormSection>
+        <FormSection title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف."><div className="field field-wide"><span>ملاحظات</span><textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} /></div>{submitError ? <div className="error-box" style={{ marginTop: 12 }}>{submitError}</div> : null}<div className="actions compact-actions" style={{ marginTop: 16 }}><Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>إلغاء</Button><Button type="submit" disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ الموظف'}</Button></div></FormSection>
       </form>
     </div>
   );

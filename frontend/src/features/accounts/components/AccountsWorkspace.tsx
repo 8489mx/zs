@@ -30,7 +30,8 @@ export function AccountsWorkspace() {
   const isCustomerMode = focusMode === 'customers';
 
   return (
-    <div className="page-stack page-shell accounts-workspace accounts-workspace--compact">
+    <div className="page-stack page-shell accounts-workspace accounts-workspace--compact" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="الحسابات"
         description="ابدأ بالكشف المطلوب ثم سجل التحصيل أو الدفع من نفس الشاشة بدون ازدحام."
@@ -76,7 +77,7 @@ export function AccountsWorkspace() {
       </div>
 
       {isCustomerMode ? (
-        <div className="two-column-grid accounts-focus-grid">
+        <div className="page-stack accounts-focus-grid">
           <AccountsLedgerCard
             title="كشف حساب عميل"
             description="اختر العميل وراجع الحركة ثم اطبع أو صدّر الكشف عند الحاجة."
@@ -142,7 +143,7 @@ export function AccountsWorkspace() {
         </div>
       ) : (
         <div className="page-stack">
-          <div className="two-column-grid accounts-focus-grid">
+          <div className="page-stack accounts-focus-grid">
             <AccountsLedgerCard
               title="كشف حساب مورد"
               description="اختر المورد وراجع الحركة ثم انسخ أو اطبع الكشف مباشرة."
@@ -210,6 +211,7 @@ export function AccountsWorkspace() {
           <SupplierBalanceScheduleCard supplier={controller.selectedSupplier as Supplier | null} disabled={!canManageAccounts} />
         </div>
       )}
+      </main>
     </div>
   );
 }

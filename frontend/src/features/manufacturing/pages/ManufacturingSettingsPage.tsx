@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { FormSection } from '@/shared/components/form-section';
 
 import { http } from '@/lib/http';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
@@ -83,12 +84,7 @@ export default function ManufacturingSettingsPage() {
       ]}
       title="إعدادات التصنيع"
     >
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">المخازن الافتراضية للتصنيع</h3>
-            <p className="muted small">اختر المخزن الافتراضي الذي ستتم عليه عمليات التصنيع وصرف المواد الخام بشكل آلي ما لم يتم تحديد مخزن آخر في أمر الإنتاج.</p>
-          </div>
-          
+        <FormSection title="المخازن الافتراضية للتصنيع" description="اختر المخزن الافتراضي الذي ستتم عليه عمليات التصنيع وصرف المواد الخام بشكل آلي ما لم يتم تحديد مخزن آخر في أمر الإنتاج.">
           <div style={{ maxWidth: '400px', marginBottom: '24px' }}>
             <SearchableCombobox
               label="المخزن الافتراضي لصالة الإنتاج"
@@ -106,7 +102,7 @@ export default function ManufacturingSettingsPage() {
           <Button type="button" variant="primary" onClick={handleSave} disabled={isSaving}>
              {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
           </Button>
-        </section>
+        </FormSection>
     </ManufacturingLayout>
   );
 }
