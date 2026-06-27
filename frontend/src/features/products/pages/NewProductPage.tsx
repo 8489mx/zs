@@ -363,6 +363,9 @@ export function NewProductPage() {
   const [variantBarcodePrefix, setVariantBarcodePrefix] = useState('');
   const [groupedEntryEnabled, setGroupedEntryEnabled] = useState(defaultGroupedMode);
   const [isGeneratingStyleCode, setIsGeneratingStyleCode] = useState(false);
+  const [isMarginActive, setIsMarginActive] = useState(false);
+  const [retailMargin, setRetailMargin] = useState('');
+  const [wholesaleMargin, setWholesaleMargin] = useState('');
 
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
@@ -391,11 +394,28 @@ export function NewProductPage() {
   const watchedVariantStock = Number(form.watch('variantStock') || 0);
   const watchedCategoryId = form.watch('categoryId');
   const watchedSupplierId = form.watch('supplierId');
+  const watchedCostPrice = form.watch('costPrice');
   const usesVariantBuilder = watchedItemKind === 'fashion' || groupedEntryEnabled;
 
   useEffect(() => {
     if (watchedItemKind === 'fashion' && !groupedEntryEnabled) setGroupedEntryEnabled(true);
   }, [watchedItemKind, groupedEntryEnabled]);
+
+  useEffect(() => {
+    if (isMarginActive && watchedCostPrice !== undefined) {
+      const cost = Number(watchedCostPrice) || 0;
+      if (retailMargin) {
+        const rMargin = Number(retailMargin);
+        const newRetail = cost + (cost * rMargin / 100);
+        form.setValue('retailPrice', Number(newRetail.toFixed(2)), { shouldValidate: true, shouldDirty: true });
+      }
+      if (wholesaleMargin) {
+        const wMargin = Number(wholesaleMargin);
+        const newWholesale = cost + (cost * wMargin / 100);
+        form.setValue('wholesalePrice', Number(newWholesale.toFixed(2)), { shouldValidate: true, shouldDirty: true });
+      }
+    }
+  }, [watchedCostPrice, isMarginActive, retailMargin, wholesaleMargin, form]);
 
   const colorTokens = useMemo(() => splitFashionTokens(watchedFashionColors), [watchedFashionColors]);
   const sizeTokens = useMemo(() => splitFashionTokens(watchedFashionSizes), [watchedFashionSizes]);
@@ -619,9 +639,22 @@ export function NewProductPage() {
         </section>
 
         <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
+          <div className="document-prototype-section-header" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 className="document-prototype-section-title">التسعير والمخزون</h3>
+            <Button type="button" variant={isMarginActive ? 'primary' : 'secondary'} onClick={() => setIsMarginActive(!isMarginActive)}>
+              {isMarginActive ? 'إلغاء ضبط هامش الربح' : 'ضبط هامش الربح'}
+            </Button>
           </div>
+          {isMarginActive && (
+            <div className="document-prototype-grid compact-grid-2" style={{ marginBottom: 16, padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+              <Field label="هامش ربح القطاعي (%)">
+                <input className="purchase-prototype-field-input" type="number" step="0.01" value={retailMargin} onChange={(e) => setRetailMargin(e.target.value)} placeholder="مثال: 20" disabled={isFormDisabled} />
+              </Field>
+              <Field label="هامش ربح الجملة (%)">
+                <input className="purchase-prototype-field-input" type="number" step="0.01" value={wholesaleMargin} onChange={(e) => setWholesaleMargin(e.target.value)} placeholder="مثال: 10" disabled={isFormDisabled} />
+              </Field>
+            </div>
+          )}
           <div className="document-prototype-grid compact-grid-3">
             <Field label="سعر الشراء"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} /></Field>
             <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
