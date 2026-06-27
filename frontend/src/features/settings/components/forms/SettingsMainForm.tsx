@@ -5,6 +5,7 @@ import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { FormSection } from '@/shared/components/form-section';
 import { useSettingsUpdateMutation } from '@/features/settings/hooks/useSettingsMutations';
 import { settingsFormSchema, type SettingsFormInput, type SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
@@ -321,27 +322,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   });
 
   return (
-    <form id="settings-main-form" className="page-shell document-prototype-shell purchase-new-prototype settings-core-form" dir="rtl" onSubmit={submit}>
-      {/* ===== الهيدر العلوي الثابت ===== */}
-      <div className="purchase-prototype-sticky-stack">
-        <div className="purchase-prototype-document-surface">
-          <div className="document-prototype-topbar">
-            <div className="document-prototype-topbar-right">
-              <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>إعدادات النظام</h1>
-            </div>
-            <div className="document-prototype-topbar-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => form.setValue('logoData', '', { shouldDirty: true })} disabled={disabled || !form.watch('logoData')}>حذف الشعار</button>
-              <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset(); }} disabled={disabled || !form.formState.isDirty}>تفريغ التغييرات</button>
-              <button type="submit" className="btn btn-primary" disabled={disabled}>
-                {mutation.isPending ? 'جارٍ الحفظ...' : setupMode ? 'حفظ والانتقال للخطوة التالية' : 'حفظ الإعدادات'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ===== محتوى الصفحة ===== */}
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+    <form id="settings-main-form" className="page-stack settings-core-form" dir="rtl" onSubmit={submit}>
+      
 
         {/* الإشعارات والأخطاء */}
         <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تغييرات غير محفوظة" hint="احفظ التعديلات أو أعد ضبطها قبل مغادرة الشاشة." />
@@ -354,16 +336,12 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         ) : null}
 
         {/* معاينة الهوية التجارية */}
-        <section className="document-prototype-section" style={{ marginBottom: 24 }}>
+        <FormSection title="الهوية التجارية">
           <BrandPreview form={form} />
-        </section>
+        </FormSection>
 
         {/* ===== اللغة والمنطقة ===== */}
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">اللغة والمنطقة</h3>
-          </div>
-          <div className="muted small" style={{ marginBottom: 16 }}>اضبط لغة الواجهة والعملة والمنطقة الزمنية المستخدمة في شاشة النظام والتقارير.</div>
+        <FormSection title="اللغة والمنطقة" description={<>اضبط لغة الواجهة والعملة والمنطقة الزمنية المستخدمة في شاشة النظام والتقارير.</>}>
           <div className="document-prototype-grid compact-grid-2">
             <div className="field">
               <label>لغة النظام</label>
@@ -413,16 +391,12 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <div className="muted small" style={{ marginTop: 4 }}>اختر الطريقة الأسرع لك عند إرسال الرسائل.</div>
             </div>
           </div>
-        </section>
+        </FormSection>
 
         {/* ===== الإعدادات المطلوبة ===== */}
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">الإعدادات المطلوبة للتشغيل</h3>
-          </div>
-          <div className="muted small" style={{ marginBottom: 16 }}>
+        <FormSection title="الإعدادات المطلوبة للتشغيل" description={<>
             أكمل هذه البيانات أولًا حتى تعمل المبيعات والمخزون والقيود بشكل صحيح. الحقول المميزة بـ <span style={{ color: '#dc2626', fontWeight: 700 }}>*</span> مطلوبة.
-          </div>
+          </>}>
           <div className="document-prototype-grid compact-grid-2">
             <RequiredField label="اسم النشاط / المتجر" error={form.formState.errors.storeName?.message}>
               <input className="purchase-prototype-field-input" {...form.register('storeName')} disabled={disabled} />
@@ -561,13 +535,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               </select>
             </RequiredField>
           </div>
-        </section>
+        </FormSection>
 
         {/* ===== بيانات النشاط ===== */}
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">بيانات النشاط</h3>
-          </div>
+        <FormSection title="بيانات النشاط">
           <div className="document-prototype-grid compact-grid-2">
             <div className="field">
               <label>الاسم التجاري</label>
@@ -605,13 +576,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <input className="purchase-prototype-field-input" style={{ height: 42, padding: 4 }} type="color" {...form.register('accentColor')} disabled={disabled} />
             </div>
           </div>
-        </section>
+        </FormSection>
 
         {/* ===== إعدادات البيع والفاتورة ===== */}
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">إعدادات البيع والفاتورة</h3>
-          </div>
+        <FormSection title="إعدادات البيع والفاتورة">
           <div className="document-prototype-grid compact-grid-2">
             <div className="field">
               <label>نسبة الضريبة</label>
@@ -644,13 +612,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               </select>
             </div>
           </div>
-        </section>
+        </FormSection>
 
         {/* ===== خيارات البيع والمخزون ===== */}
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">خيارات البيع والمخزون</h3>
-          </div>
+        <FormSection title="خيارات البيع والمخزون">
           <div className="document-prototype-grid compact-grid-2">
             <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('allowNegativeStockSales')} disabled={disabled} />
@@ -661,14 +626,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <input className="purchase-prototype-field-input" type="number" min="0" {...form.register('lowStockThreshold')} disabled={disabled} />
             </div>
           </div>
-        </section>
+        </FormSection>
 
         {/* ===== موديولات النظام ===== */}
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">موديولات النظام</h3>
-          </div>
-          <div className="muted small" style={{ marginBottom: 16 }}>شغّل الأجزاء اللي محتاجها بس — والباقي هيتخفى تلقائيًا من الشاشات.</div>
+        <FormSection title="موديولات النظام" description={<>شغّل الأجزاء اللي محتاجها بس — والباقي هيتخفى تلقائيًا من الشاشات.</>}>
           <div className="document-prototype-grid compact-grid-2">
             <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('manufacturingModuleEnabled')} disabled={disabled} />
@@ -716,13 +677,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               </div>
             </div>
           ) : null}
-        </section>
+        </FormSection>
 
         {/* ===== الأمان والنسخ الاحتياطي ===== */}
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">الأمان والنسخ الاحتياطي</h3>
-          </div>
+        <FormSection title="الأمان والنسخ الاحتياطي">
           <div className="document-prototype-grid compact-grid-2">
             <div className="field">
               <label>رمز اعتماد المدير</label>
@@ -737,13 +695,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               </select>
             </div>
           </div>
-        </section>
+        </FormSection>
 
         {/* ===== عناصر الطباعة ===== */}
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">عناصر الطباعة على الفاتورة</h3>
-          </div>
+        <FormSection title="عناصر الطباعة على الفاتورة">
           <div className="settings-print-options-grid" style={checkboxGridStyle}>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printCompactReceipt')} disabled={disabled} /> وضع إيصال مضغوط لتوفير الورق</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLogo')} disabled={disabled} /> إظهار الشعار</label>
@@ -760,7 +715,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentBreakdown')} disabled={disabled} /> إظهار تفصيل المدفوعات</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowFooter')} disabled={disabled} /> إظهار التذييل</label>
           </div>
-        </section>
+        </FormSection>
       <div className="actions compact-actions sticky-form-actions settings-save-actions">
         <button type="button" className="btn btn-secondary" onClick={() => form.setValue('logoData', '', { shouldDirty: true })} disabled={mutation.isPending || !form.watch('logoData')}>حذف الشعار</button>
         <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset(); }} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ التغييرات</button>
@@ -770,8 +725,6 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       {!canManageSettings ? <div className="muted small">هذا الحساب يملك صلاحية عرض الإعدادات فقط بدون تعديل.</div> : null}
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الإعدادات" successText="تم حفظ الإعدادات بنجاح." />
       <SubmitButton type="submit" disabled={mutation.isPending || !canManageSettings} idleText={setupMode ? 'حفظ والانتقال للخطوة التالية' : 'حفظ الإعدادات'} pendingText="جارٍ الحفظ..." />
-
-      </main>
 
       {/* مودال إضافة فرع سريع */}
       <DialogShell open={!SINGLE_STORE_MODE && showBranchQuickAdd} onClose={() => setShowBranchQuickAdd(false)} width="min(560px, 100%)" ariaLabel="إضافة فرع جديد">
