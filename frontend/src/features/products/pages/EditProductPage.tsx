@@ -113,6 +113,21 @@ export function EditProductPage() {
 
   const isFormDisabled = mutation.isPending || isProductLoading || settingsQuery.isLoading;
 
+  const onSubmit = form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }));
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!isFormDisabled) {
+          onSubmit();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormDisabled, onSubmit]);
+
   if (isProductLoading) {
     return <div className="screen-center"><div className="loading-card">جاري تحميل الصنف...</div></div>;
   }
@@ -156,21 +171,6 @@ export function EditProductPage() {
       </div>
     );
   }
-
-  const onSubmit = form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }));
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (!isFormDisabled) {
-          onSubmit();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFormDisabled, onSubmit]);
 
   return (
     <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
