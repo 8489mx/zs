@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
@@ -176,18 +176,19 @@ export function HrAssetsPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader title="العُهد والأصول" description="قسّم العُهد إلى عينية ونقدية. العهدة النقدية مخصصة لمبلغ يُسلّم للموظف للصرف على شغل الشركة ثم تتم تسويته." actions={<div className="compact-actions"><Button type="button" onClick={() => setShowCreate((current) => !current)}>{showCreate ? 'إغلاق النموذج' : activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'}</Button><Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button></div>} />
 
-      <Card title="نوع العهدة" description="اختر النوع قبل التسجيل حتى تظهر الحقول المناسبة لكل دورة."><div className="compact-actions"><Button type="button" variant={activeTab === 'physical' ? 'primary' : 'secondary'} onClick={() => switchTab('physical')}>عُهد عينية</Button><Button type="button" variant={activeTab === 'cash' ? 'primary' : 'secondary'} onClick={() => switchTab('cash')}>عُهد نقدية</Button></div></Card>
+      <FormSection title="نوع العهدة" description="اختر النوع قبل التسجيل حتى تظهر الحقول المناسبة لكل دورة."><div className="compact-actions"><Button type="button" variant={activeTab === 'physical' ? 'primary' : 'secondary'} onClick={() => switchTab('physical')}>عُهد عينية</Button><Button type="button" variant={activeTab === 'cash' ? 'primary' : 'secondary'} onClick={() => switchTab('cash')}>عُهد نقدية</Button></div></FormSection>
 
-      <Card title={activeTab === 'cash' ? 'تسلسل العهدة النقدية' : 'تسلسل العهد العينية'} description={activeTab === 'cash' ? 'العهدة النقدية ليست سلفة شخصية؛ هي مبلغ للشغل يتم تسويته بفواتير أو مرتجع.' : 'استخدم الصفحة بهذا الترتيب حتى لا تضيع العُهد أو تظل مفتوحة بدون مراجعة.'}>
+      <FormSection title={activeTab === 'cash' ? 'تسلسل العهدة النقدية' : 'تسلسل العهد العينية'} description={activeTab === 'cash' ? 'العهدة النقدية ليست سلفة شخصية؛ هي مبلغ للشغل يتم تسويته بفواتير أو مرتجع.' : 'استخدم الصفحة بهذا الترتيب حتى لا تضيع العُهد أو تظل مفتوحة بدون مراجعة.'}>
         <div className="form-grid">
           {activeTab === 'cash' ? <><div className="field"><strong>1. تسليم مبلغ</strong><span className="muted">اختر الموظف والمبلغ والغرض.</span></div><div className="field"><strong>2. صرف على الشغل</strong><span className="muted">الموظف يجمع الفواتير أو الإيصالات.</span></div><div className="field"><strong>3. تسوية</strong><span className="muted">سجّل المصروف والمرتجع وأي فرق.</span></div><div className="field"><strong>4. إغلاق أو مراجعة</strong><span className="muted">الفرق غير الصفري يظهر ضمن تحتاج مراجعة.</span></div></> : <><div className="field"><strong>1. سلّم العهدة</strong><span className="muted">اختر الموظف ونوع العهدة والكود أو الرقم التسلسلي.</span></div><div className="field"><strong>2. راجع المفتوح</strong><span className="muted">العُهد المسلّمة تظهر كمسؤولية قائمة على الموظف.</span></div><div className="field"><strong>3. عالج التالف والمفقود</strong><span className="muted">أي تالف أو مفقود يظهر في فئة تحتاج مراجعة.</span></div><div className="field"><strong>4. أغلق عند الاسترجاع</strong><span className="muted">سجّل الاسترجاع عند رجوع العهدة من الموظف.</span></div></>}
         </div>
-      </Card>
+      </FormSection>
 
       {showCreate ? (
-        <Card title={activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'} description={activeTab === 'cash' ? 'سجّل المبلغ والغرض. التسوية تتم لاحقًا من قائمة العهد النقدية.' : 'سجّل العهدة على الموظف الصحيح. يمكن متابعة العُهد أيضًا من ملف الموظف.'}>
+        <FormSection title={activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'} description={activeTab === 'cash' ? 'سجّل المبلغ والغرض. التسوية تتم لاحقًا من قائمة العهد النقدية.' : 'سجّل العهدة على الموظف الصحيح. يمكن متابعة العُهد أيضًا من ملف الموظف.'}>
           <div className="form-grid">
             <label className="field"><span>الموظف *</span><select value={form.employeeId} onChange={(event) => setForm((prev) => ({ ...prev, employeeId: event.target.value }))}><option value="">اختر الموظف</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employeeDisplay(employee)}</option>)}</select>{errors.employeeId ? <small className="field-error">{errors.employeeId}</small> : null}</label>
             {activeTab === 'cash' ? <label className="field"><span>مبلغ العهدة *</span><input inputMode="decimal" value={form.cashAmount} onChange={(event) => setForm((prev) => ({ ...prev, cashAmount: event.target.value }))} placeholder="مثال: 5000" />{errors.cashAmount ? <small className="field-error">{errors.cashAmount}</small> : null}</label> : <label className="field"><span>نوع العهدة *</span><select value={form.assetType} onChange={(event) => setForm((prev) => ({ ...prev, assetType: event.target.value }))}><option value="">اختر النوع</option>{assetTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select>{errors.assetType ? <small className="field-error">{errors.assetType}</small> : null}</label>}
@@ -198,10 +199,10 @@ export function HrAssetsPage() {
           </div>
           <div className="actions compact-actions"><Button type="button" onClick={submitAsset} disabled={mutations.saveEmployeeAsset.isPending}>{mutations.saveEmployeeAsset.isPending ? 'جاري التسجيل...' : activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'}</Button><Button type="button" variant="secondary" onClick={() => setShowCreate(false)}>إلغاء</Button></div>
           {mutations.saveEmployeeAsset.isError ? <p className="muted">{getErrorMessage(mutations.saveEmployeeAsset.error)}</p> : null}
-        </Card>
+        </FormSection>
       ) : null}
 
-      <Card title={activeTab === 'cash' ? 'ملخص العُهد النقدية' : 'ملخص العُهد العينية'} description="اضغط على الكروت لتصفية القائمة مباشرة.">
+      <FormSection title={activeTab === 'cash' ? 'ملخص العُهد النقدية' : 'ملخص العُهد العينية'} description="اضغط على الكروت لتصفية القائمة مباشرة.">
         <div className="stats-grid">
           <button className="stat-card" type="button" onClick={() => setFilter('all')} style={{ textAlign: 'right' }}><span>الإجمالي</span><strong>{summary.total}</strong></button>
           <button className="stat-card" type="button" onClick={() => setFilter('assigned')} style={{ textAlign: 'right' }}><span>{activeTab === 'cash' ? 'مفتوحة' : 'مسلّمة'}</span><strong>{summary.assigned}</strong></button>
@@ -213,9 +214,9 @@ export function HrAssetsPage() {
           {activeTab === 'cash' ? <div className="stat-card"><span>مبالغ مفتوحة</span><strong>{money(summary.cashOpenAmount)}</strong></div> : null}
           <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title={activeTab === 'cash' ? 'قائمة العُهد النقدية' : 'قائمة العُهد العينية'} description={activeTab === 'cash' ? 'سجّل التسوية من نفس القائمة عند انتهاء الصرف.' : 'الفئة الافتراضية تعرض العُهد التي تحتاج مراجعة حتى لا يتم تجاهل التالف أو المفقود.'}>
+      <FormSection title={activeTab === 'cash' ? 'قائمة العُهد النقدية' : 'قائمة العُهد العينية'} description={activeTab === 'cash' ? 'سجّل التسوية من نفس القائمة عند انتهاء الصرف.' : 'الفئة الافتراضية تعرض العُهد التي تحتاج مراجعة حتى لا يتم تجاهل التالف أو المفقود.'}>
         <div className="compact-actions" style={{ marginBottom: 12 }}>{statusOptions.filter((option) => activeTab === 'physical' || !['damaged', 'lost'].includes(option.value)).map((option) => <Button key={option.value} type="button" variant={statusFilter === option.value ? 'primary' : 'secondary'} onClick={() => setFilter(option.value)}>{option.label}</Button>)}</div>
         <div className="form-grid" style={{ marginBottom: 12 }}><div className="field field-wide"><span>بحث الموظف أو العهدة</span><SearchToolbar search={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} searchPlaceholder={activeTab === 'cash' ? 'بحث باسم الموظف أو الغرض أو المبلغ' : 'بحث باسم الموظف أو الكود أو اسم العهدة'} inputAriaLabel="بحث العُهد" /></div><label className="field"><span>القسم</span><select value={departmentFilter} onChange={(event) => { setDepartmentFilter(event.target.value); setPage(1); }}><option value="all">الكل</option>{departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
 
@@ -262,9 +263,10 @@ export function HrAssetsPage() {
             </div>
           ) : null}
         </QueryFeedback>
-      </Card>
+      </FormSection>
 
-      <Card title="ملاحظة تشغيلية"><p className="muted" style={{ margin: 0 }}>العهدة النقدية هنا لا تُعامل كسلفة موظف ولا تخصم من المرتب تلقائيًا؛ هي مبلغ مؤقت للشغل يتم إقفاله بالتسوية. السلف الشخصية تظل في صفحة السلف والخصومات.</p></Card>
+      <FormSection title="ملاحظة تشغيلية"><p className="muted" style={{ margin: 0 }}>العهدة النقدية هنا لا تُعامل كسلفة موظف ولا تخصم من المرتب تلقائيًا؛ هي مبلغ مؤقت للشغل يتم إقفاله بالتسوية. السلف الشخصية تظل في صفحة السلف والخصومات.</p></FormSection>
+      </main>
     </div>
   );
 }

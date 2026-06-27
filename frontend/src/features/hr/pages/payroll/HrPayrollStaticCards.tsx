@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 
 export function HrPayrollWorkflowCard() {
   const steps = [
@@ -9,22 +9,22 @@ export function HrPayrollWorkflowCard() {
   ];
 
   return (
-    <Card title="تسلسل المرتبات الشهري" description="لا تعتمد المرتبات قبل المرور على نقاط المراجعة الأساسية.">
+    <FormSection title="تسلسل المرتبات الشهري" description="لا تعتمد المرتبات قبل المرور على نقاط المراجعة الأساسية.">
       <div className="form-grid">
         {steps.map(([title, hint]) => (
           <div key={title} className="field"><strong>{title}</strong><span className="muted">{hint}</span></div>
         ))}
       </div>
-    </Card>
+    </FormSection>
   );
 }
 
 export function HrPayrollOperationalNote() {
   return (
-    <Card title="ملاحظة تشغيلية">
+    <FormSection title="ملاحظة تشغيلية">
       <p className="muted" style={{ margin: 0 }}>
         اعتمد المرتبات بعد مراجعة الحضور، الإجازات، والسلف. أي خصومات مقترحة تظهر للمراجعة ولا تُعامل كقرار نهائي إلا بعد اعتماد المسؤول.
       </p>
-    </Card>
+    </FormSection>
   );
 }

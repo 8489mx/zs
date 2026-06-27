@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { DataTable } from '@/shared/ui/data-table';
@@ -186,6 +186,7 @@ export function HrLoansPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="السلف والخصومات"
         description="سجل السلفة، راجع الأقساط المستحقة، ثم تأكد من ظهورها في المرتبات قبل الاعتماد."
@@ -193,18 +194,18 @@ export function HrLoansPage() {
       />
 
       {!canViewLoans ? (
-        <Card title="الوصول للسلف والخصومات"><p className="muted" style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى هذه الصفحة.</p><p className="muted" style={{ marginBottom: 0 }}>تواصل مع مسؤول النظام لتحديث الصلاحيات.</p></Card>
+        <FormSection title="الوصول للسلف والخصومات"><p className="muted" style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى هذه الصفحة.</p><p className="muted" style={{ marginBottom: 0 }}>تواصل مع مسؤول النظام لتحديث الصلاحيات.</p></FormSection>
       ) : (
         <>
           <HrLoansWorkflowCard />
 
           {showCreate ? (
-            <Card title="سلفة جديدة" description="اختر طريقة السداد قبل الحفظ. خطة السداد لا تُخصم من المرتب إلا داخل مسير المرتبات.">
+            <FormSection title="سلفة جديدة" description="اختر طريقة السداد قبل الحفظ. خطة السداد لا تُخصم من المرتب إلا داخل مسير المرتبات.">
               <HrLoanCreateForm loanDraft={loanDraft} employees={employees as HrEmployee[]} canManageLoans={canManageLoans} formError={formError} planPreview={planPreview} isPending={mutations.saveLoan.isPending} onChange={(patch) => setLoanDraft((current) => ({ ...current, ...patch }))} onSubmit={() => { void handleCreateLoan(); }} />
-            </Card>
+            </FormSection>
           ) : null}
 
-          <Card title="ملخص السلف" description="اضغط على الكروت لتصفية القائمة مباشرة.">
+          <FormSection title="ملخص السلف" description="اضغط على الكروت لتصفية القائمة مباشرة.">
             <div className="stats-grid">
               <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي السلف</span><strong>{summary.total}</strong></button>
               <button className="stat-card" type="button" onClick={() => { setQuickFilter('active'); setPage(1); }} style={{ textAlign: 'right' }}><span>سلف نشطة</span><strong>{summary.active}</strong></button>
@@ -215,9 +216,9 @@ export function HrLoansPage() {
               <div className="stat-card"><span>إجمالي المتبقي</span><strong>{canViewSalaryAmounts ? money(summary.remainingAmount) : '—'}</strong></div>
               <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
             </div>
-          </Card>
+          </FormSection>
 
-          <Card title="قائمة السلف" description="السلف النشطة تظهر افتراضيًا. استخدم الفلاتر لمراجعة المستحق أو المغلق.">
+          <FormSection title="قائمة السلف" description="السلف النشطة تظهر افتراضيًا. استخدم الفلاتر لمراجعة المستحق أو المغلق.">
             <div className="compact-actions" style={{ marginBottom: 12 }}>
               <Button type="button" variant={quickFilter === 'active' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('active'); setPage(1); }}>نشطة</Button>
               <Button type="button" variant={quickFilter === 'due' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('due'); setPage(1); }}>أقساط مستحقة</Button>
@@ -271,11 +272,12 @@ export function HrLoansPage() {
                 <HrLoanRepaymentForm selectedLoanLabel={fallbackText(selectedRepaymentLoan.loanNo || selectedRepaymentLoan.id)} remainingAmountText={canViewSalaryAmounts ? money(selectedRepaymentLoan.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'} repaymentDraft={repaymentDraft} repaymentError={repaymentError} isPending={mutations.repayLoan.isPending} onChange={(patch) => setRepaymentDraft((current) => ({ ...current, ...patch }))} onSubmit={() => { void handleRepay(); }} onCancel={() => { setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' }); setSelectedLoanForRepayment(''); }} />
               ) : null}
             </QueryFeedback>
-          </Card>
+          </FormSection>
 
           <HrLoansOperationalNote />
         </>
       )}
+      </main>
     </div>
   );
 }

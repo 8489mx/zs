@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee } from '@/types/domain';
@@ -142,6 +142,7 @@ export function EmployeesPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="الموظفون"
         description="مساحة تشغيل الموظفين: بحث سريع، متابعة اكتمال البيانات، وفتح ملف الموظف من مكان واضح."
@@ -154,7 +155,7 @@ export function EmployeesPage() {
       />
 
       {importOpen ? (
-        <Card title="استيراد الموظفين" description="استخدم نفس نمط الاستيراد الحالي في النظام: حمّل القالب ثم ارفع CSV وراجع المعاينة قبل التنفيذ.">
+        <FormSection title="استيراد الموظفين" description="استخدم نفس نمط الاستيراد الحالي في النظام: حمّل القالب ثم ارفع CSV وراجع المعاينة قبل التنفيذ.">
           <ImportWorkbench
             title="استيراد الموظفين"
             description="يدعم الأعمدة العربية أو الإنجليزية المكافئة. يتم تحديث الموظف عند التطابق، أو إضافته إذا لم يوجد."
@@ -178,10 +179,10 @@ export function EmployeesPage() {
             onImportRows={(rows) => importEmployeesMutation.mutateAsync(rows)}
             isPending={importEmployeesMutation.isPending}
           />
-        </Card>
+        </FormSection>
       ) : null}
 
-      <Card title="تشغيل سريع" description="اختصارات مرتبطة بالموظفين دون الرجوع للسايد بار.">
+      <FormSection title="تشغيل سريع" description="اختصارات مرتبطة بالموظفين دون الرجوع للسايد بار.">
         <div className="compact-actions" style={{ flexWrap: 'wrap' }}>
           <Button type="button" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
           <Button type="button" variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>
@@ -189,9 +190,9 @@ export function EmployeesPage() {
           <Button type="button" variant="secondary" onClick={() => navigate('/hr/loans')}>فتح السلف</Button>
           <Button type="button" variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="نظرة سريعة" description="مؤشرات تساعدك تراجع بيانات الموظفين الظاهرة في القائمة الحالية.">
+      <FormSection title="نظرة سريعة" description="مؤشرات تساعدك تراجع بيانات الموظفين الظاهرة في القائمة الحالية.">
         <div className="form-grid">
           <div className="field">
             <span>إجمالي النتائج</span>
@@ -214,9 +215,9 @@ export function EmployeesPage() {
             <strong>{visibleStats.missingOrgData}</strong>
           </button>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="قائمة الموظفين" description="اضغط على الصف أو زر فتح الملف لمراجعة بيانات الموظف واستكمال ملفه.">
+      <FormSection title="قائمة الموظفين" description="اضغط على الصف أو زر فتح الملف لمراجعة بيانات الموظف واستكمال ملفه.">
         <SearchToolbar
           search={search}
           onSearchChange={(value) => {
@@ -313,7 +314,8 @@ export function EmployeesPage() {
             ]}
           />
         </QueryFeedback>
-      </Card>
+      </FormSection>
+      </main>
     </div>
   );
 }

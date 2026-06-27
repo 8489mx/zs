@@ -1,4 +1,4 @@
-﻿import { Card } from '@/shared/ui/card';
+﻿import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import type { HrEmployee, HrLeaveType } from '@/types/domain';
 import {
@@ -40,7 +40,7 @@ export function HrLeavesCreateRequestCard({
   onClose,
 }: Props) {
   return (
-    <Card title="إضافة طلب إجازة">
+    <FormSection title="إضافة طلب إجازة">
       <div className="form-grid">
         <label className="field">
           <span>الموظف</span>
@@ -99,6 +99,6 @@ export function HrLeavesCreateRequestCard({
         <Button type="button" onClick={onCreate} disabled={isPending}>{isPending ? 'جاري الحفظ...' : 'حفظ الطلب'}</Button>
         <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
       </div>
-    </Card>
+    </FormSection>
   );
 }

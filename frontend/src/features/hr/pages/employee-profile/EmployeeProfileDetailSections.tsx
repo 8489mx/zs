@@ -1,6 +1,6 @@
 import { FormEvent } from 'react';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import type { HrContract, HrDocument, HrEmployee, HrEmployeeAsset, HrLeaveRequest, HrLoan } from '@/types/domain';
 import {
   assetStatusLabel,
@@ -35,7 +35,7 @@ export function EmployeeProfileTopCards({
 }: TopCardsProps) {
   return (
     <>
-      <Card title="ملخص الموظف">
+      <FormSection title="ملخص الموظف">
         <div className="form-grid">
           <div className="field"><span>كود الموظف</span><strong>{fallbackText(employee?.employeeNo)}</strong></div>
           <div className="field"><span>الحالة</span><strong>{statusLabel(employee?.status)}</strong></div>
@@ -46,9 +46,9 @@ export function EmployeeProfileTopCards({
           <div className="field"><span>الرقم القومي</span><strong>{nationalIdMasked}</strong></div>
           <div className="field"><span>آخر تحديث</span><strong>{fallbackText((employee as HrEmployee & { updatedAt?: string })?.updatedAt || 'غير متاح')}</strong></div>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="بيانات الدوام والأجر">
+      <FormSection title="بيانات الدوام والأجر">
         <div className="form-grid">
           <div className="field"><span>نوع الأجر</span><strong>{normalizeText(employee?.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</strong></div>
           <div className="field"><span>الراتب الشهري</span><strong>{normalizeText(employee?.compensationType) === 'monthly' ? 'يظڈراجع من بيانات العقد والراتب' : 'غير متاح'}</strong></div>
@@ -60,9 +60,9 @@ export function EmployeeProfileTopCards({
           <div className="field"><span>سياسة الوقت الإضافي</span><strong>{normalizeText(employee?.overtimePolicy) === 'disabled' ? 'غير محتسب' : normalizeText(employee?.overtimePolicy) === 'auto_approved' ? 'محتسب تلقائيًا' : 'مراجعة واعتماد قبل الاحتساب'}</strong></div>
           <div className="field"><span>الأجر اليومي المتوقع</span><strong>{normalizeText(employee?.compensationType) === 'hourly' ? money(Number(employee?.hourlyRate || 0) * Number(employee?.expectedDailyHours || 0)) : 'غير متاح'}</strong></div>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="اكتمال ملف الموظف">
+      <FormSection title="اكتمال ملف الموظف">
         <div className="form-grid">
           {completenessRows.map((item) => (
             <div key={item.label} className="field">
@@ -72,17 +72,17 @@ export function EmployeeProfileTopCards({
           ))}
         </div>
         <p className="muted" style={{ marginBottom: 0 }}>استكمل بيانات الموظف لتحسين دقة المتابعة والتقارير.</p>
-      </Card>
+      </FormSection>
 
-      <Card title="تنبيهات المراجعة">
+      <FormSection title="تنبيهات المراجعة">
         {reviewAlerts.length ? (
           <ul style={{ margin: 0, paddingInlineStart: 18 }}>
             {reviewAlerts.map((alert) => <li key={alert}>{alert}</li>)}
           </ul>
         ) : <p className="muted" style={{ margin: 0 }}>لا توجد تنبيهات مراجعة حالية.</p>}
-      </Card>
+      </FormSection>
 
-      <Card title="البيانات الأساسية والوظيفية">
+      <FormSection title="البيانات الأساسية والوظيفية">
         <div className="form-grid">
           <div className="field"><span>الاسم</span><strong>{fallbackText(employee?.displayName || `${employee?.firstName || ''} ${employee?.lastName || ''}`.trim())}</strong></div>
           <div className="field"><span>كود الموظف</span><strong>{fallbackText(employee?.employeeNo)}</strong></div>
@@ -93,7 +93,7 @@ export function EmployeeProfileTopCards({
           <div className="field"><span>تاريخ التعيين</span><strong>{fallbackText(employee?.hireDate)}</strong></div>
           <div className="field"><span>الرقم القومي</span><strong>{nationalIdMasked}</strong></div>
         </div>
-      </Card>
+      </FormSection>
     </>
   );
 }
@@ -145,7 +145,7 @@ export function EmployeeProfileOperationalSections(props: OperationalProps) {
 
   return (
     <>
-      <Card title="العقد والراتب" actions={canViewSalary ? <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>عرض المرتبات</Button> : undefined}>
+      <FormSection title="العقد والراتب" actions={canViewSalary ? <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>عرض المرتبات</Button> : undefined}>
         {!canViewSalary ? (
           <p className="muted">لا تملك صلاحية عرض هذه البيانات.</p>
         ) : latestContract ? (
@@ -161,9 +161,9 @@ export function EmployeeProfileOperationalSections(props: OperationalProps) {
             <p className="muted" style={{ marginBottom: 0 }}>تفاصيل الضرائب والتأمينات تحتاج إعدادات مستقلة ومراجعة محاسب قبل الاعتماد.</p>
           </>
         ) : <p className="muted">لا يوجد عقد أو راتب مسجل.</p>}
-      </Card>
+      </FormSection>
 
-      <Card title="المستندات" actions={<Button variant="secondary" onClick={() => navigate('/hr/documents')}>عرض المستندات</Button>}>
+      <FormSection title="المستندات" actions={<Button variant="secondary" onClick={() => navigate('/hr/documents')}>عرض المستندات</Button>}>
         <form onSubmit={handleAddDocument}>
           <div className="form-grid">
             <div className="field"><span>اسم المستند</span><input value={documentDraft.title} onChange={(e) => setDocumentDraft((current) => ({ ...current, title: e.target.value }))} /></div>
@@ -184,9 +184,9 @@ export function EmployeeProfileOperationalSections(props: OperationalProps) {
             </table>
           </div>
         ) : <p className="muted">لا توجد مستندات مسجلة.</p>}
-      </Card>
+      </FormSection>
 
-      <Card title="العظڈهد والأصول" actions={<Button variant="secondary" onClick={() => navigate('/hr/assets')}>عرض العُهد</Button>}>
+      <FormSection title="العظڈهد والأصول" actions={<Button variant="secondary" onClick={() => navigate('/hr/assets')}>عرض العُهد</Button>}>
         {employeeAssets.length ? (
           <div className="table-wrap">
             <table className="data-table"><thead><tr><th>اسم العهدة</th><th>الكود/التسلسلي</th><th>تاريخ التسليم</th><th>تاريخ الاسترجاع</th><th>الحالة</th></tr></thead>
@@ -194,9 +194,9 @@ export function EmployeeProfileOperationalSections(props: OperationalProps) {
             </table>
           </div>
         ) : <p className="muted">لا توجد عظڈهد مسجلة.</p>}
-      </Card>
+      </FormSection>
 
-      <Card title="الإجازات" actions={<Button variant="secondary" onClick={() => navigate('/hr/leaves')}>عرض الإجازات</Button>}>
+      <FormSection title="الإجازات" actions={<Button variant="secondary" onClick={() => navigate('/hr/leaves')}>عرض الإجازات</Button>}>
         <div className="form-grid">
           <div className="field"><span>قيد المراجعة</span><strong>{pendingLeavesCount}</strong></div>
           <div className="field"><span>معتمدة</span><strong>{approvedLeavesCount}</strong></div>
@@ -210,22 +210,22 @@ export function EmployeeProfileOperationalSections(props: OperationalProps) {
             </table>
           </div>
         ) : <p className="muted">لا توجد طلبات إجازة حالية.</p>}
-      </Card>
+      </FormSection>
 
-      <Card title="الحضور والانصراف" actions={<Button variant="secondary" onClick={() => navigate('/hr/attendance')}>عرض الحضور والانصراف</Button>}>
+      <FormSection title="الحضور والانصراف" actions={<Button variant="secondary" onClick={() => navigate('/hr/attendance')}>عرض الحضور والانصراف</Button>}>
         <p className="muted" style={{ margin: 0 }}>تفاصيل الحضور متاحة من صفحة الحضور والانصراف.</p>
-      </Card>
+      </FormSection>
 
-      <Card title="المرتبات والسلف" actions={<div className="compact-actions">{canViewSalary ? <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>عرض المرتبات</Button> : null}{canViewLoans ? <Button variant="secondary" onClick={() => navigate('/hr/loans')}>إدارة السلف</Button> : null}</div>}>
+      <FormSection title="المرتبات والسلف" actions={<div className="compact-actions">{canViewSalary ? <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>عرض المرتبات</Button> : null}{canViewLoans ? <Button variant="secondary" onClick={() => navigate('/hr/loans')}>إدارة السلف</Button> : null}</div>}>
         {!canViewSalary && !canViewLoans ? (<p className="muted">لا تملك صلاحية عرض هذه البيانات.</p>) : loans.length ? (<>
           <div className="form-grid"><div className="field"><span>عدد السلف المفتوحة</span><strong>{canViewLoans ? openLoansCount : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></div><div className="field"><span>إجمالي المتبقي</span><strong>{canViewLoans ? money(openLoansRemaining) : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></div></div>
           <div className="table-wrap" style={{ marginTop: 12 }}><table className="data-table"><thead><tr><th>رقم السلفة</th><th>النوع</th><th>طريقة السداد</th><th>قيمة السلفة</th><th>المتبقي</th><th>الحالة</th><th>خطة الأقساط</th></tr></thead>
             <tbody>{loans.map((row) => (<tr key={String(row.id)}><td>{fallbackText(row.loanNo)}</td><td>{loanTypeLabel(row.loanType)}</td><td>{repaymentModeLabel(row.repaymentMode)}</td><td>{canViewLoans ? money(row.principalAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{canViewLoans ? money(row.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{loanStatusLabel(row.status)}</td><td>{Array.isArray(row.installments) && row.installments.length ? (<details><summary>{`عدد الأقساط: ${row.installments.length}`}</summary><div className="table-wrap" style={{ marginTop: 8 }}><table className="data-table"><thead><tr><th>رقم القسط</th><th>شهر الاستحقاق</th><th>قيمة القسط</th><th>الحالة</th><th>تاريخ الخصم</th></tr></thead><tbody>{row.installments.map((installment) => (<tr key={String(installment.id)}><td>{fallbackText(installment.installmentNumber)}</td><td>{fallbackText(installment.dueDate)}</td><td>{canViewLoans ? money(installment.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{installmentStatusLabel(installment.status)}</td><td>{fallbackText(installment.paidAt)}</td></tr>))}</tbody></table></div></details>) : '—'}</td></tr>))}</tbody>
           </table></div>
         </>) : <p className="muted">لا توجد سلف أو خصومات مسجلة.</p>}
-      </Card>
+      </FormSection>
 
-      <Card title="السجل المالي"><div className="table-wrap"><table className="data-table"><thead><tr><th>نوع الحركة</th><th>القيمة</th><th>الرصيد بعد الحركة</th><th>التاريخ</th></tr></thead><tbody>{ledger.map((row) => (<tr key={String(row.id)}><td>{fallbackText((row as { entryType?: string }).entryType)}</td><td>{money((row as { amount?: number }).amount)}</td><td>{money((row as { balanceAfter?: number }).balanceAfter)}</td><td>{fallbackText((row as { createdAt?: string }).createdAt)}</td></tr>))}</tbody></table></div></Card>
+      <FormSection title="السجل المالي"><div className="table-wrap"><table className="data-table"><thead><tr><th>نوع الحركة</th><th>القيمة</th><th>الرصيد بعد الحركة</th><th>التاريخ</th></tr></thead><tbody>{ledger.map((row) => (<tr key={String(row.id)}><td>{fallbackText((row as { entryType?: string }).entryType)}</td><td>{money((row as { amount?: number }).amount)}</td><td>{money((row as { balanceAfter?: number }).balanceAfter)}</td><td>{fallbackText((row as { createdAt?: string }).createdAt)}</td></tr>))}</tbody></table></div></FormSection>
     </>
   );
 }

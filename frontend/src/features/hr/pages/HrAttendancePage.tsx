@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
@@ -175,6 +175,7 @@ export function HrAttendancePage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="الحضور والانصراف"
         description="ابدأ بتحديد اليوم، راجع الاستثناءات التي تؤثر على الراتب، ثم احفظ أي تعديل على سجل الحضور."
@@ -189,16 +190,16 @@ export function HrAttendancePage() {
         )}
       />
 
-      <Card title="تسلسل العمل في صفحة الحضور" description="استخدم هذه الصفحة كمسار يومي واضح بدل التنقل بين أكثر من مكان.">
+      <FormSection title="تسلسل العمل في صفحة الحضور" description="استخدم هذه الصفحة كمسار يومي واضح بدل التنقل بين أكثر من مكان.">
         <div className="form-grid">
           <div className="field"><strong>1. اختر اليوم</strong><span className="muted">حدد التاريخ وابحث عن الموظف عند الحاجة.</span></div>
           <div className="field"><strong>2. راجع الاستثناءات</strong><span className="muted">اعتمد أو تخطَّى الحضور المبكر والانصراف المتأخر قبل المرتبات.</span></div>
           <div className="field"><strong>3. عدّل السجل</strong><span className="muted">سجل حضور أو انصراف يدويًا عند وجود نسيان أو خطأ.</span></div>
           <div className="field"><strong>4. احفظ اليوم</strong><span className="muted">الحفظ يعيد حساب الاستثناءات الخاصة بهذا اليوم.</span></div>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="اليوم والبحث" description="اختيار التاريخ والبحث يؤثران على السجل والاستثناءات معًا.">
+      <FormSection title="اليوم والبحث" description="اختيار التاريخ والبحث يؤثران على السجل والاستثناءات معًا.">
         <div className="form-grid">
           <label className="field">
             <span>التاريخ</span>
@@ -209,9 +210,9 @@ export function HrAttendancePage() {
             <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث باسم الموظف أو الكود" />
           </div>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="ملخص اليوم" description="اضغط على أرقام الاستثناءات لتصفية قائمة المراجعة بالأسفل.">
+      <FormSection title="ملخص اليوم" description="اضغط على أرقام الاستثناءات لتصفية قائمة المراجعة بالأسفل.">
         <div className="stats-grid">
           <div className="stat-card"><span>إجمالي الموظفين</span><strong>{summary.total}</strong></div>
           <div className="stat-card"><span>حاضر</span><strong>{summary.present}</strong></div>
@@ -222,9 +223,9 @@ export function HrAttendancePage() {
           <button className="stat-card" type="button" onClick={() => setExceptionFilter('overtime')} style={{ textAlign: 'right' }}><span>وقت إضافي محتمل</span><strong>{summary.overtime}</strong></button>
           <button className="stat-card" type="button" onClick={() => setExceptionFilter('deduction')} style={{ textAlign: 'right' }}><span>خصم/نقص محتمل</span><strong>{summary.deduction}</strong></button>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="استثناءات تحتاج مراجعة" description="هذه أهم منطقة قبل المرتبات: الحضور المبكر والانصراف المتأخر يمكن اعتمادهما كوقت إضافي، أما التأخير والانصراف المبكر فيظهران للمراجعة.">
+      <FormSection title="استثناءات تحتاج مراجعة" description="هذه أهم منطقة قبل المرتبات: الحضور المبكر والانصراف المتأخر يمكن اعتمادهما كوقت إضافي، أما التأخير والانصراف المبكر فيظهران للمراجعة.">
         <div className="compact-actions" style={{ marginBottom: 12 }}>
           <Button type="button" variant={exceptionFilter === 'needs_action' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('needs_action')}>يحتاج إجراء</Button>
           <Button type="button" variant={exceptionFilter === 'overtime' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('overtime')}>وقت إضافي محتمل</Button>
@@ -271,9 +272,9 @@ export function HrAttendancePage() {
         {(mutations.approveAttendanceException.isError || mutations.skipAttendanceException.isError)
           ? <p className="muted">{getErrorMessage(mutations.approveAttendanceException.error || mutations.skipAttendanceException.error, 'تعذر تحديث حالة الاستثناء.')}</p>
           : null}
-      </Card>
+      </FormSection>
 
-      <Card title="سجل الحضور اليومي" description="استخدمه للتعديل اليدوي عند نسيان الحضور أو الانصراف، ثم اضغط حفظ اليوم.">
+      <FormSection title="سجل الحضور اليومي" description="استخدمه للتعديل اليدوي عند نسيان الحضور أو الانصراف، ثم اضغط حفظ اليوم.">
         <QueryFeedback
           isLoading={attendance.isLoading}
           isError={attendance.isError}
@@ -355,7 +356,8 @@ export function HrAttendancePage() {
             ]}
           />
         </QueryFeedback>
-      </Card>
+      </FormSection>
+      </main>
     </div>
   );
 }

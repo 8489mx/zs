@@ -124,6 +124,7 @@ export function EmployeeCreatePage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader title="إضافة موظف" description="ابدأ بتهيئة القسم والمسمى الوظيفي إذا لم يكونا موجودين، ثم أدخل بيانات الموظف في نفس الصفحة." />
       <EmployeeQuickSetupCard missingSetup={missingSetup} quickDepartmentName={quickDepartmentName} quickJobTitleName={quickJobTitleName} quickPositionName={quickPositionName} setupError={setupError} setupSuccess={setupSuccess} isBusy={isBusy} onQuickDepartmentNameChange={setQuickDepartmentName} onQuickJobTitleNameChange={setQuickJobTitleName} onQuickPositionNameChange={setQuickPositionName} onCreateQuickMaster={(kind, name) => { void createQuickMaster(kind, name); }} />
 
@@ -165,6 +166,7 @@ export function EmployeeCreatePage() {
         <FormSection title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">{reviewWarnings.length ? <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>{reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}</FormSection>
         <FormSection title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف."><div className="field field-wide"><span>ملاحظات</span><textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} /></div>{submitError ? <div className="error-box" style={{ marginTop: 12 }}>{submitError}</div> : null}<div className="actions compact-actions" style={{ marginTop: 16 }}><Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>إلغاء</Button><Button type="submit" disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ الموظف'}</Button></div></FormSection>
       </form>
+      </main>
     </div>
   );
 }

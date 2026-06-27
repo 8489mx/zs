@@ -1,5 +1,5 @@
 ﻿import type { FormEvent } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { money, reviewStatusOptions, text, type PayrollReviewStatus } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 
@@ -69,7 +69,7 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
 
   return (
     <>
-      <Card title="فترة التشغيل والفلاتر">
+      <FormSection title="فترة التشغيل والفلاتر">
         <div className="form-grid">
           <label className="field"><span>الشهر</span><input type="month" value={monthFilter} onChange={(event) => onMonthFilterChange(event.target.value)} /></label>
           <label className="field"><span>السنة</span><input value={monthFilter.split('-')[0] || ''} readOnly /></label>
@@ -78,20 +78,20 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
           <label className="field"><span>حالة المراجعة</span><select value={reviewStatusFilter} onChange={(event) => onReviewStatusFilterChange(event.target.value as PayrollReviewStatus)}>{reviewStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           <label className="field"><span>حالة المسير</span><select value={runStatusFilter} onChange={(event) => onRunStatusFilterChange(event.target.value)}><option value="all">الكل</option>{runStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         </div>
-      </Card>
+      </FormSection>
 
       <div className="stats-grid">
-        <Card title="إجمالي الموظفين"><strong>{summary.totalEmployees || 0}</strong></Card>
-        <Card title="إجمالي الرواتب الأساسية"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalBaseSalary) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></Card>
-        <Card title="إجمالي الخصومات"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalDeductions) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></Card>
-        <Card title="إجمالي السلف / الأقساط"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalLoanDeduction) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></Card>
-        <Card title="صافي المرتبات"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalNet) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></Card>
-        <Card title="يحتاج مراجعة"><strong>{summary.needsReview}</strong></Card>
+        <FormSection title="إجمالي الموظفين"><strong>{summary.totalEmployees || 0}</strong></FormSection>
+        <FormSection title="إجمالي الرواتب الأساسية"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalBaseSalary) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
+        <FormSection title="إجمالي الخصومات"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalDeductions) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
+        <FormSection title="إجمالي السلف / الأقساط"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalLoanDeduction) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
+        <FormSection title="صافي المرتبات"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalNet) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
+        <FormSection title="يحتاج مراجعة"><strong>{summary.needsReview}</strong></FormSection>
       </div>
 
-      <Card title="تنبيه مراجعة"><p className="muted" style={{ margin: 0 }}>حساب الضرائب والتأمينات يحتاج إعدادات ومراجعة محاسب قبل الاعتماد النهائي.</p></Card>
+      <FormSection title="تنبيه مراجعة"><p className="muted" style={{ margin: 0 }}>حساب الضرائب والتأمينات يحتاج إعدادات ومراجعة محاسب قبل الاعتماد النهائي.</p></FormSection>
 
-      <Card title={`أقساط سلف مستحقة هذا الشهر (${monthFilter})`}>
+      <FormSection title={`أقساط سلف مستحقة هذا الشهر (${monthFilter})`}>
         {!canViewSalaryAmounts ? (
           <p className="muted" style={{ margin: 0 }}>لا تملك صلاحية عرض هذه البيانات.</p>
         ) : dueLoanInstallmentRows.length ? (
@@ -99,9 +99,9 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
         ) : (
           <p className="muted" style={{ margin: 0 }}>لا توجد أقساط مستحقة لهذه الفترة.</p>
         )}
-      </Card>
+      </FormSection>
 
-      <Card title="تجهيز مسير المرتبات">
+      <FormSection title="تجهيز مسير المرتبات">
         {hasCreatePayrollRun && canManagePayroll ? (
           <form className="form-grid" onSubmit={onCreateRun}>
             <label className="field"><span>شهر مسير المرتبات *</span><input type="month" value={draft.periodMonth} onChange={(event) => onDraftChange((current) => ({ ...current, periodMonth: event.target.value }))} /></label>
@@ -112,7 +112,7 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
         ) : (
           <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
         )}
-      </Card>
+      </FormSection>
     </>
   );
 }

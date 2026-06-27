@@ -138,6 +138,7 @@ export function EmployeeEditPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="تعديل بيانات الموظف"
         description="تعديل بيانات الموظف الأساسية، الوظيفية، والدوام من نفس المسار المستخدم في الإضافة."
@@ -192,6 +193,7 @@ export function EmployeeEditPage() {
           </FormSection>
         </form>
       </QueryFeedback>
+      </main>
     </div>
   );
 }

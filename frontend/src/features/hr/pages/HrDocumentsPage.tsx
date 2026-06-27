@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrDocument, HrEmployee } from '@/types/domain';
@@ -128,6 +128,7 @@ export function HrDocumentsPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="مستندات الموظفين"
         description="ابدأ باختيار الموظف، ثم راجع المستندات المنتهية أو القريبة من الانتهاء وأضف المستندات من ملف الموظف."
@@ -144,16 +145,16 @@ export function HrDocumentsPage() {
         )}
       />
 
-      <Card title="تسلسل مراجعة المستندات" description="هذه الصفحة للمتابعة والمراجعة، أما إضافة المستند فتتم من ملف الموظف حتى يبقى كل شيء مربوطًا بالموظف الصحيح.">
+      <FormSection title="تسلسل مراجعة المستندات" description="هذه الصفحة للمتابعة والمراجعة، أما إضافة المستند فتتم من ملف الموظف حتى يبقى كل شيء مربوطًا بالموظف الصحيح.">
         <div className="form-grid">
           <div className="field"><strong>1. اختر الموظف</strong><span className="muted">ابحث بالاسم أو الكود ثم اضغط على الصف.</span></div>
           <div className="field"><strong>2. راجع الحالة</strong><span className="muted">ابدأ بالمستندات المنتهية أو القريبة من الانتهاء.</span></div>
           <div className="field"><strong>3. أضف أو حدّث</strong><span className="muted">افتح ملف الموظف لإضافة مستند أو مراجعة التفاصيل.</span></div>
           <div className="field"><strong>4. راقب النواقص</strong><span className="muted">المستند بدون تاريخ انتهاء يظهر كمراجعة حتى تؤكد أنه مقصود.</span></div>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="اختيار الموظف" description="اختيار الموظف أول خطوة لأن المستندات مرتبطة بملف الموظف مباشرة.">
+      <FormSection title="اختيار الموظف" description="اختيار الموظف أول خطوة لأن المستندات مرتبطة بملف الموظف مباشرة.">
         <SearchToolbar
           search={search}
           onSearchChange={(value) => {
@@ -208,9 +209,9 @@ export function HrDocumentsPage() {
             ]}
           />
         </QueryFeedback>
-      </Card>
+      </FormSection>
 
-      <Card title="ملخص المستندات" description={selectedEmployeeId ? `ملف الموظف: ${employeeName(selectedEmployee as HrEmployee)}` : 'اختر موظفًا أولًا لعرض الملخص.'}>
+      <FormSection title="ملخص المستندات" description={selectedEmployeeId ? `ملف الموظف: ${employeeName(selectedEmployee as HrEmployee)}` : 'اختر موظفًا أولًا لعرض الملخص.'}>
         <div className="stats-grid">
           <button className="stat-card" type="button" onClick={() => setStatusFilter('all')} style={{ textAlign: 'right' }}><span>إجمالي المستندات</span><strong>{summary.total}</strong></button>
           <button className="stat-card" type="button" onClick={() => setStatusFilter('valid')} style={{ textAlign: 'right' }}><span>سارية</span><strong>{summary.valid}</strong></button>
@@ -220,9 +221,9 @@ export function HrDocumentsPage() {
           <button className="stat-card" type="button" onClick={() => setStatusFilter('needs_review')} style={{ textAlign: 'right' }}><span>تحتاج مراجعة</span><strong>{summary.needsReview}</strong></button>
           <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="قائمة المستندات" description="تعرض المستندات التي تطابق فلاتر الحالة والنوع للموظف المختار.">
+      <FormSection title="قائمة المستندات" description="تعرض المستندات التي تطابق فلاتر الحالة والنوع للموظف المختار.">
         {!selectedEmployeeId ? (
           <p className="muted">اختر موظفًا من الجدول بالأعلى لعرض مستنداته.</p>
         ) : (
@@ -292,7 +293,8 @@ export function HrDocumentsPage() {
             )}
           </QueryFeedback>
         )}
-      </Card>
+      </FormSection>
+      </main>
     </div>
   );
 }

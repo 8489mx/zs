@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 
 export function HrLeavesWorkflowCard() {
   const steps = [
@@ -9,20 +9,20 @@ export function HrLeavesWorkflowCard() {
   ];
 
   return (
-    <Card title="تسلسل مراجعة الإجازات" description="استخدم الصفحة بهذا الترتيب حتى لا تدخل إجازة مؤثرة على المرتب بدون مراجعة.">
+    <FormSection title="تسلسل مراجعة الإجازات" description="استخدم الصفحة بهذا الترتيب حتى لا تدخل إجازة مؤثرة على المرتب بدون مراجعة.">
       <div className="form-grid">
         {steps.map(([title, hint]) => (
           <div key={title} className="field"><strong>{title}</strong><span className="muted">{hint}</span></div>
         ))}
       </div>
-    </Card>
+    </FormSection>
   );
 }
 
 export function HrLeavesOperationalNote() {
   return (
-    <Card title="ملاحظة تشغيلية">
+    <FormSection title="ملاحظة تشغيلية">
       <p className="muted" style={{ margin: 0 }}>راجع نوع الإجازة وحالة الدفع قبل اعتماد المرتبات.</p>
-    </Card>
+    </FormSection>
   );
 }

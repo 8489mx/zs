@@ -2,7 +2,7 @@ import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { DataTable } from '@/shared/ui/data-table';
@@ -154,6 +154,7 @@ export function HrPayrollPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="المرتبات"
         description="مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة."
@@ -167,10 +168,10 @@ export function HrPayrollPage() {
       />
 
       {!canViewPayroll ? (
-        <Card title="الوصول للمرتبات">
+        <FormSection title="الوصول للمرتبات">
           <p className="muted" style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى هذه الصفحة.</p>
           <p className="muted" style={{ marginBottom: 0 }}>تواصل مع مسؤول النظام لتحديث الصلاحيات.</p>
-        </Card>
+        </FormSection>
       ) : (
         <>
           <HrPayrollWorkflowCard />
@@ -199,7 +200,7 @@ export function HrPayrollPage() {
             onCreateRun={(event) => { void handleCreateRun(event); }}
           />
 
-          <Card title="مراجعة قبل الاعتماد" description="قائمة مختصرة تمنع نسيان الحضور أو السلف أو البنود التي تحتاج مراجعة قبل اعتماد المرتبات.">
+          <FormSection title="مراجعة قبل الاعتماد" description="قائمة مختصرة تمنع نسيان الحضور أو السلف أو البنود التي تحتاج مراجعة قبل اعتماد المرتبات.">
             <div className="form-grid">
               {payrollChecklist.map((item) => (
                 <div key={item.key} className="field" style={{ alignItems: 'flex-start' }}>
@@ -209,9 +210,9 @@ export function HrPayrollPage() {
                 </div>
               ))}
             </div>
-          </Card>
+          </FormSection>
 
-          <Card title="كشوف المرتبات الشهرية">
+          <FormSection title="كشوف المرتبات الشهرية">
             <QueryFeedback isLoading={workspace.payrollRuns.isLoading} isError={workspace.payrollRuns.isError} error={workspace.payrollRuns.error} isEmpty={!filteredRuns.length} loadingText="جارٍ تحميل كشوف المرتبات..." errorTitle="تعذر تحميل كشوف المرتبات" emptyTitle="لا توجد بيانات مرتبات لهذه الفترة.">
               <DataTable
                 rows={filteredRuns}
@@ -232,9 +233,9 @@ export function HrPayrollPage() {
                 ]}
               />
             </QueryFeedback>
-          </Card>
+          </FormSection>
 
-          <Card title="تفاصيل ومراجعة المسير">
+          <FormSection title="تفاصيل ومراجعة المسير">
             {!selectedRunId ? <p className="muted">اختر كشفًا من الجدول لعرض تفاصيل الموظفين.</p> : (
               <QueryFeedback isLoading={payrollRunDetails.isLoading} isError={payrollRunDetails.isError} error={payrollRunDetails.error} isEmpty={false} loadingText="جارٍ تحميل تفاصيل المسير..." errorTitle="تعذر تحميل تفاصيل المسير">
                 {!selectedRun ? <p className="muted">تفاصيل المسير غير متاحة من الواجهة الحالية.</p> : filteredRunItems.length ? (
@@ -268,11 +269,12 @@ export function HrPayrollPage() {
                 ) : <p className="muted">لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p>}
               </QueryFeedback>
             )}
-          </Card>
+          </FormSection>
 
           <HrPayrollOperationalNote />
         </>
       )}
+      </main>
     </div>
   );
 }

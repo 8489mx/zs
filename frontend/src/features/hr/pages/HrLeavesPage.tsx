@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrLeaveRequest, HrLeaveType } from '@/types/domain';
@@ -198,6 +198,7 @@ export function HrLeavesPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="الإجازات"
         description="راجع الطلبات قيد المراجعة أولًا، ثم تابع الإجازات غير المدفوعة لأنها تؤثر على المرتبات."
@@ -232,7 +233,7 @@ export function HrLeavesPage() {
         />
       ) : null}
 
-      <Card title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
+      <FormSection title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
         <div className="stats-grid">
           <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي الطلبات</span><strong>{summary.total}</strong></button>
           <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>قيد المراجعة</span><strong>{summary.pending}</strong></button>
@@ -241,9 +242,9 @@ export function HrLeavesPage() {
           <button className="stat-card" type="button" onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>إجازات غير مدفوعة</span><strong>{summary.unpaid}</strong></button>
           <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="فلاتر الطلبات" description="الفلاتر هنا تضيق النتائج الظاهرة فقط، ويمكن تصفيرها بزر واحد.">
+      <FormSection title="فلاتر الطلبات" description="الفلاتر هنا تضيق النتائج الظاهرة فقط، ويمكن تصفيرها بزر واحد.">
         <div className="compact-actions" style={{ marginBottom: 12 }}>
           <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }}>قيد المراجعة</Button>
           <Button type="button" variant={quickFilter === 'unpaid' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }}>غير مدفوعة</Button>
@@ -289,9 +290,9 @@ export function HrLeavesPage() {
             <input type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
           </label>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="طلبات الإجازة" description="الطلبات قيد المراجعة تظهر افتراضيًا حتى يكون القرار واضحًا وسريعًا.">
+      <FormSection title="طلبات الإجازة" description="الطلبات قيد المراجعة تظهر افتراضيًا حتى يكون القرار واضحًا وسريعًا.">
         <QueryFeedback
           isLoading={leaveRequestsQuery.isLoading}
           isError={leaveRequestsQuery.isError}
@@ -346,10 +347,10 @@ export function HrLeavesPage() {
             ]}
           />
         </QueryFeedback>
-      </Card>
+      </FormSection>
 
       {rejectTargetId ? (
-        <Card title="سبب رفض الطلب">
+        <FormSection title="سبب رفض الطلب">
           <div className="form-grid">
             <label className="field field-wide">
               <span>سبب الرفض</span>
@@ -363,10 +364,11 @@ export function HrLeavesPage() {
             </Button>
             <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }}>إلغاء</Button>
           </div>
-        </Card>
+        </FormSection>
       ) : null}
 
       <HrLeavesOperationalNote />
+      </main>
     </div>
   );
 }
