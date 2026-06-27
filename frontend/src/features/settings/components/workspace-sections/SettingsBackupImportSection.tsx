@@ -253,7 +253,7 @@ export function SettingsBackupImportSection({
             title="استيراد الأصناف"
             requiredColumns={['name']}
             fieldMappings={[
-              { key: 'name', label: 'الاسم', aliases: ['اسم الصنف', 'name'] },
+              { key: 'name', label: 'الاسم', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
               { key: 'categoryName', label: 'الصنف', aliases: ['القسم', 'category'] },
               { key: 'itemType', label: 'النوع', aliases: ['النوع', 'تصنيف', 'type', 'itemType', 'item_type'] },
               { key: 'barcode', label: 'الباركود', aliases: ['barcode', 'كود'] },
@@ -269,6 +269,17 @@ export function SettingsBackupImportSection({
           <ImportWorkbench
             title="استيراد العملاء"
             requiredColumns={['name']}
+            fieldMappings={[
+              { key: 'name', label: 'الاسم', aliases: ['اسم العميل (إجباري)', 'اسم العميل', 'name'] },
+              { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'phone'] },
+              { key: 'address', label: 'العنوان', aliases: ['العنوان', 'address'] },
+              { key: 'type', label: 'النوع', aliases: ['نوع العميل', 'type'] },
+              { key: 'creditLimit', label: 'الحد الائتماني', aliases: ['الحد الائتماني', 'creditLimit'] },
+              { key: 'openingBalance', label: 'رصيد افتتاحي', aliases: ['رصيد افتتاحي', 'openingBalance'] },
+              { key: 'storeCreditBalance', label: 'رصيد محفظة', aliases: ['رصيد محفظة', 'storeCreditBalance'] },
+              { key: 'companyName', label: 'اسم الشركة', aliases: ['اسم الشركة', 'companyName'] },
+              { key: 'taxNumber', label: 'الرقم الضريبي', aliases: ['الرقم الضريبي', 'taxNumber'] },
+            ]}
             onDownloadTemplate={() => downloadTemplate('customers')}
             onImportRows={importCustomers}
             isPending={importCustomersPending || !canManageBackups}
@@ -276,6 +287,13 @@ export function SettingsBackupImportSection({
           <ImportWorkbench
             title="استيراد الموردين"
             requiredColumns={['name']}
+            fieldMappings={[
+              { key: 'name', label: 'الاسم', aliases: ['اسم المورد (إجباري)', 'اسم المورد', 'name'] },
+              { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'phone'] },
+              { key: 'address', label: 'العنوان', aliases: ['العنوان', 'address'] },
+              { key: 'openingBalance', label: 'رصيد افتتاحي', aliases: ['رصيد افتتاحي', 'openingBalance'] },
+              { key: 'notes', label: 'ملاحظات', aliases: ['ملاحظات', 'notes'] },
+            ]}
             onDownloadTemplate={() => downloadTemplate('suppliers')}
             onImportRows={importSuppliers}
             isPending={importSuppliersPending || !canManageBackups}
@@ -283,6 +301,12 @@ export function SettingsBackupImportSection({
           <ImportWorkbench
             title="استيراد المخزون الافتتاحي"
             requiredColumns={['qty']}
+            fieldMappings={[
+              { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode'] },
+              { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
+              { key: 'qty', label: 'الكمية', aliases: ['الكمية', 'qty', 'quantity'] },
+              { key: 'note', label: 'ملاحظات', aliases: ['ملاحظات', 'note', 'notes'] },
+            ]}
             onDownloadTemplate={() => downloadTemplate('opening-stock')}
             onImportRows={importOpeningStock}
             isPending={importOpeningStockPending || !canManageBackups}

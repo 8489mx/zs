@@ -73,18 +73,18 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
 
 export function downloadSettingsTemplate(kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') {
   if (kind === 'products') {
-    downloadCsvFile('products-template.csv', ['name', 'barcode', 'category', 'supplier', 'costPrice', 'retailPrice', 'wholesalePrice', 'minStock', 'stockQty', 'baseUnit', 'saleUnit', 'purchaseUnit', 'extraUnitName', 'extraUnitMultiplier', 'extraUnitBarcode', 'notes'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 24, 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
+    downloadCsvFile('products-template.csv', ['اسم الصنف (إجباري)', 'الباركود', 'القسم', 'المورد', 'سعر التكلفة', 'سعر البيع', 'سعر الجملة', 'الحد الأدنى', 'الكمية', 'وحدة القياس الأساسية', 'وحدة البيع', 'وحدة الشراء', 'اسم وحدة إضافية', 'معامل الوحدة الإضافية', 'باركود الوحدة الإضافية', 'ملاحظات'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 24, 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
     return;
   }
   if (kind === 'customers') {
-    downloadCsvFile('customers-template.csv', ['name', 'phone', 'address', 'type', 'creditLimit', 'openingBalance', 'storeCreditBalance', 'companyName', 'taxNumber'], [['عميل جديد', '01000000000', 'القاهرة', 'cash', 0, 1500, 0, 'شركة مثال', '300123456700003']]);
+    downloadCsvFile('customers-template.csv', ['اسم العميل (إجباري)', 'رقم الموبايل', 'العنوان', 'نوع العميل', 'الحد الائتماني', 'رصيد افتتاحي', 'رصيد محفظة', 'اسم الشركة', 'الرقم الضريبي'], [['عميل جديد', '01000000000', 'القاهرة', 'cash', 0, 1500, 0, 'شركة مثال', '300123456700003']]);
     return;
   }
   if (kind === 'suppliers') {
-    downloadCsvFile('suppliers-template.csv', ['name', 'phone', 'address', 'openingBalance', 'notes'], [['مورد جديد', '01011111111', 'الجيزة', 2500, 'ملاحظات']]);
+    downloadCsvFile('suppliers-template.csv', ['اسم المورد (إجباري)', 'رقم الموبايل', 'العنوان', 'رصيد افتتاحي', 'ملاحظات'], [['مورد جديد', '01011111111', 'الجيزة', 2500, 'ملاحظات']]);
     return;
   }
-  downloadCsvFile('opening-stock-template.csv', ['barcode', 'name', 'qty', 'note'], [['123456789012', 'منتج جديد', 24, 'رصيد افتتاحي']]);
+  downloadCsvFile('opening-stock-template.csv', ['الباركود', 'اسم الصنف', 'الكمية', 'ملاحظات'], [['123456789012', 'منتج جديد', 24, 'رصيد افتتاحي']]);
 }
 
 export function getSettingsConfirmDialogMeta(confirmAction: SettingsConfirmAction | null, busyState: {
