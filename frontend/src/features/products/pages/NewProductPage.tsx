@@ -508,7 +508,7 @@ export function NewProductPage() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         const canSubmit = !isFormDisabled && (!usesVariantBuilder || (fashionVariantRows.length > 0 && duplicateFashionBarcodes === 0 && String(watchedStyleCode || '').trim()));
         if (canSubmit) {
