@@ -394,4 +394,46 @@ export class SaasAdminService {
       },
     };
   }
+
+  async deleteTenant(id: string, auth: AuthContext): Promise<{ ok: boolean }> {
+    this.assertPlatformAccess(auth);
+    const tenant = await this.getTenantForMutation(id);
+    this.assertNotPlatformTenantTarget(tenant.id);
+
+    const tablesQuery = await sql<{ table_name: string }>`
+      SELECT table_name 
+      FROM information_schema.columns 
+      WHERE column_name = 'tenant_id' AND table_schema = 'public'
+    `.execute(this.db);
+
+    let tables = tablesQuery.rows.map(r => r.table_name).filter(t => t !== 'tenants');
+    
+    let progress = true;
+    while (tables.length > 0 && progress) {
+      progress = false;
+      const nextTables = [];
+      for (const table of tables) {
+        try {
+          await sql`DELETE FROM ${sql.table(table)} WHERE tenant_id = ${tenant.id}`.execute(this.db);
+          progress = true; 
+        } catch (e: any) {
+          if (e.code === '23503') { // foreign_key_violation
+            nextTables.push(table);
+          } else {
+            throw e;
+          }
+        }
+      }
+      tables = nextTables;
+    }
+
+    if (tables.length > 0) {
+      throw new BadRequestException('تعذر حذف بعض البيانات المرتبطة بالنسخة بسبب قيود قواعد البيانات.');
+    }
+
+    await this.db.deleteFrom('tenants').where('id', '=', tenant.id).execute();
+
+    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) بالكامل من النظام`, auth);
+    return { ok: true };
+  }
 }

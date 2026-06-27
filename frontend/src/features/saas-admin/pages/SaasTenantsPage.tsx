@@ -15,7 +15,7 @@ import { ApiError } from '@/lib/http';
 import { isPlatformAdmin } from '@/app/router/access';
 import { saasAdminApi, SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
 
-type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner';
+type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner' | 'delete';
 type SaasTenantsResponse = { tenants: SaasTenantRow[] };
 
 function statusLabel(status: SaasTenantStatus): string {
@@ -102,6 +102,7 @@ export function SaasTenantsPage() {
       if (input.action === 'activate') return saasAdminApi.activateTenant(input.tenantId, input.durationMonths);
       if (input.action === 'suspend') return saasAdminApi.suspendTenant(input.tenantId);
       if (input.action === 'unlockOwner') return saasAdminApi.unlockOwner(input.tenantId);
+      if (input.action === 'delete') return saasAdminApi.deleteTenant(input.tenantId);
       return saasAdminApi.expireTenant(input.tenantId);
     },
     onSuccess: async () => {
@@ -302,6 +303,11 @@ export function SaasTenantsPage() {
                         setResetTenant({ id: row.id, name: row.businessName });
                         setResetPassword('');
                       }}>إعادة كلمة المرور</button>
+                      <button type="button" className="button button-danger" onClick={() => {
+                        if (window.confirm('هل أنت متأكد من حذف هذا العميل بجميع بياناته بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء وسيتم مسح كل شيء!')) {
+                          tenantActionMutation.mutate({ action: 'delete', tenantId: row.id });
+                        }
+                      }}>حذف نهائي</button>
                     </div>
                   );
                 },

@@ -69,4 +69,5 @@ export const saasAdminApi = {
       `/api/saas-admin/tenants/${encodeURIComponent(id)}/reset-owner-password`,
       { method: 'POST', body: JSON.stringify({ newPassword }) },
     ),
+  deleteTenant: (id: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/delete`, { method: 'POST', body: JSON.stringify({}) }),
 };

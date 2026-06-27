@@ -53,4 +53,9 @@ export class SaasAdminController {
   resetOwnerPassword(@Param('id') id: string, @Body() body: ResetOwnerPasswordDto, @Req() req: RequestWithAuth) {
     return this.service.resetOwnerPassword(id, body, req.authContext!);
   }
+
+  @Post('tenants/:id/delete')
+  deleteTenant(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.service.deleteTenant(id, req.authContext!);
+  }
 }
