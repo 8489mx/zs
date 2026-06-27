@@ -81,6 +81,9 @@
 }
 
 .accounts-focus-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.8fr);
+  gap: 14px;
   align-items: start;
 }
 
@@ -120,6 +123,7 @@
   }
 
   .treasury-primary-grid,
+  .accounts-focus-grid,
   .reports-range-grid--compact {
     grid-template-columns: 1fr;
   }
