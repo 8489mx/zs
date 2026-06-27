@@ -208,7 +208,7 @@ export class CatalogProductService {
   private parseListProductsQuery(query: Record<string, unknown>) {
     return {
       page: Math.max(1, Number(query.page || 1)),
-      pageSize: Math.min(100, Math.max(5, Number(query.pageSize || 20))),
+      pageSize: Math.min(1000, Math.max(5, Number(query.pageSize || 20))),
       q: normalizeArabicSearch(query.q),
       view: String(query.view || 'all'),
       requestedLocationId: Number(query.locationId || 0),

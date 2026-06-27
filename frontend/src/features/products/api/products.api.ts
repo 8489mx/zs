@@ -20,7 +20,7 @@ export const productsApi = {
   list: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products'), 'products'),
   listPage: (params: ProductsListParams) => http<ProductsPageResponse>(`/api/products${buildQueryString(params)}`),
   listAll: async (params: Omit<ProductsListParams, 'page' | 'pageSize'> = {}) => {
-    const pageSize = 200;
+    const pageSize = 1000;
     let page = 1;
     const rows: Product[] = [];
     let summary: ProductsPageResponse['summary'];

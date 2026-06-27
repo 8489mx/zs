@@ -10,7 +10,7 @@ import { settingsApi } from '@/features/settings/api/settings.api';
 const referenceStaleTime = 60_000;
 
 export function useProductsQuery() {
-  return useQuery({ queryKey: queryKeys.products, queryFn: productsApi.list });
+  return useQuery({ queryKey: queryKeys.products, queryFn: async () => (await productsApi.listAll()).products });
 }
 
 export function useSalesQuery() {
