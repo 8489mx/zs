@@ -157,7 +157,7 @@ export function LoginPage() {
               
               <div className="login-field-group">
                 <div className="login-field-label">
-                  <label>البريد الإلكتروني</label>
+                  <label>البريد الالكتروني او اسم المستخدم</label>
                 </div>
                 <div className="login-input-pro-wrap">
                   <span className="login-input-pro-icon"><MailIcon /></span>
