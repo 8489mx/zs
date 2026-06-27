@@ -259,6 +259,7 @@ export function SettingsBackupImportSection({
               { key: 'barcode', label: 'الباركود', aliases: ['barcode', 'كود'] },
               { key: 'costPrice', label: 'التكلفة', aliases: ['سعر التكلفة', 'cost', 'cost_price'] },
               { key: 'retailPrice', label: 'السعر', aliases: ['سعر البيع', 'price', 'retail_price'] },
+              { key: 'stockQty', label: 'المخزون الافتتاحي', aliases: ['الكمية', 'stock', 'stockQty', 'qty'] },
               { key: 'unitName', label: 'الوحدة', aliases: ['unit', 'القياس'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('products')}

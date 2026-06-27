@@ -73,7 +73,7 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
 
 export function downloadSettingsTemplate(kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') {
   if (kind === 'products') {
-    downloadCsvFile('products-template.csv', ['name', 'barcode', 'category', 'supplier', 'costPrice', 'retailPrice', 'wholesalePrice', 'minStock', 'baseUnit', 'saleUnit', 'purchaseUnit', 'extraUnitName', 'extraUnitMultiplier', 'extraUnitBarcode', 'notes'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
+    downloadCsvFile('products-template.csv', ['name', 'barcode', 'category', 'supplier', 'costPrice', 'retailPrice', 'wholesalePrice', 'minStock', 'stockQty', 'baseUnit', 'saleUnit', 'purchaseUnit', 'extraUnitName', 'extraUnitMultiplier', 'extraUnitBarcode', 'notes'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 24, 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
     return;
   }
   if (kind === 'customers') {
