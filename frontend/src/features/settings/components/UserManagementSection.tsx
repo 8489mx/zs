@@ -100,7 +100,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
           emptyTitle="لا توجد بيانات مستخدمين"
           emptyHint="سيظهر هنا المستخدمون بمجرد تحميلهم من الخادم، ويمكنك إنشاء مستخدم جديد من نفس الشاشة."
         >
-          <div className="two-column-grid">
+          <div className="page-stack">
             <UserManagementListPanel
               managedUsers={managedUsers}
               summary={userSummary}

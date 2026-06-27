@@ -1234,5 +1234,4 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   width: 0 !important;
   display: none !important;
 }
-. g r i d - c o l s - 3   {   g r i d - t e m p l a t e - c o l u m n s :   r e p e a t ( 3 ,   1 f r )   ! i m p o r t a n t ;   }  
- 
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
