@@ -233,27 +233,36 @@ export function SaasTenantsPage() {
                 id: 'business',
                 header: 'النشاط',
                 sortable: true,
-                sortValue: (row) => `${row.businessName} ${row.slug}`,
-                render: (row) => (
-                  <div className="stack gap-6">
-                    <strong>{row.businessName}</strong>
-                    <span className="muted small">{row.slug}</span>
-                  </div>
-                ),
+                sortValue: (row) => row.businessName,
+                render: (row) => <strong>{row.businessName}</strong>,
               },
               {
                 id: 'owner',
                 header: 'المالك',
                 sortable: true,
-                sortValue: (row) => `${row.ownerName} ${row.ownerPhone}`,
-                render: (row) => (
-                  <div className="stack gap-4">
-                    <span>{row.ownerName}</span>
-                    <span className="muted small">{row.ownerPhone}</span>
-                    <span className="muted small">{row.ownerUsername}</span>
-                    <span className="muted small">{row.ownerLocked ? 'المالك: مقفول' : 'المالك: غير مقفول'}</span>
-                  </div>
-                ),
+                sortValue: (row) => row.ownerName,
+                render: (row) => <span>{row.ownerName}</span>,
+              },
+              {
+                id: 'username',
+                header: 'المستخدم',
+                sortable: true,
+                sortValue: (row) => row.ownerUsername,
+                render: (row) => <span>{row.ownerUsername}</span>,
+              },
+              {
+                id: 'phone',
+                header: 'الموبايل',
+                sortable: true,
+                sortValue: (row) => row.ownerPhone,
+                render: (row) => <span>{row.ownerPhone}</span>,
+              },
+              {
+                id: 'email',
+                header: 'البريد الإلكتروني',
+                sortable: true,
+                sortValue: (row) => row.ownerEmail,
+                render: (row) => <span>{row.ownerEmail || '-'}</span>,
               },
               {
                 id: 'status',
