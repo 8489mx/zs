@@ -267,6 +267,18 @@ export function SettingsBackupImportSection({
             isPending={importProductsPending || !canManageBackups}
           />
           <ImportWorkbench
+            title="استيراد/تعديل المخزون"
+            requiredColumns={['qty']}
+            fieldMappings={[
+              { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode'] },
+              { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
+              { key: 'qty', label: 'الكمية', aliases: ['الكمية', 'qty', 'quantity', 'stock'] },
+            ]}
+            onDownloadTemplate={() => downloadTemplate('opening-stock')}
+            onImportRows={importOpeningStock}
+            isPending={importOpeningStockPending || !canManageBackups}
+          />
+          <ImportWorkbench
             title="استيراد العملاء"
             requiredColumns={['name']}
             fieldMappings={[
@@ -297,18 +309,6 @@ export function SettingsBackupImportSection({
             onDownloadTemplate={() => downloadTemplate('suppliers')}
             onImportRows={importSuppliers}
             isPending={importSuppliersPending || !canManageBackups}
-          />
-          <ImportWorkbench
-            title="استيراد المخزون الافتتاحي"
-            requiredColumns={['qty']}
-            fieldMappings={[
-              { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode'] },
-              { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
-              { key: 'qty', label: 'الكمية', aliases: ['الكمية', 'qty', 'quantity', 'stock'] },
-            ]}
-            onDownloadTemplate={() => downloadTemplate('opening-stock')}
-            onImportRows={importOpeningStock}
-            isPending={importOpeningStockPending || !canManageBackups}
           />
         </div>
       </QueryCard>

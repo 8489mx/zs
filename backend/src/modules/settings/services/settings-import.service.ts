@@ -451,24 +451,41 @@ export class SettingsImportService {
         const productId = toNumber(row.productId || 0);
         const productName = cleanString(row.productName || row.name);
         const qty = toNumber(row.qty || row.quantity || 0);
-        if (qty <= 0) continue;
+        if (qty < 0) continue;
 
-        const product = productId > 0
-          ? await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
-          : await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', productName.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
+        const barcode = cleanString(row.barcode);
+
+        let productQuery = trx.selectFrom('products').select(['id', 'name', 'stock_qty'])
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .where('is_active', '=', true);
+
+        if (productId > 0) {
+          productQuery = productQuery.where('id', '=', productId);
+        } else if (barcode) {
+          productQuery = productQuery.where('barcode', '=', barcode);
+        } else {
+          productQuery = productQuery.where(sql`LOWER(name)`, '=', productName.toLowerCase());
+        }
+
+        const product = await productQuery.executeTakeFirst();
         if (!product) continue;
+
+        const currentStock = Number(product.stock_qty || 0);
+        const delta = qty - currentStock;
+        
+        if (delta === 0) continue;
 
         const branchId = toNumber(row.branchId || row.branch || 0) || null;
         const locationId = toNumber(row.locationId || row.location || 0) || null;
-        const stockChange = await applyStockDelta(trx, { productId: Number(product.id), delta: qty, branchId, locationId, tenantId: scope.tenantId, accountId: scope.accountId });
+        const stockChange = await applyStockDelta(trx, { productId: Number(product.id), delta: delta, branchId, locationId, tenantId: scope.tenantId, accountId: scope.accountId });
         await trx.insertInto('stock_movements').values({
           product_id: Number(product.id),
           movement_type: 'opening_stock',
-          qty,
+          qty: Math.abs(delta),
           before_qty: stockChange.scopeBefore,
           after_qty: stockChange.scopeAfter,
-          reason: 'opening_stock',
-          note: 'رصيد أولي من الاستيراد',
+          reason: 'inventory_adjustment',
+          note: 'تسوية رصيد من الاستيراد',
           reference_type: 'product',
           reference_id: Number(product.id),
           created_by: actor.userId,
