@@ -92,23 +92,23 @@ export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 
       const allRows: any[][] = [];
       while (true) {
         const res = await http<any>(`/api/products?page=${page}&pageSize=1000`);
-        const items = res.items || [];
+        const items = res.products || [];
         for (const p of items) {
-          allRows.push([p.barcode || '', p.name || '', p.stock || 0, '']);
+          allRows.push([p.barcode || '', p.name || '', p.stock || 0]);
         }
         if (items.length < 1000) break;
         page += 1;
       }
       
       if (allRows.length > 0) {
-        downloadCsvFile('opening-stock-template.csv', ['الباركود', 'اسم الصنف', 'الكمية', 'ملاحظات'], allRows);
+        downloadCsvFile('opening-stock-template.csv', ['الباركود', 'اسم الصنف', 'الكمية'], allRows);
         return;
       }
     } catch (e) {
       console.error('Failed to export existing products for opening stock', e);
     }
     // Fallback if no products or error
-    downloadCsvFile('opening-stock-template.csv', ['الباركود', 'اسم الصنف', 'الكمية', 'ملاحظات'], [['123456789012', 'منتج جديد', 24, 'رصيد افتتاحي']]);
+    downloadCsvFile('opening-stock-template.csv', ['الباركود', 'اسم الصنف', 'الكمية'], [['123456789012', 'منتج جديد', 24]]);
   }
 }
 

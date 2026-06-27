@@ -305,7 +305,6 @@ export function SettingsBackupImportSection({
               { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode'] },
               { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
               { key: 'qty', label: 'الكمية', aliases: ['الكمية', 'qty', 'quantity', 'stock'] },
-              { key: 'note', label: 'ملاحظات', aliases: ['ملاحظات', 'note', 'notes'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('opening-stock')}
             onImportRows={importOpeningStock}
