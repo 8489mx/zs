@@ -1,4 +1,4 @@
-import { QueryCard } from '@/shared/components/query-card';
+import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SettingsMainForm } from '@/features/settings/components/SettingsForms';
 import type { Branch, Location, AppSettings } from '@/types/domain';
 
@@ -16,8 +16,7 @@ interface SettingsCoreSectionProps {
 export function SettingsCoreSection({ settings, branches, locations, settingsQuery, canManageSettings, setupMode = false, onSetupAdvance }: SettingsCoreSectionProps) {
   return (
     <div className="settings-main-grid">
-      <QueryCard
-        className="settings-primary-card"
+      <QueryFeedback
         isLoading={settingsQuery.isLoading}
         isError={settingsQuery.isError}
         error={settingsQuery.error}
@@ -27,7 +26,7 @@ export function SettingsCoreSection({ settings, branches, locations, settingsQue
         emptyHint="يمكنك حفظ الإعدادات الأساسية من هذه الشاشة."
       >
         <SettingsMainForm settings={settings} branches={branches} locations={locations} canManageSettings={canManageSettings} setupMode={setupMode} onSetupAdvance={onSetupAdvance} />
-      </QueryCard>
+      </QueryFeedback>
     </div>
   );
 }
