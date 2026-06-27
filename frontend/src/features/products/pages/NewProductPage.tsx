@@ -95,15 +95,22 @@ interface ComboboxSelectProps {
 function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...', emptyLabel = 'بدون', disabled, onCreateNew, createLabel, isPending }: ComboboxSelectProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const selectedOption = options.find((o) => o.id === value);
   const displayText = selectedOption ? selectedOption.label : emptyLabel;
 
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery(selectedOption ? selectedOption.label : '');
+    }
+  }, [isOpen, selectedOption]);
+
   const filteredOptions = useMemo(() => {
     const q = normalizeLookupText(query);
-    if (!q) return options;
+    if (!q || (selectedOption && normalizeLookupText(selectedOption.label) === q)) return options;
     return options.filter((o) => normalizeLookupText(o.label).includes(q));
-  }, [options, query]);
+  }, [options, query, selectedOption]);
 
   const hasExactMatch = useMemo(() => {
     const q = normalizeLookupText(query);
@@ -112,7 +119,6 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
 
   function handleSelect(optionId: string) {
     onChange(optionId);
-    setQuery('');
     setIsOpen(false);
   }
 
@@ -121,6 +127,48 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
   }
 
   const showCreateOption = Boolean(onCreateNew && query.trim() && !hasExactMatch && !isPending);
+  const totalOptions = filteredOptions.length + (showCreateOption ? 1 : 0) + 1;
+
+  useEffect(() => {
+    if (highlightedIndex >= totalOptions) {
+      setHighlightedIndex(Math.max(totalOptions - 1, 0));
+    }
+  }, [totalOptions, highlightedIndex]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+        setIsOpen(true);
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.min(prev + 1, totalOptions - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex === 0) {
+        handleSelect('');
+        return;
+      }
+      const optionIndex = highlightedIndex - 1;
+      if (optionIndex >= 0 && optionIndex < filteredOptions.length) {
+        handleSelect(filteredOptions[optionIndex].id);
+        return;
+      }
+      if (showCreateOption && highlightedIndex === filteredOptions.length + 1) {
+        onCreateNew?.(query.trim());
+        setIsOpen(false);
+      }
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
+  };
 
   return (
     <div style={{ position: 'relative' }}>
@@ -132,36 +180,26 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
         background: disabled ? '#f8fafc' : 'var(--surface, #fff)',
         overflow: 'hidden',
       }}>
-        {isOpen ? (
-          <input
-            autoFocus
-            className="purchase-prototype-field-input"
-            style={{ border: 'none', flex: 1, background: 'transparent', outline: 'none', boxShadow: 'none' }}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onBlur={handleBlur}
-            placeholder={placeholder}
-            disabled={disabled}
-          />
-        ) : (
-          <button
-            type="button"
-            style={{
-              flex: 1,
-              textAlign: 'right',
-              background: 'transparent',
-              border: 'none',
-              padding: '8px 10px',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              color: selectedOption ? 'inherit' : '#9ca3af',
-              fontSize: 'inherit',
-            }}
-            onClick={() => { if (!disabled) { setQuery(''); setIsOpen(true); } }}
-            disabled={disabled}
-          >
-            {displayText}
-          </button>
-        )}
+        <input
+          className="purchase-prototype-field-input"
+          style={{ border: 'none', flex: 1, background: 'transparent', outline: 'none', boxShadow: 'none' }}
+          value={isOpen ? query : displayText}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!isOpen) setIsOpen(true);
+            setHighlightedIndex(1);
+          }}
+          onFocus={(e) => {
+            if (!disabled) {
+              setIsOpen(true);
+              e.target.select();
+            }
+          }}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+        />
         <span style={{ padding: '0 8px', color: '#9ca3af', fontSize: 12, pointerEvents: 'none', userSelect: 'none' }}>▾</span>
       </div>
 
@@ -183,19 +221,21 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
         }}>
           <button
             type="button"
-            style={{ width: '100%', textAlign: 'right', background: value === '' ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: '#6b7280' }}
+            style={{ width: '100%', textAlign: 'right', background: highlightedIndex === 0 ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: '#6b7280' }}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleSelect('')}
+            onMouseEnter={() => setHighlightedIndex(0)}
           >
             {emptyLabel}
           </button>
-          {filteredOptions.map((opt) => (
+          {filteredOptions.map((opt, i) => (
             <button
               key={opt.id}
               type="button"
-              style={{ width: '100%', textAlign: 'right', background: value === opt.id ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: value === opt.id ? 600 : 400 }}
+              style={{ width: '100%', textAlign: 'right', background: highlightedIndex === i + 1 ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: value === opt.id ? 600 : 400 }}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(opt.id)}
+              onMouseEnter={() => setHighlightedIndex(i + 1)}
             >
               {opt.label}
             </button>
@@ -206,9 +246,10 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
           {showCreateOption && (
             <button
               type="button"
-              style={{ width: '100%', textAlign: 'right', background: 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: 'var(--primary, #2563eb)', fontWeight: 700 }}
+              style={{ width: '100%', textAlign: 'right', background: highlightedIndex === filteredOptions.length + 1 ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: 'var(--primary, #2563eb)', fontWeight: 700 }}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { onCreateNew?.(query.trim()); setQuery(''); setIsOpen(false); }}
+              onClick={() => { onCreateNew?.(query.trim()); setIsOpen(false); }}
+              onMouseEnter={() => setHighlightedIndex(filteredOptions.length + 1)}
             >
               + {createLabel || 'إضافة'}: "{query.trim()}"
             </button>
@@ -464,6 +505,20 @@ export function NewProductPage() {
     { label: 'الأصناف', to: '/products' },
     { label: 'إضافة صنف جديد' }
   ]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const canSubmit = !isFormDisabled && (!usesVariantBuilder || (fashionVariantRows.length > 0 && duplicateFashionBarcodes === 0 && String(watchedStyleCode || '').trim()));
+        if (canSubmit) {
+          onSubmit();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormDisabled, usesVariantBuilder, fashionVariantRows.length, duplicateFashionBarcodes, watchedStyleCode, onSubmit]);
 
   return (
     <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">

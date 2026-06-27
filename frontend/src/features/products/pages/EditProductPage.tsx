@@ -159,6 +159,19 @@ export function EditProductPage() {
 
   const onSubmit = form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }));
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (!isFormDisabled) {
+          onSubmit();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormDisabled, onSubmit]);
+
   return (
     <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
       <div className="purchase-prototype-sticky-stack">
