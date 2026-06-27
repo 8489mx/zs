@@ -87,12 +87,12 @@ export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 
 
   if (kind === 'opening-stock') {
     try {
-      const { http } = await import('@/shared/api/http');
+      const { http } = await import('@/lib/http');
       let page = 1;
       const allRows: any[][] = [];
       while (true) {
-        const res = await http.get('/api/catalog/products', { params: { page, pageSize: 1000 } });
-        const items = res.data?.items || [];
+        const res = await http<any>(`/api/products?page=${page}&pageSize=1000`);
+        const items = res.items || [];
         for (const p of items) {
           allRows.push([p.barcode || '', p.name || '', p.stock || 0, '']);
         }
