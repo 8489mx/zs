@@ -363,9 +363,15 @@ export function NewProductPage() {
   const [variantBarcodePrefix, setVariantBarcodePrefix] = useState('');
   const [groupedEntryEnabled, setGroupedEntryEnabled] = useState(defaultGroupedMode);
   const [isGeneratingStyleCode, setIsGeneratingStyleCode] = useState(false);
-  const [isMarginActive, setIsMarginActive] = useState(false);
-  const [retailMargin, setRetailMargin] = useState('');
-  const [wholesaleMargin, setWholesaleMargin] = useState('');
+  const [isMarginActive, setIsMarginActive] = useState(() => localStorage.getItem('auto_margin_active') === 'true');
+  const [retailMargin, setRetailMargin] = useState(() => localStorage.getItem('auto_margin_retail') || '');
+  const [wholesaleMargin, setWholesaleMargin] = useState(() => localStorage.getItem('auto_margin_wholesale') || '');
+
+  useEffect(() => {
+    localStorage.setItem('auto_margin_active', String(isMarginActive));
+    localStorage.setItem('auto_margin_retail', retailMargin);
+    localStorage.setItem('auto_margin_wholesale', wholesaleMargin);
+  }, [isMarginActive, retailMargin, wholesaleMargin]);
 
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
@@ -641,12 +647,42 @@ export function NewProductPage() {
         <section className="document-prototype-section">
           <div className="document-prototype-section-header" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 className="document-prototype-section-title">التسعير والمخزون</h3>
-            <Button type="button" variant={isMarginActive ? 'primary' : 'secondary'} onClick={() => setIsMarginActive(!isMarginActive)}>
-              {isMarginActive ? 'إلغاء ضبط هامش الربح' : 'ضبط هامش الربح'}
-            </Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 600 }}>حساب تلقائي للأسعار</span>
+              <button
+                type="button"
+                onClick={() => setIsMarginActive(!isMarginActive)}
+                style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  width: '44px',
+                  height: '24px',
+                  background: isMarginActive ? '#10b981' : '#e5e7eb',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  padding: 0
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: '18px',
+                    height: '18px',
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'transform 0.2s',
+                    transform: isMarginActive ? 'translateX(-23px)' : 'translateX(-3px)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}
+                />
+              </button>
+            </div>
           </div>
           {isMarginActive && (
-            <div className="document-prototype-grid compact-grid-2" style={{ marginBottom: 16, padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+            <div className="document-prototype-grid compact-grid-2" style={{ marginBottom: 16, padding: 16, backgroundColor: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
               <Field label="هامش ربح القطاعي (%)">
                 <input className="purchase-prototype-field-input" type="number" step="0.01" value={retailMargin} onChange={(e) => setRetailMargin(e.target.value)} placeholder="مثال: 20" disabled={isFormDisabled} />
               </Field>
