@@ -180,7 +180,7 @@ export function buildManagerActionInsights({
         title: 'نفد المخزون',
         message: `${name}: الكمية الحالية صفر أو أقل.`,
         actionLabel: 'راجع المخزون',
-        actionHref: `/products/${id}/edit`,
+        actionHref: '/inventory',
         metrics: { productId: id, stockQty, minStockQty },
         rank: 88 + Math.abs(stockQty),
       }));
@@ -192,7 +192,7 @@ export function buildManagerActionInsights({
         title: 'مخزون منخفض',
         message: `${name}: الكمية ${stockQty} والحد الأدنى ${minStockQty}.`,
         actionLabel: 'راجع المخزون',
-        actionHref: `/products/${id}/edit`,
+        actionHref: '/inventory',
         metrics: { productId: id, stockQty, minStockQty },
         rank: 62 + Math.max(0, minStockQty - stockQty),
       }));
