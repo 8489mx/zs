@@ -275,8 +275,11 @@
 .pos-workspace.pos-sale-mode-scanner .pos-cart-row-upgraded,
 .pos-workspace.pos-sale-mode-touch .pos-cart-row-upgraded {
   min-height: 46px;
-  padding: 7px 10px;
-  border-radius: 8px;
+  padding: 4px 10px;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(odd),
@@ -284,25 +287,27 @@
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(odd),
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-odd {
   background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(even),
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even,
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(even),
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even {
-  background: #fff8d6 !important;
+  background: #eff6ff !important;
+  border-bottom: 1px solid #cbd5e1 !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected,
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
-  background: #dbeafe !important;
-  border-color: rgba(23, 12, 92, 0.48) !important;
-  box-shadow: 0 0 0 2px rgba(23, 12, 92, 0.16) !important;
+  box-shadow: inset 0 0 0 2px rgba(23, 12, 92, 0.5) !important;
+  border-radius: 4px !important;
+  border-bottom-color: transparent !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-highlight:not(.pos-cart-row-selected),
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-highlight:not(.pos-cart-row-selected) {
-  background: #fef3c7 !important;
+  background: #f8fafc !important;
 }
 
 @media (max-width: 1080px) {
