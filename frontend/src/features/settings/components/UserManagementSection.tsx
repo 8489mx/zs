@@ -25,6 +25,7 @@ import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlo
 export function UserManagementSection({ branches, setupMode = false, setupStepKey = null, onSetupAdvance }: { branches: Branch[]; setupMode?: boolean; setupStepKey?: SetupStepKey | null; onSetupAdvance?: () => void }) {
   const controller = useUserManagementController({ setupMode, setupStepKey, onSetupAdvance });
   const [detailsUserId, setDetailsUserId] = useState('');
+  const [userInteracted, setUserInteracted] = useState(false);
   const detailsQuery = useQuery({
     queryKey: ['settings-user-details', detailsUserId],
     queryFn: () => employeeReportsApi.employeeDetails(detailsUserId, { limit: 25 }),
@@ -77,7 +78,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
     runBulkAction,
   } = controller;
 
-  useScrollIntoViewOnChange(selectedUserKey, userEditorSectionRef, { enabled: Boolean(selectedUserKey) });
+  useScrollIntoViewOnChange(selectedUserKey, userEditorSectionRef, { enabled: Boolean(selectedUserKey) && userInteracted });
 
   return (
     <>
@@ -111,13 +112,13 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               page={usersQuery.data?.pagination?.page || page}
               pageSize={usersQuery.data?.pagination?.pageSize || pageSize}
               totalItems={userSummary.totalItems}
-              onNewUser={() => startNewUser(setupMode && setupStepKey === 'admin-user' ? 'admin' : 'cashier')}
+              onNewUser={() => { setUserInteracted(true); startNewUser(setupMode && setupStepKey === 'admin-user' ? 'admin' : 'cashier'); }}
               onApplyRolePermissions={() => applyDefaultPermissions(draft.role)}
               onApplyTemplate={applyTemplate}
               onCopyPermissions={() => void copyPermissions()}
               onUserSearchChange={setUserSearch}
               onUserFilterChange={setUserFilter}
-              onLoadUser={loadUser}
+              onLoadUser={(user) => { setUserInteracted(true); loadUser(user); }}
               onSelectedIdsChange={setSelectedIds}
               onPageChange={setPage}
               onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
