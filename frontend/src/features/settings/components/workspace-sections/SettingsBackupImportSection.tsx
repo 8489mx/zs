@@ -126,7 +126,7 @@ export function SettingsBackupImportSection({
   const weeklyDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
   return (
-    <div className="two-column-grid">
+    <div className="page-stack">
       <QueryCard className="settings-admin-card settings-backup-card" title="النسخ والاسترداد" actions={<span className="nav-pill">نسخ احتياطي</span>}>
         <div className="actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
           <Button onClick={handleBackupDownload} disabled={backupBusy || !canManageBackups}>تنزيل نسخة احتياطية الآن</Button>

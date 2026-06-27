@@ -102,7 +102,7 @@ export function SettingsReferenceSection({
     const editingPrimaryBranch = primaryBranch && editingBranch?.branchId === primaryBranch.id ? { ...primaryBranch, ...editingBranch.values } : primaryBranch;
     const editingPrimaryLocation = primaryLocation && editingLocation?.locationId === primaryLocation.id ? { ...primaryLocation, ...editingLocation.values, branchName: branches.find((branch) => branch.id === editingLocation.values.branchId)?.name || '' } : primaryLocation;
     return (
-      <div className="two-column-grid">
+      <div className="page-stack">
         <QueryCard title="النشاط الرئيسي" className="settings-reference-card" isLoading={branchesQuery.isLoading} isError={branchesQuery.isError} error={branchesQuery.error} isEmpty={!editingPrimaryBranch} loadingText="جاري تحميل بيانات النشاط الرئيسي..." emptyTitle="لم تتم إضافة بيانات النشاط الرئيسي بعد" emptyHint="أضف تعريف النشاط الرئيسي مرة واحدة قبل متابعة باقي الإعدادات.">
           {editingPrimaryBranch ? <BranchRowActions branch={editingPrimaryBranch} isEditing={editingBranch?.branchId === editingPrimaryBranch.id} onStartEdit={(currentBranch) => setEditingBranch({ branchId: currentBranch.id, values: { name: currentBranch.name || '', code: currentBranch.code || '' } })} onCancelEdit={() => setEditingBranch(null)} onChange={(field, value) => setEditingBranch((current) => current && current.branchId === editingPrimaryBranch.id ? { ...current, values: { ...current.values, [field]: value } } : current)} onSave={async () => { if (!editingBranch || editingBranch.branchId !== editingPrimaryBranch.id) return; await onUpdateBranch(editingPrimaryBranch.id, editingBranch.values); setEditingBranch(null); }} onDelete={() => {}} canManageSettings={canManageSettings} isBusy={branchActionBusy} mutationError={branchActionError} /> : null}
         </QueryCard>
@@ -114,7 +114,7 @@ export function SettingsReferenceSection({
   }
 
   return (
-    <div className="two-column-grid">
+    <div className="page-stack">
       <BranchReferenceCard
         branches={branches}
         branchList={branchList}
