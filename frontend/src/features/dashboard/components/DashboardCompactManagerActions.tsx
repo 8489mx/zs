@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { LoadingState } from '@/shared/ui/loading-state';
@@ -27,7 +27,7 @@ export function DashboardCompactManagerActions({
   const topInsights = sortManagerActionsByImportance(insights).slice(0, 3);
 
   return (
-    <Card
+    <FormSection
       title="مركز قرارات المدير"
       description="أهم ما يحتاج تصرف سريع فقط، بدون إغراق الرئيسية بالتفاصيل."
       className="dashboard-premium-card dashboard-card-compact manager-action-center-card manager-action-center-card-compact"
@@ -82,6 +82,6 @@ export function DashboardCompactManagerActions({
           })}
         </div>
       ) : null}
-    </Card>
+    </FormSection>
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type SyntheticEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -183,7 +183,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
       emptyTitle="لا توجد أصناف لإجراء حركة مخزون"
       emptyHint="أضف صنفًا واحدًا على الأقل قبل استخدام أدوات الجرد أو التالف."
     >
-      <Card
+      <FormSection
         title="إجراءات تشغيلية متقدمة"
         description="استخدمها فقط عند الحاجة: تسوية رصيد، أو تسجيل تالف مباشر، بدل وضعها في مقدمة الصفحة."
         actions={<span className="nav-pill">إجراءات المخزون</span>}
@@ -302,7 +302,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
             </form>
           </details>
         </div>
-      </Card>
+      </FormSection>
     </QueryFeedback>
   );
 }

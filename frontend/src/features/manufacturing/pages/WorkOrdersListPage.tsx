@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { http } from '@/lib/http';
 import { useAuthStore } from '@/stores/auth-store';
@@ -169,7 +169,7 @@ export default function WorkOrdersListPage() {
         </Button>
       }
     >
-        <Card className="document-prototype-section">
+        <FormSection title="أوامر الشغل" className="document-prototype-section">
           <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ margin: 0, minWidth: '200px' }}>
               <Field label="الفترة الزمنية">
@@ -233,7 +233,7 @@ export default function WorkOrdersListPage() {
             </div>
           )}
           </div>
-        </Card>
+        </FormSection>
     </ManufacturingLayout>
   );
 }

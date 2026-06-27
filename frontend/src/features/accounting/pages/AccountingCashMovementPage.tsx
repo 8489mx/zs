@@ -1,11 +1,12 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { StatsGrid } from '@/shared/components/stats-grid';
+import { FormSection } from '@/shared/components/form-section';
+import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { formatCurrency } from '@/lib/format';
-import { Card } from '@/shared/ui/card';
+
 import { accountingApi } from '@/features/accounting/api/accounting.api';
 
 function sourceLabel(sourceType: string) {
@@ -49,10 +50,11 @@ export function AccountingCashMovementPage() {
   }, [totals]);
 
   return (
-    <div className="page-stack page-shell">
-      <PageHeader title="حركة الخزنة والبنك" description="تقرير مبسط يوضح الداخل والخارج وصافي حركة النقدية خلال الفترة." />
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader title="حركة الخزنة والبنك" description="تقرير مبسط يوضح الداخل والخارج وصافي حركة النقدية خلال الفترة." />
 
-      <Card title="فلاتر التقرير">
+        <FormSection title="فلاتر التقرير">
         <div className="grid-2" style={{ alignItems: 'end' }}>
           <label className="field stack gap-8">
             <span>من تاريخ</span>
@@ -67,9 +69,9 @@ export function AccountingCashMovementPage() {
           <button type="button" className="button" onClick={() => { setAppliedDateFrom(dateFrom.trim()); setAppliedDateTo(dateTo.trim()); }}>تطبيق</button>
           <button type="button" className="button button-secondary" onClick={() => { setDateFrom(''); setDateTo(''); setAppliedDateFrom(''); setAppliedDateTo(''); }}>إعادة ضبط</button>
         </div>
-      </Card>
+        </FormSection>
 
-      <Card title="ملخص حركة النقدية والبنك">
+        <FormSection title="ملخص حركة النقدية والبنك">
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
@@ -79,11 +81,19 @@ export function AccountingCashMovementPage() {
           errorTitle="تعذر تحميل تقرير الحركة"
           emptyTitle="لا توجد بيانات"
         >
-          {stats.length ? <StatsGrid items={stats} /> : null}
+          {stats.length ? (
+            <div className="reports-workspace">
+              <div className="reports-spotlight-grid compact-spotlight-grid">
+                {stats.map((stat) => (
+                  <ReportMetricCard key={stat.key} label={stat.label as string} value={Number(stat.value) || 0} tone={stat.key === 'net' ? 'success' : 'primary'} />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </QueryFeedback>
-      </Card>
+        </FormSection>
 
-      <Card title="حسب الحساب">
+        <FormSection title="حسب الحساب">
         <DataTable
           data={accounts}
           getRowKey={(row) => row.accountCode}
@@ -97,9 +107,9 @@ export function AccountingCashMovementPage() {
           ]}
           defaultSort={{ columnId: 'code', direction: 'asc' }}
         />
-      </Card>
+        </FormSection>
 
-      <Card title="حسب نوع الحركة">
+        <FormSection title="حسب نوع الحركة">
         <DataTable
           data={sources}
           getRowKey={(row) => row.sourceType}
@@ -112,8 +122,9 @@ export function AccountingCashMovementPage() {
           ]}
           defaultSort={{ columnId: 'net', direction: 'desc' }}
         />
-      </Card>
-      <div className="muted">صافي حركة النقدية خلال الفترة وليس رصيدًا نهائيًا.</div>
+        </FormSection>
+        <div className="muted" style={{ paddingInline: '24px' }}>صافي حركة النقدية خلال الفترة وليس رصيدًا نهائيًا.</div>
+      </main>
     </div>
   );
 }

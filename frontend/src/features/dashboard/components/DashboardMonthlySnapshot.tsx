@@ -1,5 +1,5 @@
-﻿import { Link } from 'react-router-dom';
-import { Card } from '@/shared/ui/card';
+import { Link } from 'react-router-dom';
+import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
 import type { DashboardManagerOverviewPayload } from '@/features/dashboard/api/dashboard.types';
 
@@ -21,7 +21,7 @@ export function DashboardMonthlySnapshot({ data }: DashboardMonthlySnapshotProps
     || Number(data.profitSummary.netProfit || 0) !== 0;
 
   return (
-    <Card
+    <FormSection
       title="لمحة شهرية مختصرة"
       description="أرقام كافية للاتجاه العام، والتفاصيل الكاملة مكانها التقارير."
       actions={<Link className="button button-secondary" to="/reports">عرض التقارير</Link>}
@@ -48,6 +48,6 @@ export function DashboardMonthlySnapshot({ data }: DashboardMonthlySnapshotProps
       ) : (
         <div className="dashboard-inline-empty dashboard-monthly-empty">لا توجد بيانات شهرية كافية حاليًا.</div>
       )}
-    </Card>
+    </FormSection>
   );
 }

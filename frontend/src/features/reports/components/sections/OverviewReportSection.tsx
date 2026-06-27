@@ -1,7 +1,7 @@
 import { useState, useMemo, type CSSProperties } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { AnimatedValue } from '@/shared/components/animated-value';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
 import type { ReportsSectionContentProps } from '@/features/reports/components/reports-section.types';
 import { CircularProgress } from '@/shared/components/charts/CircularProgress';
@@ -147,21 +147,21 @@ export function OverviewReportSection({
       </QueryCard>
 
       <div className="three-column-grid reports-unified-grid">
-        <Card title="حركة البيع" description="قراءة مختصرة للنطاق الحالي." actions={<span className="nav-pill">المبيعات</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
+        <FormSection title="حركة البيع" description="قراءة مختصرة للنطاق الحالي." actions={<span className="nav-pill">المبيعات</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
           <div className="list-stack compact-list">
             <div className="list-row"><span>عدد فواتير البيع</span><strong>{report?.sales.count || 0}</strong></div>
             <div className="list-row"><span>إجمالي البيع</span><strong>{formatCurrency(salesTotal)}</strong></div>
             <div className="list-row"><span>صافي البيع</span><strong>{formatCurrency(netSales)}</strong></div>
           </div>
-        </Card>
-        <Card title="حركة الشراء" description="ملخص مختصر للمشتريات في نفس النطاق." actions={<span className="nav-pill">المشتريات</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
+        </FormSection>
+        <FormSection title="حركة الشراء" description="ملخص مختصر للمشتريات في نفس النطاق." actions={<span className="nav-pill">المشتريات</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
           <div className="list-stack compact-list">
             <div className="list-row"><span>عدد فواتير الشراء</span><strong>{report?.purchases.count || 0}</strong></div>
             <div className="list-row"><span>إجمالي الشراء</span><strong>{formatCurrency(report?.purchases.total || 0)}</strong></div>
             <div className="list-row"><span>صافي الشراء</span><strong>{formatCurrency(report?.purchases.netPurchases || 0)}</strong></div>
           </div>
-        </Card>
-        <Card title="الربحية والخزنة" description="زاوية واحدة تربط الربح بحركة النقد." actions={<span className="nav-pill">الربحية والخزنة</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
+        </FormSection>
+        <FormSection title="الربحية والخزنة" description="زاوية واحدة تربط الربح بحركة النقد." actions={<span className="nav-pill">الربحية والخزنة</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
           <div className="metric-list">
             {operatingSignalRows.map((row) => (
               <div className="metric-row" key={row.label}>
@@ -170,53 +170,52 @@ export function OverviewReportSection({
               </div>
             ))}
           </div>
-        </Card>
+        </FormSection>
       </div>
 
-      <div className="reports-charts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '20px', marginTop: '20px' }}>
-        <Card 
-          title="تحليل المبيعات والمشتريات (شهري)" 
-          description="مقارنة بين حركة البيع والشراء على مدار الشهور." 
-          className="reports-chart-motion"
-          actions={
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {['شهر', '6 شهور', 'سنة', 'الكل'].map((period) => {
-                const isActive = chartPeriod === period;
-                return (
-                  <button 
-                    key={period}
-                    onClick={() => setChartPeriod(period)}
-                    className="nav-pill"
-                    style={{ 
-                      border: 'none', 
-                      background: isActive ? 'var(--accent, #170c5c)' : 'var(--bg-light, #f1f5f9)', 
-                      color: isActive ? 'white' : 'var(--text-secondary, #475569)',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      padding: '4px 12px'
-                    }}
-                  >
-                    {period}
-                  </button>
-                );
-              })}
-            </div>
-          }
-        >
-          <div style={{ marginTop: '16px' }}>
-            <SalesTrendChart data={chartData} />
+      <FormSection
+        title="تحليل المبيعات والمشتريات (شهري)"
+        description="مقارنة بين حركة البيع والشراء على مدار الشهور."
+        className="reports-chart-motion"
+        actions={
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {['شهر', '6 شهور', 'سنة', 'الكل'].map((period) => {
+              const isActive = chartPeriod === period;
+              return (
+                <button
+                  key={period}
+                  onClick={() => setChartPeriod(period)}
+                  className="nav-pill"
+                  style={{
+                    border: 'none',
+                    background: isActive ? 'var(--accent, #170c5c)' : 'var(--bg-light, #f1f5f9)',
+                    color: isActive ? 'white' : 'var(--text-secondary, #475569)',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '4px 12px'
+                  }}
+                >
+                  {period}
+                </button>
+              );
+            })}
           </div>
-        </Card>
-        <Card title="المبيعات حسب الوردية" description="مقارنة مبيعات فترات العمل (النهار مقابل الليل)." className="reports-chart-motion">
-          <div style={{ marginTop: '16px' }}>
-            <ShiftAnalysisChart data={[
-              { shift: 'الوردية الصباحية|من 8ص لـ 4م', sales: Math.round(netSales * 0.45), color: '#3b82f6' },
-              { shift: 'الوردية المسائية|من 4م لـ 12ص', sales: Math.round(netSales * 0.35), color: '#8b5cf6' },
-              { shift: 'الوردية الليلية|من 12ص لـ 8ص', sales: Math.round(netSales * 0.20), color: '#1e293b' }
-            ]} />
-          </div>
-        </Card>
-      </div>
+        }
+      >
+        <div style={{ marginTop: '16px' }}>
+          <SalesTrendChart data={chartData} />
+        </div>
+      </FormSection>
+
+      <FormSection title="المبيعات حسب الوردية" description="مقارنة مبيعات فترات العمل (النهار مقابل الليل).">
+        <div style={{ marginTop: '16px' }}>
+          <ShiftAnalysisChart data={[
+            { shift: 'الوردية الصباحية|من 8ص لـ 4م', sales: Math.round(netSales * 0.45), color: '#3b82f6' },
+            { shift: 'الوردية المسائية|من 4م لـ 12ص', sales: Math.round(netSales * 0.35), color: '#8b5cf6' },
+            { shift: 'الوردية الليلية|من 12ص لـ 8ص', sales: Math.round(netSales * 0.20), color: '#1e293b' }
+          ]} />
+        </div>
+      </FormSection>
     </div>
   );
 }

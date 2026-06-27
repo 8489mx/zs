@@ -10,6 +10,13 @@ interface ReportMetricCardProps {
   progress?: number;
 }
 
+const TONE_ICONS: Record<string, string> = {
+  primary: '📊',
+  success: '✅',
+  warning: '⚠️',
+  danger:  '🔴',
+};
+
 export function ReportMetricCard({
   label,
   value,
@@ -23,15 +30,19 @@ export function ReportMetricCard({
 
   return (
     <article className={`report-metric-card tone-${tone}`}>
-      <div className="report-metric-topline">
-        <span className="report-metric-label">{label}</span>
+      <div className="rmc-accent-bar" aria-hidden="true" />
+      <div className="rmc-body">
+        <div className="rmc-header">
+          <span className="rmc-icon" aria-hidden="true">{TONE_ICONS[tone]}</span>
+          <span className="report-metric-label">{label}</span>
+        </div>
+        <strong className="report-metric-value">
+          <AnimatedValue value={value} formatter={formatter} decimals={decimals} />
+        </strong>
         {helper ? <small className="report-metric-helper">{helper}</small> : null}
-      </div>
-      <strong className="report-metric-value">
-        <AnimatedValue value={value} formatter={formatter} decimals={decimals} />
-      </strong>
-      <div className="report-progress-track" aria-hidden="true">
-        <span className="report-progress-fill" style={{ width: `${normalizedProgress}%` }} />
+        <div className="report-progress-track" aria-hidden="true">
+          <span className="report-progress-fill" style={{ width: `${normalizedProgress}%` }} />
+        </div>
       </div>
     </article>
   );

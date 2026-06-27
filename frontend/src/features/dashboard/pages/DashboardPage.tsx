@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
+import { FormSection } from '@/shared/components/form-section';
 import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
@@ -26,7 +27,7 @@ export function DashboardPage() {
 
   if (overview.isLoading && !overview.data) {
     return (
-      <div className="page-stack page-shell">
+      <div className="page-stack page-shell" dir="rtl">
         <LoadingState title="جاري تحميل ملخص اليوم..." hint="نجهز لك مؤشرات المبيعات والخزينة والمخزون." className="status-surface-block" />
       </div>
     );
@@ -34,7 +35,7 @@ export function DashboardPage() {
 
   if (overview.isError && !overview.data) {
     return (
-      <div className="page-stack page-shell">
+      <div className="page-stack page-shell" dir="rtl">
         <ErrorState title="تعذر تحميل ملخص اليوم" error={overview.error} hint="تحقق من اتصال النظام ثم أعد المحاولة." className="status-surface-block" />
       </div>
     );
@@ -52,76 +53,86 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="page-stack dashboard-premium-shell dashboard-priority-shell">
-      <PageHeader
-        title="ملخص اليوم"
-        description="نظرة سريعة على المبيعات والخزينة والمخزون والتنبيهات المهمة."
-        badge={<span className="nav-pill">Daily Summary</span>}
-        actions={(
-          <div className="actions compact-actions dashboard-header-actions">
-            <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير CSV</button>
-            <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
-          </div>
-        )}
-      />
-
-      <FirstRunSetupChecklist />
-
-      <section className="dashboard-daily-kpi-grid dashboard-primary-kpi-grid" aria-label="ملخص التشغيل">
-        <DashboardMetricCard label="مبيعات اليوم" value={Number(stats.todaySalesAmount || 0)} helper="إجمالي البيع المسجل اليوم" tone="primary" />
-        <DashboardMetricCard label="عدد فواتير اليوم" value={Number(stats.todaySalesCount || 0)} helper="عدد فواتير البيع" tone="success" formatter={formatInteger} />
-        <DashboardMetricCard label="صافي الخزينة" value={Number(summary.treasury.net || 0)} helper="الوضع النقدي الحالي" tone={Number(summary.treasury.net || 0) >= 0 ? 'success' : 'danger'} />
-        <DashboardMetricCard label="مصروفات اليوم" value={Number(summary.expenses.total || 0)} helper="إجمالي المصروفات" tone="warning" />
-        <DashboardMetricCard label="تنبيهات المخزون" value={Number(overview.data.lowStock.length || 0)} helper="أصناف تحتاج متابعة" tone={Number(overview.data.lowStock.length || 0) > 0 ? 'danger' : 'success'} formatter={formatInteger} />
-      </section>
-
-      <section className="dashboard-quick-actions-grid" aria-label="إجراءات سريعة">
-        {quickActions.map((action) => (
-          <Link key={action.to} className="dashboard-quick-action" to={action.to}>
-            <strong>{action.label}</strong>
-            <span>{action.hint}</span>
-          </Link>
-        ))}
-      </section>
-
-      <h2 className="dashboard-section-heading">ملخص التشغيل</h2>
-      <DashboardDailyBrief
-        insights={managerActions.data?.insights || []}
-        isLoading={managerActions.isLoading}
-      />
-
-      <section id="manager-decision-center">
-        <h2 className="dashboard-section-heading">قرارات تحتاج مراجعة</h2>
-        <DashboardDailyDecisionGrid
-          data={managerOverview.data}
-          isLoading={managerOverview.isLoading}
-          isError={managerOverview.isError}
-          error={managerOverview.error}
+    <div className="page-stack page-shell dashboard-premium-shell dashboard-priority-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ maxWidth: '1100px', paddingBottom: '100px' }}>
+        <PageHeader
+          title="ملخص اليوم"
+          description="نظرة سريعة على المبيعات والخزينة والمخزون والتنبيهات المهمة."
+          badge={<span className="nav-pill">Daily Summary</span>}
+          actions={(
+            <div className="actions compact-actions dashboard-header-actions">
+              <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير CSV</button>
+              <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
+            </div>
+          )}
         />
-      </section>
 
-      <DashboardSummaryGrid
-        todaySalesCount={Number(stats.todaySalesCount || 0)}
-        todayPurchasesCount={Number(stats.todayPurchasesCount || 0)}
-        todayExpenses={Number(summary.expenses.total || 0)}
-        returnsTotal={Number(summary.returns.total || 0)}
-        smartAlerts={smartAlerts}
-        topToday={topToday}
-        productsCount={Number(stats.productsCount || 0)}
-        inventorySaleValue={Number(stats.inventorySaleValue || 0)}
-        customerDebt={Number(stats.customerDebt || 0)}
-        supplierDebt={Number(stats.supplierDebt || 0)}
-      />
+        <FirstRunSetupChecklist />
 
-      <h2 className="dashboard-section-heading">اختصارات إدارية</h2>
-      <DashboardCompactManagerActions
-        insights={managerActions.data?.insights || []}
-        isLoading={managerActions.isLoading}
-        isError={managerActions.isError}
-        error={managerActions.error}
-      />
+        {/* 1. المؤشرات الرئيسية - الأهم */}
+        <FormSection title="مؤشرات اليوم" description="أهم أرقام التشغيل دفعة واحدة بدون تمرير أو بحث." actions={<span className="nav-pill">KPIs</span>}>
+          <section className="dashboard-daily-kpi-grid dashboard-primary-kpi-grid" aria-label="ملخص التشغيل">
+            <DashboardMetricCard label="مبيعات اليوم" value={Number(stats.todaySalesAmount || 0)} helper="إجمالي البيع المسجل اليوم" tone="primary" />
+            <DashboardMetricCard label="عدد فواتير اليوم" value={Number(stats.todaySalesCount || 0)} helper="عدد فواتير البيع" tone="success" formatter={formatInteger} />
+            <DashboardMetricCard label="صافي الخزينة" value={Number(summary.treasury.net || 0)} helper="الوضع النقدي الحالي" tone={Number(summary.treasury.net || 0) >= 0 ? 'success' : 'danger'} />
+            <DashboardMetricCard label="مصروفات اليوم" value={Number(summary.expenses.total || 0)} helper="إجمالي المصروفات" tone="warning" />
+            <DashboardMetricCard label="تنبيهات المخزون" value={Number(overview.data.lowStock.length || 0)} helper="أصناف تحتاج متابعة" tone={Number(overview.data.lowStock.length || 0) > 0 ? 'danger' : 'success'} formatter={formatInteger} />
+          </section>
+        </FormSection>
 
-      <DashboardMonthlySnapshot data={managerOverview.data} />
+        {/* 2. إجراءات سريعة */}
+        <FormSection title="إجراءات سريعة" description="اختصارات للانتقال الفوري إلى أكثر الأقسام استخدامًا." actions={<span className="nav-pill">Quick Actions</span>}>
+          <section className="dashboard-quick-actions-grid" aria-label="إجراءات سريعة">
+            {quickActions.map((action) => (
+              <Link key={action.to} className="dashboard-quick-action" to={action.to}>
+                <strong>{action.label}</strong>
+                <span>{action.hint}</span>
+              </Link>
+            ))}
+          </section>
+        </FormSection>
+
+        {/* 3. الملخص التنفيذي السريع - تنبيهات عاجلة */}
+        <DashboardDailyBrief
+          insights={managerActions.data?.insights || []}
+          isLoading={managerActions.isLoading}
+        />
+
+        {/* 4. قرارات تحتاج مراجعة */}
+        <FormSection title="قرارات تحتاج مراجعة" description="أهم ما يجب اتخاذ قرار فيه اليوم بناءً على حركة المخزون والعملاء والربحية." actions={<span className="nav-pill">Action Center</span>}>
+          <DashboardDailyDecisionGrid
+            data={managerOverview.data}
+            isLoading={managerOverview.isLoading}
+            isError={managerOverview.isError}
+            error={managerOverview.error}
+          />
+        </FormSection>
+
+        {/* 5. ملخص التشغيل والتنبيهات والأصناف */}
+        <DashboardSummaryGrid
+          todaySalesCount={Number(stats.todaySalesCount || 0)}
+          todayPurchasesCount={Number(stats.todayPurchasesCount || 0)}
+          todayExpenses={Number(summary.expenses.total || 0)}
+          returnsTotal={Number(summary.returns.total || 0)}
+          smartAlerts={smartAlerts}
+          topToday={topToday}
+          productsCount={Number(stats.productsCount || 0)}
+          inventorySaleValue={Number(stats.inventorySaleValue || 0)}
+          customerDebt={Number(stats.customerDebt || 0)}
+          supplierDebt={Number(stats.supplierDebt || 0)}
+        />
+
+        {/* 6. مركز قرارات المدير */}
+        <DashboardCompactManagerActions
+          insights={managerActions.data?.insights || []}
+          isLoading={managerActions.isLoading}
+          isError={managerActions.isError}
+          error={managerActions.error}
+        />
+
+        {/* 7. اللمحة الشهرية - الأقل إلحاحًا */}
+        <DashboardMonthlySnapshot data={managerOverview.data} />
+      </main>
     </div>
   );
 }

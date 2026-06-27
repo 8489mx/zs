@@ -3,6 +3,8 @@ import { useAuthStore } from '@/stores/auth-store';
 import { http } from '@/lib/http';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { FormSection } from '@/shared/components/form-section';
 
 export function ProfilePage() {
   const user = useAuthStore(s => s.user);
@@ -61,37 +63,27 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-      <header className="page-header" style={{ width: '100%', maxWidth: 600 }}>
-        <h1 className="page-title" style={{ textAlign: 'center' }}>الملف الشخصي</h1>
-      </header>
+    <div className="page-stack page-shell profile-page" dir="rtl">
+      <main className="document-prototype-column" style={{ maxWidth: '800px' }}>
+        <PageHeader title="الملف الشخصي" description="تحديث بيانات حسابك وتغيير كلمة المرور" />
 
-      <div className="stack gap-24" style={{ width: '100%', maxWidth: 600 }}>
-        <div className="card">
-          <div className="card-header" style={{ justifyContent: 'center' }}>
-            <h3 style={{ margin: 0 }}>بيانات المستخدم</h3>
-          </div>
-          <div className="card-body">
-            <form onSubmit={handleProfileSubmit} className="stack gap-16" style={{ textAlign: 'start' }}>
+        <div className="stack gap-24">
+          <FormSection title="بيانات المستخدم" className="profile-section">
+            <form onSubmit={handleProfileSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
               <Field label="الاسم">
                 <input type="text" value={name} onChange={e => setName(e.target.value)} className="input" required />
               </Field>
               <Field label="اسم المستخدم">
                 <input type="text" value={username} disabled className="input" title="لا يمكن تغيير اسم المستخدم لأسباب أمنية" dir="ltr" />
               </Field>
-              <div style={{ marginTop: '1rem' }}>
-                <Button type="submit" disabled={isSavingProfile}>حفظ البيانات</Button>
+              <div className="actions" style={{ gridColumn: '1 / -1' }}>
+                <Button type="submit" variant="primary" disabled={isSavingProfile}>حفظ البيانات</Button>
               </div>
             </form>
-          </div>
-        </div>
+          </FormSection>
 
-        <div className="card">
-          <div className="card-header" style={{ justifyContent: 'center' }}>
-            <h3 style={{ margin: 0 }}>تغيير كلمة المرور</h3>
-          </div>
-          <div className="card-body">
-            <form onSubmit={handlePasswordSubmit} className="stack gap-16" style={{ textAlign: 'start' }}>
+          <FormSection title="تغيير كلمة المرور" className="profile-section">
+            <form onSubmit={handlePasswordSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
               <Field label="كلمة المرور الحالية">
                 <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="input" required dir="ltr" />
               </Field>
@@ -101,13 +93,13 @@ export function ProfilePage() {
               <Field label="تأكيد كلمة المرور الجديدة">
                 <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input" required dir="ltr" />
               </Field>
-              <div style={{ marginTop: '1rem' }}>
-                <Button type="submit" disabled={isSavingPassword}>تغيير كلمة المرور</Button>
+              <div className="actions" style={{ gridColumn: '1 / -1' }}>
+                <Button type="submit" variant="primary" disabled={isSavingPassword}>تغيير كلمة المرور</Button>
               </div>
             </form>
-          </div>
+          </FormSection>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

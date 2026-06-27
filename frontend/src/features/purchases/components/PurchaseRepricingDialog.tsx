@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
 import type { PurchaseRepricingInsights } from '@/features/purchases/api/purchases.api';
 import {
@@ -164,7 +164,7 @@ export function PurchaseRepricingDialog({ open, insights, onClose }: PurchaseRep
       </div>
 
       <div className="two-column-grid panel-grid" style={{ marginBottom: 16 }}>
-        <Card title="القاعدة المطابقة" description="يتم اختيار أفضل قاعدة نشطة مطابقة للمورد والسياق الحالي.">
+        <FormSection title="القاعدة المطابقة" description="يتم اختيار أفضل قاعدة نشطة مطابقة للمورد والسياق الحالي.">
           {matchRuleMutation.isPending ? <p className="muted">جارٍ مطابقة قاعدة التسعير…</p> : (
             <div className="stack gap-sm">
               <div><strong>{matchedRule?.name || 'لا توجد قاعدة مطابقة'}</strong></div>
@@ -173,9 +173,9 @@ export function PurchaseRepricingDialog({ open, insights, onClose }: PurchaseRep
               {!matchedRule ? <div className="muted small">يمكنك فتح مركز التسعير لحفظ قاعدة جديدة لهذا المورد ثم إعادة استخدامها لاحقًا.</div> : null}
             </div>
           )}
-        </Card>
+        </FormSection>
 
-        <Card title="المعاينة الجاهزة" description="هذه هي المعاينة الفعلية التي ستُستخدم لو تم تنفيذ الموجة الآن.">
+        <FormSection title="المعاينة الجاهزة" description="هذه هي المعاينة الفعلية التي ستُستخدم لو تم تنفيذ الموجة الآن.">
           {!matchedRule && !matchRuleMutation.isPending ? <p className="muted">لا توجد معاينة تلقائية لأن النظام لم يجد قاعدة مناسبة بعد.</p> : null}
           {matchedRule && !hasAutoPreview && !previewMutation.isPending ? <p className="muted">لم تُجهّز المعاينة بعد.</p> : null}
           {previewMutation.isPending ? <p className="muted">جارٍ تجهيز المعاينة…</p> : null}
@@ -189,7 +189,7 @@ export function PurchaseRepricingDialog({ open, insights, onClose }: PurchaseRep
               <article className="stat-card"><span>أقل من الشراء</span><strong>{previewSummary?.belowCostCount || 0}</strong></article>
             </div>
           ) : null}
-        </Card>
+        </FormSection>
       </div>
 
       <div style={{ overflowX: 'auto', border: '1px solid var(--border-color, #ddd)', borderRadius: 8 }}>

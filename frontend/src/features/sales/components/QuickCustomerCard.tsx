@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -28,7 +28,7 @@ export function QuickCustomerCard({ canManageCustomers }: { canManageCustomers: 
   });
 
   return (
-    <Card title={t('sales.03df17')} className="workspace-panel sales-quick-customer-card">
+    <FormSection title={t('sales.03df17')} className="workspace-panel sales-quick-customer-card">
       <div className="sales-quick-customer-inline-wrap">
         <div className="sales-quick-customer-inline-grid">
           <Field label={t('sales.2b9848')}><input value={name} onChange={(event) => setName(event.target.value)} placeholder={t('sales.2b9848')} disabled={mutation.isPending || !canManageCustomers} /></Field>
@@ -41,6 +41,6 @@ export function QuickCustomerCard({ canManageCustomers }: { canManageCustomers: 
       {!canManageCustomers ? <div className="muted small">{t('sales.235e62')}</div> : null}
       <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback={t('sales.b7eb5c')} />
       <MutationFeedback isSuccess={mutation.isSuccess} successText={t('sales.6c6513')} />
-    </Card>
+    </FormSection>
   );
 }

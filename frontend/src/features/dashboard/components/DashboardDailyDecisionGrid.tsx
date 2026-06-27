@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { LoadingState } from '@/shared/ui/loading-state';
@@ -115,8 +115,8 @@ export function DashboardDailyDecisionGrid({
   }
 
   return (
-    <section className="dashboard-content-grid dashboard-content-grid-wide manager-decision-grid" aria-label="قرارات تحتاج متابعة">
-      <Card
+    <div className="page-stack" aria-label="قرارات تحتاج متابعة">
+      <FormSection
         title="إيه أشتريه؟"
         description="الأصناف الناقصة أو السريعة الحركة التي تستحق مراجعة قبل الشراء."
         actions={<Link className="button button-secondary manager-overview-action" to="/inventory">راجع المخزون</Link>}
@@ -128,9 +128,9 @@ export function DashboardDailyDecisionGrid({
           <MetricTile label="أولوية شراء" value={formatNumber(data.buying.priority.length)} />
         </div>
         <ProductList rows={data.buying.priority} type="buying" />
-      </Card>
+      </FormSection>
 
-      <Card
+      <FormSection
         title="إيه الراكد؟"
         description="أصناف موجودة لكنها لا تتحرك وتحتاج قرار تسعير أو عرض."
         actions={<Link className="button button-secondary manager-overview-action" to="/inventory">راجع المخزون</Link>}
@@ -142,9 +142,9 @@ export function DashboardDailyDecisionGrid({
           <MetricTile label="قيمة الراكد" value={formatCurrency(data.stagnant.inventoryValue)} />
         </div>
         <ProductList rows={data.stagnant.items} type="stagnant" />
-      </Card>
+      </FormSection>
 
-      <Card
+      <FormSection
         title="بيكسب منين؟"
         description="أعلى الأصناف ربحًا، والأصناف التي تبيع كثيرًا بهامش ضعيف وتحتاج مراجعة سعر أو تكلفة."
         actions={<Link className="button button-secondary manager-overview-action" to="/reports/profit">افتح تقرير الربح</Link>}
@@ -163,9 +163,9 @@ export function DashboardDailyDecisionGrid({
           <div className="muted small">مبيعات عالية وهامش ضعيف</div>
           <ProfitList rows={data.profitSources.weakMarginHighSales} emptyLabel="لا توجد أصناف بهامش ضعيف تحتاج متابعة الآن" valueType="margin" />
         </div>
-      </Card>
+      </FormSection>
 
-      <Card
+      <FormSection
         title="إيه أُحصّله؟"
         description="أهم العملاء والأرصدة التي تحتاج متابعة تحصيل اليوم."
         actions={<Link className="button button-secondary manager-overview-action" to="/accounts">افتح الحسابات</Link>}
@@ -177,7 +177,7 @@ export function DashboardDailyDecisionGrid({
           <MetricTile label="قريب من الحد" value={formatNumber(data.collection.nearCreditLimit.length)} />
         </div>
         <CustomerList rows={data.collection.topDebts} />
-      </Card>
-    </section>
+      </FormSection>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -131,7 +131,7 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
 
   return (
     <DialogShell open={open} onClose={handleCancel} width="min(980px, 100%)" zIndex={70}>
-      <Card title={`تعديل ${sale.docNo || sale.id}`} actions={<span className="nav-pill">{t('sales.759fdc')}</span>} className="dialog-card dialog-card-wide">
+      <FormSection title={`تعديل ${sale.docNo || sale.id}`} actions={<span className="nav-pill">{t('sales.759fdc')}</span>} className="dialog-card dialog-card-wide">
         <DraftStateNotice visible={isDirty && !isBusy} title={t('sales.75f3bb')} hint={t('sales.e5aaba')} />
         <div className="form-grid">
           <Field label={t('sales.394ebd')}>
@@ -176,10 +176,21 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
           </table>
         </div>
 
-        <div className="stats-grid compact-grid" style={{ marginTop: 12 }}>
-          <div className="stat-card"><span>{t('sales.e89b20')}</span><strong>{formatCurrency(computedSubTotal)}</strong></div>
-          <div className="stat-card"><span>{t('sales.ad68a9')}</span><strong>{formatCurrency(computedTax)}</strong></div>
-          <div className="stat-card"><span>{t('sales.88fc73')}</span><strong>{formatCurrency(computedTotal)}</strong></div>
+        <div className="reports-workspace" style={{ marginTop: 12 }}>
+          <div className="reports-spotlight-grid compact-spotlight-grid">
+            <div className="report-metric-card">
+              <span className="metric-label">{t('sales.e89b20')}</span>
+              <strong className="metric-value">{formatCurrency(computedSubTotal)}</strong>
+            </div>
+            <div className="report-metric-card">
+              <span className="metric-label">{t('sales.ad68a9')}</span>
+              <strong className="metric-value">{formatCurrency(computedTax)}</strong>
+            </div>
+            <div className="report-metric-card metric-card-highlight">
+              <span className="metric-label">{t('sales.88fc73')}</span>
+              <strong className="metric-value">{formatCurrency(computedTotal)}</strong>
+            </div>
+          </div>
         </div>
 
         {(localError || errorMessage) ? <div className="error-box" style={{ marginTop: 12 }}>{localError || errorMessage}</div> : null}
@@ -224,7 +235,7 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
             });
           }}>{isBusy ? t('sales.c793e5') : t('sales.ea76b8')}</Button>
         </div>
-      </Card>
+      </FormSection>
     </DialogShell>
   );
 }

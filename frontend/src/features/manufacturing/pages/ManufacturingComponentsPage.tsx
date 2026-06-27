@@ -1,7 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
 import { MANUFACTURING_UNITS } from '@/features/manufacturing/utils/units';
@@ -179,7 +179,7 @@ export default function ManufacturingComponentsPage() {
           </div>
         )}
 
-        <Card className="document-prototype-section">
+        <FormSection title="قائمة المكونات" className="document-prototype-section">
           <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb' }}>
             <input 
               type="search" 
@@ -205,7 +205,7 @@ export default function ManufacturingComponentsPage() {
               rowKey={(r) => r.id}
             />
           )}
-        </Card>
+        </FormSection>
       </div>
     </ManufacturingLayout>
   );

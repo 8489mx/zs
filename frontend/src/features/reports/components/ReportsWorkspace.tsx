@@ -10,7 +10,8 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
   const controller = useReportsWorkspaceController(currentSection);
 
   return (
-    <div className="page-stack page-shell reports-workspace reports-animated-shell reports-workspace--compact">
+    <div className="page-stack page-shell reports-workspace reports-animated-shell reports-workspace--compact" dir="rtl">
+      <main className="document-prototype-column" style={{ maxWidth: '1100px', paddingBottom: '100px' }}>
       <PageHeader
         title="التقارير"
         description="اختر القسم والفترة ثم راجع التقرير مباشرة بدون صفوف تمهيدية إضافية."
@@ -90,6 +91,7 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         onEmployeesPageSizeChange={controller.onEmployeesPageSizeChange}
         onEmployeesFiltersReset={controller.onEmployeesFiltersReset}
       />
+      </main>
     </div>
   );
 }

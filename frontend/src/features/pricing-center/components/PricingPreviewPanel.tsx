@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { formatCurrency } from '@/lib/format';
 import type { PricingPreviewResponse } from '@/shared/api/pricing.api';
@@ -22,7 +22,7 @@ export function PricingPreviewPanel({
   const rows = preview?.rows || [];
 
   return (
-    <Card
+    <FormSection
       title="نتائج المعاينة"
       description="الجدول يعرض قبل/بعد، مع حالة التوريث، ومفتاح المجموعة، والاستثناءات التي سيتم تخطيها عند التنفيذ."
     >
@@ -102,6 +102,6 @@ export function PricingPreviewPanel({
         ]}
         empty={<div className="empty-state"><p>لا توجد معاينة بعد. اختر النطاق واضغط “معاينة”.</p></div>}
       />
-    </Card>
+    </FormSection>
   );
 }

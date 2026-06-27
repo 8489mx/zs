@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -112,7 +112,7 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
 
   return (
     <DialogShell open={open} onClose={handleCancel} width="min(980px, 100%)" zIndex={70}>
-      <Card title={`تعديل ${purchase.docNo || purchase.id}`} actions={<span className="nav-pill">تعديل</span>} className="dialog-card dialog-card-wide">
+      <FormSection title={`تعديل ${purchase.docNo || purchase.id}`} actions={<span className="nav-pill">تعديل</span>} className="dialog-card dialog-card-wide">
         <DraftStateNotice visible={isDirty && !isBusy} title="تعديلات فاتورة الشراء الحالية غير محفوظة" hint="أعد القيم الأصلية أو احفظ التعديلات قبل إغلاق نافذة التعديل." />
         <div className="form-grid">
           <Field label="نوع السداد">
@@ -188,7 +188,7 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
             });
           }}>{isBusy ? 'جارٍ حفظ التعديل...' : 'حفظ التعديل'}</Button>
         </div>
-      </Card>
+      </FormSection>
     </DialogShell>
   );
 }

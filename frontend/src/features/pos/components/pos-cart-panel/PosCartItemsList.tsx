@@ -1,7 +1,11 @@
 import { formatCurrency } from '@/lib/format';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onRemoveItem, onSelectLine }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onRemoveItem' | 'onSelectLine'>) {
+  const settingsQuery = useSettingsQuery();
+  const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
+
   if (!cart.length) {
     return (
       <section className="pos-cart-empty-state pos-cart-empty-state-guided" aria-label="السلة فارغة">
@@ -54,8 +58,24 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                 <div className="pos-cart-product-inline" title={itemCode ? `${item.name} - ${itemCode}` : item.name}>
                   <strong className="pos-cart-product-name">{item.name}</strong>
                   {itemCode ? <span className="pos-cart-product-code">#{itemCode}</span> : null}
+                  {!item.notes && allowItemNotes && (
+                    <button
+                      type="button"
+                      title="إضافة ملاحظة"
+                      style={{ fontSize: '0.85rem', color: '#94a3b8', background: 'none', border: 'none', padding: '0 4px', cursor: 'pointer', opacity: isSelected ? 1 : 0.4 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newNotes = window.prompt('ملاحظات الصنف:', '');
+                        if (newNotes !== null) {
+                          onItemNoteChange(item.lineKey, newNotes);
+                        }
+                      }}
+                    >
+                      📝
+                    </button>
+                  )}
                 </div>
-                {item.notes && (
+                {item.notes && allowItemNotes && (
                   <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px', cursor: 'pointer' }} onClick={(e) => {
                     e.stopPropagation();
                     const newNotes = window.prompt('ملاحظات الصنف:', item.notes || '');
@@ -65,21 +85,6 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   }}>
                     {item.notes}
                   </div>
-                )}
-                {!item.notes && isSelected && (
-                  <button
-                    type="button"
-                    style={{ fontSize: '0.75rem', color: '#0ea5e9', background: 'none', border: 'none', padding: 0, marginTop: '2px', cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const newNotes = window.prompt('ملاحظات الصنف:', '');
-                      if (newNotes !== null) {
-                        onItemNoteChange(item.lineKey, newNotes);
-                      }
-                    }}
-                  >
-                    + إضافة ملاحظة
-                  </button>
                 )}
               </div>
 

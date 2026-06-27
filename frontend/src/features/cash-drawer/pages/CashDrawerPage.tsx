@@ -1,5 +1,7 @@
-﻿import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { useState } from 'react';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import { CashDrawerFormsPanel } from '@/features/cash-drawer/components/CashDrawerFormsPanel';
 import { CashDrawerShiftsCard } from '@/features/cash-drawer/components/CashDrawerShiftsCard';
 import { CashDrawerReviewDialog } from '@/features/cash-drawer/components/CashDrawerReviewDialog';
@@ -13,6 +15,7 @@ void cashDrawerRegressionLabels;
 void cashDrawerRegressionMarkers;
 
 export function CashDrawerPage() {
+  const [activeForm, setActiveForm] = useState<'open' | 'movement' | 'close' | null>(null);
   const controller = useCashDrawerPageController();
   const movementType = controller.confirmAction?.kind === 'movement' ? controller.confirmAction.values.type : '';
   const isCashOut = movementType === 'cash_out';
@@ -36,10 +39,18 @@ export function CashDrawerPage() {
     : 'أدخل كلمة مرور المستخدم الحالي لتأكيد العملية.';
 
   return (
-    <div className="page-stack page-shell cash-drawer-page">
+    <div className="page-stack page-shell cash-drawer-page" dir="rtl">
+      <main className="document-prototype-column" style={{ maxWidth: '1440px', paddingBottom: '100px' }}>
       <PageHeader
         title="ورديات نقطة البيع ودرج النقدية"
         badge={<span className="nav-pill">متابعة ورديات نقطة البيع</span>}
+        actions={
+          <div className="actions compact-actions">
+            <Button variant="primary" onClick={() => setActiveForm('open')}>فتح وردية</Button>
+            <Button variant="secondary" onClick={() => setActiveForm('movement')}>تسجيل حركة</Button>
+            <Button variant="danger" onClick={() => setActiveForm('close')}>إغلاق الوردية</Button>
+          </div>
+        }
       />
 
       <CashDrawerStatsGrid
@@ -81,6 +92,8 @@ export function CashDrawerPage() {
       />
 
       <CashDrawerFormsPanel
+        activeForm={activeForm}
+        onCloseForm={() => setActiveForm(null)}
         branches={controller.branches}
         locations={controller.locations}
         openOptions={controller.openOptions}
@@ -123,6 +136,7 @@ export function CashDrawerPage() {
         isError={controller.reviewMutation.isError}
         error={controller.reviewMutation.error}
       />
+      </main>
     </div>
   );
 }

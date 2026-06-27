@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
@@ -69,7 +69,7 @@ export default function BomsListPage() {
         </Button>
       }
     >
-        <Card className="document-prototype-section">
+        <FormSection title="قائمة معادلات التصنيع" className="cash-drawer-shifts-card">
           <div className="page-stack">
           {isLoading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>جاري التحميل...</div>
@@ -87,7 +87,7 @@ export default function BomsListPage() {
             />
           )}
           </div>
-        </Card>
+        </FormSection>
     </ManufacturingLayout>
   );
 }

@@ -1,11 +1,12 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { StatsGrid } from '@/shared/components/stats-grid';
+import { FormSection } from '@/shared/components/form-section';
+import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { formatCurrency } from '@/lib/format';
-import { Card } from '@/shared/ui/card';
+
 import { accountingApi, type FinancialSummaryBreakdownRow } from '@/features/accounting/api/accounting.api';
 
 export function AccountingFinancialSummaryPage() {
@@ -53,10 +54,11 @@ export function AccountingFinancialSummaryPage() {
     : '';
 
   return (
-    <div className="page-stack page-shell">
-      <PageHeader title="الملخص المالي" description="نظرة مبسطة على المبيعات والتكلفة والمصروفات والربح خلال الفترة." />
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader title="الملخص المالي" description="نظرة مبسطة على المبيعات والتكلفة والمصروفات والربح خلال الفترة." />
 
-      <Card title="فلاتر التقرير">
+        <FormSection title="فلاتر التقرير">
         <div className="grid-2" style={{ alignItems: 'end' }}>
           <label className="field stack gap-8">
             <span>من تاريخ</span>
@@ -72,9 +74,9 @@ export function AccountingFinancialSummaryPage() {
           <button type="button" className="button button-secondary" onClick={resetFilters}>إعادة ضبط</button>
           {periodLabel ? <span className="muted">الفترة: {periodLabel}</span> : null}
         </div>
-      </Card>
+        </FormSection>
 
-      <Card title="المؤشرات الرئيسية">
+        <FormSection title="المؤشرات الرئيسية">
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
@@ -84,11 +86,19 @@ export function AccountingFinancialSummaryPage() {
           errorTitle="تعذر تحميل الملخص المالي"
           emptyTitle="لا توجد بيانات مالية للفترة المحددة"
         >
-          {summaryItems.length ? <StatsGrid items={summaryItems} /> : null}
+          {summaryItems.length ? (
+            <div className="reports-workspace">
+              <div className="reports-spotlight-grid compact-spotlight-grid">
+                {summaryItems.map((stat) => (
+                  <ReportMetricCard key={stat.key} label={stat.label as string} value={Number(stat.value) || 0} tone={['netProfit', 'cashMovement'].includes(stat.key) ? 'success' : 'primary'} />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </QueryFeedback>
-      </Card>
+        </FormSection>
 
-      <Card title="تفاصيل الإيرادات">
+        <FormSection title="تفاصيل الإيرادات">
         <DataTable<FinancialSummaryBreakdownRow>
           data={breakdowns?.revenueAccounts || []}
           getRowKey={(row) => row.accountCode}
@@ -100,9 +110,9 @@ export function AccountingFinancialSummaryPage() {
           ]}
           defaultSort={{ columnId: 'code', direction: 'asc' }}
         />
-      </Card>
+        </FormSection>
 
-      <Card title="تفاصيل المصروفات">
+        <FormSection title="تفاصيل المصروفات">
         <DataTable<FinancialSummaryBreakdownRow>
           data={breakdowns?.expenseAccounts || []}
           getRowKey={(row) => row.accountCode}
@@ -114,9 +124,9 @@ export function AccountingFinancialSummaryPage() {
           ]}
           defaultSort={{ columnId: 'code', direction: 'asc' }}
         />
-      </Card>
+        </FormSection>
 
-      <Card title="حركة النقدية المختصرة">
+        <FormSection title="حركة النقدية المختصرة">
         <div className="muted" style={{ marginBottom: 8 }}>صافي حركة النقدية خلال الفترة (وليس رصيدًا نهائيًا).</div>
         <DataTable<FinancialSummaryBreakdownRow>
           data={breakdowns?.cashMovements || []}
@@ -129,7 +139,8 @@ export function AccountingFinancialSummaryPage() {
           ]}
           defaultSort={{ columnId: 'code', direction: 'asc' }}
         />
-      </Card>
+        </FormSection>
+      </main>
     </div>
   );
 }

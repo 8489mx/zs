@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
@@ -62,7 +62,7 @@ export function ProductOffersCard({ products, product, onUpdated }: { products: 
 
   return (
     <div className="two-column-grid">
-      <Card title={product ? `عروض الصنف: ${product.name}` : 'عروض وخصومات الأصناف'} actions={<span className="nav-pill">العروض</span>}>
+      <FormSection title={product ? `عروض الصنف: ${product.name}` : 'عروض وخصومات الأصناف'} actions={<span className="nav-pill">العروض</span>}>
         {!product ? <div className="muted">اختر صنفًا أولًا لإدارة العروض كما في النسخة القديمة.</div> : (
           <div className="page-stack">
             <div className="form-grid">
@@ -92,8 +92,8 @@ export function ProductOffersCard({ products, product, onUpdated }: { products: 
             </div>
           </div>
         )}
-      </Card>
-      <Card title="سجل العروض على جميع الأصناف" actions={<span className="nav-pill">{allOffers.length} عرض</span>}>
+      </FormSection>
+      <FormSection title="سجل العروض على جميع الأصناف" actions={<span className="nav-pill">{allOffers.length} عرض</span>}>
         <div className="page-stack">
           {allOffers.length ? allOffers.map(({ product: currentProduct, offer }, index) => (
             <div key={`${currentProduct.id}-${offer.id || index}`} className="list-row">
@@ -105,7 +105,7 @@ export function ProductOffersCard({ products, product, onUpdated }: { products: 
             </div>
           )) : <div className="muted">لا توجد عروض مسجلة.</div>}
         </div>
-      </Card>
+      </FormSection>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -31,7 +31,7 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
   const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, quickCreate, actions } = controller;
 
   return (
-    <Card title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>} className="purchase-composer-card">
+    <FormSection title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>} className="purchase-composer-card">
       <QueryFeedback
         isLoading={isCatalogLoading}
         isError={isCatalogError}
@@ -133,6 +133,6 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
           void actions.handleQuickCreateSubmit();
         }}
       />
-    </Card>
+    </FormSection>
   );
 }

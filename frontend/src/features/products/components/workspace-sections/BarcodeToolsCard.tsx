@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
@@ -74,7 +74,7 @@ export function BarcodeToolsCard({ products, product, onUpdated }: { products: P
   }
 
   return (
-    <Card title="أدوات الباركود" actions={<span className="nav-pill">الباركود</span>}>
+    <FormSection title="أدوات الباركود" actions={<span className="nav-pill">الباركود</span>}>
       <div className="page-stack page-shell products-workspace">
         <div className="mini-stats-grid">
           <div className="stat-card"><span>أصناف بدون باركود</span><strong>{missingRows.filter((row) => !row.productBarcode).length}</strong></div>
@@ -124,6 +124,6 @@ export function BarcodeToolsCard({ products, product, onUpdated }: { products: P
           )) : <div className="muted">كل الأصناف والوحدات الأساسية لديها باركود.</div>}
         </div>
       </div>
-    </Card>
+    </FormSection>
   );
 }

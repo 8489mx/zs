@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { LoadingState } from '@/shared/ui/loading-state';
@@ -27,7 +27,7 @@ export function ManagerActionCenterCard({
   const topInsights = sortManagerActionsByImportance(insights).slice(0, 8);
 
   return (
-    <Card
+    <FormSection
       title="مركز قرارات المدير"
       description="تنبيهات عملية من بياناتك المحلية بدون اتصال خارجي."
       className="dashboard-premium-card dashboard-card-compact manager-action-center-card"
@@ -82,6 +82,6 @@ export function ManagerActionCenterCard({
           })}
         </div>
       ) : null}
-    </Card>
+    </FormSection>
   );
 }

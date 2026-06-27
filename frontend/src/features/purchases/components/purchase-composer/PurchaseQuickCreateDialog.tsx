@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -49,7 +49,7 @@ export function PurchaseQuickCreateDialog({
 
   return (
     <DialogShell open={open} onClose={handleClose} width="min(760px, 100%)" zIndex={95} ariaLabel="إضافة صنف جديد من صفحة المشتريات">
-      <Card
+      <FormSection
         title="إضافة صنف جديد"
         description="أضف الحد الأدنى من بيانات الصنف ثم ارجعه مباشرة إلى فاتورة الشراء الحالية."
         className="dialog-card"
@@ -147,7 +147,7 @@ export function PurchaseQuickCreateDialog({
             <Button type="button" variant="secondary" onClick={handleClose} disabled={isPending}>إغلاق</Button>
           </div>
         </form>
-      </Card>
+      </FormSection>
     </DialogShell>
   );
 }

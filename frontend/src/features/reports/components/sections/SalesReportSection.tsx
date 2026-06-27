@@ -1,5 +1,5 @@
 import { QueryCard } from '@/shared/components/query-card';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
@@ -52,7 +52,7 @@ export function SalesReportSection({
           <ReportMetricCard label="مجمل الربح" value={grossProfit} helper="بعد تكلفة البضاعة" tone="success" formatter={formatCurrency} progress={relativePercent(grossProfit, values)} />
         </div>
         <div className="two-column-grid" style={{ marginTop: 16 }}>
-          <Card title="قراءة يومية سريعة" description="أرقام مختصرة لصاحب النشاط بدون فتح جداول إضافية.">
+          <FormSection title="قراءة يومية سريعة" description="أرقام مختصرة لصاحب النشاط بدون فتح جداول إضافية.">
             <div className="detail-grid">
               <div className="detail-item"><div className="detail-label">متوسط البيع اليومي</div><div className="detail-value">{formatCurrency(salesDailyAverage)}</div></div>
               <div className="detail-item"><div className="detail-label">متوسط الشراء اليومي</div><div className="detail-value">{formatCurrency(purchaseDailyAverage)}</div></div>
@@ -60,8 +60,8 @@ export function SalesReportSection({
               <div className="detail-item"><div className="detail-label">الأيام المغطاة</div><div className="detail-value">{rangeDays} يوم</div></div>
               <div className="detail-item"><div className="detail-label">صافي الربح</div><div className="detail-value">{formatCurrency(netProfit)}</div></div>
             </div>
-          </Card>
-          <Card title="أعلى الأصناف" description="أفضل الأصناف مبيعًا داخل النطاق الحالي مع طباعة وتصدير مباشر." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportTopProducts()} disabled={!topProducts.length}>تصدير CSV</Button><Button variant="secondary" onClick={() => void printTopProducts()} disabled={!topProducts.length}>طباعة</Button></div>}>
+          </FormSection>
+          <FormSection title="أعلى الأصناف" description="أفضل الأصناف مبيعًا داخل النطاق الحالي مع طباعة وتصدير مباشر." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportTopProducts()} disabled={!topProducts.length}>تصدير CSV</Button><Button variant="secondary" onClick={() => void printTopProducts()} disabled={!topProducts.length}>طباعة</Button></div>}>
             <DataTable
               ariaLabel="أعلى الأصناف"
               columns={[
@@ -72,7 +72,7 @@ export function SalesReportSection({
               rows={topProducts.slice(0, 8)}
               empty={<div className="muted small">لا توجد أصناف مباعة في هذا النطاق.</div>}
             />
-          </Card>
+          </FormSection>
         </div>
       </QueryCard>
     </div>

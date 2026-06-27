@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import type { Product, ProductCustomerPrice } from '@/types/domain';
@@ -31,7 +31,7 @@ export function ProductCustomerPricesCard({
   }
 
   return (
-    <Card title={product ? `أسعار خاصة للعملاء: ${product.name}` : 'الأسعار الخاصة للعملاء'} actions={<span className="nav-pill">أسعار العملاء</span>}>
+    <FormSection title={product ? `أسعار خاصة للعملاء: ${product.name}` : 'الأسعار الخاصة للعملاء'} actions={<span className="nav-pill">أسعار العملاء</span>}>
       {!product ? <div className="muted">اختر صنفًا أولًا لإدارة أسعار العملاء الخاصة به.</div> : (
         <div className="page-stack">
           <div className="actions" style={{ justifyContent: 'space-between' }}>
@@ -61,6 +61,6 @@ export function ProductCustomerPricesCard({
           </div>
         </div>
       )}
-    </Card>
+    </FormSection>
   );
 }

@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -102,7 +102,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   }
 
   return (
-    <Card title="قائمة الأصناف الحالية" description="يعرض السجل الآن الصنف الرئيسي مرة واحدة، ويمكن فتح الأصناف الفرعية تحته بدل تكرار كل لون أو رائحة أو مقاس كسطر أولي مستقل." actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير CSV</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
+    <FormSection title="قائمة الأصناف الحالية" description="يعرض السجل الآن الصنف الرئيسي مرة واحدة، ويمكن فتح الأصناف الفرعية تحته بدل تكرار كل لون أو رائحة أو مقاس كسطر أولي مستقل." actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير CSV</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
       <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو الخاصية الفرعية" />
       <div className="filter-chip-row">
         <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')}>الكل</Button>
@@ -154,11 +154,8 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 <th>الصنف</th>
                 <th>الباركود</th>
                 <th>{props.clothingEnabled ? 'اللون / المقاس' : 'الفرعي'}</th>
-                <th>القسم</th>
-                <th>المورد</th>
-                <th>الشراء</th>
-                <th>القطاعي</th>
-                <th>الجملة</th>
+                <th>التصنيف / المورد</th>
+                <th>الأسعار</th>
                 <th>المخزون</th>
                 <th>ملاحظات</th>
                 <th>إجراءات</th>
@@ -188,19 +185,27 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </td>
                       <td>{product.barcode || '—'}</td>
                       <td>{variantLabel(product)}</td>
-                      <td>{props.categoryNames[product.categoryId] || '—'}</td>
-                      <td>{props.supplierNames[product.supplierId] || '—'}</td>
-                      <td>{formatCurrency(product.costPrice)}</td>
-                      <td>{formatCurrency(product.retailPrice)}</td>
-                      <td>{formatCurrency(product.wholesalePrice)}</td>
+                      <td>
+                        <div style={{ lineHeight: 1.4 }}>
+                          <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
+                          <div className="muted small">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ lineHeight: 1.4, fontSize: '12px' }}>
+                          <div className="muted">شراء: {formatCurrency(product.costPrice)}</div>
+                          <div>بيع: <strong>{formatCurrency(product.retailPrice)}</strong></div>
+                          {product.wholesalePrice > 0 ? <div className="muted">جملة: {formatCurrency(product.wholesalePrice)}</div> : null}
+                        </div>
+                      </td>
                       <td><span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span></td>
                       <td>{product.notes || '—'}</td>
                       <td>
-                        <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()}>
+                        <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>عرض</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>إضافة باركود</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'generate')}>توليد باركود</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>عروض</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>+باركود</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'generate')}>توليد</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(product)} disabled={!props.canPrint}>ملصقات</Button>
                           <Button variant="danger" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>
                         </div>
@@ -232,19 +237,27 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </td>
                       <td>—</td>
                       <td>{group.children.map((entry) => variantLabel(entry)).join(' ، ')}</td>
-                      <td>{props.categoryNames[group.representative.categoryId] || '—'}</td>
-                      <td>{props.supplierNames[group.representative.supplierId] || '—'}</td>
-                      <td>{formatCurrency(group.representative.costPrice)}</td>
-                      <td>{formatCurrency(group.representative.retailPrice)}</td>
-                      <td>{formatCurrency(group.representative.wholesalePrice)}</td>
+                      <td>
+                        <div style={{ lineHeight: 1.4 }}>
+                          <div>{props.categoryNames[group.representative.categoryId] || 'عام'}</div>
+                          <div className="muted small">{props.supplierNames[group.representative.supplierId] || 'بدون مورد'}</div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ lineHeight: 1.4, fontSize: '12px' }}>
+                          <div className="muted">شراء: {formatCurrency(group.representative.costPrice)}</div>
+                          <div>بيع: <strong>{formatCurrency(group.representative.retailPrice)}</strong></div>
+                          {group.representative.wholesalePrice > 0 ? <div className="muted">جملة: {formatCurrency(group.representative.wholesalePrice)}</div> : null}
+                        </div>
+                      </td>
                       <td><span className={totalStock <= Number(group.representative.minStock || 0) ? 'low-stock-badge' : 'status-badge status-posted'}>{totalStock}</span></td>
                       <td>{group.representative.notes || '—'}</td>
                       <td>
-                        <div className="actions products-row-actions">
-                          <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(group.representative)}>تعديل الأساسي</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(group.representative)}>عرض</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'scan')}>إضافة باركود</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'generate')}>توليد باركود</Button>
+                        <div className="actions products-row-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                          <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(group.representative)}>تعديل</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(group.representative)}>عروض</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'scan')}>+باركود</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'generate')}>توليد</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(group.representative)} disabled={!props.canPrint}>ملصقات</Button>
                         </div>
                       </td>
@@ -267,17 +280,25 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         </td>
                         <td>{product.barcode || '—'}</td>
                         <td>{variantLabel(product)}</td>
-                        <td>{props.categoryNames[product.categoryId] || '—'}</td>
-                        <td>{props.supplierNames[product.supplierId] || '—'}</td>
-                        <td>{formatCurrency(product.costPrice)}</td>
-                        <td>{formatCurrency(product.retailPrice)}</td>
-                        <td>{formatCurrency(product.wholesalePrice)}</td>
+                        <td>
+                          <div style={{ lineHeight: 1.4 }}>
+                            <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
+                            <div className="muted small">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ lineHeight: 1.4, fontSize: '12px' }}>
+                            <div className="muted">شراء: {formatCurrency(product.costPrice)}</div>
+                            <div>بيع: <strong>{formatCurrency(product.retailPrice)}</strong></div>
+                            {product.wholesalePrice > 0 ? <div className="muted">جملة: {formatCurrency(product.wholesalePrice)}</div> : null}
+                          </div>
+                        </td>
                         <td><span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span></td>
                         <td>{product.notes || '—'}</td>
                         <td>
-                          <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()}>
-                            <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>عرض/تعديل</Button>
-                            <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>باركود</Button>
+                          <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                            <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
+                            <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>+باركود</Button>
                             <Button variant="danger" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>
                           </div>
                         </td>
@@ -302,6 +323,6 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           itemLabel="صنف"
         />
       </QueryFeedback>
-    </Card>
+    </FormSection>
   );
 }

@@ -1,9 +1,9 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { accountingApi, type AccountingAccount } from '@/features/accounting/api/accounting.api';
 
 const typeLabel: Record<string, string> = {
@@ -65,20 +65,24 @@ export function AccountingAccountsPage() {
   }, [rows, showInactive]);
 
   return (
-    <div className="page-stack page-shell">
-      <PageHeader title="الحسابات" description="شجرة الحسابات" />
-      <Card title="شجرة الحسابات">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(event) => setShowInactive(event.target.checked)}
-              style={{ width: 18, minHeight: 18 }}
-            />
-            <span>عرض الحسابات غير النشطة</span>
-          </label>
-        </div>
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader title="الحسابات" description="شجرة الحسابات (شاملة الأرصدة والبنود المالية الأساسية للشركة)" />
+        
+        <FormSection 
+          title="شجرة الحسابات" 
+          actions={
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem', color: '#64748b' }}>
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(event) => setShowInactive(event.target.checked)}
+                style={{ width: 16, height: 16 }}
+              />
+              <span>عرض الحسابات غير النشطة</span>
+            </label>
+          }
+        >
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
@@ -167,7 +171,8 @@ export function AccountingAccountsPage() {
             ]}
           />
         </QueryFeedback>
-      </Card>
+        </FormSection>
+      </main>
     </div>
   );
 }

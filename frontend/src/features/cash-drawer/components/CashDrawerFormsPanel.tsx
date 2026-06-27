@@ -1,6 +1,6 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { Card } from '@/shared/ui/card';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -18,6 +18,8 @@ interface MutationLike {
 }
 
 interface CashDrawerFormsPanelProps {
+  activeForm: 'open' | 'movement' | 'close' | null;
+  onCloseForm: () => void;
   branches: Branch[];
   locations: Location[];
   openOptions: CashierShift[];
@@ -100,6 +102,17 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instapayOperationCount]);
 
+  useEffect(() => {
+    if (props.openMutation.isSuccess || props.movementMutation.isSuccess || props.closeMutation.isSuccess) {
+      const timeout = setTimeout(() => {
+        if (props.openMutation.isSuccess || props.movementMutation.isSuccess || props.closeMutation.isSuccess) {
+           props.onCloseForm();
+        }
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [props.openMutation.isSuccess, props.movementMutation.isSuccess, props.closeMutation.isSuccess, props.onCloseForm]);
+
   const cardDeclaredTotal = Number(props.closeForm.watch('cardDeclaredTotal') || 0);
   const walletDeclaredTotal = Number(props.closeForm.watch('walletDeclaredTotal') || 0);
   const instapayDeclaredTotal = Number(props.closeForm.watch('instapayDeclaredTotal') || 0);
@@ -117,8 +130,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const instapayDetailsDiff = Number((instapayDetailsTotal - instapayDeclaredTotal).toFixed(2));
 
   return (
-    <div className="three-column-grid panel-grid cash-drawer-forms-grid">
-      <Card title="فتح وردية نقطة بيع" actions={<span className="nav-pill">فتح وردية</span>} className="cash-drawer-form-card">
+    <DialogShell open={!!props.activeForm} onClose={props.onCloseForm} width="min(600px, 100%)">
+      {props.activeForm === 'open' && (
+        <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '24px' }}>فتح وردية نقطة بيع</h2>
         <form className="form-grid" onSubmit={props.openForm.handleSubmit((values) => props.openMutation.mutate(values))}>
           <Field label="رصيد الفتح"><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} /></Field>
           {!SINGLE_STORE_MODE ? <Field label="الفرع">
@@ -137,9 +152,12 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           <MutationFeedback isError={props.openMutation.isError} isSuccess={props.openMutation.isSuccess} error={props.openMutation.error} errorFallback="تعذر فتح وردية نقطة البيع" successText="تم فتح وردية نقطة البيع بنجاح." />
           <SubmitButton type="submit" disabled={props.openMutation.isPending} idleText="فتح وردية نقطة البيع" pendingText="جارٍ الفتح..." />
         </form>
-      </Card>
+        </div>
+      )}
 
-      <Card title="تسجيل حركة درج النقدية" actions={<span className="nav-pill">حركة نقدية</span>} className="cash-drawer-form-card">
+      {props.activeForm === 'movement' && (
+        <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '24px' }}>تسجيل حركة درج النقدية</h2>
         <form className="form-grid" onSubmit={props.onMovementSubmit}>
           <Field label="وردية نقطة البيع المفتوحة">
             <select {...props.movementForm.register('shiftId')} disabled={props.movementMutation.isPending}>
@@ -158,9 +176,12 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           <MutationFeedback isError={props.movementMutation.isError} isSuccess={props.movementMutation.isSuccess} error={props.movementMutation.error} errorFallback="تعذر تسجيل الحركة" successText="تم تسجيل حركة درج النقدية بنجاح." />
           <SubmitButton type="submit" disabled={props.movementMutation.isPending} idleText="حفظ الحركة" pendingText="جارٍ الحفظ..." />
         </form>
-      </Card>
+        </div>
+      )}
 
-      <Card title="إغلاق وردية نقطة البيع" actions={<span className="nav-pill">إغلاق وردية</span>} className="cash-drawer-form-card">
+      {props.activeForm === 'close' && (
+        <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '24px' }}>إغلاق وردية نقطة البيع</h2>
         <form className="form-grid" onSubmit={props.onCloseSubmit}>
           <Field label="وردية نقطة البيع المفتوحة">
             <select {...props.closeForm.register('shiftId')} disabled={props.closeMutation.isPending}>
@@ -289,7 +310,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             pendingText="جارٍ الإغلاق..."
           />
         </form>
-      </Card>
-    </div>
+        </div>
+      )}
+    </DialogShell>
   );
 }

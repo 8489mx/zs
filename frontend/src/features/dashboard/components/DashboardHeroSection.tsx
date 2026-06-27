@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { AnimatedValue } from '@/shared/components/animated-value';
 import { DashboardMetricCard } from '@/features/dashboard/components/DashboardMetricCard';
 import { formatInteger } from '@/features/dashboard/lib/dashboard-page.utils';
@@ -22,7 +22,7 @@ export function DashboardHeroSection({
 }: DashboardHeroSectionProps) {
   return (
     <section className="dashboard-hero-grid dashboard-hero-grid-compact">
-      <Card className="dashboard-hero-card dashboard-hero-card-compact">
+      <FormSection title="إحصائيات سريعة" className="dashboard-hero-card dashboard-hero-card-compact">
         <div className="dashboard-hero-copy dashboard-hero-copy-compact">
           <span className="dashboard-hero-kicker">أرقام اليوم</span>
           <h2>البيع والخزينة</h2>
@@ -49,7 +49,7 @@ export function DashboardHeroSection({
           <DashboardMetricCard label="رصيد الخزينة" value={treasuryNet} helper="النقد المتاح حاليًا" tone={treasuryNet >= 0 ? 'success' : 'danger'} />
           <DashboardMetricCard label="الربح التشغيلي" value={netOperatingProfit} helper="بعد المصروفات الحالية" tone={netOperatingProfit >= 0 ? 'success' : 'warning'} />
         </div>
-      </Card>
+      </FormSection>
     </section>
   );
 }

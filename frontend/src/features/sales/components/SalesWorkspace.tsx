@@ -111,8 +111,8 @@ export function SalesWorkspace() {
   };
 
   return (
-    <div className="page-stack page-shell sales-workspace">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+    <div className="page-stack page-shell sales-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
         <SalesWorkspaceHeader totalItems={totalItems} description={headerDescription} onCopySummary={copySalesSummary} />
         {editFeedback ? <div className="success-box">{editFeedback}</div> : null}
 

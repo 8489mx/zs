@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 import { QuickCustomerCard } from '@/features/sales/components/QuickCustomerCard';
@@ -40,7 +40,7 @@ export function SalesWorkspaceHero({
       </div>
 
       <div className="sales-hero-grid">
-        <Card title={t('sales.d7fa02')} description={t('sales.5fd0f7')} actions={<span className="nav-pill">{activeFilterLabel}</span>} className="workspace-panel sales-scope-card">
+        <FormSection title={t('sales.d7fa02')} description={t('sales.5fd0f7')} actions={<span className="nav-pill">{activeFilterLabel}</span>} className="workspace-panel sales-scope-card">
           <div className="metric-list">
             {scopeRows.map((row) => (
               <div className="metric-row" key={row.label}>
@@ -49,9 +49,9 @@ export function SalesWorkspaceHero({
               </div>
             ))}
           </div>
-        </Card>
+        </FormSection>
 
-        <Card title={t('sales.89282d')} description={t('sales.2a3f4e')} actions={<span className="nav-pill">{selectedSale ? t('sales.1773f6') : t('sales.a341f0')}</span>} className="workspace-panel sales-selected-card">
+        <FormSection title={t('sales.89282d')} description={t('sales.2a3f4e')} actions={<span className="nav-pill">{selectedSale ? t('sales.1773f6') : t('sales.a341f0')}</span>} className="workspace-panel sales-selected-card">
           {selectedSale ? (
             <>
               <div className="metric-list">
@@ -64,7 +64,7 @@ export function SalesWorkspaceHero({
               <div className="surface-note" style={{ marginTop: 12 }}>{salesNextStep}</div>
             </>
           ) : <EmptyState title={t('sales.e66aa1')} hint={t('sales.9b1794')} />}
-        </Card>
+        </FormSection>
 
         <QuickCustomerCard canManageCustomers={canManageCustomers} />
       </div>

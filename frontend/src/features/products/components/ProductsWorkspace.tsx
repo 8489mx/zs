@@ -2,15 +2,12 @@ import { Suspense, lazy, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsGrid';
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';
-import {
-  QuickCatalogCard,
-} from '@/features/products/components/ProductsWorkspaceSections';
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -22,10 +19,6 @@ const LazyBarcodePrintDialog = lazy(() => import('@/features/products/components
 const productsWorkspaceRegressionLabels = ['باركود', 'وحدات'];
 void productsWorkspaceRegressionLabels;
 
-function scrollToRef(target: HTMLDivElement | null) {
-  if (!target || typeof target.scrollIntoView !== 'function') return;
-  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
 
 export function ProductsWorkspace() {
   const controller = useProductsWorkspaceController();
@@ -39,146 +32,144 @@ export function ProductsWorkspace() {
   useAppToolbar([{ label: 'المنتجات' }]);
 
   return (
-    <div className="page-stack page-shell products-workspace-page">
-      <PageHeader
-        title="المنتجات"
-        hideTitle={true}
-        description={clothingEnabled ? 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه، مع دعم خصائص الملابس من نفس شاشة المنتجات.' : 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية.'}
-        badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} منتج</span>}
-        actions={(
-          <div className="actions compact-actions page-header-actions">
-            <Button onClick={() => navigate('/products/new')}>
-              {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
-            </Button>
-            <Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button>
-            <Button variant="secondary" onClick={() => scrollToRef(toolsRef.current)}>القسم والمورد</Button>
-            <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير CSV</Button>
-            <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
-          </div>
-        )}
-      />
-
-      {!hasProducts ? (
-        <Card title="ابدأ بإضافة أول صنف" actions={<span className="nav-pill">خطوة البداية</span>} className="workspace-panel">
-          <div className="page-stack">
-            <div className="muted">
-              لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للنشاط، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
+    <div className="page-stack page-shell products-workspace-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader
+          title="المنتجات"
+          description={clothingEnabled ? 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه، مع دعم خصائص الملابس من نفس شاشة المنتجات.' : 'العروض والباركود والملصقات صارت مباشرة داخل سطر المنتج نفسه. لا حاجة للنزول إلى جزء سفلي حتى تعمل الأدوات الأساسية.'}
+          badge={<span className="nav-pill">{controller.summary?.totalProducts || 0} منتج</span>}
+          actions={(
+            <div className="actions compact-actions page-header-actions">
+              <Button onClick={() => navigate('/products/new')}>
+                {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
+              </Button>
+              <Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button>
+              <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير CSV</Button>
+              <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
             </div>
-            <div className="actions compact-actions">
-              <Button onClick={() => navigate('/products/new')}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
-              <Button variant="secondary" onClick={() => navigate('/products/categories')}>إضافة قسم أو مورد</Button>
-            </div>
-          </div>
-        </Card>
-      ) : null}
-
-      <div className="products-header-stats">
-        <ProductsStatsGrid
-          total={controller.metrics.total}
-          lowStockCount={controller.metrics.lowStockCount}
-          outOfStockCount={controller.metrics.outOfStockCount}
-          visibleCount={controller.visibleProducts.length}
-          inventoryCost={controller.inventoryCost}
-          inventorySaleValue={controller.inventorySaleValue}
-          activeOffersCount={controller.activeOffersCount}
-          customerPriceCount={controller.customerPriceCount}
+          )}
         />
-      </div>
 
-      <ProductsTableCard
-        search={controller.search}
-        onSearchChange={(value) => { controller.setSearch(value); controller.setPage(1); }}
-        viewFilter={controller.viewFilter}
-        onViewFilterChange={(value) => { controller.setViewFilter(value); controller.setPage(1); }}
-        selectedIds={controller.selectedIds}
-        onSelectedIdsChange={controller.setSelectedIds}
-        onClearSelection={() => controller.setSelectedIds([])}
-        onBulkDelete={() => controller.setBulkDeleteOpen(true)}
-        visibleProducts={controller.visibleProducts}
-        selectedProduct={controller.selectedProduct}
-        onSelectProduct={(product) => { if (product) navigate(`/products/${product.id}/edit`); }}
-        onDeleteProduct={controller.setProductToDelete}
-        onOpenOfferDialog={controller.openOfferDialog}
-        onOpenBarcodeDialog={controller.openBarcodeDialog}
-        onOpenPrintDialog={controller.openPrintDialog}
-        canDelete={controller.canDelete}
-        canPrint={controller.canPrint}
-        onExportCsv={controller.exportProductsCsv}
-        onPrint={controller.printProductsList}
-        categoryNames={controller.categoryNames}
-        supplierNames={controller.supplierNames}
-        inventorySaleValue={controller.inventorySaleValue}
-        isLoading={controller.productsQuery.isLoading || controller.categoriesQuery.isLoading || controller.suppliersQuery.isLoading}
-        isError={controller.productsQuery.isError || controller.categoriesQuery.isError || controller.suppliersQuery.isError}
-        error={controller.productsQuery.error || controller.categoriesQuery.error || controller.suppliersQuery.error}
-        page={controller.page}
-        pageSize={controller.pageSize}
-        totalItems={controller.summary?.totalProducts || controller.visibleProducts.length}
-        onPageChange={controller.setPage}
-        onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
-        clothingEnabled={clothingEnabled}
-      />
+        {!hasProducts ? (
+          <FormSection title="ابدأ بإضافة أول صنف" actions={<span className="nav-pill">خطوة البداية</span>}>
+            <div className="page-stack">
+              <div className="muted">
+                لسه ما فيش أصناف مضافة. ابدأ بإضافة أول صنف للنشاط، وبعدها السجل والعروض والباركود والملصقات هتبقى متاحة مباشرة من كل سطر.
+              </div>
+              <div className="actions compact-actions">
+                <Button onClick={() => navigate('/products/new')}>{defaultProductKind === 'fashion' ? 'إضافة أول موديل الآن' : 'إضافة أول صنف الآن'}</Button>
+                <Button variant="secondary" onClick={() => navigate('/products/categories')}>إضافة قسم أو مورد</Button>
+              </div>
+            </div>
+          </FormSection>
+        ) : null}
 
-      <div ref={toolsRef}>
-        <QuickCatalogCard canManageSuppliers={controller.canManageSuppliers} />
-      </div>
-
-      {(controller.offerDialogProduct || controller.barcodeDialogProduct || controller.printDialogState) ? (
-        <Suspense fallback={<div className="loading-card">جاري تحميل الأدوات الإضافية...</div>}>
-          <LazyProductOfferDialog
-            open={Boolean(controller.offerDialogProduct)}
-            product={controller.offerDialogProduct}
-            onClose={() => controller.setOfferDialogProduct(null)}
-            onSaved={(product) => controller.applyProductPatch(product)}
+        <FormSection title="ملخص المخزون" description="نظرة سريعة على عدد الأصناف وقيمة المخزون والتنبيهات." actions={<span className="nav-pill">Inventory KPIs</span>}>
+          <ProductsStatsGrid
+            total={controller.metrics.total}
+            lowStockCount={controller.metrics.lowStockCount}
+            outOfStockCount={controller.metrics.outOfStockCount}
+            visibleCount={controller.visibleProducts.length}
+            inventoryCost={controller.inventoryCost}
+            inventorySaleValue={controller.inventorySaleValue}
+            activeOffersCount={controller.activeOffersCount}
+            customerPriceCount={controller.customerPriceCount}
           />
+        </FormSection>
 
-          <LazyProductBarcodeDialog
-            open={Boolean(controller.barcodeDialogProduct)}
-            product={controller.barcodeDialogProduct}
-            products={controller.visibleProducts}
-            mode={controller.barcodeDialogMode}
-            onClose={() => controller.setBarcodeDialogProduct(null)}
-            onSaved={(product) => controller.applyProductPatch(product)}
-            onOpenPrint={(product, unit) => controller.openPrintDialog(product, unit)}
-          />
+        <ProductsTableCard
+          search={controller.search}
+          onSearchChange={(value) => { controller.setSearch(value); controller.setPage(1); }}
+          viewFilter={controller.viewFilter}
+          onViewFilterChange={(value) => { controller.setViewFilter(value); controller.setPage(1); }}
+          selectedIds={controller.selectedIds}
+          onSelectedIdsChange={controller.setSelectedIds}
+          onClearSelection={() => controller.setSelectedIds([])}
+          onBulkDelete={() => controller.setBulkDeleteOpen(true)}
+          visibleProducts={controller.visibleProducts}
+          selectedProduct={controller.selectedProduct}
+          onSelectProduct={(product) => { if (product) navigate(`/products/${product.id}/edit`); }}
+          onDeleteProduct={controller.setProductToDelete}
+          onOpenOfferDialog={controller.openOfferDialog}
+          onOpenBarcodeDialog={controller.openBarcodeDialog}
+          onOpenPrintDialog={controller.openPrintDialog}
+          canDelete={controller.canDelete}
+          canPrint={controller.canPrint}
+          onExportCsv={controller.exportProductsCsv}
+          onPrint={controller.printProductsList}
+          categoryNames={controller.categoryNames}
+          supplierNames={controller.supplierNames}
+          inventorySaleValue={controller.inventorySaleValue}
+          isLoading={controller.productsQuery.isLoading || controller.categoriesQuery.isLoading || controller.suppliersQuery.isLoading}
+          isError={controller.productsQuery.isError || controller.categoriesQuery.isError || controller.suppliersQuery.isError}
+          error={controller.productsQuery.error || controller.categoriesQuery.error || controller.suppliersQuery.error}
+          page={controller.page}
+          pageSize={controller.pageSize}
+          totalItems={controller.summary?.totalProducts || controller.visibleProducts.length}
+          onPageChange={controller.setPage}
+          onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
+          clothingEnabled={clothingEnabled}
+        />
 
-          <LazyBarcodePrintDialog
-            open={Boolean(controller.printDialogState)}
-            product={controller.printDialogState?.product || null}
-            unit={controller.printDialogState?.unit}
-            onClose={() => controller.setPrintDialogState(null)}
-          />
-        </Suspense>
-      ) : null}
+        <div ref={toolsRef}></div>
 
-      <ActionConfirmDialog
-        open={Boolean(controller.productToDelete)}
-        title="تأكيد حذف الصنف"
-        description={controller.productToDelete ? `سيتم حذف الصنف ${controller.productToDelete.name}. لو كنت تريد تعديل الكمية فقط فاستخدم تبويب المخزون بدل حذف master data.` : ''}
-        confirmLabel="نعم، حذف الصنف"
-        isBusy={controller.deleteMutation.isPending}
-        onCancel={() => controller.setProductToDelete(null)}
-        onConfirm={async () => {
-          if (!controller.productToDelete) return;
-          await controller.deleteMutation.mutateAsync(controller.productToDelete.id);
-          controller.setSelectedIds((current) => current.filter((id) => id !== String(controller.productToDelete?.id)));
-        }}
-      />
+        {(controller.offerDialogProduct || controller.barcodeDialogProduct || controller.printDialogState) ? (
+          <Suspense fallback={<div className="loading-card">جاري تحميل الأدوات الإضافية...</div>}>
+            <LazyProductOfferDialog
+              open={Boolean(controller.offerDialogProduct)}
+              product={controller.offerDialogProduct}
+              onClose={() => controller.setOfferDialogProduct(null)}
+              onSaved={(product) => controller.applyProductPatch(product)}
+            />
 
-      <ActionConfirmDialog
-        open={controller.bulkDeleteOpen}
-        title="تأكيد حذف الأصناف المحددة"
-        description={controller.selectedProducts.length ? `سيتم محاولة حذف ${controller.selectedProducts.length} صنفًا دفعة واحدة. أي صنف مرتبط بحركات بيع أو شراء أو مخزون سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : 'لا يوجد أصناف محددة.'}
-        confirmLabel="نعم، حذف المحدد"
-        confirmationKeyword="DELETE"
-        confirmationLabel="اكتب DELETE لتأكيد حذف المحدد"
-        isBusy={controller.bulkDeleteMutation.isPending}
-        onCancel={() => controller.setBulkDeleteOpen(false)}
-        onConfirm={async () => {
-          if (!controller.selectedIds.length) return;
-          await controller.bulkDeleteMutation.mutateAsync(controller.selectedIds);
-        }}
-      />
+            <LazyProductBarcodeDialog
+              open={Boolean(controller.barcodeDialogProduct)}
+              product={controller.barcodeDialogProduct}
+              products={controller.visibleProducts}
+              mode={controller.barcodeDialogMode}
+              onClose={() => controller.setBarcodeDialogProduct(null)}
+              onSaved={(product) => controller.applyProductPatch(product)}
+              onOpenPrint={(product, unit) => controller.openPrintDialog(product, unit)}
+            />
+
+            <LazyBarcodePrintDialog
+              open={Boolean(controller.printDialogState)}
+              product={controller.printDialogState?.product || null}
+              unit={controller.printDialogState?.unit}
+              onClose={() => controller.setPrintDialogState(null)}
+            />
+          </Suspense>
+        ) : null}
+
+        <ActionConfirmDialog
+          open={Boolean(controller.productToDelete)}
+          title="تأكيد حذف الصنف"
+          description={controller.productToDelete ? `سيتم حذف الصنف ${controller.productToDelete.name}. لو كنت تريد تعديل الكمية فقط فاستخدم تبويب المخزون بدل حذف master data.` : ''}
+          confirmLabel="نعم، حذف الصنف"
+          isBusy={controller.deleteMutation.isPending}
+          onCancel={() => controller.setProductToDelete(null)}
+          onConfirm={async () => {
+            if (!controller.productToDelete) return;
+            await controller.deleteMutation.mutateAsync(controller.productToDelete.id);
+            controller.setSelectedIds((current) => current.filter((id) => id !== String(controller.productToDelete?.id)));
+          }}
+        />
+
+        <ActionConfirmDialog
+          open={controller.bulkDeleteOpen}
+          title="تأكيد حذف الأصناف المحددة"
+          description={controller.selectedProducts.length ? `سيتم محاولة حذف ${controller.selectedProducts.length} صنفًا دفعة واحدة. أي صنف مرتبط بحركات بيع أو شراء أو مخزون سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : 'لا يوجد أصناف محددة.'}
+          confirmLabel="نعم، حذف المحدد"
+          confirmationKeyword="DELETE"
+          confirmationLabel="اكتب DELETE لتأكيد حذف المحدد"
+          isBusy={controller.bulkDeleteMutation.isPending}
+          onCancel={() => controller.setBulkDeleteOpen(false)}
+          onConfirm={async () => {
+            if (!controller.selectedIds.length) return;
+            await controller.bulkDeleteMutation.mutateAsync(controller.selectedIds);
+          }}
+        />
+      </main>
     </div>
   );
 }

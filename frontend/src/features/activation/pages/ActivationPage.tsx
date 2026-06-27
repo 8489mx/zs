@@ -1,5 +1,5 @@
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { ErrorState } from '@/shared/ui/error-state';
 import { useActivationPageController } from '@/features/activation/hooks/useActivationPageController';
@@ -9,7 +9,7 @@ export function ActivationPage() {
 
   return (
     <div className="screen-center auth-screen-shell">
-      <Card title="تفعيل البرنامج" description="أرسل معرف الجهاز إلى الإدارة ثم الصق كود التفعيل هنا مرة واحدة فقط." className="activation-card">
+      <FormSection title="تفعيل البرنامج" description="أرسل معرف الجهاز إلى الإدارة ثم الصق كود التفعيل هنا مرة واحدة فقط." className="activation-card">
         <div className="stack gap-16">
           <div className="activation-machine-box">
             <div>
@@ -35,7 +35,7 @@ export function ActivationPage() {
             </Button>
           </div>
         </div>
-      </Card>
+      </FormSection>
     </div>
   );
 }

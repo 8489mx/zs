@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/components/data-table';
 import { Field } from '@/shared/ui/field';
 import { PageHeader } from '@/shared/components/page-header';
@@ -199,7 +199,7 @@ export function SaasTenantsPage() {
         </div>
       ) : null}
 
-      <Card title="نسخ العملاء">
+      <FormSection title="نسخ العملاء">
         <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالاسم أو slug أو المالك أو الهاتف">
           <Field label="الحالة">
             <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}>
@@ -300,12 +300,12 @@ export function SaasTenantsPage() {
             ]}
           />
         </QueryFeedback>
-      </Card>
+      </FormSection>
 
       {isCreateOpen ? (
         <div className="dialog-overlay" role="presentation">
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إنشاء نسخة تجريبية">
-            <Card title="إنشاء نسخة تجريبية" actions={<button type="button" className="button button-secondary" onClick={() => setIsCreateOpen(false)}>إغلاق</button>}>
+            <FormSection title="إنشاء نسخة تجريبية" actions={<button type="button" className="button button-secondary" onClick={() => setIsCreateOpen(false)}>إغلاق</button>}>
               <div className="grid-2">
                 <Field label="المعرف (Slug - إنجليزي فقط)"><input value={createForm.slug} onChange={(event) => setCreateForm((s) => ({ ...s, slug: event.target.value }))} placeholder="أحرف إنجليزية وأرقام" dir="ltr" /></Field>
                 <Field label="اسم النشاط"><input value={createForm.businessName} onChange={(event) => setCreateForm((s) => ({ ...s, businessName: event.target.value }))} /></Field>
@@ -334,14 +334,14 @@ export function SaasTenantsPage() {
                   <div className="muted small">تظهر كلمة المرور مرة واحدة فقط. انسخها الآن.</div>
                 </div>
               ) : null}
-            </Card>
+            </FormSection>
           </div>
         </div>
       ) : null}
       {resetTenant ? (
         <div className="dialog-overlay" role="presentation">
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إعادة كلمة المرور">
-            <Card title={`إعادة كلمة المرور لنسخة: ${resetTenant.name}`} actions={<button type="button" className="button button-secondary" onClick={() => setResetTenant(null)}>إغلاق</button>}>
+            <FormSection title={`إعادة كلمة المرور لنسخة: ${resetTenant.name}`} actions={<button type="button" className="button button-secondary" onClick={() => setResetTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">
                 <p>اترك الحقل فارغاً لتوليد كلمة مرور عشوائية قوية، أو أدخل كلمة مرور مخصصة.</p>
                 <Field label="كلمة المرور الجديدة (اختياري)">
@@ -356,7 +356,7 @@ export function SaasTenantsPage() {
                   </button>
                 </div>
               </div>
-            </Card>
+            </FormSection>
           </div>
         </div>
       ) : null}
@@ -364,7 +364,7 @@ export function SaasTenantsPage() {
       {upgradeTenant ? (
         <div className="dialog-overlay" role="presentation">
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="ترقية النسخة">
-            <Card title="تفعيل / ترقية النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إغلاق</button>}>
+            <FormSection title="تفعيل / ترقية النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">
                 <Field label="مدة الاشتراك">
                   <select value={upgradeDuration} onChange={(e) => setUpgradeDuration(Number(e.target.value))}>
@@ -384,7 +384,7 @@ export function SaasTenantsPage() {
                   </button>
                 </div>
               </div>
-            </Card>
+            </FormSection>
           </div>
         </div>
       ) : null}

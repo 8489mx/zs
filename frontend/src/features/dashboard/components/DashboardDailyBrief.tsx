@@ -1,5 +1,5 @@
-﻿import { Link } from 'react-router-dom';
-import { Card } from '@/shared/ui/card';
+import { Link } from 'react-router-dom';
+import { FormSection } from '@/shared/components/form-section';
 import type { ManagerActionInsight } from '@/features/dashboard/api/dashboard.types';
 import {
   importantManagerActions,
@@ -21,7 +21,7 @@ export function DashboardDailyBrief({
   const briefActions = (importantActions.length ? importantActions : sortManagerActionsByImportance(insights)).slice(0, 3);
 
   return (
-    <Card className="dashboard-daily-brief-card">
+    <FormSection title="ملخص تنفيذي سريع" description="أهم ما يحتاج مراجعة الآن من تنبيهات وقرارات عاجلة." actions={<span className="nav-pill">Executive Brief</span>} className="dashboard-daily-brief-card">
       <div className="daily-brief-layout daily-brief-layout-compact">
         <div className="daily-brief-copy">
           <span className="daily-brief-kicker">ملخص تنفيذي سريع</span>
@@ -58,6 +58,6 @@ export function DashboardDailyBrief({
           )}
         </div>
       </div>
-    </Card>
+    </FormSection>
   );
 }

@@ -43,6 +43,7 @@ const iconToneMap: Record<string, IconTone> = {
   pos: { bg: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)', border: '#d8b4fe', fg: '#7e22ce', glow: 'rgba(168, 85, 247, 0.22)' },
   'cash-drawer': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#a16207', glow: 'rgba(245, 158, 11, 0.24)' },
   purchases: { bg: 'linear-gradient(135deg, #cffafe, #a5f3fc)', border: '#67e8f9', fg: '#0f766e', glow: 'rgba(6, 182, 212, 0.22)' },
+  'purchases-new': { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#065f46', glow: 'rgba(16, 185, 129, 0.22)' },
   inventory: { bg: 'linear-gradient(135deg, #ccfbf1, #99f6e4)', border: '#5eead4', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.22)' },
   suppliers: { bg: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border: '#cbd5e1', fg: '#334155', glow: 'rgba(100, 116, 139, 0.18)' },
   customers: { bg: 'linear-gradient(135deg, #ffe4e6, #fecdd3)', border: '#fda4af', fg: '#be123c', glow: 'rgba(244, 63, 94, 0.2)' },
@@ -76,6 +77,7 @@ const iconPathMap: Record<string, string> = {
   customers: 'M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M17 14a5 5 0 0 1 5 5',
   reports: 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
   purchases: 'M6 7h15l-2 8H8L6 3H3M9 20h.01M18 20h.01',
+  'purchases-new': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M12 18v-6M9 15h6',
   suppliers: 'M3 7h11v10H3V7zM14 10h4l3 3v4h-7v-7zM7 20h.01M18 20h.01',
   inventory: 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
   products: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
@@ -151,7 +153,7 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases-new', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: t('sidebar.dashboard'),
       'cash-drawer': t('sidebar.cash-drawer'),
@@ -160,7 +162,8 @@ export function AppShell({ children }: PropsWithChildren) {
       returns: t('sidebar.returns'),
       customers: t('sidebar.customers'),
       reports: t('sidebar.reports'),
-      purchases: t('sidebar.purchases'),
+      purchases: 'سجل فواتير المشتريات',
+      'purchases-new': 'إنشاء فاتورة شراء',
       suppliers: t('sidebar.suppliers'),
       inventory: t('sidebar.inventory'),
       products: t('sidebar.products'),
@@ -195,7 +198,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
     { key: 'sales-group', label: t('sidebar.sales-group'), itemKeys: ['sales', 'returns', 'customers', 'reports'] },
-    { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases', 'suppliers'] },
+    { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases-new', 'purchases', 'suppliers'] },
     { key: 'inventory-group', label: t('sidebar.inventory-group'), itemKeys: ['inventory', 'products', 'product-categories', 'treasury'] },
     { key: 'manufacturing-group', label: t('sidebar.manufacturing-group'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
     { key: 'services-group', label: t('sidebar.services-group'), itemKeys: ['services', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },

@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { fromDateTimeInputValue, toDateTimeInputValue } from '@/features/reports/lib/reports-format';
@@ -27,7 +27,7 @@ export function ReportsRangeCard({
   healthRows: Array<{ label: string; value: string }>;
 }) {
   return (
-    <Card title="الفترة" actions={<span className="nav-pill">تحديث مباشر</span>} className="reports-scope-card reports-scope-card--compact">
+    <FormSection title="الفترة" actions={<span className="nav-pill">تحديث مباشر</span>} className="reports-scope-card reports-scope-card--compact">
       <div className="reports-range-grid reports-range-grid--compact">
         <Field label="من">
           <input type="datetime-local" value={toDateTimeInputValue(from)} onChange={(event) => onFromChange(fromDateTimeInputValue(event.target.value) || from)} />
@@ -54,6 +54,6 @@ export function ReportsRangeCard({
           </div>
         ))}
       </div>
-    </Card>
+    </FormSection>
   );
 }

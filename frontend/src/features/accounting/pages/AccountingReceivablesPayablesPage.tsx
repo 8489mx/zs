@@ -1,12 +1,13 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { StatsGrid } from '@/shared/components/stats-grid';
+import { FormSection } from '@/shared/components/form-section';
+import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { formatCurrency } from '@/lib/format';
-import { Card } from '@/shared/ui/card';
+
 import { accountingApi, type PayableRow, type ReceivableRow } from '@/features/accounting/api/accounting.api';
 
 function formatDate(value: string) {
@@ -49,13 +50,14 @@ export function AccountingReceivablesPayablesPage() {
   }, [customers, suppliers, totals]);
 
   return (
-    <div className="page-stack page-shell">
-      <PageHeader
-        title="الذمم والمستحقات"
-        description="نظرة مبسطة على المبالغ المستحقة من العملاء والمبالغ المستحقة للموردين."
-      />
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader
+          title="الذمم والمستحقات"
+          description="نظرة مبسطة على المبالغ المستحقة من العملاء والمبالغ المستحقة للموردين."
+        />
 
-      <Card title="فلاتر التقرير">
+        <FormSection title="فلاتر التقرير">
         <div className="grid-2" style={{ alignItems: 'end' }}>
           <label className="field stack gap-8">
             <span>حتى تاريخ</span>
@@ -66,9 +68,9 @@ export function AccountingReceivablesPayablesPage() {
             <button type="button" className="button button-secondary" onClick={() => { setDateTo(''); setAppliedDateTo(''); }}>إعادة ضبط</button>
           </div>
         </div>
-      </Card>
+        </FormSection>
 
-      <Card title="ملخص الذمم والمستحقات">
+        <FormSection title="ملخص الذمم والمستحقات">
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
@@ -78,11 +80,24 @@ export function AccountingReceivablesPayablesPage() {
           errorTitle="تعذر تحميل تقرير الذمم والمستحقات"
           emptyTitle="لا توجد بيانات"
         >
-          {summaryItems.length ? <StatsGrid items={summaryItems} /> : null}
+          {summaryItems.length ? (
+            <div className="reports-workspace">
+              <div className="reports-spotlight-grid compact-spotlight-grid">
+                {summaryItems.map((stat) => (
+                  <ReportMetricCard 
+                    key={stat.key} 
+                    label={stat.label as string} 
+                    value={Number(stat.value) || 0} 
+                    tone={stat.key === 'netPosition' ? (Number(totals?.netPosition || 0) >= 0 ? 'success' : 'danger') : stat.key === 'customerReceivables' ? 'warning' : stat.key === 'supplierPayables' ? 'danger' : 'primary'} 
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </QueryFeedback>
-      </Card>
+        </FormSection>
 
-      <Card title="العملاء عليهم مبالغ">
+        <FormSection title="العملاء عليهم مبالغ">
         <DataTable<ReceivableRow>
           data={customers}
           getRowKey={(row) => row.customerId}
@@ -127,9 +142,9 @@ export function AccountingReceivablesPayablesPage() {
             },
           ]}
         />
-      </Card>
+        </FormSection>
 
-      <Card title="الموردون لهم مستحقات">
+        <FormSection title="الموردون لهم مستحقات">
         <DataTable<PayableRow>
           data={suppliers}
           getRowKey={(row) => row.supplierId}
@@ -174,7 +189,8 @@ export function AccountingReceivablesPayablesPage() {
             },
           ]}
         />
-      </Card>
+        </FormSection>
+      </main>
     </div>
   );
 }

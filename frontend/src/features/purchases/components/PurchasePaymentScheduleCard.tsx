@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -96,7 +96,7 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
   const canCreateSchedule = purchase.status !== 'cancelled' && isCreditPurchase && Boolean(supplierId) && Number(purchase.total || 0) > 0;
 
   return (
-    <Card
+    <FormSection
       className="purchase-payment-schedule-card"
       title="جدولة دفعات المورد"
       description="قسّم فاتورة المورد الآجلة إلى دفعات مستحقة، وتابع المدفوع والمتبقي من نفس الفاتورة."
@@ -168,6 +168,6 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
           <EmptyState title="لا يوجد جدول دفعات لهذه الفاتورة" hint={isCreditPurchase ? 'اختر طريقة التقسيم وأنشئ جدول دفعات للمورد.' : 'حوّل الفاتورة إلى آجلة عند إنشائها إذا كان سيتم سدادها على دفعات.'} />
         )}
       </div>
-    </Card>
+    </FormSection>
   );
 }

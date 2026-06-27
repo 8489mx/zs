@@ -2,7 +2,7 @@ import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { Field } from '@/shared/ui/field';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { relativePercent } from '@/features/reports/lib/reports-format';
 import { formatCurrency } from '@/lib/format';
@@ -78,7 +78,7 @@ export function BalancesReportSection({
         />
       </QueryCard>
 
-      <Card title="الموردون لهم مستحقات" description="قسم مختصر بنفس نمط التبويب الحالي لإظهار الالتزامات المفتوحة للموردين.">
+      <FormSection title="الموردون لهم مستحقات" description="قسم مختصر بنفس نمط التبويب الحالي لإظهار الالتزامات المفتوحة للموردين.">
         <DataTable
           ariaLabel="مستحقات الموردين"
           rows={suppliers.slice(0, 10)}
@@ -90,7 +90,7 @@ export function BalancesReportSection({
           ]}
           empty={<div className="muted small">لا توجد مستحقات موردين في النطاق الحالي.</div>}
         />
-      </Card>
+      </FormSection>
     </div>
   );
 }

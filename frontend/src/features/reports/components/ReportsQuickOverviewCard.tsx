@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { formatCurrency } from '@/lib/format';
 import { relativePercent } from '@/features/reports/lib/reports-format';
@@ -45,7 +45,7 @@ export function ReportsQuickOverviewCard({
         ))}
       </section>
 
-      <Card title="قراءة سريعة للنطاق" actions={<span className="nav-pill">نظرة عامة</span>} className="reports-motion-card">
+      <FormSection title="قراءة سريعة للنطاق" actions={<span className="nav-pill">نظرة عامة</span>} className="reports-motion-card">
         <div className="reports-visual-grid">
           <div className="reports-bar-panel">
             <div className="reports-panel-copy">
@@ -85,7 +85,7 @@ export function ReportsQuickOverviewCard({
             </div>
           </div>
         </div>
-      </Card>
+      </FormSection>
     </>
   );
 }

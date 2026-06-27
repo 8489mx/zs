@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { StatsGrid } from '@/shared/components/stats-grid';
+import { FormSection } from '@/shared/components/form-section';
+import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { formatCurrency } from '@/lib/format';
-import { Card } from '@/shared/ui/card';
+
 import { accountingApi, type InventoryValueItem } from '@/features/accounting/api/accounting.api';
 import { catalogApi } from '@/lib/api/catalog';
 
@@ -67,10 +68,11 @@ export function AccountingInventoryValuePage() {
   }, [totals]);
 
   return (
-    <div className="page-stack page-shell">
-      <PageHeader title="قيمة المخزون" description="تقرير مبسط يوضح قيمة البضاعة الموجودة حاليًا وتوزيعها على الأصناف." />
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader title="قيمة المخزون" description="تقرير مبسط يوضح قيمة البضاعة الموجودة حاليًا وتوزيعها على الأصناف." />
 
-      <Card title="فلاتر التقرير">
+        <FormSection title="فلاتر التقرير">
         <div className="grid-3" style={{ alignItems: 'end' }}>
           <label className="field stack gap-8">
             <span>بحث باسم الصنف أو الباركود</span>
@@ -136,9 +138,9 @@ export function AccountingInventoryValuePage() {
             إعادة ضبط
           </button>
         </div>
-      </Card>
+        </FormSection>
 
-      <Card title="ملخص قيمة المخزون">
+        <FormSection title="ملخص قيمة المخزون">
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
@@ -148,11 +150,19 @@ export function AccountingInventoryValuePage() {
           errorTitle="تعذر تحميل تقرير قيمة المخزون"
           emptyTitle="لا توجد بيانات مطابقة للفلاتر"
         >
-          {stats.length ? <StatsGrid items={stats} /> : null}
+          {stats.length ? (
+            <div className="reports-workspace">
+              <div className="reports-spotlight-grid compact-spotlight-grid">
+                {stats.map((stat) => (
+                  <ReportMetricCard key={stat.key} label={stat.label as string} value={Number(stat.value) || 0} tone={stat.key === 'cost' ? 'success' : stat.key === 'zero' ? 'danger' : stat.key === 'low' ? 'warning' : 'primary'} />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </QueryFeedback>
-      </Card>
+        </FormSection>
 
-      <Card title="تفاصيل الأصناف">
+        <FormSection title="تفاصيل الأصناف">
         <DataTable<InventoryValueItem>
           data={rows}
           getRowKey={(row) => row.productId}
@@ -171,9 +181,10 @@ export function AccountingInventoryValuePage() {
             { id: 'status', header: 'الحالة', sortable: true, sortValue: (row) => statusLabel(row.status), render: (row) => statusLabel(row.status) },
           ]}
         />
-      </Card>
+        </FormSection>
 
-      <div className="muted">القيم تقديرية حسب تكلفة الشراء الحالية وسعر البيع الحالي، وليست ربحًا محققًا.</div>
+        <div className="muted" style={{ paddingInline: '24px' }}>القيم تقديرية حسب تكلفة الشراء الحالية وسعر البيع الحالي، وليست ربحًا محققًا.</div>
+      </main>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { LoadingState } from '@/shared/ui/loading-state';
@@ -119,7 +119,7 @@ export function DashboardManagerOverviewSections({
 
   return (
     <div className="manager-overview-sections">
-      <Card title="مبيعات آخر 30 يوم" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
+      <FormSection title="مبيعات آخر 30 يوم" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
         <div className="manager-overview-metrics-grid">
           <MetricTile label="مبيعات آخر 30 يوم" value={formatCurrency(data.salesLast30.total)} />
           <MetricTile label="عدد الفواتير" value={formatNumber(data.salesLast30.count)} />
@@ -132,9 +132,9 @@ export function DashboardManagerOverviewSections({
             />
           ) : null}
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="ملخص الربح" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
+      <FormSection title="ملخص الربح" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
         <div className="manager-overview-metrics-grid manager-overview-profit-grid">
           <MetricTile label="صافي المبيعات" value={formatCurrency(data.profitSummary.netSales)} />
           <MetricTile label="تكلفة البضاعة" value={formatCurrency(data.profitSummary.cogs)} />
@@ -142,18 +142,18 @@ export function DashboardManagerOverviewSections({
           <MetricTile label="المصروفات" value={formatCurrency(data.profitSummary.expenses)} />
           <MetricTile label="صافي الربح" value={formatCurrency(data.profitSummary.netProfit)} />
         </div>
-      </Card>
+      </FormSection>
 
       <section className="dashboard-content-grid dashboard-content-grid-wide manager-decision-grid">
-        <Card title="بيكسب منين؟" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
+        <FormSection title="بيكسب منين؟" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
           <div className="manager-overview-three-col">
             <ProfitList title="أعلى الأصناف ربحًا" rows={data.profitSources.topProducts} emptyTitle="لا توجد أرباح أصناف كافية" />
             <ProfitList title="أعلى الأقسام ربحًا" rows={data.profitSources.topCategories} emptyTitle="لا توجد أرباح أقسام كافية" />
             <ProfitList title="بيع عالي وهامش ضعيف" rows={data.profitSources.weakMarginHighSales} emptyTitle="لا توجد أصناف بهامش ضعيف" />
           </div>
-        </Card>
+        </FormSection>
 
-        <Card
+        <FormSection
           title="إيه الراكد؟"
           actions={<Link className="button button-secondary manager-overview-action" to="/inventory">راجع المخزون</Link>}
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
@@ -164,9 +164,9 @@ export function DashboardManagerOverviewSections({
             <MetricTile label="قيمة المخزون الراكد" value={formatCurrency(data.stagnant.inventoryValue)} />
           </div>
           <ProductList rows={data.stagnant.items} type="stagnant" />
-        </Card>
+        </FormSection>
 
-        <Card
+        <FormSection
           title="إيه أشتريه؟"
           actions={<Link className="button button-secondary manager-overview-action" to="/inventory">راجع المخزون</Link>}
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
@@ -177,9 +177,9 @@ export function DashboardManagerOverviewSections({
             <MetricTile label="أولوية شراء" value={formatNumber(data.buying.priority.length)} />
           </div>
           <ProductList rows={data.buying.priority} type="buying" />
-        </Card>
+        </FormSection>
 
-        <Card
+        <FormSection
           title="إيه أُحصّله؟"
           actions={<Link className="button button-secondary manager-overview-action" to="/accounts">افتح الحسابات</Link>}
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
@@ -190,7 +190,7 @@ export function DashboardManagerOverviewSections({
             <MetricTile label="قريب من الحد" value={formatNumber(data.collection.nearCreditLimit.length)} />
           </div>
           <CustomerList rows={data.collection.topDebts} />
-        </Card>
+        </FormSection>
       </section>
     </div>
   );

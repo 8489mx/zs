@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
@@ -13,7 +13,7 @@ interface DashboardRelationshipGridProps {
 export function DashboardRelationshipGrid({ lowStock, topCustomers, topSuppliers }: DashboardRelationshipGridProps) {
   return (
     <section className="dashboard-content-grid dashboard-content-grid-wide">
-      <Card title="أصناف تحتاج متابعة" className="dashboard-premium-card dashboard-card-compact">
+      <FormSection title="أصناف تحتاج متابعة" className="dashboard-premium-card dashboard-card-compact">
         {lowStock.length ? (
           <div className="list-stack">
             {lowStock.map((product) => (
@@ -29,9 +29,9 @@ export function DashboardRelationshipGrid({ lowStock, topCustomers, topSuppliers
         ) : (
           <EmptyState title="لا توجد أصناف منخفضة حاليًا" className="dashboard-empty-state" />
         )}
-      </Card>
+      </FormSection>
 
-      <Card title="أفضل العملاء والموردين" className="dashboard-premium-card dashboard-card-compact">
+      <FormSection title="أفضل العملاء والموردين" className="dashboard-premium-card dashboard-card-compact">
         <div className="page-stack">
           <div>
             <strong style={{ display: 'block', marginBottom: 10 }}>أفضل العملاء</strong>
@@ -62,7 +62,7 @@ export function DashboardRelationshipGrid({ lowStock, topCustomers, topSuppliers
             </div>
           </div>
         </div>
-      </Card>
+      </FormSection>
     </section>
   );
 }

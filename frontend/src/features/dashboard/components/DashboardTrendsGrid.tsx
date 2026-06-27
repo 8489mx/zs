@@ -1,4 +1,4 @@
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
 
 interface DashboardTrendRow {
@@ -16,7 +16,7 @@ function TrendList({ title, rows }: { title: string; rows: DashboardTrendRow[] }
   const maxValue = Math.max(...rows.map((row) => row.value), 0);
 
   return (
-    <Card title={title} className="dashboard-premium-card dashboard-trend-card">
+    <FormSection title={title} className="dashboard-premium-card dashboard-trend-card">
       <div className="list-stack">
         {rows.map((row) => (
           <div key={row.key} className="list-row stacked-row dashboard-trend-row">
@@ -35,7 +35,7 @@ function TrendList({ title, rows }: { title: string; rows: DashboardTrendRow[] }
           </div>
         ))}
       </div>
-    </Card>
+    </FormSection>
   );
 }
 

@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { PricingPreviewPayload, PricingPreviewResponse } from '@/shared/api/pricing.api';
-import { Card } from '@/shared/ui/card';
+import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
@@ -58,7 +58,7 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
 
   return (
     <div className="two-column-grid panel-grid">
-      <Card title="النطاق والعملية" description="اختر المورد والقسم ونوع العملية وقواعد التوسيع والاستثناء قبل المعاينة.">
+      <FormSection title="النطاق والعملية" description="اختر المورد والقسم ونوع العملية وقواعد التوسيع والاستثناء قبل المعاينة.">
         <div className="form-grid compact-form-grid">
           <Field label="المورد">
             <select
@@ -233,9 +233,9 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
           <label><input type="checkbox" checked={payload.options.skipCustomerPrices} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, skipCustomerPrices: event.target.checked } }))} /> تخطّي الأصناف التي عليها أسعار خاصة</label>
           <label><input type="checkbox" checked={payload.options.skipManualExceptions} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, skipManualExceptions: event.target.checked } }))} /> تخطّي الأصناف المعلّمة كاستثناء يدوي</label>
         </div>
-      </Card>
+      </FormSection>
 
-      <Card title="ملخص المعاينة" description="راجع أثر الموجة على قيمة المخزون وهامش الربح قبل الاعتماد.">
+      <FormSection title="ملخص المعاينة" description="راجع أثر الموجة على قيمة المخزون وهامش الربح قبل الاعتماد.">
         <div className="stack gap-sm">
           {summaryCards.map((item) => (
             <div key={item.label} className="stat-card">
@@ -247,7 +247,7 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
             اعتماد الموجة يحتاج صلاحية تعديل السعر. يمكنك تحميل قاعدة محفوظة أو حفظ النطاق الحالي كقاعدة جديدة.
           </div>
         </div>
-      </Card>
+      </FormSection>
     </div>
   );
 }
