@@ -5,6 +5,7 @@ import {
   removePosItem,
   updatePosItemQtyWithOptions,
   updatePosItemNotes,
+  updatePosItemModifiers,
 } from '@/features/pos/lib/pos.domain';
 import { buildSaleLineKey, matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import {
@@ -218,8 +219,6 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
 
   function setItemModifiers(lineKey: string, modifiers: any[]) {
     try {
-      // @ts-ignore
-      const { updatePosItemModifiers } = require('@/features/pos/lib/pos.domain');
       const nextCart = updatePosItemModifiers(params.cart, lineKey, modifiers);
       params.setSelectedLineKey(lineKey);
       params.setCart(nextCart);

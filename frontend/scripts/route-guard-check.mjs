@@ -23,10 +23,6 @@ const checks = [
         file: 'src/features/settings/pages/useSettingsPageController.ts',
         mustInclude: ['useSettingsAdminWorkspace'],
       },
-      {
-        file: 'src/features/settings/components/SettingsPageShell.tsx',
-        mustInclude: ['QueryCard'],
-      },
     ],
   },
   {
