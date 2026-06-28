@@ -89,7 +89,7 @@ export function PosSaleSuccessDialog({
     document.body.style.overflow = 'hidden';
 
     const handleShortcut = (event: KeyboardEvent) => {
-      if (!['F2', 'F3', 'F4', 'F8', 'F9', 'F10', 'Escape'].includes(event.key)) return;
+      if (!['F2', 'F3', 'F4', 'F8', 'F10', 'Escape'].includes(event.key)) return;
 
       event.preventDefault();
       event.stopPropagation();
@@ -108,11 +108,6 @@ export function PosSaleSuccessDialog({
       }
       if (event.key === 'F8') {
         triggerWhatsapp();
-        return;
-      }
-      if (event.key === 'F9') {
-        const isReceipt = settings?.paperSize === 'receipt';
-        safePrint(isReceipt ? onPrintReceipt : onPrintA4);
         return;
       }
       if (event.key === 'F10') {
@@ -194,9 +189,6 @@ export function PosSaleSuccessDialog({
           <Button type="button" variant="success" onClick={onNewSale}>بيع جديد F3</Button>
           <Link ref={viewInvoiceLinkRef} to="/sales" className="btn btn-secondary">عرض الفاتورة F4</Link>
           <Button type="button" variant="secondary" onClick={triggerWhatsapp}>إرسال واتساب F8</Button>
-          <Button type="button" variant="secondary" onClick={() => safePrint(settings?.paperSize === 'receipt' ? onPrintReceipt : onPrintA4)}>
-            {settings?.paperSize === 'receipt' ? 'إعادة طباعة الريسيت' : 'طباعة A4'} F9
-          </Button>
           <Button type="button" variant="secondary" onClick={() => safePrint(onPrintA4)}>طباعة A4 F10</Button>
           <Button type="button" variant="secondary" onClick={onClose}>إغلاق Esc</Button>
         </div>
