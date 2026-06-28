@@ -7,7 +7,7 @@ export const DEFAULT_ADMIN_PERMS = [
 export const DEFAULT_OPERATOR_PERMS = [
   'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageSettings'
 ];
-export const DEFAULT_CASHIER_PERMS = ['dashboard', 'sales', 'customers', 'cashDrawer'];
+export const DEFAULT_CASHIER_PERMS = ['sales', 'cashDrawer', 'customers', 'returns', 'products', 'canPrint'];
 
 export const PERMISSION_LABELS: Record<string, string> = {
   dashboard: 'الشاشة الرئيسية',
@@ -63,8 +63,8 @@ export const USER_PERMISSION_GROUPS = [
 ] as const;
 
 export const USER_ROLE_TEMPLATES = {
-  cashier: { label: 'كاشير', role: 'cashier', permissions: ['dashboard', 'sales', 'customers', 'cashDrawer'] },
-  owner: { label: 'مالك / مدير', role: 'admin', permissions: [...DEFAULT_OPERATOR_PERMS] },
+  cashier: { label: 'كاشير', role: 'cashier', permissions: [...DEFAULT_CASHIER_PERMS] },
+  owner: { label: 'مالك / مدير', role: 'admin', permissions: [...DEFAULT_ADMIN_PERMS] },
   inventory: { label: 'مسؤول مخزون', role: 'admin', permissions: ['dashboard','products','inventory','purchases','suppliers','reports','pricingCenterView','pricingCenterManage','canPrint','canAdjustInventory'] },
   accountant: { label: 'محاسب', role: 'admin', permissions: ['dashboard','accounts','accounting','reports','customers','suppliers','treasury','canPrint','canViewProfit'] }
 } as const;
