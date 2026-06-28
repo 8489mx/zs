@@ -296,7 +296,14 @@ export function createPosWorkspaceAsyncActions(
   async function recallDraft(draftId: string) {
     const draft = params.heldDrafts.find((entry) => entry.id === draftId);
     if (!draft) return;
-    params.setCart(draft.cart);
+    
+    // Ensure recalled items have a lineKey so they can be modified/deleted
+    const restoredCart = (draft.cart || []).map((item, index) => ({
+      ...item,
+      lineKey: item.lineKey || `${item.productId}::${item.unitName || 'unit'}::${item.priceType || 'retail'}::recalled-${index}`
+    }));
+    
+    params.setCart(restoredCart);
     params.setCustomerId(draft.customerId);
     params.setDiscount(Number(draft.discount || 0));
     params.setCashAmount(Number(draft.cashAmount || 0));

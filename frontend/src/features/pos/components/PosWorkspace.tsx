@@ -119,7 +119,7 @@ export function PosWorkspace() {
       }
       await pos.recallDraft(targetDraft.id);
     })();
-  }, [pos]);
+  }, [pos.cart.length, pos.heldDraftSummaries, pos.holdDraft, pos.recallDraft]);
 
   const handleQuickAddSubmit = useCallback((rawCode?: string) => {
     const code = String(rawCode ?? pos.quickAddCode).trim();
