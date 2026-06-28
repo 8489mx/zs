@@ -61,6 +61,7 @@ export class ReportsService {
       rawReturnsRows,
       rawTreasuryRows,
       rawSaleItemsRows,
+      rawReturnedSaleItemsRows,
     ] = await Promise.all([
       this.db
         .selectFrom('sales')
@@ -116,6 +117,26 @@ export class ReportsService {
         .where('s.created_at', '<=', toDate)
         .where(this.tenantPredicate(auth, 's'))
         .execute(),
+      this.db
+        .selectFrom('return_items as ri')
+        .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
+        .leftJoin('sale_items as si', (join) => join
+          .onRef('si.sale_id', '=', 'rd.invoice_id')
+          .onRef('si.product_id', '=', 'ri.product_id')
+        )
+        .leftJoin('products as p', 'p.id', 'ri.product_id')
+        .select([
+          'ri.qty',
+          (eb) => eb.fn.coalesce('si.cost_price', 'p.cost_price').as('cost_price'),
+          'rd.branch_id',
+          'rd.location_id',
+          'rd.created_at'
+        ])
+        .where('rd.return_type', '=', 'sale')
+        .where('rd.created_at', '>=', fromDate!)
+        .where('rd.created_at', '<=', toDate!)
+        .where(this.tenantPredicate(auth, 'rd'))
+        .execute(),
     ]);
 
     const salesRows = filterScope(rawSalesRows, query);
@@ -131,6 +152,7 @@ export class ReportsService {
     const returnsRows = filterScope(rawReturnsRows, query);
     const treasuryRows = filterScope(rawTreasuryRows, query);
     const saleItemsRows = filterScope(rawSaleItemsRows, query);
+    const returnedSaleItemsRows = filterScope(rawReturnedSaleItemsRows, query);
 
     return this.withScope({
       range,
@@ -142,6 +164,7 @@ export class ReportsService {
         returnsRows,
         treasuryRows,
         saleItemsRows,
+        returnedSaleItemsRows,
         topProductsLimit: 10,
       }),
     }, auth);

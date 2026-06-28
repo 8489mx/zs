@@ -144,9 +144,10 @@ export function buildReportSummaryPayload(args: {
   returnsRows: SummaryReturnRow[];
   treasuryRows: SummaryTreasuryRow[];
   saleItemsRows: SummarySaleItemRow[];
+  returnedSaleItemsRows?: SummarySaleItemRow[];
   topProductsLimit?: number;
 }) {
-  const { salesRows, servicesRows = [], purchasesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows, topProductsLimit = 10 } = args;
+  const { salesRows, servicesRows = [], purchasesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows, returnedSaleItemsRows = [], topProductsLimit = 10 } = args;
   const splitReturns = splitReturnRowsByType(returnsRows);
 
   const salesTotal = sumMoney(salesRows, (row) => row.total);
@@ -155,7 +156,11 @@ export function buildReportSummaryPayload(args: {
   const expensesTotal = sumMoney(expensesRows, (row) => row.amount);
   const salesReturnsTotal = sumMoney(splitReturns.sales, (row) => row.total);
   const purchaseReturnsTotal = sumMoney(splitReturns.purchases, (row) => row.total);
-  const cogs = toMoney(saleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0));
+  
+  const rawCogs = saleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
+  const returnedCogs = returnedSaleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
+  const cogs = toMoney(Math.max(0, rawCogs - returnedCogs));
+  
   const cashIn = sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) > 0), (row) => row.amount);
   const cashOut = Math.abs(sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) < 0), (row) => row.amount));
 
