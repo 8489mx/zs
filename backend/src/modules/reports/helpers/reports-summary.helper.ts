@@ -74,8 +74,8 @@ export function buildCommercialSummary(counts: SummaryCounts, totals: SummaryTot
   const merchandiseSalesTotal = toMoney(totals.salesTotal);
   const servicesTotal = toMoney(totals.servicesTotal);
   const revenueTotal = toMoney(merchandiseSalesTotal + servicesTotal);
-  const netSales = Math.max(0, toMoney(revenueTotal - totals.salesReturnsTotal));
-  const netPurchases = Math.max(0, toMoney(totals.purchasesTotal - totals.purchaseReturnsTotal));
+  const netSales = toMoney(revenueTotal - totals.salesReturnsTotal);
+  const netPurchases = toMoney(totals.purchasesTotal - totals.purchaseReturnsTotal);
   const grossProfit = toMoney(netSales - totals.cogs);
   const grossMarginPercent = netSales > 0 ? toMoney((grossProfit / netSales) * 100) : 0;
   const netOperatingProfit = toMoney(grossProfit - totals.expensesTotal);
@@ -159,7 +159,7 @@ export function buildReportSummaryPayload(args: {
   
   const rawCogs = saleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
   const returnedCogs = returnedSaleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
-  const cogs = toMoney(Math.max(0, rawCogs - returnedCogs));
+  const cogs = toMoney(rawCogs - returnedCogs);
   
   const cashIn = sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) > 0), (row) => row.amount);
   const cashOut = Math.abs(sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) < 0), (row) => row.amount));
