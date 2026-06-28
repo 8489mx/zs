@@ -16,6 +16,7 @@ export type NormalizedPurchaseItem = {
   name: string;
   qty: number;
   cost: number;
+  oldCostPrice: number;
   unitName: string;
   unitMultiplier: number;
   total: number;
@@ -60,6 +61,7 @@ export function buildNormalizedPurchaseItem(
     name: productName,
     qty,
     cost,
+    oldCostPrice: Number((product as any).cost_price || 0),
     unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
     unitMultiplier,
     total: roundCurrency(qty * cost),
@@ -71,8 +73,8 @@ export function calculatePurchaseSubtotal(items: Array<{ total: number }>): numb
 }
 
 export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[], invoiceDiscount: number): DiscountAllocatedPurchaseItem[] {
-  const safeDiscount = roundCurrency(Math.max(0, Number(invoiceDiscount || 0)));
-  if (!items.length || safeDiscount <= 0) {
+  const safeDiscount = roundCurrency(Number(invoiceDiscount || 0));
+  if (!items.length || safeDiscount === 0) {
     return items.map((item) => ({
       ...item,
       allocatedDiscount: 0,
@@ -105,7 +107,7 @@ export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[],
     }));
   }
 
-  const targetNetTotal = roundCurrency(Math.max(0, subtotal - safeDiscount));
+  const targetNetTotal = roundCurrency(subtotal - safeDiscount);
   const allocatedByIndex = new Map<number, number>();
   const effectiveByIndex = new Map<number, number>();
   let allocatedSoFar = 0;
@@ -119,8 +121,8 @@ export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[],
 
     if (!isLastEligible) {
       const proportional = roundCurrency((safeDiscount * gross) / subtotal);
-      const remainingDiscount = roundCurrency(safeDiscount - allocatedSoFar);
-      const allocated = Math.min(proportional, remainingDiscount, gross);
+      // For positive discounts, cap at gross to prevent negative net line totals. For negative discounts (surcharge), no cap needed.
+      const allocated = safeDiscount > 0 ? Math.min(proportional, gross) : proportional;
       const net = roundCurrency(gross - allocated);
       allocatedByIndex.set(index, allocated);
       effectiveByIndex.set(index, net);
@@ -129,11 +131,10 @@ export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[],
       continue;
     }
 
-    const allocated = roundCurrency(Math.max(0, safeDiscount - allocatedSoFar));
-    const netFromDiscount = roundCurrency(Math.max(0, gross - Math.min(allocated, gross)));
-    const netFromTarget = roundCurrency(Math.max(0, targetNetTotal - effectiveSoFar));
-    const net = Math.min(netFromDiscount, netFromTarget);
-    const adjustedAllocated = roundCurrency(gross - net);
+    const allocated = roundCurrency(safeDiscount - allocatedSoFar);
+    const adjustedAllocated = safeDiscount > 0 ? Math.min(allocated, gross) : allocated;
+    const net = roundCurrency(gross - adjustedAllocated);
+    
     allocatedByIndex.set(index, adjustedAllocated);
     effectiveByIndex.set(index, net);
     allocatedSoFar = roundCurrency(allocatedSoFar + adjustedAllocated);

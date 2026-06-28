@@ -73,7 +73,7 @@ export function buildPreparedSaleItem(
 }
 
 export function calculateCollectibleTotal(total: number, storeCreditUsed: number): number {
-  return roundCurrency(Math.max(0, Number(total || 0) - Number(storeCreditUsed || 0)));
+  return roundCurrency(Number(total || 0) - Number(storeCreditUsed || 0));
 }
 
 function normalizeDateOnly(value: unknown): string {

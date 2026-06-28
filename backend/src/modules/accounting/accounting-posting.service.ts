@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Kysely, Transaction, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
@@ -452,7 +452,7 @@ export class AccountingPostingService {
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
     const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed));
     const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - paidAmount));
-    const revenueCredit = this.toMoney(subtotal - discount);
+    const revenueCredit = this.toMoney(subtotal);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
@@ -636,7 +636,7 @@ export class AccountingPostingService {
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
     const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed));
     const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - paidAmount));
-    const revenueCredit = this.toMoney(subtotal - discount);
+    const revenueCredit = this.toMoney(subtotal);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
@@ -1181,6 +1181,12 @@ export class AccountingPostingService {
     }
 
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    
+    if (normalizedLines.length === 0) {
+      this.logger.warn(`Purchase ${purchaseId} resulted in empty journal lines (possibly 100% discount with no tax), skipping journal posting.`);
+      return { posted: false, journalEntryId: 0 };
+    }
+
     const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.0001) {

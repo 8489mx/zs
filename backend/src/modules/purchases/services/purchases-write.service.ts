@@ -250,7 +250,18 @@ export class PurchasesWriteService {
           tenantId: scope.tenantId,
           accountId: scope.accountId,
         });
-        await trx.updateTable('products').set({ cost_price: item.effectiveUnitCost, updated_at: sql`NOW()` }).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+        const oldQty = Math.max(0, stockChange.globalBefore);
+        const oldCost = item.oldCostPrice;
+        const newCost = increasedQty > 0 
+          ? ((oldQty * oldCost) + (increasedQty * item.effectiveUnitCost)) / Math.max(1, oldQty + increasedQty)
+          : oldCost;
+
+        await trx.updateTable('products')
+          .set({ cost_price: Number(newCost.toFixed(6)), updated_at: sql`NOW()` })
+          .where('id', '=', item.productId)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: 'purchase',
@@ -413,7 +424,18 @@ export class PurchasesWriteService {
           tenantId: scope.tenantId,
           accountId: scope.accountId,
         });
-        await trx.updateTable('products').set({ cost_price: repricedCost, updated_at: sql`NOW()` }).where('id', '=', normalizedItem.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+        const oldQty = Math.max(0, stockChange.globalBefore);
+        const oldCost = normalizedItem.oldCostPrice;
+        const newCost = increaseQty > 0 
+          ? ((oldQty * oldCost) + (increaseQty * repricedCost)) / Math.max(1, oldQty + increaseQty)
+          : oldCost;
+
+        await trx.updateTable('products')
+          .set({ cost_price: Number(newCost.toFixed(6)), updated_at: sql`NOW()` })
+          .where('id', '=', normalizedItem.productId)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
         await trx.insertInto('stock_movements').values({
           product_id: normalizedItem.productId,
           movement_type: 'purchase_edit_apply',
