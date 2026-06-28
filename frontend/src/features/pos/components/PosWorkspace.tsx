@@ -7,6 +7,7 @@ import { PosWorkspaceDiscountDialog } from '@/features/pos/components/pos-worksp
 import { PosWorkspaceMainContent } from '@/features/pos/components/pos-workspace/PosWorkspaceMainContent';
 import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCheckoutDialog';
 import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/PosHeldDraftsDialog';
+import { PosDraftSwitcherOverlay } from '@/features/pos/components/pos-workspace/PosDraftSwitcherOverlay';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -112,12 +113,12 @@ export function PosWorkspace() {
   const requestRecallHeldDraftByIndex = useCallback((index: number) => {
     const targetDraft = pos.heldDraftSummaries[index];
     if (!targetDraft) return;
-    if (!pos.cart.length) {
-      void pos.recallDraft(targetDraft.id);
-      return;
-    }
-    setShortcutRecallDraftId(targetDraft.id);
-    setHeldDraftsDialogOpen(true);
+    void (async () => {
+      if (pos.cart.length > 0) {
+        await pos.holdDraft();
+      }
+      await pos.recallDraft(targetDraft.id);
+    })();
   }, [pos]);
 
   const handleQuickAddSubmit = useCallback((rawCode?: string) => {
@@ -320,14 +321,18 @@ export function PosWorkspace() {
       <PosHeldDraftsDialog
         open={heldDraftsDialogOpen}
         heldDrafts={pos.heldDraftSummaries}
-        hasActiveCart={pos.cart.length > 0}
         requestedRecallDraftId={shortcutRecallDraftId}
         onRequestedRecallHandled={() => setShortcutRecallDraftId('')}
         onClose={() => {
           setHeldDraftsDialogOpen(false);
           setShortcutRecallDraftId('');
         }}
-        onRecall={async (draftId) => { await pos.recallDraft(draftId); }}
+        onRecall={async (draftId) => { 
+          if (pos.cart.length > 0) {
+            await pos.holdDraft();
+          }
+          await pos.recallDraft(draftId); 
+        }}
         onDelete={async (draftId) => { await pos.deleteDraft(draftId); }}
         onClearAll={async () => { await pos.clearHeldDrafts(); }}
       />
@@ -388,6 +393,11 @@ export function PosWorkspace() {
         }}
         onPrintReceipt={pos.printReceiptNow}
         onPrintA4={pos.printA4Now}
+      />
+
+      <PosDraftSwitcherOverlay
+        drafts={pos.heldDraftSummaries}
+        onRecall={requestRecallHeldDraftByIndex}
       />
     </div>
   );

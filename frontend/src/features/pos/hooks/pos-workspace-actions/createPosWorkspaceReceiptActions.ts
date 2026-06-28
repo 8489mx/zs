@@ -73,6 +73,7 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
       label: `معلقة ${index + 1} - ${new Date(draft.savedAt).toLocaleString('ar-EG')}`,
       total: computeDraftTotal(draft),
       itemsCount: draft.cart.length,
+      savedAt: draft.savedAt,
     })),
   };
 }

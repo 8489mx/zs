@@ -10,7 +10,7 @@ export function usePosWorkspaceMutations({ queryClient, storedHeld }: { queryCli
   const heldDraftsQuery = useQuery({
     queryKey: queryKeys.posHeldDrafts,
     queryFn: () => posApi.listHeldDrafts(),
-    initialData: storedHeld,
+    placeholderData: storedHeld,
     staleTime: 5_000,
   });
   const openShiftsQuery = useQuery({

@@ -40,7 +40,7 @@ interface PosWorkspaceActions {
   editSelectedQty: () => boolean;
   removeSelectedItem: () => boolean;
   selectAdjacentCartLine: (direction: 'next' | 'prev') => boolean;
-  heldDraftSummaries: Array<{ id: string; label: string; total: number; itemsCount: number }>;
+  heldDraftSummaries: Array<{ id: string; label: string; total: number; itemsCount: number; savedAt: string }>;
 }
 
 export function createPosWorkspaceActions(params: PosWorkspaceActionParams): PosWorkspaceActions {

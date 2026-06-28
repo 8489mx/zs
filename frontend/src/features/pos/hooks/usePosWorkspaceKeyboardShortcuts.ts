@@ -55,7 +55,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         return;
       }
       if (isPosModalOpen()) return;
-      if (!isTypingTarget && event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && ['1', '2', '3'].includes(event.key)) {
+      if (event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && ['1', '2', '3'].includes(event.key)) {
         const targetIndex = Number(event.key) - 1;
         if (targetIndex >= 0 && targetIndex < pos.heldDraftSummaries.length) {
           event.preventDefault();
