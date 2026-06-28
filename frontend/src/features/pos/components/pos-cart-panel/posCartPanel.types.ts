@@ -70,6 +70,7 @@ export interface PosCartPanelProps {
   onNoteChange: (value: string) => void;
   onQtyChange: (lineKey: string, qty: number) => void;
   onItemNoteChange: (lineKey: string, notes: string) => void;
+  onItemModifiersClick?: (lineKey: string) => void;
   onRemoveItem: (lineKey: string) => void;
   onSelectLine: (lineKey: string) => void;
   onFillPaidAmount: () => void;

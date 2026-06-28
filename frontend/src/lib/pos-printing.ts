@@ -114,3 +114,4 @@ export function printPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions 
 }
 
 export { exportPostedSalePdf } from '@/lib/pos-printing/pdf';
+export { printKitchenTicket } from '@/lib/pos-printing/kitchen';

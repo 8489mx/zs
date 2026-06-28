@@ -1,4 +1,4 @@
-import { printPostedSaleReceipt } from '@/lib/pos-printing';
+import { printPostedSaleReceipt, printKitchenTicket } from '@/lib/pos-printing';
 import { computeDraftTotal } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 
@@ -49,6 +49,12 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     params.setSubmitMessage('تم فتح طباعة A4.');
   }
 
+  function printKitchenNow() {
+    if (!hasFreshLastSale() || !params.lastSale) return;
+    printKitchenTicket(params.lastSale, params.settings);
+    params.setSubmitMessage('تم طباعة شيت المطبخ.');
+  }
+
   function exportPdfNow() {
     if (!hasFreshLastSale() || !params.lastSale) return;
     const sale = params.lastSale;
@@ -66,6 +72,7 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     reprintLastSaleReceipt,
     printReceiptNow,
     printA4Now,
+    printKitchenNow,
     exportPdfNow,
     completePostSaleCycle,
     heldDraftSummaries: params.heldDrafts.map((draft, index) => ({

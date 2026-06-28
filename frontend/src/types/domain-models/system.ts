@@ -154,6 +154,8 @@ export interface AppSettings {
   defaultPosMode?: 'scanner' | 'touch' | string;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
+  posKitchenPrinterEnabled?: boolean;
+  posKitchenPrinterAuto?: boolean;
   weightedBarcodeEnabled?: boolean;
   weightedBarcodePrefix?: string;
   weightedBarcodeProductCodeLength?: number;

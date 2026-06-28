@@ -21,6 +21,7 @@ interface PosWorkspaceMainContentProps {
   onSubmitFirstSearchResult: (rawQuery?: string) => boolean;
   onRequestDiscountAuthorization: () => void;
   onRequestLineDelete: (lineKey: string) => void;
+  onItemModifiersClick: (lineKey: string) => void;
   onRequestSelectedLineDelete: () => void;
   onRequestHeldDelete: (draftId: string) => void;
   onRequestClearHeldDrafts: () => void;
@@ -44,6 +45,7 @@ export function PosWorkspaceMainContent({
   onSubmitFirstSearchResult,
   onRequestDiscountAuthorization,
   onRequestLineDelete,
+  onItemModifiersClick,
   onRequestSelectedLineDelete,
   onRequestHeldDelete,
   onRequestClearHeldDrafts,
@@ -151,6 +153,7 @@ export function PosWorkspaceMainContent({
             onNoteChange={pos.setNote}
             onQtyChange={pos.setQty}
             onItemNoteChange={pos.setItemNote}
+            onItemModifiersClick={onItemModifiersClick}
             onRemoveItem={onRequestLineDelete}
             onSelectLine={pos.selectCartLine}
             onFillPaidAmount={pos.fillPaidAmount}

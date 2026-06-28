@@ -222,7 +222,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       clothingModuleEnabled: clothingEnabled,
       defaultProductKind: clothingEnabled && settings.defaultProductKind === 'fashion' ? 'fashion' : 'standard',
       defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
+      manufacturingModuleEnabled: settings.manufacturingModuleEnabled === true,
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
+      posKitchenPrinterEnabled: settings.posKitchenPrinterEnabled === true,
+      posKitchenPrinterAuto: settings.posKitchenPrinterAuto === true,
       weightedBarcodeEnabled: settings.weightedBarcodeEnabled === true,
       weightedBarcodePrefix: String(settings.weightedBarcodePrefix || '21').replace(/\D/g, '') || '21',
       weightedBarcodeProductCodeLength: Math.min(8, Math.max(3, Math.floor(Number(settings.weightedBarcodeProductCodeLength || 5)))),
@@ -625,6 +628,14 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <label>حد التنبيه للمخزون</label>
               <input className="purchase-prototype-field-input" type="number" min="0" {...form.register('lowStockThreshold')} disabled={disabled} />
             </div>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('posKitchenPrinterEnabled')} disabled={disabled} />
+              تفعيل طباعة شيت المطبخ (KOT)
+            </label>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
+              طباعة شيت المطبخ تلقائياً
+            </label>
           </div>
         </FormSection>
 

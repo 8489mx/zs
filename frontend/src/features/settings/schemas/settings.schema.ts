@@ -30,6 +30,8 @@ export const settingsFormSchema = z.object({
   defaultProductKind: z.enum(['standard', 'fashion']).default('standard'),
   defaultPosMode: z.enum(['scanner', 'touch']).default('scanner'),
   allowNegativeStockSales: z.boolean().default(false),
+  posKitchenPrinterEnabled: z.boolean().default(false),
+  posKitchenPrinterAuto: z.boolean().default(false),
   weightedBarcodeEnabled: z.boolean().default(false),
   weightedBarcodePrefix: z.string().regex(/^\d{1,4}$/, 'اكتب بادئة أرقام فقط مثل 21').default('21'),
   weightedBarcodeProductCodeLength: z.coerce.number().int().min(3).max(8).default(5),

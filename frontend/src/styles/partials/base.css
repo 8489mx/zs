@@ -195,7 +195,6 @@ th {
 .inline-create-panel { border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--surface-2); }
 .inline-create-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .filter-chip-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-.filter-chip-row .btn, .filter-chip-row .button { min-height: 36px; }
 .align-end-inline { align-items: flex-end; }
 .section-heading-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .section-description { font-size: 12px; line-height: 1.5; }

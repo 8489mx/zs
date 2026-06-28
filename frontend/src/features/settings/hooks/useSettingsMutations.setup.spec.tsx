@@ -51,6 +51,8 @@ const baseSettingsMutationValues = {
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,
   allowNegativeStockSales: false,
+  posKitchenPrinterEnabled: false,
+  posKitchenPrinterAuto: false,
   weightedBarcodeEnabled: false,
   weightedBarcodePrefix: '21',
   weightedBarcodeProductCodeLength: 5,

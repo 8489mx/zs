@@ -133,11 +133,27 @@ export function getProductPrice(product: Product, priceType: PosPriceType, qty =
   return offer ? getOfferAppliedPrice(basePrice, offer) : roundMoney(basePrice);
 }
 
+export function getOfferDisplayName(offer: ProductOffer) {
+  const type = getOfferType(offer);
+  const minQty = getOfferMinQty(offer);
+  const qtyText = minQty > 1 ? ` عند شراء ${minQty} أو أكثر` : '';
+  const val = Number(offer.value || 0);
+  
+  if (type === 'percent') return `تم تفعيل عرض: خصم ${val}%${qtyText}`;
+  if (type === 'fixed') return `تم تفعيل عرض: خصم ${val} ثابت${qtyText}`;
+  if (type === 'price') return `تم تفعيل عرض: سعر خاص ${val}${qtyText}`;
+  return 'تم تفعيل عرض خاص';
+}
+
 function repriceCartLine(item: PosItem, product: Product, qty: number) {
+  const basePrice = Number(item.priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
+  const offer = getApplicableOffer(product, item.priceType, qty);
+  
   return {
     ...item,
     qty,
-    price: getProductPrice(product, item.priceType, qty),
+    price: offer ? getOfferAppliedPrice(basePrice, offer) : roundMoney(basePrice),
+    offerName: offer ? getOfferDisplayName(offer) : undefined,
   };
 }
 
@@ -193,7 +209,7 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
         }, product, nextQty)
       : item);
   }
-  return [{
+  const newItem: PosItem = {
     lineKey,
     productId: product.id,
     name: product.name,
@@ -201,7 +217,7 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     unitId: unit.id,
     unitName: unit.name,
     unitMultiplier: Math.max(Number(unit.multiplier || 1), 1),
-    price: getProductPrice(product, priceType, requestedQty),
+    price: 0,
     costPrice: Number((product as any).costPrice || 0),
     qty: requestedQty,
     stockLimit,
@@ -210,7 +226,9 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     priceType,
     isWeighted: isWeighted ? true : undefined,
     sourceBarcode: options.sourceBarcode || undefined,
-  }, ...cart];
+  };
+
+  return [repriceCartLine(newItem, product, requestedQty), ...cart];
 }
 
 export function updatePosItemQty(cart: PosItem[], lineKey: string, qty: number, products: Product[]) {
@@ -229,6 +247,13 @@ export function updatePosItemNotes(cart: PosItem[], lineKey: string, notes: stri
   return cart.map((item) => {
     if (item.lineKey !== lineKey) return item;
     return { ...item, notes };
+  });
+}
+
+export function updatePosItemModifiers(cart: PosItem[], lineKey: string, modifiers: any[]) {
+  return cart.map((item) => {
+    if (item.lineKey !== lineKey) return item;
+    return { ...item, modifiers };
   });
 }
 

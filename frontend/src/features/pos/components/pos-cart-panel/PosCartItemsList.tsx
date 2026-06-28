@@ -2,9 +2,10 @@ import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
-export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onRemoveItem, onSelectLine }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onRemoveItem' | 'onSelectLine'>) {
+export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onRemoveItem, onSelectLine }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onRemoveItem' | 'onSelectLine'>) {
   const settingsQuery = useSettingsQuery();
   const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
+  const allowItemModifiers = settingsQuery.data?.manufacturingModuleEnabled === true;
 
   if (!cart.length) {
     return (
@@ -85,6 +86,30 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   }}>
                     {item.notes}
                   </div>
+                )}
+                {item.modifiers && item.modifiers.length > 0 && (
+                  <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginTop: '2px' }}>
+                    {item.modifiers.map((mod: any, i: number) => (
+                      <div key={i}>+ {mod.name} {mod.qty > 1 ? `(x${mod.qty})` : ''}</div>
+                    ))}
+                  </div>
+                )}
+                {item.offerName && (
+                  <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '2px', fontWeight: 500 }}>
+                    ✨ {item.offerName}
+                  </div>
+                )}
+                {onItemModifiersClick && allowItemModifiers && (
+                  <button
+                    type="button"
+                    style={{ fontSize: '0.75rem', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '2px 6px', marginTop: '4px', cursor: 'pointer', opacity: isSelected ? 1 : 0.6 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onItemModifiersClick(item.lineKey);
+                    }}
+                  >
+                    + إضافات
+                  </button>
                 )}
               </div>
 

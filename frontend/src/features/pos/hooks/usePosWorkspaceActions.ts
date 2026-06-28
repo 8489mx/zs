@@ -27,10 +27,12 @@ interface PosWorkspaceActions {
   reprintLastSaleReceipt: () => void;
   printReceiptNow: () => void;
   printA4Now: () => void;
+  printKitchenNow: () => void;
   exportPdfNow: () => void;
   completePostSaleCycle: (message?: string) => void;
   setQty: (lineKey: string, qty: number) => void;
   setItemNote: (lineKey: string, notes: string) => void;
+  setItemModifiers: (lineKey: string, modifiers: any[]) => void;
   removeItem: (lineKey: string) => void;
   fillPaidAmount: () => void;
   setPriceType: (nextPriceType: PosPriceType) => void;
@@ -113,6 +115,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     exportHeldDrafts: base.exportHeldDrafts,
     setQty: base.setQty,
     setItemNote: base.setItemNote,
+    setItemModifiers: base.setItemModifiers,
     removeItem: (lineKey: string) => {
       logCartRemoveEvent(lineKey);
       base.removeItem(lineKey);
@@ -140,6 +143,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     reprintLastSaleReceipt: receiptActions.reprintLastSaleReceipt,
     printReceiptNow: receiptActions.printReceiptNow,
     printA4Now: receiptActions.printA4Now,
+    printKitchenNow: receiptActions.printKitchenNow,
     exportPdfNow: receiptActions.exportPdfNow,
     completePostSaleCycle: receiptActions.completePostSaleCycle,
     heldDraftSummaries: receiptActions.heldDraftSummaries,

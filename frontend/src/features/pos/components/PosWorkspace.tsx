@@ -7,6 +7,7 @@ import { PosWorkspaceDiscountDialog } from '@/features/pos/components/pos-worksp
 import { PosWorkspaceMainContent } from '@/features/pos/components/pos-workspace/PosWorkspaceMainContent';
 import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCheckoutDialog';
 import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/PosHeldDraftsDialog';
+import { PosItemModifiersModal } from '@/features/pos/components/pos-cart-panel/PosItemModifiersModal';
 import { PosDraftSwitcherOverlay } from '@/features/pos/components/pos-workspace/PosDraftSwitcherOverlay';
 import {
   getSelectedCustomerName,
@@ -33,6 +34,7 @@ export function PosWorkspace() {
   const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
+  const [modifiersModalLineKey, setModifiersModalLineKey] = useState<string>('');
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
@@ -110,16 +112,17 @@ export function PosWorkspace() {
     setCheckoutDialogOpen(true);
   }, [pos.canOpenCheckout, pos.checkoutDisabledReason, pos.createSale.isPending, pos.setSubmitMessage]);
 
-  const requestRecallHeldDraftByIndex = useCallback((index: number) => {
-    const targetDraft = pos.heldDraftSummaries[index];
-    if (!targetDraft) return;
-    void (async () => {
-      if (pos.cart.length > 0) {
-        await pos.holdDraft();
-      }
-      await pos.recallDraft(targetDraft.id);
-    })();
-  }, [pos.cart.length, pos.heldDraftSummaries, pos.holdDraft, pos.recallDraft]);
+  const requestRecallHeldDraftByIndex = useCallback(async (index: number) => {
+    const draftId = pos.heldDraftSummaries[index]?.id;
+    if (draftId) {
+      await pos.recallDraft(draftId);
+      setHeldDraftsDialogOpen(false);
+    }
+  }, [pos]);
+
+  const requestItemModifiers = useCallback((lineKey: string) => {
+    setModifiersModalLineKey(lineKey);
+  }, []);
 
   const handleQuickAddSubmit = useCallback((rawCode?: string) => {
     const code = String(rawCode ?? pos.quickAddCode).trim();
@@ -257,8 +260,16 @@ export function PosWorkspace() {
   useEffect(() => {
     if (pos.canShowLastSaleActions && pos.lastSale) {
       setSaleSuccessDialogOpen(true);
+      if (pos.settingsQuery.data?.posKitchenPrinterEnabled && pos.settingsQuery.data?.posKitchenPrinterAuto) {
+        try {
+          pos.printKitchenNow();
+        } catch (e) {
+          console.error('Failed to auto-print KOT', e);
+        }
+      }
     }
-  }, [pos.canShowLastSaleActions, pos.lastSale]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pos.canShowLastSaleActions, pos.lastSale, pos.settingsQuery.data?.posKitchenPrinterEnabled, pos.settingsQuery.data?.posKitchenPrinterAuto]);
 
   usePosWorkspaceKeyboardShortcuts({
     pos,
@@ -289,6 +300,7 @@ export function PosWorkspace() {
         onSubmitFirstSearchResult={submitFirstSearchResult}
         onRequestDiscountAuthorization={requestDiscountAuthorization}
         onRequestLineDelete={requestLineDelete}
+        onItemModifiersClick={requestItemModifiers}
         onRequestSelectedLineDelete={requestSelectedLineDelete}
         onRequestHeldDelete={requestHeldDelete}
         onRequestClearHeldDrafts={requestClearHeldDrafts}
@@ -393,11 +405,24 @@ export function PosWorkspace() {
         }}
         onPrintReceipt={pos.printReceiptNow}
         onPrintA4={pos.printA4Now}
+        onPrintKitchen={pos.printKitchenNow}
       />
 
       <PosDraftSwitcherOverlay
         drafts={pos.heldDraftSummaries}
         onRecall={requestRecallHeldDraftByIndex}
+      />
+
+      <PosItemModifiersModal
+        open={Boolean(modifiersModalLineKey)}
+        onClose={() => setModifiersModalLineKey('')}
+        item={pos.cart.find((item) => item.lineKey === modifiersModalLineKey) || null}
+        products={pos.productsQuery.data || []}
+        onSave={(modifiers) => {
+          if (modifiersModalLineKey) {
+            pos.setItemModifiers(modifiersModalLineKey, modifiers);
+          }
+        }}
       />
     </div>
   );

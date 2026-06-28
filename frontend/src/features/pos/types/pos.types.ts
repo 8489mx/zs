@@ -18,5 +18,6 @@ export interface PosItem {
   isWeighted?: boolean;
   sourceBarcode?: string;
   notes?: string;
+  offerName?: string;
   modifiers?: any[];
 }

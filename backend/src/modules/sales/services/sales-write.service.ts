@@ -456,6 +456,46 @@ export class SalesWriteService {
             account_id: scope.accountId,
           } as any)
           .execute();
+
+        if (item.modifiers && Array.isArray(item.modifiers)) {
+          for (const mod of item.modifiers) {
+            if (mod.productId) {
+              const modifierQty = Number(mod.qty || 1) * Number(item.qty || 1);
+              
+              const modStockChange = await applyStockDelta(trx, {
+                productId: Number(mod.productId),
+                delta: -modifierQty,
+                branchId: normalized.branchId,
+                locationId: normalized.locationId,
+                tenantId: scope.tenantId,
+                accountId: scope.accountId,
+                errorCode: 'INSUFFICIENT_MODIFIER_STOCK',
+                errorMessage: `Insufficient stock for modifier ${mod.name}`,
+                allowNegative: allowNegativeStockSales,
+              });
+
+              await trx
+                .insertInto('stock_movements')
+                .values({
+                  product_id: Number(mod.productId),
+                  movement_type: 'sale',
+                  qty: -modifierQty,
+                  before_qty: modStockChange.scopeBefore,
+                  after_qty: modStockChange.scopeAfter,
+                  reason: 'sale_modifier',
+                  note: `إضافة للفاتورة S-${id} (${item.productName})`,
+                  reference_type: 'sale',
+                  reference_id: id,
+                  branch_id: normalized.branchId,
+                  location_id: normalized.locationId,
+                  created_by: auth.userId,
+                  tenant_id: scope.tenantId,
+                  account_id: scope.accountId,
+                } as any)
+                .execute();
+            }
+          }
+        }
       }
 
       if (normalized.storeCreditUsed > 0 && customer) {

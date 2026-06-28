@@ -216,6 +216,18 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     }
   }
 
+  function setItemModifiers(lineKey: string, modifiers: any[]) {
+    try {
+      // @ts-ignore
+      const { updatePosItemModifiers } = require('@/features/pos/lib/pos.domain');
+      const nextCart = updatePosItemModifiers(params.cart, lineKey, modifiers);
+      params.setSelectedLineKey(lineKey);
+      params.setCart(nextCart);
+    } catch (error) {
+      params.setSubmitMessage('تعذر تعديل الإضافات.');
+    }
+  }
+
   function removeItem(lineKey: string) {
     params.setCart((current) => removePosItem(current, lineKey));
     if (params.selectedLineKey === lineKey) params.setSelectedLineKey('');
@@ -333,6 +345,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     selectCartLine,
     setQty,
     setItemNote,
+    setItemModifiers,
     removeItem,
     fillPaidAmount,
     setPaymentPreset,

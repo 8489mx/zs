@@ -9,6 +9,8 @@ export interface SaleItem {
   unitMultiplier: number;
   cost: number;
   priceType: string;
+  notes?: string;
+  modifiers?: Array<{ productId?: string | number; name: string; qty: number; price?: number }>;
 }
 
 export interface SalePayment {
