@@ -672,33 +672,33 @@ export class AccountingService {
 
       if (this.inCodes(code, REVENUE_CODES) || accountType === 'revenue') {
         if (!this.inCodes(code, CONTRA_REVENUE_CODES) && accountType !== 'contra_revenue') {
-          grossSales = this.toMoney(grossSales + Math.max(0, revenueMovement));
+          grossSales = this.toMoney(grossSales + revenueMovement);
           const current = revenueBreakdown.get(code) || { accountCode: code, accountNameAr, amount: 0 };
-          current.amount = this.toMoney(current.amount + Math.max(0, revenueMovement));
+          current.amount = this.toMoney(current.amount + revenueMovement);
           revenueBreakdown.set(code, current);
         }
       }
 
       if (code === '4400') {
-        salesReturns = this.toMoney(salesReturns + Math.max(0, expenseMovement));
+        salesReturns = this.toMoney(salesReturns + expenseMovement);
       }
       if (code === '4300') {
-        salesDiscounts = this.toMoney(salesDiscounts + Math.max(0, expenseMovement));
+        salesDiscounts = this.toMoney(salesDiscounts + expenseMovement);
       }
       if (accountType === 'contra_revenue' && !this.inCodes(code, ['4300', '4400'])) {
-        salesReturns = this.toMoney(salesReturns + Math.max(0, expenseMovement));
+        salesReturns = this.toMoney(salesReturns + expenseMovement);
       }
 
       if (this.inCodes(code, COGS_CODES) || accountGroup === 'cogs') {
-        cogs = this.toMoney(cogs + Math.max(0, expenseMovement));
+        cogs = this.toMoney(cogs + expenseMovement);
       }
 
       const isOperatingExpense = (accountType === 'expense' || accountGroup === 'operating_expenses')
         && !this.inCodes(code, COGS_CODES);
       if (isOperatingExpense) {
-        operatingExpenses = this.toMoney(operatingExpenses + Math.max(0, expenseMovement));
+        operatingExpenses = this.toMoney(operatingExpenses + expenseMovement);
         const current = expenseBreakdown.get(code) || { accountCode: code, accountNameAr, amount: 0 };
-        current.amount = this.toMoney(current.amount + Math.max(0, expenseMovement));
+        current.amount = this.toMoney(current.amount + expenseMovement);
         expenseBreakdown.set(code, current);
       }
 
