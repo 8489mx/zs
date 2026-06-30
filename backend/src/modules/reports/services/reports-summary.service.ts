@@ -186,7 +186,7 @@ export class ReportsSummaryService {
       .execute(), query);
 
     const lowStock = productsRows
-      .filter((row) => Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0))
+      .filter((row) => Number(row.stock_qty || 0) > 0 && Number(row.min_stock_qty || 0) > 0 && Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0))
       .slice(0, 8)
       .map((row) => normalizeProduct(row));
 
@@ -214,7 +214,7 @@ export class ReportsSummaryService {
 
     const customerBalances = buildAggregatedBalances(customersRows, customerLedgerTotals);
     const supplierBalances = buildAggregatedBalances(suppliersRows, supplierLedgerTotals);
-    const lowStockCount = productsRows.filter((row) => Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0)).length;
+    const lowStockCount = productsRows.filter((row) => Number(row.stock_qty || 0) > 0 && Number(row.min_stock_qty || 0) > 0 && Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0)).length;
     const outOfStockCount = productsRows.filter((row) => Number(row.stock_qty || 0) <= 0).length;
 
     const inventoryCost = toMoney(productsRows.reduce((sum, row) => sum + (Number(row.stock_qty || 0) * Number(row.cost_price || 0)), 0));
