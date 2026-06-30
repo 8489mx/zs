@@ -13,6 +13,8 @@ interface PurchaseDetailCardProps {
   onPrint?: () => void;
 }
 
+import { resolveRequestUrl } from '@/lib/http';
+
 export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCancel, onPrint }: PurchaseDetailCardProps) {
   if (isLoading) return <FormSection title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></FormSection>;
   if (!purchase) return <FormSection title="تفاصيل الفاتورة" className="purchase-detail-card"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></FormSection>;
@@ -57,6 +59,24 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
           </table>
         </div>
       </FormSection>
+
+      {purchase.attachments && purchase.attachments.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <FormSection title="المرفقات" className="purchase-detail-card">
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {purchase.attachments.map((att: any, idx: number) => {
+              const url = resolveRequestUrl(att.fileUrl);
+              return (
+                <a key={att.id || idx} href={url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', textDecoration: 'none', color: 'inherit', background: 'var(--surface-color)' }}>
+                  <span style={{ fontSize: '1.2em' }}>📄</span>
+                  <span style={{ fontSize: '0.9em' }}>{att.fileName || `مرفق ${idx + 1}`}</span>
+                </a>
+              );
+            })}
+          </div>
+          </FormSection>
+        </div>
+      )}
 
       <PurchasePaymentScheduleCard purchase={purchase} />
     </>

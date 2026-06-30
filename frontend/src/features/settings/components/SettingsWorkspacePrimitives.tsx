@@ -1,5 +1,5 @@
 import { Button } from '@/shared/ui/button';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export interface BackupSnapshotRecord {
   id: string;
@@ -28,7 +28,7 @@ export function SummaryList({ data }: { data?: Record<string, unknown> }) {
 
 export function downloadSummaryCsv(filename: string, data?: Record<string, unknown>) {
   const rows = Object.entries(data || {});
-  downloadCsvFile(filename, ['key', 'value'], rows.map(([key, value]) => [key, typeof value === 'object' ? JSON.stringify(value) : prettyValue(value)]));
+  downloadExcelFile(filename, ['key', 'value'], rows.map(([key, value]) => [key, typeof value === 'object' ? JSON.stringify(value) : prettyValue(value)]));
 }
 
 export function printSummaryList(title: string, data?: Record<string, unknown>) {
@@ -43,7 +43,7 @@ export function printSummaryList(title: string, data?: Record<string, unknown>) 
 }
 
 export function downloadEntityListCsv(filename: string, headers: string[], rows: Array<Array<string | number>>) {
-  downloadCsvFile(filename, headers, rows);
+  downloadExcelFile(filename, headers, rows);
 }
 
 export function printEntityList(title: string, headers: string[], rows: Array<Array<string | number>>) {

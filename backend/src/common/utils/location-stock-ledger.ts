@@ -56,7 +56,7 @@ type StockTransitParams = TenantStockScope & {
   productId: number;
   qty: number;
   branchId?: number | null;
-  locationId: number;
+  locationId: number | null;
   errorCode?: string;
   errorMessage?: string;
 };
@@ -102,7 +102,7 @@ function requireStockTenantScope(params: TenantStockScope): RequiredTenantStockS
   return { tenantId, accountId };
 }
 
-async function loadLockedState(db: Kysely<Database>, params: StockScopeParams): Promise<LockedState> {
+async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & { productId: number }): Promise<LockedState> {
   const scope = requireStockTenantScope(params);
   const product = await db
     .selectFrom('products')
@@ -111,27 +111,22 @@ async function loadLockedState(db: Kysely<Database>, params: StockScopeParams): 
     .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
     .forUpdate()
     .executeTakeFirst();
-
-  if (!product) {
-    throw new AppError(`Product #${params.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-  }
-
+  if (!product) throw new AppError('Product not found or access denied', 'PRODUCT_NOT_FOUND', 404);
   const balances = await db
     .selectFrom('product_location_stock')
     .select(['id', 'product_id', 'branch_id', 'location_id', 'qty'])
-    .where('product_id', '=', params.productId)
+    .where('product_id', '=', product.id)
     .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
     .forUpdate()
     .execute();
-
-  return {
-    scope,
+  return { 
+    scope, 
     product: {
       id: Number(product.id),
       name: String(product.name || ''),
       stock_qty: product.stock_qty,
-    },
-    globalQty: roundStockQty(product.stock_qty),
+    }, 
+    globalQty: roundStockQty(product.stock_qty), 
     balances: balances.map((row) => ({
       id: Number(row.id),
       product_id: Number(row.product_id),
@@ -173,7 +168,7 @@ async function insertBalanceRow(
 }
 
 async function ensureUnassignedBalance(db: Kysely<Database>, state: LockedState): Promise<StockBalanceRow> {
-  const existing = state.balances.find((row) => row.location_id == null);
+  const existing = state.balances.find((row) => row.location_id == null && row.branch_id == null);
   if (existing) return existing;
   const seedQty = state.balances.length === 0 ? state.globalQty : 0;
   const inserted = await insertBalanceRow(db, state.scope, state.product.id, null, null, seedQty);
@@ -184,10 +179,13 @@ async function ensureUnassignedBalance(db: Kysely<Database>, state: LockedState)
 async function ensureLocationBalance(
   db: Kysely<Database>,
   state: LockedState,
-  locationId: number,
+  locationId: number | null,
   branchId: number | null,
 ): Promise<StockBalanceRow> {
-  const existing = state.balances.find((row) => Number(row.location_id || 0) === Number(locationId));
+  let existing = state.balances.find((row) => 
+    (locationId === null ? row.location_id == null : Number(row.location_id) === Number(locationId)) &&
+    (locationId === null ? (branchId === null ? row.branch_id == null : Number(row.branch_id) === Number(branchId)) : true)
+  );
   if (existing) {
     if (branchId != null && existing.branch_id == null) {
       await db
@@ -327,7 +325,7 @@ async function moveUnassignedToLocation(
   db: Kysely<Database>,
   state: LockedState,
   qty: number,
-  locationId: number,
+  locationId: number | null,
   branchId: number | null,
   errorCode: string,
   errorMessage: string,

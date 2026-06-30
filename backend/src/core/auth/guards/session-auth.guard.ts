@@ -59,10 +59,10 @@ export class SessionAuthGuard implements CanActivate {
   ) {}
 
   private allowSessionIdHeaderFallback(): boolean {
-    if (this.configService.get<boolean>('ALLOW_SESSION_ID_HEADER') === true) return true;
+    if (String(this.configService.get('ALLOW_SESSION_ID_HEADER')).toLowerCase() === 'true') return true;
     const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
     const appMode = this.configService.get<string>('app.mode') || this.configService.get<string>('APP_MODE') || '';
-    return nodeEnv === 'development' && appMode !== 'CLOUD_SAAS';
+    return (nodeEnv === 'development' || appMode === 'SELF_CONTAINED' || appMode === 'PORTABLE') && appMode !== 'CLOUD_SAAS';
   }
 
   private clearAuthCookies(response: Response): void {

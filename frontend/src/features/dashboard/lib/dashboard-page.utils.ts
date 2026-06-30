@@ -1,4 +1,4 @@
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import type { DashboardOverviewPayload, DashboardTopItem } from '@/features/dashboard/api/dashboard.types';
 
@@ -59,7 +59,7 @@ export function exportDashboardSnapshot(payload: DashboardOverviewPayload) {
     ['الربح التشغيلي', Number(summary.commercial.netOperatingProfit || 0)]
   ];
 
-  downloadCsvFile('dashboard-snapshot.csv', ['المؤشر', 'القيمة'], rows);
+  downloadExcelFile('dashboard-snapshot.xlsx', ['المؤشر', 'القيمة'], rows);
 }
 
 function buildTopTodayRows(topToday: DashboardTopItem[]) {

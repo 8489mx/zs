@@ -12,6 +12,9 @@ import {
   type ReferenceDeleteConfirmState,
 } from '@/features/settings/components/workspace-sections/reference-section.shared';
 import { QueryCard } from '@/shared/components/query-card';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { LocationForm } from '@/features/settings/components/forms/LocationForm';
+import { BranchForm } from '@/features/settings/components/forms/BranchForm';
 
 interface SettingsReferenceSectionProps {
   branches: Branch[];
@@ -75,6 +78,8 @@ export function SettingsReferenceSection({
   const [editingBranch, setEditingBranch] = useState<BranchActionState | null>(null);
   const [editingLocation, setEditingLocation] = useState<LocationActionState | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<ReferenceDeleteConfirmState | null>(null);
+  const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
+  const [showBranchQuickAdd, setShowBranchQuickAdd] = useState(false);
 
   const branchList = useMemo(() => filteredBranches.map((branch) => editingBranch?.branchId === branch.id ? { ...branch, ...editingBranch.values } : branch), [filteredBranches, editingBranch]);
   const locationList = useMemo(() => filteredLocations.map((location) => editingLocation?.locationId === location.id ? { ...location, ...editingLocation.values, branchName: branches.find((branch) => branch.id === editingLocation.values.branchId)?.name || '' } : location), [filteredLocations, editingLocation, branches]);
@@ -133,6 +138,7 @@ export function SettingsReferenceSection({
         branchActionBusy={branchActionBusy}
         branchActionError={branchActionError}
         onUpdateBranch={onUpdateBranch}
+        onShowAddBranch={() => setShowBranchQuickAdd(true)}
       />
       <LocationReferenceCard
         branches={branches}
@@ -153,7 +159,37 @@ export function SettingsReferenceSection({
         locationActionBusy={locationActionBusy}
         locationActionError={locationActionError}
         onUpdateLocation={onUpdateLocation}
+        onShowAddLocation={() => setShowLocationQuickAdd(true)}
       />
+
+      <DialogShell open={showBranchQuickAdd} onClose={() => setShowBranchQuickAdd(false)} width="min(620px, 100%)" ariaLabel="إضافة فرع جديد">
+        <div className="page-stack">
+          <div><strong>إضافة فرع جديد</strong></div>
+          <BranchForm
+            canManageSettings={canManageSettings}
+            initialValues={{ name: '', code: '' }}
+            onCreated={() => setShowBranchQuickAdd(false)}
+          />
+          <div className="actions compact-actions" style={{ justifyContent: 'flex-start' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowBranchQuickAdd(false)}>إلغاء</button>
+          </div>
+        </div>
+      </DialogShell>
+
+      <DialogShell open={showLocationQuickAdd} onClose={() => setShowLocationQuickAdd(false)} width="min(620px, 100%)" ariaLabel="إضافة مخزن جديد">
+        <div className="page-stack">
+          <div><strong>إضافة مخزن جديد</strong></div>
+          <LocationForm
+            branches={branches}
+            canManageSettings={canManageSettings}
+            initialValues={{ name: '', branchId: branches[0]?.id ? String(branches[0].id) : '' }}
+            onCreated={() => setShowLocationQuickAdd(false)}
+          />
+          <div className="actions compact-actions" style={{ justifyContent: 'flex-start' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowLocationQuickAdd(false)}>إلغاء</button>
+          </div>
+        </div>
+      </DialogShell>
 
       <ActionConfirmDialog
         open={Boolean(deleteConfirm)}

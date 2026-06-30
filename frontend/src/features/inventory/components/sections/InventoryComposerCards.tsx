@@ -14,13 +14,13 @@ interface StockTransferComposerCardProps {
   products: Product[];
   warehouses?: Location[];
   locations?: Location[];
-  form: { fromLocationId: string; toLocationId: string; note: string; productId: string; qty: string };
+  form: { fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string };
   items: StockTransferItem[];
   isPending: boolean;
   isError: boolean;
   isSuccess: boolean;
   error?: unknown;
-  onFormChange: (patch: Partial<{ fromLocationId: string; toLocationId: string; note: string; productId: string; qty: string }>) => void;
+  onFormChange: (patch: Partial<{ fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string }>) => void;
   onAddItem: () => void;
   onRemoveItem: (index: number) => void;
   onSubmit: () => void;
@@ -43,7 +43,7 @@ export function StockTransferComposerCard({
 }: StockTransferComposerCardProps) {
   const warehouseList = warehouses || locations || [];
   return (
-    <FormSection title="تحويل مخزون بين المخازن" description="تجميع العناصر أولًا ثم اعتماد التحويل مع إبقاء المراجعة السريعة للعناصر قبل الإرسال." actions={<span className="nav-pill">التحويلات</span>}>
+    <FormSection title="إذن صرف / نقل مخزون" description="تجميع الأصناف أولًا ثم اعتماد إذن الصرف مع إبقاء المراجعة السريعة للعناصر قبل الإرسال." actions={<span className="nav-pill">أذونات الصرف</span>}>
       <div className="form-grid">
         <Field label="من مخزن">
           <select value={form.fromLocationId} onChange={(e) => onFormChange({ fromLocationId: e.target.value })}>
@@ -51,11 +51,14 @@ export function StockTransferComposerCard({
             {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
           </select>
         </Field>
-        <Field label="إلى مخزن">
+        <Field label="إلى مخزن / فرع">
           <select value={form.toLocationId} onChange={(e) => onFormChange({ toLocationId: e.target.value })}>
             <option value="">اختر الوجهة</option>
             {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
           </select>
+        </Field>
+        <Field label="مستلم البضاعة / السائق">
+          <input type="text" placeholder="اسم المستلم (اختياري)" value={form.recipientName || ''} onChange={(e) => onFormChange({ recipientName: e.target.value })} />
         </Field>
         <Field label="الصنف">
           <InventoryProductPicker
@@ -75,12 +78,12 @@ export function StockTransferComposerCard({
         <div className="field">
           <span>العناصر</span>
           <div className="actions compact-actions">
-            <Button type="button" variant="secondary" onClick={onAddItem}>إضافة إلى التحويل</Button>
-            <SubmitButton type="button" onClick={onSubmit} disabled={isPending || !items.length} idleText="حفظ التحويل" pendingText="جارٍ الحفظ..." />
+            <Button type="button" variant="secondary" onClick={onAddItem}>إضافة إلى إذن الصرف</Button>
+            <SubmitButton type="button" onClick={onSubmit} disabled={isPending || !items.length} idleText="حفظ إذن الصرف" pendingText="جارٍ الحفظ..." />
           </div>
         </div>
       </div>
-      <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر إنشاء تحويل المخزون" successText="تم إنشاء تحويل المخزون بنجاح." />
+      <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر إنشاء إذن الصرف" successText="تم إنشاء إذن الصرف بنجاح." />
       <div className="list-stack" style={{ marginTop: 12 }}>
         {items.length ? items.map((item, index) => (
           <div className="list-row stacked-row" key={item.id}>
@@ -90,7 +93,7 @@ export function StockTransferComposerCard({
             </div>
             <Button type="button" variant="danger" onClick={() => onRemoveItem(index)}>حذف</Button>
           </div>
-        )) : <EmptyState title="لا توجد عناصر مضافة للتحويل" hint="أضف صنفًا واحدًا على الأقل ثم احفظ التحويل." />}
+        )) : <EmptyState title="لا توجد عناصر مضافة لإذن الصرف" hint="أضف صنفًا واحدًا على الأقل ثم احفظ." />}
       </div>
     </FormSection>
   );
@@ -161,7 +164,7 @@ export function StockCountComposerCard({
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [isCountStarted, setIsCountStarted] = useState(false);
   const [startCountMessage, setStartCountMessage] = useState('');
-  const [showExpectedInElectronicCount, setShowExpectedInElectronicCount] = useState(true);
+  const [showExpectedInElectronicCount, setShowExpectedInElectronicCount] = useState(false);
   const selectedProduct = products.find((product) => String(product.id) === String(form.productId));
   const expectedQtyValue = Number(selectedProduct?.stock || 0);
   const countedQtyValue = Number(form.countedQty || 0);
@@ -194,7 +197,7 @@ export function StockCountComposerCard({
       setIsCountStarted(false);
       setCountType('quick');
       setSelectedCategoryId('');
-      setShowExpectedInElectronicCount(true);
+      setShowExpectedInElectronicCount(false);
       setStartCountMessage('');
     }
   }, [isSuccess]);

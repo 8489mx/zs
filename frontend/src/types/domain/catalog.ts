@@ -46,6 +46,9 @@ export interface Product {
   size?: string;
   status?: string;
   statusLabel?: string;
+  bomId?: number;
+  hasBom?: boolean;
+  binLocation?: string;
 }
 
 export interface Category {

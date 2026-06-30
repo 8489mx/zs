@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { cashDrawerApi } from '@/lib/api/cash-drawer';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
@@ -10,7 +10,7 @@ export function useCashDrawerPageActions(params: { search: string; shiftFilter: 
   const exportShiftRows = useCallback(async () => {
     if (!totalItems) return;
     const payload = await cashDrawerApi.listAll({ search, filter: shiftFilter });
-    downloadCsvFile(
+    downloadExcelFile(
       'cash-drawer-shifts-results.csv',
       SINGLE_STORE_MODE
         ? ['docNo', 'status', 'location', 'openingCash', 'expectedCash', 'countedCash', 'variance', 'openedBy', 'createdAt']

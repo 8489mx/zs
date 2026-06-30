@@ -1,4 +1,4 @@
-﻿import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+﻿import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import { salesApi, type SalesListFilter } from '@/features/sales/api/sales.api';
 import { getSalePaymentLabel } from '@/features/sales/lib/sales-workspace.helpers';
@@ -23,7 +23,7 @@ export function useSalesWorkspaceActions(params: {
 
   async function exportSalesCsv() {
     const result = await salesApi.listAll({ search, filter: viewFilter, cashier: cashierFilter });
-    downloadCsvFile('sales-register-results.csv', ['docNo', 'customer', 'status', 'paymentType', 'total', 'paidAmount', 'date', 'branch', 'location'], result.rows.map((sale) => [
+    downloadExcelFile('sales-register-results.xlsx', ['docNo', 'customer', 'status', 'paymentType', 'total', 'paidAmount', 'date', 'branch', 'location'], result.rows.map((sale) => [
       sale.docNo || sale.id,
       sale.customerName || 'عميل نقدي',
       sale.status || '',
@@ -37,7 +37,7 @@ export function useSalesWorkspaceActions(params: {
   }
 
   function exportTopCustomersCsv() {
-    downloadCsvFile('top-customers-sales.csv', ['customer', 'invoices', 'total'], topCustomers.map((customer) => [customer.name, customer.count, customer.total]));
+    downloadExcelFile('top-customers-sales.xlsx', ['customer', 'invoices', 'total'], topCustomers.map((customer) => [customer.name, customer.count, customer.total]));
   }
 
   function resetSalesView() {

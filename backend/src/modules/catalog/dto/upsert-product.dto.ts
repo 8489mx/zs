@@ -122,6 +122,10 @@ export class UpsertProductDto {
   size?: string;
 
   @IsOptional()
+  @IsString()
+  binLocation?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

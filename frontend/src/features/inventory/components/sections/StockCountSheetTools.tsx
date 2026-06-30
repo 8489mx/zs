@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import {
-  exportStockCountSheetCsv,
+  exportStockCountSheetExcel,
   printStockCountSheet,
   type StockCountSheetRow,
 } from '@/features/inventory/lib/inventory-documents';
@@ -133,9 +133,9 @@ export function StockCountSheetTools({
           type="button"
           variant="secondary"
           disabled={disabled}
-          onClick={() => exportStockCountSheetCsv(sheetRows, { includeExpectedQty })}
+          onClick={() => exportStockCountSheetExcel(sheetRows, { includeExpectedQty })}
         >
-          تصدير CSV
+          تصدير Excel
         </Button>
         <Button
           type="button"

@@ -1,4 +1,4 @@
-import { downloadCsvFile } from '@/lib/browser';
+import { downloadExcelFile } from '@/lib/browser';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { ExpenseRecord, Location } from '@/types/domain';
 
@@ -60,7 +60,7 @@ export function formatTreasuryType(type?: string) {
 }
 
 export function exportTransactionCsv(rows: TreasuryTransactionRow[]) {
-  downloadCsvFile(
+  downloadExcelFile(
     'treasury-transactions-results.csv',
     ['txnType', 'amount', 'referenceType', 'note', ...(SINGLE_STORE_MODE ? ['storeLocation'] : ['branch', 'location']), 'createdBy', 'createdAt'],
     rows.map((row) => [
@@ -76,7 +76,7 @@ export function exportTransactionCsv(rows: TreasuryTransactionRow[]) {
 }
 
 export function exportExpenseCsv(rows: ExpenseRecord[]) {
-  downloadCsvFile(
+  downloadExcelFile(
     'expenses-register-results.csv',
     ['title', 'amount', 'note', ...(SINGLE_STORE_MODE ? ['storeLocation'] : ['branch', 'location']), 'createdBy', 'date'],
     rows.map((row) => [

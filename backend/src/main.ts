@@ -65,6 +65,13 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
+  if (process.env.APP_MODE === 'SELF_CONTAINED' || process.env.PORTABLE_MODE === 'true') {
+    logger.log('Desktop/Portable mode detected: running database migrations...');
+    const { runMigrationCommand } = await import('./database/migration-runner');
+    await runMigrationCommand('up');
+    logger.log('Database migrations completed.');
+  }
+
   await app.listen(port, host);
   logger.log(`API bootstrap complete on ${host}:${port}`);
   // eslint-disable-next-line no-console

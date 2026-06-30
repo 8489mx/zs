@@ -1,0 +1,1 @@
+const { PGlite } = require("@electric-sql/pglite"); async function run() { const db = new PGlite("file://c:/zn/frontend/portable_data"); const res = await db.query("SELECT * FROM _phase1_bootstrap"); console.log(res); } run();

@@ -43,8 +43,15 @@ export class InventoryCountService {
     mapped = await this.scope.filterByScope(mapped, auth);
     const search = String(query.search || '').toLowerCase();
     const type = String(query.type || 'all').toLowerCase();
-    const filtered = mapped.filter((r) => (type === 'all' || String(r.type).toLowerCase() === type) && (!search || [r.productName, r.reason, r.note, r.referenceType].some((x) => String(x).toLowerCase().includes(search))));
-    if (!query.page && !query.pageSize && !query.search && !query.type) return { stockMovements: filtered, scope: this.tenantScope(auth) };
+    const locationId = query.locationId ? String(query.locationId) : 'all';
+    
+    const filtered = mapped.filter((r) => 
+      (type === 'all' || String(r.type).toLowerCase() === type) && 
+      (locationId === 'all' || String(r.locationId) === locationId) && 
+      (!search || [r.productName, r.reason, r.note, r.referenceType, r.locationName, r.branchName].some((x) => String(x).toLowerCase().includes(search)))
+    );
+    
+    if (!query.page && !query.pageSize && !query.search && !query.type && !query.locationId) return { stockMovements: filtered, scope: this.tenantScope(auth) };
     const paged = paginateRows(filtered, query, { defaultSize: 20 });
     return { stockMovements: paged.rows, pagination: paged.pagination, summary: buildStockMovementSummary(filtered as Array<{ qty: number }>), scope: this.tenantScope(auth) };
   }

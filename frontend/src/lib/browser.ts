@@ -27,17 +27,47 @@ export function downloadJsonFile(data: unknown, filename: string) {
   triggerDownload(blob, filename);
 }
 
-export function downloadCsvFile(filename: string, headers: string[], rows: Array<Array<string | number | null | undefined>>) {
-  const csvEscape = (value: string | number | null | undefined) => {
-    const text = String(value ?? '');
-    if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-    return text;
-  };
 
-  const csv = [headers.map(csvEscape).join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\r\n');
-  const withBom = `\ufeff${csv}`;
-  const blob = new Blob([withBom], { type: 'text/csv;charset=utf-8' });
+
+export async function downloadExcelFile(filename: string, headers: string[], rows: Array<Array<string | number | null | undefined>>) {
+  const XLSX = await import('xlsx');
+  const worksheetData = [headers, ...rows];
+  const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+  
+  // Set sheet direction to RTL
+  if (!worksheet['!views']) worksheet['!views'] = [];
+  worksheet['!views'].push({ rightToLeft: true });
+
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   triggerDownload(blob, filename);
+}
+
+export async function parseImportFile(file: File): Promise<Record<string, string>[]> {
+  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+  if (isExcel) {
+    const XLSX = await import('xlsx');
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) return [];
+    const worksheet = workbook.Sheets[firstSheetName];
+    // Convert to array of objects, keeping headers
+    const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' }) as Record<string, unknown>[];
+    // Normalize to string values for consistency with CSV parser
+    return json.map(row => {
+      const stringifiedRow: Record<string, string> = {};
+      for (const [key, value] of Object.entries(row)) {
+        stringifiedRow[key] = String(value ?? '').trim();
+      }
+      return stringifiedRow;
+    });
+  }
+
+  // Fallback to CSV parsing
+  return parseCsvRows(await file.text());
 }
 
 export function parseCsvRows(text: string) {
@@ -101,13 +131,13 @@ function normalizeCachedSettings(raw: unknown): Partial<AppSettings> {
   return candidate;
 }
 
-function resolvePrintSettings() {
+export function resolvePrintSettings() {
   const cachedSettings = normalizeCachedSettings(queryClient.getQueryData(queryKeys.settings));
   const sessionStoreName = useAuthStore.getState().storeName;
   const resolvedStoreName = String(cachedSettings.storeName || sessionStoreName || DEFAULT_STORE_NAME).trim() || DEFAULT_STORE_NAME;
   return {
     storeName: resolvedStoreName,
-    brandName: String(cachedSettings.brandName || resolvedStoreName).trim() || resolvedStoreName,
+    brandName: resolvedStoreName,
     phone: String(cachedSettings.phone || '').trim(),
     address: String(cachedSettings.address || '').trim(),
     invoiceFooter: String(cachedSettings.invoiceFooter || '').trim(),
@@ -152,10 +182,12 @@ function buildBrandPanelHtml(branding: ReturnType<typeof resolvePrintSettings>) 
 
 export interface PrintDocumentOptions {
   subtitle?: string;
+  headerDetailsHtml?: string;
   footerHtml?: string;
   extraStyles?: string;
   pageSize?: 'auto' | 'A4' | 'receipt';
   orientation?: 'portrait' | 'landscape';
+  layout?: 'standard' | 'centered';
   printDelayMs?: number;
   autoClose?: boolean;
   documentDirection?: 'rtl' | 'ltr';
@@ -172,10 +204,12 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
 
   const {
     subtitle = '',
+    headerDetailsHtml = '',
     footerHtml = '',
     extraStyles = '',
     pageSize = 'auto',
     orientation = 'portrait',
+    layout = 'standard',
     printDelayMs = 260,
     autoClose = false,
     documentDirection = 'rtl',
@@ -216,7 +250,12 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         html, body { margin: 0; padding: 0; background: #fff; color: var(--print-text); }
         body { font-family: Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.45; }
         .print-shell { padding: 12px; max-width: 100%; }
-        .print-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+        .print-header { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 7fr); gap: 10px; align-items: stretch; margin-bottom: 12px; }
+        .print-header.centered-layout { display: block; text-align: center; margin-bottom: 12px; }
+        .print-header.centered-layout .doc-panel { min-width: auto; padding: 10px 16px; gap: 4px; }
+        .print-header.centered-layout .doc-header-details { margin-top: 2px; padding: 4px 10px; }
+        .print-header.centered-layout .doc-meta-chip { margin-top: 2px; }
+        .brand-name-centered { font-size: 20px; font-weight: 800; color: var(--print-strong); margin-bottom: 2px; }
         .brand-panel, .doc-panel, .meta-box, .summary-box, .totals, .print-footer {
           border: 1px solid var(--print-border);
           border-radius: 8px;
@@ -231,7 +270,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         }
         .brand-copy { min-width: 0; }
         .brand-name {
-          font-size: 19px;
+          font-size: 15px;
           font-weight: 800;
           color: var(--print-strong);
           line-height: 1.2;
@@ -276,7 +315,8 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         }
         .doc-title { margin: 0; font-size: 17px; line-height: 1.2; font-weight: 800; color: var(--print-strong); }
         .doc-subtitle { color: var(--print-muted); font-size: 11px; }
-        .doc-meta-chip { margin-top: 4px; color: var(--print-muted); font-size: 11px; }
+        .doc-header-details { margin-top: 8px; font-size: 12px; color: var(--print-strong); background: rgba(255,255,255,0.7); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--print-border); display: inline-block; }
+        .doc-meta-chip { margin-top: 8px; color: var(--print-muted); font-size: 11px; }
         .print-content { display: flex; flex-direction: column; gap: 8px; }
         .meta { margin: 0; color: var(--print-muted); font-size: 11px; }
         .section { margin: 0; break-inside: avoid; }
@@ -383,14 +423,16 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
     <body class="${pageSize === 'receipt' ? 'receipt-mode' : 'report-mode'}">
       <div class="print-shell">
         ${pageSize === 'receipt' ? '' : `
-        <div class="print-header">
-          ${buildBrandPanelHtml(branding)}
-          <div class="doc-panel">
-            <h1 class="doc-title">${escapeHtml(title)}</h1>
-            ${safeSubtitle ? `<div class="doc-subtitle">${escapeHtml(safeSubtitle)}</div>` : ''}
-            <div class="doc-meta-chip">تاريخ الطباعة: ${escapeHtml(printedAt)}</div>
-          </div>
-        </div>`}
+          <div class="print-header ${layout === 'centered' ? 'centered-layout' : ''}">
+            ${layout === 'centered' ? '' : buildBrandPanelHtml(branding)}
+            <div class="doc-panel">
+              ${layout === 'centered' ? `<div class="brand-name-centered">${escapeHtml(branding.brandName || branding.storeName || DEFAULT_STORE_NAME)}</div>` : ''}
+              <h1 class="doc-title">${escapeHtml(title)}</h1>
+              ${safeSubtitle ? `<div class="doc-subtitle">${escapeHtml(safeSubtitle)}</div>` : ''}
+              ${headerDetailsHtml ? `<div class="doc-header-details">${headerDetailsHtml}</div>` : ''}
+              <div class="doc-meta-chip">تاريخ الطباعة: ${escapeHtml(printedAt)}</div>
+            </div>
+          </div>`}
         <div class="print-content">${bodyContent}</div>
         ${effectiveFooter ? `<div class="print-footer">${effectiveFooter}</div>` : ''}
       </div>

@@ -114,6 +114,12 @@ export class InventoryValueQueryDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
+  location_id?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
   supplier_id?: number;
 
   @IsOptional()

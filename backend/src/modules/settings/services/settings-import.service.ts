@@ -266,6 +266,21 @@ export class SettingsImportService {
     return Number(inserted.id);
   }
 
+  private async ensureLocation(db: DbExecutor, name: string, actor: AuthContext): Promise<number | null> {
+    const normalized = cleanString(name);
+    if (!normalized) return null;
+    const scope = this.scope(actor);
+    const existing = await db.selectFrom('stock_locations').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', normalized.toLowerCase()).executeTakeFirst();
+    if (existing) return Number(existing.id);
+    
+    // Auto-create location. We need a branch_id. We'll find the first active branch for this tenant or null.
+    const branch = await db.selectFrom('branches').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+    const branchId = branch ? Number(branch.id) : null;
+    
+    const inserted = await db.insertInto('stock_locations').values({ name: normalized, branch_id: branchId, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
+    return Number(inserted.id);
+  }
+
   private async addCustomerOpeningBalance(db: DbExecutor, customerId: number, amount: number, actor: AuthContext): Promise<void> {
     if (Math.abs(amount) <= 0.0001) return;
     const scope = this.scope(actor);
@@ -318,6 +333,7 @@ export class SettingsImportService {
         if (!name) continue;
         const categoryId = await this.ensureCategory(trx, cleanString(row.categoryName || row.category || ''), actor);
         const supplierId = await this.ensureSupplier(trx, cleanString(row.supplierName || row.supplier || ''), actor);
+        const locationId = await this.ensureLocation(trx, cleanString(row.warehouseName || row.warehouse || row.store || ''), actor);
         const barcode = cleanString(row.barcode) || null;
         
         const rawType = cleanString(row.itemType || row.type || row['النوع'] || '').toLowerCase();
@@ -348,7 +364,7 @@ export class SettingsImportService {
           const initialStockQty = toNumber(row.stockQty || 0);
           const insertedProduct = await trx.insertInto('products').values({ ...payload, stock_qty: initialStockQty, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
           if (initialStockQty > 0) {
-            await trx.insertInto('product_location_stock').values({ product_id: Number(insertedProduct.id), branch_id: null, location_id: null, qty: initialStockQty, ...this.tenantFields(actor) } as any).execute();
+            await trx.insertInto('product_location_stock').values({ product_id: Number(insertedProduct.id), branch_id: null, location_id: locationId, qty: initialStockQty, ...this.tenantFields(actor) } as any).execute();
           }
           inserted += 1;
         }
@@ -476,7 +492,7 @@ export class SettingsImportService {
         if (delta === 0) continue;
 
         const branchId = toNumber(row.branchId || row.branch || 0) || null;
-        const locationId = toNumber(row.locationId || row.location || 0) || null;
+        const locationId = await this.ensureLocation(trx, cleanString(row.warehouseName || row.warehouse || row.store || ''), actor) || (toNumber(row.locationId || row.location || 0) || null);
         const stockChange = await applyStockDelta(trx, { productId: Number(product.id), delta: delta, branchId, locationId, tenantId: scope.tenantId, accountId: scope.accountId });
         await trx.insertInto('stock_movements').values({
           product_id: Number(product.id),

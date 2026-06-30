@@ -9,7 +9,7 @@ export function InventoryWorkspaceHeader({
   currentSection,
   onReset,
   onCopySummary,
-  onExportCsv,
+  onExportExcel,
   onPrintList
 }: {
   canPrint: boolean;
@@ -18,7 +18,7 @@ export function InventoryWorkspaceHeader({
   currentSection: string;
   onReset: () => void;
   onCopySummary: () => void;
-  onExportCsv: () => void;
+  onExportExcel: () => void;
   onPrintList: () => void;
 }) {
   const primaryAction = currentSection === 'transfers'
@@ -41,7 +41,7 @@ export function InventoryWorkspaceHeader({
           <Link to={primaryAction.to}><Button>{primaryAction.label}</Button></Link>
           <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
           <Button variant="secondary" onClick={onCopySummary}>نسخ الملخص</Button>
-          <Button variant="secondary" onClick={onExportCsv} disabled={!hasRows}>تصدير CSV</Button>
+          <Button variant="secondary" onClick={onExportExcel} disabled={!hasRows}>تصدير Excel</Button>
           <Button variant="secondary" onClick={onPrintList} disabled={!hasRows || !canPrint}>طباعة القائمة</Button>
         </div>
       )}

@@ -261,6 +261,7 @@ export function SettingsBackupImportSection({
               { key: 'retailPrice', label: 'السعر', aliases: ['سعر البيع', 'price', 'retail_price'] },
               { key: 'stockQty', label: 'المخزون الافتتاحي', aliases: ['الكمية', 'stock', 'stockQty', 'qty'] },
               { key: 'unitName', label: 'الوحدة', aliases: ['unit', 'القياس'] },
+              { key: 'warehouseName', label: 'المخزن', aliases: ['المخزن', 'warehouse', 'store'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('products')}
             onImportRows={importProducts}
@@ -273,6 +274,7 @@ export function SettingsBackupImportSection({
               { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode'] },
               { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
               { key: 'qty', label: 'الكمية', aliases: ['الكمية', 'qty', 'quantity', 'stock'] },
+              { key: 'warehouseName', label: 'المخزن', aliases: ['المخزن', 'warehouse', 'store'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('opening-stock')}
             onImportRows={importOpeningStock}

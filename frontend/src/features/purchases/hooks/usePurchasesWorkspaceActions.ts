@@ -1,4 +1,4 @@
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import { purchasesApi } from '@/features/purchases/api/purchases.api';
 import type { Purchase } from '@/types/domain';
@@ -21,7 +21,7 @@ export function usePurchasesWorkspaceActions(params: {
 
   async function exportPurchasesCsv() {
     const result = await purchasesApi.listAll({ search, filter: viewFilter });
-    downloadCsvFile('purchases-register-results.csv', ['docNo', 'supplier', 'status', 'paymentType', 'total', 'date', 'branch', 'location'], result.rows.map((purchase) => [
+    downloadExcelFile('purchases-register-results.xlsx', ['docNo', 'supplier', 'status', 'paymentType', 'total', 'date', 'branch', 'location'], result.rows.map((purchase) => [
       purchase.docNo || purchase.id,
       purchase.supplierName || '',
       purchase.status || '',
@@ -34,7 +34,7 @@ export function usePurchasesWorkspaceActions(params: {
   }
 
   function exportTopSuppliersCsv() {
-    downloadCsvFile('top-suppliers-purchases.csv', ['supplier', 'invoices', 'total'], topSuppliers.map((supplier) => [supplier.name, supplier.count, supplier.total]));
+    downloadExcelFile('top-suppliers-purchases.xlsx', ['supplier', 'invoices', 'total'], topSuppliers.map((supplier) => [supplier.name, supplier.count, supplier.total]));
   }
 
   function resetPurchasesView() {

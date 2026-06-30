@@ -6,7 +6,7 @@ const accentColorSchema = z
 
 export const settingsFormSchema = z.object({
   storeName: z.string().min(2, 'اسم النشاط / المتجر مطلوب'),
-  brandName: z.string().min(2, 'الاسم التجاري مطلوب').default('Z Systems'),
+  brandName: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
   lowStockThreshold: z.coerce.number().min(0, 'الحد الأدنى يجب أن يكون موجبًا أو صفرًا'),

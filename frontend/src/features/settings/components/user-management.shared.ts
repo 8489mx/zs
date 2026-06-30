@@ -1,5 +1,5 @@
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
   'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','cashDrawer'
@@ -123,7 +123,7 @@ export function formatDateTime(value?: string | null) {
 }
 
 export function exportUsersCsv(filename: string, users: ManagedUserRecord[]) {
-  downloadCsvFile(filename, ['name', 'username', 'role', 'status', 'defaultBranch', 'branches', 'permissions', 'failedLogins', 'lockedUntil', 'lastLoginAt'], users.map((user) => [
+  downloadExcelFile(filename, ['name', 'username', 'role', 'status', 'defaultBranch', 'branches', 'permissions', 'failedLogins', 'lockedUntil', 'lastLoginAt'], users.map((user) => [
     user.name || '',
     user.username || '',
     user.role === 'super_admin' ? 'super_admin' : user.role === 'admin' ? 'admin' : 'cashier',

@@ -3,6 +3,7 @@ import { queryKeys } from '@/app/query-keys';
 
 export async function invalidateDashboardOverview(queryClient: QueryClient) {
   await queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
+  await queryClient.invalidateQueries({ queryKey: ['manager-actions'] });
 }
 
 export async function invalidateAuditLogs(queryClient: QueryClient) {
@@ -63,7 +64,10 @@ export async function invalidateInventoryDomain(
   ];
   if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.products }));
   if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: ['products', 'pos'] }));
-  if (includeDashboard) tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
+  if (includeDashboard) {
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['manager-actions'] }));
+  }
   await Promise.all(tasks);
 }
 
@@ -79,7 +83,10 @@ export async function invalidateSalesDomain(
     invalidateAuditLogs(queryClient),
   ];
   if (saleId) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.saleDetail(saleId) }));
-  if (includeDashboard) tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
+  if (includeDashboard) {
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['manager-actions'] }));
+  }
   await Promise.all(tasks);
   await Promise.all([
     invalidateCatalogDomain(queryClient, { includeProducts: true, includeCustomers: true, includeCustomerBalances: true }),
@@ -96,7 +103,10 @@ export async function invalidatePurchasesDomain(
   const { purchaseId, includeDashboard = false } = options || {};
   const tasks = [queryClient.invalidateQueries({ queryKey: queryKeys.purchases })];
   if (purchaseId) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.purchaseDetail(purchaseId) }));
-  if (includeDashboard) tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
+  if (includeDashboard) {
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
+    tasks.push(queryClient.invalidateQueries({ queryKey: ['manager-actions'] }));
+  }
   await Promise.all(tasks);
   await Promise.all([
     invalidateCatalogDomain(queryClient, { includeProducts: true, includeSuppliers: true, includeSupplierBalances: true }),

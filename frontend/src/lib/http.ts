@@ -77,6 +77,11 @@ export function normalizeApiBaseUrl(
   if (isPortableStaticServer && isLoopbackRuntime && configuredIsLoopbackApi) return '';
   if (normalized) return normalized;
 
+  // If running via Electron's file:// protocol, the backend should be running locally on 3001
+  if (runtimeLocation.protocol === 'file:') {
+    return 'http://127.0.0.1:3001';
+  }
+
   if (isDevServer) {
     return `${runtimeLocation.protocol}//${runtimeLocation.hostname}:3001`;
   }

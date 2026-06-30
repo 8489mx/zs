@@ -62,6 +62,13 @@ if (-not $env:NODE_ENV) {
   $env:NODE_ENV = 'development'
 }
 
+Write-Host 'Running database migrations...'
+& npm.cmd --prefix backend run migration:run:dev
+if ($LASTEXITCODE -ne 0) {
+  Write-Host 'Database migrations failed!' -ForegroundColor Red
+  exit $LASTEXITCODE
+}
+
 Write-Host 'Starting backend dev server (watch mode) on http://localhost:3101 ...'
 & npm.cmd --prefix backend run start:dev
 exit $LASTEXITCODE

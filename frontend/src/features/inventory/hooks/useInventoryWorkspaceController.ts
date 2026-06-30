@@ -8,13 +8,15 @@ import { useInventoryWorkspaceQueries } from '@/features/inventory/hooks/useInve
 import { createInventoryWorkspaceSectionActions } from '@/features/inventory/hooks/useInventoryWorkspaceSectionActions';
 import { useInventoryWorkspaceSelection } from '@/features/inventory/hooks/useInventoryWorkspaceSelection';
 import { useInventoryWorkspaceState } from '@/features/inventory/hooks/useInventoryWorkspaceState';
-import { findProduct, printStockCountDocument, printTransferDocument } from '@/features/inventory/lib/inventory-documents';
+import { printTransferDocument } from '@/lib/inventory-printing';
+import { findProduct, printStockCountDocument } from '@/features/inventory/lib/inventory-documents';
 import {
   buildInventorySectionSpotlightCards,
   getInventorySectionDescription,
 } from '@/features/inventory/lib/inventory-workspace.helpers';
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function useInventoryWorkspaceController(currentSection: InventorySectionKey) {
   const queryClient = useQueryClient();
@@ -25,6 +27,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
   const products = actionCatalog.productsQuery.data || [];
   const branches = actionCatalog.branchesQuery.data || [];
   const locations = actionCatalog.locationsQuery.data || [];
+  const { data: settings } = useSettingsQuery();
   const { transfersQuery, stockCountQuery, damagedQuery, stockMovementsQuery } = useInventoryWorkspaceQueries(state);
 
   useEffect(() => {
@@ -52,6 +55,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     setPostingPin: state.setPostingPin,
     setSelectedTransferIds: state.setSelectedTransferIds,
     setSelectedSessionIds: state.setSelectedSessionIds,
+    setCreatedTransfer: state.setCreatedTransfer,
   });
 
   const addTransferItem = () => {
@@ -127,6 +131,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     sessionFilter: state.sessionFilter,
     setCopyFeedback: state.setCopyFeedback,
     canViewSensitivePricing,
+    settings,
   });
 
   const sectionDescription = getInventorySectionDescription(currentSection);
@@ -222,6 +227,8 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     setSelectedTransferIds: state.setSelectedTransferIds,
     selectedSessionIds: state.selectedSessionIds,
     setSelectedSessionIds: state.setSelectedSessionIds,
+    createdTransfer: state.createdTransfer,
+    setCreatedTransfer: state.setCreatedTransfer,
     createTransferMutation: mutations.createTransferMutation,
     transferActionMutation: mutations.transferActionMutation,
     createCountMutation: mutations.createCountMutation,

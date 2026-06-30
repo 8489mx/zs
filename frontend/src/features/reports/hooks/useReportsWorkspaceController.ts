@@ -32,11 +32,19 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     retry: false,
   });
   const accountingInventoryValueQuery = useQuery({
-    queryKey: ['reports', 'accounting-inventory-value'],
-    queryFn: () => accountingReportsApi.inventoryValue({}),
+    queryKey: ['reports', 'accounting-inventory-value', state.locationId],
+    queryFn: () => accountingReportsApi.inventoryValue({
+      ...(state.locationId !== 'all' ? { locationId: state.locationId } : {})
+    }),
     retry: false,
   });
-  const inventoryQuery = useReportInventoryPage({ page: state.inventoryPage, pageSize: state.inventoryPageSize, search: state.inventorySearch, filter: state.inventoryFilter });
+  const inventoryQuery = useReportInventoryPage({ 
+    page: state.inventoryPage, 
+    pageSize: state.inventoryPageSize, 
+    search: state.inventorySearch, 
+    filter: state.inventoryFilter,
+    ...(state.locationId !== 'all' ? { locationId: state.locationId } : {})
+  });
   const balancesQuery = useCustomerBalancesPage({ page: state.balancesPage, pageSize: state.balancesPageSize, search: state.balancesSearch, filter: state.balancesFilter });
   const employeesQuery = useEmployeeReportsPage({
     page: state.employeesPage,
@@ -136,6 +144,8 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     onEmployeesPageChange: state.setEmployeesPage,
     onEmployeesPageSizeChange: (value: number) => { state.setEmployeesPageSize(value); state.setEmployeesPage(1); },
     formatPercent,
+    locationId: state.locationId,
+    setLocationId: state.setLocationId,
     ...actions,
   };
 }

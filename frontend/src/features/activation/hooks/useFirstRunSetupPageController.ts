@@ -35,16 +35,21 @@ export function useFirstRunSetupPageController() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<boolean> {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
-      await activationApi.initialize({ ...form, theme: 'light' });
+      const payload = { ...form, theme: 'light' };
+      if (!payload.branchName) payload.branchName = 'الفرع الرئيسي';
+      if (!payload.locationName) payload.locationName = 'المخزن الرئيسي';
+      await activationApi.initialize(payload as any);
       setAppGate('login');
       navigate('/login?setup=done', { replace: true });
+      return true;
     } catch (err) {
       setError(getErrorMessage(err, 'تعذر حفظ التهيئة الأولية. راجع البيانات ثم أعد المحاولة.'));
+      return false;
     } finally {
       setSubmitting(false);
     }

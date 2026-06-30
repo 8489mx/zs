@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { StockTransferSuccessDialog } from '@/features/inventory/components/StockTransferSuccessDialog';
+import { printTransferDocument } from '@/lib/inventory-printing';
 import { InventoryWorkspaceHeader } from '@/features/inventory/components/InventoryWorkspaceHeader';
 import { InventorySectionTabs } from '@/features/inventory/pages/InventorySectionTabs';
 import { InventoryMovementCard, InventoryOverviewStats, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, StockTransferComposerCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
-import { InventoryTransferActionDialog, InventoryPostSessionDialog } from '@/features/inventory/components/InventoryWorkspaceDialogs';
+import { InventoryPostSessionDialog, InventoryTransferActionDialog } from '@/features/inventory/components/InventoryWorkspaceDialogs';
 import { InventoryActionsPanel } from '@/features/inventory/components/InventoryActionsPanel';
 import { useInventoryWorkspaceController } from '@/features/inventory/hooks/useInventoryWorkspaceController';
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
@@ -41,7 +43,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
         currentSection={currentSection}
         onReset={inventory.resetInventoryView}
         onCopySummary={() => void Promise.resolve(inventory.copyInventorySummary())}
-        onExportCsv={() => void Promise.resolve(inventory.sectionExportHandler())}
+        onExportExcel={() => void Promise.resolve(inventory.sectionExportHandler())}
         onPrintList={() => void Promise.resolve(inventory.sectionPrintHandler())}
       />
 
@@ -118,8 +120,8 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             onTransferFilterChange={inventory.setTransferFilter}
             onSelectTransfer={inventory.setSelectedTransferId}
             onCopyTransferDetails={() => void inventory.copyTransferDetails()}
-            onPrintTransfer={inventory.printTransferDocument}
-            onExportTransfers={inventory.exportTransfersCsv}
+            onPrintTransfer={(transfer, format) => printTransferDocument(transfer, { pageSize: format })}
+            onExportTransfers={inventory.exportTransfersExcel}
             onReceiveTransfer={inventory.canAdjustInventory ? (transfer) => inventory.setTransferActionConfirm({ transfers: [transfer], action: 'receive' }) : undefined}
             onCancelTransfer={inventory.canAdjustInventory ? (transfer) => inventory.setTransferActionConfirm({ transfers: [transfer], action: 'cancel' }) : undefined}
             selectedTransferIds={inventory.selectedTransferIds}
@@ -128,8 +130,34 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             onCancelSelectedTransfers={inventory.cancelSelectedTransfers}
           />
 
+          <StockTransferSuccessDialog
+            open={!!inventory.createdTransfer}
+            transfer={inventory.createdTransfer}
+            onClose={() => inventory.setCreatedTransfer(null)}
+            onPrintA4={() => {
+              if (inventory.createdTransfer) {
+                printTransferDocument(inventory.createdTransfer, { pageSize: 'a4' });
+              }
+              inventory.setCreatedTransfer(null);
+            }}
+            onPrintReceipt={() => {
+              if (inventory.createdTransfer) {
+                printTransferDocument(inventory.createdTransfer, { pageSize: 'receipt' });
+              }
+              inventory.setCreatedTransfer(null);
+            }}
+          />
+
           <StockTransferComposerCard
-            products={inventory.products}
+            products={(() => {
+              const fromLoc = inventory.transferForm.fromLocationId;
+              if (!fromLoc) return inventory.products;
+              const locationStocks = Array.isArray(inventory.actionCatalog.locationStocksQuery.data) ? inventory.actionCatalog.locationStocksQuery.data : [];
+              return inventory.products.map(p => {
+                const stockRec = locationStocks.find(s => String(s.productId) === String(p.id) && String(s.locationId) === String(fromLoc));
+                return { ...p, stock: stockRec ? stockRec.qty : 0 };
+              }).filter(p => (p.stock as number) > 0);
+            })()}
             locations={inventory.locations}
             form={inventory.transferForm}
             items={inventory.transferItems}
@@ -176,7 +204,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             onCopySessionDetails={() => void inventory.copySessionDetails()}
             onPrintCountSessions={inventory.printCountSessionsHandler}
             onPrintDamagedRecords={inventory.printDamagedRecordsHandler}
-            onExportDamagedCsv={inventory.exportDamagedCsvHandler}
+            onExportDamagedCsv={inventory.exportDamagedExcelHandler}
             onPrintSession={inventory.printStockCountDocument}
             selectedSessionIds={inventory.selectedSessionIds}
             onSelectedSessionIdsChange={inventory.setSelectedSessionIds}
@@ -212,7 +240,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
           onPageChange={inventory.setDamagedPage}
           onPageSizeChange={(value) => { inventory.setDamagedPageSize(value); inventory.setDamagedPage(1); }}
           onPrintDamagedRecords={() => void inventory.printDamagedRecordsHandler()}
-          onExportDamagedCsv={() => void inventory.exportDamagedCsvHandler()}
+          onExportDamagedCsv={() => void inventory.exportDamagedExcelHandler()}
         />
       ) : null}
 

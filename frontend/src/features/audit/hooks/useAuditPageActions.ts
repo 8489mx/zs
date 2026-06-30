@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { auditApi } from '@/features/audit/api/audit.api';
 import { formatDate } from '@/lib/format';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { AuditLog } from '@/types/domain';
 
 interface Params {
@@ -40,7 +40,7 @@ export function useAuditPageActions({ search, mode, userId = '', totalRows, summ
     setIsExporting(true);
     try {
       const payload = await auditApi.listAll({ search, mode, userId });
-      downloadCsvFile(
+      downloadExcelFile(
         'audit-log-results.csv',
         ['action', 'details', 'createdBy', 'date'],
         payload.rows.map((row: AuditLog) => [row.action || '', row.detailsSummary || row.details || '', row.createdByName || '', row.createdAt || row.created_at || ''])

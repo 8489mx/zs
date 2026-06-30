@@ -119,7 +119,7 @@ export function TrialSignupPage() {
         {/* Right Side: Branding */}
         <div className="login-branding-side">
           <div className="login-brand-logo-wrap">
-            <img src="/brand/z-erp-approved-icon.png" alt="Z Systems" className="login-brand-logo-img" />
+            <img src="./brand/z-erp-approved-icon.png" alt="Z Systems" className="login-brand-logo-img" />
             <span className="login-brand-name">Z Systems <span className="text-pro">Pro</span></span>
           </div>
 

@@ -3,8 +3,8 @@ import type { AppSettings, Sale } from '@/types/domain';
 import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, type PosPrintPageSize } from '@/lib/pos-printing/shared';
 
 function resolveStoreIdentity(settings?: Partial<AppSettings> | null) {
-  const brandName = String(settings?.brandName || settings?.storeName || 'متجرك').trim() || 'متجرك';
-  const storeName = String(settings?.storeName || settings?.brandName || 'متجرك').trim() || 'متجرك';
+  const brandName = String(settings?.storeName || 'متجر').trim() || 'متجر';
+  const storeName = brandName;
   return { brandName, storeName };
 }
 

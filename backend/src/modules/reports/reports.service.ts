@@ -302,28 +302,35 @@ export class ReportsService {
   async inventoryReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const { search, searchPattern, filter, page, pageSize, offset } = buildReportListState(query, 20, { includeRange: false });
 
-    let countQuery = this.db
+    let countQuery: any = this.db
       .selectFrom('products as p')
       .leftJoin('product_categories as c', 'c.id', 'p.category_id')
       .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(auth, 'p'));
 
-    let rowsQuery = this.db
+    let rowsQuery: any = this.db
       .selectFrom('products as p')
       .leftJoin('product_categories as c', 'c.id', 'p.category_id')
       .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
-      .select(['p.id', 'p.name', 'p.stock_qty', 'p.min_stock_qty', 'p.retail_price', 'p.cost_price', 'c.name as category_name', 's.name as supplier_name'])
+      .select(['p.id', 'p.name', query.locationId ? sql<number>`coalesce(pls.qty, 0)`.as('stock_qty') : 'p.stock_qty', 'p.min_stock_qty', 'p.retail_price', 'p.cost_price', 'c.name as category_name', 's.name as supplier_name'])
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(auth, 'p'));
+
+    if (query.locationId) {
+      countQuery = countQuery.leftJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+        .where('pls.location_id', '=', query.locationId);
+      rowsQuery = rowsQuery.leftJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+        .where('pls.location_id', '=', query.locationId);
+    }
 
     if (search) {
-      countQuery = countQuery.where((eb) => eb.or([
+      countQuery = countQuery.where((eb: any) => eb.or([
         eb(sql`lower(p.name)`, 'like', searchPattern!),
         eb(sql`lower(coalesce(c.name, ''))`, 'like', searchPattern!),
         eb(sql`lower(coalesce(s.name, ''))`, 'like', searchPattern!),
       ]));
-      rowsQuery = rowsQuery.where((eb) => eb.or([
+      rowsQuery = rowsQuery.where((eb: any) => eb.or([
         eb(sql`lower(p.name)`, 'like', searchPattern!),
         eb(sql`lower(coalesce(c.name, ''))`, 'like', searchPattern!),
         eb(sql`lower(coalesce(s.name, ''))`, 'like', searchPattern!),
@@ -331,29 +338,44 @@ export class ReportsService {
     }
 
     if (filter === 'attention') {
-      countQuery = countQuery.whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
-      rowsQuery = rowsQuery.whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
+      if (query.locationId) {
+        countQuery = countQuery.whereRef('pls.qty', '<=', 'p.min_stock_qty');
+        rowsQuery = rowsQuery.whereRef('pls.qty', '<=', 'p.min_stock_qty');
+      } else {
+        countQuery = countQuery.whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
+        rowsQuery = rowsQuery.whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
+      }
     }
     if (filter === 'out') {
-      countQuery = countQuery.where('p.stock_qty', '<=', 0);
-      rowsQuery = rowsQuery.where('p.stock_qty', '<=', 0);
+      if (query.locationId) {
+        countQuery = countQuery.where('pls.qty', '<=', 0);
+        rowsQuery = rowsQuery.where('pls.qty', '<=', 0);
+      } else {
+        countQuery = countQuery.where('p.stock_qty', '<=', 0);
+        rowsQuery = rowsQuery.where('p.stock_qty', '<=', 0);
+      }
     }
     if (filter === 'low') {
-      countQuery = countQuery.where('p.stock_qty', '>', 0).whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
-      rowsQuery = rowsQuery.where('p.stock_qty', '>', 0).whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
+      if (query.locationId) {
+        countQuery = countQuery.where('pls.qty', '>', 0).whereRef('pls.qty', '<=', 'p.min_stock_qty');
+        rowsQuery = rowsQuery.where('pls.qty', '>', 0).whereRef('pls.qty', '<=', 'p.min_stock_qty');
+      } else {
+        countQuery = countQuery.where('p.stock_qty', '>', 0).whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
+        rowsQuery = rowsQuery.where('p.stock_qty', '>', 0).whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
+      }
     }
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
     const pagination = buildPagination(page, pageSize, totalItems);
     const rows = await rowsQuery
-      .orderBy('p.stock_qty asc')
+      .orderBy(query.locationId ? 'pls.qty' : 'p.stock_qty', 'asc')
       .orderBy('p.id asc')
       .limit(pageSize)
       .offset(offset)
       .execute();
 
-    const productIds = rows.map((row) => Number(row.id || 0)).filter((value) => value > 0);
+    const productIds = rows.map((row: any) => Number(row.id || 0)).filter((value: number) => value > 0);
 
     const locationBreakdownRows = productIds.length
       ? await this.db
@@ -382,22 +404,36 @@ export class ReportsService {
 
     const items = buildInventoryReportItems(rows as InventoryReportProductRow[], locationBreakdownRows as InventoryLocationBreakdownRow[]);
 
-    const outOfStockRow = await this.db
+    let outOfStockQuery: any = this.db
       .selectFrom('products as p')
       .select(sql<number>`count(*)`.as('count'))
       .where('p.is_active', '=', true)
-      .where('p.stock_qty', '<=', 0)
-      .where(this.tenantPredicate(auth, 'p'))
-      .executeTakeFirst();
+      .where(this.tenantPredicate(auth, 'p'));
 
-    const lowStockRow = await this.db
+    if (query.locationId) {
+      outOfStockQuery = outOfStockQuery.leftJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+        .where('pls.location_id', '=', query.locationId)
+        .where((eb: any) => eb.or([eb('pls.qty', '<=', 0), eb('pls.qty', 'is', null)]));
+    } else {
+      outOfStockQuery = outOfStockQuery.where('p.stock_qty', '<=', 0);
+    }
+    const outOfStockRow = await outOfStockQuery.executeTakeFirst();
+
+    let lowStockQuery: any = this.db
       .selectFrom('products as p')
       .select(sql<number>`count(*)`.as('count'))
       .where('p.is_active', '=', true)
-      .where('p.stock_qty', '>', 0)
-      .whereRef('p.stock_qty', '<=', 'p.min_stock_qty')
-      .where(this.tenantPredicate(auth, 'p'))
-      .executeTakeFirst();
+      .where(this.tenantPredicate(auth, 'p'));
+
+    if (query.locationId) {
+      lowStockQuery = lowStockQuery.innerJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+        .where('pls.location_id', '=', query.locationId)
+        .where('pls.qty', '>', 0)
+        .whereRef('pls.qty', '<=', 'p.min_stock_qty');
+    } else {
+      lowStockQuery = lowStockQuery.where('p.stock_qty', '>', 0).whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
+    }
+    const lowStockRow = await lowStockQuery.executeTakeFirst();
 
     const totalActiveRow = await this.db
       .selectFrom('products as p')

@@ -11,7 +11,9 @@ export function InventoryReportSection({
   inventoryQuery,
   accountingInventoryValue,
   exportLowStock,
-  printLowStockList,
+  printInventoryValueReport,
+  printInventoryMovementsReport,
+  locationId,
   inventorySearch,
   onInventorySearchChange,
   inventoryFilter,
@@ -19,7 +21,7 @@ export function InventoryReportSection({
   onInventoryPageChange,
   onInventoryPageSizeChange,
   onInventoryFiltersReset
-}: Pick<ReportsSectionContentProps, 'inventoryQuery' | 'accountingInventoryValue' | 'exportLowStock' | 'printLowStockList' | 'inventorySearch' | 'onInventorySearchChange' | 'inventoryFilter' | 'onInventoryFilterChange' | 'onInventoryPageChange' | 'onInventoryPageSizeChange' | 'onInventoryFiltersReset'>) {
+}: Pick<ReportsSectionContentProps, 'inventoryQuery' | 'accountingInventoryValue' | 'exportLowStock' | 'printInventoryValueReport' | 'printInventoryMovementsReport' | 'locationId' | 'inventorySearch' | 'onInventorySearchChange' | 'inventoryFilter' | 'onInventoryFilterChange' | 'onInventoryPageChange' | 'onInventoryPageSizeChange' | 'onInventoryFiltersReset'>) {
   const rows = inventoryQuery.data?.rows || [];
   const pagination = inventoryQuery.data?.pagination;
   const summary = inventoryQuery.data?.summary;
@@ -38,7 +40,7 @@ export function InventoryReportSection({
     <QueryCard
       title="أصناف تحتاج متابعة"
       description="تبويب مستقل لمراجعة المخزون الحرج مع بحث وفلاتر وترقيم صفحات من الخادم، مع إبراز قيمة المخزون الحالية."
-      actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportLowStock()} disabled={!summary?.totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void printLowStockList()} disabled={!summary?.totalItems}>طباعة</Button><span className="nav-pill">المخزون</span></div>}
+      actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportLowStock()} disabled={!summary?.totalItems}>تصدير Excel</Button><Button variant="secondary" onClick={() => void printInventoryValueReport()} disabled={!summary?.totalItems}>طباعة الجرد والقيمة</Button><Button variant="secondary" onClick={() => void printInventoryMovementsReport(locationId, false)}>طباعة / PDF (ملخص)</Button><Button variant="secondary" onClick={() => void printInventoryMovementsReport(locationId, true)}>طباعة / PDF (تفصيلي)</Button><span className="nav-pill">المخزون</span></div>}
       className="reports-focus-card"
       isLoading={inventoryQuery.isLoading}
       isError={inventoryQuery.isError}
@@ -66,15 +68,15 @@ export function InventoryReportSection({
         </div>
       ) : null}
       {locationHighlights.length ? (
-        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-3 space-y-2" aria-label="المخازن الأكثر احتياجًا للمتابعة">
-          <div className="text-sm font-semibold">أكثر المخازن احتياجًا للمتابعة</div>
-          <div className="grid gap-2 md:grid-cols-3">
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginTop: '16px' }} aria-label="المخازن الأكثر احتياجًا للمتابعة">
+          <div style={{ fontWeight: 'bold', marginBottom: '12px', color: '#1e293b' }}>أكثر المخازن احتياجًا للمتابعة</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
             {locationHighlights.slice(0, 3).map((location) => (
-              <div key={location.locationId} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
-                <div className="font-medium">{location.locationName}</div>
-                <div className="muted small">{location.branchName || 'بدون فرع محدد'}</div>
-                <div className="mt-1">أصناف تحتاج متابعة: <strong>{location.attentionItems}</strong></div>
-                <div className="muted small">إجمالي الكمية: {location.totalQty} · أصناف مرصودة: {location.trackedProducts}</div>
+              <div key={location.locationId} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '1.05em', color: '#0f172a' }}>{location.locationName}</div>
+                <div className="muted small" style={{ marginBottom: '8px' }}>{location.branchName || 'بدون فرع محدد'}</div>
+                <div style={{ fontSize: '0.9em', color: '#334155' }}>أصناف تحتاج متابعة: <strong>{location.attentionItems}</strong></div>
+                <div className="muted small" style={{ marginTop: '6px', fontSize: '0.8em' }}>إجمالي الكمية: {location.totalQty} · أصناف مرصودة: {location.trackedProducts}</div>
               </div>
             ))}
           </div>

@@ -42,8 +42,10 @@ export type ReportsSectionContentProps = {
   printTopProducts: () => void | Promise<void>;
   exportLowStock: () => void | Promise<void>;
   exportCustomerBalances: () => void | Promise<void>;
-  printLowStockList: () => void | Promise<void>;
   printCustomerBalances: () => void | Promise<void>;
+  printInventoryValueReport: () => void | Promise<void>;
+  printInventoryMovementsReport: (locationId: string, detailed?: boolean) => void | Promise<void>;
+  locationId: string;
   formatPercent: (value: number) => string;
   inventorySearch: string;
   onInventorySearchChange: (value: string) => void;

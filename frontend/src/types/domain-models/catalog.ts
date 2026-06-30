@@ -50,6 +50,7 @@ export interface Product {
   statusLabel?: string;
   bomId?: number;
   hasBom?: boolean;
+  binLocation?: string;
 }
 
 export interface Category {

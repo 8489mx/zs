@@ -1,5 +1,5 @@
-import type { Product, StockCountSession, StockTransfer } from '@/types/domain';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import type { Product, StockCountSession, StockTransfer, StockMovementRecord } from '@/types/domain';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 
 export function findProduct(products: Product[], productId: string) {
@@ -62,34 +62,18 @@ export function printStockCountSheet(rows: StockCountSheetRow[], options: { titl
   `);
 }
 
-export function exportStockCountSheetCsv(rows: StockCountSheetRow[], options: { includeExpectedQty?: boolean }) {
+export function exportStockCountSheetExcel(rows: StockCountSheetRow[], options: { includeExpectedQty?: boolean }) {
   if (!rows.length) return;
   const includeExpected = Boolean(options.includeExpectedQty);
   const headers = includeExpected
-    ? ['code', 'barcode', 'name', 'category', 'expectedQty', 'countedQty', 'note']
-    : ['code', 'barcode', 'name', 'category', 'countedQty', 'note'];
-  downloadCsvFile('stock-count-sheet.csv', headers, rows.map((row) => includeExpected
+    ? ['كود', 'باركود', 'الصنف', 'القسم', 'كمية النظام', 'الكمية الفعلية', 'ملاحظات']
+    : ['كود', 'باركود', 'الصنف', 'القسم', 'الكمية الفعلية', 'ملاحظات'];
+  downloadExcelFile('stock-count-sheet.xlsx', headers, rows.map((row) => includeExpected
     ? [row.code || '', row.barcode || '', row.name, row.category || '', row.expectedQty ?? '', row.countedQty ?? '', row.note || '']
     : [row.code || '', row.barcode || '', row.name, row.category || '', row.countedQty ?? '', row.note || '']));
 }
 
-export function printTransferDocument(transfer: StockTransfer) {
-  printHtmlDocument(`تحويل مخزون ${transfer.docNo || transfer.id}`, `
-    <div class="meta">من ${escapeHtml(transfer.fromLocationName || '—')} إلى ${escapeHtml(transfer.toLocationName || '—')} · الحالة: ${escapeHtml(transfer.status || '—')} · التاريخ: ${escapeHtml(formatDate(transfer.date || ''))}</div>
-    <table>
-      <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
-      <tbody>${(transfer.items || []).map((item) => `<tr><td>${escapeHtml(item.productName || '—')}</td><td>${escapeHtml(String(item.qty || 0))}</td></tr>`).join('')}</tbody>
-    </table>
-    <div class="totals">
-      <div>عدد البنود: ${(transfer.items || []).length}</div>
-      <div>إجمالي الكميات: ${(transfer.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0)}</div>
-      <div>أنشأه: ${escapeHtml(transfer.createdBy || '—')}</div>
-      <div>ملاحظات: ${escapeHtml(transfer.note || '—')}</div>
-      <div>استلم بواسطة: ${escapeHtml(transfer.receivedBy || '—')}</div>
-      <div>أُلغي بواسطة: ${escapeHtml(transfer.cancelledBy || '—')}</div>
-    </div>
-  `);
-}
+// printTransferDocument is now in @/lib/inventory-printing
 
 export function printStockCountDocument(session: StockCountSession) {
   const items = session.items || [];
@@ -110,12 +94,12 @@ export function printStockCountDocument(session: StockCountSession) {
   `);
 }
 
-export function exportInventoryCsv(rows: Array<{ name: string; stock: number; minStock?: number; status?: string; costPrice?: number; retailPrice?: number; wholesalePrice?: number }>) {
-  downloadCsvFile('inventory-register.csv', ['name', 'stock', 'minStock', 'status', 'costPrice', 'retailPrice', 'wholesalePrice'], rows.map((row) => [row.name, row.stock, row.minStock, row.status, row.costPrice, row.retailPrice, row.wholesalePrice]));
+export function exportInventoryExcel(rows: Array<{ name: string; stock: number; minStock?: number; status?: string; costPrice?: number; retailPrice?: number; wholesalePrice?: number }>) {
+  downloadExcelFile('inventory-register.xlsx', ['الصنف', 'الرصيد', 'الحد الأدنى', 'الحالة', 'سعر التكلفة', 'سعر القطاعي', 'سعر الجملة'], rows.map((row) => [row.name, row.stock, row.minStock, row.status, row.costPrice, row.retailPrice, row.wholesalePrice]));
 }
 
-export function exportTransfersCsv(transfers: StockTransfer[]) {
-  downloadCsvFile('stock-transfers.csv', ['docNo', 'fromLocation', 'toLocation', 'status', 'date', 'items'], transfers.map((transfer) => [
+export function exportTransfersExcel(transfers: StockTransfer[]) {
+  downloadExcelFile('stock-transfers.xlsx', ['رقم المستند', 'من مخزن', 'إلى مخزن', 'الحالة', 'التاريخ', 'الأصناف'], transfers.map((transfer) => [
     transfer.docNo,
     transfer.fromLocationName || '',
     transfer.toLocationName || '',
@@ -147,8 +131,8 @@ export function printDamagedRecords(damagedRecords: Array<{ productName?: string
   `);
 }
 
-export function exportDamagedCsv(damagedRecords: Array<{ productName?: string; qty?: number; reason?: string; locationName?: string; createdAt?: string; date?: string }>) {
-  downloadCsvFile('damaged-stock.csv', ['product', 'qty', 'reason', 'location', 'date'], damagedRecords.map((row) => [
+export function exportDamagedExcel(damagedRecords: Array<{ productName?: string; qty?: number; reason?: string; locationName?: string; createdAt?: string; date?: string }>) {
+  downloadExcelFile('damaged-stock.xlsx', ['الصنف', 'الكمية', 'السبب', 'المخزن', 'التاريخ'], damagedRecords.map((row) => [
     row.productName || '',
     row.qty || 0,
     row.reason || '',
@@ -166,4 +150,18 @@ export function printCountSessions(stockCountSessions: StockCountSession[]) {
       <tbody>${stockCountSessions.map((session) => `<tr><td>${escapeHtml(session.docNo || '—')}</td><td>${escapeHtml(session.locationName || '—')}</td><td>${escapeHtml(session.status || '—')}</td><td>${escapeHtml(formatDate(session.createdAt || ''))}</td><td>${escapeHtml(String((session.items || []).length))}</td><td>${escapeHtml(session.note || '—')}</td></tr>`).join('')}</tbody>
     </table>
   `);
+}
+
+export function exportMovementsExcel(movements: StockMovementRecord[]) {
+  downloadExcelFile('stock-movements.xlsx', ['الصنف', 'المخزن', 'الكمية', 'رصيد قبل', 'رصيد بعد', 'النوع', 'السبب', 'رقم المرجع', 'التاريخ'], movements.map((movement) => [
+    movement.productName || '',
+    movement.locationName || '',
+    movement.qty || 0,
+    movement.beforeQty || 0,
+    movement.afterQty || 0,
+    movement.type || '',
+    movement.reason || '',
+    movement.referenceId ? `${movement.referenceType || ''}-${movement.referenceId}` : '',
+    formatDate(movement.date || '')
+  ]));
 }

@@ -31,6 +31,8 @@ export interface ReportInventoryRow {
   stock: number;
   stockQty?: number;
   minStock: number;
+  costPrice?: number;
+  retailPrice?: number;
   status?: string;
   topLocationName?: string;
   topLocationQty?: number;
@@ -58,6 +60,8 @@ interface ReportInventoryPageResponse {
   items?: Array<ReportInventoryRow & {
     stockQty?: number;
     stock?: number;
+    costPrice?: number;
+    retailPrice?: number;
     topLocationName?: string;
     topLocationQty?: number;
     locationsLabel?: string;
@@ -201,6 +205,8 @@ export const reportsApi = {
           stock: Number(item.stock ?? item.stockQty ?? 0),
           stockQty: Number(item.stockQty ?? item.stock ?? 0),
           minStock: Number(item.minStock ?? 0),
+          costPrice: Number(item.costPrice ?? 0),
+          retailPrice: Number(item.retailPrice ?? 0),
           topLocationQty: Number(item.topLocationQty ?? 0),
           assignedQty: Number(item.assignedQty ?? 0),
           unassignedQty: Number(item.unassignedQty ?? 0),

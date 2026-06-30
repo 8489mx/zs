@@ -10,9 +10,9 @@ import { resolvePgSslConfig } from './ssl.util';
 export type MigrationCommand = 'up' | 'down' | 'list';
 
 function getMigrationsPath(): string {
-  const distPath = join(process.cwd(), 'dist', 'database', 'migrations');
-  if (existsSync(distPath)) return distPath;
-  return join(process.cwd(), 'src', 'database', 'migrations');
+  const builtPath = join(__dirname, 'migrations');
+  if (existsSync(builtPath)) return builtPath;
+  return join(__dirname, '..', '..', 'src', 'database', 'migrations');
 }
 
 type ResolvedDbConfig = {

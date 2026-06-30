@@ -77,6 +77,7 @@ export interface Purchase {
   locationName: string;
   date: string;
   items: PurchaseItem[];
+  attachments?: any[];
 }
 
 export interface ReturnRecord {

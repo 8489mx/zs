@@ -1,5 +1,5 @@
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
-import { downloadCsvFile } from '@/lib/browser';
+import { downloadExcelFile } from '@/lib/browser';
 import { computeDraftTotal } from '@/features/pos/lib/pos-workspace.helpers';
 import { clearDraftSnapshot } from '@/features/pos/lib/pos.persistence';
 import type { PosItem } from '@/features/pos/types/pos.types';
@@ -83,7 +83,7 @@ export function resetPosDraftState(params: PosWorkspaceActionParams) {
 
 export function exportHeldDraftRows(params: PosWorkspaceActionParams) {
   if (!params.heldDrafts.length) return;
-  downloadCsvFile(
+  downloadExcelFile(
     'pos-held-drafts.csv',
     ['id', 'savedAt', 'itemsCount', 'total', 'customerId', 'branchId', 'locationId', 'priceType'],
     params.heldDrafts.map((draft) => [

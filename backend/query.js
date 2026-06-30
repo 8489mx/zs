@@ -1,5 +1,1 @@
-const { Pool } = require('pg');
-const pool = new Pool({ connectionString: 'postgres://postgres:postgres@127.0.0.1:5433/zs_dev' });
-pool.query(`SELECT id, name, stock_qty FROM products WHERE name LIKE '%جمبري%'`)
-  .then(res => { console.table(res.rows); pool.end(); })
-  .catch(console.error);
+const { Client } = require('pg'); const c = new Client('postgres://postgres:postgres@localhost:5432/zsystems'); c.connect().then(() => c.query('SELECT column_name, is_nullable FROM information_schema.columns WHERE table_name = ''stock_transfers''')).then(r => { console.table(r.rows); c.end(); })

@@ -41,7 +41,7 @@ export function BalancesReportSection({
       <QueryCard
         title="العملاء والموردون الأعلى رصيدًا"
         description="تبويب مخصص للذمم مع بحث وترقيم صفحات من الخادم، ويعرض مستحقات العملاء والموردين في قراءة واحدة."
-        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportCustomerBalances()} disabled={!summary?.totalItems}>تصدير CSV</Button><Button variant="secondary" onClick={() => void printCustomerBalances()} disabled={!summary?.totalItems}>طباعة</Button><span className="nav-pill">الذمم</span></div>}
+        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportCustomerBalances()} disabled={!summary?.totalItems}>تصدير Excel</Button><Button variant="secondary" onClick={() => void printCustomerBalances()} disabled={!summary?.totalItems}>طباعة</Button><span className="nav-pill">الذمم</span></div>}
         className="reports-focus-card"
         isLoading={balancesQuery.isLoading}
         isError={balancesQuery.isError}

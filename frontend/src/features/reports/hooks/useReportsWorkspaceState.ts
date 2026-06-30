@@ -7,6 +7,7 @@ export function useReportsWorkspaceState() {
   const [from, setFrom] = useState(defaultRange.from);
   const [to, setTo] = useState(defaultRange.to);
   const [submittedRange, setSubmittedRange] = useState(defaultRange);
+  const [locationId, setLocationId] = useState<'all' | string>('all');
   const [inventoryPage, setInventoryPage] = useState(1);
   const [inventoryPageSize, setInventoryPageSize] = useState(10);
   const [inventorySearch, setInventorySearch] = useState('');
@@ -38,6 +39,7 @@ export function useReportsWorkspaceState() {
     from,
     to,
     submittedRange,
+    locationId,
     inventoryPage,
     inventoryPageSize,
     inventorySearch,
@@ -55,6 +57,7 @@ export function useReportsWorkspaceState() {
     setFrom,
     setTo,
     setSubmittedRange,
+    setLocationId,
     setInventoryPage,
     setInventoryPageSize,
     setInventorySearch,

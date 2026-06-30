@@ -25,6 +25,7 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     minStock: Number(product.minStock || 0),
     categoryId: product.categoryId || '',
     supplierId: product.supplierId || '',
+    binLocation: product.binLocation || '',
     notes: product.notes || ''
   };
 }
@@ -70,6 +71,7 @@ export function buildUpdatePayload(
     minStock: Number(values.minStock || 0),
     ...(categoryId ? { categoryId } : {}),
     ...(supplierId ? { supplierId } : {}),
+    binLocation: values.binLocation || '',
     notes: values.notes || '',
     units: normalizedUnits,
     offers: (offers ?? existingProduct.offers ?? []).map((offer) => ({

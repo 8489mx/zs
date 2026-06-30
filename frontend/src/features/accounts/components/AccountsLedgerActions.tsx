@@ -25,7 +25,7 @@ export function AccountsLedgerActions({ title, filename, partyName, entries, can
         }}
         disabled={disabled || !canPrint}
       >
-        تصدير CSV
+        تصدير Excel
       </Button>
       <Button
         variant="secondary"

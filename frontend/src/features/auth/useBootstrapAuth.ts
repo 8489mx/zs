@@ -25,9 +25,16 @@ export function useBootstrapAuth() {
       setAppGate(gate, status);
     };
 
-    Promise.allSettled([activationApi.status(), authApi.me()])
-      .then(async ([statusResult, meResult]) => {
+    const checkAuth = async (retries = 10) => {
+      try {
+        const [statusResult, meResult] = await Promise.allSettled([activationApi.status(), authApi.me()]);
+
         if (statusResult.status === 'rejected') {
+          if (retries > 0) {
+            console.log(`Backend not ready yet, retrying... (${retries} attempts left)`);
+            setTimeout(() => void checkAuth(retries - 1), 2000);
+            return;
+          }
           console.error('activation_status_failed', statusResult.reason);
           await resetTo('login');
           return;
@@ -70,10 +77,12 @@ export function useBootstrapAuth() {
           console.error('bootstrap_auth_failed', error);
         }
         await resetTo('login', status);
-      })
-      .catch(async (error) => {
+      } catch (error) {
         console.error('bootstrap_auth_failed', error);
         await resetTo('login');
-      });
+      }
+    };
+
+    void checkAuth();
   }, [clearSession, queryClient, setAppGate, setSession]);
 }

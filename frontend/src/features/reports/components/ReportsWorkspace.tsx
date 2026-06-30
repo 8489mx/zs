@@ -5,9 +5,13 @@ import { ReportsSectionContent } from '@/features/reports/components/ReportsSect
 import { ReportsRangeCard } from '@/features/reports/components/ReportsRangeCard';
 import { useReportsWorkspaceController } from '@/features/reports/hooks/useReportsWorkspaceController';
 import type { ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/app/query-keys';
+import { referenceDataApi } from '@/services/reference-data.api';
 
 export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSectionKey }) {
   const controller = useReportsWorkspaceController(currentSection);
+  const locationsQuery = useQuery({ queryKey: queryKeys.locations, queryFn: referenceDataApi.locations });
 
   return (
     <div className="page-stack page-shell reports-workspace reports-animated-shell reports-workspace--compact" dir="rtl">
@@ -38,6 +42,9 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         onPreset30={() => controller.applyPreset(30)}
         onReset={controller.resetRange}
         healthRows={controller.reportHealthRows}
+        locationId={controller.locationId}
+        onLocationChange={controller.setLocationId}
+        locations={locationsQuery.data}
       />
 
       <ReportsSectionContent
@@ -62,7 +69,9 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         printTopProducts={controller.printTopProducts}
         exportLowStock={controller.exportLowStock}
         exportCustomerBalances={controller.exportCustomerBalances}
-        printLowStockList={controller.printLowStockList}
+        printInventoryValueReport={controller.printInventoryValueReport}
+        printInventoryMovementsReport={controller.printInventoryMovementsReport}
+        locationId={controller.locationId}
         printCustomerBalances={controller.printCustomerBalances}
         formatPercent={controller.formatPercent}
         inventorySearch={controller.inventorySearch}

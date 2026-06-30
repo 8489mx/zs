@@ -44,7 +44,7 @@ export function ProductsWorkspace() {
                 {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
               </Button>
               <Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button>
-              <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير CSV</Button>
+              <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير Excel</Button>
               <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
             </div>
           )}

@@ -1,4 +1,4 @@
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { returnsApi } from '@/features/returns/api/returns.api';
 import type { ReturnRecord } from '@/types/domain';
@@ -68,7 +68,7 @@ export function printReturnRecord(row: ReturnRecord) {
 export async function exportReturnsCsv(params: { search: string; filter: 'all' | 'sales' | 'purchase' | 'today' }) {
   const payload = await returnsApi.listAll(params);
   const exportRows = payload.returns || [];
-  downloadCsvFile('returns-register.csv', ['docNo', 'type', 'productName', 'qty', 'total', 'note', 'createdAt'], exportRows.map((row) => [
+  downloadExcelFile('returns-register.xlsx', ['docNo', 'type', 'productName', 'qty', 'total', 'note', 'createdAt'], exportRows.map((row) => [
     row.docNo || '',
     getReturnTypeValue(row),
     row.productName || '',

@@ -1000,6 +1000,7 @@ export class AccountingService {
     const search = String(filters.search || '').trim();
     const lowStockOnly = String(filters.low_stock_only || '').trim().toLowerCase() === 'true';
     const zeroStockOnly = String(filters.zero_stock_only || '').trim().toLowerCase() === 'true';
+    const locationId = Number(filters.location_id || 0) > 0 ? Number(filters.location_id) : null;
 
     let query = this.db
       .selectFrom('products as p')
@@ -1009,7 +1010,7 @@ export class AccountingService {
         'p.id',
         'p.name',
         'p.barcode',
-        'p.stock_qty',
+        locationId ? sql<number>`COALESCE(pls.qty, 0)`.as('stock_qty') : 'p.stock_qty',
         'p.min_stock_qty',
         'p.cost_price',
         'p.retail_price',
@@ -1020,6 +1021,12 @@ export class AccountingService {
       ])
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(auth, 'p'));
+
+    if (locationId) {
+      query = query.leftJoin('product_location_stock as pls', (join) =>
+        join.onRef('pls.product_id', '=', 'p.id').on('pls.location_id', '=', locationId)
+      );
+    }
 
     if (categoryId) {
       query = query.where('p.category_id', '=', categoryId);

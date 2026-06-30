@@ -11,7 +11,7 @@ function buildCsvContent(headers: string[], rows: Array<Array<string | number | 
   return `\uFEFF${csv}`;
 }
 
-export function downloadCsvFile(filename: string, headers: string[], rows: Array<Array<string | number | null | undefined>>) {
+export function downloadExcelFile(filename: string, headers: string[], rows: Array<Array<string | number | null | undefined>>) {
   const blob = new Blob([buildCsvContent(headers, rows)], { type: 'text/csv;charset=utf-8' });
   triggerDownload(blob, filename);
 }

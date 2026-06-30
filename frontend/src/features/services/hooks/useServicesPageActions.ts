@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { servicesApi } from '@/features/services/api/services.api';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { ServiceRecord } from '@/types/domain';
 
@@ -36,7 +36,7 @@ export function useServicesPageActions(params: { search: string; filter: 'all' |
   const exportServices = useCallback(async () => {
     const payload = await servicesApi.listAll({ search, filter });
     const exportRows = payload.services || [];
-    downloadCsvFile('services-register.csv', ['name', 'amount', 'paymentChannel', 'notes', 'createdBy', 'serviceDate'], exportRows.map((row) => [
+    downloadExcelFile('services-register.xlsx', ['name', 'amount', 'paymentChannel', 'notes', 'createdBy', 'serviceDate'], exportRows.map((row) => [
       row.name,
       row.amount,
       formatServicePaymentChannel(row.paymentChannel),

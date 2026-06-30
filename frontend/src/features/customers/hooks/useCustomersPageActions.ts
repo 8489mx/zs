@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { customersApi } from '@/features/customers/api/customers.api';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 
 interface Params {
@@ -35,7 +35,7 @@ export function useCustomersPageActions({ search, filterMode, summary, onBulkDel
   const exportCustomersCsv = useCallback(async () => {
     const payload = await customersApi.listAll({ q: search, filter: filterMode });
     const exportRows = payload.customers || [];
-    downloadCsvFile('customers-register.csv', ['name', 'phone', 'address', 'type', 'balance', 'creditLimit'], exportRows.map((customer) => [
+    downloadExcelFile('customers-register.xlsx', ['name', 'phone', 'address', 'type', 'balance', 'creditLimit'], exportRows.map((customer) => [
       customer.name,
       customer.phone || '',
       customer.address || '',

@@ -24,11 +24,12 @@ export function useInventoryWorkspaceState() {
   const [sessionsPageSize, setSessionsPageSize] = useState(8);
   const [damagedPage, setDamagedPage] = useState(1);
   const [damagedPageSize, setDamagedPageSize] = useState(10);
-  const [transferForm, setTransferForm] = useState({ fromLocationId: '', toLocationId: '', note: '', productId: '', qty: '1' });
+  const [transferForm, setTransferForm] = useState({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1' });
   const [transferItems, setTransferItems] = useState<StockTransferItem[]>([]);
   const [countForm, setCountForm] = useState({ branchId: '', locationId: '', note: '', managerPin: '', productId: '', countedQty: '0', reason: 'inventory_count', itemNote: '' });
   const [countItems, setCountItems] = useState<StockCountItem[]>([]);
   const [postingPin, setPostingPin] = useState('');
+  const [createdTransfer, setCreatedTransfer] = useState<StockTransfer | null>(null);
   const [transferActionConfirm, setTransferActionConfirm] = useState<TransferActionConfirmState | null>(null);
   const [postSessionConfirm, setPostSessionConfirm] = useState<PostSessionConfirmState | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
@@ -70,6 +71,8 @@ export function useInventoryWorkspaceState() {
     setCountItems,
     postingPin,
     setPostingPin,
+    createdTransfer,
+    setCreatedTransfer,
     transferActionConfirm,
     setTransferActionConfirm,
     postSessionConfirm,

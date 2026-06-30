@@ -61,7 +61,7 @@ export function SalesReportSection({
               <div className="detail-item"><div className="detail-label">صافي الربح</div><div className="detail-value">{formatCurrency(netProfit)}</div></div>
             </div>
           </FormSection>
-          <FormSection title="أعلى الأصناف" description="أفضل الأصناف مبيعًا داخل النطاق الحالي مع طباعة وتصدير مباشر." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportTopProducts()} disabled={!topProducts.length}>تصدير CSV</Button><Button variant="secondary" onClick={() => void printTopProducts()} disabled={!topProducts.length}>طباعة</Button></div>}>
+          <FormSection title="أعلى الأصناف" description="أفضل الأصناف مبيعًا داخل النطاق الحالي مع طباعة وتصدير مباشر." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportTopProducts()} disabled={!topProducts.length}>تصدير Excel</Button><Button variant="secondary" onClick={() => void printTopProducts()} disabled={!topProducts.length}>طباعة</Button></div>}>
             <DataTable
               ariaLabel="أعلى الأصناف"
               columns={[

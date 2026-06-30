@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 
 interface Params {
@@ -35,7 +35,7 @@ export function useSuppliersPageActions({ search, filterMode, summary, onBulkDel
   const exportSuppliersCsv = useCallback(async () => {
     const payload = await suppliersApi.listAll({ q: search, filter: filterMode });
     const exportRows = payload.suppliers || [];
-    downloadCsvFile('suppliers-register.csv', ['name', 'phone', 'address', 'balance', 'notes'], exportRows.map((supplier) => [
+    downloadExcelFile('suppliers-register.xlsx', ['name', 'phone', 'address', 'balance', 'notes'], exportRows.map((supplier) => [
       supplier.name,
       supplier.phone || '',
       supplier.address || '',

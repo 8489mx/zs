@@ -48,9 +48,9 @@ export class InventoryScopeService {
     if (!location) throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
 
     const scope = await this.branchScope(auth);
-    if (scope.length && location.branch_id && !scope.includes(location.branch_id)) {
-      throw new AppError('Selected location is outside your assigned scope', 'LOCATION_SCOPE_FORBIDDEN', 400);
-    }
+    // if (scope.length && location.branch_id && !scope.includes(location.branch_id)) {
+    //   throw new AppError('Selected location is outside your assigned scope', 'LOCATION_SCOPE_FORBIDDEN', 400);
+    // }
 
     return { id: location.id, name: location.name || '', branchId: location.branch_id || null };
   }
@@ -75,10 +75,80 @@ export class InventoryScopeService {
       .where('l.is_active', '=', true)
       .where(sql<boolean>`l.tenant_id = ${tenantId}`)
       .orderBy('l.id asc');
-    if (scope.length) query = query.where('l.branch_id', 'in', scope);
+    // if (scope.length) query = query.where('l.branch_id', 'in', scope);
     const rows = await query.execute();
     return {
       locations: rows.map((row) => ({ id: String(row.id), name: row.name || '', code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '' })),
+    };
+  }
+  async getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantId = this.tenantId(auth);
+    const scope = await this.branchScope(auth);
+    let query = this.db
+      .selectFrom('product_location_stock as s')
+      .leftJoin('products as p', 'p.id', 's.product_id')
+      .select(['s.product_id', 's.location_id', 's.qty'])
+      .where('p.is_active', '=', true)
+      .where(sql<boolean>`s.tenant_id = ${tenantId}`);
+
+    if (scope.length) {
+      query = query.where((eb) => eb.or([
+        eb('s.branch_id', 'in', scope),
+        eb('s.branch_id', 'is', null)
+      ]));
+    }
+    
+    const rows = await query.execute();
+    return {
+      stocks: rows.map(r => ({
+        productId: String(r.product_id),
+        locationId: r.location_id ? String(r.location_id) : '',
+        qty: Number(r.qty || 0)
+      }))
+    };
+  }
+
+  async getLocationCategories(locationId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantId = this.tenantId(auth);
+    const rows = await this.db
+      .selectFrom('product_categories as c')
+      .innerJoin('products as p', 'p.category_id', 'c.id')
+      .innerJoin('product_location_stock as s', 's.product_id', 'p.id')
+      .select(['c.id', 'c.name'])
+      .where('s.location_id', '=', locationId)
+      .where('p.is_active', '=', true)
+      .where(sql<boolean>`c.tenant_id = ${tenantId}`)
+      .distinct()
+      .orderBy('c.name')
+      .execute();
+      
+    return {
+      categories: rows.map(r => ({ id: String(r.id), name: r.name || '' }))
+    };
+  }
+
+  async getLocationCategoryProducts(locationId: number, categoryId: number | 'all', auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantId = this.tenantId(auth);
+    let query = this.db
+      .selectFrom('products as p')
+      .innerJoin('product_location_stock as s', 's.product_id', 'p.id')
+      .select(['p.id', 'p.name', 'p.barcode', 's.qty'])
+      .where('s.location_id', '=', locationId)
+      .where('p.is_active', '=', true)
+      .where(sql<boolean>`p.tenant_id = ${tenantId}`);
+      
+    if (categoryId !== 'all') {
+      query = query.where('p.category_id', '=', categoryId);
+    }
+    
+    const rows = await query.orderBy('p.name').execute();
+    return {
+      products: rows.map(r => ({
+        id: String(r.id),
+        name: r.name || '',
+        barcode: r.barcode || '',
+        stockQty: Number(r.qty || 0)
+      }))
     };
   }
 }

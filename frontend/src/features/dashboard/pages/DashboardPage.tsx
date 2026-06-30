@@ -61,7 +61,7 @@ export function DashboardPage() {
           badge={<span className="nav-pill">Daily Summary</span>}
           actions={(
             <div className="actions compact-actions dashboard-header-actions">
-              <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير CSV</button>
+              <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير Excel</button>
               <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
             </div>
           )}

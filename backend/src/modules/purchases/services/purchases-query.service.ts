@@ -43,7 +43,15 @@ export class PurchasesQueryService {
       .orderBy('id asc')
       .execute() : [];
 
-    return mapPurchaseRows(purchases as unknown as Array<Record<string, unknown>>, items as unknown as Array<Record<string, unknown>>);
+    const attachments = purchaseIds.length ? await this.db
+      .selectFrom('purchase_attachments')
+      .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
+      .where('purchase_id', 'in', purchaseIds)
+      .orderBy('purchase_id asc')
+      .orderBy('id asc')
+      .execute() : [];
+
+    return mapPurchaseRows(purchases as unknown as Array<Record<string, unknown>>, items as unknown as Array<Record<string, unknown>>, attachments as unknown as Array<Record<string, unknown>>);
   }
 
   async listPurchases(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {

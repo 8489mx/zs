@@ -7,7 +7,7 @@ import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import { buildCode128Svg, collectExistingBarcodes, createGeneratedBarcode, getMissingBarcodeRows, printBarcodeSheet, productUnitsWithFallback } from '@/lib/barcode';
-import { downloadCsvFile } from '@/lib/browser';
+import { downloadExcelFile } from '@/lib/browser';
 import type { Product } from '@/types/domain';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from './product-workspace.utils';
 
@@ -66,7 +66,7 @@ export function BarcodeToolsCard({ products, product, onUpdated }: { products: P
 
   function exportMissingBarcodes() {
     if (!missingRows.length) return;
-    downloadCsvFile(
+    downloadExcelFile(
       'missing-barcodes.csv',
       ['productId', 'productName', 'productBarcode', 'missingUnits'],
       missingRows.map((row) => [row.productId, row.productName, row.productBarcode || '', row.missingUnits.join(' | ')])

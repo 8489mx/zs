@@ -5,10 +5,14 @@ import { AppRouter } from '@/app/router';
 import '@/styles/app.css';
 import '@/lib/i18n';
 
+import { ActivationGuard } from '@/shared/components/ActivationGuard';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AppProviders>
-      <AppRouter />
+      <ActivationGuard>
+        <AppRouter />
+      </ActivationGuard>
     </AppProviders>
   </React.StrictMode>
 );

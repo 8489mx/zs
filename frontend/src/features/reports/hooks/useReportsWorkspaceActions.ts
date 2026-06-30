@@ -1,4 +1,4 @@
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import { reportsApi, type ReportInventoryRow } from '@/features/reports/api/reports.api';
 import type { Customer, ReportSummary } from '@/types/domain';
@@ -27,20 +27,20 @@ export function useReportsWorkspaceActions({
 }) {
   const exportLowStock = async () => {
     const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter });
-    downloadCsvFile('low-stock-products.csv', ['name', 'stock', 'minStock', 'category', 'supplier', 'topLocation', 'locations', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.topLocationName || '', item.locationsLabel || '', item.status]));
+    downloadExcelFile('low-stock-products.xlsx', ['name', 'stock', 'minStock', 'category', 'supplier', 'topLocation', 'locations', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.topLocationName || '', item.locationsLabel || '', item.status]));
   };
 
   const exportCustomerBalances = async () => {
     const rows = await reportsApi.listAllCustomerBalances({ search: balancesSearch, filter: balancesFilter });
-    downloadCsvFile('customer-balances.csv', ['name', 'phone', 'balance', 'creditLimit'], rows.map((item) => [item.name, item.phone, item.balance, item.creditLimit]));
+    downloadExcelFile('customer-balances.xlsx', ['name', 'phone', 'balance', 'creditLimit'], rows.map((item) => [item.name, item.phone, item.balance, item.creditLimit]));
   };
 
   const exportExecutiveSummary = () => {
-    downloadCsvFile('executive-summary.csv', ['metric', 'value'], executiveRows.map(([metric, value]: [string, number]) => [metric, value]));
+    downloadExcelFile('executive-summary.xlsx', ['metric', 'value'], executiveRows.map(([metric, value]: [string, number]) => [metric, value]));
   };
 
   const exportTopProducts = () => {
-    downloadCsvFile('top-products.csv', ['product', 'qty', 'revenue'], topProducts.map((item) => [item.name, item.qty, item.revenue]));
+    downloadExcelFile('top-products.xlsx', ['product', 'qty', 'revenue'], topProducts.map((item) => [item.name, item.qty, item.revenue]));
   };
 
   const printTopProducts = () => {
@@ -73,16 +73,110 @@ export function useReportsWorkspaceActions({
     `, { subtitle: 'ملخص قيادي موحد من شاشة التقارير', pageSize: 'A4', footerHtml: `<div>نطاق التقرير: ${escapeHtml(submittedRange.from)} → ${escapeHtml(submittedRange.to)}</div>` });
   };
 
-  const printLowStockList = async () => {
+  const printInventoryValueReport = async () => {
     const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter });
     if (!rows.length) return;
-    printHtmlDocument('أصناف تحتاج متابعة', `
-      <div class="meta">عدد الأصناف المطابقة: ${rows.length}</div>
+    
+    const totalQty = rows.reduce((acc, r) => acc + (r.stock || 0), 0);
+    const totalCost = rows.reduce((acc, r) => acc + ((r.stock || 0) * (r.costPrice || 0)), 0);
+    const totalRetail = rows.reduce((acc, r) => acc + ((r.stock || 0) * (r.retailPrice || 0)), 0);
+
+    printHtmlDocument('تقرير جرد وقيمة المخزون', `
+      <div class="meta-grid">
+        <div class="meta-box"><strong>إجمالي الأصناف</strong><span>${rows.length}</span></div>
+        <div class="meta-box"><strong>إجمالي الكميات</strong><span>${integerFormatter(totalQty)}</span></div>
+        <div class="meta-box"><strong>قيمة التكلفة</strong><span>${formatCurrency(totalCost)}</span></div>
+        <div class="meta-box"><strong>القيمة التقديرية (بيع)</strong><span>${formatCurrency(totalRetail)}</span></div>
+      </div>
       <table>
-        <thead><tr><th>الصنف</th><th>المخزون</th><th>الحد الأدنى</th><th>القسم</th><th>المورد</th><th>أكبر موقع</th><th>توزيع المواقع</th></tr></thead>
-        <tbody>${rows.map((item: ReportInventoryRow) => `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(String(item.stock))}</td><td>${escapeHtml(String(item.minStock || 0))}</td><td>${escapeHtml(item.category || '—')}</td><td>${escapeHtml(item.supplier || '—')}</td><td>${escapeHtml(item.topLocationName || '—')}</td><td>${escapeHtml(item.locationsLabel || '—')}</td></tr>`).join('')}</tbody>
+        <thead><tr><th>الصنف</th><th>الكمية</th><th>التكلفة للوحدة</th><th>إجمالي التكلفة</th><th>القسم</th><th>المورد</th><th>أكبر موقع</th></tr></thead>
+        <tbody>${rows.map((item: ReportInventoryRow) => `<tr>
+          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(String(item.stock))}</td>
+          <td>${formatCurrency(item.costPrice || 0)}</td>
+          <td><strong>${formatCurrency((item.costPrice || 0) * (item.stock || 0))}</strong></td>
+          <td>${escapeHtml(item.category || '—')}</td>
+          <td>${escapeHtml(item.supplier || '—')}</td>
+          <td>${escapeHtml(item.topLocationName || '—')}</td>
+        </tr>`).join('')}</tbody>
       </table>
-    `, { subtitle: 'قائمة متابعة المخزون منخفض الكمية', pageSize: 'A4' });
+    `, { subtitle: 'تقرير تفصيلي لكميات وقيمة البضاعة في المخازن', pageSize: 'A4' });
+  };
+
+  const printInventoryMovementsReport = async (locationId: string, detailed: boolean = false) => {
+    const { inventoryApi } = await import('@/features/inventory/api/inventory.api');
+    const allTransfers = await inventoryApi.listAllTransfers(locationId !== 'all' ? { locationId } : {});
+    
+    const transfers = allTransfers.filter(t => {
+      if (!t.date) return false;
+      const tDate = new Date(t.date).toISOString().split('T')[0];
+      return tDate >= submittedRange.from && tDate <= submittedRange.to;
+    });
+
+    if (!transfers.length) {
+      alert('لا توجد حركات في هذه الفترة المحددة.');
+      return;
+    }
+
+    let locationName = 'كل المخازن والفروع';
+    if (locationId !== 'all') {
+      const match = transfers.find(t => String(t.fromLocationId) === locationId || String(t.toLocationId) === locationId || String(t.fromBranchId) === locationId || String(t.toBranchId) === locationId);
+      if (match) {
+        locationName = [String(match.fromLocationId), String(match.fromBranchId)].includes(locationId) 
+          ? (match.fromLocationName || match.fromBranchName || 'مخزن') 
+          : (match.toLocationName || match.toBranchName || 'مخزن');
+      }
+    }
+
+    const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' };
+    const dateRangeText = `من ${new Date(submittedRange.from).toLocaleDateString('ar-EG', dateOptions)} الساعة 12:00 ص إلى ${new Date(submittedRange.to).toLocaleDateString('ar-EG', dateOptions)} الساعة 11:59 م`;
+
+    printHtmlDocument(detailed ? 'تقرير حركات وعمليات المخزن (تفصيلي)' : 'تقرير حركات وعمليات المخزن (ملخص)', `
+      <div class="meta-grid">
+        <div class="meta-box"><strong>إجمالي الحركات</strong><span>${transfers.length}</span></div>
+        <div class="meta-box"><strong>الكمية المحولة</strong><span>${integerFormatter(transfers.reduce((sum, t) => sum + (t.items?.reduce((a, i) => a + (i.qty || 0), 0) || 0), 0))}</span></div>
+      </div>
+      <table>
+        <thead><tr><th>رقم المستند</th><th>من</th><th>إلى</th><th>الحالة</th><th>التاريخ</th><th>المُسلّم</th><th>المستلم / السائق</th><th>الكمية الإجمالية</th></tr></thead>
+        <tbody>${transfers.map((t) => {
+          const fromLocation = escapeHtml(t.fromLocationName || t.fromBranchName || '—');
+          const toLocation = escapeHtml(t.toLocationName || t.toBranchName || '—');
+          const dispatcher = escapeHtml(t.createdBy || 'النظام');
+          const receiver = escapeHtml(t.recipientName || '—');
+          const totalQty = integerFormatter(t.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0);
+          
+          let rowHtml = `<tr>
+            <td><strong>${escapeHtml(t.docNo)}</strong></td>
+            <td>${fromLocation}</td>
+            <td>${toLocation}</td>
+            <td>${t.status === 'received' ? 'مستلم' : t.status === 'sent' ? 'مرسل' : 'ملغي'}</td>
+            <td>${new Date(t.date).toLocaleString('ar-EG')}</td>
+            <td>${dispatcher}</td>
+            <td>${receiver}</td>
+            <td><strong>${totalQty}</strong></td>
+          </tr>`;
+
+          if (detailed && t.items && t.items.length > 0) {
+             const itemsDetails = t.items.map(item => `
+               <div style="display: inline-block; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 0.85em; border: 1px solid #e2e8f0;">
+                 ${escapeHtml(item.productName)} <strong style="color: #0284c7; padding-right: 4px;">(${item.qty})</strong>
+               </div>
+             `).join('');
+             rowHtml += `<tr><td colspan="8" style="padding: 8px 16px; border-bottom: 2px solid #cbd5e1; background: #f8fafc;">
+               <div style="font-weight: bold; margin-bottom: 4px; font-size: 0.85em; color: #475569;">تفاصيل الأصناف:</div>
+               ${itemsDetails}
+             </td></tr>`;
+          }
+          return rowHtml;
+        }).join('')}</tbody>
+      </table>
+    `, { 
+      subtitle: detailed ? 'تقرير تفصيلي لعمليات الصرف والاستلام مضافاً إليه بنود التحويل' : 'تقرير ملخص لعمليات الصرف والاستلام بين المخازن', 
+      headerDetailsHtml: `<strong>الموقع:</strong> ${escapeHtml(locationName)} &nbsp; | &nbsp; <strong>${escapeHtml(dateRangeText)}</strong>`,
+      pageSize: 'A4', 
+      layout: 'centered',
+      footerHtml: `<div>${escapeHtml(dateRangeText)} | ${escapeHtml(locationName)}</div>` 
+    });
   };
 
   const printCustomerBalances = async () => {
@@ -114,8 +208,9 @@ export function useReportsWorkspaceActions({
     exportTopProducts,
     printTopProducts,
     exportLowStock,
-    printLowStockList,
     exportCustomerBalances,
     printCustomerBalances,
+    printInventoryValueReport,
+    printInventoryMovementsReport,
   };
 }

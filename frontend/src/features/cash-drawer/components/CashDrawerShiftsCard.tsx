@@ -109,7 +109,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
       actions={canViewSensitiveTotals ? (
         <div className="actions compact-actions">
           <Button variant="secondary" onClick={props.onCopySummary} disabled={!props.totalItems}>نسخ الملخص</Button>
-          <Button variant="secondary" onClick={props.onExportRows} disabled={!props.totalItems}>تصدير CSV</Button>
+          <Button variant="secondary" onClick={props.onExportRows} disabled={!props.totalItems}>تصدير Excel</Button>
           <Button variant="secondary" onClick={props.onPrintRows} disabled={!props.totalItems}>طباعة النتائج</Button>
         </div>
       ) : undefined}

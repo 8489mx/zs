@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { parseCsvRows } from '@/lib/browser';
+import { parseImportFile } from '@/lib/browser';
 
 export function normalizeHeader(value: string) {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -115,7 +115,7 @@ export function ImportWorkbench({
       return;
     }
     try {
-      const parsedRows = parseCsvRows(await file.text());
+      const parsedRows = await parseImportFile(file);
       if (!parsedRows.length) throw new Error('الملف لا يحتوي على صفوف قابلة للاستيراد.');
       const discoveredHeaders = Array.from(new Set(parsedRows.flatMap((row) => Object.keys(row))));
       setFileName(file.name);
@@ -125,13 +125,13 @@ export function ImportWorkbench({
       setFileName(file.name);
       setRows([]);
       setHeaders([]);
-      setStatus({ kind: 'error', text: error instanceof Error ? error.message : 'تعذر قراءة ملف CSV.' });
+      setStatus({ kind: 'error', text: error instanceof Error ? error.message : 'تعذر قراءة الملف.' });
     }
   }
 
   async function handleImport() {
     try {
-      if (!rows.length) throw new Error('اختر ملف CSV أولًا.');
+      if (!rows.length) throw new Error('اختر ملفًا أولًا.');
       if (missingRequiredFields.length) throw new Error(`العمود المطلوب غير موجود: ${missingRequiredFields.map((field) => field.label).join('، ')}`);
       const normalizedRows = rows.map((row) => {
         const nextRow: CsvRow = { ...row };
@@ -158,10 +158,10 @@ export function ImportWorkbench({
 
       <div className="inline-create-grid">
         <div className="field">
-          <span>ملف CSV</span>
+          <span>ملف (Excel/CSV)</span>
           <input
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             onChange={async (event) => {
               const input = event.currentTarget;
               await handleFileSelect(input.files?.[0]);
@@ -200,7 +200,7 @@ export function ImportWorkbench({
             </tbody>
           </table>
         </div>
-      ) : <EmptyState title="لا توجد معاينة للملف بعد" hint="اختر ملف CSV وسيظهر أول 5 صفوف هنا قبل تنفيذ الاستيراد." />}
+      ) : <EmptyState title="لا توجد معاينة للملف بعد" hint="اختر ملفًا وسيظهر أول 5 صفوف هنا قبل تنفيذ الاستيراد." />}
 
       <div className="actions compact-actions">
         <Button type="button" variant="secondary" onClick={onDownloadTemplate}>تحميل القالب</Button>

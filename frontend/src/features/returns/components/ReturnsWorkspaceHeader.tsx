@@ -32,7 +32,7 @@ export function ReturnsWorkspaceHeader({
           <div className="actions compact-actions">
             <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
             <Button variant="secondary" onClick={() => void onCopySummary()} disabled={!totalItems}>نسخ الملخص</Button>
-            <Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>تصدير CSV</Button>
+            <Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>تصدير Excel</Button>
             <Button variant="secondary" onClick={() => void onPrint()} disabled={!totalItems}>طباعة السجل</Button>
           </div>
         )}

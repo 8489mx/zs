@@ -1,4 +1,4 @@
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { CustomerLedgerEntry, SupplierLedgerEntry } from '@/types/domain';
 
@@ -6,7 +6,7 @@ type Entry = CustomerLedgerEntry | SupplierLedgerEntry;
 
 export function exportLedgerCsv(filename: string, entries: Entry[]) {
   if (!entries.length) return;
-  downloadCsvFile(
+  downloadExcelFile(
     filename,
     ['entryType', 'note', 'date', 'debit', 'credit', 'balanceAfter'],
     entries.map((entry) => [

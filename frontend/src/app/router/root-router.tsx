@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation, useNavigate } from 'react-router-dom';
+import { createHashRouter, Navigate, Outlet, RouterProvider, useLocation, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { createLazyRoute } from '@/app/router/lazy-route';
 import { AppShell } from '@/shared/layout/app-shell';
@@ -102,7 +102,7 @@ function LoginRoute() {
   return createLazyRoute(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 }
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   { path: '/activate', element: <AppGateGuard expected="activation"><ActivationPage /></AppGateGuard> },
   { path: '/setup', element: <AppGateGuard expected="setup"><FirstRunSetupPage /></AppGateGuard> },
   {

@@ -13,7 +13,11 @@ export function ReportsRangeCard({
   onPreset7,
   onPreset30,
   onReset,
-  healthRows
+  healthRows,
+  locationId,
+  onLocationChange,
+  locations,
+
 }: {
   from: string;
   to: string;
@@ -25,6 +29,9 @@ export function ReportsRangeCard({
   onPreset30: () => void;
   onReset: () => void;
   healthRows: Array<{ label: string; value: string }>;
+  locationId?: string;
+  onLocationChange?: (value: string) => void;
+  locations?: Array<{ id: string; name: string; type?: string }>;
 }) {
   return (
     <FormSection title="الفترة" actions={<span className="nav-pill">تحديث مباشر</span>} className="reports-scope-card reports-scope-card--compact">
@@ -34,6 +41,14 @@ export function ReportsRangeCard({
         </Field>
         <Field label="إلى">
           <input type="datetime-local" value={toDateTimeInputValue(to)} onChange={(event) => onToChange(fromDateTimeInputValue(event.target.value) || to)} />
+        </Field>
+        <Field label="الفرع / المخزن">
+          <select value={locationId || 'all'} onChange={(event) => onLocationChange?.(event.target.value)}>
+            <option value="all">الكل (تجميع البيانات)</option>
+            {locations?.map((loc) => (
+              <option key={loc.id} value={loc.id}>{loc.name} {loc.type ? `(${loc.type === 'branch' ? 'فرع' : 'مخزن'})` : ''}</option>
+            ))}
+          </select>
         </Field>
         <div className="field reports-action-field reports-action-field--compact">
           <span>الإجراء</span>

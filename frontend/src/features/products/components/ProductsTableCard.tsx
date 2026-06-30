@@ -102,7 +102,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   }
 
   return (
-    <FormSection title="قائمة الأصناف الحالية" description="يعرض السجل الآن الصنف الرئيسي مرة واحدة، ويمكن فتح الأصناف الفرعية تحته بدل تكرار كل لون أو رائحة أو مقاس كسطر أولي مستقل." actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير CSV</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
+    <FormSection title="قائمة الأصناف الحالية" description="يعرض السجل الآن الصنف الرئيسي مرة واحدة، ويمكن فتح الأصناف الفرعية تحته بدل تكرار كل لون أو رائحة أو مقاس كسطر أولي مستقل." actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير Excel</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
       <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو الخاصية الفرعية" />
       <div className="filter-chip-row">
         <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')}>الكل</Button>

@@ -19,6 +19,26 @@ export class InventoryController {
     return this.inventoryService.listLocations(req.authContext!);
   }
 
+  @Get('location-stocks')
+  getAllLocationStocks(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.inventoryService.getAllLocationStocks(req.authContext!);
+  }
+
+  @Get('locations/:id/categories')
+  getLocationCategories(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.inventoryService.getLocationCategories(id, req.authContext!);
+  }
+
+  @Get('locations/:id/categories/:categoryId/products')
+  getLocationCategoryProducts(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('categoryId') categoryId: string,
+    @Req() req: RequestWithAuth
+  ): Promise<Record<string, unknown>> {
+    const parsedCategoryId = categoryId === 'all' ? 'all' : parseInt(categoryId, 10);
+    return this.inventoryService.getLocationCategoryProducts(id, parsedCategoryId, req.authContext!);
+  }
+
   @Get('stock-transfers')
   listTransfers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.listStockTransfers(query, req.authContext!);

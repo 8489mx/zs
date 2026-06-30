@@ -285,8 +285,26 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   }, [branchMenuOpen, selectedBranch?.name]);
 
   useEffect(() => {
-    if (!warehouseMenuOpen) setWarehouseQuery(selectedLocation?.name || '');
-  }, [warehouseMenuOpen, selectedLocation?.name]);
+    if (!form.getValues('currentBranchId') && branches.length === 1 && branches[0]?.id) {
+      form.setValue('currentBranchId', String(branches[0].id), { shouldDirty: false });
+    }
+  }, [branches, form]);
+
+  useEffect(() => {
+    if (!form.getValues('currentLocationId') && visibleLocations.length === 1 && visibleLocations[0]?.id) {
+      form.setValue('currentLocationId', String(visibleLocations[0].id), { shouldDirty: false });
+    }
+  }, [visibleLocations, form]);
+
+  useEffect(() => {
+    if (!warehouseMenuOpen) {
+      if (!selectedLocation?.name && visibleLocations.length === 0) {
+        setWarehouseQuery('مخزون المتجر الداخلي');
+      } else {
+        setWarehouseQuery(selectedLocation?.name || '');
+      }
+    }
+  }, [warehouseMenuOpen, selectedLocation?.name, visibleLocations.length]);
 
   const disabled = mutation.isPending || !canManageSettings;
   const watchedLanguage = form.watch('uiLanguage');
@@ -295,18 +313,61 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     setLocaleLanguage(watchedLanguage === 'en' ? 'en' : 'ar');
   }, [setLocaleLanguage, watchedLanguage]);
 
-  const submit = form.handleSubmit((values) => {
-    const missingBranchOrWarehouse = !String(values.currentBranchId || '').trim() || !String(values.currentLocationId || '').trim();
+  const submit = form.handleSubmit(async (values) => {
+    let branchIdToUse = String(values.currentBranchId || '').trim();
+    let locationIdToUse = String(values.currentLocationId || '').trim();
+
+    if (!branchIdToUse && branchQuery.trim()) {
+      const existingBranch = branches.find((b) => normalizeText(String(b.name || '')) === normalizeText(branchQuery));
+      if (existingBranch) {
+        branchIdToUse = String(existingBranch.id);
+      } else {
+        try {
+          // Fallback dynamic import if settingsApi is not at the top
+          const { settingsApi } = await import('@/features/settings/api/settings.api');
+          const res = await settingsApi.createBranch({ name: branchQuery.trim() });
+          const newId = res.branchId || res.branch?.id;
+          if (res.ok && newId) branchIdToUse = String(newId);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    if (!locationIdToUse && warehouseQuery.trim()) {
+      const existingLocation = visibleLocations.find((l) => normalizeText(String(l.name || '')) === normalizeText(warehouseQuery));
+      if (existingLocation) {
+        locationIdToUse = String(existingLocation.id);
+      } else {
+        try {
+          const { settingsApi } = await import('@/features/settings/api/settings.api');
+          const res = await settingsApi.createLocation({ name: warehouseQuery.trim(), branchId: branchIdToUse || undefined });
+          const newId = res.locationId || res.location?.id;
+          if (res.ok && newId) locationIdToUse = String(newId);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    values.currentBranchId = branchIdToUse;
+    values.currentLocationId = locationIdToUse;
+
+    const isBranchMissing = !String(values.currentBranchId || '').trim();
+    const isLocationMissing = !String(values.currentLocationId || '').trim();
+
+    if (isBranchMissing) {
+      form.setError('currentBranchId', { type: 'manual', message: 'يجب اختيار الفرع الرئيسي قبل حفظ الإعدادات.' });
+    }
+    
+    if (isLocationMissing) {
+      form.setError('currentLocationId', { type: 'manual', message: 'يجب اختيار المخزن الأساسي قبل حفظ الإعدادات.' });
+    }
+
     const missingCoreFields =
       !String(values.storeName || '').trim() ||
       !String(values.defaultPosMode || '').trim() ||
       !String(values.paperSize || '').trim();
-
-    if (missingBranchOrWarehouse) {
-      const message = 'يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.';
-      form.setError('currentBranchId', { type: 'manual', message });
-      form.setError('currentLocationId', { type: 'manual', message });
-    }
 
     if (missingCoreFields) {
       form.setError('storeName', {
@@ -315,7 +376,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       });
     }
 
-    if (missingBranchOrWarehouse || missingCoreFields) {
+    if (isBranchMissing || isLocationMissing || missingCoreFields) {
       form.setError('root.serverError', { type: 'manual', message: 'يرجى إكمال الحقول المطلوبة قبل حفظ الإعدادات.' });
       return;
     }
@@ -543,10 +604,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         {/* ===== بيانات النشاط ===== */}
         <FormSection title="بيانات النشاط">
           <div className="document-prototype-grid compact-grid-2">
-            <div className="field">
-              <label>الاسم التجاري</label>
-              <input className="purchase-prototype-field-input" {...form.register('brandName')} disabled={disabled} />
-            </div>
+
             <div className="field">
               <label>الهاتف</label>
               <input className="purchase-prototype-field-input" {...form.register('phone')} disabled={disabled} />

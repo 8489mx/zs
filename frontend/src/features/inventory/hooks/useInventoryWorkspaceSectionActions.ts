@@ -1,17 +1,17 @@
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import {
   copyLines,
-  exportDamagedCsv as exportDamagedCsvDocument,
-  exportInventoryCsv as exportInventoryCsvDocument,
-  exportTransfersCsv as exportTransfersCsvDocument,
+  exportDamagedExcel as exportDamagedExcelDocument,
+  exportInventoryExcel as exportInventoryExcelDocument,
+  exportTransfersExcel as exportTransfersExcelDocument,
+  exportMovementsExcel as exportMovementsExcelDocument,
   printCountSessions,
   printDamagedRecords,
-  printInventoryList,
-  printTransferDocument,
 } from '@/features/inventory/lib/inventory-documents';
+import { printTransferDocument, printInventoryStatusReport, printInventoryMovementsReport } from '@/lib/inventory-printing';
 import { formatCurrency } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
-import type { Product, StockCountSession, StockMovementRecord, StockTransfer } from '@/types/domain';
+import type { Product, StockCountSession, StockMovementRecord, StockTransfer, AppSettings } from '@/types/domain';
 
 interface InventoryWorkspaceSectionActionsParams {
   currentSection: string;
@@ -29,6 +29,7 @@ interface InventoryWorkspaceSectionActionsParams {
   sessionFilter: string;
   setCopyFeedback: (value: { kind: 'success' | 'error'; text: string } | null) => void;
   canViewSensitivePricing: boolean;
+  settings?: AppSettings | null;
 }
 
 export function createInventoryWorkspaceSectionActions({
@@ -47,6 +48,7 @@ export function createInventoryWorkspaceSectionActions({
   sessionFilter,
   setCopyFeedback,
   canViewSensitivePricing,
+  settings,
 }: InventoryWorkspaceSectionActionsParams) {
   async function copyInventorySummary() {
     await copyLines([
@@ -62,8 +64,8 @@ export function createInventoryWorkspaceSectionActions({
     ], 'تم نسخ ملخص المخزون.', setCopyFeedback);
   }
 
-  const exportInventoryCsv = () => {
-    exportInventoryCsvDocument(rows.map((row) => ({
+  const exportInventoryExcel = () => {
+    exportInventoryExcelDocument(rows.map((row) => ({
       name: row.name,
       stock: row.stock,
       minStock: row.minStock,
@@ -74,10 +76,22 @@ export function createInventoryWorkspaceSectionActions({
     })));
   };
 
-  const exportTransfersCsv = async () => exportTransfersCsvDocument(await inventoryApi.listAllTransfers({ filter: transferFilter }));
-  const printInventoryListHandler = () => printInventoryList(rows);
+  const exportTransfersExcel = async () => exportTransfersExcelDocument(await inventoryApi.listAllTransfers({ filter: transferFilter }));
+  const printInventoryListHandler = () => printInventoryStatusReport(rows, { settings, pageSize: 'a4' });
   const printDamagedRecordsHandler = async () => printDamagedRecords(await inventoryApi.listAllDamagedStock());
-  const exportDamagedCsvHandler = async () => exportDamagedCsvDocument(await inventoryApi.listAllDamagedStock());
+  const exportDamagedExcelHandler = async () => exportDamagedExcelDocument(await inventoryApi.listAllDamagedStock());
+  const exportMovementsExcelHandler = async () => {
+    let page = 1;
+    let allMovements: StockMovementRecord[] = [];
+    let totalPages = 1;
+    do {
+      const response = await inventoryApi.stockMovementsPage({ page, pageSize: 100 });
+      allMovements = allMovements.concat(response.rows);
+      totalPages = response.pagination?.totalPages || 1;
+      page++;
+    } while (page <= totalPages);
+    exportMovementsExcelDocument(allMovements);
+  };
   const printCountSessionsHandler = async () => printCountSessions(await inventoryApi.listAllStockCountSessions({ filter: sessionFilter }));
 
   const copyTransferDetails = async () => {
@@ -107,23 +121,37 @@ export function createInventoryWorkspaceSectionActions({
     ], 'تم نسخ تفاصيل جلسة الجرد.', setCopyFeedback);
   };
 
-  const sectionExportHandler = currentSection === 'transfers' ? exportTransfersCsv : currentSection === 'damaged' ? exportDamagedCsvHandler : exportInventoryCsv;
+  const printMovementsHandler = async () => {
+    let page = 1;
+    let allMovements: StockMovementRecord[] = [];
+    let totalPages = 1;
+    do {
+      const response = await inventoryApi.stockMovementsPage({ page, pageSize: 100 });
+      allMovements = allMovements.concat(response.rows);
+      totalPages = response.pagination?.totalPages || 1;
+      page++;
+    } while (page <= totalPages);
+    printInventoryMovementsReport(allMovements, { settings, pageSize: 'a4' });
+  };
+
+  const sectionExportHandler = currentSection === 'transfers' ? exportTransfersExcel : currentSection === 'damaged' ? exportDamagedExcelHandler : currentSection === 'movements' ? exportMovementsExcelHandler : exportInventoryExcel;
   const sectionPrintHandler = currentSection === 'transfers'
-    ? (() => selectedTransfer && printTransferDocument(selectedTransfer))
+    ? (() => selectedTransfer && printTransferDocument(selectedTransfer, { pageSize: 'a4', settings }))
     : currentSection === 'counts'
       ? printCountSessionsHandler
       : currentSection === 'damaged'
         ? printDamagedRecordsHandler
         : currentSection === 'movements'
-          ? (() => undefined)
+          ? printMovementsHandler
           : printInventoryListHandler;
 
   return {
     copyInventorySummary,
-    exportTransfersCsv,
+    exportTransfersExcel,
     printCountSessionsHandler,
     printDamagedRecordsHandler,
-    exportDamagedCsvHandler,
+    exportDamagedExcelHandler,
+    exportMovementsExcelHandler,
     copyTransferDetails,
     copySessionDetails,
     sectionExportHandler,

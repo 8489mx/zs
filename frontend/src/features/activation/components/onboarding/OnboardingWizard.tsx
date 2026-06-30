@@ -43,14 +43,9 @@ export function OnboardingWizard() {
     // We let the loading screen show for a few seconds before actually submitting
     // because the user requested an animation.
     setTimeout(async () => {
-      try {
-        await handleSubmit(syntheticEvent);
-        // Note: handleSubmit calls navigate to /login. If we want Step5, we intercept.
-        // Wait, the controller handles navigation on success. Let's let it navigate.
-        // Or if we want Step5, we modify the controller. 
-        // For now, let's let the loading step finish and handleSubmit will redirect them.
-      } catch (err) {
-        setStep(3); // Go back if error
+      const success = await handleSubmit(syntheticEvent);
+      if (!success) {
+        setStep(3); // Go back if error so user can see it and correct
       }
     }, 2500);
   };
@@ -63,8 +58,7 @@ export function OnboardingWizard() {
         {/* Left side (or Right in RTL) Hero section */}
         <div className="onboarding-hero">
           <div className="onboarding-hero-logo">
-            <span className="z-mark">Z</span>
-            <span>{t('firstRun.wizard.logo')}</span>
+            <img src="./logo.png" alt="ZSystems Logo" style={{ maxWidth: '180px', height: 'auto', marginBottom: '1rem' }} />
           </div>
           <h1>{t('firstRun.wizard.title')}</h1>
           <p>{t('firstRun.wizard.desc')}</p>
@@ -100,8 +94,8 @@ export function OnboardingWizard() {
           )}
           {step === 2 && (
             <Step2Details 
-              extraData={extraData} 
-              updateExtra={updateExtra}
+              form={form} 
+              updateField={updateField}
               onNext={handleNext} 
               onBack={handleBack} 
             />

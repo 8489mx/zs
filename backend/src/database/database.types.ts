@@ -227,6 +227,7 @@ export interface ProductTable {
   style_code: string | null;
   color: string | null;
   size: string | null;
+  bin_location: string | null;
   cost_price: number;
   retail_price: number;
   wholesale_price: number;
@@ -339,11 +340,12 @@ export interface StockTransferTable {
   id: Generated<number>;
   doc_no: string | null;
   from_location_id: number;
-  to_location_id: number;
+  to_location_id: number | null;
   from_branch_id: number | null;
   to_branch_id: number | null;
   status: 'sent' | 'received' | 'cancelled';
   note: string;
+  recipient_name: string | null;
   created_by: number | null;
   received_by: number | null;
   cancelled_by: number | null;

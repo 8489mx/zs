@@ -3,6 +3,7 @@ type PurchaseRow = Record<string, unknown>;
 export function mapPurchaseRows(
   purchases: Array<Record<string, unknown>>,
   items: Array<Record<string, unknown>>,
+  attachments: Array<Record<string, unknown>> = [],
 ): PurchaseRow[] {
   const byPurchase = new Map<string, Array<Record<string, unknown>>>();
   for (const item of items) {
@@ -17,6 +18,19 @@ export function mapPurchaseRows(
       total: Number(item.line_total || 0),
       unitName: item.unit_name || 'قطعة',
       unitMultiplier: Number(item.unit_multiplier || 1),
+    });
+  }
+
+  const attachmentsByPurchase = new Map<string, Array<Record<string, unknown>>>();
+  for (const att of attachments) {
+    const key = String(att.purchase_id);
+    if (!attachmentsByPurchase.has(key)) attachmentsByPurchase.set(key, []);
+    attachmentsByPurchase.get(key)!.push({
+      id: String(att.id),
+      fileName: att.file_name,
+      fileUrl: att.file_url,
+      fileSize: att.file_size,
+      fileType: att.file_type
     });
   }
 
@@ -49,6 +63,7 @@ export function mapPurchaseRows(
     projectId: entry.project_id ? String(entry.project_id) : '',
     termsTemplate: entry.terms_template || '',
     items: byPurchase.get(String(entry.id)) || [],
+    attachments: attachmentsByPurchase.get(String(entry.id)) || [],
   }));
 }
 

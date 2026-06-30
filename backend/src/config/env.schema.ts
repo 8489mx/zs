@@ -44,6 +44,7 @@ const envSchema = z.object({
   BUSINESS_TIMEZONE: z.string().default('UTC'),
   TENANT_ID: z.string().trim().default('default'),
   ACCOUNT_ID: z.string().trim().default('default'),
+  PORTABLE_MODE: booleanString.optional(),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -78,14 +79,16 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   const hasExplicitCsrfSecret = typeof config.SESSION_CSRF_SECRET === 'string' && config.SESSION_CSRF_SECRET.trim().length >= 16;
   const appMode = normalizeAppMode(config.APP_MODE);
 
+  const isPortable = process.env.PORTABLE_MODE === 'true';
+
   const raw = {
     ...config,
     APP_MODE: appMode,
-    DATABASE_HOST: config.DATABASE_HOST ?? config.DB_HOST,
-    DATABASE_PORT: config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT,
-    DATABASE_NAME: config.DATABASE_NAME ?? config.DB_NAME,
-    DATABASE_USER: config.DATABASE_USER ?? config.DB_USER,
-    DATABASE_PASSWORD: config.DATABASE_PASSWORD ?? config.DB_PASSWORD,
+    DATABASE_HOST: isPortable ? 'localhost' : (config.DATABASE_HOST ?? config.DB_HOST),
+    DATABASE_PORT: isPortable ? 5432 : (config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT),
+    DATABASE_NAME: isPortable ? 'pglite' : (config.DATABASE_NAME ?? config.DB_NAME),
+    DATABASE_USER: isPortable ? 'pglite' : (config.DATABASE_USER ?? config.DB_USER),
+    DATABASE_PASSWORD: isPortable ? 'pglite' : (config.DATABASE_PASSWORD ?? config.DB_PASSWORD),
     DATABASE_SSL: config.DATABASE_SSL ?? config.DB_SSL ?? 'false',
     DATABASE_SSL_REJECT_UNAUTHORIZED: config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'false',
     ENABLE_BOOTSTRAP_ADMIN: config.ENABLE_BOOTSTRAP_ADMIN ?? 'false',
@@ -116,7 +119,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     throw new Error('SESSION_CSRF_SECRET must be explicitly configured in production');
   }
 
-  if (parsed.NODE_ENV === 'production' && parsed.ALLOW_SESSION_ID_HEADER) {
+  const isSelfContained = parsed.APP_MODE === 'SELF_CONTAINED';
+  if (parsed.NODE_ENV === 'production' && parsed.ALLOW_SESSION_ID_HEADER && !isPortable && !isSelfContained) {
     throw new Error('ALLOW_SESSION_ID_HEADER must remain disabled in production');
   }
 

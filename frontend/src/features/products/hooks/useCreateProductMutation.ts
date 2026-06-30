@@ -79,6 +79,7 @@ function buildProductPayload(values: ProductFormValues) {
     minStock: Number(values.minStock || 0),
     categoryId: values.categoryId || '',
     supplierId: values.supplierId || '',
+    binLocation: normalizeArabicInput(values.binLocation || ''),
     notes: normalizeArabicInput(values.notes || ''),
     units,
     customerPrices: [],

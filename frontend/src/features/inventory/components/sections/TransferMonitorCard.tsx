@@ -25,7 +25,7 @@ interface TransferMonitorCardProps {
   onTransferFilterChange: (value: 'all' | 'sent' | 'received' | 'cancelled') => void;
   onSelectTransfer: (transferId: string) => void;
   onCopyTransferDetails: () => void;
-  onPrintTransfer: (transfer: StockTransfer) => void;
+  onPrintTransfer: (transfer: StockTransfer, format: 'a4' | 'receipt') => void;
   onExportTransfers: () => void;
   onReceiveTransfer?: (transfer: StockTransfer) => void;
   onCancelTransfer?: (transfer: StockTransfer) => void;
@@ -72,7 +72,7 @@ export function TransferMonitorCard({
   }, [selectedTransfer]);
 
   return (
-    <FormSection title="تحويلات مخزون قائمة" description="عرض table-first مع لوحة تفاصيل جانبية حتى تستطيع مراجعة البنود والجهات والحالة بسرعة قبل الاستلام أو الإلغاء." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onExportTransfers} disabled={!visibleTransfers.length}>تصدير CSV</Button><span className="nav-pill">{pendingTransfersCount} قيد الاستلام من {transferTotalItems}</span></div>}>
+    <FormSection title="تحويلات مخزون قائمة" description="عرض table-first مع لوحة تفاصيل جانبية حتى تستطيع مراجعة البنود والجهات والحالة بسرعة قبل الاستلام أو الإلغاء." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onExportTransfers} disabled={!visibleTransfers.length}>تصدير Excel</Button><span className="nav-pill">{pendingTransfersCount} قيد الاستلام من {transferTotalItems}</span></div>}>
       <QueryFeedback
         isLoading={isLoading}
         isError={isError}
@@ -87,7 +87,7 @@ export function TransferMonitorCard({
           <Button type="button" variant={transferFilter === 'received' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('received')}>مستلمة</Button>
           <Button type="button" variant={transferFilter === 'cancelled' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('cancelled')}>ملغاة</Button>
         </div>
-        <div className="inventory-master-detail inventory-master-detail-wide">
+        <div className="section-stack">
           <div className="detail-table-panel">
             {selectedTransferIds.length ? (
               <div className="bulk-toolbar" style={{ marginBottom: 12 }}>
@@ -135,7 +135,7 @@ export function TransferMonitorCard({
                   header: 'المسار',
                   cell: (transfer) => (
                     <div>
-                      <div>{transfer.fromLocationName || '—'} ←→ {transfer.toLocationName || '—'}</div>
+                      <div>{transfer.fromLocationName || '—'} ←→ {transfer.toLocationName || transfer.toBranchName || '—'}</div>
                       <div className="muted small">{transfer.items.length} بند</div>
                     </div>
                   ),
@@ -180,10 +180,11 @@ export function TransferMonitorCard({
                 </div>
                 <div className="detail-grid">
                   <div className="detail-item"><div className="detail-label">من مخزن</div><div className="detail-value">{selectedTransfer.fromLocationName || '—'}</div></div>
-                  <div className="detail-item"><div className="detail-label">إلى مخزن</div><div className="detail-value">{selectedTransfer.toLocationName || '—'}</div></div>
+                  <div className="detail-item"><div className="detail-label">الوجهة</div><div className="detail-value">{selectedTransfer.toLocationName || selectedTransfer.toBranchName || '—'}</div></div>
                   <div className="detail-item"><div className="detail-label">عدد البنود</div><div className="detail-value">{selectedTransferTotals.itemsCount}</div></div>
                   <div className="detail-item"><div className="detail-label">إجمالي الكميات</div><div className="detail-value">{selectedTransferTotals.totalQty}</div></div>
                   <div className="detail-item"><div className="detail-label">أنشأه</div><div className="detail-value">{selectedTransfer.createdBy || '—'}</div></div>
+                  {selectedTransfer.recipientName ? <div className="detail-item"><div className="detail-label">مستلم البضاعة</div><div className="detail-value">{selectedTransfer.recipientName}</div></div> : null}
                   <div className="detail-item"><div className="detail-label">التاريخ</div><div className="detail-value">{formatDate(selectedTransfer.date || '')}</div></div>
                   <div className="detail-item"><div className="detail-label">تم الاستلام</div><div className="detail-value">{selectedTransfer.receivedAt ? formatDate(selectedTransfer.receivedAt) : 'لم يتم بعد'}</div></div>
                   <div className="detail-item"><div className="detail-label">تم الإلغاء</div><div className="detail-value">{selectedTransfer.cancelledAt ? formatDate(selectedTransfer.cancelledAt) : 'غير ملغي'}</div></div>
@@ -197,7 +198,8 @@ export function TransferMonitorCard({
                 </div>
                 <div className="actions compact-actions">
                   <Button variant="secondary" onClick={onCopyTransferDetails}>نسخ التفاصيل</Button>
-                  <Button variant="secondary" onClick={() => onPrintTransfer(selectedTransfer)}>طباعة المستند</Button>
+                  <Button variant="secondary" onClick={() => onPrintTransfer(selectedTransfer, 'a4')}>طباعة (A4)</Button>
+                  <Button variant="secondary" onClick={() => onPrintTransfer(selectedTransfer, 'receipt')}>طباعة ريسيت</Button>
                   {selectedTransfer.status === 'sent' ? (
                     <>
                       {onReceiveTransfer ? <Button variant="success" onClick={() => onReceiveTransfer(selectedTransfer)}>استلام الآن</Button> : null}

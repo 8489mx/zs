@@ -72,6 +72,8 @@
   background: #f8fafc;
   color: #0f172a;
   text-align: start;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
 .stock-count-method-card {

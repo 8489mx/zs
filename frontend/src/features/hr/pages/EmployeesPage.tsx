@@ -10,7 +10,7 @@ import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee } from '@/types/domain';
 import { useHrWorkspace } from '@/features/hr/hooks/useHr';
 import { ImportWorkbench } from '@/shared/components/ImportWorkbench';
-import { downloadCsvFile } from '@/lib/browser';
+import { downloadExcelFile } from '@/lib/browser';
 import { hrApi } from '@/features/hr/api/hr.api';
 
 const STATUS_FILTERS = [
@@ -60,7 +60,7 @@ function matchesCompletionFilter(row: HrEmployee, filter: CompletionFilter) {
 }
 
 function downloadEmployeesTemplate() {
-  downloadCsvFile(
+  downloadExcelFile(
     'employees-template.csv',
     [
       'كود الموظف',

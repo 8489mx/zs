@@ -7,13 +7,15 @@ export function useInventoryActionCatalog() {
   const productsQuery = useQuery({ queryKey: queryKeys.products, queryFn: inventoryApi.products });
   const branchesQuery = useQuery({ queryKey: queryKeys.branches, queryFn: referenceDataApi.branches });
   const locationsQuery = useQuery({ queryKey: queryKeys.locations, queryFn: referenceDataApi.locations });
+  const locationStocksQuery = useQuery({ queryKey: ['location-stocks'], queryFn: inventoryApi.locationStocks });
 
   return {
     productsQuery,
     branchesQuery,
     locationsQuery,
-    isLoading: productsQuery.isLoading || branchesQuery.isLoading || locationsQuery.isLoading,
-    isError: productsQuery.isError || branchesQuery.isError || locationsQuery.isError,
-    error: productsQuery.error || branchesQuery.error || locationsQuery.error
+    locationStocksQuery,
+    isLoading: productsQuery.isLoading || branchesQuery.isLoading || locationsQuery.isLoading || locationStocksQuery.isLoading,
+    isError: productsQuery.isError || branchesQuery.isError || locationsQuery.isError || locationStocksQuery.isError,
+    error: productsQuery.error || branchesQuery.error || locationsQuery.error || locationStocksQuery.error
   };
 }

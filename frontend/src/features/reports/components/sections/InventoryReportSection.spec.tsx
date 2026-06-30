@@ -49,7 +49,9 @@ describe('InventoryReportSection', () => {
           },
         }}
         exportLowStock={vi.fn()}
-        printLowStockList={vi.fn()}
+        printInventoryValueReport={vi.fn()}
+        printInventoryMovementsReport={vi.fn()}
+        locationId="all"
         inventorySearch=""
         onInventorySearchChange={vi.fn()}
         inventoryFilter="attention"

@@ -112,6 +112,7 @@ function hasTechnicalPrefix(message: string): boolean {
 }
 
 function mapNotNullViolation(error: PgErrorLike, message: string, detail: string): AppError {
+  console.error('[DB_NOT_NULL_VIOLATION]', { message, detail, column: error.column });
   const column = normalizeKey(pickFirstString(error.column, inferColumnFromMessageAndDetail(message, detail)));
   const mapped = column ? REQUIRED_FIELD_MESSAGES[column] : '';
   return new AppError(mapped || MSG_REQUIRED_FIELD, 'DB_NOT_NULL_VIOLATION', 400, { column: column || null });

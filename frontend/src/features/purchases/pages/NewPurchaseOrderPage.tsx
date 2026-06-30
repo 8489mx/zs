@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+
 import { useTranslation } from '../utils/i18n-purchase-prototype';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 
@@ -1521,12 +1522,14 @@ export function NewPurchaseOrderPage() {
         let file = files[i];
         if (file.type.startsWith('image/')) {
           const options = {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
+            maxSizeMB: 0.3, // Compress down to 300KB
+            maxWidthOrHeight: 1600, // Enough resolution to read text without pixelation
             useWebWorker: true,
+            initialQuality: 0.8,
           };
           try {
-            file = await imageCompression(file, options);
+            const compressedBlob = await imageCompression(file, options);
+            file = new File([compressedBlob], file.name, { type: compressedBlob.type });
           } catch (e) {
             console.error('Image compression failed', e);
           }

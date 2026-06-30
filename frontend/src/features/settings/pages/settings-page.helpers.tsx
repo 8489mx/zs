@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { downloadCsvFile } from '@/lib/browser';
+import { downloadExcelFile } from '@/lib/browser';
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 
 export type SettingsConfirmAction =
@@ -73,15 +73,15 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
 
 export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') {
   if (kind === 'products') {
-    downloadCsvFile('products-template.csv', ['اسم الصنف (إجباري)', 'الباركود', 'القسم', 'المورد', 'سعر التكلفة', 'سعر البيع', 'سعر الجملة', 'الحد الأدنى', 'الكمية', 'وحدة القياس الأساسية', 'وحدة البيع', 'وحدة الشراء', 'اسم وحدة إضافية', 'معامل الوحدة الإضافية', 'باركود الوحدة الإضافية', 'ملاحظات'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 24, 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
+    downloadExcelFile('products-template.xlsx', ['اسم الصنف (إجباري)', 'الباركود', 'القسم', 'المورد', 'سعر التكلفة', 'سعر البيع', 'سعر الجملة', 'الحد الأدنى', 'الكمية', 'المخزن', 'وحدة القياس الأساسية', 'وحدة البيع', 'وحدة الشراء', 'اسم وحدة إضافية', 'معامل الوحدة الإضافية', 'باركود الوحدة الإضافية', 'ملاحظات'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 24, 'المخزن الرئيسي', 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
     return;
   }
   if (kind === 'customers') {
-    downloadCsvFile('customers-template.csv', ['اسم العميل (إجباري)', 'رقم الموبايل', 'العنوان', 'نوع العميل', 'الحد الائتماني', 'رصيد افتتاحي', 'رصيد محفظة', 'اسم الشركة', 'الرقم الضريبي'], [['عميل جديد', '01000000000', 'القاهرة', 'cash', 0, 1500, 0, 'شركة مثال', '300123456700003']]);
+    downloadExcelFile('customers-template.xlsx', ['اسم العميل (إجباري)', 'رقم الموبايل', 'العنوان', 'نوع العميل', 'الحد الائتماني', 'رصيد افتتاحي', 'رصيد محفظة', 'اسم الشركة', 'الرقم الضريبي'], [['عميل جديد', '01000000000', 'القاهرة', 'cash', 0, 1500, 0, 'شركة مثال', '300123456700003']]);
     return;
   }
   if (kind === 'suppliers') {
-    downloadCsvFile('suppliers-template.csv', ['اسم المورد (إجباري)', 'رقم الموبايل', 'العنوان', 'رصيد افتتاحي', 'ملاحظات'], [['مورد جديد', '01011111111', 'الجيزة', 2500, 'ملاحظات']]);
+    downloadExcelFile('suppliers-template.xlsx', ['اسم المورد (إجباري)', 'رقم الموبايل', 'العنوان', 'رصيد افتتاحي', 'ملاحظات'], [['مورد جديد', '01011111111', 'الجيزة', 2500, 'ملاحظات']]);
     return;
   }
 
@@ -94,21 +94,21 @@ export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 
         const res = await http<any>(`/api/products?page=${page}&pageSize=1000`);
         const items = res.products || [];
         for (const p of items) {
-          allRows.push([p.barcode || '', p.name || '', p.stock || 0]);
+          allRows.push([p.barcode || '', p.name || '', p.stock || 0, 'المخزن الرئيسي']);
         }
         if (items.length < 1000) break;
         page += 1;
       }
       
       if (allRows.length > 0) {
-        downloadCsvFile('opening-stock-template.csv', ['الباركود', 'اسم الصنف', 'الكمية'], allRows);
+        downloadExcelFile('opening-stock-template.xlsx', ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'], allRows);
         return;
       }
     } catch (e) {
       console.error('Failed to export existing products for opening stock', e);
     }
     // Fallback if no products or error
-    downloadCsvFile('opening-stock-template.csv', ['الباركود', 'اسم الصنف', 'الكمية'], [['123456789012', 'منتج جديد', 24]]);
+    downloadExcelFile('opening-stock-template.xlsx', ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'], [['123456789012', 'منتج جديد', 24, 'المخزن الرئيسي']]);
   }
 }
 

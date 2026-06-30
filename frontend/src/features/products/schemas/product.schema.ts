@@ -16,8 +16,9 @@ export const productFormSchema = z.object({
   wholesalePrice: z.coerce.number().min(0),
   stock: z.coerce.number().min(0),
   minStock: z.coerce.number().min(0),
-  categoryId: z.string().min(1, 'برجاء اختيار القسم'),
-  supplierId: z.string().min(1, 'برجاء اختيار المورد'),
+  categoryId: z.string().optional(),
+  supplierId: z.string().optional(),
+  binLocation: z.string().optional(),
   notes: z.string().optional()
 });
 

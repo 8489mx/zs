@@ -346,6 +346,7 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
           {form.formState.errors.supplierId && <small className="field-error">{form.formState.errors.supplierId.message}</small>}
         </div>
 
+        <Field label="مكان التخزين (Bin Location)"><input {...form.register('binLocation')} disabled={mutation.isPending} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" /></Field>
         <Field label="ملاحظات"><textarea {...form.register('notes')} rows={4} disabled={mutation.isPending} /></Field>
       </div>
 

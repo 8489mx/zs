@@ -248,7 +248,7 @@ export function ServicesPage() {
             <ServiceFormCard service={selectedService || undefined} onSaved={() => setSelectedService(null)} suggestions={serviceSuggestionOptions} />
           </FormSection>
         </div>
-        <FormSection title="مؤشرات سريعة" actions={<div className="actions compact-actions"><Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير CSV</Button><Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة السجل</Button></div>} description="النطاق الحالي يعتمد على نتائج البحث والفلاتر النشطة.">
+        <FormSection title="مؤشرات سريعة" actions={<div className="actions compact-actions"><Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير Excel</Button><Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة السجل</Button></div>} description="النطاق الحالي يعتمد على نتائج البحث والفلاتر النشطة.">
           <div className="metric-list services-insights-list">
             <div className="metric-row"><span>خدمات مطابقة للبحث</span><strong>{insights.totalItems}</strong></div>
             <div className="metric-row"><span>آخر خدمة</span><strong>{insights.latestServiceName}</strong></div>

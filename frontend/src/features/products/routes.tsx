@@ -21,7 +21,7 @@ export const productsRouteModule: FeatureRouteModule = {
     }
   ],
   navigation: [
-    { key: 'products', label: 'المنتجات', to: '/products', end: true },
-    { key: 'product-categories', label: 'أقسام المنتجات', to: '/products/categories' }
+    { key: 'products', label: 'الأصناف', to: '/products', end: true },
+    { key: 'product-categories', label: 'أقسام الأصناف', to: '/products/categories' }
   ]
 };

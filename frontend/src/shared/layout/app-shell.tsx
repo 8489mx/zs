@@ -80,6 +80,7 @@ const iconPathMap: Record<string, string> = {
   'purchases-new': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M12 18v-6M9 15h6',
   suppliers: 'M3 7h11v10H3V7zM14 10h4l3 3v4h-7v-7zM7 20h.01M18 20h.01',
   inventory: 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
+  'inventory-warehouses': 'M3 21V9l9-5 9 5v12H3zM9 21v-5a3 3 0 0 1 6 0v5',
   products: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
   treasury: 'M4 7h16v10H4V7zM7 10h2M15 14h2M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   services: 'M6 4h12v16H6V4zM9 8h6M9 12h6M9 16h3',
@@ -153,7 +154,7 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases-new', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases-new', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory-issue-order-new', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: t('sidebar.dashboard'),
       'cash-drawer': t('sidebar.cash-drawer'),
@@ -182,7 +183,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'manufacturing-work-orders': t('sidebar.manufacturing-work-orders'),
       'manufacturing-settings': t('sidebar.manufacturing-settings'),
       'manufacturing-components': t('sidebar.manufacturing-components'),
-      'product-categories': 'أقسام المنتجات',
+      'product-categories': 'أقسام الأصناف',
     };
     return navigationItems
       .filter((item) => user && canAccessNavigationItem(user, item))
@@ -199,7 +200,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
     { key: 'sales-group', label: t('sidebar.sales-group'), itemKeys: ['sales', 'returns', 'customers', 'reports'] },
     { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases-new', 'purchases', 'suppliers'] },
-    { key: 'inventory-group', label: t('sidebar.inventory-group'), itemKeys: ['inventory', 'products', 'product-categories', 'treasury'] },
+    { key: 'inventory-group', label: t('sidebar.inventory-group'), itemKeys: ['inventory-issue-order-new', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'treasury'] },
     { key: 'manufacturing-group', label: t('sidebar.manufacturing-group'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
     { key: 'services-group', label: t('sidebar.services-group'), itemKeys: ['services', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },
     { key: 'admin-group', label: t('sidebar.admin-group'), itemKeys: ['hr', 'audit', 'saas-admin-tenants', 'settings'] },

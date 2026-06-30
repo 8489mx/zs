@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import { productsApi } from '@/features/products/api/products.api';
 import { catalogApi } from '@/lib/api/catalog';
@@ -103,7 +103,7 @@ export function useProductsWorkspaceController() {
   }, []);
 
   const exportProductsCsv = useCallback(() => {
-    downloadCsvFile('products-register.csv', ['name', 'itemKind', 'styleCode', 'color', 'size', 'barcode', 'category', 'supplier', 'costPrice', 'retailPrice', 'wholesalePrice', 'stock', 'minStock', 'units', 'offers', 'customerPrices', 'notes'], visibleProducts.map((product) => [
+    downloadExcelFile('products-register.xlsx', ['name', 'itemKind', 'styleCode', 'color', 'size', 'barcode', 'category', 'supplier', 'costPrice', 'retailPrice', 'wholesalePrice', 'stock', 'minStock', 'units', 'offers', 'customerPrices', 'notes'], visibleProducts.map((product) => [
       product.name,
       product.itemKind || 'standard',
       product.styleCode || '',

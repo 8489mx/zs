@@ -19,14 +19,25 @@ export class CreateStockTransferDto {
   @Min(1)
   fromLocationId!: number;
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1)
-  toLocationId!: number;
+  toLocationId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  toBranchId?: number;
 
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  recipientName?: string;
 
   @IsArray()
   @ArrayMinSize(1)

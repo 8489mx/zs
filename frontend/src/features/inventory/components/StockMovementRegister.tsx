@@ -5,7 +5,7 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { downloadCsvFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatDate } from '@/lib/format';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
@@ -16,16 +16,22 @@ const movementLabels: Record<string, string> = {
   deduct: 'خصم',
   damaged: 'تالف',
   stock_count_gain: 'زيادة جرد',
-  stock_count_loss: 'عجز جرد'
+  stock_count_loss: 'عجز جرد',
+  transfer_send: 'إذن صرف',
+  transfer_receive: 'استلام بضاعة',
+  transfer_cancel: 'إلغاء صرف'
 };
 
 const movementToneMap: Record<string, string> = {
   damaged: 'negative',
   deduct: 'negative',
   stock_count_loss: 'negative',
+  transfer_send: 'negative',
+  transfer_cancel: 'positive',
   stock_count_gain: 'positive',
   opening: 'positive',
-  add: 'positive'
+  add: 'positive',
+  transfer_receive: 'positive'
 };
 
 function getMovementLabel(type: string) {
@@ -60,7 +66,6 @@ export function StockMovementRegister() {
   const rows = useMemo(() => movementsQuery.data?.rows || [], [movementsQuery.data?.rows]);
   const pagination = movementsQuery.data?.pagination;
   const totals = movementsQuery.data?.summary || { positive: 0, negative: 0, totalItems: 0 };
-  const knownTypes = useMemo(() => Array.from(new Set((rows || []).map((movement) => movement.type).filter(Boolean))), [rows]);
 
   async function fetchAllMatchingMovements() {
     const first = await inventoryApi.stockMovementsPage({ page: 1, pageSize: 100, search, type: typeFilter });
@@ -76,7 +81,7 @@ export function StockMovementRegister() {
   const exportCsv = async () => {
     const allRows = await fetchAllMatchingMovements();
     if (!allRows.length) return;
-    downloadCsvFile('stock-movements.csv', ['product', 'type', 'qty', 'beforeQty', 'afterQty', 'reason', 'note', SINGLE_STORE_MODE ? 'storeLocation' : 'location', 'date'], allRows.map((movement) => [
+    downloadExcelFile('stock-movements.xlsx', ['product', 'type', 'qty', 'beforeQty', 'afterQty', 'reason', 'note', SINGLE_STORE_MODE ? 'storeLocation' : 'location', 'date'], allRows.map((movement) => [
       movement.productName || '',
       getMovementLabel(movement.type),
       movement.qty,
@@ -113,12 +118,12 @@ export function StockMovementRegister() {
           <span>نوع الحركة</span>
           <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
             <option value="all">كل الحركات</option>
-            {knownTypes.map((type) => <option key={type} value={type}>{getMovementLabel(type)}</option>)}
+            {Object.keys(movementLabels).map((type) => <option key={type} value={type}>{getMovementLabel(type)}</option>)}
           </select>
         </label>
         <div className="actions compact-actions align-end-inline">
           <Button type="button" variant="secondary" onClick={() => { setSearch(''); setTypeFilter('all'); }}>إعادة الضبط</Button>
-          <Button type="button" variant="secondary" onClick={() => void exportCsv()} disabled={!pagination?.totalItems}>تصدير CSV</Button>
+          <Button type="button" variant="secondary" onClick={() => void exportCsv()} disabled={!pagination?.totalItems}>تصدير Excel</Button>
           <Button type="button" variant="secondary" onClick={() => void printRegister()} disabled={!pagination?.totalItems}>طباعة الكل</Button>
         </div>
       </SearchToolbar>

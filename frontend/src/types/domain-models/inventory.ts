@@ -54,6 +54,7 @@ export interface StockTransfer {
   toBranchName?: string;
   status: string;
   note?: string;
+  recipientName?: string;
   receivedAt?: string;
   cancelledAt?: string;
   createdBy?: string;

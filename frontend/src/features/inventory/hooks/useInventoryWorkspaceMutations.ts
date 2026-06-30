@@ -2,7 +2,7 @@ import { useMutation, type QueryClient } from '@tanstack/react-query';
 import type { Dispatch, SetStateAction } from 'react';
 import { invalidateInventoryDomain } from '@/app/query-invalidation';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
-import type { StockCountItem, StockTransferItem } from '@/types/domain';
+import type { StockCountItem, StockTransferItem, StockTransfer } from '@/types/domain';
 
 export function useInventoryWorkspaceMutations({
   queryClient,
@@ -17,19 +17,21 @@ export function useInventoryWorkspaceMutations({
   setPostingPin,
   setSelectedTransferIds,
   setSelectedSessionIds,
+  setCreatedTransfer,
 }: {
   queryClient: QueryClient;
-  transferForm: { fromLocationId: string; toLocationId: string; note: string; productId: string; qty: string };
+  transferForm: { fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string };
   transferItems: StockTransferItem[];
   countForm: { branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string };
   countItems: StockCountItem[];
   setTransferItems: Dispatch<SetStateAction<StockTransferItem[]>>;
-  setTransferForm: Dispatch<SetStateAction<{ fromLocationId: string; toLocationId: string; note: string; productId: string; qty: string }>>;
+  setTransferForm: Dispatch<SetStateAction<{ fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string }>>;
   setCountItems: Dispatch<SetStateAction<StockCountItem[]>>;
   setCountForm: Dispatch<SetStateAction<{ branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string }>>;
   setPostingPin: Dispatch<SetStateAction<string>>;
   setSelectedTransferIds: Dispatch<SetStateAction<string[]>>;
   setSelectedSessionIds: Dispatch<SetStateAction<string[]>>;
+  setCreatedTransfer: Dispatch<SetStateAction<StockTransfer | null>>;
 }) {
   const refreshInventoryQueries = async () => {
     await invalidateInventoryDomain(queryClient, { includeProducts: true, includeDashboard: true });
@@ -40,12 +42,14 @@ export function useInventoryWorkspaceMutations({
       fromLocationId: transferForm.fromLocationId,
       toLocationId: transferForm.toLocationId,
       note: transferForm.note,
+      recipientName: transferForm.recipientName,
       items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty })),
     }),
-    onSuccess: async () => {
+    onSuccess: async (data: unknown) => {
       await refreshInventoryQueries();
       setTransferItems([]);
-      setTransferForm({ fromLocationId: '', toLocationId: '', note: '', productId: '', qty: '1' });
+      setTransferForm({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1' });
+      setCreatedTransfer((data as { stockTransfer: StockTransfer }).stockTransfer || null);
     },
   });
 

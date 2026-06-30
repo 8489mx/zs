@@ -22,6 +22,18 @@ export class InventoryService {
     return this.scopeService.listLocations(auth);
   }
 
+  getLocationCategories(locationId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.scopeService.getLocationCategories(locationId, auth);
+  }
+
+  getLocationCategoryProducts(locationId: number, categoryId: number | 'all', auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.scopeService.getLocationCategoryProducts(locationId, categoryId, auth);
+  }
+
+  getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.scopeService.getAllLocationStocks(auth);
+  }
+
   listStockTransfers(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.transferService.listStockTransfers(query, auth);
   }
