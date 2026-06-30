@@ -8,6 +8,7 @@ export function UserManagementQuickActions({
   onNewUser,
   onApplyRolePermissions,
   onApplyTemplate,
+  activeTemplate,
   onCopyPermissions,
 }: {
   setupMode?: boolean;
