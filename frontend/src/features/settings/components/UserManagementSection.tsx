@@ -57,6 +57,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
     setBulkAction,
     openBulkAction,
     deleteDialogOpen,
+    activeTemplate,
     setDeleteDialogOpen,
     canDeleteSelected,
     canUnlockSelected,
@@ -115,6 +116,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               onNewUser={() => { setUserInteracted(true); startNewUser(setupMode && setupStepKey === 'admin-user' ? 'admin' : 'cashier'); }}
               onApplyRolePermissions={() => applyDefaultPermissions(draft.role)}
               onApplyTemplate={applyTemplate}
+              activeTemplate={activeTemplate}
               onCopyPermissions={() => void copyPermissions()}
               onUserSearchChange={setUserSearch}
               onUserFilterChange={setUserFilter}

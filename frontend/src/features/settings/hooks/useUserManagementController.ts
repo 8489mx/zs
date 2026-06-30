@@ -32,6 +32,7 @@ export function useUserManagementController({
   const [selectedUserKey, setSelectedUserKey] = useState('');
   const [draft, setDraft] = useState<ManagedUserRecord>(() => blankUserDraft('cashier'));
   const [statusMessage, setStatusMessage] = useState('');
+  const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'super-admins' | 'admins' | 'cashiers' | 'inactive' | 'locked'>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -127,18 +128,21 @@ export function useUserManagementController({
     if (!user) return;
     setSelectedUserKey(user.id ? String(user.id) : '__new__');
     setDraft(normalizeUserRecord(user));
+    setActiveTemplate(null);
     setStatusMessage('');
   }, []);
 
   const startNewUser = useCallback((role: 'super_admin' | 'admin' | 'cashier' = 'cashier') => {
     setSelectedUserKey('__new__');
     setDraft(blankUserDraft(role));
+    setActiveTemplate(null);
     setStatusMessage('');
   }, []);
 
   function applyTemplate(templateKey: 'cashier' | 'owner' | 'inventory' | 'accountant') {
     const template = buildTemplateDraft(draft, templateKey);
     setDraft(template.nextDraft);
+    setActiveTemplate(templateKey);
     setStatusMessage(`تم تطبيق ${template.label}.`);
   }
 
@@ -307,6 +311,7 @@ export function useUserManagementController({
     setBulkAction,
     openBulkAction,
     deleteDialogOpen,
+    activeTemplate,
     setDeleteDialogOpen,
     canDeleteSelected,
     canUnlockSelected,

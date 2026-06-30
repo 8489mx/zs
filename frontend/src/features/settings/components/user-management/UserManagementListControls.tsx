@@ -14,6 +14,7 @@ export function UserManagementQuickActions({
   onNewUser: () => void;
   onApplyRolePermissions: () => void;
   onApplyTemplate: (templateKey: keyof typeof USER_ROLE_TEMPLATES) => void;
+  activeTemplate?: string | null;
   onCopyPermissions: () => void;
 }) {
   return (
@@ -22,10 +23,10 @@ export function UserManagementQuickActions({
       {!setupMode ? <Button type="button" variant="secondary" onClick={onApplyRolePermissions}>مزامنة صلاحيات الدور</Button> : null}
       {!setupMode ? (
         <>
-          <Button type="button" variant="secondary" onClick={() => onApplyTemplate('cashier')}>قالب كاشير</Button>
-          <Button type="button" variant="secondary" onClick={() => onApplyTemplate('owner')}>قالب مدير</Button>
-          <Button type="button" variant="secondary" onClick={() => onApplyTemplate('inventory')}>قالب مخزون</Button>
-          <Button type="button" variant="secondary" onClick={() => onApplyTemplate('accountant')}>قالب محاسب</Button>
+          <Button type="button" variant={activeTemplate === 'cashier' ? 'primary' : 'secondary'} onClick={() => onApplyTemplate('cashier')}>قالب كاشير</Button>
+          <Button type="button" variant={activeTemplate === 'owner' ? 'primary' : 'secondary'} onClick={() => onApplyTemplate('owner')}>قالب مدير</Button>
+          <Button type="button" variant={activeTemplate === 'inventory' ? 'primary' : 'secondary'} onClick={() => onApplyTemplate('inventory')}>قالب مخزون</Button>
+          <Button type="button" variant={activeTemplate === 'accountant' ? 'primary' : 'secondary'} onClick={() => onApplyTemplate('accountant')}>قالب محاسب</Button>
         </>
       ) : null}
       {!setupMode ? <Button type="button" variant="secondary" onClick={onCopyPermissions}>نسخ الصلاحيات</Button> : null}

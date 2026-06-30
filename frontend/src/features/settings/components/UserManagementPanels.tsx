@@ -39,6 +39,7 @@ export function UserManagementListPanel({
   onNewUser,
   onApplyRolePermissions,
   onApplyTemplate,
+  activeTemplate,
   onCopyPermissions,
   onUserSearchChange,
   onUserFilterChange,
@@ -81,6 +82,7 @@ export function UserManagementListPanel({
   };
   onOpenDetails: (user: ManagedUserRecord) => void;
   setupMode?: boolean;
+  activeTemplate?: string | null;
 }) {
   return (
     <div className="list-stack">
@@ -89,6 +91,7 @@ export function UserManagementListPanel({
         onNewUser={onNewUser}
         onApplyRolePermissions={onApplyRolePermissions}
         onApplyTemplate={onApplyTemplate}
+        activeTemplate={activeTemplate}
         onCopyPermissions={onCopyPermissions}
       />
       {!setupMode ? (
