@@ -76,7 +76,7 @@ export function DashboardPage() {
             <DashboardMetricCard label="عدد فواتير اليوم" value={Number(stats.todaySalesCount || 0)} helper="عدد فواتير البيع" tone="success" formatter={formatInteger} />
             <DashboardMetricCard label="صافي الخزينة" value={Number(summary.treasury.net || 0)} helper="الوضع النقدي الحالي" tone={Number(summary.treasury.net || 0) >= 0 ? 'success' : 'danger'} />
             <DashboardMetricCard label="مصروفات اليوم" value={Number(summary.expenses.total || 0)} helper="إجمالي المصروفات" tone="warning" />
-            <DashboardMetricCard label="تنبيهات المخزون" value={Number(overview.data.lowStock.length || 0)} helper="أصناف تحتاج متابعة" tone={Number(overview.data.lowStock.length || 0) > 0 ? 'danger' : 'success'} formatter={formatInteger} />
+            <DashboardMetricCard label="تنبيهات المخزون" value={Number(overview.data.summary.lowStockCount || 0) + Number(overview.data.summary.outOfStockCount || 0)} helper="أصناف نافدة أو منخفضة" tone={(Number(overview.data.summary.lowStockCount || 0) + Number(overview.data.summary.outOfStockCount || 0)) > 0 ? 'danger' : 'success'} formatter={formatInteger} />
           </section>
         </FormSection>
 

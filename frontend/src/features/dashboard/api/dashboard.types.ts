@@ -115,16 +115,23 @@ export type DashboardManagerOverviewPayload = {
     days90: number;
     inventoryValue: number;
     items: DashboardStagnantItem[];
+    itemsTotal: number;
   };
   buying: {
     outOfStock: DashboardBuyingItem[];
+    outOfStockTotal: number;
     lowStock: DashboardBuyingItem[];
+    lowStockTotal: number;
     priority: DashboardBuyingItem[];
+    priorityTotal: number;
   };
   collection: {
     topDebts: DashboardCollectionItem[];
+    topDebtsTotal: number;
     aboveCreditLimit: DashboardCollectionItem[];
+    aboveCreditLimitTotal: number;
     nearCreditLimit: DashboardCollectionItem[];
+    nearCreditLimitTotal: number;
   };
 };
 

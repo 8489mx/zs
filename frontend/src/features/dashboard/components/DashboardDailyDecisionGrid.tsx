@@ -123,9 +123,9 @@ export function DashboardDailyDecisionGrid({
         className="dashboard-premium-card dashboard-card-compact manager-overview-card"
       >
         <div className="manager-overview-mini-metrics">
-          <MetricTile label="أصناف نافدة" value={formatNumber(data.buying.outOfStock.length)} />
-          <MetricTile label="أصناف منخفضة" value={formatNumber(data.buying.lowStock.length)} />
-          <MetricTile label="أولوية شراء" value={formatNumber(data.buying.priority.length)} />
+          <MetricTile label="أصناف نافدة" value={formatNumber(data.buying.outOfStockTotal)} />
+          <MetricTile label="أصناف منخفضة" value={formatNumber(data.buying.lowStockTotal)} />
+          <MetricTile label="أولوية شراء" value={formatNumber(data.buying.priorityTotal)} />
         </div>
         <ProductList rows={data.buying.priority} type="buying" />
       </FormSection>

@@ -172,9 +172,9 @@ export function DashboardManagerOverviewSections({
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
         >
           <div className="manager-overview-mini-metrics">
-            <MetricTile label="أصناف نافدة" value={formatNumber(data.buying.outOfStock.length)} />
-            <MetricTile label="أصناف منخفضة" value={formatNumber(data.buying.lowStock.length)} />
-            <MetricTile label="أولوية شراء" value={formatNumber(data.buying.priority.length)} />
+            <MetricTile label="أصناف نافدة" value={formatNumber(data.buying.outOfStockTotal)} />
+            <MetricTile label="أصناف منخفضة" value={formatNumber(data.buying.lowStockTotal)} />
+            <MetricTile label="أولوية شراء" value={formatNumber(data.buying.priorityTotal)} />
           </div>
           <ProductList rows={data.buying.priority} type="buying" />
         </FormSection>
@@ -185,9 +185,9 @@ export function DashboardManagerOverviewSections({
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
         >
           <div className="manager-overview-mini-metrics">
-            <MetricTile label="أعلى أرصدة العملاء" value={formatNumber(data.collection.topDebts.length)} />
-            <MetricTile label="متجاوز حد الائتمان" value={formatNumber(data.collection.aboveCreditLimit.length)} />
-            <MetricTile label="قريب من الحد" value={formatNumber(data.collection.nearCreditLimit.length)} />
+            <MetricTile label="أعلى أرصدة العملاء" value={formatNumber(data.collection.topDebtsTotal)} />
+            <MetricTile label="متجاوز حد الائتمان" value={formatNumber(data.collection.aboveCreditLimitTotal)} />
+            <MetricTile label="قريب من الحد" value={formatNumber(data.collection.nearCreditLimitTotal)} />
           </div>
           <CustomerList rows={data.collection.topDebts} />
         </FormSection>

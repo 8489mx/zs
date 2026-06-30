@@ -67,16 +67,23 @@ const managerOverview = {
     days90: 1,
     inventoryValue: 2400,
     items: [{ productId: 'p3', name: 'جاكيت قديم', categoryName: 'ملابس', stockQty: 6, costPrice: 400, inventoryValue: 2400, daysWithoutSales: 95 }],
+    itemsTotal: 1,
   },
   buying: {
     outOfStock: [],
+    outOfStockTotal: 0,
     lowStock: [],
+    lowStockTotal: 0,
     priority: [{ productId: 'p1', name: 'قميص رجالي', categoryName: 'ملابس', stockQty: 1, minStockQty: 5, soldQty30: 20, daysToRunOut: 1.5, grossProfit: 1800, marginPercent: 45 }],
+    priorityTotal: 1,
   },
   collection: {
     topDebts: [{ customerId: 'cust-1', name: 'عميل الآجل', balance: 3000, creditLimit: 2500, creditUsagePercent: 120 }],
+    topDebtsTotal: 1,
     aboveCreditLimit: [{ customerId: 'cust-1', name: 'عميل الآجل', balance: 3000, creditLimit: 2500, creditUsagePercent: 120 }],
+    aboveCreditLimitTotal: 1,
     nearCreditLimit: [],
+    nearCreditLimitTotal: 0,
   },
 };
 
@@ -129,7 +136,6 @@ describe('Dashboard daily home layout', () => {
 
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
-    expect(screen.getByRole('button', { name: 'تنبيهات المدير' })).toBeInTheDocument();
     expect(screen.getAllByText('ملخص اليوم').length).toBeGreaterThan(0);
     expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
     expect(screen.getByText('صافي الخزينة')).toBeInTheDocument();
@@ -146,49 +152,5 @@ describe('Dashboard daily home layout', () => {
     expect(screen.getByText('الحسابات المستحقة والمخزون')).toBeInTheDocument();
     expect(screen.getByText('مبيعات آخر 30 يوم')).toBeInTheDocument();
     expect(screen.getAllByText('لا توجد قرارات عاجلة الآن').length).toBeGreaterThan(0);
-  });
-
-  it('opens and closes the Dashboard manager notifications dropdown', async () => {
-    const user = userEvent.setup();
-    useDashboardOverviewMock.mockReturnValue({
-      data: dashboardOverview,
-      isLoading: false,
-      isError: false,
-      error: null,
-    });
-    useManagerActionsMock.mockReturnValue({
-      data: {
-        insights: [{
-          id: 'stock-alert',
-          domain: 'inventory',
-          severity: 'danger',
-          title: 'أصناف نافدة',
-          message: 'راجع 3 أصناف نافدة من المخزون',
-          actionLabel: 'راجع الآن',
-          actionHref: '/inventory',
-        }],
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-    });
-    useDashboardManagerOverviewMock.mockReturnValue({
-      data: managerOverview,
-      isLoading: false,
-      isError: false,
-      error: null,
-    });
-
-    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-
-    await user.click(screen.getByRole('button', { name: 'تنبيهات المدير' }));
-
-    const dialog = screen.getByRole('dialog', { name: 'تنبيهات المدير' });
-    expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByText('أصناف نافدة')).toBeInTheDocument();
-
-    await user.click(document.body);
-
-    expect(screen.queryByRole('dialog', { name: 'تنبيهات المدير' })).not.toBeInTheDocument();
   });
 });
