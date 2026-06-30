@@ -102,22 +102,32 @@ app.whenReady().then(async () => {
   // Handle IPC for hardware ID
   ipcMain.handle('get-hardware-id', async () => {
     return new Promise((resolve, reject) => {
-      exec('wmic baseboard get serialnumber', (error, stdout, stderr) => {
-        if (error) {
-          console.error('Error fetching hardware ID:', error);
-          // Fallback if wmic fails
-          resolve('UNKNOWN-HARDWARE-ID');
-          return;
+      // First try to get the MachineGuid from Registry (Very reliable on Windows)
+      exec('reg query HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', (err1, std1) => {
+        if (!err1 && std1 && std1.includes('REG_SZ')) {
+          const parts = std1.split('REG_SZ');
+          if (parts.length > 1) {
+            const guid = parts[1].trim();
+            if (guid.length > 10) {
+              return resolve(guid.toUpperCase());
+            }
+          }
         }
-        // Parse the output to get just the serial string
-        const lines = stdout.split('\n').map(l => l.trim()).filter(l => l);
-        // lines[0] is usually "SerialNumber"
-        // lines[1] is the actual serial
-        if (lines.length > 1) {
-          resolve(lines[1]);
-        } else {
-          resolve('UNKNOWN-HARDWARE-ID');
-        }
+        
+        // Fallback to wmic baseboard if reg query fails
+        exec('wmic baseboard get serialnumber', (error, stdout, stderr) => {
+          if (error) {
+            console.error('Error fetching hardware ID:', error);
+            resolve('UNKNOWN-HARDWARE-ID');
+            return;
+          }
+          const lines = stdout.split('\n').map(l => l.trim()).filter(l => l);
+          if (lines.length > 1 && lines[1].toLowerCase() !== 'default string') {
+            resolve(lines[1]);
+          } else {
+            resolve('UNKNOWN-HARDWARE-ID');
+          }
+        });
       });
     });
   });
