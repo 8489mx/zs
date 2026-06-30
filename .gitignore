@@ -47,3 +47,13 @@ backend/superbaseold.env
 frontend/.env.production
 
 backend/uploads/
+
+# Portable Data & Backups
+frontend/portable_data/
+frontend/electron/backend/portable_data/
+frontend/electron/backend/portable_data_test/
+safe_backup_data/
+
+# Electron Env
+frontend/.env.electron
+
