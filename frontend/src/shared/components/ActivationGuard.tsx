@@ -13,7 +13,8 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
 
   useEffect(() => {
     async function checkLicense() {
-      if (import.meta.env.DEV) {
+      // Bypass activation if in DEV or if NOT running inside Electron
+      if (import.meta.env.DEV || typeof window === 'undefined' || !(window as any).electronAPI) {
         setIsActivated(true);
         return;
       }
