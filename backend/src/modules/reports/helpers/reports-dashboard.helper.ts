@@ -110,7 +110,7 @@ export function buildDashboardComputedState(args: {
 
 export function buildInventorySnapshot(productsRows: ProductRow[]) {
   const lowStock = productsRows
-    .filter((row) => Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0))
+    .filter((row) => Number(row.stock_qty || 0) > 0 && Number(row.min_stock_qty || 0) > 0 && Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0))
     .slice(0, 8)
     .map((row) => ({
       id: String(row.id),
@@ -122,7 +122,7 @@ export function buildInventorySnapshot(productsRows: ProductRow[]) {
       status: Number(row.stock_qty || 0) <= 0 ? 'out' : 'low',
     }));
 
-  const lowStockCount = productsRows.filter((row) => Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0)).length;
+  const lowStockCount = productsRows.filter((row) => Number(row.stock_qty || 0) > 0 && Number(row.min_stock_qty || 0) > 0 && Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0)).length;
   const outOfStockCount = productsRows.filter((row) => Number(row.stock_qty || 0) <= 0).length;
   const inventoryCost = toMoney(productsRows.reduce((sum, row) => sum + (Number(row.stock_qty || 0) * Number(row.cost_price || 0)), 0));
   const inventorySaleValue = toMoney(productsRows.reduce((sum, row) => sum + (Number(row.stock_qty || 0) * Number(row.retail_price || 0)), 0));
