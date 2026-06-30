@@ -43,19 +43,24 @@ function ProductList({ rows, type }: { rows: DashboardStagnantItem[] | Dashboard
 
   return (
     <div className="manager-overview-list">
-      {rows.slice(0, 4).map((row) => (
-        <div className="manager-overview-row" key={`${type}-${row.productId}`}>
-          <div>
-            <strong>{row.name}</strong>
-            <span>{row.categoryName || 'بدون قسم'}</span>
+      {rows.slice(0, 6).map((row) => {
+        const stockQty = type === 'stagnant' ? (row as DashboardStagnantItem).stockQty : (row as DashboardBuyingItem).stockQty;
+        const qtyText = type === 'stagnant'
+          ? `${formatNumber((row as DashboardStagnantItem).daysWithoutSales)} يوم`
+          : (stockQty <= 0 ? `نفد (${formatNumber(stockQty)})` : `الكمية ${formatNumber(stockQty)}`);
+
+        return (
+          <div className="manager-overview-row" key={`${type}-${row.productId}`}>
+            <div>
+              <strong>{row.name}</strong>
+              <span>{row.categoryName || 'بدون قسم'}</span>
+            </div>
+            <b className={type === 'buying' && stockQty <= 0 ? 'text-danger' : ''}>
+              {qtyText}
+            </b>
           </div>
-          <b>
-            {type === 'stagnant'
-              ? `${formatNumber((row as DashboardStagnantItem).daysWithoutSales)} يوم`
-              : `متاح ${formatNumber((row as DashboardBuyingItem).stockQty)}`}
-          </b>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -65,7 +70,7 @@ function ProfitList({ rows, emptyLabel, valueType }: { rows: DashboardProfitItem
 
   return (
     <div className="manager-overview-list">
-      {rows.slice(0, 3).map((row, index) => (
+      {rows.slice(0, 5).map((row, index) => (
         <div className="manager-overview-row" key={`${valueType}-${row.productId || row.categoryId || row.name}-${index}`}>
           <div>
             <strong>{row.name}</strong>
@@ -83,7 +88,7 @@ function CustomerList({ rows }: { rows: DashboardCollectionItem[] }) {
 
   return (
     <div className="manager-overview-list">
-      {rows.slice(0, 4).map((row) => (
+      {rows.slice(0, 6).map((row) => (
         <div className="manager-overview-row" key={row.customerId}>
           <div>
             <strong>{row.name}</strong>

@@ -11,7 +11,6 @@ import { DashboardMetricCard } from '@/features/dashboard/components/DashboardMe
 import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardSummaryGrid';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
-import { DashboardCompactManagerActions } from '@/features/dashboard/components/DashboardCompactManagerActions';
 import { DashboardMonthlySnapshot } from '@/features/dashboard/components/DashboardMonthlySnapshot';
 import {
   buildDashboardAlerts,
@@ -122,15 +121,7 @@ export function DashboardPage() {
           supplierDebt={Number(stats.supplierDebt || 0)}
         />
 
-        {/* 6. مركز قرارات المدير */}
-        <DashboardCompactManagerActions
-          insights={managerActions.data?.insights || []}
-          isLoading={managerActions.isLoading}
-          isError={managerActions.isError}
-          error={managerActions.error}
-        />
-
-        {/* 7. اللمحة الشهرية - الأقل إلحاحًا */}
+        {/* 6. اللمحة الشهرية - الأقل إلحاحًا */}
         <DashboardMonthlySnapshot data={managerOverview.data} />
       </main>
     </div>
