@@ -1109,6 +1109,10 @@
   gap: 0.45rem 0.6rem;
 }
 
+.compact-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .compact-grid-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -2072,6 +2076,7 @@
     width: 100%;
   }
 
+  .compact-grid-4,
   .compact-grid-3,
   .compact-grid-2,
   .purchase-prototype-create-grid {

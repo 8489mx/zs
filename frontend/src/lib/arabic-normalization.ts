@@ -9,8 +9,7 @@ function normalizeArabicBase(value: string) {
     .replace(/[ئ]/g, 'ي')
     .replace(/[ى]/g, 'ي')
     .replace(ARABIC_DIACRITICS_REGEX, '')
-    .replace(MULTI_SPACE_REGEX, ' ')
-    .trim();
+    .replace(MULTI_SPACE_REGEX, ' ');
 }
 
 export function normalizeArabicInput(value: string) {
@@ -21,10 +20,9 @@ export function normalizeArabicSearchText(value: string) {
   return normalizeArabicBase(value)
     .toLowerCase()
     .replace(SEARCH_NOISE_REGEX, ' ')
-    .replace(MULTI_SPACE_REGEX, ' ')
-    .trim();
+    .replace(MULTI_SPACE_REGEX, ' ');
 }
 
 export function normalizeArabicSearchKey(value: string) {
-  return normalizeArabicSearchText(value);
+  return normalizeArabicSearchText(value).trim();
 }

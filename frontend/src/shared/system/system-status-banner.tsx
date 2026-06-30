@@ -19,7 +19,7 @@ export function SystemStatusBanner() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const clearSession = useAuthStore((state) => state.clearSession);
-  const [isOffline, setIsOffline] = useState<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  // isOffline removed
   const [reconnected, setReconnected] = useState(false);
   const reconnectTimerRef = useRef<number | null>(null);
   const recoveryInProgressRef = useRef(false);
@@ -35,11 +35,11 @@ export function SystemStatusBanner() {
     function handleOffline() {
       clearReconnectTimer();
       setReconnected(false);
-      setIsOffline(true);
+      // setIsOffline(true);
     }
 
     function handleOnline() {
-      setIsOffline(false);
+      // setIsOffline(false);
       setReconnected(true);
       clearReconnectTimer();
       reconnectTimerRef.current = window.setTimeout(() => {
@@ -58,7 +58,7 @@ export function SystemStatusBanner() {
     function handleNetworkState(event: Event) {
       const detail = (event as CustomEvent<{ online?: boolean }>).detail;
       if (typeof detail?.online === 'boolean') {
-        setIsOffline(!detail.online);
+        // setIsOffline(!detail.online);
       }
     }
 
@@ -86,12 +86,8 @@ export function SystemStatusBanner() {
 
   const loginReason = useMemo(() => (location.pathname === '/login' ? normalizeReason(location.search) : ''), [location.pathname, location.search]);
 
-  if (!isOffline && !reconnected && !loginReason) {
+  if (!reconnected && !loginReason) {
     return null;
-  }
-
-  if (isOffline) {
-    return <div className="system-banner system-banner-warning">لا يوجد اتصال بالشبكة حاليًا. بعض العمليات قد لا تعمل حتى يعود الاتصال.</div>;
   }
 
   if (loginReason) {

@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { formatCurrency } from '@/lib/format';
 import type { Purchase } from '@/types/domain';
@@ -25,6 +26,7 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
   const [editReason, setEditReason] = useState('');
   const [managerPin, setManagerPin] = useState('');
   const [localError, setLocalError] = useState('');
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   useEffect(() => {
     if (!open || !purchase) return;
@@ -67,7 +69,7 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
       || JSON.stringify(normalizedItems) !== JSON.stringify(baselineItems)
     );
   }, [baselineItems, discount, normalizedItems, note, paymentType, purchase]);
-  const canNavigateAway = useUnsavedChangesGuard(open && isDirty && !isBusy);
+  useUnsavedChangesGuard(open && isDirty && !isBusy);
 
   const computedSubTotal = useMemo(() => Number(items.reduce((sum, item) => sum + item.qty * item.cost, 0).toFixed(2)), [items]);
   const computedTax = useMemo(() => {
@@ -86,7 +88,10 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
 
   function handleCancel() {
     if (isBusy) return;
-    if (!canNavigateAway()) return;
+    if (isDirty) {
+      setShowDiscardConfirm(true);
+      return;
+    }
     onCancel();
   }
 
@@ -189,6 +194,19 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
           }}>{isBusy ? 'جارٍ حفظ التعديل...' : 'حفظ التعديل'}</Button>
         </div>
       </FormSection>
+
+      <ActionConfirmDialog
+        open={showDiscardConfirm}
+        title="إلغاء التعديلات"
+        description="هل أنت متأكد؟ لن يتم حفظ هذه التغييرات."
+        confirmLabel="نعم، إلغاء"
+        cancelLabel="تراجع"
+        onConfirm={() => {
+          setShowDiscardConfirm(false);
+          onCancel();
+        }}
+        onCancel={() => setShowDiscardConfirm(false)}
+      />
     </DialogShell>
   );
 }

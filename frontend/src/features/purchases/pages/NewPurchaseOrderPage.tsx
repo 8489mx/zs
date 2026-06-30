@@ -1022,7 +1022,7 @@ export function NewPurchaseOrderPage() {
           itemName: option.name,
           qty: line.qty > 0 ? line.qty : 1,
           unitPrice: option.price,
-          warehouse: option.type === 'service' ? 'Does not affect stock' : (option.warehouse || warehouses[0]?.name || ''),
+          warehouse: option.type === 'service' ? 'Does not affect stock' : '',
           isService: option.type === 'service'
         };
       })
@@ -1041,7 +1041,7 @@ export function NewPurchaseOrderPage() {
         itemName: option.name,
         qty: 1,
         unitPrice: option.price,
-        warehouse: option.type === 'service' ? 'Does not affect stock' : (option.warehouse || warehouses[0]?.name || ''),
+        warehouse: option.type === 'service' ? 'Does not affect stock' : '',
         isService: option.type === 'service'
       }
     ]);
@@ -1075,7 +1075,7 @@ export function NewPurchaseOrderPage() {
           itemName: matched.name,
           qty: 1,
           unitPrice: matched.price,
-          warehouse: matched.type === 'service' ? 'Does not affect stock' : matched.warehouse,
+          warehouse: matched.type === 'service' ? 'Does not affect stock' : '',
           isService: matched.type === 'service'
         }
       ];

@@ -130,11 +130,16 @@ export function hasAnyPermission(user: AuthUser | null | undefined, required: Ro
 }
 
 export function isPlatformAdmin(user: AuthUser | null | undefined) {
+  const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || '').trim();
+  
+  if (!configuredPlatformTenantId) {
+    return false;
+  }
+
   const tenantId = String(user?.tenantId || '').trim();
   const accountId = String(user?.accountId || '').trim();
-  const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || '').trim();
   const hasExplicitTenant = tenantId.length > 0;
-  const isPlatformTenant = tenantId === 'default' || (configuredPlatformTenantId.length > 0 && tenantId === configuredPlatformTenantId);
+  const isPlatformTenant = tenantId === 'default' || tenantId === configuredPlatformTenantId;
   const canUseAccountFallback = !hasExplicitTenant && accountId === 'default';
 
   return Boolean(

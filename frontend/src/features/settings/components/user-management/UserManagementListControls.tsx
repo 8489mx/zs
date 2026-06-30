@@ -20,14 +20,14 @@ export function UserManagementQuickActions({
 }) {
   return (
     <div className="actions compact-actions settings-users-quick-actions" style={{ marginBottom: 8 }}>
-      <Button type="button" onClick={onNewUser}>{setupMode ? 'إنشاء المستخدم المطلوب' : 'مستخدم جديد'}</Button>
-      {!setupMode ? <Button type="button" variant="secondary" onClick={onApplyRolePermissions}>مزامنة صلاحيات الدور</Button> : null}
+      <Button type="button" onClick={onNewUser}>{setupMode ? 'إضافة مستخدم جديد' : 'مستخدم جديد'}</Button>
+      {!setupMode ? <Button type="button" variant="secondary" onClick={onApplyRolePermissions}>تطبيق صلاحيات الدور</Button> : null}
       {!setupMode ? (
         <>
-          <Button type="button" variant={activeTemplate === 'cashier' ? 'primary' : 'secondary'} onClick={() => onApplyTemplate('cashier')}>قالب كاشير</Button>
-          <Button type="button" variant={activeTemplate === 'owner' ? 'primary' : 'secondary'} onClick={() => onApplyTemplate('owner')}>قالب مدير</Button>
-          <Button type="button" variant={activeTemplate === 'inventory' ? 'primary' : 'secondary'} onClick={() => onApplyTemplate('inventory')}>قالب مخزون</Button>
-          <Button type="button" variant={activeTemplate === 'accountant' ? 'primary' : 'secondary'} onClick={() => onApplyTemplate('accountant')}>قالب محاسب</Button>
+          <Button type="button" variant={activeTemplate === 'cashier' ? 'primary' : 'secondary'} style={activeTemplate === 'cashier' ? { outline: '2px dashed var(--primary-color, #2563eb)', outlineOffset: '2px' } : undefined} onClick={() => onApplyTemplate('cashier')}>قالب كاشير</Button>
+          <Button type="button" variant={activeTemplate === 'owner' ? 'primary' : 'secondary'} style={activeTemplate === 'owner' ? { outline: '2px dashed var(--primary-color, #2563eb)', outlineOffset: '2px' } : undefined} onClick={() => onApplyTemplate('owner')}>قالب مالك</Button>
+          <Button type="button" variant={activeTemplate === 'inventory' ? 'primary' : 'secondary'} style={activeTemplate === 'inventory' ? { outline: '2px dashed var(--primary-color, #2563eb)', outlineOffset: '2px' } : undefined} onClick={() => onApplyTemplate('inventory')}>قالب مخزون</Button>
+          <Button type="button" variant={activeTemplate === 'accountant' ? 'primary' : 'secondary'} style={activeTemplate === 'accountant' ? { outline: '2px dashed var(--primary-color, #2563eb)', outlineOffset: '2px' } : undefined} onClick={() => onApplyTemplate('accountant')}>قالب محاسب</Button>
         </>
       ) : null}
       {!setupMode ? <Button type="button" variant="secondary" onClick={onCopyPermissions}>نسخ الصلاحيات</Button> : null}

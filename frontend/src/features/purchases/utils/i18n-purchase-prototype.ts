@@ -233,6 +233,8 @@ export const dict = {
   demo_cost_center: { ar: 'مشتريات تشغيلية', en: 'Operational Purchases' },
   demo_project: { ar: 'تجهيز فرع جديد', en: 'New Branch Setup' },
   demo_terms: { ar: 'نموذج مشتريات قياسي', en: 'Standard Purchasing Template' },
+  category: { ar: 'القسم', en: 'Category' },
+  select_category: { ar: 'اختر القسم', en: 'Select Category' },
 };
 
 import { useEffect } from 'react';

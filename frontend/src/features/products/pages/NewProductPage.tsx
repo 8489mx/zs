@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category, Product, ProductUnit, Supplier } from '@/types/domain';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
-import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useProductsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useProductsQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -333,12 +333,14 @@ export function NewProductPage() {
   const categoriesQuery = useCategoriesQuery();
   const suppliersQuery = useSuppliersQuery();
   const productsQuery = useProductsQuery();
+  const locationsQuery = useLocationsQuery();
 
   const defaultMinStock = Number(settingsQuery.data?.lowStockThreshold ?? 5);
   const allProducts = productsQuery.data || [];
 
   const rawCategories = categoriesQuery.data || [];
   const rawSuppliers = suppliersQuery.data || [];
+  const rawLocations = locationsQuery.data || [];
 
   // Sort alphabetically
   const categories = useMemo(
@@ -352,6 +354,7 @@ export function NewProductPage() {
 
   const categoryOptions = useMemo(() => categories.map((c) => ({ id: String(c.id), label: c.name })), [categories]);
   const supplierOptions = useMemo(() => suppliers.map((s) => ({ id: String(s.id), label: s.name })), [suppliers]);
+  const locationOptions = useMemo(() => rawLocations.map((l: any) => ({ id: String(l.id), label: l.name })), [rawLocations]);
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -398,8 +401,9 @@ export function NewProductPage() {
   const watchedFashionColors = form.watch('fashionColors');
   const watchedFashionSizes = form.watch('fashionSizes');
   const watchedVariantStock = Number(form.watch('variantStock') || 0);
-  const watchedCategoryId = form.watch('categoryId');
-  const watchedSupplierId = form.watch('supplierId');
+  const watchedCategoryId = useWatch({ control: form.control, name: 'categoryId' });
+  const watchedSupplierId = useWatch({ control: form.control, name: 'supplierId' });
+  const watchedWarehouseId = useWatch({ control: form.control, name: 'warehouseId' });
   const watchedCostPrice = form.watch('costPrice');
   const usesVariantBuilder = watchedItemKind === 'fashion' || groupedEntryEnabled;
 
@@ -524,7 +528,7 @@ export function NewProductPage() {
     mutation.mutate({ ...values, itemKind: watchedItemKind, units, fashionVariantRows, groupedEntryEnabled: usesVariantBuilder });
   });
 
-  const isFormDisabled = mutation.isPending || settingsQuery.isLoading || categoriesQuery.isLoading || suppliersQuery.isLoading;
+  const isFormDisabled = mutation.isPending || settingsQuery.isLoading || categoriesQuery.isLoading || suppliersQuery.isLoading || locationsQuery.isLoading;
 
   useAppToolbar([
     { label: 'الرئيسية', to: '/' },
@@ -698,6 +702,19 @@ export function NewProductPage() {
             <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
             <Field label="سعر الجملة"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} /></Field>
             {!usesVariantBuilder ? <Field label="المخزون الافتتاحي"><input className="purchase-prototype-field-input" type="number" {...form.register('stock')} disabled={isFormDisabled} /></Field> : null}
+            {!usesVariantBuilder ? (
+              <div className="field">
+                <label>المخزن (للرصيد الافتتاحي)</label>
+                <ComboboxSelect
+                  value={watchedWarehouseId || ''}
+                  onChange={(v) => form.setValue('warehouseId', v, { shouldDirty: true })}
+                  options={locationOptions}
+                  emptyLabel="اختر المخزن"
+                  placeholder="ابحث..."
+                  disabled={isFormDisabled}
+                />
+              </div>
+            ) : null}
             <Field label="الحد الأدنى للمخزون">
               <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
             </Field>
