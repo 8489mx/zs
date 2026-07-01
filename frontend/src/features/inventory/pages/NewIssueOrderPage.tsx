@@ -158,7 +158,7 @@ export function NewIssueOrderPage() {
 
       const successfulTransfers: any[] = [];
 
-      await Promise.all(
+      const results = await Promise.allSettled(
         Object.entries(groupedLines).map(async ([locId, items]) => {
           const res = await inventoryApi.createStockTransfer({
             fromLocationId: Number(locId),
@@ -185,18 +185,31 @@ export function NewIssueOrderPage() {
         })
       );
       
+      const errors = results
+        .filter(r => r.status === 'rejected')
+        .map(r => (r as PromiseRejectedResult).reason?.message || 'حدث خطأ أثناء اعتماد إذن الصرف');
+
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
       queryClient.invalidateQueries({ queryKey: ['manager-actions'] });
       
+      if (errors.length > 0) {
+        setErrorMsg(errors.join('\\n'));
+        if (successfulTransfers.length === 0) {
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       if (successfulTransfers.length > 0) {
         setCreatedTransfers(successfulTransfers);
       } else {
         navigate('/inventory'); 
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setErrorMsg('حدث خطأ أثناء اعتماد إذن الصرف');
+      const msg = error?.message || 'حدث خطأ أثناء اعتماد إذن الصرف';
+      setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
     }

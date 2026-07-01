@@ -17,6 +17,7 @@ export const inventoryRouteModule: FeatureRouteModule = {
   navigation: [
     { key: 'inventory', label: 'المخزون', to: '/inventory', end: true },
     { key: 'inventory-warehouses', label: 'المخازن', to: '/inventory/warehouses' },
-    { key: 'inventory-issue-order-new', label: 'إذن صرف جديد', to: '/inventory/issue-order/new' }
+    { key: 'inventory-issue-order-new', label: 'إذن صرف جديد', to: '/inventory/issue-order/new' },
+    { key: 'inventory-issue-orders', label: 'سجل أذونات الصرف', to: '/inventory/transfers' }
   ]
 };
