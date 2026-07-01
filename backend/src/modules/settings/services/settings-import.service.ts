@@ -4,7 +4,7 @@ import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
-import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
+import { applyStockDelta, setScopedStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
@@ -486,24 +486,25 @@ export class SettingsImportService {
         const product = await productQuery.executeTakeFirst();
         if (!product) continue;
 
-        const currentStock = Number(product.stock_qty || 0);
-        const delta = qty - currentStock;
-        
-        if (delta === 0) continue;
-
         const branchId = toNumber(row.branchId || row.branch || 0) || null;
         const locationId = await this.ensureLocation(trx, cleanString(row.warehouseName || row.warehouse || row.store || ''), actor) || (toNumber(row.locationId || row.location || 0) || null);
-        const stockChange = await applyStockDelta(trx, { productId: Number(product.id), delta: delta, branchId, locationId, tenantId: scope.tenantId, accountId: scope.accountId });
+        
+        const stockChange = await setScopedStockQty(trx, { productId: Number(product.id), nextQty: qty, branchId, locationId, tenantId: scope.tenantId, accountId: scope.accountId });
+        
+        const actualDelta = stockChange.scopeAfter - stockChange.scopeBefore;
+        if (actualDelta === 0) continue;
+
         await trx.insertInto('stock_movements').values({
           product_id: Number(product.id),
           movement_type: 'opening_stock',
-          qty: Math.abs(delta),
+          qty: Math.abs(actualDelta),
           before_qty: stockChange.scopeBefore,
           after_qty: stockChange.scopeAfter,
           reason: 'inventory_adjustment',
-          note: 'تسوية رصيد من الاستيراد',
+          note: 'تسوية مخزون',
           reference_type: 'product',
-          reference_id: Number(product.id),
+          reference_id: product.id,
+          tenant_id: scope.tenantId,
           created_by: actor.userId,
           branch_id: branchId,
           location_id: locationId,

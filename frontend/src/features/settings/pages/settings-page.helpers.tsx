@@ -88,13 +88,44 @@ export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 
   if (kind === 'opening-stock') {
     try {
       const { http } = await import('@/lib/http');
+      
+      let locationsRes: any = { locations: [] };
+      let stocksRes: any = { stocks: [] };
+      try {
+        locationsRes = await http<any>('/api/locations');
+        stocksRes = await http<any>('/api/location-stocks');
+      } catch (e) {
+        console.warn('Could not fetch location stocks for template', e);
+      }
+
+      const locationMap = new Map(
+        (locationsRes.locations || []).map((loc: any) => [String(loc.id), loc.name || ''])
+      );
+
+      const stocksByProduct = new Map<string, any[]>();
+      for (const st of stocksRes.stocks || []) {
+        const pId = String(st.productId);
+        if (!stocksByProduct.has(pId)) stocksByProduct.set(pId, []);
+        stocksByProduct.get(pId)!.push(st);
+      }
+
       let page = 1;
       const allRows: any[][] = [];
       while (true) {
         const res = await http<any>(`/api/products?page=${page}&pageSize=1000`);
         const items = res.products || [];
         for (const p of items) {
-          allRows.push([p.barcode || '', p.name || '', p.stock || 0, 'المخزن الرئيسي']);
+          const pId = String(p.id);
+          const pStocks = stocksByProduct.get(pId);
+          
+          if (pStocks && pStocks.length > 0) {
+            for (const st of pStocks) {
+              const locName = locationMap.get(String(st.locationId)) || 'المخزن الرئيسي';
+              allRows.push([p.barcode || '', p.name || '', st.qty || 0, locName]);
+            }
+          } else {
+            allRows.push([p.barcode || '', p.name || '', p.stock || 0, 'المخزن الرئيسي']);
+          }
         }
         if (items.length < 1000) break;
         page += 1;

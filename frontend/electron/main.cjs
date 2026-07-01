@@ -30,6 +30,19 @@ const createWindow = () => {
 };
 
 app.whenReady().then(async () => {
+  // Show Splash Screen Immediately
+  const splash = new BrowserWindow({
+    width: 400,
+    height: 300,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    icon: path.join(__dirname, '../public/logo_cropped.png'),
+    webPreferences: { nodeIntegration: false, contextIsolation: true }
+  });
+  splash.loadFile(path.join(__dirname, 'splash.html'));
+  splash.center();
+
   // Start the bundled Postgres Server
   const PostgresManager = require('./postgres-manager.cjs');
   const pgManager = new PostgresManager(app.getAppPath(), app.isPackaged);
@@ -136,6 +149,13 @@ app.whenReady().then(async () => {
   await new Promise(resolve => setTimeout(resolve, 3000));
 
   createWindow();
+
+  // Close the splash screen once main window is visible
+  setTimeout(() => {
+    if (splash && !splash.isDestroyed()) {
+      splash.close();
+    }
+  }, 1000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

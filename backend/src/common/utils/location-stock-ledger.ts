@@ -302,6 +302,9 @@ export async function setScopedStockQty(db: Kysely<Database>, params: StockSetPa
     const unassigned = await ensureUnassignedBalance(db, state);
     const scopeBefore = roundStockQty(unassigned.qty);
     const delta = roundStockQty(nextQty - scopeBefore);
+    if (delta === 0) {
+      return { globalBefore: state.globalQty, globalAfter: state.globalQty, scopeBefore, scopeAfter: nextQty };
+    }
     const globalBefore = state.globalQty;
     const globalAfter = roundStockQty(globalBefore + delta);
     ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
@@ -313,6 +316,9 @@ export async function setScopedStockQty(db: Kysely<Database>, params: StockSetPa
   const location = await ensureLocationBalance(db, state, params.locationId, params.branchId ?? null);
   const scopeBefore = roundStockQty(location.qty);
   const delta = roundStockQty(nextQty - scopeBefore);
+  if (delta === 0) {
+    return { globalBefore: state.globalQty, globalAfter: state.globalQty, scopeBefore, scopeAfter: nextQty };
+  }
   const globalBefore = state.globalQty;
   const globalAfter = roundStockQty(globalBefore + delta);
   ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
