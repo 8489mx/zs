@@ -181,7 +181,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     : undefined;
   const cancelSelectedTransfers = canAdjustInventory && state.selectedTransferIds.length
     ? () => {
-      const selected = visibleTransfers.filter((transfer) => state.selectedTransferIds.includes(String(transfer.id)) && transfer.status === 'sent');
+      const selected = visibleTransfers.filter((transfer) => state.selectedTransferIds.includes(String(transfer.id)) && ['sent', 'received'].includes(transfer.status));
       if (selected.length) state.setTransferActionConfirm({ transfers: selected, action: 'cancel' });
     }
     : undefined;

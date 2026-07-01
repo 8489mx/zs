@@ -156,9 +156,9 @@ export function TransferMonitorCard({
                   cell: (transfer) => (
                     <div className="actions compact-actions">
                       <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onSelectTransfer(String(transfer.id)); }}>التفاصيل</Button>
-                      {transfer.status === 'sent' ? (
+                      {['sent', 'received'].includes(transfer.status) ? (
                         <>
-                          {onReceiveTransfer ? <Button type="button" variant="success" onClick={(event) => { event.stopPropagation(); onReceiveTransfer(transfer); }}>استلام</Button> : null}
+                          {onReceiveTransfer && transfer.status === 'sent' ? <Button type="button" variant="success" onClick={(event) => { event.stopPropagation(); onReceiveTransfer(transfer); }}>استلام</Button> : null}
                           {onCancelTransfer ? <Button type="button" variant="danger" onClick={(event) => { event.stopPropagation(); onCancelTransfer(transfer); }}>إلغاء</Button> : null}
                         </>
                       ) : null}
@@ -200,9 +200,9 @@ export function TransferMonitorCard({
                   <Button variant="secondary" onClick={onCopyTransferDetails}>نسخ التفاصيل</Button>
                   <Button variant="secondary" onClick={() => onPrintTransfer(selectedTransfer, 'a4')}>طباعة (A4)</Button>
                   <Button variant="secondary" onClick={() => onPrintTransfer(selectedTransfer, 'receipt')}>طباعة ريسيت</Button>
-                  {selectedTransfer.status === 'sent' ? (
+                  {['sent', 'received'].includes(selectedTransfer.status) ? (
                     <>
-                      {onReceiveTransfer ? <Button variant="success" onClick={() => onReceiveTransfer(selectedTransfer)}>استلام الآن</Button> : null}
+                      {onReceiveTransfer && selectedTransfer.status === 'sent' ? <Button variant="success" onClick={() => onReceiveTransfer(selectedTransfer)}>استلام الإذن</Button> : null}
                       {onCancelTransfer ? <Button variant="danger" onClick={() => onCancelTransfer(selectedTransfer)}>إلغاء التحويل</Button> : null}
                     </>
                   ) : null}

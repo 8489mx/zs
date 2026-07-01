@@ -135,7 +135,7 @@ export class InventoryTransferService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
-      if ((transfer.status || 'sent') !== 'sent') throw new AppError('Only sent transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
+      if (!['sent', 'received'].includes(transfer.status || 'sent')) throw new AppError('Only sent or received transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
       const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).execute();
       for (const item of items) {
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.from_branch_id, locationId: transfer.from_location_id };
