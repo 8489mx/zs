@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { invalidateReturnsDomain } from '@/app/query-invalidation';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { returnsApi } from '@/features/returns/api/returns.api';
@@ -23,13 +24,22 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 
 export function ReturnsWorkspace() {
+  const location = useLocation();
+  const isPurchaseMode = location.pathname.includes('purchase-returns');
+
   const [search, setSearch] = useState('');
-  const [viewFilter, setViewFilter] = useState<'all' | 'sales' | 'purchase' | 'today'>('all');
+  const [viewFilter, setViewFilter] = useState<'all' | 'sales' | 'purchase' | 'today'>(isPurchaseMode ? 'purchase' : 'all');
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [selectedReturnId, setSelectedReturnId] = useState('');
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [confirmReturn, setConfirmReturn] = useState(false);
-  const [form, setForm] = useState<ReturnFormState>(createEmptyReturnForm());
+  const [form, setForm] = useState<ReturnFormState>(() => {
+    const defaultForm = createEmptyReturnForm();
+    if (isPurchaseMode) {
+      defaultForm.type = 'purchase';
+    }
+    return defaultForm;
+  });
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -90,6 +100,18 @@ export function ReturnsWorkspace() {
       setPage(1);
     }
   }, [rows, selectedReturnId]);
+
+  useEffect(() => {
+    setViewFilter(isPurchaseMode ? 'purchase' : 'all');
+    setForm(current => {
+      const nextType = isPurchaseMode ? 'purchase' : 'sale';
+      if (current.type !== nextType) {
+        return { ...createEmptyReturnForm(), type: nextType };
+      }
+      return current;
+    });
+    setSelectedItems({});
+  }, [isPurchaseMode]);
 
   const createMutation = useMutation({
     mutationFn: ({ managerPin, reason }: { managerPin: string; reason: string }) => returnsApi.create({

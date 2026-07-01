@@ -32,16 +32,21 @@ interface InventoryActionsPanelProps {
   isCatalogError: boolean;
   catalogError?: unknown;
   canManageInventory?: boolean;
+  locationStocks?: { productId: string; locationId: string; qty: number }[];
 }
 
-const ADJUSTMENT_DEFAULTS: InventoryAdjustmentInput = {
-  productId: '',
-  actionType: 'adjust',
-  qty: 0,
-  reason: 'inventory_count',
-  note: '',
-  managerPin: ''
-};
+function buildAdjustmentDefaults(locations: Location[], defaultLocId?: string, defaultBranchId?: string): InventoryAdjustmentInput {
+  return {
+    productId: '',
+    actionType: 'adjust',
+    qty: 0,
+    reason: 'جرد مخزني',
+    note: '',
+    branchId: defaultBranchId ?? '',
+    locationId: defaultLocId ?? (SINGLE_STORE_MODE ? (locations[0]?.id || '') : ''),
+    managerPin: ''
+  };
+}
 
 function buildDamagedDefaults(locations: Location[]): DamagedStockInput {
   return {
@@ -66,7 +71,7 @@ function hasDamagedDraft(values: DamagedStockInput, locations: Location[]): bool
     || Boolean(String(values.managerPin || '').trim());
 }
 
-export function InventoryActionsPanel({ products, selectedProduct = null, selectedProductToken = 0, branches, locations, isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
+export function InventoryActionsPanel({ products, selectedProduct = null, selectedProductToken = 0, branches, locations, locationStocks = [], isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
   const adjustmentDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const damagedDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const lastPreparedAdjustmentTokenRef = useRef(0);
@@ -78,7 +83,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
 
   const adjustmentForm = useForm<InventoryAdjustmentInput, undefined, InventoryAdjustmentOutput>({
     resolver: zodResolver(inventoryAdjustmentSchema),
-    defaultValues: ADJUSTMENT_DEFAULTS
+    defaultValues: buildAdjustmentDefaults(locationList)
   });
   const damagedForm = useForm<DamagedStockInput, undefined, DamagedStockOutput>({
     resolver: zodResolver(damagedStockSchema),
@@ -90,7 +95,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
     [adjustmentProductId, productById],
   );
 
-  const resetAdjustmentDefaults = useCallback(() => adjustmentForm.reset(ADJUSTMENT_DEFAULTS), [adjustmentForm]);
+  const resetAdjustmentDefaults = useCallback(() => adjustmentForm.reset(buildAdjustmentDefaults(locationList)), [adjustmentForm, locationList]);
   const resetDamagedDefaults = useCallback(() => damagedForm.reset(buildDamagedDefaults(locationList)), [damagedForm, locationList]);
 
   const adjustmentMutation = useInventoryAdjustmentMutation(resetAdjustmentDefaults);
@@ -101,7 +106,10 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
     if (!damagedForm.getValues('locationId') && locationList[0]?.id) {
       damagedForm.setValue('locationId', locationList[0].id);
     }
-  }, [damagedForm, locationList]);
+    if (!adjustmentForm.getValues('locationId') && locationList[0]?.id) {
+      adjustmentForm.setValue('locationId', locationList[0].id);
+    }
+  }, [damagedForm, adjustmentForm, locationList]);
 
 
   const scrollDisclosureToView = useCallback((details: HTMLDetailsElement | null) => {
@@ -116,17 +124,32 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
     if (lastPreparedAdjustmentTokenRef.current === selectedProductToken) return;
     lastPreparedAdjustmentTokenRef.current = selectedProductToken;
     const recommendedActionType = Number(selectedProduct.stock || 0) <= Number(selectedProduct.minStock || 0) ? 'add' : 'adjust';
+
+    let defaultLocId = '';
+    let defaultBranchId = '';
+    if (!SINGLE_STORE_MODE) {
+      const pStocks = locationStocks.filter(s => String(s.productId) === String(selectedProduct.id) && s.qty > 0);
+      const stockRec = pStocks.length > 0 ? pStocks[0] : locationStocks.find(s => String(s.productId) === String(selectedProduct.id));
+      if (stockRec) {
+        defaultLocId = stockRec.locationId;
+        const loc = locationList.find(l => String(l.id) === String(defaultLocId));
+        if (loc) {
+          defaultBranchId = loc.branchId ? String(loc.branchId) : '';
+        }
+      }
+    }
+
     adjustmentForm.reset({
-      ...ADJUSTMENT_DEFAULTS,
+      ...buildAdjustmentDefaults(locationList, defaultLocId, defaultBranchId),
       productId: String(selectedProduct.id || ''),
       actionType: recommendedActionType,
-      qty: recommendedActionType === 'adjust' ? Number(selectedProduct.stock || 0) : 1,
-      reason: recommendedActionType === 'add' ? 'restock' : 'inventory_count',
+      qty: recommendedActionType === 'adjust' ? Number(selectedProduct.stock || 0) : 0,
+      reason: 'جرد مخزني',
     });
     adjustmentMutation.reset();
     if (adjustmentDisclosureRef.current && !adjustmentDisclosureRef.current.open) adjustmentDisclosureRef.current.open = true;
     scrollDisclosureToView(adjustmentDisclosureRef.current);
-  }, [selectedProduct, selectedProductToken, adjustmentForm, adjustmentMutation, scrollDisclosureToView]);
+  }, [selectedProduct, selectedProductToken, adjustmentForm, adjustmentMutation, scrollDisclosureToView, locationList]);
   const damagedValues = damagedForm.watch();
   const adjustmentDraft = adjustmentForm.formState.isDirty;
   const damagedDraft = hasDamagedDraft(damagedValues, locationList);
@@ -210,10 +233,18 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 <InventoryProductPicker
                   products={productList}
                   value={adjustmentProductId}
-                  onChange={(productId) => adjustmentForm.setValue('productId', productId, {
-                    shouldDirty: true,
-                    shouldValidate: true
-                  })}
+                  onChange={(productId) => {
+                    adjustmentForm.setValue('productId', productId, { shouldDirty: true, shouldValidate: true });
+                    const pStocks = locationStocks.filter(s => String(s.productId) === String(productId) && s.qty > 0);
+                    const stockRec = pStocks.length > 0 ? pStocks[0] : locationStocks.find(s => String(s.productId) === String(productId));
+                    if (stockRec && !SINGLE_STORE_MODE) {
+                      adjustmentForm.setValue('locationId', stockRec.locationId, { shouldDirty: true });
+                      const loc = locationList.find(l => String(l.id) === String(stockRec.locationId));
+                      if (loc && loc.branchId) {
+                        adjustmentForm.setValue('branchId', String(loc.branchId), { shouldDirty: true });
+                      }
+                    }
+                  }}
                   disabled={adjustmentMutation.isPending || !canManageInventory}
                   showStock
                   showPrice={false}
@@ -221,14 +252,41 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 {selectedAdjustmentProduct ? <div className="muted small">تم تجهيز الصنف المحدد من جدول المتابعة لعمل تسوية أو إضافة/خصم سريع مباشرة.</div> : null}
               </Field>
               <Field label="نوع الحركة">
-                <select {...adjustmentForm.register('actionType')} disabled={adjustmentMutation.isPending || !canManageInventory}>
+                <select 
+                  {...adjustmentForm.register('actionType')} 
+                  disabled={adjustmentMutation.isPending || !canManageInventory}
+                  onChange={(e) => {
+                    adjustmentForm.register('actionType').onChange(e);
+                    if (e.target.value === 'adjust') {
+                      adjustmentForm.setValue('qty', Number(selectedAdjustmentProduct?.stock || 0));
+                    } else {
+                      adjustmentForm.setValue('qty', 0);
+                    }
+                  }}
+                >
                   <option value="adjust">تسوية إلى كمية نهائية</option>
                   <option value="add">إضافة كمية</option>
                   <option value="deduct">خصم كمية</option>
                 </select>
               </Field>
               <Field label="الكمية" error={adjustmentForm.formState.errors.qty?.message}><input type="number" min="0" step="0.001" {...adjustmentForm.register('qty')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
-              <Field label="السبب" error={adjustmentForm.formState.errors.reason?.message}><input {...adjustmentForm.register('reason')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
+              <Field label="السبب" error={adjustmentForm.formState.errors.reason?.message}><input {...adjustmentForm.register('reason')} disabled={adjustmentMutation.isPending || !canManageInventory} placeholder="مثال: جرد مخزني / توريد إضافي" /></Field>
+              {!SINGLE_STORE_MODE ? <Field label="الفرع">
+                <select {...adjustmentForm.register('branchId')} disabled={adjustmentMutation.isPending || !canManageInventory}>
+                  <option value="">بدون فرع محدد</option>
+                  {branchList.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                </select>
+              </Field> : null}
+              {SINGLE_STORE_MODE ? (
+                <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field>
+              ) : (
+                <Field label="المخزن">
+                  <select {...adjustmentForm.register('locationId')} disabled={adjustmentMutation.isPending || !canManageInventory}>
+                    <option value="">بدون مخزن محدد</option>
+                    {locationList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+                  </select>
+                </Field>
+              )}
               <Field label="ملاحظات"><textarea rows={3} {...adjustmentForm.register('note')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
               <Field label="رمز اعتماد المدير" error={adjustmentForm.formState.errors.managerPin?.message}><input type="password" {...adjustmentForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
               {!canManageInventory ? <div className="muted small">هذا الحساب يملك صلاحية متابعة المخزون فقط. تنفيذ التسويات والتالف يتطلب canAdjustInventory.</div> : null}
@@ -259,10 +317,18 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 <InventoryProductPicker
                   products={productList}
                   value={damagedProductId}
-                  onChange={(productId) => damagedForm.setValue('productId', productId, {
-                    shouldDirty: true,
-                    shouldValidate: true
-                  })}
+                  onChange={(productId) => {
+                    damagedForm.setValue('productId', productId, { shouldDirty: true, shouldValidate: true });
+                    const pStocks = locationStocks.filter(s => String(s.productId) === String(productId) && s.qty > 0);
+                    const stockRec = pStocks.length > 0 ? pStocks[0] : locationStocks.find(s => String(s.productId) === String(productId));
+                    if (stockRec && !SINGLE_STORE_MODE) {
+                      damagedForm.setValue('locationId', stockRec.locationId, { shouldDirty: true });
+                      const loc = locationList.find(l => String(l.id) === String(stockRec.locationId));
+                      if (loc && loc.branchId) {
+                        damagedForm.setValue('branchId', String(loc.branchId), { shouldDirty: true });
+                      }
+                    }
+                  }}
                   disabled={damagedMutation.isPending || !canManageInventory}
                   showStock
                   showPrice={false}

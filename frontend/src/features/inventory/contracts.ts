@@ -8,6 +8,8 @@ export function buildInventoryAdjustmentPayload(values: InventoryAdjustmentOutpu
     qty: parsed.qty,
     reason: parsed.reason,
     note: parsed.note || '',
+    branchId: parsed.branchId || null,
+    locationId: parsed.locationId || null,
     managerPin: parsed.managerPin
   };
 }

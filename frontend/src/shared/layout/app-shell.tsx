@@ -49,6 +49,7 @@ const iconToneMap: Record<string, IconTone> = {
   customers: { bg: 'linear-gradient(135deg, #ffe4e6, #fecdd3)', border: '#fda4af', fg: '#be123c', glow: 'rgba(244, 63, 94, 0.2)' },
   accounts: { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
   returns: { bg: 'linear-gradient(135deg, #ffedd5, #fed7aa)', border: '#fdba74', fg: '#c2410c', glow: 'rgba(249, 115, 22, 0.22)' },
+  'purchase-returns': { bg: 'linear-gradient(135deg, #ffedd5, #fed7aa)', border: '#fdba74', fg: '#c2410c', glow: 'rgba(249, 115, 22, 0.22)' },
   reports: { bg: 'linear-gradient(135deg, #e0e7ff, #c7d2fe)', border: '#a5b4fc', fg: '#4338ca', glow: 'rgba(99, 102, 241, 0.2)' },
   audit: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#15803d', glow: 'rgba(34, 197, 94, 0.2)' },
   treasury: { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#047857', glow: 'rgba(16, 185, 129, 0.22)' },
@@ -74,6 +75,7 @@ const iconPathMap: Record<string, string> = {
   'cash-drawer': 'M5 8h14l1 5H4l1-5zM4 13h16v6H4v-6zM8 16h8',
   sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
   returns: 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
+  'purchase-returns': 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
   customers: 'M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M17 14a5 5 0 0 1 5 5',
   reports: 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
   purchases: 'M6 7h15l-2 8H8L6 3H3M9 20h.01M18 20h.01',
@@ -154,13 +156,14 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases-new', 'purchases', 'returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory-issue-order-new', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'purchases-new', 'purchases', 'returns', 'purchase-returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory-issue-order-new', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: t('sidebar.dashboard'),
       'cash-drawer': t('sidebar.cash-drawer'),
       pos: t('sidebar.pos'),
       sales: t('sidebar.sales'),
-      returns: t('sidebar.returns'),
+      returns: 'مرتجعات المبيعات',
+      'purchase-returns': 'مرتجعات المشتريات',
       customers: t('sidebar.customers'),
       reports: t('sidebar.reports'),
       purchases: 'سجل فواتير المشتريات',
@@ -199,7 +202,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
     { key: 'sales-group', label: t('sidebar.sales-group'), itemKeys: ['sales', 'returns', 'customers', 'reports'] },
-    { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases-new', 'purchases', 'suppliers'] },
+    { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'] },
     { key: 'inventory-group', label: t('sidebar.inventory-group'), itemKeys: ['inventory-issue-order-new', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'treasury'] },
     { key: 'manufacturing-group', label: t('sidebar.manufacturing-group'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
     { key: 'services-group', label: t('sidebar.services-group'), itemKeys: ['services', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },

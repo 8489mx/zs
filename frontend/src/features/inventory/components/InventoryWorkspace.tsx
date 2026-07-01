@@ -89,6 +89,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             products={inventory.products}
             branches={inventory.branches}
             locations={inventory.locations}
+            locationStocks={Array.isArray(inventory.actionCatalog.locationStocksQuery.data) ? inventory.actionCatalog.locationStocksQuery.data : []}
             isCatalogLoading={inventory.actionCatalog.isLoading}
             isCatalogError={inventory.actionCatalog.isError}
             catalogError={inventory.actionCatalog.error}

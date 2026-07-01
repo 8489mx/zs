@@ -4,9 +4,11 @@ export const inventoryAdjustmentSchema = z.object({
   productId: z.string().trim().min(1, 'اختر الصنف'),
   actionType: z.enum(['adjust', 'add', 'deduct']),
   qty: z.coerce.number().min(0, 'الكمية يجب أن تكون صفرًا أو أكبر'),
-  reason: z.string().trim().min(1, 'حدد سبب الحركة'),
+  reason: z.string().trim().min(1, 'السبب مطلوب إدخاله'),
   note: z.string().trim().optional().default(''),
-  managerPin: z.string().trim().min(1, 'أدخل كود المدير')
+  branchId: z.string().trim().optional().default(''),
+  locationId: z.string().trim().optional().default(''),
+  managerPin: z.string().trim().min(1, 'رمز مرور المدير مطلوب')
 });
 
 export const damagedStockSchema = z.object({
