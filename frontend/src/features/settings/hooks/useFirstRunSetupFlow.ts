@@ -91,7 +91,7 @@ export function buildFirstRunSetupFlowState({
   users,
   settings,
 }: BuildFirstRunSetupFlowStateInput): FirstRunSetupFlowState {
-  const enabled = user?.role === 'super_admin' || user?.permissions?.includes('settings') === true || user?.permissions?.includes('canManageSettings') === true;
+  const enabled = user?.role === 'super_admin';
   const saasOrTrial = isSaasOrTrialContext(tenant, deploymentMode);
   const operationalAdmins = users.filter((candidate) => candidate.isActive !== false && candidate.role === 'admin');
   const resolvedStoreName = String(settings?.storeName || tenant?.businessName || sessionStoreName || '').trim();
@@ -211,8 +211,8 @@ export function useFirstRunSetupFlow() {
   const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode || null);
   const sessionStoreName = useAuthStore((state) => state.storeName);
 
-  const enabled = user?.role === 'super_admin' || user?.permissions?.includes('settings') === true || user?.permissions?.includes('canManageSettings') === true;
-  const usersQueryEnabled = enabled && user?.role === 'super_admin';
+  const enabled = user?.role === 'super_admin';
+  const usersQueryEnabled = enabled;
 
   const [branchesQuery, locationsQuery, usersQuery, settingsQuery] = useQueries({
     queries: [
