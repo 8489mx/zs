@@ -46,7 +46,9 @@ export function NewIssueOrderPage() {
   
   const productOptions = products
     .filter(p => {
-      if (fromLocationId === 'all') return true;
+      if (fromLocationId === 'all') {
+        return stocks.some(s => String(s.productId) === String(p.id) && s.qty > 0);
+      }
       const productStock = stocks.find(s => String(s.productId) === String(p.id) && String(s.locationId) === String(fromLocationId));
       return productStock && productStock.qty > 0;
     })
@@ -81,7 +83,32 @@ export function NewIssueOrderPage() {
 
   const updateLine = (id: number, field: keyof LineItem, value: any) => {
     setLines(prevLines => {
-      let newLines = prevLines.map(l => l.id === id ? { ...l, [field]: value } : l);
+      const lineToUpdate = prevLines.find(l => l.id === id);
+      let actualValue = value;
+
+      if (field === 'qty' && lineToUpdate && lineToUpdate.productId) {
+        const val = Number(value);
+        let maxQty = 0;
+        const locId = lineToUpdate.fromLocationId && lineToUpdate.fromLocationId !== 'all' 
+          ? lineToUpdate.fromLocationId 
+          : (fromLocationId !== 'all' ? fromLocationId : null);
+          
+        if (locId) {
+          const locStock = stocks.find(s => String(s.productId) === String(lineToUpdate.productId) && String(s.locationId) === String(locId));
+          if (locStock) maxQty = locStock.qty;
+        } else {
+          maxQty = stocks.filter(s => String(s.productId) === String(lineToUpdate.productId)).reduce((acc, s) => acc + s.qty, 0);
+        }
+
+        if (val > maxQty) {
+          setErrorMsg(`مخزون غير كافي. أقصى كمية متاحة للصرف هي ${maxQty}`);
+          actualValue = maxQty;
+        } else {
+          setErrorMsg('');
+        }
+      }
+
+      let newLines = prevLines.map(l => l.id === id ? { ...l, [field]: actualValue } : l);
       
       if (field === 'productId' && value) {
         const product = products.find(p => String(p.id) === String(value));
@@ -105,7 +132,11 @@ export function NewIssueOrderPage() {
         }
 
         if (newLocationId) {
-           newLines = newLines.map(l => l.id === id ? { ...l, fromLocationId: newLocationId, fromLocationName: newLocationName } : l);
+           const bestStock = productStocks.sort((a, b) => b.qty - a.qty)[0];
+           const maxAvailable = bestStock ? bestStock.qty : 1;
+           const currentQty = lineToUpdate ? Number(lineToUpdate.qty || 1) : 1;
+           const newQty = Math.min(currentQty, maxAvailable);
+           newLines = newLines.map(l => l.id === id ? { ...l, fromLocationId: newLocationId, fromLocationName: newLocationName, qty: newQty } : l);
         }
 
         const isLast = newLines[newLines.length - 1].id === id;
@@ -117,7 +148,26 @@ export function NewIssueOrderPage() {
       if (field === 'fromLocationId' && value) {
         const loc = locationOptions.find(l => String(l.id) === String(value));
         if (loc) {
-          newLines = newLines.map(l => l.id === id ? { ...l, fromLocationName: loc.name } : l);
+          const newLocationId = String(value);
+          let maxQty = 0;
+          if (newLocationId !== 'all') {
+             const locStock = stocks.find(s => String(s.productId) === String(lineToUpdate?.productId) && String(s.locationId) === newLocationId);
+             if (locStock) maxQty = locStock.qty;
+          } else {
+             maxQty = stocks.filter(s => String(s.productId) === String(lineToUpdate?.productId)).reduce((acc, s) => acc + s.qty, 0);
+          }
+          
+          const currentQty = Number(lineToUpdate?.qty || 1);
+          let newQty = currentQty;
+          
+          if (lineToUpdate?.productId && currentQty > maxQty) {
+             setErrorMsg(`مخزون غير كافي في هذا المخزن. أقصى كمية متاحة هي ${maxQty}`);
+             newQty = maxQty;
+          } else {
+             setErrorMsg('');
+          }
+          
+          newLines = newLines.map(l => l.id === id ? { ...l, fromLocationName: loc.name, qty: newQty } : l);
         }
       }
 
