@@ -146,16 +146,45 @@ app.whenReady().then(async () => {
   });
 
   // Wait for backend to be ready before opening window
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  const net = require('net');
+  const waitForBackend = () => {
+    return new Promise((resolve) => {
+      let attempts = 0;
+      const ping = () => {
+        attempts++;
+        if (attempts > 150) { // Max 30 seconds wait
+          return resolve(); 
+        }
+        const socket = new net.Socket();
+        socket.setTimeout(1000);
+        socket.on('connect', () => {
+          socket.destroy();
+          resolve();
+        });
+        socket.on('error', () => {
+          socket.destroy();
+          setTimeout(ping, 200);
+        });
+        socket.on('timeout', () => {
+          socket.destroy();
+          setTimeout(ping, 200);
+        });
+        socket.connect(3001, '127.0.0.1');
+      };
+      ping();
+    });
+  };
+
+  await waitForBackend();
 
   createWindow();
 
-  // Close the splash screen once main window is visible
+  // Close the splash screen shortly after main window is visible
   setTimeout(() => {
     if (splash && !splash.isDestroyed()) {
       splash.close();
     }
-  }, 1000);
+  }, 300);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
