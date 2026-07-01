@@ -137,6 +137,12 @@ export class UpsertProductDto {
   @Min(1)
   supplierId?: number;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  warehouseId?: number;
+
   @Type(() => Number)
   @IsNumber()
   @Min(0)
@@ -244,4 +250,5 @@ export type NormalizedUpsertProduct = {
   customerPrices: NormalizedProductCustomerPrice[];
   fashionVariants: NormalizedFashionVariant[];
   stock?: number;
+  warehouseId?: number;
 };

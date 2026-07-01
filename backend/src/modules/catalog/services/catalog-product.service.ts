@@ -853,7 +853,8 @@ export class CatalogProductService {
       offers,
       customerPrices,
       fashionVariants,
-      ...(payload.stock !== undefined && payload.stock !== null ? { stock: Number(payload.stock || 0) } : {}),
+      stock: payload.stock != null ? Number(payload.stock) : undefined,
+      warehouseId: payload.warehouseId ? Number(payload.warehouseId) : undefined,
     };
   }
 
@@ -1077,7 +1078,7 @@ export class CatalogProductService {
         const productId = Number(result.id);
         await this.replaceProductRelations(trx, productId, draft, actor);
         if (initialStockQty > 0) {
-          await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: null, qty: initialStockQty, ...this.tenantFields(actor) } as any).execute();
+          await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: draft.warehouseId || null, qty: initialStockQty, ...this.tenantFields(actor) } as any).execute();
         }
       }
     });
