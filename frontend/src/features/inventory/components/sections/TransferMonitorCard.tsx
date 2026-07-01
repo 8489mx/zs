@@ -73,20 +73,20 @@ export function TransferMonitorCard({
 
   return (
     <FormSection title="تحويلات مخزون قائمة" description="عرض table-first مع لوحة تفاصيل جانبية حتى تستطيع مراجعة البنود والجهات والحالة بسرعة قبل الاستلام أو الإلغاء." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onExportTransfers} disabled={!visibleTransfers.length}>تصدير Excel</Button><span className="nav-pill">{pendingTransfersCount} قيد الاستلام من {transferTotalItems}</span></div>}>
+      <div className="filter-chip-row" style={{ marginBottom: 16 }}>
+        <Button type="button" variant={transferFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('all')}>الكل</Button>
+        <Button type="button" variant={transferFilter === 'sent' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('sent')}>مرسلة</Button>
+        <Button type="button" variant={transferFilter === 'received' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('received')}>مستلمة</Button>
+        <Button type="button" variant={transferFilter === 'cancelled' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('cancelled')}>ملغاة</Button>
+      </div>
       <QueryFeedback
         isLoading={isLoading}
         isError={isError}
         error={error}
         isEmpty={!visibleTransfers.length}
-        loadingText="جاري تحميل تحويلات المخزون..."
-        emptyTitle="لا توجد تحويلات مخزون"
+        loadingText="جاري تحميل التحويلات..."
+        emptyTitle="لا توجد تحويلات مطابقة"
       >
-        <div className="filter-chip-row">
-          <Button type="button" variant={transferFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('all')}>الكل</Button>
-          <Button type="button" variant={transferFilter === 'sent' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('sent')}>مرسلة</Button>
-          <Button type="button" variant={transferFilter === 'received' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('received')}>مستلمة</Button>
-          <Button type="button" variant={transferFilter === 'cancelled' ? 'primary' : 'secondary'} onClick={() => onTransferFilterChange('cancelled')}>ملغاة</Button>
-        </div>
         <div className="section-stack">
           <div className="detail-table-panel">
             {selectedTransferIds.length ? (

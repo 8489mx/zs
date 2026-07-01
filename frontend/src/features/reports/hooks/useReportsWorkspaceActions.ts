@@ -109,6 +109,7 @@ export function useReportsWorkspaceActions({
     
     const transfers = allTransfers.filter(t => {
       if (!t.date) return false;
+      if (t.status === 'cancelled') return false;
       const tDate = new Date(t.date).toISOString().split('T')[0];
       return tDate >= submittedRange.from && tDate <= submittedRange.to;
     });

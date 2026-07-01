@@ -28,17 +28,19 @@ export class InventoryCountService {
   private tenantPredicate(auth: AuthContext, alias?: string) { const tenantId = this.tenantScope(auth).tenantId; return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`; }
   private tenantFields(auth: AuthContext) { const scope = this.tenantScope(auth); return { tenant_id: scope.tenantId, account_id: scope.accountId }; }
 
-  async listStockMovements(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    const rows = await this.db
-      .selectFrom('stock_movements as m')
-      .leftJoin('products as p', 'p.id', 'm.product_id')
-      .leftJoin('branches as b', 'b.id', 'm.branch_id')
-      .leftJoin('stock_locations as l', 'l.id', 'm.location_id')
-      .leftJoin('users as u', 'u.id', 'm.created_by')
-      .select(['m.id', 'm.product_id', 'm.movement_type', 'm.qty', 'm.before_qty', 'm.after_qty', 'm.reason', 'm.note', 'm.reference_type', 'm.reference_id', 'm.branch_id', 'm.location_id', 'm.created_at', 'p.name as product_name', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name'])
-      .where(this.tenantPredicate(auth, 'm'))
-      .orderBy('m.id desc')
-      .execute();
+    async listStockMovements(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+      const rows = await this.db
+        .selectFrom('stock_movements as m')
+        .leftJoin('products as p', 'p.id', 'm.product_id')
+        .leftJoin('branches as b', 'b.id', 'm.branch_id')
+        .leftJoin('stock_locations as l', 'l.id', 'm.location_id')
+        .leftJoin('users as u', 'u.id', 'm.created_by')
+        .leftJoin('stock_transfers as st', (join) => join.on('m.reference_type', '=', 'transfer').onRef('m.reference_id', '=', 'st.id'))
+        .select(['m.id', 'm.product_id', 'm.movement_type', 'm.qty', 'm.before_qty', 'm.after_qty', 'm.reason', 'm.note', 'm.reference_type', 'm.reference_id', 'm.branch_id', 'm.location_id', 'm.created_at', 'p.name as product_name', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name'])
+        .where(this.tenantPredicate(auth, 'm'))
+        .where((eb) => eb.or([eb('st.status', 'is', null), eb('st.status', '!=', 'cancelled')]))
+        .orderBy('m.id desc')
+        .execute();
     let mapped = rows.map(mapStockMovementRow);
     mapped = await this.scope.filterByScope(mapped, auth);
     const search = String(query.search || '').toLowerCase();
