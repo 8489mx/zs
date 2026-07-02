@@ -89,7 +89,6 @@ export function EmployeeProfileTopCards({
           <div className="field"><span>الحالة</span><strong>{statusLabel(employee?.status)}</strong></div>
           <div className="field"><span>القسم</span><strong>{fallbackText(employee?.departmentName)}</strong></div>
           <div className="field"><span>المسمى الوظيفي</span><strong>{fallbackText(employee?.jobTitleName)}</strong></div>
-          <div className="field"><span>الوظيفة/المنصب</span><strong>{fallbackText(employee?.positionName)}</strong></div>
           <div className="field"><span>تاريخ التعيين</span><strong>{fallbackText(employee?.hireDate)}</strong></div>
           <div className="field"><span>الرقم القومي</span><strong>{nationalIdMasked}</strong></div>
         </div>

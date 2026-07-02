@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -26,9 +26,22 @@ import {
 } from './dto/hr.dto';
 import { HrService } from './hr.service';
 
+
+
 @Controller('api/hr')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 export class HrController {
+
+  @Get('settings/payroll-policies')
+  async getPayrollPolicies(@Req() req: RequestWithAuth) {
+    return this.hr.getPayrollPoliciesConfig({ tenantId: req.authContext!.tenantId, userId: req.authContext!.userId } as any);
+  }
+
+  @Put('settings/payroll-policies')
+  async updatePayrollPolicies(@Req() req: RequestWithAuth, @Body() body: any) {
+    return this.hr.updatePayrollPolicies({ tenantId: req.authContext!.tenantId, userId: req.authContext!.userId } as any, body);
+  }
+
   constructor(private readonly hr: HrService) {}
 
   @Get('summary')
@@ -451,3 +464,4 @@ export class HrController {
     return this.hr.listLedger(employeeId, req.authContext!);
   }
 }
+

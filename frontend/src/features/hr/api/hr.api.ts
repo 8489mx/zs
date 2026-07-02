@@ -1,4 +1,4 @@
-import { http } from '@/lib/http';
+﻿import { http } from '@/lib/http';
 import { buildQueryString } from '@/lib/query-string';
 import type {
   HrCompensationPackage,
@@ -52,6 +52,8 @@ export interface HrListParams {
 }
 
 export const hrApi = {
+  getPayrollPolicies: () => api.get('/hr/settings/payroll-policies'),
+  updatePayrollPolicies: (data: any) => api.put('/hr/settings/payroll-policies', data),
   summary: async () => (await http<{ summary?: HrSummary }>('/api/hr/summary')).summary || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 },
   withdrawals: async (params: HrListParams = {}) => {
     const response = await http<WithdrawalsResponse>(`/api/hr/withdrawals${buildQueryString(params)}`);
@@ -126,6 +128,7 @@ export const hrApi = {
   payrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}`),
   recalculatePayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/recalculate`, { method: 'POST' }),
   reviewPayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/review`, { method: 'POST' }),
+  applyAttendanceDeductions: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/apply-attendance-deductions`, { method: 'POST' }),
   approvePayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/approve`, { method: 'POST' }),
   cancelPayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/cancel`, { method: 'POST' }),
   updatePayrollRunItem: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
@@ -134,3 +137,4 @@ export const hrApi = {
   reportsSummary: (params: HrListParams = {}) => http<HrReportsSummaryResponse>(`/api/hr/reports/summary${buildQueryString({ from: params.from, to: params.to, month: params.month })}`),
   importEmployees: (rows: unknown) => http<Record<string, unknown>>('/api/import/employees', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),
 };
+

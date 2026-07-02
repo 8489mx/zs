@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+﻿import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
@@ -201,6 +201,38 @@ function inclusiveDaysBetween(from: string, to: string): number {
 
 @Injectable()
 export class HrService {
+
+  async getPayrollPoliciesConfig(auth: any) {
+    return this.getPayrollPolicies(this.db, auth.tenantId);
+  }
+
+  async getPayrollPolicies(db: any, tenantId: string) {
+    const result = await sql<{ value: string }>`SELECT value FROM hr_hr_settings WHERE tenant_id = ${tenantId} AND key = 'payroll_policies' LIMIT 1`.execute(db);
+    const defaults = {
+      workHoursPerDay: 8,
+      latenessGracePeriodMinutes: 15,
+      latenessFirstTimePenalty: 0,
+      latenessRepeatPenaltyMultiplier: 1,
+      overtimeMultiplier: 1,
+    };
+    if (result.rows.length === 0) return defaults;
+    try {
+      return { ...defaults, ...JSON.parse(result.rows[0].value as string) };
+    } catch {
+      return defaults;
+    }
+  }
+
+  async updatePayrollPolicies(auth: any, policies: any) {
+    const jsonStr = JSON.stringify(policies);
+    await sql`
+      INSERT INTO hr_hr_settings (tenant_id, account_id, key, value, updated_by, updated_at)
+      VALUES (${auth.tenantId}, ${auth.tenantId}, 'payroll_policies', ${jsonStr}, ${auth.userId}, NOW())
+      ON CONFLICT (tenant_id, key) DO UPDATE SET value = ${jsonStr}, updated_by = ${auth.userId}, updated_at = NOW()
+    `.execute(this.db);
+    return { success: true };
+  }
+
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
@@ -272,7 +304,7 @@ export class HrService {
       LIMIT 1
     `.execute(db);
     if (duplicate.rows.length > 0) {
-      throw new AppError('رقم الموظف مستخدم بالفعل', 'HR_EMPLOYEE_NO_EXISTS', 409);
+      throw new AppError('ط±ظ‚ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط³طھط®ط¯ظ… ط¨ط§ظ„ظپط¹ظ„', 'HR_EMPLOYEE_NO_EXISTS', 409);
     }
   }
 
@@ -523,12 +555,12 @@ export class HrService {
     const scheduledCheckOutTime = normalizeTimeOnly(payload.scheduledCheckOutTime);
     const graceMinutes = Math.max(0, Math.floor(Number(payload.graceMinutes || 0)));
 
-    if (!firstName) throw new AppError('اسم الموظف مطلوب', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
+    if (!firstName) throw new AppError('ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (rawEmployeeNo && !employeeNo) {
-      throw new AppError('رقم الموظف يجب أن يكون أرقامًا فقط مثل 001', 'HR_EMPLOYEE_NO_INVALID', 400);
+      throw new AppError('ط±ظ‚ظ… ط§ظ„ظ…ظˆط¸ظپ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط£ط±ظ‚ط§ظ…ظ‹ط§ ظپظ‚ط· ظ…ط«ظ„ 001', 'HR_EMPLOYEE_NO_INVALID', 400);
     }
     if (nationalId && !/^\d{14}$/.test(nationalId)) {
-      throw new AppError('الرقم القومي يجب أن يكون 14 رقمًا.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
+      throw new AppError('ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† 14 ط±ظ‚ظ…ظ‹ط§.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
     }
 
     try {
@@ -565,7 +597,7 @@ export class HrService {
       }
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new AppError('رقم الموظف مستخدم بالفعل', 'HR_EMPLOYEE_NO_EXISTS', 409);
+        throw new AppError('ط±ظ‚ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط³طھط®ط¯ظ… ط¨ط§ظ„ظپط¹ظ„', 'HR_EMPLOYEE_NO_EXISTS', 409);
       }
       throw error;
     }
@@ -1258,7 +1290,7 @@ export class HrService {
       const dailyRate = baseSalary > 0 ? Number((baseSalary / 30).toFixed(2)) : 0;
       const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + (dailyRate * 0.5 * attendanceHalfDays)).toFixed(2));
       const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
-      const payrollReviewNotes = `مراجعة مقترحة: غياب ${attendanceAbsentDays} يوم، إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
+      const payrollReviewNotes = `ظ…ط±ط§ط¬ط¹ط© ظ…ظ‚طھط±ط­ط©: ط؛ظٹط§ط¨ ${attendanceAbsentDays} ظٹظˆظ…طŒ ط¥ط¬ط§ط²ط© ط¨ط¯ظˆظ† ظ…ط±طھط¨ ${unpaidLeaveDays} ظٹظˆظ….`;
       reviewByEmployeeId.set(employeeId, {
         attendanceAbsentDays,
         attendanceLateDays,
@@ -2533,3 +2565,4 @@ export class HrService {
     };
   }
 }
+

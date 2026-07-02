@@ -213,7 +213,6 @@ export function HrLeavesPage() {
         )}
       />
 
-      <HrLeavesWorkflowCard />
 
       {showCreate ? (
         <HrLeavesCreateRequestCard
@@ -232,17 +231,6 @@ export function HrLeavesPage() {
           }}
         />
       ) : null}
-
-      <FormSection title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
-        <div className="stats-grid">
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي الطلبات</span><strong>{summary.total}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>قيد المراجعة</span><strong>{summary.pending}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>معتمدة</span><strong>{summary.approved}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>مرفوضة</span><strong>{summary.rejected}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>إجازات غير مدفوعة</span><strong>{summary.unpaid}</strong></button>
-          <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
-        </div>
-      </FormSection>
 
       <FormSection title="فلاتر الطلبات" description="الفلاتر هنا تضيق النتائج الظاهرة فقط، ويمكن تصفيرها بزر واحد.">
         <div className="compact-actions" style={{ marginBottom: 12 }}>
@@ -289,6 +277,17 @@ export function HrLeavesPage() {
             <span>إلى تاريخ</span>
             <input type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
           </label>
+        </div>
+      </FormSection>
+
+      <FormSection title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
+        <div className="stats-grid">
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي الطلبات</span><strong>{summary.total}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>قيد المراجعة</span><strong>{summary.pending}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>معتمدة</span><strong>{summary.approved}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>مرفوضة</span><strong>{summary.rejected}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>إجازات غير مدفوعة</span><strong>{summary.unpaid}</strong></button>
+          <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
         </div>
       </FormSection>
 
@@ -367,6 +366,7 @@ export function HrLeavesPage() {
         </FormSection>
       ) : null}
 
+      <HrLeavesWorkflowCard />
       <HrLeavesOperationalNote />
       </main>
     </div>

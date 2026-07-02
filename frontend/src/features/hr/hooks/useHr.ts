@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { hrApi, type HrListParams } from '@/features/hr/api/hr.api';
 
@@ -19,6 +19,7 @@ function paramsKey(params: HrListParams) {
 export function useHrWorkspace(params: HrListParams) {
   const key = paramsKey(params);
   return {
+    updatePayrollPolicies: useMutation({ mutationFn: hrApi.updatePayrollPolicies, onSuccess: invalidate }),
     summary: useQuery({ queryKey: queryKeys.hrSummary, queryFn: hrApi.summary }),
     employees: useQuery({ queryKey: queryKeys.hrEmployees(key), queryFn: () => hrApi.employees(params), placeholderData: (previous) => previous }),
     departments: useQuery({ queryKey: queryKeys.hrMasterData('departments'), queryFn: () => hrApi.masterData('departments') }),
@@ -102,13 +103,17 @@ export function useHrReportsSummary(params: HrListParams = {}) {
   });
 }
 
+export function useHrPayrollPolicies() { return useQuery({ queryKey: ['hr', 'payroll-policies'], queryFn: hrApi.getPayrollPolicies }); }
+
 export function useHrMutations() {
   const queryClient = useQueryClient();
   const invalidate = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['hr', 'payroll-policies'] });
     await queryClient.invalidateQueries({ queryKey: ['hr'] });
   };
 
   return {
+    updatePayrollPolicies: useMutation({ mutationFn: hrApi.updatePayrollPolicies, onSuccess: invalidate }),
     saveEmployee: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveEmployee(payload, id), onSuccess: invalidate }),
     saveContact: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveContact(employeeId, payload, id), onSuccess: invalidate }),
     deactivateEmployee: useMutation({ mutationFn: (id: string) => hrApi.deactivateEmployee(id), onSuccess: invalidate }),
@@ -137,6 +142,7 @@ export function useHrMutations() {
     createPayrollRun: useMutation({ mutationFn: (payload: unknown) => hrApi.createPayrollRun(payload), onSuccess: invalidate }),
     recalculatePayrollRun: useMutation({ mutationFn: (id: string) => hrApi.recalculatePayrollRun(id), onSuccess: invalidate }),
     reviewPayrollRun: useMutation({ mutationFn: (id: string) => hrApi.reviewPayrollRun(id), onSuccess: invalidate }),
+    applyAttendanceDeductions: useMutation({ mutationFn: (id: string) => hrApi.applyAttendanceDeductions(id), onSuccess: invalidate }),
     approvePayrollRun: useMutation({ mutationFn: (id: string) => hrApi.approvePayrollRun(id), onSuccess: invalidate }),
     cancelPayrollRun: useMutation({ mutationFn: (id: string) => hrApi.cancelPayrollRun(id), onSuccess: invalidate }),
     updatePayrollRunItem: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.updatePayrollRunItem(id, payload), onSuccess: invalidate }),
@@ -144,3 +150,4 @@ export function useHrMutations() {
     deletePayrollAdjustment: useMutation({ mutationFn: (id: string) => hrApi.deletePayrollAdjustment(id), onSuccess: invalidate }),
   };
 }
+

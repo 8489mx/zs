@@ -1398,3 +1398,19 @@ export interface Database {
   manufacturing_work_orders: ManufacturingWorkOrderTable;
   manufacturing_wo_consumptions: ManufacturingWoConsumptionTable;
 }
+export interface HrEmployeeAdjustmentTable {
+  id: Generated<number>;
+  tenant_id: string;
+  employee_id: number;
+  adjustment_type: string;
+  amount_type: string;
+  amount: number;
+  date: ColumnType<Date, string | undefined, string | undefined>;
+  reason: string | null;
+  status: string;
+  applied_in_run_id: number | null;
+  created_by: number;
+  updated_by: number;
+  created_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}

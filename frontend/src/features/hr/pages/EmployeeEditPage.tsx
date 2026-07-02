@@ -158,11 +158,10 @@ export function EmployeeEditPage() {
             </div>
           </FormSection>
 
-          <FormSection title="البيانات الوظيفية" description="تعديل القسم والمسمى الوظيفي والوظيفة/المنصب.">
+          <FormSection title="البيانات الوظيفية" description="تعديل القسم والمسمى الوظيفي.">
             <div className="form-grid">
               <label className="field"><span>القسم</span><select value={draft.departmentId} onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}><option value="">اختيار</option>{departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
               <label className="field"><span>المسمى الوظيفي</span><select value={draft.jobTitleId} onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}><option value="">اختيار</option>{jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
-              <label className="field"><span>الوظيفة/المنصب</span><select value={draft.positionId} onChange={(e) => setDraft((current) => ({ ...current, positionId: e.target.value }))}><option value="">اختيار</option>{positions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
             </div>
             <div className="compact-actions" style={{ marginTop: 12 }}><Button type="button" variant="secondary" onClick={() => navigate('/hr/settings')}>إدارة الأقسام والمسميات</Button></div>
           </FormSection>
