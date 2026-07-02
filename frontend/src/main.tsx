@@ -6,13 +6,16 @@ import '@/styles/app.css';
 import '@/lib/i18n';
 
 import { ActivationGuard } from '@/shared/components/ActivationGuard';
+import { SilentErrorBoundary } from '@/core/components/SilentErrorBoundary';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AppProviders>
-      <ActivationGuard>
-        <AppRouter />
-      </ActivationGuard>
-    </AppProviders>
+    <SilentErrorBoundary>
+      <AppProviders>
+        <ActivationGuard>
+          <AppRouter />
+        </ActivationGuard>
+      </AppProviders>
+    </SilentErrorBoundary>
   </React.StrictMode>
 );

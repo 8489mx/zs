@@ -1,5 +1,6 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import pino, { Logger, LoggerOptions } from 'pino';
+import * as path from 'path';
 
 @Injectable()
 export class LoggerService implements NestLoggerService {
@@ -11,8 +12,22 @@ export class LoggerService implements NestLoggerService {
       base: undefined,
       timestamp: pino.stdTimeFunctions.isoTime,
     };
+    const logFilePath = path.join(process.cwd(), 'errors', 'system-errors.log');
+    
+    const transport = pino.transport({
+      targets: [
+        {
+          target: 'pino/file',
+          options: { destination: 1 }, // stdout
+        },
+        {
+          target: 'pino/file',
+          options: { destination: logFilePath, mkdir: true },
+        },
+      ],
+    });
 
-    this.logger = pino(options);
+    this.logger = pino(options, transport);
   }
 
   log(message: string, ...optionalParams: unknown[]): void {

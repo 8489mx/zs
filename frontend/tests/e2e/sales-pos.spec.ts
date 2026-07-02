@@ -1,0 +1,9 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('Sales and POS Flow', () => {
+  test('should create a basic sale and verify totals', async ({ page }) => {
+    // Navigate to POS
+    // Select a product
+    // Verify math (Price * Qty - Discount = Total)
+  });
+});
