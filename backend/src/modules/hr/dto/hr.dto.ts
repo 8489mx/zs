@@ -553,4 +553,29 @@ export class EmployeeAssetActionDto {
   @IsString()
   @MaxLength(1000)
   returnNotes?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  deductionAmount?: number;
+}
+
+export class CreateEmployeeAdjustmentDto {
+  @IsIn(['allowance', 'deduction'])
+  adjustmentType!: string;
+
+  @IsIn(['money', 'days', 'hours'])
+  amountType!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  amount!: number;
+
+  @IsDateString()
+  date!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reason?: string;
 }

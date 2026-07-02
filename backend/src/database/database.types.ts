@@ -1397,6 +1397,7 @@ export interface Database {
   manufacturing_bom_lines: ManufacturingBomLineTable;
   manufacturing_work_orders: ManufacturingWorkOrderTable;
   manufacturing_wo_consumptions: ManufacturingWoConsumptionTable;
+  hr_employee_adjustments: HrEmployeeAdjustmentTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;

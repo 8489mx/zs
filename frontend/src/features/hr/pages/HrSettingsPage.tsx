@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { FormSection } from '@/shared/components/form-section';
+import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
@@ -114,28 +115,20 @@ export function HrSettingsPage() {
   ];
 
   return (
-    <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
-      <div className="purchase-prototype-sticky-stack">
-        <div className="purchase-prototype-document-surface">
-          <div className="document-prototype-topbar">
-            <div>
-              <h2 className="document-prototype-topbar-title">إعدادات الموارد البشرية</h2>
-              <div className="muted small">ابدأ من الهيكل الوظيفي وأنواع الإجازات، ثم انتقل لإضافة الموظفين وتشغيل الحضور والمرتبات.</div>
-            </div>
-            <div className="actions compact-actions">
-              <Button variant="secondary" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
-            </div>
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+      <PageHeader
+        title="إعدادات الموارد البشرية"
+        description="ابدأ من الهيكل الوظيفي وأنواع الإجازات، ثم انتقل لإضافة الموظفين وتشغيل الحضور والمرتبات."
+        actions={(
+          <div className="actions compact-actions">
+            <Button variant="secondary" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
-        </div>
-      </div>
-      <main className="document-prototype-column">
+        )}
+      />
 
-      <FormSection title="ترتيب الإعداد الصحيح" description="هذه هي نقطة البداية قبل إضافة الموظفين وتشغيل الحضور والمرتبات.">
-        <div className="form-grid">
-          {setupChecklist.map((item) => <div key={item.title} className="field" style={{ alignItems: 'flex-start' }}><strong>{item.ok ? '✓' : '•'} {item.title}</strong><span className="muted">{item.status}</span>{item.action ? <Button type="button" variant="secondary" onClick={item.action} disabled={!item.ok}>إضافة موظف</Button> : <Button type="button" variant="secondary" onClick={() => setActiveSection(item.section)}>فتح الإعداد</Button>}</div>)}
-        </div>
-      </FormSection>
+
 
       <FormSection title="أقسام الإعدادات" description="اختر القسم الذي تريد تعديله بدل التمرير داخل صفحة طويلة.">
         <div className="compact-actions" style={{ marginBottom: 12 }}>{SETTINGS_SECTIONS.map((section) => <Button key={section.key} type="button" variant={activeSection === section.key ? 'primary' : 'secondary'} onClick={() => setActiveSection(section.key)}>{section.label}</Button>)}</div>
@@ -166,6 +159,21 @@ export function HrSettingsPage() {
         {shouldShowSection(activeSection, 'payroll') ? <HrSettingsPayrollSection navigate={navigate} /> : null}
         <HrSettingsOperationalNote />
       </QueryFeedback>
+      <FormSection title="ترتيب الإعداد الصحيح" description="هذه هي نقطة البداية قبل إضافة الموظفين وتشغيل الحضور والمرتبات.">
+        <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
+          {setupChecklist.map((item) => (
+            <span key={item.title} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <strong>{item.ok ? '✓' : '•'} {item.title}:</strong>
+              <span className="muted">{item.status}</span>
+              {item.action ? (
+                <Button type="button" variant="secondary" onClick={item.action} disabled={!item.ok}>إضافة موظف</Button>
+              ) : (
+                <Button type="button" variant="secondary" onClick={() => setActiveSection(item.section)}>فتح الإعداد</Button>
+              )}
+            </span>
+          ))}
+        </div>
+      </FormSection>
       </main>
     </div>
   );

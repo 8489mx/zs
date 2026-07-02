@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -109,7 +109,7 @@ export function HrReportsPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader title="تقارير الموارد البشرية" description="ملخص تشغيلي سريع لكل دورة HR: الموظفين، الحضور، الإجازات، السلف، المرتبات، العُهد والتنبيهات." actions={<div className="compact-actions"><Button variant="secondary" onClick={() => navigate('/hr')}>رجوع لنظرة الموارد البشرية</Button><Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button></div>} />
-      <FormSection title="تسلسل قراءة التقرير" description="ابدأ بالتنبيهات، ثم راجع المؤشر المرتبط بها من الصفحة التشغيلية الصحيحة."><div className="form-grid"><div className="field"><strong>1. راجع التنبيهات</strong><span className="muted">العناصر التي تحتاج إجراء تظهر أولًا في نهاية التقرير.</span></div><div className="field"><strong>2. افهم السبب</strong><span className="muted">بيانات موظف ناقصة، حضور غير مكتمل، إجازة، سلفة، أو عهدة.</span></div><div className="field"><strong>3. افتح الصفحة المناسبة</strong><span className="muted">كل تنبيه يحتوي إجراء يوجهك للمكان الصحيح.</span></div><div className="field"><strong>4. اعتمد المرتبات بعد المراجعة</strong><span className="muted">التقرير يساعدك قبل الاعتماد وليس بديلًا عن المراجعة.</span></div></div></FormSection>
+
       <FormSection title="الفترة والفلاتر" description="تغيير الفترة أو القسم يحدّث المؤشرات والنتائج الظاهرة."><div className="form-grid"><label className="field"><span>من تاريخ</span><input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label><label className="field"><span>إلى تاريخ</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label><label className="field"><span>شهر المرتبات</span><input type="month" value={month} onChange={(event) => setMonth(event.target.value)} /></label><label className="field"><span>السنة</span><input readOnly value={month.split('-')[0] || ''} /></label><label className="field field-wide"><span>بحث الموظف</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="اكتب اسم الموظف أو كوده" /></label><label className="field"><span>القسم</span><select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}><option value="all">الكل</option>{departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="field"><span>نوع التقرير</span><select value={reportType} onChange={(event) => setReportType(event.target.value as ReportType)}>{reportTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div></FormSection>
 
       <QueryFeedback isLoading={loading} isError={isError} error={error} isEmpty={!hasAnyData} loadingText="جارٍ تحميل التقارير..." errorTitle="تعذر تحميل تقارير الموارد البشرية" emptyTitle="لا توجد بيانات كافية لعرض التقرير.">
@@ -123,6 +123,14 @@ export function HrReportsPage() {
         {showSection('alerts') ? <FormSection className={reportSectionCardClassName} title="تنبيهات تحتاج مراجعة" description="كل صف يوجهك للصفحة الصحيحة لمعالجة السبب.">{alerts.length ? <DataTable density="compact" rows={alerts} rowKey={(row) => row.id} onRowClick={(row) => navigate(row.to)} columns={[{ key: 'type', header: 'النوع', cell: (row) => row.type }, { key: 'target', header: 'الموظف/الفترة', cell: (row) => row.target }, { key: 'note', header: 'التنبيه', cell: (row) => row.note }, { key: 'action', header: 'الإجراء', cell: (row) => <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); navigate(row.to); }}>{row.action}</Button> }]} /> : <p className="muted">لا توجد تنبيهات ظاهرة حسب الفلاتر الحالية.</p>}</FormSection> : null}
         <FormSection title="ملاحظة تشغيلية"><p className="muted" style={{ margin: 0 }}>التقارير هنا للمراجعة والتوجيه السريع. قرارات الاعتماد النهائية تتم من الصفحات التشغيلية: الحضور، الإجازات، السلف، والمرتبات.</p></FormSection>
       </QueryFeedback>
+      <FormSection title="تسلسل قراءة التقرير" description="ابدأ بالتنبيهات، ثم راجع المؤشر المرتبط بها من الصفحة التشغيلية الصحيحة.">
+        <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
+          <span><strong>1. راجع التنبيهات:</strong> <span className="muted">العناصر التي تحتاج إجراء تظهر بالتقرير.</span></span>
+          <span><strong>2. افهم السبب:</strong> <span className="muted">بيانات موظف، حضور، إجازة، سلفة، أو عهدة.</span></span>
+          <span><strong>3. افتح الصفحة المناسبة:</strong> <span className="muted">كل تنبيه يوجهك للمكان الصحيح.</span></span>
+          <span><strong>4. اعتمد المرتبات:</strong> <span className="muted">التقرير يساعدك قبل الاعتماد.</span></span>
+        </div>
+      </FormSection>
       </main>
     </div>
   );

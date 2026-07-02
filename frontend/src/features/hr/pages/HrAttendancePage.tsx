@@ -190,14 +190,7 @@ export function HrAttendancePage() {
         )}
       />
 
-      <FormSection title="تسلسل العمل في صفحة الحضور" description="استخدم هذه الصفحة كمسار يومي واضح بدل التنقل بين أكثر من مكان.">
-        <div className="form-grid">
-          <div className="field"><strong>1. اختر اليوم</strong><span className="muted">حدد التاريخ وابحث عن الموظف عند الحاجة.</span></div>
-          <div className="field"><strong>2. راجع الاستثناءات</strong><span className="muted">اعتمد أو تخطَّى الحضور المبكر والانصراف المتأخر قبل المرتبات.</span></div>
-          <div className="field"><strong>3. عدّل السجل</strong><span className="muted">سجل حضور أو انصراف يدويًا عند وجود نسيان أو خطأ.</span></div>
-          <div className="field"><strong>4. احفظ اليوم</strong><span className="muted">الحفظ يعيد حساب الاستثناءات الخاصة بهذا اليوم.</span></div>
-        </div>
-      </FormSection>
+
 
       <FormSection title="اليوم والبحث" description="اختيار التاريخ والبحث يؤثران على السجل والاستثناءات معًا.">
         <div className="form-grid">
@@ -356,6 +349,14 @@ export function HrAttendancePage() {
             ]}
           />
         </QueryFeedback>
+      </FormSection>
+      <FormSection title="تسلسل العمل في صفحة الحضور" description="استخدم هذه الصفحة كمسار يومي واضح بدل التنقل بين أكثر من مكان.">
+        <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
+          <span><strong>1. اختر اليوم:</strong> <span className="muted">حدد التاريخ وابحث عن الموظف عند الحاجة.</span></span>
+          <span><strong>2. راجع الاستثناءات:</strong> <span className="muted">اعتمد أو تخطَّى الحضور المبكر والانصراف المتأخر قبل المرتبات.</span></span>
+          <span><strong>3. عدّل السجل:</strong> <span className="muted">سجل حضور أو انصراف يدويًا عند وجود نسيان أو خطأ.</span></span>
+          <span><strong>4. احفظ اليوم:</strong> <span className="muted">الحفظ يعيد حساب الاستثناءات الخاصة بهذا اليوم.</span></span>
+        </div>
       </FormSection>
       </main>
     </div>

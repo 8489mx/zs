@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -210,6 +210,12 @@ export class HrController {
   @RequirePermissions('hrPayrollManage')
   recalculatePayrollRun(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.hr.recalculatePayrollRun(id, req.authContext!);
+  }
+
+  @Post('payroll-runs/:id/apply-attendance-deductions')
+  @RequirePermissions('hrPayrollManage')
+  applyAttendanceDeductions(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.applyAttendanceDeductions(id, req.authContext!);
   }
 
   @Post('payroll-runs/:id/review')

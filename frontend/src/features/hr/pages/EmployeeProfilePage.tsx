@@ -7,8 +7,9 @@ import { Button } from '@/shared/ui/button';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { getErrorMessage } from '@/lib/errors';
 import type { HrContact, HrContract, HrDocument, HrEmployee, HrEmployeeAsset, HrLedgerEntry, HrLeaveRequest, HrLoan } from '@/types/domain';
-import { useHrEmployeeAssets, useHrLeaveRequests, useHrMutations, useHrProfile } from '@/features/hr/hooks/useHr';
+import { useHrEmployeeAssets, useHrLeaveRequests, useHrMutations, useHrProfile, useHrEmployeeAdjustments } from '@/features/hr/hooks/useHr';
 import { ContactsSection, LedgerSection } from '@/features/hr/pages/employee-profile/EmployeeProfileSections';
+import { EmployeeAdjustmentsSection } from '@/features/hr/pages/employee-profile/EmployeeAdjustmentsSection';
 import { buildEmployeeProfileDerivedData } from '@/features/hr/pages/employee-profile/employee-profile.derived';
 import {
   employeeName,
@@ -40,6 +41,7 @@ export function EmployeeProfilePage() {
   const profile = useHrProfile(id);
   const leaveRequestsQuery = useHrLeaveRequests({ employeeId: id || '', page: 1, pageSize: 200 });
   const assetsQuery = useHrEmployeeAssets({ employeeId: id || '', page: 1, pageSize: 200 });
+  const adjustmentsQuery = useHrEmployeeAdjustments(id);
   const mutations = useHrMutations();
   const canViewSalary = useHasAnyPermission(['hrSalaryView', 'hrSalaryManage', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']);
   const canViewLoans = useHasAnyPermission('hrLoans');
@@ -132,7 +134,24 @@ export function EmployeeProfilePage() {
 
         {shouldShowProfileSection(activeSection, 'leaves') ? <FormSection title="الإجازات" actions={<Button variant="secondary" onClick={() => navigate('/hr/leaves')}>عرض الإجازات</Button>}><div className="form-grid"><div className="field"><span>قيد المراجعة</span><strong>{pendingLeavesCount}</strong></div><div className="field"><span>معتمدة</span><strong>{approvedLeavesCount}</strong></div><div className="field"><span>غير مدفوعة</span><strong>{unpaidLeavesCount}</strong></div><div className="field"><span>إجمالي الطلبات</span><strong>{leaveRequests.length}</strong></div></div>{leaveRequests.length ? <div className="table-wrap" style={{ marginTop: 12 }}><table className="data-table"><thead><tr><th>نوع الإجازة</th><th>من تاريخ</th><th>إلى تاريخ</th><th>عدد الأيام</th><th>الحالة</th></tr></thead><tbody>{leaveRequests.slice(0, 8).map((row) => <tr key={String(row.id)}><td>{fallbackText(row.leaveTypeName || row.leaveType)}</td><td>{fallbackText(row.startDate)}</td><td>{fallbackText(row.endDate)}</td><td>{fallbackText(row.daysCount)}</td><td>{leaveStatusLabel(row.status)}</td></tr>)}</tbody></table></div> : <p className="muted">لا توجد طلبات إجازة حالية. يمكن إنشاء الطلب من صفحة الإجازات.</p>}</FormSection> : null}
 
-        {shouldShowProfileSection(activeSection, 'payroll') ? <><FormSection title="الحضور والانصراف" actions={<Button variant="secondary" onClick={() => navigate('/hr/attendance')}>عرض الحضور والانصراف</Button>}><p className="muted" style={{ margin: 0 }}>تفاصيل الحضور متاحة من صفحة الحضور والانصراف، وسيتم ربط أي استثناءات بمراجعة المرتبات.</p></FormSection><FormSection title="المرتبات والسلف" actions={<div className="compact-actions">{canViewSalary ? <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>عرض المرتبات</Button> : null}{canViewLoans ? <Button variant="secondary" onClick={() => navigate('/hr/loans')}>إدارة السلف</Button> : null}</div>}>{!canViewSalary && !canViewLoans ? <p className="muted">لا تملك صلاحية عرض هذه البيانات.</p> : loans.length ? <><div className="form-grid"><div className="field"><span>عدد السلف المفتوحة</span><strong>{canViewLoans ? openLoansCount : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></div><div className="field"><span>إجمالي المتبقي</span><strong>{canViewLoans ? money(openLoansRemaining) : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></div></div><div className="table-wrap" style={{ marginTop: 12 }}><table className="data-table"><thead><tr><th>رقم السلفة</th><th>النوع</th><th>طريقة السداد</th><th>قيمة السلفة</th><th>المتبقي</th><th>الحالة</th><th>خطة الأقساط</th></tr></thead><tbody>{loans.map((row) => <tr key={String(row.id)}><td>{fallbackText(row.loanNo)}</td><td>{loanTypeLabel(row.loanType)}</td><td>{repaymentModeLabel(row.repaymentMode)}</td><td>{canViewLoans ? money(row.principalAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{canViewLoans ? money(row.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{loanStatusLabel(row.status)}</td><td>{Array.isArray(row.installments) && row.installments.length ? <details><summary>{`عدد الأقساط: ${row.installments.length}`}</summary><div className="table-wrap" style={{ marginTop: 8 }}><table className="data-table"><thead><tr><th>رقم القسط</th><th>شهر الاستحقاق</th><th>قيمة القسط</th><th>الحالة</th><th>تاريخ الخصم</th></tr></thead><tbody>{row.installments.map((installment) => <tr key={String(installment.id)}><td>{fallbackText(installment.installmentNumber)}</td><td>{fallbackText(installment.dueDate)}</td><td>{canViewLoans ? money(installment.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{installmentStatusLabel(installment.status)}</td><td>{fallbackText(installment.paidAt)}</td></tr>)}</tbody></table></div></details> : '—'}</td></tr>)}</tbody></table></div></> : <p className="muted">لا توجد سلف أو خصومات مسجلة.</p>}</FormSection></> : null}
+        {shouldShowProfileSection(activeSection, 'payroll') ? <><FormSection title="الحضور والانصراف" actions={<Button variant="secondary" onClick={() => navigate('/hr/attendance')}>عرض الحضور والانصراف</Button>}><p className="muted" style={{ margin: 0 }}>تفاصيل الحضور متاحة من صفحة الحضور والانصراف، وسيتم ربط أي استثناءات بمراجعة المرتبات.</p></FormSection><FormSection title="المرتبات والسلف" actions={<div className="compact-actions">{canViewSalary ? <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>عرض المرتبات</Button> : null}{canViewLoans ? <Button variant="secondary" onClick={() => navigate('/hr/loans')}>إدارة السلف</Button> : null}</div>}>{!canViewSalary && !canViewLoans ? <p className="muted">لا تملك صلاحية عرض هذه البيانات.</p> : loans.length ? <><div className="form-grid"><div className="field"><span>عدد السلف المفتوحة</span><strong>{canViewLoans ? openLoansCount : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></div><div className="field"><span>إجمالي المتبقي</span><strong>{canViewLoans ? money(openLoansRemaining) : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></div></div><div className="table-wrap" style={{ marginTop: 12 }}><table className="data-table"><thead><tr><th>رقم السلفة</th><th>النوع</th><th>طريقة السداد</th><th>قيمة السلفة</th><th>المتبقي</th><th>الحالة</th><th>خطة الأقساط</th></tr></thead><tbody>{loans.map((row) => <tr key={String(row.id)}><td>{fallbackText(row.loanNo)}</td><td>{loanTypeLabel(row.loanType)}</td><td>{repaymentModeLabel(row.repaymentMode)}</td><td>{canViewLoans ? money(row.principalAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{canViewLoans ? money(row.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{loanStatusLabel(row.status)}</td><td>{Array.isArray(row.installments) && row.installments.length ? <details><summary>{`عدد الأقساط: ${row.installments.length}`}</summary><div className="table-wrap" style={{ marginTop: 8 }}><table className="data-table"><thead><tr><th>رقم القسط</th><th>شهر الاستحقاق</th><th>قيمة القسط</th><th>الحالة</th><th>تاريخ الخصم</th></tr></thead><tbody>{row.installments.map((installment) => <tr key={String(installment.id)}><td>{fallbackText(installment.installmentNumber)}</td><td>{fallbackText(installment.dueDate)}</td><td>{canViewLoans ? money(installment.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{installmentStatusLabel(installment.status)}</td><td>{fallbackText(installment.paidAt)}</td></tr>)}</tbody></table></div></details> : '—'}</td></tr>)}</tbody></table></div></> : <p className="muted">لا توجد سلف أو قروض مسجلة.</p>}</FormSection>
+        {canViewSalary ? (
+          <EmployeeAdjustmentsSection 
+            adjustments={adjustmentsQuery.adjustments} 
+            isBusy={mutations.createEmployeeAdjustment.isPending || mutations.deleteEmployeeAdjustment.isPending}
+            onAddAdjustment={async (payload) => {
+              if (id) {
+                await mutations.createEmployeeAdjustment.mutateAsync({ employeeId: id, payload });
+                await adjustmentsQuery.refetch();
+              }
+            }}
+            onDeleteAdjustment={async (adjId) => {
+              await mutations.deleteEmployeeAdjustment.mutateAsync(adjId);
+              await adjustmentsQuery.refetch();
+            }}
+          />
+        ) : null}
+        </> : null}
 
         {shouldShowProfileSection(activeSection, 'ledger') ? <FormSection title="السجل المالي"><LedgerSection ledger={ledger} /></FormSection> : null}
       </QueryFeedback>

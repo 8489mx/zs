@@ -10,9 +10,9 @@ export function HrPayrollWorkflowCard() {
 
   return (
     <FormSection title="تسلسل المرتبات الشهري" description="لا تعتمد المرتبات قبل المرور على نقاط المراجعة الأساسية.">
-      <div className="form-grid">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {steps.map(([title, hint]) => (
-          <div key={title} className="field"><strong>{title}</strong><span className="muted">{hint}</span></div>
+          <div key={title}><strong>{title}:</strong> <span className="muted">{hint}</span></div>
         ))}
       </div>
     </FormSection>

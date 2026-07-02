@@ -13,7 +13,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, badge, actions, className = '', hideTitle = false }: PageHeaderProps) {
   const location = useLocation();
-  const showHrNavigation = location.pathname.startsWith('/hr');
+  const showHrNavigation = location.pathname.startsWith('/hr') || location.pathname === '/settings/hr';
 
   return (
     <>

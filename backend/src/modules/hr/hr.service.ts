@@ -1,4 +1,4 @@
-﻿import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
@@ -23,6 +23,7 @@ import {
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
+  CreateEmployeeAdjustmentDto,
   UpsertEmployeeDocumentDto,
   UpsertEmployeeDto,
   UpsertEmployeeLoanDto,
@@ -367,11 +368,13 @@ export class HrService {
           LEFT JOIN hr_job_titles j ON j.id = m.job_title_id
           LEFT JOIN branches b ON b.id = m.branch_id
           LEFT JOIN stock_locations l ON l.id = m.location_id
+          WHERE ${this.tenantPredicate(auth, 'm')}
           ORDER BY m.id DESC
         `.execute(this.db)
       : await sql<Record<string, unknown>>`
           SELECT m.*
           FROM ${sql.table(config.table)} m
+          WHERE ${this.tenantPredicate(auth, 'm')}
           ORDER BY m.id DESC
         `.execute(this.db);
     const search = clean(query.search).toLowerCase();
@@ -414,8 +417,8 @@ export class HrService {
           `.execute(trx);
         } else {
           await sql`
-            INSERT INTO hr_positions (name, code, description, department_id, job_title_id, branch_id, location_id, is_active, created_by, updated_by)
-            VALUES (${clean(payload.name)}, ${clean(payload.code)}, ${clean(payload.description)}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${payload.isActive !== false}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_positions (tenant_id, account_id, name, code, description, department_id, job_title_id, branch_id, location_id, is_active, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${clean(payload.name)}, ${clean(payload.code)}, ${clean(payload.description)}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${payload.isActive !== false}, ${auth.userId}, ${auth.userId})
           `.execute(trx);
         }
       } else {
@@ -429,8 +432,8 @@ export class HrService {
           `.execute(trx);
         } else {
           await sql`
-            INSERT INTO ${table} (name, code, description, is_active, created_by, updated_by)
-            VALUES (${clean(payload.name)}, ${clean(payload.code)}, ${clean(payload.description)}, ${payload.isActive !== false}, ${auth.userId}, ${auth.userId})
+            INSERT INTO ${table} (tenant_id, account_id, name, code, description, is_active, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${clean(payload.name)}, ${clean(payload.code)}, ${clean(payload.description)}, ${payload.isActive !== false}, ${auth.userId}, ${auth.userId})
           `.execute(trx);
         }
       }
@@ -458,6 +461,7 @@ export class HrService {
       LEFT JOIN branches b ON b.id = e.branch_id
       LEFT JOIN stock_locations l ON l.id = e.location_id
       LEFT JOIN users u ON u.id = e.user_id
+      WHERE ${this.tenantPredicate(auth, 'e')}
       ORDER BY e.id DESC
     `.execute(this.db);
     const search = clean(query.search).toLowerCase();
@@ -557,10 +561,10 @@ export class HrService {
 
     if (!firstName) throw new AppError('ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (rawEmployeeNo && !employeeNo) {
-      throw new AppError('ط±ظ‚ظ… ط§ظ„ظ…ظˆط¸ظپ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط£ط±ظ‚ط§ظ…ظ‹ط§ ظپظ‚ط· ظ…ط«ظ„ 001', 'HR_EMPLOYEE_NO_INVALID', 400);
+      throw new AppError('رقم الموظف يجب أن يكون أرقامًا فقط مثل 001', 'HR_EMPLOYEE_NO_INVALID', 400);
     }
     if (nationalId && !/^\d{14}$/.test(nationalId)) {
-      throw new AppError('ط§ظ„ط±ظ‚ظ… ط§ظ„ظ‚ظˆظ…ظٹ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† 14 ط±ظ‚ظ…ظ‹ط§.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
+      throw new AppError('الرقم القومي يجب أن يكون 14 رقمًا.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
     }
 
     try {
@@ -589,15 +593,15 @@ export class HrService {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
           await sql<{ id: number }>`
-            INSERT INTO hr_employees (employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, created_by, updated_by)
-            VALUES (${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
         });
       }
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new AppError('ط±ظ‚ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط³طھط®ط¯ظ… ط¨ط§ظ„ظپط¹ظ„', 'HR_EMPLOYEE_NO_EXISTS', 409);
+        throw new AppError('رقم الموظف مستخدم بالفعل', 'HR_EMPLOYEE_NO_EXISTS', 409);
       }
       throw error;
     }
@@ -621,7 +625,7 @@ export class HrService {
     if (id) {
       await sql`UPDATE hr_employee_contacts SET contact_type = ${clean(payload.contactType) || 'phone'}, value = ${clean(payload.value)}, label = ${clean(payload.label)}, is_primary = ${payload.isPrimary === true}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
     } else {
-      await sql`INSERT INTO hr_employee_contacts (employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${employeeId}, ${clean(payload.contactType) || 'phone'}, ${clean(payload.value)}, ${clean(payload.label)}, ${payload.isPrimary === true}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
+      await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${clean(payload.contactType) || 'phone'}, ${clean(payload.value)}, ${clean(payload.label)}, ${payload.isPrimary === true}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
     }
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employee contact`, `Employee #${employeeId} contact metadata saved by ${auth.username}`, auth);
     return this.listContacts(employeeId, auth);
@@ -636,7 +640,7 @@ export class HrService {
     if (id) {
       await sql`UPDATE hr_employee_documents SET title = ${clean(payload.title)}, document_type = ${clean(payload.documentType)}, file_url = ${clean(payload.fileUrl)}, expiry_date = ${payload.expiryDate || null}, notes = ${clean(payload.notes)}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
     } else {
-      await sql`INSERT INTO hr_employee_documents (employee_id, title, document_type, file_url, expiry_date, notes, uploaded_by) VALUES (${employeeId}, ${clean(payload.title)}, ${clean(payload.documentType)}, ${clean(payload.fileUrl)}, ${payload.expiryDate || null}, ${clean(payload.notes)}, ${auth.userId})`.execute(this.db);
+      await sql`INSERT INTO hr_employee_documents (tenant_id, account_id, employee_id, title, document_type, file_url, expiry_date, notes, uploaded_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${clean(payload.title)}, ${clean(payload.documentType)}, ${clean(payload.fileUrl)}, ${payload.expiryDate || null}, ${clean(payload.notes)}, ${auth.userId})`.execute(this.db);
     }
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employee document metadata`, `Employee #${employeeId} document metadata saved by ${auth.username}`, auth);
     return this.listDocuments(employeeId, auth);
@@ -652,7 +656,7 @@ export class HrService {
     if (id) {
       await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${clean(payload.currency) || 'EGP'}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
     } else {
-      await sql`INSERT INTO hr_employment_contracts (employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${employeeId}, ${contractNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
+      await sql`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${contractNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
     }
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employment contract`, `Employee #${employeeId} contract saved by ${auth.username}`, auth);
     return this.listContracts(employeeId, auth);
@@ -667,10 +671,47 @@ export class HrService {
     if (id) {
       await sql`UPDATE hr_compensation_packages SET contract_id = ${toId(payload.contractId)}, package_name = ${clean(payload.packageName)}, allowance_amount = ${Number(payload.allowanceAmount || 0)}, deduction_amount = ${Number(payload.deductionAmount || 0)}, effective_from = ${payload.effectiveFrom || null}, effective_to = ${payload.effectiveTo || null}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
     } else {
-      await sql`INSERT INTO hr_compensation_packages (employee_id, contract_id, package_name, allowance_amount, deduction_amount, effective_from, effective_to, notes, created_by, updated_by) VALUES (${employeeId}, ${toId(payload.contractId)}, ${clean(payload.packageName)}, ${Number(payload.allowanceAmount || 0)}, ${Number(payload.deductionAmount || 0)}, ${payload.effectiveFrom || null}, ${payload.effectiveTo || null}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
+      await sql`INSERT INTO hr_compensation_packages (tenant_id, account_id, employee_id, contract_id, package_name, allowance_amount, deduction_amount, effective_from, effective_to, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${toId(payload.contractId)}, ${clean(payload.packageName)}, ${Number(payload.allowanceAmount || 0)}, ${Number(payload.deductionAmount || 0)}, ${payload.effectiveFrom || null}, ${payload.effectiveTo || null}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
     }
     await this.audit.log(`${id ? 'Update' : 'Create'} HR compensation`, `Employee #${employeeId} compensation saved by ${auth.username}`, auth);
     return this.listCompensation(employeeId, auth);
+  }
+
+  async listEmployeeAdjustments(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employee_adjustments WHERE employee_id = ${employeeId} ORDER BY date DESC, id DESC`.execute(this.db);
+    return {
+      rows: result.rows.map((row) => ({
+        id: String(row.id),
+        employeeId: String(row.employee_id),
+        adjustmentType: clean(row.adjustment_type),
+        amountType: clean(row.amount_type),
+        amount: Number(row.amount || 0),
+        date: row.date ? String(row.date).slice(0, 10) : '',
+        reason: clean(row.reason),
+        status: clean(row.status),
+        appliedInRunId: row.applied_in_run_id ? String(row.applied_in_run_id) : null,
+      })),
+    };
+  }
+
+  async createEmployeeAdjustment(employeeId: number, payload: CreateEmployeeAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    await sql`
+      INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, date, reason, status, created_by, updated_by)
+      VALUES (${auth.tenantId}, ${employeeId}, ${clean(payload.adjustmentType)}, ${clean(payload.amountType)}, ${Number(payload.amount || 0)}, ${payload.date}, ${clean(payload.reason)}, 'pending', ${auth.userId}, ${auth.userId})
+    `.execute(this.db);
+    await this.audit.log(`Create HR Employee Adjustment`, `Employee #${employeeId} ${payload.adjustmentType} added by ${auth.username}`, auth);
+    return { success: true };
+  }
+
+  async deleteEmployeeAdjustment(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const result = await sql<{ status: string }>`SELECT status FROM hr_employee_adjustments WHERE id = ${id}`.execute(this.db);
+    const adjustment = result.rows[0];
+    if (!adjustment) throw new AppError('Adjustment not found', 'NOT_FOUND', 404);
+    if (adjustment.status !== 'pending') throw new AppError('Cannot delete applied adjustment', 'CANNOT_DELETE_APPLIED', 400);
+
+    await sql`DELETE FROM hr_employee_adjustments WHERE id = ${id}`.execute(this.db);
+    await this.audit.log(`Delete HR Employee Adjustment`, `Adjustment #${id} deleted by ${auth.username}`, auth);
+    return { success: true };
   }
 
   async listLoans(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -1145,6 +1186,7 @@ export class HrService {
     if (!periodMonth) throw new AppError('Payroll month is invalid', 'HR_PAYROLL_MONTH_INVALID', 400);
     const range = monthRange(periodMonth);
     const itemStatus = runStatus === 'reviewed' ? 'reviewed' : 'draft';
+    await sql`UPDATE hr_employee_adjustments SET status = 'pending', applied_in_run_id = NULL WHERE applied_in_run_id = ${runId}`.execute(db);
     const employees = await sql<Record<string, unknown>>`
       SELECT
         e.id AS employee_id,
@@ -1194,8 +1236,39 @@ export class HrService {
       const compensationAllowance = money(employee.allowance_amount);
       const compensationDeduction = money(employee.deduction_amount);
       const loanDeduction = await this.calculateLoanDeduction(db, employeeId, periodMonth);
-      const allowanceAmount = Number((compensationAllowance + adjustments.allowance).toFixed(2));
-      const deductionAmount = Number((compensationDeduction + adjustments.deduction).toFixed(2));
+
+      const empAdjustmentsResult = await sql<Record<string, unknown>>`
+        SELECT id, adjustment_type, amount_type, amount
+        FROM hr_employee_adjustments
+        WHERE employee_id = ${employeeId} AND status = 'pending' AND date <= ${range.to}
+      `.execute(db);
+
+      let empAdjAllowance = 0;
+      let empAdjDeduction = 0;
+      const appliedAdjIds: number[] = [];
+
+      for (const adj of empAdjustmentsResult.rows) {
+        let val = Number(adj.amount || 0);
+        // If amount_type is days, convert to money based on baseSalary
+        if (clean(adj.amount_type) === 'days') val = (baseSalary / 30) * val;
+        // (If hours, we could divide by 240 or use an hourly rate, but keeping it simple for now)
+
+        if (clean(adj.adjustment_type) === 'allowance') empAdjAllowance += val;
+        else if (clean(adj.adjustment_type) === 'deduction') empAdjDeduction += val;
+        
+        appliedAdjIds.push(Number(adj.id));
+      }
+
+      if (appliedAdjIds.length > 0) {
+        await sql`
+          UPDATE hr_employee_adjustments 
+          SET status = 'applied', applied_in_run_id = ${runId} 
+          WHERE id IN (${sql.join(appliedAdjIds)})
+        `.execute(db);
+      }
+
+      const allowanceAmount = Number((compensationAllowance + adjustments.allowance + empAdjAllowance).toFixed(2));
+      const deductionAmount = Number((compensationDeduction + adjustments.deduction + empAdjDeduction).toFixed(2));
       const grossPay = Number((baseSalary + allowanceAmount).toFixed(2));
       const rawNetPay = Number((grossPay - deductionAmount - loanDeduction.amount).toFixed(2));
       const netPay = Math.max(0, rawNetPay);
@@ -1290,7 +1363,7 @@ export class HrService {
       const dailyRate = baseSalary > 0 ? Number((baseSalary / 30).toFixed(2)) : 0;
       const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + (dailyRate * 0.5 * attendanceHalfDays)).toFixed(2));
       const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
-      const payrollReviewNotes = `ظ…ط±ط§ط¬ط¹ط© ظ…ظ‚طھط±ط­ط©: ط؛ظٹط§ط¨ ${attendanceAbsentDays} ظٹظˆظ…طŒ ط¥ط¬ط§ط²ط© ط¨ط¯ظˆظ† ظ…ط±طھط¨ ${unpaidLeaveDays} ظٹظˆظ….`;
+      const payrollReviewNotes = `مراجعة مقترحة: غياب ${attendanceAbsentDays} يوم، إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
       reviewByEmployeeId.set(employeeId, {
         attendanceAbsentDays,
         attendanceLateDays,
@@ -1450,6 +1523,77 @@ export class HrService {
     return this.getPayrollRun(id, auth);
   }
 
+  async applyAttendanceDeductions(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const status = await this.getPayrollRunStatus(trx, id);
+      if (!['draft', 'reviewed'].includes(status)) throw new AppError('Only draft or reviewed payroll runs can apply attendance deductions', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
+      
+      const runResult = await sql<{ period_month: string }>`SELECT period_month FROM hr_payroll_runs WHERE id = ${id} LIMIT 1`.execute(trx);
+      const periodMonth = runResult.rows[0]?.period_month;
+      if (!periodMonth) throw new AppError('Payroll run not found or invalid', 'HR_PAYROLL_RUN_INVALID', 400);
+
+      const items = await sql<{ employee_id: number; base_salary: number }>`
+        SELECT employee_id, base_salary FROM hr_payroll_run_items WHERE run_id = ${id}
+      `.execute(trx);
+
+      if (items.rows.length === 0) return;
+
+      const employeeIds = items.rows.map(r => Number(r.employee_id));
+      const baseSalaryByEmployeeId = new Map<number, number>();
+      for (const row of items.rows) {
+        baseSalaryByEmployeeId.set(Number(row.employee_id), Number(row.base_salary));
+      }
+
+      const reviews = await this.calculatePayrollOperationalReview(trx, periodMonth, employeeIds, baseSalaryByEmployeeId);
+
+      const toInsert: { employee_id: number; adjustment_type: string; amount_type: string; amount: number; reason: string; date: string; status: string }[] = [];
+      const adjustmentDate = `${periodMonth}-28`;
+
+      for (const employeeId of employeeIds) {
+        const review = reviews.get(employeeId);
+        if (!review) continue;
+        
+        let deduction = 0;
+        let notes = '';
+
+        if (review.suggestedAttendanceDeductionAmount > 0) {
+          deduction += review.suggestedAttendanceDeductionAmount;
+          notes += `تأخير وغياب: ${review.attendanceAbsentDays} غياب، ${review.attendanceLateDays} تأخير، ${review.attendanceHalfDays} نصف يوم. `;
+        }
+        if (review.suggestedLeaveDeductionAmount > 0) {
+          deduction += review.suggestedLeaveDeductionAmount;
+          notes += `إجازات غير مدفوعة: ${review.unpaidLeaveDays} يوم. `;
+        }
+
+        if (deduction > 0) {
+          toInsert.push({
+            employee_id: employeeId,
+            adjustment_type: 'deduction',
+            amount_type: 'amount',
+            amount: deduction,
+            reason: `تسوية تلقائية من مراجعة المرتبات: ${notes.trim()}`,
+            date: adjustmentDate,
+            status: 'pending'
+          });
+        }
+      }
+
+      if (toInsert.length > 0) {
+        for (const adj of toInsert) {
+          await sql`
+            INSERT INTO hr_employee_adjustments (employee_id, adjustment_type, amount_type, amount, reason, date, status, created_at, updated_at)
+            VALUES (${adj.employee_id}, ${adj.adjustment_type}, ${adj.amount_type}, ${adj.amount}, ${adj.reason}, ${adj.date}::date, ${adj.status}, NOW(), NOW())
+          `.execute(trx);
+        }
+      }
+
+      await this.rebuildPayrollRunItems(trx, id, status);
+    });
+    
+    await this.audit.log('Apply HR attendance deductions', `Attendance deductions applied to payroll run #${id} by ${auth.username}`, auth);
+    return this.getPayrollRun(id, auth);
+  }
+
   async reviewPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const status = await this.getPayrollRunStatus(trx, id);
@@ -1550,8 +1694,8 @@ export class HrService {
         a.id AS attendance_id,
         to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text,
         a.status,
-        to_char(a.check_in_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS check_in_at_text,
-        to_char(a.check_out_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS check_out_at_text,
+        to_char(a.check_in_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
+        to_char(a.check_out_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
         a.source,
         a.notes
       FROM hr_employees e
@@ -1733,8 +1877,8 @@ export class HrService {
       SELECT
         a.id AS attendance_id,
         to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text,
-        to_char(a.check_in_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS check_in_at_text,
-        to_char(a.check_out_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS check_out_at_text,
+        to_char(a.check_in_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
+        to_char(a.check_out_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
         e.scheduled_check_in_time,
         e.scheduled_check_out_time,
         e.grace_minutes
@@ -1776,7 +1920,15 @@ export class HrService {
       if (delta < -graceMinutes) {
         entries.push(this.buildAttendanceException('early_check_out', employeeId, attendanceId || null, workDate, Math.abs(delta) - graceMinutes, scheduledCheckOut, checkOutActualTime));
       } else if (delta > 0) {
-        entries.push(this.buildAttendanceException('late_check_out', employeeId, attendanceId || null, workDate, delta, scheduledCheckOut, checkOutActualTime));
+        let eligibleForOvertime = true;
+        if (scheduledCheckIn && checkInActualTime) {
+          const expectedDuration = timeToMinutes(scheduledCheckOut) - timeToMinutes(scheduledCheckIn);
+          const actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
+          if (actualDuration < expectedDuration) eligibleForOvertime = false;
+        }
+        if (eligibleForOvertime) {
+          entries.push(this.buildAttendanceException('late_check_out', employeeId, attendanceId || null, workDate, delta, scheduledCheckOut, checkOutActualTime));
+        }
       }
     } else if (checkInActualTime && !checkOutActualTime) {
       entries.push(this.buildAttendanceException('missing_check_out', employeeId, attendanceId || null, workDate, 1, scheduledCheckOut, checkInActualTime));
@@ -2194,19 +2346,30 @@ export class HrService {
 
   private async setEmployeeAssetStatus(id: number, status: 'returned' | 'lost' | 'damaged' | 'cancelled', payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const current = await sql<{ status: string }>`SELECT status FROM hr_employee_assets WHERE id = ${id} LIMIT 1`.execute(this.db);
-    if (!clean(current.rows[0]?.status)) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
-    const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayUtcDate()) : null;
-    await sql`
-      UPDATE hr_employee_assets
-      SET status = ${status},
-          returned_at = CASE WHEN ${returnedAt}::text IS NULL THEN returned_at ELSE ${returnedAt}::date END,
-          notes = ${clean(payload.notes) || null},
-          return_notes = ${clean(payload.returnNotes) || null},
-          updated_by = ${auth.userId},
-          updated_at = NOW()
-      WHERE id = ${id}
-    `.execute(this.db);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const current = await sql<{ status: string; employee_id: number; asset_name: string }>`SELECT status, employee_id, asset_name FROM hr_employee_assets WHERE id = ${id} LIMIT 1`.execute(trx);
+      if (!clean(current.rows[0]?.status)) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
+      const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayUtcDate()) : null;
+      await sql`
+        UPDATE hr_employee_assets
+        SET status = ${status},
+            returned_at = CASE WHEN ${returnedAt}::text IS NULL THEN returned_at ELSE ${returnedAt}::date END,
+            notes = ${clean(payload.notes) || null},
+            return_notes = ${clean(payload.returnNotes) || null},
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+        WHERE id = ${id}
+      `.execute(trx);
+
+      if (['lost', 'damaged'].includes(status) && typeof payload.deductionAmount === 'number' && payload.deductionAmount > 0) {
+        const empId = Number(current.rows[0].employee_id);
+        const reason = `تسوية عهدة ${status === 'lost' ? 'مفقودة' : 'تالفة'}: ${current.rows[0].asset_name}. ${clean(payload.returnNotes) || ''}`.trim();
+        await sql`
+          INSERT INTO hr_employee_adjustments (employee_id, adjustment_type, amount_type, amount, reason, date, status, created_at, updated_at)
+          VALUES (${empId}, 'deduction', 'amount', ${payload.deductionAmount}, ${reason}, NOW()::date, 'pending', NOW(), NOW())
+        `.execute(trx);
+      }
+    });
     await this.audit.log(`Mark HR employee asset ${status}`, `Asset #${id} marked as ${status} by ${auth.username}`, auth);
     return this.listEmployeeAssets({}, auth);
   }

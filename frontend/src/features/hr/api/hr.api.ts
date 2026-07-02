@@ -1,4 +1,4 @@
-﻿import { http } from '@/lib/http';
+import { http } from '@/lib/http';
 import { buildQueryString } from '@/lib/query-string';
 import type {
   HrCompensationPackage,
@@ -33,6 +33,7 @@ import type {
   ProfileResponse,
   RowsResponse,
   WithdrawalsResponse,
+  EmployeeAdjustmentsResponse,
 } from './hr-api.types';
 
 const CSV_IMPORT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -114,6 +115,9 @@ export const hrApi = {
   saveContract: (employeeId: string, payload: unknown, id?: string) => http(`/api/hr/employees/${employeeId}/contracts${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   compensation: (employeeId: string) => http<RowsResponse<HrCompensationPackage>>(`/api/hr/employees/${employeeId}/compensation`),
   saveCompensation: (employeeId: string, payload: unknown, id?: string) => http(`/api/hr/employees/${employeeId}/compensation${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
+  employeeAdjustments: (employeeId: string) => http<EmployeeAdjustmentsResponse>(`/api/hr/employees/${employeeId}/adjustments`),
+  createEmployeeAdjustment: (employeeId: string, payload: unknown) => http<Record<string, unknown>>(`/api/hr/employees/${employeeId}/adjustments`, { method: 'POST', body: JSON.stringify(payload) }),
+  deleteEmployeeAdjustment: (id: string) => http<Record<string, unknown>>(`/api/hr/employee-adjustments/${id}`, { method: 'DELETE' }),
   loans: async (params: HrListParams = {}) => {
     const response = await http<LoansResponse>(`/api/hr/loans${buildQueryString(params)}`);
     return { ...response, loans: (response.loans || []).map(normalizeHrLoanRow) };

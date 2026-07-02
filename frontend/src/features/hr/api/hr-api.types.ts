@@ -7,6 +7,7 @@ import type {
   HrDocument,
   HrEmployee,
   HrEmployeeAsset,
+  HrEmployeeAdjustment,
   HrLedgerEntry,
   HrLeaveRequest,
   HrLeaveType,
@@ -25,6 +26,10 @@ export interface MasterResponse {
 export interface EmployeesResponse {
   employees?: HrEmployee[];
   summary?: { totalItems?: number; activeCount?: number };
+}
+
+export interface EmployeeAdjustmentsResponse {
+  rows?: HrEmployeeAdjustment[];
 }
 
 export interface LoansResponse {

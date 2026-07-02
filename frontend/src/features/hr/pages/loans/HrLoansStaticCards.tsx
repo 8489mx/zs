@@ -10,9 +10,9 @@ export function HrLoansWorkflowCard() {
 
   return (
     <FormSection title="تسلسل السلف والخصومات" description="استخدم الصفحة بهذا الترتيب حتى لا تظهر خصومات مفاجئة في المرتبات.">
-      <div className="form-grid">
+      <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
         {steps.map(([title, hint]) => (
-          <div key={title} className="field"><strong>{title}</strong><span className="muted">{hint}</span></div>
+          <span key={title}><strong>{title}:</strong> <span className="muted">{hint}</span></span>
         ))}
       </div>
     </FormSection>

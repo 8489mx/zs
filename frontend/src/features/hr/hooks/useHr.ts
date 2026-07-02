@@ -93,6 +93,15 @@ export function useHrEmployeeAssets(params: HrListParams = {}) {
   });
 }
 
+export function useHrEmployeeAdjustments(employeeId?: string) {
+  const q = useQuery({
+    queryKey: ['hr', 'employee-adjustments', employeeId],
+    queryFn: () => hrApi.employeeAdjustments(employeeId!),
+    enabled: !!employeeId,
+  });
+  return { ...q, adjustments: q.data?.rows || [] };
+}
+
 export function useHrReportsSummary(params: HrListParams = {}) {
   const key = paramsKey(params);
   return useQuery({
@@ -147,6 +156,8 @@ export function useHrMutations() {
     updatePayrollRunItem: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.updatePayrollRunItem(id, payload), onSuccess: invalidate }),
     createPayrollAdjustment: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.createPayrollAdjustment(id, payload), onSuccess: invalidate }),
     deletePayrollAdjustment: useMutation({ mutationFn: (id: string) => hrApi.deletePayrollAdjustment(id), onSuccess: invalidate }),
+    createEmployeeAdjustment: useMutation({ mutationFn: ({ employeeId, payload }: { employeeId: string; payload: unknown }) => hrApi.createEmployeeAdjustment(employeeId, payload), onSuccess: invalidate }),
+    deleteEmployeeAdjustment: useMutation({ mutationFn: (id: string) => hrApi.deleteEmployeeAdjustment(id), onSuccess: invalidate }),
   };
 }
 

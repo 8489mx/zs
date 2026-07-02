@@ -1,4 +1,4 @@
-﻿export interface HrEmployee {
+export interface HrEmployee {
   id: string;
   employeeNo?: string;
   nationalId?: string;
@@ -37,4 +37,16 @@ export interface HrContact {
   label?: string;
   isPrimary?: boolean;
   notes?: string;
+}
+
+export interface HrEmployeeAdjustment {
+  id: string;
+  employeeId: string;
+  adjustmentType: 'allowance' | 'deduction' | string;
+  amountType: 'money' | 'days' | 'hours' | string;
+  amount: number;
+  date: string;
+  reason?: string;
+  status: 'pending' | 'applied' | string;
+  appliedInRunId?: string | null;
 }

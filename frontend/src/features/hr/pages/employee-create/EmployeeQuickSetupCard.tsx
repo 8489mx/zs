@@ -1,4 +1,4 @@
-﻿import { FormSection } from '@/shared/components/form-section';
+import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
@@ -30,23 +30,23 @@ export function EmployeeQuickSetupCard({
 }: EmployeeQuickSetupCardProps) {
   if (!missingSetup && !setupError && !setupSuccess) return null;
   return (
-    <FormSection title="طھط¬ظ‡ظٹط² ط³ط±ظٹط¹ ظ‚ط¨ظ„ ط§ظ„ط¥ط¶ط§ظپط©" description="ط­طھظ‰ ظ„ط§ طھط¶ط·ط± ظ„ظ„ط®ط±ظˆط¬ ظ…ظ† ط§ظ„طµظپط­ط©طŒ ظٹظ…ظƒظ†ظƒ ط¥ط¶ط§ظپط© ظ‚ط³ظ… ط£ظˆ ظ…ط³ظ…ظ‰ ظˆط¸ظٹظپظٹ ط³ط±ظٹط¹ظ‹ط§ ط«ظ… ط§ط³طھط®ط¯ط§ظ…ظ‡ ظپظٹ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظˆط¸ظپ.">
+    <FormSection title="تجهيز سريع قبل الإضافة" description="حتى لا تضطر للخروج من الصفحة، يمكنك إضافة قسم أو مسمى وظيفي سريعًا ثم استخدامه في بيانات الموظف.">
       {missingSetup ? (
         <div className="notice-box" style={{ marginBottom: 12 }}>
-          ظ„ط§ طھظˆط¬ط¯ ط£ظ‚ط³ط§ظ… ط£ظˆ ظ…ط³ظ…ظٹط§طھ ظˆط¸ظٹظپظٹط© ظƒط§ظپظٹط© ط­طھظ‰ ط§ظ„ط¢ظ†. ط§ظ„ط£ظپط¶ظ„ طھط¬ظ‡ظٹط²ظ‡ط§ ظ‚ط¨ظ„ ط­ظپط¸ ط§ظ„ظ…ظˆط¸ظپطŒ ط£ظˆ ط¥ط¶ط§ظپطھظ‡ط§ ط³ط±ظٹط¹ظ‹ط§ ظ…ظ† ظ‡ظ†ط§.
+          لا توجد أقسام أو مسميات وظيفية كافية حتى الآن. الأفضل تجهيزها قبل حفظ الموظف، أو إضافتها سريعًا من هنا.
         </div>
       ) : null}
       <div className="form-grid">
-        <label className="field">
-          <span>ط¥ط¶ط§ظپط© ظ‚ط³ظ… ط³ط±ظٹط¹</span>
-          <input value={quickDepartmentName} onChange={(event) => onQuickDepartmentNameChange(event.target.value)} placeholder="ظ…ط«ط§ظ„: ط§ظ„ظ…ط¨ظٹط¹ط§طھ" />
-          <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('departments', quickDepartmentName)} disabled={isBusy}>ط¥ط¶ط§ظپط© ط§ظ„ظ‚ط³ظ…</Button>
+        <label className="field" style={{ gridColumn: 'auto' }}>
+          <span>إضافة قسم سريع</span>
+          <input value={quickDepartmentName} onChange={(event) => onQuickDepartmentNameChange(event.target.value)} placeholder="مثال: المبيعات" />
+          <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('departments', quickDepartmentName)} disabled={isBusy}>إضافة القسم</Button>
         </label>
-        <label className="field">
-          <span>ط¥ط¶ط§ظپط© ظ…ط³ظ…ظ‰ ظˆط¸ظٹظپظٹ ط¬ط¯ظٹط¯</span>
+        <label className="field" style={{ gridColumn: 'auto' }}>
+          <span>إضافة مسمى وظيفي جديد</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input value={quickJobTitleName} onChange={(e) => onQuickJobTitleNameChange(e.target.value)} placeholder="ظ…ط«ط§ظ„: ظ…ط­ط§ط³ط¨" disabled={isBusy} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onCreateQuickMaster('job-titles', quickJobTitleName); } }} />
-            <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('job-titles', quickJobTitleName)} disabled={isBusy}>ط¥ط¶ط§ظپط©</Button>
+            <input value={quickJobTitleName} onChange={(e) => onQuickJobTitleNameChange(e.target.value)} placeholder="مثال: محاسب" disabled={isBusy} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onCreateQuickMaster('job-titles', quickJobTitleName); } }} />
+            <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('job-titles', quickJobTitleName)} disabled={isBusy}>إضافة</Button>
           </div>
         </label>
       </div>

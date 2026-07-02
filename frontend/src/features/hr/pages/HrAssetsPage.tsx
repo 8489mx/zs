@@ -181,11 +181,6 @@ export function HrAssetsPage() {
 
       <FormSection title="نوع العهدة" description="اختر النوع قبل التسجيل حتى تظهر الحقول المناسبة لكل دورة."><div className="compact-actions"><Button type="button" variant={activeTab === 'physical' ? 'primary' : 'secondary'} onClick={() => switchTab('physical')}>عُهد عينية</Button><Button type="button" variant={activeTab === 'cash' ? 'primary' : 'secondary'} onClick={() => switchTab('cash')}>عُهد نقدية</Button></div></FormSection>
 
-      <FormSection title={activeTab === 'cash' ? 'تسلسل العهدة النقدية' : 'تسلسل العهد العينية'} description={activeTab === 'cash' ? 'العهدة النقدية ليست سلفة شخصية؛ هي مبلغ للشغل يتم تسويته بفواتير أو مرتجع.' : 'استخدم الصفحة بهذا الترتيب حتى لا تضيع العُهد أو تظل مفتوحة بدون مراجعة.'}>
-        <div className="form-grid">
-          {activeTab === 'cash' ? <><div className="field"><strong>1. تسليم مبلغ</strong><span className="muted">اختر الموظف والمبلغ والغرض.</span></div><div className="field"><strong>2. صرف على الشغل</strong><span className="muted">الموظف يجمع الفواتير أو الإيصالات.</span></div><div className="field"><strong>3. تسوية</strong><span className="muted">سجّل المصروف والمرتجع وأي فرق.</span></div><div className="field"><strong>4. إغلاق أو مراجعة</strong><span className="muted">الفرق غير الصفري يظهر ضمن تحتاج مراجعة.</span></div></> : <><div className="field"><strong>1. سلّم العهدة</strong><span className="muted">اختر الموظف ونوع العهدة والكود أو الرقم التسلسلي.</span></div><div className="field"><strong>2. راجع المفتوح</strong><span className="muted">العُهد المسلّمة تظهر كمسؤولية قائمة على الموظف.</span></div><div className="field"><strong>3. عالج التالف والمفقود</strong><span className="muted">أي تالف أو مفقود يظهر في فئة تحتاج مراجعة.</span></div><div className="field"><strong>4. أغلق عند الاسترجاع</strong><span className="muted">سجّل الاسترجاع عند رجوع العهدة من الموظف.</span></div></>}
-        </div>
-      </FormSection>
 
       {showCreate ? (
         <FormSection title={activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'} description={activeTab === 'cash' ? 'سجّل المبلغ والغرض. التسوية تتم لاحقًا من قائمة العهد النقدية.' : 'سجّل العهدة على الموظف الصحيح. يمكن متابعة العُهد أيضًا من ملف الموظف.'}>
@@ -266,6 +261,11 @@ export function HrAssetsPage() {
       </FormSection>
 
       <FormSection title="ملاحظة تشغيلية"><p className="muted" style={{ margin: 0 }}>العهدة النقدية هنا لا تُعامل كسلفة موظف ولا تخصم من المرتب تلقائيًا؛ هي مبلغ مؤقت للشغل يتم إقفاله بالتسوية. السلف الشخصية تظل في صفحة السلف والخصومات.</p></FormSection>
+      <FormSection title={activeTab === 'cash' ? 'تسلسل العهدة النقدية' : 'تسلسل العهد العينية'} description={activeTab === 'cash' ? 'العهدة النقدية ليست سلفة شخصية؛ هي مبلغ للشغل يتم تسويته بفواتير أو مرتجع.' : 'استخدم الصفحة بهذا الترتيب حتى لا تضيع العُهد أو تظل مفتوحة بدون مراجعة.'}>
+        <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
+          {activeTab === 'cash' ? <><span><strong>1. تسليم مبلغ:</strong> <span className="muted">اختر الموظف والمبلغ والغرض.</span></span><span><strong>2. صرف على الشغل:</strong> <span className="muted">الموظف يجمع الفواتير أو الإيصالات.</span></span><span><strong>3. تسوية:</strong> <span className="muted">سجّل المصروف والمرتجع وأي فرق.</span></span><span><strong>4. إغلاق أو مراجعة:</strong> <span className="muted">الفرق غير الصفري يظهر ضمن تحتاج مراجعة.</span></span></> : <><span><strong>1. سلّم العهدة:</strong> <span className="muted">اختر الموظف ونوع العهدة والكود.</span></span><span><strong>2. راجع المفتوح:</strong> <span className="muted">العُهد المسلّمة تظهر كمسؤولية.</span></span><span><strong>3. عالج التالف:</strong> <span className="muted">أي تالف أو مفقود يظهر للمراجعة.</span></span><span><strong>4. أغلق:</strong> <span className="muted">سجّل الاسترجاع عند رجوع العهدة.</span></span></>}
+        </div>
+      </FormSection>
       </main>
     </div>
   );

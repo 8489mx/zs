@@ -1,4 +1,4 @@
-﻿import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -152,9 +152,71 @@ export function HrPayrollPage() {
     }
   }
 
+  function printPayslip(row: HrPayrollRunItem) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>مفردات مرتب - ${row.employeeName}</title>
+          <style>
+            @page { size: A4; margin: 20mm; }
+            body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; color: #111; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { font-size: 24px; font-weight: bold; margin-bottom: 8px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+            .box { border: 1px solid #ccc; padding: 16px; border-radius: 8px; }
+            .box-title { font-weight: bold; margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+            .row strong { font-weight: 500; color: #555; }
+            .total { font-size: 18px; font-weight: bold; border-top: 2px solid #333; padding-top: 12px; margin-top: 12px; }
+            .footer { margin-top: 60px; display: flex; justify-content: space-between; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">مفردات مرتب (Payslip)</div>
+            <div>عن شهر: ${selectedRun?.periodMonth || 'الشهر الحالي'}</div>
+          </div>
+          <div class="grid">
+            <div class="box" style="grid-column: 1 / -1;">
+              <div class="box-title">بيانات الموظف</div>
+              <div class="row"><strong>كود الموظف:</strong> <span>${row.employeeNo}</span></div>
+              <div class="row"><strong>الاسم:</strong> <span>${row.employeeName}</span></div>
+              <div class="row"><strong>نوع الأجر:</strong> <span>${row.compensationType === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</span></div>
+            </div>
+            <div class="box">
+              <div class="box-title">الاستحقاقات</div>
+              <div class="row"><strong>الراتب الأساسي:</strong> <span>${row.baseSalary || 0} ج.م</span></div>
+              <div class="row"><strong>البدلات:</strong> <span>${row.allowanceAmount || 0} ج.م</span></div>
+            </div>
+            <div class="box">
+              <div class="box-title">الاستقطاعات</div>
+              <div class="row"><strong>الخصومات:</strong> <span>${row.deductionAmount || 0} ج.م</span></div>
+              <div class="row"><strong>أقساط سلف:</strong> <span>${row.loanDeductionAmount || 0} ج.م</span></div>
+            </div>
+            <div class="box" style="grid-column: 1 / -1; background: #f9f9f9;">
+              <div class="box-title">الصافي (Net Pay)</div>
+              <div class="row total"><strong>صافي الراتب المستحق:</strong> <span>${row.netPay || 0} ج.م</span></div>
+            </div>
+          </div>
+          <div class="footer">
+            <div>توقيع الموظف: ___________________</div>
+            <div>توقيع المدير: ___________________</div>
+          </div>
+          <script>
+            setTimeout(() => { window.print(); window.close(); }, 500);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+  }
+
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
       <PageHeader
         title="المرتبات"
         description="مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة."
@@ -228,7 +290,7 @@ export function HrPayrollPage() {
                   { key: 'totalLoanDeductionAmount', header: 'إجمالي السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.totalLoanDeductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
                   { key: 'totalNetPay', header: 'صافي المرتبات', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : 'لا تملك صلاحية عرض هذه البيانات.' },
                   { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => text(row.createdAt) },
-                  { key: 'actions', header: 'إجراء', cell: (row) => <div className="actions compact-actions">{canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}{canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.reviewPayrollRun.mutateAsync(String(row.id)); }}>اعتماد</Button> : null}{canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.approvePayrollRun.mutateAsync(String(row.id)); }}>اعتماد نهائي</Button> : null}{canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}</div> },
+                  { key: 'actions', header: 'إجراء', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>{canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}{canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.reviewPayrollRun.mutateAsync(String(row.id)); }}>اعتماد</Button> : null}{canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.approvePayrollRun.mutateAsync(String(row.id)); }}>اعتماد نهائي</Button> : null}{canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}</div> },
                 ]}
               />
             </QueryFeedback>
@@ -261,7 +323,7 @@ export function HrPayrollPage() {
                         { key: 'reviewAttendance', header: 'مراجعة الحضور', cell: (row) => reviewAttendanceText(row) },
                         { key: 'reviewLeaves', header: 'مراجعة الإجازات', cell: (row) => reviewLeavesText(row) },
                         { key: 'suggestedDeduction', header: 'خصم مقترح', cell: (row) => canViewSalaryAmounts ? money(Number(row.suggestedAttendanceDeductionAmount || 0) + Number(row.suggestedLeaveDeductionAmount || 0)) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                        { key: 'details', header: 'عرض التفاصيل', cell: (row) => <details><summary>مراجعة</summary><div className="muted" style={{ marginTop: 8 }}><div>الراتب الأساسي: {canViewSalaryAmounts ? money(row.baseSalary) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>نوع الأجر: {normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</div><div>أجر الساعة: {normalize(row.compensationType) === 'hourly' ? (canViewSalaryAmounts ? money(row.hourlyRate || 0) : 'لا تملك صلاحية عرض هذه البيانات.') : 'غير متاح'}</div><div>ساعات اليوم المتوقعة: {normalize(row.compensationType) === 'hourly' ? String(row.expectedDailyHours || 0) : 'غير متاح'}</div><div>الخصومات: {canViewSalaryAmounts ? money(row.deductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>السلف/الأقساط: {canViewSalaryAmounts ? money(row.loanDeductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>الإجازات غير المدفوعة: {Number(row.unpaidLeaveDays || 0)} يوم</div><div>ملاحظات المراجعة: {text(row.payrollReviewNotes)}</div><div>ملاحظات إضافية: {text(row.notes)}</div></div></details> },
+                        { key: 'details', header: 'عرض التفاصيل', cell: (row) => <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}><details><summary>مراجعة</summary><div className="muted" style={{ marginTop: 8 }}><div>الراتب الأساسي: {canViewSalaryAmounts ? money(row.baseSalary) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>نوع الأجر: {normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</div><div>أجر الساعة: {normalize(row.compensationType) === 'hourly' ? (canViewSalaryAmounts ? money(row.hourlyRate || 0) : 'لا تملك صلاحية عرض هذه البيانات.') : 'غير متاح'}</div><div>ساعات اليوم المتوقعة: {normalize(row.compensationType) === 'hourly' ? String(row.expectedDailyHours || 0) : 'غير متاح'}</div><div>الخصومات: {canViewSalaryAmounts ? money(row.deductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>السلف/الأقساط: {canViewSalaryAmounts ? money(row.loanDeductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>الإجازات غير المدفوعة: {Number(row.unpaidLeaveDays || 0)} يوم</div><div>ملاحظات المراجعة: {text(row.payrollReviewNotes)}</div><div>ملاحظات إضافية: {text(row.notes)}</div></div></details>{runIsFinal && <Button variant="secondary" onClick={() => printPayslip(row)}>طباعة مفردات المرتب</Button>}</div> },
                       ]}
                     />
                   </>
