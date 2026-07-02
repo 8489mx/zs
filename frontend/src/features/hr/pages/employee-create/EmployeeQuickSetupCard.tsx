@@ -1,23 +1,19 @@
 ﻿import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 
-type MasterKind = 'departments' | 'job-titles';
-
-interface EmployeeQuickSetupCardProps {
-import { FormSection } from '@/shared/components/form-section';
-import { Button } from '@/shared/ui/button';
-
-type MasterKind = 'departments' | 'job-titles';
+type MasterKind = 'departments' | 'job-titles' | 'positions';
 
 interface EmployeeQuickSetupCardProps {
   missingSetup: boolean;
   quickDepartmentName: string;
   quickJobTitleName: string;
+  quickPositionName?: string;
   setupError: string;
   setupSuccess: string;
   isBusy: boolean;
   onQuickDepartmentNameChange: (value: string) => void;
   onQuickJobTitleNameChange: (value: string) => void;
+  onQuickPositionNameChange?: (value: string) => void;
   onCreateQuickMaster: (kind: MasterKind, name: string) => void;
 }
 
@@ -59,4 +55,5 @@ export function EmployeeQuickSetupCard({
     </FormSection>
   );
 }
+
 

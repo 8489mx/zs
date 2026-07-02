@@ -52,8 +52,8 @@ export interface HrListParams {
 }
 
 export const hrApi = {
-  getPayrollPolicies: () => api.get('/hr/settings/payroll-policies'),
-  updatePayrollPolicies: (data: any) => api.put('/hr/settings/payroll-policies', data),
+  getPayrollPolicies: () => http('/api/hr/settings/payroll-policies'),
+  updatePayrollPolicies: (data: any) => http('/api/hr/settings/payroll-policies', { method: 'PUT', body: JSON.stringify(data) }),
   summary: async () => (await http<{ summary?: HrSummary }>('/api/hr/summary')).summary || { employeeCount: 0, activeCount: 0, openLoans: 0, outstandingAmount: 0 },
   withdrawals: async (params: HrListParams = {}) => {
     const response = await http<WithdrawalsResponse>(`/api/hr/withdrawals${buildQueryString(params)}`);
@@ -137,4 +137,5 @@ export const hrApi = {
   reportsSummary: (params: HrListParams = {}) => http<HrReportsSummaryResponse>(`/api/hr/reports/summary${buildQueryString({ from: params.from, to: params.to, month: params.month })}`),
   importEmployees: (rows: unknown) => http<Record<string, unknown>>('/api/import/employees', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),
 };
+
 
