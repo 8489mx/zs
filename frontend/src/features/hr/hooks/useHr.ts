@@ -1,4 +1,4 @@
-﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { hrApi, type HrListParams } from '@/features/hr/api/hr.api';
 
@@ -19,7 +19,6 @@ function paramsKey(params: HrListParams) {
 export function useHrWorkspace(params: HrListParams) {
   const key = paramsKey(params);
   return {
-    updatePayrollPolicies: useMutation({ mutationFn: hrApi.updatePayrollPolicies, onSuccess: invalidate }),
     summary: useQuery({ queryKey: queryKeys.hrSummary, queryFn: hrApi.summary }),
     employees: useQuery({ queryKey: queryKeys.hrEmployees(key), queryFn: () => hrApi.employees(params), placeholderData: (previous) => previous }),
     departments: useQuery({ queryKey: queryKeys.hrMasterData('departments'), queryFn: () => hrApi.masterData('departments') }),
