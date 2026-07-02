@@ -12,7 +12,6 @@ import { useHrWorkspace } from '@/features/hr/hooks/useHr';
 import { ImportWorkbench } from '@/shared/components/ImportWorkbench';
 import { downloadExcelFile } from '@/lib/browser';
 import { hrApi } from '@/features/hr/api/hr.api';
-import { EmployeeAdjustmentModal } from '@/features/hr/components/EmployeeAdjustmentModal';
 
 const STATUS_FILTERS = [
   { value: '', label: 'كل الموظفين' },
@@ -115,7 +114,6 @@ export function EmployeesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [importOpen, setImportOpen] = useState(false);
-  const [adjustmentTarget, setAdjustmentTarget] = useState<{ id: number; name: string } | null>(null);
 
   const importEmployeesMutation = useMutation({
     mutationFn: (rows: Record<string, string>[]) => hrApi.importEmployees(rows),
@@ -299,33 +297,18 @@ export function EmployeesPage() {
               { key: 'status', header: 'الحالة', cell: (row) => statusLabel(String(row.status || '')) },
               {
                 key: 'profile',
-                header: 'إجراءات',
+                header: 'الإجراء',
                 cell: (row) => (
-                  <div className="compact-actions" style={{ flexWrap: 'nowrap' }}>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setAdjustmentTarget({
-                          id: Number(row.id),
-                          name: fallbackText(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim())
-                        });
-                      }}
-                    >
-                      مكافأة / خصم
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        navigate(`/hr/employees/${row.id}`);
-                      }}
-                    >
-                      عرض الملف
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/hr/employees/${row.id}`);
+                    }}
+                  >
+                    فتح الملف
+                  </Button>
                 ),
               },
             ]}
@@ -333,15 +316,7 @@ export function EmployeesPage() {
         </QueryFeedback>
       </FormSection>
       </main>
-
-      {adjustmentTarget && (
-        <EmployeeAdjustmentModal
-          isOpen={true}
-          onClose={() => setAdjustmentTarget(null)}
-          employeeId={adjustmentTarget.id}
-          employeeName={adjustmentTarget.name}
-        />
-      )}
     </div>
   );
 }
+

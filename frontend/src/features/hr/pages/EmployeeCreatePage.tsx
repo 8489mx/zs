@@ -20,7 +20,7 @@ import {
   type ShiftPreset,
 } from '@/features/hr/pages/employee-create/employee-create.helpers';
 
-type MasterKind = 'departments' | 'job-titles';
+type MasterKind = 'departments' | 'job-titles' | 'positions';
 
 export function EmployeeCreatePage() {
   const navigate = useNavigate();
@@ -30,12 +30,13 @@ export function EmployeeCreatePage() {
   const [setupSuccess, setSetupSuccess] = useState('');
   const [quickDepartmentName, setQuickDepartmentName] = useState('');
   const [quickJobTitleName, setQuickJobTitleName] = useState('');
-  const [quickJobTitleName, setQuickJobTitleName] = useState('');
+  const [quickPositionName, setQuickPositionName] = useState('');
 
   const workspace = useHrWorkspace({ page: 1, pageSize: 200 });
   const mutations = useHrMutations();
   const departments = useMemo(() => workspace.departments.data?.rows || [], [workspace.departments.data?.rows]);
   const jobTitles = useMemo(() => workspace.jobTitles.data?.rows || [], [workspace.jobTitles.data?.rows]);
+  const positions = useMemo(() => workspace.positions.data?.rows || [], [workspace.positions.data?.rows]);
   const missingSetup = !departments.length || !jobTitles.length;
 
   const reviewWarnings = useMemo(() => {
@@ -63,11 +64,19 @@ export function EmployeeCreatePage() {
     setSetupError('');
     setSetupSuccess('');
     const payload: Record<string, unknown> = { name: cleanName, isActive: true };
+    if (kind === 'positions') {
+      const departmentId = toId(draft.departmentId);
+      const jobTitleId = toId(draft.jobTitleId);
+      if (!departmentId || !jobTitleId) { setSetupError('اختار القسم والمسمى الوظيفي أولًا قبل إضافة الوظيفة/المنصب.'); return; }
+      payload.departmentId = departmentId;
+      payload.jobTitleId = jobTitleId;
+    }
     try {
       const result = await mutations.saveMasterData.mutateAsync({ kind, payload });
       const createdId = createdMasterId(result, cleanName);
       if (kind === 'departments') { setQuickDepartmentName(''); if (createdId) setDraft((current) => ({ ...current, departmentId: createdId })); setSetupSuccess('تمت إضافة القسم.'); }
       if (kind === 'job-titles') { setQuickJobTitleName(''); if (createdId) setDraft((current) => ({ ...current, jobTitleId: createdId })); setSetupSuccess('تمت إضافة المسمى الوظيفي.'); }
+      if (kind === 'positions') { setQuickPositionName(''); if (createdId) setDraft((current) => ({ ...current, positionId: createdId })); setSetupSuccess('تمت إضافة الوظيفة/المنصب.'); }
     } catch (error) {
       setSetupError(getErrorMessage(error, 'تعذر إضافة البيانات.'));
     }
@@ -99,7 +108,7 @@ export function EmployeeCreatePage() {
     if (draft.compensationType === 'hourly' && !(expectedDailyHours > 0)) { setSubmitError('عدد ساعات العمل اليومية المتوقعة مطلوب للموظف بالأجر بالساعة.'); return; }
 
     try {
-      const result = await mutations.saveEmployee.mutateAsync({ payload: { employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined, firstName, lastName: String(draft.lastName || '').trim() || undefined, nationalId: nationalId || undefined, status: draft.status, departmentId: toId(draft.departmentId), jobTitleId: toId(draft.jobTitleId), hireDate, notes: String(draft.notes || '').trim() || undefined, compensationType: draft.compensationType, hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined, expectedDailyHours: draft.compensationType === 'hourly' ? expectedDailyHours : undefined, scheduledCheckInTime: draft.scheduledCheckInTime || undefined, scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined, graceMinutes, overtimePolicy: draft.overtimePolicy } });
+      const result = await mutations.saveEmployee.mutateAsync({ payload: { employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined, firstName, lastName: String(draft.lastName || '').trim() || undefined, nationalId: nationalId || undefined, status: draft.status, departmentId: toId(draft.departmentId), jobTitleId: toId(draft.jobTitleId), positionId: toId(draft.positionId), hireDate, notes: String(draft.notes || '').trim() || undefined, compensationType: draft.compensationType, hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined, expectedDailyHours: draft.compensationType === 'hourly' ? expectedDailyHours : undefined, scheduledCheckInTime: draft.scheduledCheckInTime || undefined, scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined, graceMinutes, overtimePolicy: draft.overtimePolicy } });
       const createdEmployeeId = getCreatedEmployeeId(result, draft, firstName);
       if (createdEmployeeId) {
         await mutations.saveContact.mutateAsync({ employeeId: createdEmployeeId, payload: { contactType: 'phone', value: mobile, label: 'الموبايل', isPrimary: true, notes: '' } });
@@ -117,7 +126,7 @@ export function EmployeeCreatePage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader title="إضافة موظف" description="ابدأ بتهيئة القسم والمسمى الوظيفي إذا لم يكونا موجودين، ثم أدخل بيانات الموظف في نفس الصفحة." />
-      <EmployeeQuickSetupCard missingSetup={missingSetup} quickDepartmentName={quickDepartmentName} quickJobTitleName={quickJobTitleName} setupError={setupError} setupSuccess={setupSuccess} isBusy={isBusy} onQuickDepartmentNameChange={setQuickDepartmentName} onQuickJobTitleNameChange={setQuickJobTitleName} onCreateQuickMaster={(kind, name) => { void createQuickMaster(kind, name); }} />
+      <EmployeeQuickSetupCard missingSetup={missingSetup} quickDepartmentName={quickDepartmentName} quickJobTitleName={quickJobTitleName} quickPositionName={quickPositionName} setupError={setupError} setupSuccess={setupSuccess} isBusy={isBusy} onQuickDepartmentNameChange={setQuickDepartmentName} onQuickJobTitleNameChange={setQuickJobTitleName} onQuickPositionNameChange={setQuickPositionName} onCreateQuickMaster={(kind, name) => { void createQuickMaster(kind, name); }} />
 
       <form onSubmit={(event) => { void handleSubmit(event); }}>
         <FormSection title="البيانات الأساسية" description="أدخل بيانات التعريف الأساسية للموظف.">
@@ -134,6 +143,7 @@ export function EmployeeCreatePage() {
           <div className="form-grid">
             <div className="field"><span>القسم</span><select value={draft.departmentId} onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}><option value="">اختيار</option>{departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></div>
             <div className="field"><span>المسمى الوظيفي</span><select value={draft.jobTitleId} onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}><option value="">اختيار</option>{jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></div>
+            <div className="field"><span>الوظيفة/المنصب</span><select value={draft.positionId} onChange={(e) => setDraft((current) => ({ ...current, positionId: e.target.value }))}><option value="">اختيار</option>{positions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></div>
             <div className="field"><span>تاريخ التعيين *</span><input type="date" value={draft.hireDate} onChange={(e) => setDraft((current) => ({ ...current, hireDate: e.target.value }))} required /></div>
             <div className="field"><span>الحالة</span><select value={draft.status} onChange={(e) => setDraft((current) => ({ ...current, status: e.target.value === 'inactive' ? 'inactive' : 'active' }))}><option value="active">نشط</option><option value="inactive">غير نشط</option></select></div>
           </div>

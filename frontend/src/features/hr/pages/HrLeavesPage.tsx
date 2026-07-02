@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+﻿import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -142,10 +142,10 @@ export function HrLeavesPage() {
 
   const createLeaveRequest = async () => {
     const nextErrors: Record<string, string> = {};
-    if (!leaveForm.employeeId) nextErrors.employeeId = 'اختيار الموظف مطلوب.';
-    if (!leaveForm.leaveTypeId) nextErrors.leaveTypeId = 'نوع الإجازة مطلوب.';
-    if (!leaveForm.startDate) nextErrors.startDate = 'تاريخ البداية مطلوب.';
-    if (!leaveForm.endDate) nextErrors.endDate = 'تاريخ النهاية مطلوب.';
+    if (!leaveForm.employeeId) nextErrors.employeeId = 'ط§ط®طھظٹط§ط± ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨.';
+    if (!leaveForm.leaveTypeId) nextErrors.leaveTypeId = 'ظ†ظˆط¹ ط§ظ„ط¥ط¬ط§ط²ط© ظ…ط·ظ„ظˆط¨.';
+    if (!leaveForm.startDate) nextErrors.startDate = 'طھط§ط±ظٹط® ط§ظ„ط¨ط¯ط§ظٹط© ظ…ط·ظ„ظˆط¨.';
+    if (!leaveForm.endDate) nextErrors.endDate = 'طھط§ط±ظٹط® ط§ظ„ظ†ظ‡ط§ظٹط© ظ…ط·ظ„ظˆط¨.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
@@ -183,7 +183,7 @@ export function HrLeavesPage() {
   const rejectRequest = async (id: string) => {
     const reason = text(rejectNotes);
     if (!reason) {
-      setErrors((prev) => ({ ...prev, reject: 'سبب الرفض مطلوب.' }));
+      setErrors((prev) => ({ ...prev, reject: 'ط³ط¨ط¨ ط§ظ„ط±ظپط¶ ظ…ط·ظ„ظˆط¨.' }));
       return;
     }
     await mutations.rejectLeaveRequest.mutateAsync({ id, payload: { decisionNotes: reason, notes: reason } });
@@ -200,21 +200,19 @@ export function HrLeavesPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
-        title="الإجازات"
-        description="راجع الطلبات قيد المراجعة أولًا، ثم تابع الإجازات غير المدفوعة لأنها تؤثر على المرتبات."
+        title="ط§ظ„ط¥ط¬ط§ط²ط§طھ"
+        description="ط±ط§ط¬ط¹ ط§ظ„ط·ظ„ط¨ط§طھ ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط© ط£ظˆظ„ظ‹ط§طŒ ط«ظ… طھط§ط¨ط¹ ط§ظ„ط¥ط¬ط§ط²ط§طھ ط؛ظٹط± ط§ظ„ظ…ط¯ظپظˆط¹ط© ظ„ط£ظ†ظ‡ط§ طھط¤ط«ط± ط¹ظ„ظ‰ ط§ظ„ظ…ط±طھط¨ط§طھ."
         actions={(
           <div className="compact-actions">
             <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-              {showCreate ? 'إغلاق نموذج الطلب' : 'إضافة طلب إجازة'}
+              {showCreate ? 'ط¥ط؛ظ„ط§ظ‚ ظ†ظ…ظˆط°ط¬ ط§ظ„ط·ظ„ط¨' : 'ط¥ط¶ط§ظپط© ط·ظ„ط¨ ط¥ط¬ط§ط²ط©'}
             </Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>ظپطھط­ ط§ظ„ظ…ط±طھط¨ط§طھ</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>ط±ط¬ظˆط¹ ظ„ظ„ظ…ظˆط¸ظپظٹظ†</Button>
           </div>
         )}
       />
-
-
-      {showCreate ? (
+{showCreate ? (
         <HrLeavesCreateRequestCard
           leaveForm={leaveForm}
           employees={employees}
@@ -232,75 +230,75 @@ export function HrLeavesPage() {
         />
       ) : null}
 
-      <FormSection title="فلاتر الطلبات" description="الفلاتر هنا تضيق النتائج الظاهرة فقط، ويمكن تصفيرها بزر واحد.">
+      <FormSection title="ظ…ظ„ط®طµ ط§ظ„ط·ظ„ط¨ط§طھ" description="ط§ط¶ط؛ط· ط¹ظ„ظ‰ ط§ظ„ظƒط±ظˆطھ ظ„طھطµظپظٹط© ط§ظ„ط¬ط¯ظˆظ„ ظ…ط¨ط§ط´ط±ط©.">
+        <div className="stats-grid">
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط¨ط§طھ</span><strong>{summary.total}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</span><strong>{summary.pending}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>ظ…ط¹طھظ…ط¯ط©</span><strong>{summary.approved}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>ظ…ط±ظپظˆط¶ط©</span><strong>{summary.rejected}</strong></button>
+          <button className="stat-card" type="button" onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>ط¥ط¬ط§ط²ط§طھ ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©</span><strong>{summary.unpaid}</strong></button>
+          <div className="stat-card"><span>ط¸ط§ظ‡ط± ط­ط§ظ„ظٹظ‹ط§</span><strong>{summary.visible}</strong></div>
+        </div>
+      </FormSection>
+
+      <FormSection title="ظپظ„ط§طھط± ط§ظ„ط·ظ„ط¨ط§طھ" description="ط§ظ„ظپظ„ط§طھط± ظ‡ظ†ط§ طھط¶ظٹظ‚ ط§ظ„ظ†طھط§ط¦ط¬ ط§ظ„ط¸ط§ظ‡ط±ط© ظپظ‚ط·طŒ ظˆظٹظ…ظƒظ† طھطµظپظٹط±ظ‡ط§ ط¨ط²ط± ظˆط§ط­ط¯.">
         <div className="compact-actions" style={{ marginBottom: 12 }}>
-          <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }}>قيد المراجعة</Button>
-          <Button type="button" variant={quickFilter === 'unpaid' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }}>غير مدفوعة</Button>
-          <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }}>كل الطلبات</Button>
-          <Button type="button" variant="secondary" onClick={resetFilters}>مسح الفلاتر</Button>
+          <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }}>ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</Button>
+          <Button type="button" variant={quickFilter === 'unpaid' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }}>ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©</Button>
+          <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }}>ظƒظ„ ط§ظ„ط·ظ„ط¨ط§طھ</Button>
+          <Button type="button" variant="secondary" onClick={resetFilters}>ظ…ط³ط­ ط§ظ„ظپظ„ط§طھط±</Button>
         </div>
         <div className="form-grid">
           <div className="field field-wide">
-            <span>بحث الموظف</span>
+            <span>ط¨ط­ط« ط§ظ„ظ…ظˆط¸ظپ</span>
             <SearchToolbar
               search={search}
               onSearchChange={(value) => {
                 setSearch(value);
                 setPage(1);
               }}
-              searchPlaceholder="بحث باسم الموظف أو كود الموظف"
-              inputAriaLabel="بحث طلبات الإجازات"
+              searchPlaceholder="ط¨ط­ط« ط¨ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ط£ظˆ ظƒظˆط¯ ط§ظ„ظ…ظˆط¸ظپ"
+              inputAriaLabel="ط¨ط­ط« ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط§طھ"
             />
           </div>
           <label className="field">
-            <span>الحالة التفصيلية</span>
+            <span>ط§ظ„ط­ط§ظ„ط© ط§ظ„طھظپطµظٹظ„ظٹط©</span>
             <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setQuickFilter('all'); setPage(1); }}>
-              <option value="">الكل</option>
-              <option value="pending">قيد المراجعة</option>
-              <option value="approved">معتمدة</option>
-              <option value="rejected">مرفوضة</option>
-              <option value="cancelled">ملغاة</option>
+              <option value="">ط§ظ„ظƒظ„</option>
+              <option value="pending">ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</option>
+              <option value="approved">ظ…ط¹طھظ…ط¯ط©</option>
+              <option value="rejected">ظ…ط±ظپظˆط¶ط©</option>
+              <option value="cancelled">ظ…ظ„ط؛ط§ط©</option>
             </select>
           </label>
           <label className="field">
-            <span>نوع الإجازة</span>
+            <span>ظ†ظˆط¹ ط§ظ„ط¥ط¬ط§ط²ط©</span>
             <select value={leaveTypeFilter} onChange={(event) => { setLeaveTypeFilter(event.target.value); setPage(1); }}>
-              <option value="all">الكل</option>
-              {leaveTypes.map((type) => <option key={type.id} value={String(type.id)}>{text(type.name) || '—'}</option>)}
+              <option value="all">ط§ظ„ظƒظ„</option>
+              {leaveTypes.map((type) => <option key={type.id} value={String(type.id)}>{text(type.name) || 'â€”'}</option>)}
             </select>
           </label>
           <label className="field">
-            <span>من تاريخ</span>
+            <span>ظ…ظ† طھط§ط±ظٹط®</span>
             <input type="date" value={fromDateFilter} onChange={(event) => { setFromDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
           </label>
           <label className="field">
-            <span>إلى تاريخ</span>
+            <span>ط¥ظ„ظ‰ طھط§ط±ظٹط®</span>
             <input type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
           </label>
         </div>
       </FormSection>
 
-      <FormSection title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
-        <div className="stats-grid">
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي الطلبات</span><strong>{summary.total}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>قيد المراجعة</span><strong>{summary.pending}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>معتمدة</span><strong>{summary.approved}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>مرفوضة</span><strong>{summary.rejected}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>إجازات غير مدفوعة</span><strong>{summary.unpaid}</strong></button>
-          <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
-        </div>
-      </FormSection>
-
-      <FormSection title="طلبات الإجازة" description="الطلبات قيد المراجعة تظهر افتراضيًا حتى يكون القرار واضحًا وسريعًا.">
+      <FormSection title="ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط©" description="ط§ظ„ط·ظ„ط¨ط§طھ ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط© طھط¸ظ‡ط± ط§ظپطھط±ط§ط¶ظٹظ‹ط§ ط­طھظ‰ ظٹظƒظˆظ† ط§ظ„ظ‚ط±ط§ط± ظˆط§ط¶ط­ظ‹ط§ ظˆط³ط±ظٹط¹ظ‹ط§.">
         <QueryFeedback
           isLoading={leaveRequestsQuery.isLoading}
           isError={leaveRequestsQuery.isError}
           error={leaveRequestsQuery.error}
           isEmpty={!requests.length || !visibleRequests.length}
-          loadingText="جاري تحميل طلبات الإجازة..."
-          errorTitle="تعذر تحميل طلبات الإجازة."
-          emptyTitle={isSearchOrFilterActive ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد طلبات إجازة حتى الآن.'}
-          emptyHint={isSearchOrFilterActive ? 'جرّب تعديل الفلاتر أو إزالة البحث.' : 'ابدأ بإضافة طلب إجازة جديد من الزر أعلى الصفحة.'}
+          loadingText="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط©..."
+          errorTitle="طھط¹ط°ط± طھط­ظ…ظٹظ„ ط·ظ„ط¨ط§طھ ط§ظ„ط¥ط¬ط§ط²ط©."
+          emptyTitle={isSearchOrFilterActive ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ ظ…ط·ط§ط¨ظ‚ط© ظ„ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©.' : 'ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط¥ط¬ط§ط²ط© ط­طھظ‰ ط§ظ„ط¢ظ†.'}
+          emptyHint={isSearchOrFilterActive ? 'ط¬ط±ظ‘ط¨ طھط¹ط¯ظٹظ„ ط§ظ„ظپظ„ط§طھط± ط£ظˆ ط¥ط²ط§ظ„ط© ط§ظ„ط¨ط­ط«.' : 'ط§ط¨ط¯ط£ ط¨ط¥ط¶ط§ظپط© ط·ظ„ط¨ ط¥ط¬ط§ط²ط© ط¬ط¯ظٹط¯ ظ…ظ† ط§ظ„ط²ط± ط£ط¹ظ„ظ‰ ط§ظ„طµظپط­ط©.'}
         >
           <DataTable
             rows={visibleRequests}
@@ -315,30 +313,30 @@ export function HrLeavesPage() {
                 setPageSize(next);
                 setPage(1);
               },
-              itemLabel: 'طلب',
+              itemLabel: 'ط·ظ„ط¨',
             }}
             columns={[
-              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) || '—' },
-              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) || '—' },
-              { key: 'leaveType', header: 'نوع الإجازة', cell: (row) => text(row.leaveTypeName || row.leaveType) || '—' },
-              { key: 'startDate', header: 'من تاريخ', cell: (row) => toDateOnly(row.startDate) || '—' },
-              { key: 'endDate', header: 'إلى تاريخ', cell: (row) => toDateOnly(row.endDate) || '—' },
-              { key: 'daysCount', header: 'عدد الأيام', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
-              { key: 'status', header: 'الحالة', cell: (row) => leaveStatusLabel(row.status) },
-              { key: 'isPaid', header: 'مدفوعة / غير مدفوعة', cell: (row) => (!isUnpaidLeave(row) ? 'مدفوعة أو غير محددة' : 'غير مدفوعة') },
-              { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes || row.reason || '') || '—' },
+              { key: 'employeeNo', header: 'ظƒظˆط¯ ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => text(row.employeeNo) || 'â€”' },
+              { key: 'employeeName', header: 'ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ', cell: (row) => text(row.employeeName) || 'â€”' },
+              { key: 'leaveType', header: 'ظ†ظˆط¹ ط§ظ„ط¥ط¬ط§ط²ط©', cell: (row) => text(row.leaveTypeName || row.leaveType) || 'â€”' },
+              { key: 'startDate', header: 'ظ…ظ† طھط§ط±ظٹط®', cell: (row) => toDateOnly(row.startDate) || 'â€”' },
+              { key: 'endDate', header: 'ط¥ظ„ظ‰ طھط§ط±ظٹط®', cell: (row) => toDateOnly(row.endDate) || 'â€”' },
+              { key: 'daysCount', header: 'ط¹ط¯ط¯ ط§ظ„ط£ظٹط§ظ…', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
+              { key: 'status', header: 'ط§ظ„ط­ط§ظ„ط©', cell: (row) => leaveStatusLabel(row.status) },
+              { key: 'isPaid', header: 'ظ…ط¯ظپظˆط¹ط© / ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©', cell: (row) => (!isUnpaidLeave(row) ? 'ظ…ط¯ظپظˆط¹ط© ط£ظˆ ط؛ظٹط± ظ…ط­ط¯ط¯ط©' : 'ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©') },
+              { key: 'notes', header: 'ظ…ظ„ط§ط­ط¸ط§طھ', cell: (row) => text(row.notes || row.reason || '') || 'â€”' },
               {
                 key: 'actions',
-                header: 'إجراء',
+                header: 'ط¥ط¬ط±ط§ط،',
                 cell: (row) => {
                   const rowId = String(row.id);
                   const isUnpaid = isUnpaidLeave(row);
                   return (
                     <div className="actions compact-actions">
-                      {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending}>اعتماد</Button> : null}
-                      {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending}>رفض</Button> : null}
-                      {row.status !== 'cancelled' ? <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending}>إلغاء</Button> : null}
-                      {isUnpaid ? <span className="muted small">تؤثر على المرتبات.</span> : null}
+                      {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending}>ط§ط¹طھظ…ط§ط¯</Button> : null}
+                      {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending}>ط±ظپط¶</Button> : null}
+                      {row.status !== 'cancelled' ? <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending}>ط¥ظ„ط؛ط§ط،</Button> : null}
+                      {isUnpaid ? <span className="muted small">طھط¤ط«ط± ط¹ظ„ظ‰ ط§ظ„ظ…ط±طھط¨ط§طھ.</span> : null}
                     </div>
                   );
                 },
@@ -349,26 +347,28 @@ export function HrLeavesPage() {
       </FormSection>
 
       {rejectTargetId ? (
-        <FormSection title="سبب رفض الطلب">
+        <FormSection title="ط³ط¨ط¨ ط±ظپط¶ ط§ظ„ط·ظ„ط¨">
           <div className="form-grid">
             <label className="field field-wide">
-              <span>سبب الرفض</span>
+              <span>ط³ط¨ط¨ ط§ظ„ط±ظپط¶</span>
               <textarea rows={2} value={rejectNotes} onChange={(event) => setRejectNotes(event.target.value)} />
               {errors.reject ? <small className="field-error">{errors.reject}</small> : null}
             </label>
           </div>
           <div className="actions compact-actions">
             <Button type="button" onClick={() => void rejectRequest(rejectTargetId)} disabled={mutations.rejectLeaveRequest.isPending}>
-              {mutations.rejectLeaveRequest.isPending ? 'جاري الرفض...' : 'تأكيد الرفض'}
+              {mutations.rejectLeaveRequest.isPending ? 'ط¬ط§ط±ظٹ ط§ظ„ط±ظپط¶...' : 'طھط£ظƒظٹط¯ ط§ظ„ط±ظپط¶'}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }}>إلغاء</Button>
+            <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }}>ط¥ظ„ط؛ط§ط،</Button>
           </div>
         </FormSection>
       ) : null}
 
-      <HrLeavesWorkflowCard />
       <HrLeavesOperationalNote />
+
+          <HrLeavesWorkflowCard />
       </main>
     </div>
   );
 }
+

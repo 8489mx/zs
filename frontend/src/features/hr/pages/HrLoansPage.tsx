@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -47,7 +47,7 @@ function hasDueInstallment(row: HrLoan) {
 
 function isActiveLoan(row: HrLoan) {
   const status = normalize(row.status);
-  return Number(row.remainingAmount || 0) > 0 && status !== 'cancelled' && status !== 'repaid';
+  return Number(row.remainingAmount || 0) > 0 && status !== 'cancelled' && status !== 'repaid' && status !== 'paid';
 }
 
 function matchesQuickFilter(row: HrLoan, filter: LoanQuickFilter) {
@@ -56,7 +56,7 @@ function matchesQuickFilter(row: HrLoan, filter: LoanQuickFilter) {
   if (filter === 'active') return isActiveLoan(row);
   if (filter === 'due') return hasDueInstallment(row);
   if (filter === 'pending') return !status || status === 'pending' || status === 'draft' || status === 'new' || status === 'approved';
-  if (filter === 'closed') return status === 'repaid' || status === 'cancelled' || (status !== 'draft' && status !== 'pending' && status !== 'approved' && status !== 'new' && Number(row.remainingAmount || 0) <= 0);
+  if (filter === 'closed') return status === 'repaid' || status === 'paid' || status === 'cancelled' || Number(row.remainingAmount || 0) <= 0;
   return true;
 }
 
@@ -75,12 +75,10 @@ export function HrLoansPage() {
   const [loanDraft, setLoanDraft] = useState<LoanDraft>(createInitialLoanDraft);
   const [formError, setFormError] = useState('');
   const [selectedLoanForRepayment, setSelectedLoanForRepayment] = useState<string>('');
-  const [selectedLoanForPlan, setSelectedLoanForPlan] = useState<string>('');
   const [repaymentDraft, setRepaymentDraft] = useState<RepaymentDraft>({ amount: '', method: 'manual_cash', notes: '' });
   const [repaymentError, setRepaymentError] = useState('');
-  const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
-  const workspace = useHrWorkspace({ search, page, pageSize, month: currentMonth });
+  const workspace = useHrWorkspace({ search, page, pageSize });
   const employees = useMemo(() => workspace.employees.data?.employees || [], [workspace.employees.data?.employees]);
   const loans = useMemo(() => (workspace.loans.data?.loans || []) as HrLoan[], [workspace.loans.data?.loans]);
   const visibleLoans = useMemo(() => loans.filter((row) => matchesQuickFilter(row, quickFilter)), [loans, quickFilter]);
@@ -89,11 +87,6 @@ export function HrLoansPage() {
   const selectedRepaymentLoan = useMemo(
     () => loans.find((row) => String(row.id) === String(selectedLoanForRepayment)),
     [loans, selectedLoanForRepayment],
-  );
-
-  const selectedPlanLoan = useMemo(
-    () => loans.find((row) => String(row.id) === String(selectedLoanForPlan)),
-    [loans, selectedLoanForPlan],
   );
 
   const summary = useMemo(() => {
@@ -204,8 +197,7 @@ export function HrLoansPage() {
         <FormSection title="الوصول للسلف والخصومات"><p className="muted" style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى هذه الصفحة.</p><p className="muted" style={{ marginBottom: 0 }}>تواصل مع مسؤول النظام لتحديث الصلاحيات.</p></FormSection>
       ) : (
         <>
-
-          {showCreate ? (
+{showCreate ? (
             <FormSection title="سلفة جديدة" description="اختر طريقة السداد قبل الحفظ. خطة السداد لا تُخصم من المرتب إلا داخل مسير المرتبات.">
               <HrLoanCreateForm loanDraft={loanDraft} employees={employees as HrEmployee[]} canManageLoans={canManageLoans} formError={formError} planPreview={planPreview} isPending={mutations.saveLoan.isPending} onChange={(patch) => setLoanDraft((current) => ({ ...current, ...patch }))} onSubmit={() => { void handleCreateLoan(); }} />
             </FormSection>
@@ -257,11 +249,7 @@ export function HrLoansPage() {
                     cell: (row) => {
                       const installments = Array.isArray(row.installments) ? row.installments as HrLoanInstallment[] : [];
                       if (!installments.length) return fallbackText(repaymentModeLabel(row.repaymentMode));
-                      return (
-                        <Button type="button" variant="secondary" onClick={() => setSelectedLoanForPlan(String(row.id))}>
-                          {`عرض الأقساط (${installments.length})`}
-                        </Button>
-                      );
+                      return <details><summary>{`عدد الأقساط: ${installments.length}`}</summary><div className="table-wrap" style={{ marginTop: 8 }}><table className="data-table"><thead><tr><th>رقم القسط</th><th>شهر الاستحقاق</th><th>قيمة القسط</th><th>الحالة</th><th>تاريخ الخصم</th></tr></thead><tbody>{installments.map((item) => <tr key={String(item.id)}><td>{item.installmentNumber || '—'}</td><td>{monthLabel(item.dueDate)}</td><td>{canViewSalaryAmounts ? money(item.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{installmentStatusLabel(item.status)}</td><td>{fallbackText(item.paidAt)}</td></tr>)}</tbody></table></div></details>;
                     },
                   },
                   {
@@ -281,48 +269,16 @@ export function HrLoansPage() {
               {selectedRepaymentLoan ? (
                 <HrLoanRepaymentForm selectedLoanLabel={fallbackText(selectedRepaymentLoan.loanNo || selectedRepaymentLoan.id)} remainingAmountText={canViewSalaryAmounts ? money(selectedRepaymentLoan.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'} repaymentDraft={repaymentDraft} repaymentError={repaymentError} isPending={mutations.repayLoan.isPending} onChange={(patch) => setRepaymentDraft((current) => ({ ...current, ...patch }))} onSubmit={() => { void handleRepay(); }} onCancel={() => { setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' }); setSelectedLoanForRepayment(''); }} />
               ) : null}
-
-              {selectedPlanLoan ? (
-                <div style={{ marginTop: '16px' }}>
-                  <FormSection
-                    title={`خطة سداد سلفة: ${fallbackText(selectedPlanLoan.loanNo || selectedPlanLoan.id)}`}
-                    actions={<Button variant="secondary" onClick={() => setSelectedLoanForPlan('')}>إغلاق</Button>}
-                  >
-                    <div className="table-wrap">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>رقم القسط</th>
-                            <th>شهر الاستحقاق</th>
-                            <th>قيمة القسط</th>
-                            <th>الحالة</th>
-                            <th>تاريخ الخصم</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(Array.isArray(selectedPlanLoan.installments) ? selectedPlanLoan.installments as HrLoanInstallment[] : []).map((item) => (
-                            <tr key={String(item.id)}>
-                              <td>{item.installmentNumber || '—'}</td>
-                              <td>{monthLabel(item.dueDate)}</td>
-                              <td>{canViewSalaryAmounts ? money(item.amount) : '—'}</td>
-                              <td>{installmentStatusLabel(item.status)}</td>
-                              <td>{fallbackText(item.paidAt)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </FormSection>
-                </div>
-              ) : null}
             </QueryFeedback>
           </FormSection>
 
-          <HrLoansWorkflowCard />
           <HrLoansOperationalNote />
         </>
       )}
+
+          <HrLoansWorkflowCard />
       </main>
     </div>
   );
 }
+

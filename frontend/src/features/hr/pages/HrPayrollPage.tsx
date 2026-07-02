@@ -10,9 +10,6 @@ import type { HrEmployee, HrPayrollRun, HrPayrollRunItem } from '@/types/domain'
 import { getErrorMessage } from '@/lib/errors';
 import { useHrMutations, useHrPayrollRun, useHrWorkspace } from '@/features/hr/hooks/useHr';
 import { HrPayrollTopSections } from '@/features/hr/pages/payroll/HrPayrollTopSections';
-import { printHtmlDocument } from '@/lib/browser/print';
-import { renderToString } from 'react-dom/server';
-import { PayslipPrintView } from '@/features/hr/components/PayslipPrintView';
 import { HrPayrollOperationalNote, HrPayrollWorkflowCard } from '@/features/hr/pages/payroll/HrPayrollStaticCards';
 import {
   employeeMatches,
@@ -177,8 +174,7 @@ export function HrPayrollPage() {
         </FormSection>
       ) : (
         <>
-          <HrPayrollWorkflowCard />
-          <HrPayrollTopSections
+<HrPayrollTopSections
             monthFilter={monthFilter}
             search={search}
             departmentFilter={departmentFilter}
@@ -232,12 +228,7 @@ export function HrPayrollPage() {
                   { key: 'totalLoanDeductionAmount', header: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط³ظ„ظپ/ط§ظ„ط£ظ‚ط³ط§ط·', cell: (row) => canViewSalaryAmounts ? money(row.totalLoanDeductionAmount) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
                   { key: 'totalNetPay', header: 'طµط§ظپظٹ ط§ظ„ظ…ط±طھط¨ط§طھ', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : 'ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط¹ط±ط¶ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ.' },
                   { key: 'createdAt', header: 'طھط§ط±ظٹط® ط§ظ„ط¥ظ†ط´ط§ط،', cell: (row) => text(row.createdAt) },
-                  { key: 'actions', header: 'ط¥ط¬ط±ط§ط،', cell: (row) => <div className="actions compact-actions">{canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>إعادة حساب</Button> : null}
-                    {canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.reviewPayrollRun.mutateAsync(String(row.id)); }}>مراجعة مبدئية</Button> : null}
-                    {canManagePayroll && mutations.applyAttendanceDeductions ? <Button variant="secondary" onClick={() => { void mutations.applyAttendanceDeductions.mutateAsync(String(row.id)); }}>اعتماد الخصومات</Button> : null}
-                    {canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.approvePayrollRun.mutateAsync(String(row.id)); }}>اعتماد نهائي</Button> : null}
-                    {canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}
-                  </div> },
+                  { key: 'actions', header: 'ط¥ط¬ط±ط§ط،', cell: (row) => <div className="actions compact-actions">{canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>ظ…ط±ط§ط¬ط¹ط©</Button> : null}{canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.reviewPayrollRun.mutateAsync(String(row.id)); }}>ط§ط¹طھظ…ط§ط¯</Button> : null}{canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.approvePayrollRun.mutateAsync(String(row.id)); }}>ط§ط¹طھظ…ط§ط¯ ظ†ظ‡ط§ط¦ظٹ</Button> : null}{canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>ط¥ظ„ط؛ط§ط،</Button> : null}</div> },
                 ]}
               />
             </QueryFeedback>
@@ -282,6 +273,8 @@ export function HrPayrollPage() {
           <HrPayrollOperationalNote />
         </>
       )}
+
+          <HrPayrollWorkflowCard />
       </main>
     </div>
   );

@@ -1,18 +1,28 @@
 import { FormSection } from '@/shared/components/form-section';
 
 export function HrLoansWorkflowCard() {
+  const steps = [
+    ['1. سجل السلفة', 'اختر الموظف والمبلغ وخطة السداد.'],
+    ['2. اعتمد أو اصرف', 'راجع السلف الجديدة قبل صرفها فعليًا.'],
+    ['3. راجع أقساط الشهر', 'الأقساط المستحقة تنتقل للمراجعة في المرتبات.'],
+    ['4. تابع السداد', 'سجل السداد اليدوي أو راجع الخصم من المرتب.'],
+  ];
+
   return (
-    <FormSection title="دليل الاستخدام السريع">
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 13 }} className="muted">
-        <div><strong>1. سجل السلفة:</strong> اختر الموظف والمبلغ وخطة السداد.</div>
-        <div><strong>2. اعتمد أو اصرف:</strong> راجع السلف الجديدة قبل صرفها فعليًا.</div>
-        <div><strong>3. راجع أقساط الشهر:</strong> تنتقل للمراجعة في المرتبات.</div>
-        <div><strong>4. تابع السداد:</strong> سجل السداد اليدوي أو راجع الخصم.</div>
+    <FormSection title="تسلسل السلف والخصومات" description="استخدم الصفحة بهذا الترتيب حتى لا تظهر خصومات مفاجئة في المرتبات.">
+      <div className="form-grid">
+        {steps.map(([title, hint]) => (
+          <div key={title} className="field"><strong>{title}</strong><span className="muted">{hint}</span></div>
+        ))}
       </div>
     </FormSection>
   );
 }
 
 export function HrLoansOperationalNote() {
-  return null;
+  return (
+    <FormSection title="ملاحظة تشغيلية">
+      <p className="muted" style={{ margin: 0 }}>الأقساط المستحقة تظهر في مراجعة المرتبات للشهر المحدد. لا تعتمد المرتبات قبل مراجعة السلف النشطة والمستحقة.</p>
+    </FormSection>
+  );
 }

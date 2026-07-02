@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -145,7 +145,14 @@ export function HrDocumentsPage() {
         )}
       />
 
-
+      <FormSection title="تسلسل مراجعة المستندات" description="هذه الصفحة للمتابعة والمراجعة، أما إضافة المستند فتتم من ملف الموظف حتى يبقى كل شيء مربوطًا بالموظف الصحيح.">
+        <div className="form-grid">
+          <div className="field"><strong>1. اختر الموظف</strong><span className="muted">ابحث بالاسم أو الكود ثم اضغط على الصف.</span></div>
+          <div className="field"><strong>2. راجع الحالة</strong><span className="muted">ابدأ بالمستندات المنتهية أو القريبة من الانتهاء.</span></div>
+          <div className="field"><strong>3. أضف أو حدّث</strong><span className="muted">افتح ملف الموظف لإضافة مستند أو مراجعة التفاصيل.</span></div>
+          <div className="field"><strong>4. راقب النواقص</strong><span className="muted">المستند بدون تاريخ انتهاء يظهر كمراجعة حتى تؤكد أنه مقصود.</span></div>
+        </div>
+      </FormSection>
 
       <FormSection title="اختيار الموظف" description="اختيار الموظف أول خطوة لأن المستندات مرتبطة بملف الموظف مباشرة.">
         <SearchToolbar
@@ -286,15 +293,6 @@ export function HrDocumentsPage() {
             )}
           </QueryFeedback>
         )}
-      </FormSection>
-
-      <FormSection title="دليل الاستخدام السريع">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 13 }} className="muted">
-          <div><strong>1. اختر الموظف:</strong> ابحث بالاسم أو الكود لتحديد الموظف.</div>
-          <div><strong>2. راجع الحالة:</strong> راجع المستندات المنتهية أو القريبة من الانتهاء.</div>
-          <div><strong>3. أضف أو حدّث:</strong> افتح ملف الموظف لإضافة مستند جديد.</div>
-          <div><strong>4. راقب النواقص:</strong> المستند بدون تاريخ انتهاء يحتاج مراجعة.</div>
-        </div>
       </FormSection>
       </main>
     </div>
