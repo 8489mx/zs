@@ -12,17 +12,24 @@ export class LoggerService implements NestLoggerService {
       base: undefined,
       timestamp: pino.stdTimeFunctions.isoTime,
     };
-    const logFilePath = path.join(process.cwd(), 'errors', 'system-errors.log');
-    
+    const isElectron = process.env.APP_MODE === 'SELF_CONTAINED';
+    let baseDir = process.cwd();
+    // If running in development inside the backend folder, point to the parent root 'errors' folder
+    if (baseDir.endsWith('backend') && !isElectron) {
+      baseDir = path.join(baseDir, '..');
+    }
+    const logFilePath = path.join(baseDir, 'errors', 'system-errors.log');
     const transport = pino.transport({
       targets: [
         {
           target: 'pino/file',
           options: { destination: 1 }, // stdout
+          level: process.env.LOG_LEVEL || 'info',
         },
         {
           target: 'pino/file',
           options: { destination: logFilePath, mkdir: true },
+          level: 'warn', // Only log warnings and errors to the file
         },
       ],
     });

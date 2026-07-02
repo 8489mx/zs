@@ -5,6 +5,32 @@ import { AppRouter } from '@/app/router';
 import '@/styles/app.css';
 import '@/lib/i18n';
 
+const reportGlobalError = (error: any, type: string) => {
+  try {
+    fetch('/api/logs/frontend-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: error?.message || String(error),
+        stack: error?.stack,
+        type,
+        url: window.location.href,
+        userAgent: navigator.userAgent
+      })
+    }).catch(() => {});
+  } catch (e) {
+    // Ignore
+  }
+};
+
+window.addEventListener('error', (event) => {
+  reportGlobalError(event.error || { message: event.message }, 'window.error');
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  reportGlobalError(event.reason || { message: 'Unhandled Rejection' }, 'unhandledrejection');
+});
+
 import { ActivationGuard } from '@/shared/components/ActivationGuard';
 import { SilentErrorBoundary } from '@/core/components/SilentErrorBoundary';
 

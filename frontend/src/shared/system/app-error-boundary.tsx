@@ -21,6 +21,21 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('react_frontend_error', error, errorInfo);
+    
+    // Silently log to backend
+    fetch('/api/logs/frontend-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        url: window.location.href,
+        userAgent: navigator.userAgent
+      })
+    }).catch(err => {
+      console.error('Failed to send error log to server', err);
+    });
   }
 
   handleReset = () => {

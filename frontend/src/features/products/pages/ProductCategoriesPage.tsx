@@ -23,6 +23,8 @@ export function ProductCategoriesPage() {
   const [targetCategoryId, setTargetCategoryId] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(new Set());
   const [deletingCategory, setDeletingCategory] = useState<{ id: string | number; name: string } | null>(null);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [editError, setEditError] = useState('');
 
   const filteredCategories = useMemo(() => {
@@ -45,6 +47,19 @@ export function ProductCategoriesPage() {
     },
     onError: (err) => {
       setEditError(getErrorMessage(err, 'حدث خطأ أثناء تعديل القسم'));
+    }
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (name: string) => productsApi.createCategory({ name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setIsCreatingCategory(false);
+      setNewCategoryName('');
+      setEditError('');
+    },
+    onError: (err) => {
+      setEditError(getErrorMessage(err, 'حدث خطأ أثناء إضافة القسم'));
     }
   });
 
@@ -83,6 +98,15 @@ export function ProductCategoriesPage() {
     updateMutation.mutate({ id: editingCategory.id, name });
   };
 
+  const handleCreate = () => {
+    const name = newCategoryName.trim();
+    if (!name) {
+      setEditError('الاسم مطلوب');
+      return;
+    }
+    createMutation.mutate(name);
+  };
+
   const toggleProductSelection = (productId: number) => {
     const next = new Set(selectedProductIds);
     if (next.has(productId)) next.delete(productId);
@@ -108,7 +132,11 @@ export function ProductCategoriesPage() {
               <div className="muted small">إدارة وتعديل أسماء أقسام المنتجات التي تمت إضافتها للنظام.</div>
             </div>
             <div className="actions compact-actions">
-               {/* Could add a create category button here later if needed */}
+              <Button onClick={() => {
+                setIsCreatingCategory(true);
+                setNewCategoryName('');
+                setEditError('');
+              }}>إضافة قسم جديد</Button>
             </div>
           </div>
         </div>
@@ -218,6 +246,39 @@ export function ProductCategoriesPage() {
             <Button variant="secondary" onClick={() => setEditingCategory(null)}>إلغاء</Button>
             <Button onClick={handleSave} disabled={updateMutation.isPending}>
               {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ التعديل'}
+            </Button>
+          </div>
+        </DialogShell>
+      )}
+
+      {isCreatingCategory && (
+        <DialogShell 
+          open={true} 
+          onClose={() => setIsCreatingCategory(false)}
+          width="400px"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>إضافة قسم جديد</h3>
+            <button className="icon-btn" onClick={() => setIsCreatingCategory(false)} aria-label="إغلاق" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
+          </div>
+          <div className="form-grid single-col" style={{ padding: '24px' }}>
+            <Field label="اسم القسم">
+              <input 
+                value={newCategoryName} 
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="أدخل اسم القسم الجديد"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreate();
+                }}
+              />
+            </Field>
+            {editError && <div className="error-box">{editError}</div>}
+          </div>
+          <div className="actions compact-actions" style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px', backgroundColor: 'var(--bg-muted)' }}>
+            <Button variant="secondary" onClick={() => setIsCreatingCategory(false)}>إلغاء</Button>
+            <Button onClick={handleCreate} disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'جاري الإضافة...' : 'إضافة'}
             </Button>
           </div>
         </DialogShell>

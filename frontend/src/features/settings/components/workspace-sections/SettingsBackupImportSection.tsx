@@ -132,9 +132,7 @@ export function SettingsBackupImportSection({
           <Button onClick={handleBackupDownload} disabled={backupBusy || !canManageBackups}>تنزيل نسخة احتياطية الآن</Button>
         </div>
 
-        {typeof window !== 'undefined' && !!(window as any).electronAPI ? (
-          <>
-            <div className="surface-card" style={{ marginBottom: 16, padding: 12 }}>
+        <div className="surface-card" style={{ marginBottom: 16, padding: 12 }}>
           <strong>مجلد النسخ الاحتياطية</strong>
           <div className="muted small" style={{ marginTop: 6 }}>المسار الحالي: {resolvedFolder}</div>
           <div className="form-grid two-col-form" style={{ marginTop: 10 }}>
@@ -228,9 +226,6 @@ export function SettingsBackupImportSection({
           </div>
           <SnapshotList snapshots={snapshots} onDownload={handleSnapshotDownload} onRestore={canManageBackups ? onRequestRestoreSnapshot : () => undefined} restoringId={restoreSnapshotId} />
         </div>
-
-          </>
-        ) : null}
 
         <div className="muted small" style={{ marginTop: 12 }}>الاستعادة تستبدل البيانات الحالية.</div>
         {backupSelectedFileName ? <div className="muted small" style={{ marginTop: 8 }}>آخر ملف تم اختياره: {backupSelectedFileName}</div> : null}
