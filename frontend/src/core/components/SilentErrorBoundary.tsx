@@ -1,5 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { apiCall } from '@/core/utils/api'; // Or whatever fetch wrapper is available, I will use native fetch for safety
+import { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
