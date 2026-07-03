@@ -177,6 +177,8 @@ export const requestValidationPipe = new ValidationPipe({
   },
   exceptionFactory: (errors: ValidationError[] = []) => {
     const messages = flattenValidationErrors(errors);
+    console.error('VALIDATION ERRORS:', JSON.stringify(errors, null, 2));
+    console.error('FLATTENED MESSAGES:', messages);
     const message = messages[0] || 'البيانات المرسلة غير صحيحة.';
 
     return new BadRequestException({

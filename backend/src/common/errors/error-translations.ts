@@ -45,6 +45,12 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   MANAGER_PIN_INVALID: 'رمز اعتماد المدير غير صحيح.',
   MANAGER_PASSWORD_INVALID: 'كلمة مرور المدير غير صحيحة.',
   MANAGER_PASSWORD_REQUIRED: 'كلمة مرور المدير مطلوبة.',
+  MANAGER_AUTH_REQUIRED: 'رمز اعتماد المدير مطلوب لتنفيذ هذه العملية.',
+  SALE_ITEMS_REQUIRED: 'لا يمكن حفظ فاتورة بدون أصناف.',
+  SALE_EDIT_REASON_REQUIRED: 'سبب التعديل مطلوب.',
+  HELD_DRAFT_ITEMS_REQUIRED: 'لا يمكن تعليق فاتورة بدون أصناف.',
+  OPEN_SHIFT_REQUIRED: 'يجب فتح وردية كاشير أولاً.',
+  CUSTOMER_REQUIRED_FOR_CREDIT: 'البيع الآجل يتطلب تحديد عميل.',
   AMOUNT_INVALID: 'المبلغ يجب أن يكون أكبر من صفر.',
   COUNTED_CASH_INVALID: 'المبلغ المعدود غير صحيح.',
   NOTE_TOO_SHORT: 'اكتب سببًا أو ملاحظة واضحة لا تقل عن 8 أحرف.',
@@ -122,6 +128,7 @@ function translateKnownEnglishMessage(message: string): string | null {
 }
 
 function translateByCodePattern(code: string): string | null {
+  console.log('Translating error code pattern:', code);
   if (code.endsWith('_NOT_FOUND')) return 'العنصر المطلوب غير موجود.';
   if (code.endsWith('_EXISTS')) return 'يوجد عنصر مماثل بالفعل.';
   if (code.endsWith('_REQUIRED')) return 'هناك حقل مطلوب غير موجود.';
