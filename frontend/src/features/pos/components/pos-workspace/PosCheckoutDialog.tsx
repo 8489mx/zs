@@ -45,7 +45,6 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
     setManagerApprovalOpen(false);
     setManagerPinDraft('');
     setManagerPinError('');
-    approvedManagerPinRef.current = '';
   }, []);
   const handleDialogClose = useCallback(() => {
     if (createSalePendingRef.current) return;
@@ -54,7 +53,6 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
   }, [clearInlineManagerApproval, stableOnClose]);
   const handleConfirmSale = useCallback(() => {
     const managerPin = approvedManagerPinRef.current || undefined;
-    approvedManagerPinRef.current = '';
     onConfirmSale(managerPin);
   }, [onConfirmSale]);
 
