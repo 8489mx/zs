@@ -235,6 +235,15 @@ export class InventoryTransferService {
         const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
         await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'internal_transfer', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل داخلي من ${from.name}`, reference_type: 'none', reference_id: null, created_by: auth.userId, branch_id: to.branchId, location_id: to.id, ...this.tenantFields(auth) } as any).execute();
       }
+
+      const productIds = payload.items.map(i => i.productId);
+      if (productIds.length > 0) {
+        await trx.updateTable('products')
+          .set({ default_location_id: to.id })
+          .where('id', 'in', productIds)
+          .where(this.tenantPredicate(auth))
+          .execute();
+      }
     });
 
     await this.audit.log('نقل داخلي لأصناف', `تم نقل أصناف داخلياً من ${from.name} إلى ${to.name}`, auth);
@@ -274,6 +283,15 @@ export class InventoryTransferService {
         const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(stock.product_id), branchId: to.branchId, locationId: to.id };
         const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
         await trx.insertInto('stock_movements').values({ product_id: stock.product_id, movement_type: 'internal_transfer', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل قسم بالكامل داخلياً من ${from.name}`, reference_type: 'none', reference_id: null, created_by: auth.userId, branch_id: to.branchId, location_id: to.id, ...this.tenantFields(auth) } as any).execute();
+      }
+
+      if (stocks.length > 0) {
+        const productIds = stocks.map(s => Number(s.product_id));
+        await trx.updateTable('products')
+          .set({ default_location_id: to.id })
+          .where('id', 'in', productIds)
+          .where(this.tenantPredicate(auth))
+          .execute();
       }
     });
 
