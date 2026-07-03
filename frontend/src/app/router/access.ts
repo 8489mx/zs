@@ -105,6 +105,13 @@ const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/manufacturing/settings': 'manufacturing',
   'manufacturing/components': 'manufacturing',
   '/manufacturing/components': 'manufacturing',
+  'purchase-returns': 'returns',
+  '/purchase-returns': 'returns',
+  'purchases-new': 'purchases',
+  'inventory-issue-order-new': 'inventory',
+  'inventory-issue-orders': 'inventory',
+  'inventory-warehouses': 'inventory',
+  'product-categories': 'products',
 };
 
 function normalizeAccessKey(value: string) {
