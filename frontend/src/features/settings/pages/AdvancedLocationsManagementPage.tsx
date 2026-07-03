@@ -33,7 +33,7 @@ export function AdvancedLocationsManagementPage() {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [productsTargetLocationId, setProductsTargetLocationId] = useState('');
 
-  useAppToolbar([{ label: 'المخازن', path: '/inventory/warehouses' }, { label: 'إدارة المخازن المتقدمة' }]);
+  useAppToolbar([{ label: 'المخازن', to: '/inventory/warehouses' }, { label: 'إدارة المخازن المتقدمة' }]);
 
   const overviewQuery = useQuery({ queryKey: ['advanced-overview'], queryFn: inventoryApi.advancedOverview });
   const locationsQuery = useQuery({ queryKey: ['locations'], queryFn: settingsApi.locations });
