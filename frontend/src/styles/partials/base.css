@@ -151,6 +151,9 @@ textarea { min-height: 88px; resize: vertical; }
 }
 .form-grid .field:last-of-type,
 .form-grid .error-box,
+.form-grid .success-box,
+.form-grid .actions,
+.form-grid .stats-grid,
 .form-grid .btn { grid-column: 1 / -1; }
 .table-wrap {
   overflow: auto;
