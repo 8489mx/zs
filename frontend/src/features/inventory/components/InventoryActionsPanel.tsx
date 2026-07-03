@@ -289,6 +289,9 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                     <option value="">بدون مخزن محدد</option>
                     {locationList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
                   </select>
+                  <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                    * هذا الحقل يحدد مكان العملية فقط ولا يقوم بنقل أرصدة من مخازن أخرى.
+                  </small>
                 </Field>
               )}
               <Field label="ملاحظات"><textarea rows={3} {...adjustmentForm.register('note')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
@@ -354,6 +357,9 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                     <option value="">بدون مخزن محدد</option>
                     {locationList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
                   </select>
+                  <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+                    * هذا الحقل يحدد مكان العملية فقط ولا يقوم بنقل أرصدة من مخازن أخرى.
+                  </small>
                 </Field>
               )}
               <Field label="ملاحظات"><textarea rows={3} {...damagedForm.register('note')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>

@@ -354,6 +354,9 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
             {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
           </select>
           {form.formState.errors.warehouseId && <small className="field-error">{form.formState.errors.warehouseId.message}</small>}
+          <small className="muted" style={{ display: 'block', marginTop: 4 }}>
+            * يحدد المخزن الافتراضي للمشتريات المستقبلية فقط. لتغيير مكان الأرصدة الحالية استخدم "نقل داخلي" من صفحة المخزون.
+          </small>
         </div>
 
         <Field label="مكان التخزين (Bin Location)"><input {...form.register('binLocation')} disabled={mutation.isPending} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" /></Field>
