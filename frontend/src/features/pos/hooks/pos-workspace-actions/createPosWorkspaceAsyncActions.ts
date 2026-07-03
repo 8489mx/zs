@@ -14,6 +14,7 @@ function getSaleKey(sale: Sale | null) {
 
 interface SubmitOptions {
   fastCash?: boolean;
+  managerPin?: string;
 }
 
 function getSubmitSaleErrorMessage(error: unknown) {
@@ -227,7 +228,7 @@ export function createPosWorkspaceAsyncActions(
         taxRate: params.totals.taxRate,
         pricesIncludeTax: params.totals.pricesIncludeTax,
         expectedTotal: total,
-        managerPin: params.discountApprovalSecret || undefined,
+        managerPin: options.managerPin || params.discountApprovalSecret || undefined,
         branchId: params.branchId || (params.currentBranch?.id != null ? String(params.currentBranch.id) : null),
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
       });

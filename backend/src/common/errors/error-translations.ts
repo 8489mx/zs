@@ -106,6 +106,7 @@ function translateKnownEnglishMessage(message: string): string | null {
     'Price changes require canEditPrice permission': 'تعديل الأسعار يتطلب صلاحية تعديل الأسعار.',
     'Discount changes require canDiscount permission': 'تعديل الخصم يتطلب صلاحية تعديل الخصم.',
     'Could not open cashier shift': 'تعذر فتح الوردية.',
+    'MANAGER_AUTH_REQUIRED': 'رمز اعتماد المدير مطلوب لتنفيذ هذه العملية.',
   };
 
   if (directMap[normalized]) {
