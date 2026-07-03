@@ -173,6 +173,10 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
 
                 if (!group.grouped) {
                   const product = group.representative;
+                  const activeLocationNames = product.activeLocationIds && product.activeLocationIds.length > 0 
+                    ? product.activeLocationIds.map(id => props.locationNames[id]).filter(Boolean).join(' ، ')
+                    : undefined;
+
                   return (
                     <tr key={group.key} className={props.selectedProduct?.id === product.id ? 'table-row-selected' : undefined} onClick={() => props.onSelectProduct(product)}>
                       <td className="table-selection-cell" onClick={(event) => event.stopPropagation()}>
@@ -190,7 +194,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
                           <div className="muted small" title="المورد">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
-                          <div className="muted small text-primary" title="المخزن الافتراضي">{props.locationNames[product.defaultLocationId as any] || 'غير محدد'}</div>
+                          <div className="muted small text-primary" title="أماكن التواجد">{activeLocationNames || props.locationNames[product.defaultLocationId as any] || 'غير محدد'}</div>
                         </div>
                       </td>
                       <td>
@@ -215,6 +219,11 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                     </tr>
                   );
                 }
+
+                const groupActiveLocationIds = Array.from(new Set(group.children.flatMap(p => p.activeLocationIds || [])));
+                const groupActiveLocationNames = groupActiveLocationIds.length > 0 
+                  ? groupActiveLocationIds.map(id => props.locationNames[id]).filter(Boolean).join(' ، ')
+                  : undefined;
 
                 return (
                   <Fragment key={group.key}>
@@ -243,7 +252,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[group.representative.categoryId] || 'عام'}</div>
                           <div className="muted small" title="المورد">{props.supplierNames[group.representative.supplierId] || 'بدون مورد'}</div>
-                          <div className="muted small text-primary" title="المخزن الافتراضي">{props.locationNames[group.representative.defaultLocationId as any] || 'غير محدد'}</div>
+                          <div className="muted small text-primary" title="أماكن التواجد">{groupActiveLocationNames || props.locationNames[group.representative.defaultLocationId as any] || 'غير محدد'}</div>
                         </div>
                       </td>
                       <td>
@@ -287,7 +296,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <div style={{ lineHeight: 1.4 }}>
                             <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
                             <div className="muted small" title="المورد">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
-                            <div className="muted small text-primary" title="المخزن الافتراضي">{props.locationNames[product.defaultLocationId as any] || 'غير محدد'}</div>
+                            <div className="muted small text-primary" title="أماكن التواجد">{product.activeLocationIds && product.activeLocationIds.length > 0 ? product.activeLocationIds.map(id => props.locationNames[id]).filter(Boolean).join(' ، ') : (props.locationNames[product.defaultLocationId as any] || 'غير محدد')}</div>
                           </div>
                         </td>
                         <td>

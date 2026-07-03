@@ -52,6 +52,7 @@ export interface Product {
   hasBom?: boolean;
   binLocation?: string;
   defaultLocationId?: string;
+  activeLocationIds?: string[];
 }
 
 export interface Category {
