@@ -101,7 +101,7 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
   }, [clearInlineManagerApproval, customerPickerOpen, managerApprovalOpen, open]);
 
   useEffect(() => {
-    if (!isDiscountLocked || !pos.discountApprovalGranted) approvedManagerPinRef.current = '';
+    if (!pos.discountApprovalGranted) approvedManagerPinRef.current = '';
     if (!isDiscountLocked) clearInlineManagerApproval();
   }, [clearInlineManagerApproval, isDiscountLocked, pos.discountApprovalGranted]);
 
