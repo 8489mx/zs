@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
+import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import type { Branch, Location, Product } from '@/types/domain';
@@ -72,6 +73,9 @@ function hasDamagedDraft(values: DamagedStockInput, locations: Location[]): bool
 }
 
 export function InventoryActionsPanel({ products, selectedProduct = null, selectedProductToken = 0, branches, locations, locationStocks = [], isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
+  const { user } = useAuthStore();
+  const isAdmin = isAdminUser(user);
+
   const adjustmentDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const damagedDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const lastPreparedAdjustmentTokenRef = useRef(0);
@@ -288,7 +292,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 </Field>
               )}
               <Field label="ملاحظات"><textarea rows={3} {...adjustmentForm.register('note')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
-              <Field label="رمز اعتماد المدير" error={adjustmentForm.formState.errors.managerPin?.message}><input type="password" {...adjustmentForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
+              {!isAdmin && <Field label="رمز اعتماد المدير" error={adjustmentForm.formState.errors.managerPin?.message}><input type="password" {...adjustmentForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>}
               {!canManageInventory ? <div className="muted small">هذا الحساب يملك صلاحية متابعة المخزون فقط. تنفيذ التسويات والتالف يتطلب canAdjustInventory.</div> : null}
               <MutationFeedback isError={adjustmentMutation.isError} isSuccess={adjustmentMutation.isSuccess} error={adjustmentMutation.error} errorFallback="تعذر تنفيذ حركة المخزون" successText="تم حفظ حركة المخزون وتحديث الرصيد بنجاح." />
               <div className="actions">
@@ -353,7 +357,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 </Field>
               )}
               <Field label="ملاحظات"><textarea rows={3} {...damagedForm.register('note')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
-              <Field label="رمز اعتماد المدير" error={damagedForm.formState.errors.managerPin?.message}><input type="password" {...damagedForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
+              {!isAdmin && <Field label="رمز اعتماد المدير" error={damagedForm.formState.errors.managerPin?.message}><input type="password" {...damagedForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={damagedMutation.isPending || !canManageInventory} /></Field>}
               <div className="stats-grid compact-grid workspace-stats-grid inventory-damage-mini-grid" style={{ marginTop: 12 }}>
                 <div className="stat-card"><span>المخزون الحالي</span><strong>{selectedDamagedProduct ? selectedDamagedProduct.stock : 0}</strong></div>
                 <div className="stat-card"><span>الكمية التالفة</span><strong>{damagedQty || 0}</strong></div>

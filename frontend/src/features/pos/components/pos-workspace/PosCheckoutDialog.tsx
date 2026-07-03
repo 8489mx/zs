@@ -10,6 +10,7 @@ import {
   PosCheckoutPaymentSection,
   type PaymentPreset,
 } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
+import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 
 interface PosCheckoutDialogProps {
   open: boolean;
@@ -31,7 +32,10 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
   const openedOnceRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const createSalePendingRef = useRef(Boolean(pos.createSale.isPending));
-  const isDiscountLocked = !pos.canApplyDiscount;
+  
+  const { user } = useAuthStore();
+  const isAdmin = isAdminUser(user);
+  const isDiscountLocked = !pos.canApplyDiscount && !isAdmin;
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   useEffect(() => { createSalePendingRef.current = Boolean(pos.createSale.isPending); }, [pos.createSale.isPending]);

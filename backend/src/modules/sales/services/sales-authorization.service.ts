@@ -87,8 +87,13 @@ export class SalesAuthorizationService {
     secret: string,
     auth: AuthContext,
     queryable: DbOrTx = this.db,
-  ): Promise<{ mode: 'pin' | 'account'; authorizedByName: string; authorizedById?: number }> {
+  ): Promise<{ mode: 'pin' | 'account' | 'bypass'; authorizedByName: string; authorizedById?: number }> {
     const { tenantId } = requireTenantScope(auth);
+    
+    if (auth.role === 'admin' || auth.role === 'super_admin') {
+      return { mode: 'bypass', authorizedByName: 'صلاحيات إدارية', authorizedById: auth.userId };
+    }
+
     const normalizedSecret = String(secret || '').trim();
     if (!normalizedSecret) {
       throw new AppError('أدخل رمز المدير أو كلمة المرور', 'MANAGER_AUTH_REQUIRED', 400);

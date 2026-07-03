@@ -5,6 +5,10 @@ import type { ActivationStatusResponse } from '@/types/activation';
 
 export { DEFAULT_STORE_NAME, DEFAULT_THEME };
 
+export const isAdminUser = (user: AuthUser | null | undefined): boolean => {
+  return user?.role === 'admin' || user?.role === 'super_admin';
+};
+
 export type AppGate = 'loading' | 'activation' | 'setup' | 'login' | 'ready';
 
 interface AuthState {

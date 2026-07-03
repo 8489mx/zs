@@ -7,6 +7,7 @@ import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { formatCurrency } from '@/lib/format';
+import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 import type { Purchase } from '@/types/domain';
 
 interface PurchaseEditDialogProps {
@@ -19,6 +20,9 @@ interface PurchaseEditDialogProps {
 }
 
 export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessage = '', onCancel, onSave }: PurchaseEditDialogProps) {
+  const { user } = useAuthStore();
+  const isAdmin = isAdminUser(user);
+
   const [paymentType, setPaymentType] = useState('cash');
   const [discount, setDiscount] = useState(0);
   const [note, setNote] = useState('');
@@ -129,7 +133,7 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
           <Field label="خصم الفاتورة"><input type="number" min="0" step="0.01" value={discount} onChange={(e) => setDiscount(Number(e.target.value || 0))} disabled={isBusy} /></Field>
           <div style={{ gridColumn: '1 / -1' }}><Field label="ملاحظات"><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} disabled={isBusy} /></Field></div>
           <div style={{ gridColumn: '1 / -1' }}><Field label="سبب التعديل"><textarea rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} disabled={isBusy} placeholder="مثال: تعديل التكلفة بعد مراجعة فاتورة المورد" /></Field></div>
-          <Field label="رمز اعتماد المدير"><input type="password" inputMode="numeric" value={managerPin} onChange={(e) => setManagerPin(e.target.value)} disabled={isBusy} placeholder="أدخل رمز المدير" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>
+          {!isAdmin && <Field label="رمز اعتماد المدير"><input type="password" inputMode="numeric" value={managerPin} onChange={(e) => setManagerPin(e.target.value)} disabled={isBusy} placeholder="أدخل رمز المدير" autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>}
         </div>
 
         <div className="table-wrap" style={{ marginTop: 12 }}>
@@ -178,7 +182,7 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
               setLocalError('سبب التعديل يجب أن يكون واضحًا');
               return;
             }
-            if (!String(managerPin || '').trim()) {
+            if (!isAdmin && !String(managerPin || '').trim()) {
               setLocalError('أدخل رمز اعتماد المدير قبل حفظ التعديل');
               return;
             }

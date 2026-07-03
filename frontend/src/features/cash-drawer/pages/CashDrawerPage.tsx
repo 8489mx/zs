@@ -7,6 +7,7 @@ import { CashDrawerShiftsCard } from '@/features/cash-drawer/components/CashDraw
 import { CashDrawerReviewDialog } from '@/features/cash-drawer/components/CashDrawerReviewDialog';
 import { CashDrawerStatsGrid } from '@/features/cash-drawer/components/CashDrawerStatsGrid';
 import { useCashDrawerPageController } from '@/features/cash-drawer/hooks/useCashDrawerPageController';
+import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 
 const cashDrawerRegressionLabels = ['فتح وردية نقطة بيع جديدة', 'تسجيل حركة درج النقدية', 'إغلاق وردية نقطة البيع', 'عدد ورديات نقطة البيع المطابقة', 'طباعة النتائج'];
 const cashDrawerRegressionMarkers = ['pagination={{'];
@@ -15,6 +16,9 @@ void cashDrawerRegressionLabels;
 void cashDrawerRegressionMarkers;
 
 export function CashDrawerPage() {
+  const { user } = useAuthStore();
+  const isAdmin = isAdminUser(user);
+  
   const [activeForm, setActiveForm] = useState<'open' | 'movement' | 'close' | null>(null);
   const controller = useCashDrawerPageController();
   const movementType = controller.confirmAction?.kind === 'movement' ? controller.confirmAction.values.type : '';
@@ -37,6 +41,9 @@ export function CashDrawerPage() {
   const managerPinHint = isCashOut
     ? 'صرف النقدية يحتاج اعتماد المدير إذا كان المستخدم الحالي ليس مديرًا أو أدمن.'
     : 'أدخل كلمة مرور المستخدم الحالي لتأكيد العملية.';
+
+  // If cash out AND user is admin, don't require PIN. If closing shift, require password anyway.
+  const isPinRequired = isMovement && isCashOut && !isAdmin ? true : !isMovement;
 
   return (
     <div className="page-stack page-shell cash-drawer-page" dir="rtl">
@@ -117,7 +124,7 @@ export function CashDrawerPage() {
         description={confirmDialogDescription}
         confirmLabel={isMovement ? (isCashOut ? 'تنفيذ الصرف' : 'تسجيل الإيداع') : 'إغلاق وردية نقطة البيع'}
         confirmVariant={isMovement ? (isCashOut ? 'danger' : 'success') : 'primary'}
-        managerPinRequired
+        managerPinRequired={isPinRequired}
         managerPinLabel={managerPinLabel}
         managerPinHint={managerPinHint}
         isBusy={confirmBusy}
