@@ -98,6 +98,11 @@ textarea { min-height: 88px; resize: vertical; }
 }
 .button:hover:not(:disabled) { transform: translateY(-1px); }
 .button:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.secure-password-field {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
 .button-primary { background: var(--primary); color: #fff; }
 .button-primary:hover { background: var(--primary2); }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }

@@ -16,4 +16,8 @@ When applying the "Document Prototype" spirit to a page to maintain visual consi
 4. **Width Tuning**: If the page contains a data table that requires more horizontal space (like invoices), add an inline style to increase the wrapper's max-width (e.g., `style={{ maxWidth: '1280px' }}`).
 5. **Action Wrapping**: If table action buttons wrap onto multiple lines causing UI glitches, add `style={{ flexWrap: 'nowrap' }}` to their wrapper (usually `.actions`).
 6. **Card Priority & Stacking**: Stack the sections vertically based on importance. The most critical data (like a table of items) goes first, followed by details, and then secondary insights.
-7. **Smooth Scrolling**: For actions that display related detailed cards vertically down the page, implement auto-scrolling using a `useRef` and `scrollIntoView({ behavior: 'smooth', block: 'center' })` to improve user experience.
+
+## Build and Git Workflow Rules
+1. **Never run `npm run build`, `git commit`, or `git push` automatically.** 
+2. The user makes changes in bulk and will explicitly tell you when they are ready to run builds or push code.
+3. Keep this rule strictly in mind and do not assume you should finalize code with a build/commit/push cycle unless the user's prompt explicitly requests it (e.g., "اعمل رن بيلد وكوميت وبوش").
