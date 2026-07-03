@@ -24,6 +24,11 @@ export class InventoryController {
     return this.inventoryService.getAllLocationStocks(req.authContext!);
   }
 
+  @Get('inventory/advanced-overview')
+  getAdvancedOverview(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.inventoryService.getAdvancedOverview(req.authContext!);
+  }
+
   @Get('locations/:id/categories')
   getLocationCategories(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.getLocationCategories(id, req.authContext!);
@@ -53,6 +58,24 @@ export class InventoryController {
   @RequirePermissions('canAdjustInventory')
   createTransfer(@Body() payload: CreateStockTransferDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.createStockTransfer(payload, req.authContext!);
+  }
+
+  @Post('transfer-category')
+  @RequirePermissions('canAdjustInventory')
+  transferCategory(@Body() payload: import('./dto/create-category-transfer.dto').CreateCategoryTransferDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.inventoryService.transferCategory(payload, req.authContext!);
+  }
+
+  @Post('internal-transfer')
+  @RequirePermissions('canAdjustInventory')
+  internalTransfer(@Body() payload: CreateStockTransferDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.inventoryService.internalTransferProducts(payload as any, req.authContext!);
+  }
+
+  @Post('internal-transfer-category')
+  @RequirePermissions('canAdjustInventory')
+  internalTransferCategory(@Body() payload: import('./dto/create-category-transfer.dto').CreateCategoryTransferDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.inventoryService.internalTransferCategory(payload as any, req.authContext!);
   }
 
   @Post('stock-transfers/:id/receive')

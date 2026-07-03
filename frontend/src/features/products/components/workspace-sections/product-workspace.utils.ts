@@ -25,6 +25,7 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     minStock: Number(product.minStock || 0),
     categoryId: product.categoryId || '',
     supplierId: product.supplierId || '',
+    warehouseId: product.defaultLocationId || '',
     binLocation: product.binLocation || '',
     notes: product.notes || ''
   };
@@ -45,6 +46,7 @@ export function buildUpdatePayload(
 ) {
   const categoryId = values.categoryId ? Number(values.categoryId) : undefined;
   const supplierId = values.supplierId ? Number(values.supplierId) : undefined;
+  const warehouseId = values.warehouseId ? Number(values.warehouseId) : undefined;
   const itemKind = values.itemKind === 'fashion' ? 'fashion' : 'standard';
   const normalizedUnits = itemKind === 'fashion'
     ? [{ name: 'قطعة', multiplier: 1, barcode: values.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }]
@@ -71,6 +73,7 @@ export function buildUpdatePayload(
     minStock: Number(values.minStock || 0),
     ...(categoryId ? { categoryId } : {}),
     ...(supplierId ? { supplierId } : {}),
+    ...(warehouseId ? { warehouseId } : {}),
     binLocation: values.binLocation || '',
     notes: values.notes || '',
     units: normalizedUnits,

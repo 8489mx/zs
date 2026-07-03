@@ -12,17 +12,18 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { productsApi } from '@/features/products/api/products.api';
 import { getNextSequentialStyleCode, getStyleCodeSequenceStart } from '@/features/products/lib/style-code.utils';
 import { normalizeArabicInput } from '@/lib/arabic-normalization';
-import type { Category, Product, Supplier } from '@/types/domain';
+import type { Category, Product, Supplier, Location } from '@/types/domain';
 import { buildPayload, deriveBaseName, duplicateSummary, rowsFingerprint, sortVariants, toCommonDraft, toVariantRows, variantLabel, type CommonDraft, type VariantDraft } from '@/features/products/components/workspace-sections/FashionGroupEditorCard.helpers';
 
 interface FashionGroupEditorCardProps {
   product: Product;
   categories: Category[];
   suppliers: Supplier[];
+  locations: Location[];
   onSaved?: (product: Product) => void;
 }
 
-export function FashionGroupEditorCard({ product, categories, suppliers, onSaved }: FashionGroupEditorCardProps) {
+export function FashionGroupEditorCard({ product, categories, suppliers, locations, onSaved }: FashionGroupEditorCardProps) {
   const settingsQuery = useSettingsQuery();
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
   const allProductsQuery = useQuery({ queryKey: queryKeys.products, queryFn: productsApi.list, staleTime: 30_000 });
@@ -230,6 +231,12 @@ export function FashionGroupEditorCard({ product, categories, suppliers, onSaved
           <select value={commonDraft.supplierId} onChange={(event) => setCommonDraft((current) => ({ ...current, supplierId: event.target.value }))} disabled={mutation.isPending}>
             <option value="">بدون مورد</option>
             {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+          </select>
+        </Field>
+        <Field label="المخزن الافتراضي">
+          <select value={commonDraft.defaultLocationId || ''} onChange={(event) => setCommonDraft((current) => ({ ...current, defaultLocationId: event.target.value }))} disabled={mutation.isPending}>
+            <option value="">بدون مخزن افتراضي</option>
+            {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
           </select>
         </Field>
         <Field label="ملاحظات"><textarea rows={4} value={commonDraft.notes} onChange={(event) => setCommonDraft((current) => ({ ...current, notes: normalizeArabicInput(event.target.value) }))} disabled={mutation.isPending} /></Field>

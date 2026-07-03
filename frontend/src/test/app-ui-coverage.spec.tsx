@@ -128,6 +128,7 @@ function ProductsTableHarness() {
         onPrint={() => undefined}
         categoryNames={{ 'cat-1': 'مشروبات' }}
         supplierNames={{ 'sup-1': 'مورد رئيسي' }}
+        locationNames={{ 'loc-1': 'المخزن الرئيسي' }}
         inventorySaleValue={200}
         isLoading={false}
         isError={false}

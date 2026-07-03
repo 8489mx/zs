@@ -228,6 +228,7 @@ export interface ProductTable {
   color: string | null;
   size: string | null;
   bin_location: string | null;
+  default_location_id: number | null;
   cost_price: number;
   retail_price: number;
   wholesale_price: number;

@@ -8,6 +8,8 @@ import { productsApi } from '@/features/products/api/products.api';
 import { getErrorMessage } from '@/lib/errors';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function ProductCategoriesPage() {
   const queryClient = useQueryClient();
@@ -20,6 +22,9 @@ export function ProductCategoriesPage() {
   const [search, setSearch] = useState('');
   const [editingCategory, setEditingCategory] = useState<{ id: string | number; name: string } | null>(null);
   const [transferringCategory, setTransferringCategory] = useState<{ id: string | number; name: string } | null>(null);
+  const [transferringWarehouseCategory, setTransferringWarehouseCategory] = useState<{ id: string | number; name: string } | null>(null);
+  const [fromLocationId, setFromLocationId] = useState('');
+  const [toLocationId, setToLocationId] = useState('');
   const [targetCategoryId, setTargetCategoryId] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(new Set());
   const [deletingCategory, setDeletingCategory] = useState<{ id: string | number; name: string } | null>(null);
@@ -37,6 +42,9 @@ export function ProductCategoriesPage() {
     if (!transferringCategory) return [];
     return products.filter(p => String(p.categoryId) === String(transferringCategory.id));
   }, [transferringCategory, products]);
+
+  const locationsQueryData = useLocationsQuery();
+  const locations = locationsQueryData.data || [];
 
   const updateMutation = useMutation({
     mutationFn: (payload: { id: string | number; name: string }) => productsApi.updateCategory(String(payload.id), { name: payload.name }),
@@ -68,6 +76,23 @@ export function ProductCategoriesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       setDeletingCategory(null);
+    }
+  });
+
+  const transferWarehouseMutation = useMutation({
+    mutationFn: (payload: { categoryId: number; fromLocationId: number; toLocationId: number }) => 
+      inventoryApi.internalTransferCategory(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-all'] });
+      setTransferringWarehouseCategory(null);
+      setFromLocationId('');
+      setToLocationId('');
+      setEditError('');
+    },
+    onError: (err) => {
+      setEditError(getErrorMessage(err, 'حدث خطأ أثناء نقل الأرصدة للمخزن الجديد'));
     }
   });
 
@@ -188,18 +213,32 @@ export function ProductCategoriesPage() {
                         تعديل
                       </Button>
                       {(row.productCount || 0) > 0 ? (
-                        <Button 
-                          variant="secondary" 
-                          onClick={() => {
-                            setTransferringCategory({ id: row.id, name: row.name });
-                            setTargetCategoryId('');
-                            setSelectedProductIds(new Set());
-                            setEditError('');
-                          }}
-                          title="نقل الأصناف لقسم آخر"
-                        >
-                          نقل الأصناف
-                        </Button>
+                          <>
+                            <Button 
+                              variant="secondary" 
+                              onClick={() => {
+                                setTransferringCategory({ id: row.id, name: row.name });
+                                setTargetCategoryId('');
+                                setSelectedProductIds(new Set());
+                                setEditError('');
+                              }}
+                              title="نقل الأصناف لقسم آخر"
+                            >
+                              نقل الأصناف
+                            </Button>
+                            <Button 
+                              variant="secondary" 
+                              onClick={() => {
+                                setTransferringWarehouseCategory({ id: row.id, name: row.name });
+                                setFromLocationId('');
+                                setToLocationId('');
+                                setEditError('');
+                              }}
+                              title="نقل أرصدة القسم لمخزن آخر"
+                            >
+                              نقل المخزن
+                            </Button>
+                          </>
                       ) : (
                         <Button 
                           variant="secondary" 
@@ -294,9 +333,13 @@ export function ProductCategoriesPage() {
             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>نقل أصناف القسم</h3>
             <button className="icon-btn" onClick={() => setTransferringCategory(null)} aria-label="إغلاق" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
           </div>
-          <div className="form-grid single-col" style={{ padding: '24px' }}>
-            <div className="muted small" style={{ marginBottom: 12 }}>
-              يمكنك نقل كل أصناف قسم "{transferringCategory.name}" أو اختيار أصناف محددة لنقلها إلى القسم الوجهة.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '32px 24px', backgroundColor: 'var(--surface-color)' }}>
+            <div style={{ padding: '16px', backgroundColor: 'var(--blue-50)', color: 'var(--blue-800)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5.072 10.5 5c1.333-.2 2.667-.2 4 0l.5.072m-4 13.856L10.5 19c1.333.2 2.667.2 4 0l.5-.072m-9.5-4.428L5 14c-.2-1.333-.2-2.667 0-4l.072-.5m13.856 4.5L19 14c.2-1.333.2-2.667 0-4l-.072-.5m-3.5 1.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px' }}>نقل أصناف لقسم آخر</strong>
+                <span className="small">يمكنك نقل كل أصناف قسم "{transferringCategory.name}" أو اختيار أصناف محددة لنقلها إلى القسم الوجهة.</span>
+              </div>
             </div>
             
             <Field label="القسم الوجهة">
@@ -304,6 +347,7 @@ export function ProductCategoriesPage() {
                 value={targetCategoryId} 
                 onChange={(e) => setTargetCategoryId(e.target.value)}
                 className="purchase-prototype-field-input"
+                style={{ width: '100%' }}
               >
                 <option value="">اختر القسم الوجهة...</option>
                 {categories.filter(c => c.id !== transferringCategory.id).map(c => (
@@ -387,6 +431,72 @@ export function ProductCategoriesPage() {
               disabled={!targetCategoryId || transferMutation.isPending}
             >
               {transferMutation.isPending ? 'جاري النقل...' : 'نقل الأصناف'}
+            </Button>
+          </div>
+        </DialogShell>
+      )}
+
+      {transferringWarehouseCategory && (
+        <DialogShell
+          open={true}
+          onClose={() => setTransferringWarehouseCategory(null)}
+          width="500px"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>نقل أرصدة القسم: {transferringWarehouseCategory.name}</h3>
+            <button className="icon-btn" onClick={() => setTransferringWarehouseCategory(null)} aria-label="إغلاق" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '32px 24px', backgroundColor: 'var(--surface-color)' }}>
+            <div style={{ padding: '16px', backgroundColor: 'var(--blue-50)', color: 'var(--blue-800)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5.072 10.5 5c1.333-.2 2.667-.2 4 0l.5.072m-4 13.856L10.5 19c1.333.2 2.667.2 4 0l.5-.072m-9.5-4.428L5 14c-.2-1.333-.2-2.667 0-4l.072-.5m13.856 4.5L19 14c.2-1.333.2-2.667 0-4l-.072-.5m-3.5 1.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px' }}>نقل أرصدة قسم لمخزن آخر</strong>
+                <span className="small">هذا الإجراء سيقوم بإنشاء طلب نقل لجميع أرصدة منتجات هذا القسم من المخزن الحالي إلى المخزن الجديد.</span>
+              </div>
+            </div>
+            <Field label="من المخزن">
+              <select
+                value={fromLocationId}
+                onChange={(e) => setFromLocationId(e.target.value)}
+                className="purchase-prototype-field-input"
+                style={{ width: '100%' }}
+              >
+                <option value="">اختر المخزن المحول منه...</option>
+                {locations?.map(l => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="إلى المخزن">
+              <select
+                value={toLocationId}
+                onChange={(e) => setToLocationId(e.target.value)}
+                className="purchase-prototype-field-input"
+                style={{ width: '100%' }}
+              >
+                <option value="">اختر المخزن المحول إليه...</option>
+                {locations?.map(l => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </Field>
+
+            {editError && <div className="error-message" style={{ color: 'var(--text-danger)', marginTop: '16px', padding: '12px', backgroundColor: 'var(--danger-50)', borderRadius: '6px' }}>{editError}</div>}
+          </div>
+          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: 'var(--bg-muted)' }}>
+            <Button variant="secondary" onClick={() => setTransferringWarehouseCategory(null)} style={{ padding: '0 24px' }}>إلغاء</Button>
+            <Button 
+              variant="primary" 
+              disabled={!fromLocationId || !toLocationId || fromLocationId === toLocationId || transferWarehouseMutation.isPending}
+              onClick={() => {
+                transferWarehouseMutation.mutate({
+                  categoryId: Number(transferringWarehouseCategory.id),
+                  fromLocationId: Number(fromLocationId),
+                  toLocationId: Number(toLocationId)
+                });
+              }}
+            >
+              {transferWarehouseMutation.isPending ? 'جاري النقل...' : 'تأكيد النقل'}
             </Button>
           </div>
         </DialogShell>

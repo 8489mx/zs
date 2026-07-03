@@ -9,6 +9,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsGrid';
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
+import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
 
@@ -27,6 +28,8 @@ export function ProductsWorkspace() {
   const defaultProductKind = clothingEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const navigate = useNavigate();
   const toolsRef = useRef<HTMLDivElement | null>(null);
+  const { locationsQuery } = useInventoryActionCatalog();
+  const locationNames = Object.fromEntries((locationsQuery.data || []).map((l: any) => [l.id, l.name]));
   const hasProducts = controller.metrics.total > 0;
 
   useAppToolbar([{ label: 'المنتجات' }]);
@@ -99,6 +102,7 @@ export function ProductsWorkspace() {
           onPrint={controller.printProductsList}
           categoryNames={controller.categoryNames}
           supplierNames={controller.supplierNames}
+          locationNames={locationNames}
           inventorySaleValue={controller.inventorySaleValue}
           isLoading={controller.productsQuery.isLoading || controller.categoriesQuery.isLoading || controller.suppliersQuery.isLoading}
           isError={controller.productsQuery.isError || controller.categoriesQuery.isError || controller.suppliersQuery.isError}

@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { Category, ProductUnit, Supplier } from '@/types/domain';
+import type { Category, ProductUnit, Supplier, Location } from '@/types/domain';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
@@ -23,6 +23,7 @@ import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 interface ProductFormProps {
   categories: Category[];
   suppliers: Supplier[];
+  locations: Location[];
   onCategoryCreated?: (categoryId: string) => void;
   onSupplierCreated?: (supplierId: string) => void;
 }
@@ -90,7 +91,7 @@ async function generateNextStyleCode() {
   return String(nextCode);
 }
 
-export function ProductForm({ categories, suppliers, onCategoryCreated, onSupplierCreated }: ProductFormProps) {
+export function ProductForm({ categories, suppliers, locations, onCategoryCreated, onSupplierCreated }: ProductFormProps) {
   const settingsQuery = useSettingsQuery();
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -344,6 +345,15 @@ export function ProductForm({ categories, suppliers, onCategoryCreated, onSuppli
             <button type="button" className="btn btn-secondary" onClick={() => supplierMutation.mutate()} disabled={mutation.isPending || supplierMutation.isPending || !inlineSupplierName.trim()}>إضافة مورد</button>
           </div>
           {form.formState.errors.supplierId && <small className="field-error">{form.formState.errors.supplierId.message}</small>}
+        </div>
+
+        <div className="field">
+          <label>المخزن الافتراضي</label>
+          <select {...form.register('warehouseId')} disabled={mutation.isPending}>
+            <option value="">بدون مخزن افتراضي</option>
+            {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+          </select>
+          {form.formState.errors.warehouseId && <small className="field-error">{form.formState.errors.warehouseId.message}</small>}
         </div>
 
         <Field label="مكان التخزين (Bin Location)"><input {...form.register('binLocation')} disabled={mutation.isPending} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" /></Field>

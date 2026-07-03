@@ -51,6 +51,7 @@ export interface Product {
   bomId?: number;
   hasBom?: boolean;
   binLocation?: string;
+  defaultLocationId?: string;
 }
 
 export interface Category {

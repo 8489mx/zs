@@ -92,16 +92,16 @@ export function WarehouseDetailsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(productsQuery.data || []).map((product: any) => (
+                  {(productsQuery.data || []).filter((p: any) => Number(p.stockQty ?? p.qty ?? 0) > 0).map((product: any) => (
                     <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td style={{ padding: '12px 16px' }}>{product.name}</td>
                       <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{product.barcode || '-'}</td>
                       <td style={{ padding: '12px 16px', fontWeight: 600 }}>{product.stockQty ?? product.qty ?? '-'}</td>
                     </tr>
                   ))}
-                  {(productsQuery.data || []).length === 0 && (
+                  {(productsQuery.data || []).filter((p: any) => Number(p.stockQty ?? p.qty ?? 0) > 0).length === 0 && (
                     <tr>
-                      <td colSpan={3} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا توجد أصناف في هذا القسم</td>
+                      <td colSpan={3} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا توجد أصناف متاحة في هذا القسم برصيد إيجابي</td>
                     </tr>
                   )}
                 </tbody>

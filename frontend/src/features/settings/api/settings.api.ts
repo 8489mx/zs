@@ -181,5 +181,6 @@ export const settingsApi = {
       }),
     }),
   saveUsers: (users: ManagedUserRecord[]) => http<{ ok: boolean; users: ManagedUserRecord[] }>('/api/users', { method: 'PUT', body: JSON.stringify({ users: users.map(sanitizeUserPayload) }) }),
-  backupDownloadUrl: () => resolveRequestUrl('/api/backup')
+  backupDownloadUrl: () => resolveRequestUrl('/api/backup'),
+
 };

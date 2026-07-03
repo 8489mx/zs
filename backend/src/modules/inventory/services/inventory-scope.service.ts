@@ -151,4 +151,51 @@ export class InventoryScopeService {
       }))
     };
   }
+
+  async getAdvancedOverview(auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantId = this.tenantId(auth);
+    
+    const locations = await this.db.selectFrom('stock_locations')
+      .select(['id', 'name'])
+      .where('is_active', '=', true)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .execute();
+      
+    const categories = await this.db.selectFrom('product_categories')
+      .select(['id', 'name'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .execute();
+      
+    const stockCounts = await this.db.selectFrom('product_location_stock as pls')
+      .innerJoin('products as p', 'p.id', 'pls.product_id')
+      .select([
+        'pls.location_id',
+        'p.category_id',
+        sql<number>`count(distinct p.id)`.as('productCount')
+      ])
+      .where('pls.qty', '>', 0)
+      .where(sql<boolean>`p.tenant_id = ${tenantId}`)
+      .groupBy(['pls.location_id', 'p.category_id'])
+      .execute();
+      
+    const overview = locations.map(loc => {
+      const locStocks = stockCounts.filter(s => s.location_id === loc.id);
+      const locCategories = locStocks.map(s => {
+        const cat = categories.find(c => c.id === s.category_id);
+        return {
+          id: String(s.category_id),
+          name: cat ? cat.name : 'بدون قسم',
+          productCount: Number(s.productCount) || 0
+        };
+      }).filter(c => c.productCount > 0);
+      
+      return {
+        id: String(loc.id),
+        name: loc.name,
+        categories: locCategories
+      };
+    });
+    
+    return { locations: overview };
+  }
 }

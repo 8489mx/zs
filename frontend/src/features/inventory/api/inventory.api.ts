@@ -116,6 +116,8 @@ export const inventoryApi = {
     };
   },
   createStockTransfer: (payload: unknown) => http('/api/stock-transfers', { method: 'POST', body: JSON.stringify(payload) }),
+  internalTransferProducts: (payload: unknown) => http('/api/internal-transfer', { method: 'POST', body: JSON.stringify(payload) }),
+  internalTransferCategory: (payload: unknown) => http('/api/internal-transfer-category', { method: 'POST', body: JSON.stringify(payload) }),
   receiveStockTransfer: (transferId: string) => http(`/api/stock-transfers/${transferId}/receive`, { method: 'POST' }),
   cancelStockTransfer: (transferId: string) => http(`/api/stock-transfers/${transferId}/cancel`, { method: 'POST' }),
   stockCountSessions: async () => {
@@ -182,5 +184,7 @@ export const inventoryApi = {
     return rows;
   },
   createStockCountSession: (payload: unknown) => http('/api/stock-count-sessions', { method: 'POST', body: JSON.stringify(payload) }),
-  postStockCountSession: (sessionId: string, payload: unknown) => http(`/api/stock-count-sessions/${sessionId}/post`, { method: 'POST', body: JSON.stringify(payload) })
+  postStockCountSession: (sessionId: string, payload: unknown) => http(`/api/stock-count-sessions/${sessionId}/post`, { method: 'POST', body: JSON.stringify(payload) }),
+  transferCategory: (payload: { categoryId: number; fromLocationId: number; toLocationId: number; notes?: string }) => http('/api/transfer-category', { method: 'POST', body: JSON.stringify(payload) }),
+  advancedOverview: () => http<any>('/api/inventory/advanced-overview')
 };

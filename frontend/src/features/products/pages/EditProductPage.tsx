@@ -8,7 +8,7 @@ import { Field } from '@/shared/ui/field';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
-import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery } from '@/shared/hooks/use-catalog-queries';
+import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { ProductCustomerPrice, ProductUnit } from '@/types/domain';
 import { ProductCustomerPricesCard } from '@/features/products/components/workspace-sections/ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
@@ -43,6 +43,8 @@ export function EditProductPage() {
   const categories = categoriesQuery.data || [];
   const suppliers = suppliersQuery.data || [];
   const customers = (customersQuery.data || []).map((customer) => ({ id: String(customer.id), name: customer.name }));
+  const locationsQuery = useLocationsQuery();
+  const locations = locationsQuery.data || [];
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -165,6 +167,7 @@ export function EditProductPage() {
               product={product}
               categories={categories}
               suppliers={suppliers}
+              locations={locations}
             />
           </Suspense>
         </main>
@@ -272,6 +275,17 @@ export function EditProductPage() {
                 <option value="">بدون مورد</option>
                 {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
               </select>
+            </Field>
+          </div>
+          <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
+            <Field label="المخزن الافتراضي" error={form.formState.errors.warehouseId?.message}>
+              <select className="purchase-prototype-field-input" {...form.register('warehouseId')} disabled={isFormDisabled}>
+                <option value="">بدون مخزن افتراضي</option>
+                {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+              </select>
+            </Field>
+            <Field label="مكان التخزين (Bin Location)">
+              <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" />
             </Field>
           </div>
         </section>

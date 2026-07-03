@@ -19,7 +19,7 @@ export function getProductMetrics(products: Product[]) {
   };
 }
 
-export function getProductColumns(categoryNames: Record<string, string>, supplierNames: Record<string, string>) {
+export function getProductColumns(categoryNames: Record<string, string>, supplierNames: Record<string, string>, locationNames: Record<string, string> = {}) {
   return [
     {
       key: 'name',
@@ -32,8 +32,17 @@ export function getProductColumns(categoryNames: Record<string, string>, supplie
       )
     },
     { key: 'barcode', header: 'الباركود', cell: (product: Product) => product.barcode || '—' },
-    { key: 'category', header: 'القسم', cell: (product: Product) => categoryNames[product.categoryId] || '—' },
-    { key: 'supplier', header: 'المورد', cell: (product: Product) => supplierNames[product.supplierId] || '—' },
+    { 
+      key: 'classification', 
+      header: 'القسم / المورد / المخزن', 
+      cell: (product: Product) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div>{categoryNames[product.categoryId] || '—'}</div>
+          <div className="muted small" title="المورد">{supplierNames[product.supplierId] || '—'}</div>
+          <div className="muted small text-primary" title="المخزن الافتراضي">{locationNames[product.defaultLocationId as any] || 'الرئيسي'}</div>
+        </div>
+      )
+    },
     { key: 'cost', header: 'الشراء', cell: (product: Product) => formatCurrency(product.costPrice) },
     { key: 'retail', header: 'القطاعي', cell: (product: Product) => formatCurrency(product.retailPrice) },
     { key: 'wholesale', header: 'الجملة', cell: (product: Product) => formatCurrency(product.wholesalePrice) },

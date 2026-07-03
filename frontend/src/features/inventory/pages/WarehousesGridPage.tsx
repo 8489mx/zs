@@ -13,6 +13,11 @@ export function WarehousesGridPage() {
       <PageHeader 
         title="المخازن" 
         description="استعراض وتقسيم المخازن وعرض أرصدة الأصناف" 
+        actions={(
+          <div className="actions compact-actions page-header-actions">
+            <button className="btn" onClick={() => navigate('/settings/locations')}>إدارة المخازن المتقدمة</button>
+          </div>
+        )}
       />
 
       <FormSection title="قائمة المخازن">

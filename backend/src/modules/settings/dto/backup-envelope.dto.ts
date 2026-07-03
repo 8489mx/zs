@@ -13,6 +13,14 @@ class BackupMetaDto {
   @IsOptional()
   @IsString()
   source?: string;
+
+  @IsOptional()
+  @IsString()
+  tenantId?: string;
+
+  @IsOptional()
+  @IsString()
+  accountId?: string;
 }
 
 export class BackupEnvelopeDto {

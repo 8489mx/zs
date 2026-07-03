@@ -29,6 +29,7 @@ interface ProductsTableCardProps {
   onPrint: () => void;
   categoryNames: Record<string, string>;
   supplierNames: Record<string, string>;
+  locationNames: Record<string, string>;
   inventorySaleValue: number;
   isLoading: boolean;
   isError: boolean;
@@ -154,7 +155,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 <th>الصنف</th>
                 <th>الباركود</th>
                 <th>{props.clothingEnabled ? 'اللون / المقاس' : 'الفرعي'}</th>
-                <th>التصنيف / المورد</th>
+                <th>القسم / المورد / المخزن</th>
                 <th>الأسعار</th>
                 <th>المخزون</th>
                 <th>ملاحظات</th>
@@ -188,7 +189,8 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       <td>
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
-                          <div className="muted small">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
+                          <div className="muted small" title="المورد">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
+                          <div className="muted small text-primary" title="المخزن الافتراضي">{props.locationNames[product.defaultLocationId as any] || 'غير محدد'}</div>
                         </div>
                       </td>
                       <td>
@@ -240,7 +242,8 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       <td>
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[group.representative.categoryId] || 'عام'}</div>
-                          <div className="muted small">{props.supplierNames[group.representative.supplierId] || 'بدون مورد'}</div>
+                          <div className="muted small" title="المورد">{props.supplierNames[group.representative.supplierId] || 'بدون مورد'}</div>
+                          <div className="muted small text-primary" title="المخزن الافتراضي">{props.locationNames[group.representative.defaultLocationId as any] || 'غير محدد'}</div>
                         </div>
                       </td>
                       <td>
@@ -283,7 +286,8 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <td>
                           <div style={{ lineHeight: 1.4 }}>
                             <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
-                            <div className="muted small">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
+                            <div className="muted small" title="المورد">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
+                            <div className="muted small text-primary" title="المخزن الافتراضي">{props.locationNames[product.defaultLocationId as any] || 'غير محدد'}</div>
                           </div>
                         </td>
                         <td>

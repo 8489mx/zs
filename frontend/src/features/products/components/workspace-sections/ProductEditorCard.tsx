@@ -12,7 +12,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import type { Category, Product, ProductCustomerPrice, ProductUnit, Supplier } from '@/types/domain';
+import type { Category, Product, ProductCustomerPrice, ProductUnit, Supplier, Location } from '@/types/domain';
 import { ProductCustomerPricesCard } from './ProductCustomerPricesCard';
 import { FashionGroupEditorCard } from './FashionGroupEditorCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from './product-workspace.utils';
@@ -30,7 +30,7 @@ function omitStock(values: ProductFormOutput): ProductFormOutput {
   return safeValues as ProductFormOutput;
 }
 
-export function ProductEditorCard({ product, categories, suppliers, customers, onSaved }: { product?: Product; categories: Category[]; suppliers: Supplier[]; customers: Array<{ id: string; name: string }>; onSaved?: (product: Product) => void }) {
+export function ProductEditorCard({ product, categories, suppliers, customers, locations, onSaved }: { product?: Product; categories: Category[]; suppliers: Supplier[]; customers: Array<{ id: string; name: string }>; locations: Location[]; onSaved?: (product: Product) => void }) {
   const settingsQuery = useSettingsQuery();
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -97,6 +97,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, o
         product={product}
         categories={categories}
         suppliers={suppliers}
+        locations={locations}
         onSaved={onSaved}
       />
     );

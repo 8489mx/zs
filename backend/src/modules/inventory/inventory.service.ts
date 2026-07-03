@@ -34,6 +34,10 @@ export class InventoryService {
     return this.scopeService.getAllLocationStocks(auth);
   }
 
+  getAdvancedOverview(auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.scopeService.getAdvancedOverview(auth);
+  }
+
   listStockTransfers(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.transferService.listStockTransfers(query, auth);
   }
@@ -44,6 +48,18 @@ export class InventoryService {
 
   createStockTransfer(payload: CreateStockTransferDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.transferService.createStockTransfer(payload, auth);
+  }
+
+  transferCategory(payload: { categoryId: number; fromLocationId: number; toLocationId: number; notes?: string }, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.transferService.transferCategory(payload, auth);
+  }
+
+  internalTransferProducts(payload: any, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.transferService.internalTransferProducts(payload, auth);
+  }
+
+  internalTransferCategory(payload: any, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.transferService.internalTransferCategory(payload, auth);
   }
 
   receiveStockTransfer(transferId: number, auth: AuthContext): Promise<Record<string, unknown>> {

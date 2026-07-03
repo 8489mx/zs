@@ -72,6 +72,7 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   LOCATION_NAME_REQUIRED: 'اسم الموقع مطلوب.',
   BRANCH_NAME_REQUIRED: 'اسم الفرع مطلوب.',
   INVENTORY_ADJUSTMENT_INVALID: 'بيانات حركة المخزون غير صحيحة.',
+  NO_STOCK: 'لا يوجد مخزون كافي لنقله في الموقع المصدر.',
 };
 
 function looksArabic(value: string): boolean {
