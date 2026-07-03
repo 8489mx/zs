@@ -60,6 +60,7 @@ export async function invalidateInventoryDomain(
     queryClient.invalidateQueries({ queryKey: queryKeys.stockCountSessions }),
     queryClient.invalidateQueries({ queryKey: queryKeys.damagedStock }),
     queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements }),
+    queryClient.invalidateQueries({ queryKey: ['location-stocks'] }),
     invalidateAuditLogs(queryClient),
   ];
   if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.products }));
