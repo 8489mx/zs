@@ -37,7 +37,8 @@ export function Step2Details({ form, updateField, onNext, onBack }: Step2Props) 
         </Field>
         <Field label="كلمة المرور (Password)">
           <input 
-            type="password"
+            type="text"
+            className="input secure-password-field"
             value={form.adminPassword} 
             onChange={(e) => updateField('adminPassword', e.target.value)} 
             placeholder="••••••••" 

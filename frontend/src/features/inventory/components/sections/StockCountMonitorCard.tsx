@@ -121,7 +121,8 @@ export function StockCountMonitorCard({
       {canReviewStock ? (
         <Field label="كود اعتماد الجلسة">
           <input
-            type="password"
+            type="text"
+            className="secure-password-field"
             value={postingPin}
             onChange={(e) => onPostingPinChange(e.target.value)}
             placeholder="يستخدم عند اعتماد أي جلسة"

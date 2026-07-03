@@ -43,13 +43,14 @@ export function PosManagerPasswordDialog({ open, isPending = false, onClose, onA
           هذا المستخدم لا يملك صلاحية خصم مباشرة. أدخل كلمة مرور المدير لفتح الخصم لهذه الفاتورة فقط.
         </p>
 
-        <form onSubmit={(event) => { void handleSubmit(event); }}>
+        <div onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void handleSubmit(event); } }}>
           <div className="field" style={{ marginTop: 16 }}>
             <label>
               <span>كلمة مرور المدير</span>
               <input
                 data-autofocus
-                type="password"
+                type="text"
+                className="secure-password-field"
                 id="discountApprovalSecret"
                 name="discountApprovalSecret"
                 value={password}
@@ -87,9 +88,9 @@ export function PosManagerPasswordDialog({ open, isPending = false, onClose, onA
 
           <div className="actions" style={{ marginTop: 20, justifyContent: 'flex-end' }}>
             <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>إلغاء</Button>
-            <Button type="submit" variant="primary" disabled={isPending || !password.trim()}>{isPending ? 'جارٍ الاعتماد...' : 'اعتماد الخصم'}</Button>
+            <Button type="button" onClick={(event) => handleSubmit(event)} variant="primary" disabled={isPending || !password.trim()}>{isPending ? 'جارٍ الاعتماد...' : 'اعتماد الخصم'}</Button>
           </div>
-        </form>
+        </div>
       </Card>
     </DialogShell>
   );

@@ -153,7 +153,7 @@ export function LoginPage() {
               </div>
             )}
 
-            <form className="login-form-pro" onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="login-form-pro" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleSubmit(onSubmit)(); } }}>
               
               <div className="login-field-group">
                 <div className="login-field-label">
@@ -176,19 +176,19 @@ export function LoginPage() {
               <div className="login-field-group">
                 <div className="login-field-label flex-between">
                   <label>كلمة المرور</label>
-                  <a href="#" className="forgot-password-link" onClick={(e) => e.preventDefault()}>نسيت كلمة المرور؟</a>
+                  <a href="#" className="forgot-password-link" tabIndex={-1} onClick={(e) => e.preventDefault()}>نسيت كلمة المرور؟</a>
                 </div>
                 <div className="login-input-pro-wrap">
                   <span className="login-input-pro-icon"><LockIcon /></span>
                   <input 
                     {...form.register('password')} 
-                    type={showPassword ? "text" : "password"} 
+                    type="text" 
+                    className={`login-input-pro ${!showPassword ? 'secure-password-field' : ''}`}
                     autoComplete="new-password" 
                     autoCorrect="off" 
                     autoCapitalize="off" 
                     spellCheck={false}
                     placeholder="أدخل كلمة المرور الخاصة بك" 
-                    className="login-input-pro"
                   />
                   <button type="button" className="login-pwd-toggle-btn" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -206,11 +206,11 @@ export function LoginPage() {
                 </label>
               </div>
 
-              <button type="submit" disabled={isSubmitting} className="login-submit-pro-btn">
+              <button type="button" className="login-submit-pro-btn" disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>
                 <span>{isSubmitting ? 'جاري التحقق والاتصال...' : 'تسجيل الدخول'}</span>
                 {!isSubmitting && <ArrowLeftIcon />}
               </button>
-            </form>
+            </div>
 
             {/* 
             <div className="login-demo-widget">

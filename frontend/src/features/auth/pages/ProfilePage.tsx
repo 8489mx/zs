@@ -85,13 +85,13 @@ export function ProfilePage() {
           <FormSection title="تغيير كلمة المرور" className="profile-section">
             <form onSubmit={handlePasswordSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
               <Field label="كلمة المرور الحالية">
-                <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="input" required dir="ltr" />
+                <input type="text" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="input secure-password-field" required dir="ltr" />
               </Field>
               <Field label="كلمة المرور الجديدة">
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input" required dir="ltr" />
+                <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input secure-password-field" required dir="ltr" />
               </Field>
               <Field label="تأكيد كلمة المرور الجديدة">
-                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input" required dir="ltr" />
+                <input type="text" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input secure-password-field" required dir="ltr" />
               </Field>
               <div className="actions" style={{ gridColumn: '1 / -1' }}>
                 <Button type="submit" variant="primary" disabled={isSavingPassword}>تغيير كلمة المرور</Button>

@@ -154,7 +154,8 @@ export function ActionConfirmDialog({
                   setManagerPin(event.target.value);
                   if (submitError) setSubmitError('');
                 }}
-                type="password"
+                type="text"
+                className="secure-password-field"
                 id="managerApprovalSecret"
                 name="managerApprovalSecret"
                 placeholder="أدخل الرمز"

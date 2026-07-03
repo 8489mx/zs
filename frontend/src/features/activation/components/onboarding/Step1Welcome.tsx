@@ -68,7 +68,8 @@ export function Step1Welcome({ form, updateField, extraData, updateExtra, onNext
         </Field>
         <Field label={t('firstRun.step1.adminPassword')}>
           <input 
-            type="password"
+            type="text"
+            className="input secure-password-field"
             value={form.adminPassword} 
             onChange={(e) => updateField('adminPassword', e.target.value)} 
             dir="ltr"

@@ -232,7 +232,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 <span>تصحيح الكمية أو إضافة/خصم سريع للصنف المحدد.</span>
               </div>
             </summary>
-            <form className="form-grid inventory-action-form" onSubmit={adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))}>
+            <div className="form-grid inventory-action-form" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))(); } }}>
               <Field label="الصنف" error={adjustmentForm.formState.errors.productId?.message}>
                 <InventoryProductPicker
                   products={productList}
@@ -292,15 +292,15 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 </Field>
               )}
               <Field label="ملاحظات"><textarea rows={3} {...adjustmentForm.register('note')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
-              {!isAdmin && <Field label="رمز اعتماد المدير" error={adjustmentForm.formState.errors.managerPin?.message}><input type="password" {...adjustmentForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>}
+              {!isAdmin && <Field label="رمز اعتماد المدير" error={adjustmentForm.formState.errors.managerPin?.message}><input type="text" className="secure-password-field" {...adjustmentForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>}
               {!canManageInventory ? <div className="muted small">هذا الحساب يملك صلاحية متابعة المخزون فقط. تنفيذ التسويات والتالف يتطلب canAdjustInventory.</div> : null}
               <MutationFeedback isError={adjustmentMutation.isError} isSuccess={adjustmentMutation.isSuccess} error={adjustmentMutation.error} errorFallback="تعذر تنفيذ حركة المخزون" successText="تم حفظ حركة المخزون وتحديث الرصيد بنجاح." />
               <div className="actions">
-                <SubmitButton type="submit" disabled={adjustmentMutation.isPending || !canManageInventory} idleText="حفظ حركة المخزون" pendingText="جارٍ الحفظ..." />
+                <SubmitButton type="button" onClick={adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))} disabled={adjustmentMutation.isPending || !canManageInventory} idleText="حفظ حركة المخزون" pendingText="جارٍ الحفظ..." />
                 <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending || !canManageInventory} onClick={resetAdjustmentForm}>تفريغ</Button>
                 <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending} onClick={closeAdjustmentForm}>إلغاء وإغلاق</Button>
               </div>
-            </form>
+            </div>
           </details>
 
           <details
@@ -316,7 +316,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 <span>سجّل التالف عند الحاجة مع بقاء الصفحة الأساسية مخصصة للمتابعة والبحث.</span>
               </div>
             </summary>
-            <form className="form-grid inventory-action-form" onSubmit={damagedForm.handleSubmit((values) => damagedMutation.mutate(values))}>
+            <div className="form-grid inventory-action-form" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); damagedForm.handleSubmit((values) => damagedMutation.mutate(values))(); } }}>
               <Field label="الصنف" error={damagedForm.formState.errors.productId?.message}>
                 <InventoryProductPicker
                   products={productList}
@@ -357,7 +357,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 </Field>
               )}
               <Field label="ملاحظات"><textarea rows={3} {...damagedForm.register('note')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
-              {!isAdmin && <Field label="رمز اعتماد المدير" error={damagedForm.formState.errors.managerPin?.message}><input type="password" {...damagedForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={damagedMutation.isPending || !canManageInventory} /></Field>}
+              {!isAdmin && <Field label="رمز اعتماد المدير" error={damagedForm.formState.errors.managerPin?.message}><input type="text" className="secure-password-field" {...damagedForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={damagedMutation.isPending || !canManageInventory} /></Field>}
               <div className="stats-grid compact-grid workspace-stats-grid inventory-damage-mini-grid" style={{ marginTop: 12 }}>
                 <div className="stat-card"><span>المخزون الحالي</span><strong>{selectedDamagedProduct ? selectedDamagedProduct.stock : 0}</strong></div>
                 <div className="stat-card"><span>الكمية التالفة</span><strong>{damagedQty || 0}</strong></div>
@@ -366,10 +366,10 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
               </div>
               <MutationFeedback isError={damagedMutation.isError} isSuccess={damagedMutation.isSuccess} error={damagedMutation.error} errorFallback="تعذر تسجيل التالف" successText="تم تسجيل التالف وتحديث المخزون بنجاح." />
               <div className="actions">
-                <SubmitButton type="submit" variant="danger" disabled={damagedMutation.isPending || !canManageInventory} idleText="تسجيل التالف" pendingText="جارٍ التسجيل..." />
+                <SubmitButton type="button" variant="danger" onClick={damagedForm.handleSubmit((values) => damagedMutation.mutate(values))} disabled={damagedMutation.isPending || !canManageInventory} idleText="تسجيل التالف" pendingText="جارٍ التسجيل..." />
                 <Button type="button" variant="secondary" disabled={damagedMutation.isPending || !canManageInventory} onClick={resetDamagedForm}>تفريغ</Button>
               </div>
-            </form>
+            </div>
           </details>
         </div>
       </FormSection>

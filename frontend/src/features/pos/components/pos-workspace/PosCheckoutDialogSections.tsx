@@ -201,15 +201,15 @@ export function PosCheckoutPaymentSection({
       </div>
 
       {managerApprovalOpen && isDiscountLocked && !pos.discountApprovalGranted ? (
-        <form className="pos-checkout-manager-approval" onSubmit={onInlineManagerApproval}>
-          <label className="field field-wide"><span>PIN المدير</span><input ref={managerPinInputRef} type="password" inputMode="numeric" autoComplete="off" value={managerPinDraft} onChange={(event) => { onManagerPinDraftChange(event.target.value); if (managerPinError) onManagerPinErrorChange(''); }} placeholder="اكتب PIN المدير" disabled={pos.discountAuthorizationMutation.isPending} /></label>
+        <div className="pos-checkout-manager-approval" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onInlineManagerApproval(); } }}>
+          <label className="field field-wide"><span>PIN المدير</span><input ref={managerPinInputRef} type="text" className="secure-password-field" inputMode="numeric" autoComplete="off" value={managerPinDraft} onChange={(event) => { onManagerPinDraftChange(event.target.value); if (managerPinError) onManagerPinErrorChange(''); }} placeholder="اكتب PIN المدير" disabled={pos.discountAuthorizationMutation.isPending} /></label>
           <div className="surface-note">يُستخدم PIN للتحقق فقط داخل هذه الفاتورة، ثم يتم مسحه ولا يُحفظ في المسودة.</div>
           {managerPinError ? <div className="error-box">{managerPinError}</div> : null}
           <div className="actions compact-actions">
-            <Button type="submit" disabled={pos.discountAuthorizationMutation.isPending}>{pos.discountAuthorizationMutation.isPending ? 'جاري التحقق...' : 'اعتماد الخصم'}</Button>
+            <Button type="button" disabled={pos.discountAuthorizationMutation.isPending} onClick={() => onInlineManagerApproval()}>{pos.discountAuthorizationMutation.isPending ? 'جاري التحقق...' : 'اعتماد الخصم'}</Button>
             <Button type="button" variant="secondary" onClick={() => { onManagerApprovalOpenChange(false); onManagerPinDraftChange(''); onManagerPinErrorChange(''); approvedManagerPinRef.current = ''; }} disabled={pos.discountAuthorizationMutation.isPending}>إلغاء</Button>
           </div>
-        </form>
+        </div>
       ) : null}
 
       <div className="pos-checkout-dialog-summary pos-checkout-payment-summary">

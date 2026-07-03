@@ -154,7 +154,7 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
           <Field label={t('sales.20000a')}><input type="number" min="0" step="0.01" value={discount} onChange={(e) => setDiscount(Number(e.target.value || 0))} disabled={isBusy} /></Field>
           <div style={{ gridColumn: '1 / -1' }}><Field label={t('sales.3c4208')}><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} disabled={isBusy} /></Field></div>
           <div style={{ gridColumn: '1 / -1' }}><Field label={t('sales.9625a0')}><textarea rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} disabled={isBusy} placeholder={t('sales.13ae61')} /></Field></div>
-          <Field label={t('sales.2249f4')}><input type="password" inputMode="numeric" value={managerPin} onChange={(e) => setManagerPin(e.target.value)} disabled={isBusy} placeholder={t('sales.f7fa23')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>
+          <Field label={t('sales.2249f4')}><input type="text" className="secure-password-field" inputMode="numeric" value={managerPin} onChange={(e) => setManagerPin(e.target.value)} disabled={isBusy} placeholder={t('sales.f7fa23')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>
         </div>
 
         <div className="table-wrap" style={{ marginTop: 12 }}>

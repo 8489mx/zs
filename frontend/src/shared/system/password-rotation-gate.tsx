@@ -100,13 +100,13 @@ export function PasswordRotationGate() {
         </div>
         <form className="stack gap-12" onSubmit={handleSubmit}>
           <Field label="كلمة المرور الحالية" error="">
-            <input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
+            <input type="text" className="secure-password-field" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
           </Field>
           <Field label="كلمة المرور الجديدة" error="">
-            <input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
+            <input type="text" className="secure-password-field" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
           </Field>
           <Field label="تأكيد كلمة المرور الجديدة" error="">
-            <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
+            <input type="text" className="secure-password-field" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
           </Field>
           {error ? <div className="error-box">{error}</div> : null}
           {success ? <div className="success-box">{success}</div> : null}
