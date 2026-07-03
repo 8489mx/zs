@@ -8,7 +8,7 @@ export const inventoryAdjustmentSchema = z.object({
   note: z.string().trim().optional().default(''),
   branchId: z.string().trim().optional().default(''),
   locationId: z.string().trim().optional().default(''),
-  managerPin: z.string().trim().min(1, 'رمز مرور المدير مطلوب')
+  managerPin: z.string().trim().optional().default('')
 });
 
 export const damagedStockSchema = z.object({
@@ -18,7 +18,7 @@ export const damagedStockSchema = z.object({
   note: z.string().trim().optional().default(''),
   branchId: z.string().trim().optional().default(''),
   locationId: z.string().trim().optional().default(''),
-  managerPin: z.string().trim().min(1, 'أدخل كود المدير')
+  managerPin: z.string().trim().optional().default('')
 });
 
 export type InventoryAdjustmentInput = z.input<typeof inventoryAdjustmentSchema>;
