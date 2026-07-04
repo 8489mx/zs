@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
-import { catalogApi } from '@/shared/api/catalog';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 
 interface AssignProductsModalProps {
