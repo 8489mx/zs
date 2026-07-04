@@ -31,7 +31,7 @@ export function WarehouseDetailsPage() {
   });
 
   const visibleCategories = (categoriesQuery.data || []).filter((cat: any) => {
-    if (showZeroStock) return true;
+    if (showZeroStock) return Number(cat.assignedProductCount) > 0;
     return Number(cat.positiveStockProductCount) > 0;
   });
 
@@ -114,7 +114,8 @@ export function WarehouseDetailsPage() {
                   <tr>
                     <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500 }}>اسم الصنف</th>
                     <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500 }}>الباركود</th>
-                    <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500 }}>الكمية المتاحة</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500 }}>الرصيد في هذا المخزن</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500 }}>الرصيد الإجمالي بالنظام</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -122,12 +123,13 @@ export function WarehouseDetailsPage() {
                     <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td style={{ padding: '12px 16px' }}>{product.name}</td>
                       <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{product.barcode || '-'}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>{product.stockQty ?? product.qty ?? '-'}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: Number(product.stockQty ?? 0) === 0 ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{product.stockQty ?? product.qty ?? 0}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{product.globalStockQty ?? '-'}</td>
                     </tr>
                   ))}
                   {visibleProducts.length === 0 && (
                     <tr>
-                      <td colSpan={3} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                         {showZeroStock ? 'لا توجد أصناف مربوطة بهذا المخزن في هذا القسم' : 'لا توجد أصناف متاحة في هذا القسم برصيد إيجابي'}
                       </td>
                     </tr>

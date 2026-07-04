@@ -141,7 +141,7 @@ export class InventoryScopeService {
     let query = this.db
       .selectFrom('products as p')
       .innerJoin('product_location_stock as s', 's.product_id', 'p.id')
-      .select(['p.id', 'p.name', 'p.barcode', 's.qty'])
+      .select(['p.id', 'p.name', 'p.barcode', 's.qty', 'p.stock_qty'])
       .where('s.location_id', '=', locationId)
       .where('p.is_active', '=', true)
       .where(sql<boolean>`p.tenant_id = ${tenantId}`);
@@ -156,7 +156,8 @@ export class InventoryScopeService {
         id: String(r.id),
         name: r.name || '',
         barcode: r.barcode || '',
-        stockQty: Number(r.qty || 0)
+        stockQty: Number(r.qty || 0),
+        globalStockQty: Number(r.stock_qty || 0)
       }))
     };
   }
