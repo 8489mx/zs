@@ -1399,6 +1399,7 @@ export interface Database {
   manufacturing_work_orders: ManufacturingWorkOrderTable;
   manufacturing_wo_consumptions: ManufacturingWoConsumptionTable;
   hr_employee_adjustments: HrEmployeeAdjustmentTable;
+  offline_releases: OfflineReleaseTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -1415,4 +1416,15 @@ export interface HrEmployeeAdjustmentTable {
   updated_by: number;
   created_at: ColumnType<Date, string | undefined, string | undefined>;
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface OfflineReleaseTable {
+  id: Generated<number>;
+  version: string;
+  changelog: string;
+  patch_url: string;
+  is_active: boolean;
+  promoted_by: string | null;
+  promoted_at: ColumnType<Date, string | undefined, string | undefined> | null;
+  created_at: ColumnType<Date, string | undefined, string | undefined>;
 }

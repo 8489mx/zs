@@ -183,4 +183,26 @@ export const settingsApi = {
   saveUsers: (users: ManagedUserRecord[]) => http<{ ok: boolean; users: ManagedUserRecord[] }>('/api/users', { method: 'PUT', body: JSON.stringify({ users: users.map(sanitizeUserPayload) }) }),
   backupDownloadUrl: () => resolveRequestUrl('/api/backup'),
 
+  // ─── Offline Releases ────────────────────────────────────────────────────
+  offlineReleases: {
+    list: () => http<OfflineRelease[]>('/api/admin/offline-releases'),
+    create: (body: { version: string; changelog: string; patchUrl: string }) =>
+      http<{ ok: boolean }>('/api/admin/offline-releases', { method: 'POST', body: JSON.stringify(body) }),
+    promote: (id: number) =>
+      http<{ ok: boolean; message: string }>(`/api/admin/offline-releases/${id}/promote`, { method: 'POST' }),
+    deactivate: (id: number) =>
+      http<{ ok: boolean; message: string }>(`/api/admin/offline-releases/${id}/deactivate`, { method: 'POST' }),
+  },
 };
+
+export interface OfflineRelease {
+  id: number;
+  version: string;
+  changelog: string;
+  patchUrl: string;
+  isActive: boolean;
+  promotedBy: string | null;
+  promotedAt: string | null;
+  createdAt: string;
+}
+
