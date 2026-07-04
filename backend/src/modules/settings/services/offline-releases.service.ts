@@ -217,11 +217,17 @@ export class OfflineReleasesService {
   }
 
   /**
-   * Returns the currently running app version.
-   * Reads runtime/run/.app_version (written by ApplyAndRestart.ps1 on success).
-   * Falls back to APP_VERSION env var, then '0.0.0'.
+   * Returns the currently running app version using this priority:
+   *
+   *  1. runtime/run/.app_version  → written by ApplyAndRestart.ps1 after each auto-update
+   *  2. process.cwd()/package.json → the backend's own package.json (always present, no
+   *     manual configuration needed — just bump the version before building each release)
+   *  3. '0.0.0' as an absolute last resort
+   *
+   * This means zero manual intervention is required from the developer or client.
    */
   getCurrentVersion(): { version: string } {
+    // 1. Written by the auto-update script on success
     const versionFile = path.resolve(process.cwd(), '../../runtime/run/.app_version');
     try {
       if (fs.existsSync(versionFile)) {
@@ -229,6 +235,17 @@ export class OfflineReleasesService {
         if (ver) return { version: ver };
       }
     } catch { /* ignore */ }
-    return { version: process.env.APP_VERSION ?? '0.0.0' };
+
+    // 2. Read the backend's own package.json (baked in at build time, always accurate)
+    try {
+      const pkgPath = path.join(process.cwd(), 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { version?: string };
+        if (pkg?.version) return { version: pkg.version };
+      }
+    } catch { /* ignore */ }
+
+    // 3. Absolute fallback
+    return { version: '0.0.0' };
   }
 }

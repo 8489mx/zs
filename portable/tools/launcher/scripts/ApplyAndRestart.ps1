@@ -144,6 +144,18 @@ if ($srcBackend) {
   Write-Log 'WARNING: backend/dist not found in patch — skipping.'
 }
 
+# ── Copy backend/package.json (carries the new version number) ───────────────
+$srcPkg = @(
+  (Join-Path $extractDir 'backend\package.json'),
+  (Join-Path $extractDir 'backend/package.json')
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if ($srcPkg) {
+  $destPkg = Join-Path $paths.AppBackendDir 'package.json'
+  Copy-Item -Path $srcPkg -Destination $destPkg -Force
+  Write-Log 'backend/package.json updated.'
+}
+
 # ── Copy frontend/dist ───────────────────────────────────────────────────────
 $srcFrontend = @(
   (Join-Path $extractDir 'frontend\dist'),

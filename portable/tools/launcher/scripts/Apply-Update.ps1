@@ -88,29 +88,40 @@ try {
   exit 1
 }
 
-# ── Copy backend/dist ─────────────────────────────────────────────────────
-$srcBackend = Join-Path $extractPath 'backend\dist'
-if (-not (Test-Path $srcBackend)) {
-  # Some patch ZIPs may use forward slashes → try alternate structure
-  $srcBackend = Join-Path $extractPath 'backend/dist'
-}
+# ── Copy backend/dist ────────────────────────────────────────────────────
+$srcBackendDist = @(
+  (Join-Path $extractPath 'backend\dist'),
+  (Join-Path $extractPath 'backend/dist')
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-if (Test-Path $srcBackend) {
-  $destBackend = Join-Path $paths.AppBackendDir 'dist'
-  Write-UpdateLog "Copying backend/dist -> $destBackend"
-  robocopy $srcBackend $destBackend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+if ($srcBackendDist) {
+  $destBackendDist = Join-Path $paths.AppBackendDir 'dist'
+  Write-UpdateLog "Copying backend/dist -> $destBackendDist"
+  robocopy $srcBackendDist $destBackendDist /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
   Write-UpdateLog "backend/dist copied."
 } else {
   Write-UpdateLog "WARNING: backend/dist not found in patch ZIP — skipping."
 }
 
-# ── Copy frontend/dist ────────────────────────────────────────────────────
-$srcFrontend = Join-Path $extractPath 'frontend\dist'
-if (-not (Test-Path $srcFrontend)) {
-  $srcFrontend = Join-Path $extractPath 'frontend/dist'
+# ── Copy backend/package.json (carries the new version number) ────────────
+$srcPkg = @(
+  (Join-Path $extractPath 'backend\package.json'),
+  (Join-Path $extractPath 'backend/package.json')
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if ($srcPkg) {
+  $destPkg = Join-Path $paths.AppBackendDir 'package.json'
+  Copy-Item -Path $srcPkg -Destination $destPkg -Force
+  Write-UpdateLog "backend/package.json updated."
 }
 
-if (Test-Path $srcFrontend) {
+# ── Copy frontend/dist ───────────────────────────────────────────────────
+$srcFrontend = @(
+  (Join-Path $extractPath 'frontend\dist'),
+  (Join-Path $extractPath 'frontend/dist')
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if ($srcFrontend) {
   $destFrontend = $paths.AppFrontendDir
   Write-UpdateLog "Copying frontend/dist -> $destFrontend"
   robocopy $srcFrontend $destFrontend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
@@ -118,6 +129,11 @@ if (Test-Path $srcFrontend) {
 } else {
   Write-UpdateLog "WARNING: frontend/dist not found in patch ZIP — skipping."
 }
+
+# ── Write version marker ─────────────────────────────────────────────────
+$versionFile = Join-Path $paths.RuntimeRunDir '.app_version'
+Set-Content -Path $versionFile -Value $version -Encoding ascii
+Write-UpdateLog "Written .app_version = $version"
 
 # ── Cleanup ───────────────────────────────────────────────────────────────
 Write-UpdateLog "Cleaning up staging files."
