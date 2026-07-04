@@ -315,6 +315,9 @@ export class PurchasesWriteService {
 
   async updatePurchase(purchaseId: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    const editReason = String(payload.editReason || '').trim();
+    if (editReason.length < 5) throw new AppError('سبب التعديل مطلوب بشكل واضح.', 'PURCHASE_EDIT_REASON_REQUIRED', 400);
+
     const updated = await this.tx.runInTransaction(this.db, async (trx) => {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
@@ -496,7 +499,7 @@ export class PurchasesWriteService {
       };
     });
 
-    await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}`, auth);
+    await this.audit.log('تعديل فاتورة شراء', `تم تعديل فاتورة شراء #${purchaseId} بواسطة ${auth.username}. السبب: ${editReason}`, auth);
     return this.buildPurchaseMutationResponse(purchaseId, auth, { repricingInsights: updated.repricingInsights });
   }
 

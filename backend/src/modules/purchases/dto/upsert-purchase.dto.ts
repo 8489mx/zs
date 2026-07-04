@@ -97,6 +97,14 @@ export class UpsertPurchaseDto {
   companyName?: string;
 
   @IsOptional()
+  @IsString()
+  managerPin?: string;
+
+  @IsOptional()
+  @IsString()
+  editReason?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   contactId?: number;
