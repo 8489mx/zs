@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { FormSection } from '@/shared/components/form-section';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 import { productsApi } from '@/features/products';
+import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
 import { MANUFACTURING_UNITS, calculateConvertedCost, findUnit } from '@/features/manufacturing/utils/units';
 import { bomsApi } from '@/features/manufacturing/api/boms.api';
@@ -42,14 +43,7 @@ export default function NewBomPage() {
     componentsApi.list().then(res => setComponents(res));
   }, []);
 
-  const searchProductFilter = (option: Product, query: string) => {
-    if (option.itemType === 'raw_material') return false;
-    return option.name.toLowerCase().includes(query.toLowerCase());
-  };
 
-  const searchComponentFilter = (option: ManufacturingComponent, query: string) => {
-    return option.name.toLowerCase().includes(query.toLowerCase());
-  };
 
   const handleSave = async () => {
     if (!selectedProduct) return alert('الرجاء اختيار المنتج التام');
@@ -193,12 +187,16 @@ export default function NewBomPage() {
         <FormSection title="المنتج التام (الناتج)">
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', alignItems: 'end' }}>
               <Field label="اختر المنتج">
-                <SearchableCombobox<Product>
+                <AsyncSearchableCombobox<Product>
                   value={productQuery}
                   onChange={setProductQuery}
-                  options={filteredProducts}
+                  defaultOptions={filteredProducts}
+                    fetchOptions={async (q) => {
+                      const res = await inventoryApi.searchProducts(q);
+                      return res.filter(p => p.itemType !== 'raw_material');
+                    }}
                   getLabel={(p) => p.name}
-                  search={searchProductFilter}
+                  
                   onSelect={(p) => {
                     setSelectedProduct(p);
                     setProductQuery(p.name);
@@ -248,13 +246,17 @@ export default function NewBomPage() {
                   {lines.map((line) => (
                     <tr key={line.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '8px' }}>
-                        <SearchableCombobox<ManufacturingComponent>
+                        <AsyncSearchableCombobox<ManufacturingComponent>
                           value={line.query}
                           onChange={(q) => updateLine(line.id, 'query', q)}
-                          options={components}
+                          defaultOptions={components}
+                              fetchOptions={async (q) => {
+                                const res = await componentsApi.searchComponents(q);
+                                return res;
+                              }}
                           getLabel={(c) => c.name}
                           createLabel={(q) => `إضافة "${q}"`}
-                          search={searchComponentFilter}
+                          
                           onSelect={(comp) => selectComponent(line.id, comp)}
                           placeholder="ابحث عن مكون..."
                           className="purchase-prototype-inline-combobox"

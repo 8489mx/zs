@@ -5,7 +5,7 @@ const inventoryPage = createLazyRoute(() => import('@/features/inventory/pages/I
 const newIssueOrderPage = createLazyRoute(() => import('@/features/inventory/pages/NewIssueOrderPage').then((module) => ({ default: module.NewIssueOrderPage })));
 const warehousesGridPage = createLazyRoute(() => import('@/features/inventory/pages/WarehousesGridPage').then((module) => ({ default: module.WarehousesGridPage })));
 const warehouseDetailsPage = createLazyRoute(() => import('@/features/inventory/pages/WarehouseDetailsPage').then((module) => ({ default: module.WarehouseDetailsPage })));
-
+const inventoryTreePage = createLazyRoute(() => import('@/features/inventory/pages/InventoryTreePage').then((module) => ({ default: module.InventoryTreePage })));
 const locationsManagementPage = createLazyRoute(() => import('@/features/inventory/pages/LocationsManagementPage').then((module) => ({ default: module.LocationsManagementPage })));
 
 export const inventoryRouteModule: FeatureRouteModule = {
@@ -15,10 +15,11 @@ export const inventoryRouteModule: FeatureRouteModule = {
     { path: 'inventory/warehouses-management', element: locationsManagementPage },
     { path: 'inventory/warehouses/:id', element: warehouseDetailsPage },
     { path: 'inventory/issue-order/new', element: newIssueOrderPage },
+    { path: 'inventory/tree', element: inventoryTreePage },
     { path: 'inventory/:section', element: inventoryPage }
   ],
   navigation: [
-    { key: 'inventory', label: 'المخزون', to: '/inventory', end: true },
+    { key: 'inventory', label: 'المخزون والأصناف', to: '/inventory', end: true },
     { key: 'inventory-warehouses', label: 'المخازن', to: '/inventory/warehouses' },
     { key: 'inventory-warehouses-management', label: 'إدارة المخازن', to: '/inventory/warehouses-management' },
     { key: 'inventory-issue-order-new', label: 'إذن صرف جديد', to: '/inventory/issue-order/new' },

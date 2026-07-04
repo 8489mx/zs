@@ -7,6 +7,8 @@ import { Location } from '@/types/domain';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { useCreateLocationMutation, useUpdateLocationMutation, useDeleteLocationMutation } from '@/features/settings/hooks/useSettingsMutations';
 import { Field } from '@/shared/ui/field';
+import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 export function LocationsManagementPage() {
   const { locationsQuery, branchesQuery } = useInventoryActionCatalog();
@@ -62,15 +64,15 @@ export function LocationsManagementPage() {
     { key: 'branchName', header: 'الفرع', cell: (row) => (row as any).branchName || row.branchId || 'الرئيسي' },
     {
       key: 'actions',
-      header: 'إجراءات',
+      header: '',
       cell: (row) => (
-        <div className="actions" style={{ flexWrap: 'nowrap' }}>
-          <button className="btn-icon" onClick={() => handleEdit(row)} title="تعديل">
+        <div className="actions" style={{ flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
+          <Button variant="secondary" onClick={() => handleEdit(row)} title="تعديل" style={{ padding: '4px 8px', height: '32px' }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-          </button>
-          <button className="btn-icon text-danger" onClick={() => handleDelete(row)} title="حذف">
+          </Button>
+          <Button variant="secondary" onClick={() => handleDelete(row)} title="حذف" style={{ padding: '4px 8px', height: '32px', color: 'var(--text-danger)' }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -81,13 +83,13 @@ export function LocationsManagementPage() {
       <PageHeader
         title="إدارة المخازن"
         description="إضافة، تعديل، وحذف المخازن في النظام"
+        actions={(
+          <Button variant="primary" onClick={handleCreate}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 8 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            إضافة مخزن
+          </Button>
+        )}
       />
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn btn-primary" onClick={handleCreate}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 8 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          إضافة مخزن
-        </button>
-      </div>
 
       <FormSection title="قائمة المخازن">
         <DataTable
@@ -99,38 +101,40 @@ export function LocationsManagementPage() {
       </FormSection>
 
       {modalOpen && (
-        <div className="modal-backdrop" onClick={() => setModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <h2>{editingLocation ? 'تعديل المخزن' : 'إضافة مخزن جديد'}</h2>
-              <button className="btn-icon" onClick={() => setModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <form onSubmit={onSave} className="form-grid">
-                <Field label="اسم المخزن">
-                  <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} />
-                </Field>
-                <Field label="كود المخزن">
-                  <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} />
-                </Field>
-                <Field label="الفرع">
-                  <select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending}>
-                    <option value="">بدون ربط (فرع رئيسي)</option>
-                    {(branchesQuery.data || []).map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </Field>
-                <div className="actions" style={{ gridColumn: '1 / -1', marginTop: '16px' }}>
-                  <button type="submit" className="btn btn-primary" disabled={createMutation.isPending || updateMutation.isPending}>
-                    {editingLocation ? 'حفظ التعديلات' : 'إضافة المخزن'}
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>إلغاء</button>
-                </div>
-              </form>
-            </div>
+        <DialogShell 
+          open={true} 
+          onClose={() => setModalOpen(false)}
+          width="500px"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{editingLocation ? 'تعديل المخزن' : 'إضافة مخزن جديد'}</h3>
+            <button className="icon-btn" onClick={() => setModalOpen(false)} aria-label="إغلاق">✕</button>
           </div>
-        </div>
+          <div style={{ padding: '24px' }}>
+            <form onSubmit={onSave} className="form-grid single-col" id="location-form">
+              <Field label="اسم المخزن">
+                <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="مثال: المخزن الرئيسي" />
+              </Field>
+              <Field label="كود المخزن">
+                <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="اختياري" />
+              </Field>
+              <Field label="الفرع">
+                <select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending}>
+                  <option value="">بدون ربط (فرع رئيسي)</option>
+                  {(branchesQuery.data || []).map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </Field>
+            </form>
+          </div>
+          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px', backgroundColor: 'var(--bg-muted)' }}>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
+            <Button variant="primary" type="submit" form="location-form" disabled={createMutation.isPending || updateMutation.isPending}>
+              {editingLocation ? 'حفظ التعديلات' : 'إضافة المخزن'}
+            </Button>
+          </div>
+        </DialogShell>
       )}
     </main>
   );

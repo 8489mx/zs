@@ -1,6 +1,6 @@
 import { http } from '@/lib/http';
 import { unwrapArray, unwrapByKey, type PaginationMeta } from '@/lib/api/contracts';
-import type { DamagedStockRecord, InventoryReport, Product, StockCountSession, StockMovementRecord, StockTransfer } from '@/types/domain';
+import type { DamagedStockRecord, InventoryReport, Product, StockCountSession, StockMovementRecord, StockTransfer, Location } from '@/types/domain';
 import { buildQueryString } from '@/lib/query-string';
 
 export interface StockMovementsPageQueryParams {
@@ -64,11 +64,14 @@ interface DamagedStockPageResponse {
 
 export const inventoryApi = {
   products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products?pageSize=5000'), 'products'),
+  searchProducts: async (query: string) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(`/api/products?q=${encodeURIComponent(query)}&pageSize=50`), 'products'),
+  locations: async () => unwrapArray<Location>(await http<Location[] | { locations: Location[] }>('/api/locations?includeInactive=true'), 'locations'),
   report: async () => unwrapByKey<InventoryReport>(await http<InventoryReport | { inventory: InventoryReport }>('/api/reports/inventory'), 'inventory', {} as InventoryReport),
   locationStocks: async () => unwrapArray<{ productId: string; locationId: string; qty: number }>(await http<{ stocks: { productId: string; locationId: string; qty: number }[] }>('/api/location-stocks'), 'stocks'),
   locationCategories: async (locationId: number) => unwrapArray<{ id: string; name: string }>(await http<{ categories: { id: string; name: string }[] }>(`/api/locations/${locationId}/categories`), 'categories'),
   locationCategoryProducts: async (locationId: number, categoryId: string | number) => unwrapArray<{ id: string; name: string; barcode: string; stockQty: number; globalStockQty?: number }>(await http<{ products: { id: string; name: string; barcode: string; stockQty: number; globalStockQty?: number }[] }>(`/api/locations/${locationId}/categories/${categoryId}/products`), 'products'),
   assignProductsToLocation: async (locationId: number, productIds: number[]) => await http<{ success: boolean }>(`/api/locations/${locationId}/assign-products`, { method: 'POST', body: JSON.stringify({ productIds }) }),
+  removeProductFromLocation: async (locationId: number, productId: number) => await http<{ success: boolean }>(`/api/locations/${locationId}/products/${productId}`, { method: 'DELETE' }),
   createAdjustment: (payload: unknown) => http('/api/inventory-adjustments', { method: 'POST', body: JSON.stringify(payload) }),
   createDamaged: (payload: unknown) => http('/api/damaged-stock', { method: 'POST', body: JSON.stringify(payload) }),
   stockTransfers: async () => unwrapArray<StockTransfer>(await http<StockTransfer[] | { stockTransfers: StockTransfer[] }>('/api/stock-transfers'), 'stockTransfers'),

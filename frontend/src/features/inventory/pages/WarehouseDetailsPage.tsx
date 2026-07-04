@@ -70,34 +70,99 @@ export function WarehouseDetailsPage() {
               <div 
                 className="surface-card hoverable-card"
                 style={{ 
-                  padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', 
-                  alignItems: 'center', justifyContent: 'center', gap: '12px',
-                  border: '1px solid var(--border-color)', borderRadius: '8px',
-                  transition: 'all 0.2s ease', backgroundColor: 'var(--surface-color)'
+                  padding: '24px', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '16px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  backgroundColor: 'var(--surface-color)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}
                 onClick={() => setSelectedCategoryId('all')}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                onMouseEnter={(e) => { 
+                  e.currentTarget.style.borderColor = 'var(--primary-color)'; 
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.08)';
+                }}
+                onMouseLeave={(e) => { 
+                  e.currentTarget.style.borderColor = 'var(--border-color)'; 
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8, color: 'var(--primary-color)' }}><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>كل الأقسام</h3>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '16px',
+                  backgroundColor: 'var(--blue-50)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '4px'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--blue-600)' }}><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>كل الأقسام</h3>
+                </div>
               </div>
               {visibleCategories.map((cat: any) => (
                 <div 
                   key={cat.id} 
                   className="surface-card hoverable-card"
                   style={{ 
-                    padding: '24px', cursor: 'pointer', display: 'flex', flexDirection: 'column', 
-                    alignItems: 'center', justifyContent: 'center', gap: '12px',
-                    border: '1px solid var(--border-color)', borderRadius: '8px',
-                    transition: 'all 0.2s ease', backgroundColor: 'var(--surface-color)'
+                    padding: '24px', 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '16px',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '12px',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    backgroundColor: 'var(--surface-color)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    position: 'relative',
+                    overflow: 'hidden'
                   }}
                   onClick={() => setSelectedCategoryId(cat.id)}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                  onMouseEnter={(e) => { 
+                    e.currentTarget.style.borderColor = 'var(--primary-color)'; 
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.08)';
+                  }}
+                  onMouseLeave={(e) => { 
+                    e.currentTarget.style.borderColor = 'var(--border-color)'; 
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                  }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8, color: 'var(--primary-color)' }}><path d="M12 22v-9"/><path d="M15.17 2.38a2 2 0 0 0-1.66 0L4 6.78a2 2 0 0 0-1.12 1.84v6.76a2 2 0 0 0 1.12 1.84l9.5 4.38a2 2 0 0 0 1.66 0l9.5-4.38a2 2 0 0 0 1.12-1.84V8.62a2 2 0 0 0-1.12-1.84z"/><path d="m20 15-4-2.25M4 15l4-2.25M12 13l4-2.25M12 13l-4-2.25"/></svg>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>{cat.name}</h3>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '16px',
+                    backgroundColor: 'var(--blue-50)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '4px'
+                  }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--blue-600)' }}><path d="M12 22v-9"/><path d="M15.17 2.38a2 2 0 0 0-1.66 0L4 6.78a2 2 0 0 0-1.12 1.84v6.76a2 2 0 0 0 1.12 1.84l9.5 4.38a2 2 0 0 0 1.66 0l9.5-4.38a2 2 0 0 0 1.12-1.84V8.62a2 2 0 0 0-1.12-1.84z"/><path d="m20 15-4-2.25M4 15l4-2.25M12 13l4-2.25M12 13l-4-2.25"/></svg>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{cat.name}</h3>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      {showZeroStock ? cat.assignedProductCount : cat.positiveStockProductCount} أصناف
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

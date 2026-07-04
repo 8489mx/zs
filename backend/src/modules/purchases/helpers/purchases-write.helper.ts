@@ -20,6 +20,8 @@ export type NormalizedPurchaseItem = {
   unitName: string;
   unitMultiplier: number;
   total: number;
+  categoryId?: number | null;
+  locationId?: number | null;
 };
 
 export type DiscountAllocatedPurchaseItem = NormalizedPurchaseItem & {
@@ -65,6 +67,8 @@ export function buildNormalizedPurchaseItem(
     unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
     unitMultiplier,
     total: roundCurrency(qty * cost),
+    categoryId: item.categoryId ? Number(item.categoryId) : null,
+    locationId: item.locationId ? Number(item.locationId) : null,
   };
 }
 

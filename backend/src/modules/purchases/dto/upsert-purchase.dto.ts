@@ -30,6 +30,14 @@ class PurchaseItemDto {
   @IsNumber()
   @Min(0.000001)
   unitMultiplier?: number;
+
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  locationId?: string;
 }
 
 export class UpsertPurchaseDto {

@@ -236,6 +236,8 @@ export class PurchasesWriteService {
           line_total: item.effectiveLineTotal,
           unit_name: item.unitName,
           unit_multiplier: item.unitMultiplier,
+          category_id: item.categoryId ?? null,
+          location_id: item.locationId ?? null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any).execute();
@@ -411,6 +413,8 @@ export class PurchasesWriteService {
           line_total: normalizedItem.effectiveLineTotal,
           unit_name: normalizedItem.unitName,
           unit_multiplier: normalizedItem.unitMultiplier,
+          category_id: normalizedItem.categoryId ?? null,
+          location_id: normalizedItem.locationId ?? null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any).execute();

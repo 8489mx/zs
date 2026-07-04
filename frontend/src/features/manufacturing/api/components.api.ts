@@ -35,6 +35,16 @@ export const componentsApi = {
       return [];
     }
   },
+  searchComponents: async (query: string): Promise<ManufacturingComponent[]> => {
+    try {
+      const response = await sharedProductsApi.listPage({ q: query, pageSize: 50 });
+      const rawMaterials = response.products.filter(p => p.itemType === 'raw_material');
+      return rawMaterials.map(mapProductToComponent);
+    } catch (e) {
+      console.error('Error searching raw materials', e);
+      return [];
+    }
+  },
   
   create: async (data: Omit<ManufacturingComponent, 'id'>): Promise<ManufacturingComponent> => {
     try {

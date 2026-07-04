@@ -59,7 +59,6 @@ export class SettingsController {
 
   @Get('settings/locations')
   listLocations(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    this.assertSettingsPermission(req);
     return this.settingsService.listLocations(req.authContext!);
   }
 

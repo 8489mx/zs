@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { useAuthStore } from '@/stores/auth-store';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
@@ -58,6 +59,29 @@ export function NewIssueOrderPage() {
       code: p.barcode || '',
       searchTerms: [p.name, p.barcode || ''].filter(Boolean).join(' ').toLowerCase()
     }));
+
+  const fetchProductOptions = async (query: string) => {
+    try {
+      const results = await inventoryApi.searchProducts(query);
+      return results
+        .filter(p => {
+          if (fromLocationId === 'all') {
+            return stocks.some(s => String(s.productId) === String(p.id) && s.qty > 0);
+          }
+          const productStock = stocks.find(s => String(s.productId) === String(p.id) && String(s.locationId) === String(fromLocationId));
+          return productStock && productStock.qty > 0;
+        })
+        .map(p => ({
+          id: String(p.id),
+          name: p.name,
+          code: p.barcode || '',
+          searchTerms: [p.name, p.barcode].filter(Boolean).join(' ').toLowerCase()
+        }));
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  };
 
   const locationOptions = [
     { id: 'all', name: 'كل المخازن', searchTerms: 'كل المخازن all' },
@@ -473,15 +497,15 @@ export function NewIssueOrderPage() {
                     return (
                       <tr key={line.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '8px 16px' }}>
-                          <SearchableCombobox
-                            options={productOptions}
+                          <AsyncSearchableCombobox
+                            defaultOptions={productOptions}
                             value={line.productName || ''}
                             onChange={(v) => updateLine(line.id, 'productName', v)}
                             onSelect={(p) => updateLine(line.id, 'productId', p.id)}
                             getLabel={(p) => p.name}
-                            search={(p, q) => p.searchTerms.includes(q.toLowerCase())}
+                            fetchOptions={fetchProductOptions}
                             createLabel={(q) => `إضافة "${q}"`}
-                            placeholder="ابحث عن صنف..."
+                            placeholder="بحث عن صنف..."
                             inline={true}
                             inputClassName="purchase-prototype-field-input"
                           />

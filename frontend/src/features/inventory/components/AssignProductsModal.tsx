@@ -28,7 +28,12 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
 
   const locationsQuery = useQuery({
     queryKey: ['locations'],
-    queryFn: () => catalogApi.locations(),
+    queryFn: () => inventoryApi.locations(),
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: ['catalogCategories'],
+    queryFn: () => catalogApi.categories(),
   });
 
   const stocksQuery = useQuery({
@@ -125,9 +130,10 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
     );
   }, [availableProducts, searchQuery]);
 
-  const isLoading = catalogQuery.isLoading || locationProductsQuery.isLoading || locationsQuery.isLoading || stocksQuery.isLoading;
+  const isLoading = catalogQuery.isLoading || locationProductsQuery.isLoading || locationsQuery.isLoading || stocksQuery.isLoading || categoriesQuery.isLoading;
   const locationsData = locationsQuery.data || [];
   const stocksData = stocksQuery.data || [];
+  const categoriesData = categoriesQuery.data || [];
 
   const modalContent = (
     <div style={{
@@ -138,7 +144,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
       <div 
         style={{
           background: '#fff', borderRadius: '12px', padding: '24px',
-          width: '90%', maxWidth: '800px', maxHeight: '90vh',
+          width: '90%', maxWidth: '900px', height: '90vh', // Fixed height to prevent jerks
           display: 'flex', flexDirection: 'column', gap: '16px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           overflow: 'hidden'
@@ -166,22 +172,27 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
               <button type="button" className="secondary-button" onClick={handleSelectAllFiltered}>تحديد الكل (في البحث)</button>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
               {filteredProducts.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا توجد أصناف غير مربوطة تطابق بحثك</div>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', tableLayout: 'fixed' }}>
                   <thead style={{ backgroundColor: 'var(--surface-color)', position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
                       <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '40px' }}></th>
-                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>اسم الصنف</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>إجمالي الرصيد بالنظام</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '35%' }}>اسم الصنف</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '30%' }}>القسم</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '35%' }}>إجمالي الرصيد بالنظام</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredProducts.map(p => {
                       const isSelected = selectedProductIds.has(Number(p.id));
-                      const productStocks = stocksData.filter(s => String(s.productId) === String(p.id) && Number(s.qty) > 0);
+                      const productStocks = stocksData.filter(s => {
+                        if (String(s.productId) !== String(p.id) || Number(s.qty) <= 0) return false;
+                        const loc = locationsData.find(l => String(l.id) === String(s.locationId));
+                        return loc && !loc.name.includes('(محذوف)');
+                      });
                       const totalStock = productStocks.reduce((sum, s) => sum + Number(s.qty), 0);
                       
                       return (
@@ -202,13 +213,16 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                               {p.name}
                               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{p.barcode || '-'}</div>
                             </td>
+                            <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
+                              {categoriesData.find((c: any) => String(c.id) === String(p.categoryId))?.name || '-'}
+                            </td>
                             <td style={{ padding: '12px 16px', color: totalStock > 0 ? 'var(--success-color)' : 'var(--text-secondary)', fontWeight: totalStock > 0 ? 600 : 400 }}>
                               {totalStock} قطعة
                             </td>
                           </tr>
                           {isSelected && productStocks.length > 0 && (
                             <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--primary-light)' }}>
-                              <td colSpan={3} style={{ padding: '0 16px 16px 48px' }}>
+                              <td colSpan={4} style={{ padding: '0 16px 16px 48px' }}>
                                 <div style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid var(--border-color)' }}>
                                   <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>خيارات النقل الداخلي المباشر (اختياري)</div>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -228,28 +242,31 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                                       })}
                                     </select>
                                     
-                                    {transferSelections[Number(p.id)]?.fromLocationId ? (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <input 
-                                          type="number" 
-                                          min={0}
-                                          max={productStocks.find(s => String(s.locationId) === String(transferSelections[Number(p.id)]?.fromLocationId))?.qty || 0}
-                                          placeholder="الكمية"
-                                          value={transferSelections[Number(p.id)]?.qty || ''}
-                                          onChange={(e) => updateTransfer(Number(p.id), transferSelections[Number(p.id)].fromLocationId, Number(e.target.value))}
-                                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', width: '120px' }}
-                                        />
-                                        <button 
-                                          type="button" 
-                                          className="secondary-button"
-                                          style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                                          onClick={() => {
-                                            const maxQty = productStocks.find(s => String(s.locationId) === String(transferSelections[Number(p.id)]?.fromLocationId))?.qty || 0;
-                                            updateTransfer(Number(p.id), transferSelections[Number(p.id)].fromLocationId, Number(maxQty));
-                                          }}
-                                        >نقل الكل</button>
-                                      </div>
-                                    ) : null}
+                                    <div style={{ 
+                                      display: 'flex', alignItems: 'center', gap: '8px',
+                                      opacity: transferSelections[Number(p.id)]?.fromLocationId ? 1 : 0,
+                                      pointerEvents: transferSelections[Number(p.id)]?.fromLocationId ? 'auto' : 'none',
+                                      transition: 'opacity 0.2s'
+                                    }}>
+                                      <input 
+                                        type="number" 
+                                        min={0}
+                                        max={productStocks.find(s => String(s.locationId) === String(transferSelections[Number(p.id)]?.fromLocationId))?.qty || 0}
+                                        placeholder="الكمية"
+                                        value={transferSelections[Number(p.id)]?.qty || ''}
+                                        onChange={(e) => updateTransfer(Number(p.id), transferSelections[Number(p.id)].fromLocationId, Number(e.target.value))}
+                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', width: '120px' }}
+                                      />
+                                      <button 
+                                        type="button" 
+                                        className="secondary-button"
+                                        style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                                        onClick={() => {
+                                          const maxQty = productStocks.find(s => String(s.locationId) === String(transferSelections[Number(p.id)]?.fromLocationId))?.qty || 0;
+                                          updateTransfer(Number(p.id), transferSelections[Number(p.id)].fromLocationId, Number(maxQty));
+                                        }}
+                                      >نقل الكل</button>
+                                    </div>
                                   </div>
                                 </div>
                               </td>

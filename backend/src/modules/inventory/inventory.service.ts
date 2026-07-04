@@ -18,8 +18,8 @@ export class InventoryService {
     private readonly adjustmentService: InventoryAdjustmentService,
   ) {}
 
-  listLocations(auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.scopeService.listLocations(auth);
+  listLocations(auth: AuthContext, includeInactive?: boolean): Promise<Record<string, unknown>> {
+    return this.scopeService.listLocations(auth, includeInactive);
   }
 
   getLocationCategories(locationId: number, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -32,6 +32,10 @@ export class InventoryService {
 
   assignProductsToLocation(locationId: number, productIds: number[], auth: AuthContext): Promise<{ success: boolean }> {
     return this.scopeService.assignProductsToLocation(locationId, productIds, auth);
+  }
+
+  removeProductFromLocation(locationId: number, productId: number, auth: AuthContext): Promise<{ success: boolean }> {
+    return this.scopeService.removeProductFromLocation(locationId, productId, auth);
   }
 
   getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {

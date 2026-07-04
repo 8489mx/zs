@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -15,8 +15,8 @@ export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Get('locations')
-  listLocations(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.inventoryService.listLocations(req.authContext!);
+  listLocations(@Req() req: RequestWithAuth, @Query('includeInactive') includeInactive?: string): Promise<Record<string, unknown>> {
+    return this.inventoryService.listLocations(req.authContext!, includeInactive === 'true');
   }
 
   @Get('location-stocks')
@@ -51,6 +51,15 @@ export class InventoryController {
     @Req() req: RequestWithAuth
   ): Promise<{ success: boolean }> {
     return this.inventoryService.assignProductsToLocation(id, body.productIds || [], req.authContext!);
+  }
+
+  @Delete('locations/:id/products/:productId')
+  removeProductFromLocation(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('productId', ParseIntPipe) productId: number,
+    @Req() req: RequestWithAuth
+  ): Promise<{ success: boolean }> {
+    return this.inventoryService.removeProductFromLocation(id, productId, req.authContext!);
   }
 
   @Get('stock-transfers')

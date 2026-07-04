@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 
 import { useTranslation } from '../utils/i18n-purchase-prototype';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
@@ -24,6 +25,9 @@ type PrototypeLine = {
   qty: number;
   unitPrice: number;
   warehouse: string;
+  warehouseId?: string;
+  category?: string;
+  categoryId?: string;
   isService?: boolean;
 };
 
@@ -66,7 +70,16 @@ type ProductOption = {
   barcode?: string;
   price: number;
   warehouse: string;
+  warehouseId?: string;
+  category?: string;
+  categoryId?: string;
   type: 'stock' | 'service';
+}
+
+type CategoryOption = {
+  id: string;
+  name: string;
+  code?: string;
 };
 
 type WarehouseOption = {
@@ -93,6 +106,7 @@ type QuickCreateState =
   | { kind: 'contact'; query: string }
   | { kind: 'address'; query: string }
   | { kind: 'warehouse'; query: string; lineId: number | null }
+  | { kind: 'category'; query: string; lineId: number | null }
   | { kind: 'costCenter'; query: string }
   | { kind: 'project'; query: string }
   | null;
@@ -176,7 +190,7 @@ type PurchasePrototypeDraft = {
   status: DocumentStatus;
 };
 
-type ValidationRowErrors = Partial<Record<'product' | 'qty' | 'price' | 'warehouse', string>>;
+type ValidationRowErrors = Partial<Record<'product' | 'qty' | 'price' | 'warehouse' | 'category', string>>;
 
 type ValidationErrors = {
   supplier?: string;
@@ -196,6 +210,7 @@ type QuickCreateResult =
   | { kind: 'contact'; name: string; phone?: string }
   | { kind: 'address'; label: string; city?: string; supplier?: string }
   | { kind: 'warehouse'; name: string; code?: string }
+  | { kind: 'category'; name: string; code?: string }
   | { kind: 'costCenter'; name: string; code?: string }
   | { kind: 'project'; name: string; code?: string };
 
@@ -315,6 +330,7 @@ function QuickCreateDialog({
     contact: t('new_contact'),
     address: t('new_address'),
     warehouse: t('new_warehouse'),
+    category: 'قسم جديد',
     costCenter: t('new_cost_center'),
     project: t('new_project')
   };
@@ -355,6 +371,11 @@ function QuickCreateDialog({
 
     if (state.kind === 'warehouse') {
       onSubmit({ kind: 'warehouse', name: trimmedName, code: code.trim() });
+      return;
+    }
+
+    if (state.kind === 'category') {
+      onSubmit({ kind: 'category', name: trimmedName, code: code.trim() });
       return;
     }
 
@@ -430,7 +451,7 @@ function QuickCreateDialog({
               <Field label={t("supplier_company")}><input className="purchase-prototype-create-input" value={supplier} onChange={(event) => setSupplier(event.target.value)} /></Field>
             </>
           ) : null}
-          {(state.kind === 'warehouse' || state.kind === 'costCenter' || state.kind === 'project') ? (
+          {(state.kind === 'warehouse' || state.kind === 'category' || state.kind === 'costCenter' || state.kind === 'project') ? (
             <Field label={t("code")}><input className="purchase-prototype-create-input" value={code} onChange={(event) => setCode(event.target.value)} /></Field>
           ) : null}
         </div>
@@ -554,14 +575,6 @@ const searchAddress = (address: AddressOption, query: string) => {
   return [address.label, address.city, address.supplierName ?? ''].some((value) => includesNormalized(value, query));
 };
 
-const searchProduct = (product: ProductOption, query: string) => {
-  if (!normalizeSearchText(query)) {
-    return true;
-  }
-
-  return [product.name, product.englishName ?? '', product.code, product.sku ?? '', product.barcode ?? ''].some((value) => includesNormalized(value, query));
-};
-
 const searchWarehouse = (warehouse: any, query: string) => {
   if (!normalizeSearchText(query)) {
     return true;
@@ -628,10 +641,12 @@ export function NewPurchaseOrderPage() {
   const rawProducts = catalog.productsQuery.data || [];
   const rawLocations = catalog.locationsQuery.data || [];
   const rawBranches = catalog.branchesQuery.data || [];
+  const rawCategories = catalog.categoriesQuery.data || [];
 
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
 
   useEffect(() => {
     if (rawSuppliers.length) {
@@ -649,18 +664,35 @@ export function NewPurchaseOrderPage() {
 
   useEffect(() => {
     if (rawProducts.length) {
-      setProducts(rawProducts.map((p: any) => ({
-        id: p.id.toString(),
-        name: p.name,
-        englishName: p.englishName || p.name,
-        code: p.styleCode || '',
-        barcode: p.barcode || '',
-        price: p.costPrice || 0,
-        warehouse: '',
-        type: p.itemKind === 'service' ? 'service' : 'stock'
+      setProducts(rawProducts.map((p: any) => {
+        const cat = rawCategories.find((c: any) => c.id.toString() === String(p.categoryId));
+        const loc = rawLocations.find((l: any) => l.id.toString() === String(p.defaultLocationId));
+        return {
+          id: String(p.id),
+          name: p.name,
+          englishName: p.englishName || p.name,
+          code: p.styleCode || '',
+          barcode: p.barcode || '',
+          price: p.costPrice || 0,
+          warehouse: loc ? loc.name : (p.defaultLocationName || ''),
+          warehouseId: p.defaultLocationId ? String(p.defaultLocationId) : undefined,
+          category: cat ? cat.name : '',
+          categoryId: p.categoryId ? String(p.categoryId) : undefined,
+          type: p.itemKind === 'service' ? 'service' : 'stock'
+        };
+      }));
+    }
+  }, [rawProducts, rawCategories, rawLocations]);
+
+  useEffect(() => {
+    if (rawCategories.length) {
+      setCategories(rawCategories.map((c: any) => ({
+        id: c.id.toString(),
+        name: c.name,
+        code: c.code || ''
       })));
     }
-  }, [rawProducts]);
+  }, [rawCategories]);
 
   useEffect(() => {
     if (rawLocations.length) {
@@ -672,15 +704,7 @@ export function NewPurchaseOrderPage() {
     }
   }, [rawLocations]);
 
-  useEffect(() => {
-    if (warehouses.length > 0) {
-      setLines((current) => {
-        const needsUpdate = current.some(line => line.warehouse === '' && !line.isService);
-        if (!needsUpdate) return current;
-        return current.map(line => line.warehouse === '' && !line.isService ? { ...line, warehouse: warehouses[0].name } : line);
-      });
-    }
-  }, [warehouses]);
+
 
   const deliveryDestinations = useMemo(() => {
     const destinations: WarehouseOption[] = [];
@@ -917,7 +941,7 @@ export function NewPurchaseOrderPage() {
   const addLine = () => {
     const newLineId = Date.now();
     markDocumentDirty();
-    setLines((current) => [...current, { id: newLineId, productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: warehouses[0]?.name || '' }]);
+    setLines((current) => [...current, { id: newLineId, productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: '' }]);
     setPendingFocusLineId(newLineId);
   };
 
@@ -941,7 +965,7 @@ export function NewPurchaseOrderPage() {
         itemName: 'Additional Service',
         qty: 1,
         unitPrice: 0,
-        warehouse: 'Does not affect stock',
+        warehouse: 'لا يؤثر على المخزون',
         isService: true
       }
     ]);
@@ -995,6 +1019,21 @@ export function NewPurchaseOrderPage() {
     markDocumentDirty();
     setLineError(lineId, 'warehouse', undefined);
     updateLine(lineId, 'warehouse', option.name);
+    updateLine(lineId, 'warehouseId', option.id);
+  };
+
+  const handleCategorySelect = (lineId: number, option: CategoryOption) => {
+    markDocumentDirty();
+    setLineError(lineId, 'category', undefined);
+    updateLine(lineId, 'category', option.name);
+    updateLine(lineId, 'categoryId', option.id);
+  };
+
+  const searchCategory = (category: any, query: string) => {
+    if (!normalizeSearchText(query)) {
+      return true;
+    }
+    return [category.name, category.code].some((value) => includesNormalized(value || '', query));
   };
 
   const handleCostCenterSelect = (option: CostCenterOption) => {
@@ -1005,6 +1044,41 @@ export function NewPurchaseOrderPage() {
   const handleProjectSelect = (option: ProjectOption) => {
     markDocumentDirty();
     setProject(option.name);
+  };
+
+  const fetchProductOptions = async (query: string) => {
+    try {
+      const results = await purchasesApi.searchProducts(query);
+      const newOptions = results.map((p: any) => {
+        const cat = rawCategories.find((c: any) => c.id.toString() === String(p.categoryId));
+        const loc = rawLocations.find((l: any) => l.id.toString() === String(p.defaultLocationId));
+        return {
+          id: p.id.toString(),
+          name: p.name,
+          englishName: p.englishName,
+          categoryId: p.categoryId?.toString(),
+          categoryName: cat?.name || '',
+          type: p.productType === 'service' ? 'service' : 'stock',
+          price: p.purchasePrice ?? 0,
+          warehouseId: p.defaultLocationId?.toString(),
+          warehouse: loc?.name || '',
+          sku: p.sku || '',
+          barcode: p.barcode || '',
+          code: p.sku || p.barcode || `PRD-${p.id}`
+        };
+      }) as ProductOption[];
+
+      setProducts(current => {
+        const map = new Map(current.map(c => [c.id, c]));
+        newOptions.forEach(n => map.set(n.id, n));
+        return Array.from(map.values());
+      });
+
+      return newOptions;
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
   };
 
   const handleProductSelect = (lineId: number, option: ProductOption) => {
@@ -1022,7 +1096,10 @@ export function NewPurchaseOrderPage() {
           itemName: option.name,
           qty: line.qty > 0 ? line.qty : 1,
           unitPrice: option.price,
-          warehouse: option.type === 'service' ? 'Does not affect stock' : '',
+          warehouse: option.type === 'service' ? '\u0644\u0627 \u064a\u0624\u062b\u0631 \u0639\u0644\u0649 \u0627\u0644\u0645\u062e\u0632\u0648\u0646' : (option.warehouse || ''),
+          warehouseId: option.type === 'service' ? undefined : option.warehouseId,
+          category: option.category || '',
+          categoryId: option.categoryId,
           isService: option.type === 'service'
         };
       })
@@ -1041,20 +1118,28 @@ export function NewPurchaseOrderPage() {
         itemName: option.name,
         qty: 1,
         unitPrice: option.price,
-        warehouse: option.type === 'service' ? 'Does not affect stock' : '',
+        warehouse: option.type === 'service' ? 'لا يؤثر على المخزون' : (option.warehouse || ''),
+        warehouseId: option.type === 'service' ? undefined : option.warehouseId,
+        category: option.category || '',
+        categoryId: option.categoryId,
         isService: option.type === 'service'
       }
     ]);
     setPendingFocusQtyLineId(newLineId);
   };
 
-  const incrementProductByBarcode = (barcode: string) => {
+  const incrementProductByBarcode = async (barcode: string) => {
     const normalized = String(barcode || '').trim();
     if (!normalized) {
       return;
     }
 
-    const matched = products.find((product) => product.barcode === normalized);
+    let matched = products.find((product) => product.barcode === normalized);
+    if (!matched) {
+      const fetched = await fetchProductOptions(normalized);
+      matched = fetched.find((product) => product.barcode === normalized);
+    }
+
     if (!matched) {
       setBarcodeScanQuery(normalized);
       setBarcodeScanOpen(true);
@@ -1062,8 +1147,12 @@ export function NewPurchaseOrderPage() {
     }
 
     markDocumentDirty();
+    // Use the functional form to ensure we have the latest matched reference if needed
+    // But since setLines takes a callback, we can just use the matched object.
+    const matchedProduct = matched;
+    
     setLines((current) => {
-      const existing = current.find((line) => line.productId === matched.id);
+      const existing = current.find((line) => line.productId === matchedProduct.id);
       if (existing) {
         return current.map((line) => (line.id === existing.id ? { ...line, qty: line.qty + 1 } : line));
       }
@@ -1071,15 +1160,19 @@ export function NewPurchaseOrderPage() {
         ...current,
         {
           id: Date.now(),
-          productId: matched.id,
-          itemName: matched.name,
+          productId: matchedProduct.id,
+          itemName: matchedProduct.name,
           qty: 1,
-          unitPrice: matched.price,
-          warehouse: matched.type === 'service' ? 'Does not affect stock' : '',
-          isService: matched.type === 'service'
+          unitPrice: matchedProduct.price,
+          warehouseId: matchedProduct.warehouseId,
+          warehouse: matchedProduct.warehouse,
+          categoryId: matchedProduct.categoryId,
+          category: matchedProduct.category,
+          isService: matchedProduct.type === 'service'
         }
       ];
     });
+    setBarcodeScanOpen(false);
   };
 
   const createSupplierMutation = useCreateSupplierMutation();
@@ -1221,17 +1314,7 @@ export function NewPurchaseOrderPage() {
   };
 
   const handleBarcodeScanSubmit = (barcode: string) => {
-    const normalized = String(barcode || '').trim();
-    if (!normalized) {
-      return;
-    }
-    const matched = products.find((product) => product.barcode === normalized);
-    if (!matched) {
-      setBarcodeScanQuery(normalized);
-      return;
-    }
-    incrementProductByBarcode(normalized);
-    setBarcodeScanOpen(false);
+    incrementProductByBarcode(barcode);
   };
 
   const closeQuickCreate = () => {
@@ -2007,9 +2090,10 @@ export function NewPurchaseOrderPage() {
               <thead>
                 <tr>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-product">{t("item_label")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse">المخزن</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-qty">{t('quantity')}</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-price">{t('price_title')}</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse">المخزن</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-category">القسم</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-amount">{t('total_amount')}</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-actions"></th>
                 </tr>
@@ -2023,12 +2107,12 @@ export function NewPurchaseOrderPage() {
                       key={line.id}
                       data-line-id={line.id}
                       className={[
-                        line.warehouse === 'Does not affect stock' ? 'document-line-service' : '',
+                        line.warehouse === 'لا يؤثر على المخزون' ? 'document-line-service' : '',
                         pendingFocusLineId === line.id ? 'document-line-highlight' : ''
                       ].filter(Boolean).join(' ')}
                     >
                       <td className="purchase-prototype-table-cell purchase-prototype-table-cell-product">
-                        <SearchableCombobox
+                        <AsyncSearchableCombobox
                           inline
                           inputId={`product-input-${line.id}`}
                           className="purchase-prototype-inline-combobox"
@@ -2040,8 +2124,7 @@ export function NewPurchaseOrderPage() {
                             setLineError(line.id, 'product', undefined);
                             updateLine(line.id, 'itemName', value);
                           }}
-                          options={products}
-                          search={searchProduct}
+                          fetchOptions={fetchProductOptions}
                           getLabel={(option) => option.name}
                           getMeta={(option) => {
                             const priceLabel = option.price > 0 ? `${Number.isInteger(option.price) ? option.price.toFixed(0) : option.price.toFixed(2)} EGP` : undefined;
@@ -2061,18 +2144,6 @@ export function NewPurchaseOrderPage() {
                           dropdownClassName={purchaseDropdownClassName}
                         />
                       </td>
-                      <td className="purchase-prototype-table-cell purchase-prototype-table-cell-qty"><input className="purchase-prototype-table-input" id={`quantity-input-${line.id}`} type="number" min="0" step="1" value={line.qty} aria-invalid={Boolean(rowErrors.qty)} onChange={(event) => {
-                        markDocumentDirty();
-                        setLineError(line.id, 'qty', undefined);
-                        const parsed = parseLocalizedNumber(event.target.value);
-                        updateLine(line.id, 'qty', Number.isFinite(parsed) ? parsed : 0);
-                      }} /></td>
-                      <td className="purchase-prototype-table-cell purchase-prototype-table-cell-price"><input className="purchase-prototype-table-input" type="number" min="0" step="0.01" value={line.unitPrice} aria-invalid={Boolean(rowErrors.price)} onChange={(event) => {
-                        markDocumentDirty();
-                        setLineError(line.id, 'price', undefined);
-                        const parsed = parseLocalizedNumber(event.target.value);
-                        updateLine(line.id, 'unitPrice', Number.isFinite(parsed) ? parsed : 0);
-                      }} /></td>
                       <td className="purchase-prototype-table-cell purchase-prototype-table-cell-warehouse">
                         {line.isService ? (
                           <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
@@ -2097,6 +2168,45 @@ export function NewPurchaseOrderPage() {
                             onCreate={(query) => openQuickCreate('warehouse', query, line.id)}
                             createLabel={(query) => `+ إنشاء مستودع جديد "${query}"`}
                             error={rowErrors.warehouse}
+                            dropdownClassName={purchaseDropdownClassName}
+                          />
+                        )}
+                      </td>
+                      <td className="purchase-prototype-table-cell purchase-prototype-table-cell-qty"><input className="purchase-prototype-table-input" id={`quantity-input-${line.id}`} type="number" min="0" step="1" value={line.qty} aria-invalid={Boolean(rowErrors.qty)} onChange={(event) => {
+                        markDocumentDirty();
+                        setLineError(line.id, 'qty', undefined);
+                        const parsed = parseLocalizedNumber(event.target.value);
+                        updateLine(line.id, 'qty', Number.isFinite(parsed) ? parsed : 0);
+                      }} /></td>
+                      <td className="purchase-prototype-table-cell purchase-prototype-table-cell-price"><input className="purchase-prototype-table-input" type="number" min="0" step="0.01" value={line.unitPrice} aria-invalid={Boolean(rowErrors.price)} onChange={(event) => {
+                        markDocumentDirty();
+                        setLineError(line.id, 'price', undefined);
+                        const parsed = parseLocalizedNumber(event.target.value);
+                        updateLine(line.id, 'unitPrice', Number.isFinite(parsed) ? parsed : 0);
+                      }} /></td>
+                      <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category">
+                        {line.isService ? (
+                          <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
+                        ) : (
+                          <SearchableCombobox
+                            inline
+                            className="purchase-prototype-inline-combobox"
+                            inputId={`category-input-${line.id}`}
+                            inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                            placeholder="ابحث عن قسم..."
+                            value={line.category || ''}
+                            onChange={(value) => {
+                              markDocumentDirty();
+                              setLineError(line.id, 'category' as any, undefined);
+                              updateLine(line.id, 'category', value);
+                            }}
+                            options={categories}
+                            search={searchCategory}
+                            getLabel={(option) => option.name}
+                            getMeta={(option) => option.code}
+                            onSelect={(option) => handleCategorySelect(line.id, option)}
+                            onCreate={(query) => openQuickCreate('category', query, line.id)}
+                            createLabel={(query) => `+ إنشاء قسم جديد "${query}"`}
                             dropdownClassName={purchaseDropdownClassName}
                           />
                         )}

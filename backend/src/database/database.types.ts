@@ -758,6 +758,8 @@ export interface PurchaseItemTable {
   line_total: number;
   unit_name: string;
   unit_multiplier: number;
+  category_id: number | null;
+  location_id: number | null;
 }
 
 export interface SupplierPaymentTable {

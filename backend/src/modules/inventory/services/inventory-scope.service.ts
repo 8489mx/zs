@@ -65,20 +65,23 @@ export class InventoryScopeService {
     });
   }
 
-  async listLocations(auth: AuthContext): Promise<Record<string, unknown>> {
+  async listLocations(auth: AuthContext, includeInactive?: boolean): Promise<Record<string, unknown>> {
     const tenantId = this.tenantId(auth);
     const scope = await this.branchScope(auth);
     let query = this.db
       .selectFrom('stock_locations as l')
       .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${tenantId}`))
-      .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name'])
-      .where('l.is_active', '=', true)
+      .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active'])
       .where(sql<boolean>`l.tenant_id = ${tenantId}`)
       .orderBy('l.id asc');
+      
+    if (!includeInactive) {
+      query = query.where('l.is_active', '=', true);
+    }
     // if (scope.length) query = query.where('l.branch_id', 'in', scope);
     const rows = await query.execute();
     return {
-      locations: rows.map((row) => ({ id: String(row.id), name: row.name || '', code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '' })),
+      locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '' })),
     };
   }
   async getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {
@@ -87,8 +90,10 @@ export class InventoryScopeService {
     let query = this.db
       .selectFrom('product_location_stock as s')
       .leftJoin('products as p', 'p.id', 's.product_id')
+      .innerJoin('stock_locations as l', 'l.id', 's.location_id')
       .select(['s.product_id', 's.location_id', 's.qty'])
       .where('p.is_active', '=', true)
+      .where('l.is_active', '=', true)
       .where(sql<boolean>`s.tenant_id = ${tenantId}`);
 
     if (scope.length) {
@@ -237,6 +242,31 @@ export class InventoryScopeService {
           } as any)))
           .execute();
       }
+    });
+
+    return { success: true };
+  }
+
+  async removeProductFromLocation(locationId: number, productId: number, auth: AuthContext): Promise<{ success: boolean }> {
+    const tenantId = this.tenantId(auth);
+    
+    await this.db.transaction().execute(async trx => {
+      // Find the stock
+      const stock = await trx.selectFrom('product_location_stock')
+        .select('qty')
+        .where('location_id', '=', locationId)
+        .where('product_id', '=', productId)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .executeTakeFirst();
+      
+      if (!stock) throw new AppError('Stock not found in this location', 'NOT_FOUND', 404);
+      if (Number(stock.qty) > 0) throw new AppError('لا يمكن حذف المخزن طالما يوجد به رصيد. يجب تحويل الرصيد أولاً', 'BAD_REQUEST', 400);
+
+      await trx.deleteFrom('product_location_stock')
+        .where('location_id', '=', locationId)
+        .where('product_id', '=', productId)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .execute();
     });
 
     return { success: true };

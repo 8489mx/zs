@@ -66,7 +66,7 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id'> & {
   matched_unit_id?: number | null;
   matched_unit_name?: string | null;
   matched_unit_multiplier?: string | number | null;
@@ -212,7 +212,7 @@ export class CatalogProductService {
   private parseListProductsQuery(query: Record<string, unknown>) {
     return {
       page: Math.max(1, Number(query.page || 1)),
-      pageSize: Math.min(1000, Math.max(5, Number(query.pageSize || 20))),
+      pageSize: Math.min(10000, Math.max(5, Number(query.pageSize || 20))),
       q: normalizeArabicSearch(query.q),
       view: String(query.view || 'all'),
       requestedLocationId: Number(query.locationId || 0),
@@ -271,7 +271,7 @@ export class CatalogProductService {
     const productMatches = await this.db
       .selectFrom('products as p')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id'])
+      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
@@ -301,6 +301,7 @@ export class CatalogProductService {
         'p.stock_qty',
         'p.min_stock_qty',
         'b.id as bom_id',
+        'p.category_id',
         'pu.id as matched_unit_id',
         'pu.name as matched_unit_name',
         'pu.multiplier as matched_unit_multiplier',
@@ -341,6 +342,7 @@ export class CatalogProductService {
         'p.stock_qty',
         'p.min_stock_qty',
         'b.id as bom_id',
+        'p.category_id',
       ])
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(actor, 'p'));
@@ -485,6 +487,7 @@ export class CatalogProductService {
       size: product.size || '',
       retailPrice: Number(product.retail_price || 0),
       wholesalePrice: Number(product.wholesale_price || 0),
+      categoryId: product.category_id ? String(product.category_id) : undefined,
       stock: this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct),
       minStock: Number(product.min_stock_qty || 0),
       locationId: context.scopedLocationId ? String(context.scopedLocationId) : '',
