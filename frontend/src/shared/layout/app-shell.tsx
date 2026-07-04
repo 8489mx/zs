@@ -12,6 +12,8 @@ import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
 import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
+import { OfflineUpdateBanner } from '@/features/updates/components/OfflineUpdateBanner';
+import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
 import {
   POS_SHELL_VISIBILITY_KEY,
   POS_TOGGLE_CHROME_EVENT,
@@ -132,6 +134,8 @@ export function AppShell({ children }: PropsWithChildren) {
   const user = useAuthStore((state) => state.user);
   const storeName = useAuthStore((state) => state.storeName);
   const clearSession = useAuthStore((state) => state.clearSession);
+  const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
+  const { data: updateInfo } = useOfflineUpdateCheck(deploymentMode);
   const displayName = user?.displayName || user?.username || 'المستخدم';
   const workspaceName = storeName || DEFAULT_STORE_NAME;
   const isPosRoute = location.pathname.startsWith('/pos');
@@ -409,6 +413,7 @@ export function AppShell({ children }: PropsWithChildren) {
             <BootstrapAdminBanner />
             <TrialStatusBanner />
             <SystemStatusBanner />
+            {updateInfo?.hasUpdate && <OfflineUpdateBanner update={updateInfo} />}
           </div>
           <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>

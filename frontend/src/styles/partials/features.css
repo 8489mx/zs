@@ -2058,3 +2058,108 @@
   }
 }
 
+/* ─── Offline Update Banner ─────────────────────────────────────────────── */
+.offline-update-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  color: #e2e8f0;
+  border-radius: 10px;
+  border: 1px solid rgba(99, 179, 237, 0.35);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.25);
+  animation: banner-slide-in 0.35s ease;
+  direction: rtl;
+}
+
+@keyframes banner-slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.offline-update-banner__icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.offline-update-banner__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.offline-update-banner__title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f0f9ff;
+  line-height: 1.4;
+}
+
+.offline-update-banner__version {
+  font-family: monospace;
+  background: rgba(99, 179, 237, 0.25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #93c5fd;
+}
+
+.offline-update-banner__changelog {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offline-update-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.offline-update-banner__download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: #3b82f6;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.offline-update-banner__download-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.offline-update-banner__dismiss {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.offline-update-banner__dismiss:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+}

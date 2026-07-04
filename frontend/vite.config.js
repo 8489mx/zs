@@ -2,6 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
+import { createRequire } from 'node:module';
+var require = createRequire(import.meta.url);
+var pkg = require('./package.json');
 export default defineConfig({
     base: './',
     plugins: [
@@ -22,6 +25,9 @@ export default defineConfig({
         })
     ],
     resolve: { alias: { '@': path.resolve(__dirname, './src') } },
+    define: {
+        __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     server: { port: 5173, proxy: { '/api': { target: process.env.VITE_DEV_BACKEND_URL || 'http://localhost:3001', changeOrigin: true } } },
     build: {
         outDir: 'dist',
