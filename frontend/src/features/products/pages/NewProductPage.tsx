@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category, Product, ProductUnit, Supplier } from '@/types/domain';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
+import { FormSection } from '@/shared/components/form-section';
 import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useProductsQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
 import { productsApi } from '@/features/products/api/products.api';
@@ -591,10 +592,7 @@ export function NewProductPage() {
           </div>
         )}
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">نوع الصنف</h3>
-          </div>
+        <FormSection title="بيانات الصنف الأساسية">
           <div className="actions compact-actions" style={{ flexWrap: 'wrap', marginBottom: 24 }}>
             {clothingModuleEnabled ? (
               <div className="field" style={{ minWidth: 220 }}>
@@ -648,84 +646,10 @@ export function NewProductPage() {
               </>
             )}
           </div>
-        </section>
+        </FormSection>
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 className="document-prototype-section-title">التسعير والمخزون</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 600 }}>حساب تلقائي للأسعار</span>
-              <button
-                type="button"
-                onClick={() => setIsMarginActive(!isMarginActive)}
-                style={{
-                  position: 'relative',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  width: '44px',
-                  height: '24px',
-                  background: isMarginActive ? '#10b981' : '#e5e7eb',
-                  border: 'none',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s',
-                  padding: 0
-                }}
-              >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: '18px',
-                    height: '18px',
-                    background: '#fff',
-                    borderRadius: '50%',
-                    transition: 'transform 0.2s',
-                    transform: isMarginActive ? 'translateX(-23px)' : 'translateX(-3px)',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                  }}
-                />
-              </button>
-            </div>
-          </div>
-          {isMarginActive && (
-            <div className="document-prototype-grid compact-grid-2" style={{ marginBottom: 16, padding: 16, backgroundColor: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
-              <Field label="هامش ربح القطاعي (%)">
-                <input className="purchase-prototype-field-input" type="number" step="0.01" value={retailMargin} onChange={(e) => setRetailMargin(e.target.value)} placeholder="مثال: 20" disabled={isFormDisabled} />
-              </Field>
-              <Field label="هامش ربح الجملة (%)">
-                <input className="purchase-prototype-field-input" type="number" step="0.01" value={wholesaleMargin} onChange={(e) => setWholesaleMargin(e.target.value)} placeholder="مثال: 10" disabled={isFormDisabled} />
-              </Field>
-            </div>
-          )}
+        <FormSection title="التصنيف والربط">
           <div className="document-prototype-grid compact-grid-3">
-            <Field label="سعر الشراء"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} /></Field>
-            <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
-            <Field label="سعر الجملة"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} /></Field>
-            {!usesVariantBuilder ? <Field label="المخزون الافتتاحي"><input className="purchase-prototype-field-input" type="number" {...form.register('stock')} disabled={isFormDisabled} /></Field> : null}
-            {!usesVariantBuilder ? (
-              <div className="field">
-                <label>المخزن (للرصيد الافتتاحي)</label>
-                <ComboboxSelect
-                  value={watchedWarehouseId || ''}
-                  onChange={(v) => form.setValue('warehouseId', v, { shouldDirty: true })}
-                  options={locationOptions}
-                  emptyLabel="اختر المخزن"
-                  placeholder="ابحث..."
-                  disabled={isFormDisabled}
-                />
-              </div>
-            ) : null}
-            <Field label="الحد الأدنى للمخزون">
-              <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
-            </Field>
-          </div>
-        </section>
-
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">بيانات القسم والمورد</h3>
-          </div>
-          <div className="document-prototype-grid compact-grid-2">
             <div className="field">
               <label>القسم</label>
               <ComboboxSelect
@@ -761,39 +685,119 @@ export function NewProductPage() {
               {supplierMutation.isError && <small className="field-error">تعذر إضافة المورد</small>}
               {supplierMutation.isPending && <small className="muted small">جارٍ إضافة المورد...</small>}
             </div>
-          </div>
-        </section>
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">ملاحظات</h3>
+            {!usesVariantBuilder ? (
+              <div className="field">
+                <label>المخزن الافتراضي المقترح</label>
+                <ComboboxSelect
+                  value={watchedWarehouseId || ''}
+                  onChange={(v) => form.setValue('warehouseId', v, { shouldDirty: true })}
+                  options={locationOptions}
+                  emptyLabel="اختر المخزن"
+                  placeholder="ابحث..."
+                  disabled={isFormDisabled}
+                />
+              </div>
+            ) : <div />}
           </div>
+        </FormSection>
+
+        <FormSection 
+          title="الأسعار"
+          actions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 600 }}>حساب تلقائي للأسعار</span>
+              <button
+                type="button"
+                onClick={() => setIsMarginActive(!isMarginActive)}
+                style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  width: '44px',
+                  height: '24px',
+                  background: isMarginActive ? '#10b981' : '#e5e7eb',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  padding: 0
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: '18px',
+                    height: '18px',
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'transform 0.2s',
+                    transform: isMarginActive ? 'translateX(-23px)' : 'translateX(-3px)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}
+                />
+              </button>
+            </div>
+          }
+        >
+          {isMarginActive && (
+            <div className="document-prototype-grid compact-grid-2" style={{ marginBottom: 16, padding: 16, backgroundColor: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
+              <Field label="هامش ربح القطاعي (%)">
+                <input className="purchase-prototype-field-input" type="number" step="0.01" value={retailMargin} onChange={(e) => setRetailMargin(e.target.value)} placeholder="مثال: 20" disabled={isFormDisabled} />
+              </Field>
+              <Field label="هامش ربح الجملة (%)">
+                <input className="purchase-prototype-field-input" type="number" step="0.01" value={wholesaleMargin} onChange={(e) => setWholesaleMargin(e.target.value)} placeholder="مثال: 10" disabled={isFormDisabled} />
+              </Field>
+            </div>
+          )}
+          <div className="document-prototype-grid compact-grid-3">
+            <Field label="سعر الشراء"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} /></Field>
+            <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
+            <Field label="سعر الجملة"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} /></Field>
+          </div>
+        </FormSection>
+
+        <FormSection title="المخزون">
+          <div className="document-prototype-alert info" style={{ marginBottom: 16 }}>
+            <strong>تنبيه:</strong> تعديل الكمية بعد إنشاء الصنف يتم من حركات المخزون فقط. الرصيد الافتتاحي يسجل مرة واحدة فقط.
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            {!usesVariantBuilder ? <Field label="الرصيد الافتتاحي"><input className="purchase-prototype-field-input" type="number" {...form.register('stock')} disabled={isFormDisabled} /></Field> : null}
+            <Field label="الحد الأدنى للمخزون">
+              <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection title="ملاحظات">
           <Field label="ملاحظات"><textarea className="purchase-prototype-field-input" {...form.register('notes')} rows={4} disabled={isFormDisabled} /></Field>
-        </section>
+        </FormSection>
 
         {usesVariantBuilder ? (
-          <Suspense fallback={<div className="loading-card">جاري تجهيز أدوات الأصناف الفرعية...</div>}>
-            <LazyFashionVariantsBuilder
-              mode={builderMode}
-              name={watchedName || ''}
-              styleCode={watchedStyleCode || ''}
-              colorsValue={watchedFashionColors || ''}
-              sizesValue={watchedFashionSizes || ''}
-              defaultStock={watchedVariantStock}
-              barcodePrefix={variantBarcodePrefix}
-              rows={fashionVariantRows}
-              disabled={isFormDisabled}
-              onColorsChange={(value) => form.setValue('fashionColors', value, { shouldDirty: true, shouldValidate: true })}
-              onSizesChange={(value) => form.setValue('fashionSizes', value, { shouldDirty: true, shouldValidate: true })}
-              onDefaultStockChange={(value) => form.setValue('variantStock', value, { shouldDirty: true, shouldValidate: true })}
-              onBarcodePrefixChange={setVariantBarcodePrefix}
-              onRowsChange={setFashionVariantRows}
-            />
-          </Suspense>
-        ) : (
-          <div className="document-prototype-section">
-            <ProductUnitsEditor units={units} onChange={handleUnitsChange} disabled={isFormDisabled} title="وحدات الصنف" />
+          <div style={{ marginTop: 16 }}>
+            <Suspense fallback={<div className="loading-card">جاري تجهيز أدوات الأصناف الفرعية...</div>}>
+              <LazyFashionVariantsBuilder
+                mode={builderMode}
+                name={watchedName || ''}
+                styleCode={watchedStyleCode || ''}
+                colorsValue={watchedFashionColors || ''}
+                sizesValue={watchedFashionSizes || ''}
+                defaultStock={watchedVariantStock}
+                barcodePrefix={variantBarcodePrefix}
+                rows={fashionVariantRows}
+                disabled={isFormDisabled}
+                onColorsChange={(value) => form.setValue('fashionColors', value, { shouldDirty: true, shouldValidate: true })}
+                onSizesChange={(value) => form.setValue('fashionSizes', value, { shouldDirty: true, shouldValidate: true })}
+                onDefaultStockChange={(value) => form.setValue('variantStock', value, { shouldDirty: true, shouldValidate: true })}
+                onBarcodePrefixChange={setVariantBarcodePrefix}
+                onRowsChange={setFashionVariantRows}
+              />
+            </Suspense>
           </div>
+        ) : (
+          <FormSection title="وحدات الصنف">
+            <ProductUnitsEditor units={units} onChange={handleUnitsChange} disabled={isFormDisabled} />
+          </FormSection>
         )}
       </main>
     </div>

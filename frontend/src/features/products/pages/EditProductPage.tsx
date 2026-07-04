@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { FormSection } from '@/shared/components/form-section';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -209,10 +210,7 @@ export function EditProductPage() {
           </div>
         )}
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">البيانات الأساسية</h3>
-          </div>
+        <FormSection title="بيانات الصنف الأساسية">
           <div className="document-prototype-grid compact-grid-2">
             {manufacturingModuleEnabled ? (
               <Field label="تصنيف الصنف">
@@ -244,26 +242,10 @@ export function EditProductPage() {
             {clothingModuleEnabled ? <Field label="اللون"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
             {clothingModuleEnabled ? <Field label="المقاس"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
           </div>
-        </section>
+        </FormSection>
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">التسعير والمخزون</h3>
-          </div>
+        <FormSection title="التصنيف والربط">
           <div className="document-prototype-grid compact-grid-3">
-            <Field label="سعر الشراء"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} /></Field>
-            <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
-            <Field label="سعر الجملة"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} /></Field>
-            <Field label="المخزون الحالي"><input className="purchase-prototype-field-input" type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
-            <Field label="الحد الأدنى"><input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} /></Field>
-          </div>
-        </section>
-
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">بيانات القسم والمورد</h3>
-          </div>
-          <div className="document-prototype-grid compact-grid-2">
             <Field label="القسم" error={form.formState.errors.categoryId?.message}>
               <select className="purchase-prototype-field-input" {...form.register('categoryId')} disabled={isFormDisabled}>
                 <option value="">بدون قسم</option>
@@ -276,30 +258,45 @@ export function EditProductPage() {
                 {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
               </select>
             </Field>
-          </div>
-          <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
-            <Field label="المخزن الافتراضي" error={form.formState.errors.warehouseId?.message}>
+            <Field label="المخزن الافتراضي المقترح" error={form.formState.errors.warehouseId?.message}>
               <select className="purchase-prototype-field-input" {...form.register('warehouseId')} disabled={isFormDisabled}>
                 <option value="">بدون مخزن افتراضي</option>
                 {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
               </select>
             </Field>
+          </div>
+          <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
             <Field label="مكان التخزين (Bin Location)">
               <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" />
             </Field>
           </div>
-        </section>
+        </FormSection>
 
-        <section className="document-prototype-section">
-          <div className="document-prototype-section-header" style={{ marginBottom: 16 }}>
-            <h3 className="document-prototype-section-title">ملاحظات</h3>
+        <FormSection title="الأسعار">
+          <div className="document-prototype-grid compact-grid-3">
+            <Field label="سعر الشراء"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} /></Field>
+            <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
+            <Field label="سعر الجملة"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} /></Field>
           </div>
-          <Field label="ملاحظات"><textarea className="purchase-prototype-field-input" rows={4} {...form.register('notes')} disabled={isFormDisabled} /></Field>
-        </section>
+        </FormSection>
 
-        <div className="document-prototype-section">
-          <ProductUnitsEditor units={units} onChange={setUnits} disabled={isFormDisabled} title="وحدات الصنف" />
-        </div>
+        <FormSection title="المخزون">
+          <div className="document-prototype-alert info" style={{ marginBottom: 16 }}>
+            <strong>تنبيه:</strong> تعديل الكمية بعد إنشاء الصنف يتم من حركات المخزون فقط.
+          </div>
+          <div className="document-prototype-grid compact-grid-2">
+            <Field label="المخزون الحالي (للعرض فقط)"><input className="purchase-prototype-field-input" type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
+            <Field label="الحد الأدنى للمخزون"><input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} /></Field>
+          </div>
+        </FormSection>
+
+        <FormSection title="ملاحظات">
+          <Field label="ملاحظات"><textarea className="purchase-prototype-field-input" rows={4} {...form.register('notes')} disabled={isFormDisabled} /></Field>
+        </FormSection>
+
+        <FormSection title="وحدات الصنف">
+          <ProductUnitsEditor units={units} onChange={setUnits} disabled={isFormDisabled} />
+        </FormSection>
 
         <div className="document-prototype-section">
           <ProductCustomerPricesCard product={product} customers={customers} customerPrices={customerPrices} onChange={setCustomerPrices} onSave={saveCustomerPricesOnly} isSaving={mutation.isPending} />
