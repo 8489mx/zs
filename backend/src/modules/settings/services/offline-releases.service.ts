@@ -5,6 +5,7 @@ import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import * as fs from 'fs';
 import * as path from 'path';
+import { spawn } from 'child_process';
 
 @Injectable()
 export class OfflineReleasesService {
@@ -148,12 +149,11 @@ export class OfflineReleasesService {
   }
 
   /**
-   * Writes .update_pending marker (used by the portable launcher to download
-   * and apply the patch on next startup) then exits the process gracefully
-   * so the launcher's restart loop re-launches after applying the update.
+   * Writes .update_pending marker then spawns ApplyAndRestart.ps1 as a
+   * detached process that will: download the patch, apply it, run migrations,
+   * and restart the backend — all without any manual user intervention.
    */
   async triggerUpdate(auth: AuthContext) {
-    // Get the currently active release
     const active = await this.db
       .selectFrom('offline_releases')
       .selectAll()
@@ -166,37 +166,69 @@ export class OfflineReleasesService {
       throw new BadRequestException('لا يوجد إصدار مفعّل حالياً');
     }
 
-    // Resolve the runtime/run directory relative to process.cwd()
-    // In portable mode the backend CWD is app/backend, so ../../runtime/run
-    const runtimeRunDir = path.resolve(process.cwd(), '../../runtime/run');
+    // Resolve paths (CWD = app/backend in portable mode)
+    const portableRoot  = path.resolve(process.cwd(), '../..');
+    const runtimeRunDir = path.join(portableRoot, 'runtime', 'run');
 
-    // Ensure the directory exists (best-effort)
-    try {
-      fs.mkdirSync(runtimeRunDir, { recursive: true });
-    } catch {
-      // ignore
-    }
+    try { fs.mkdirSync(runtimeRunDir, { recursive: true }); } catch { /* ignore */ }
 
+    // Write the pending marker with all runtime info the restart script needs
     const pendingFile = path.join(runtimeRunDir, '.update_pending');
     const payload = {
-      version: active.version,
-      patchUrl: active.patch_url,
-      changelog: active.changelog,
-      triggeredBy: auth.username ?? auth.role,
-      triggeredAt: new Date().toISOString(),
+      version:      active.version,
+      patchUrl:     active.patch_url,
+      changelog:    active.changelog,
+      triggeredBy:  auth.username ?? auth.role,
+      triggeredAt:  new Date().toISOString(),
+      // Runtime context for ApplyAndRestart.ps1
+      nodeExe:      process.execPath,
+      backendCwd:   process.cwd(),
+      backendEntry: process.argv[1] ?? 'dist/main.js',
+      backendPort:  process.env.BACKEND_PORT ?? '3001',
     };
-
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
-    // Schedule process exit after response is sent
-    setTimeout(() => {
-      process.exit(0);
-    }, 1500);
+    // Spawn ApplyAndRestart.ps1 as a fully detached process so it survives
+    // after this Node.js process exits
+    const applyScript = path.join(portableRoot, 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
+    if (fs.existsSync(applyScript)) {
+      const ps = spawn(
+        'powershell.exe',
+        [
+          '-ExecutionPolicy', 'Bypass',
+          '-NonInteractive',
+          '-WindowStyle', 'Hidden',
+          '-File', applyScript,
+          '-PortableRoot', portableRoot,
+        ],
+        { detached: true, stdio: 'ignore', windowsHide: true },
+      );
+      ps.unref();
+    }
+
+    // Exit after the HTTP response is sent
+    setTimeout(() => process.exit(0), 1500);
 
     return {
       ok: true,
-      message: `جاري تطبيق الإصدار ${active.version} — سيتم إعادة تشغيل التطبيق تلقائياً`,
+      message: `جاري تطبيق الإصدار ${active.version} — سيتم إعادة تشغيل التطبيق تلقائياً خلال لحظات`,
       version: active.version,
     };
+  }
+
+  /**
+   * Returns the currently running app version.
+   * Reads runtime/run/.app_version (written by ApplyAndRestart.ps1 on success).
+   * Falls back to APP_VERSION env var, then '0.0.0'.
+   */
+  getCurrentVersion(): { version: string } {
+    const versionFile = path.resolve(process.cwd(), '../../runtime/run/.app_version');
+    try {
+      if (fs.existsSync(versionFile)) {
+        const ver = fs.readFileSync(versionFile, 'utf8').trim();
+        if (ver) return { version: ver };
+      }
+    } catch { /* ignore */ }
+    return { version: process.env.APP_VERSION ?? '0.0.0' };
   }
 }

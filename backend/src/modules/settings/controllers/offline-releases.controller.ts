@@ -10,6 +10,16 @@ export class OfflineUpdatesPublicController {
   constructor(private readonly releasesService: OfflineReleasesService) {}
 
   /**
+   * GET /api/updates/version
+   * Returns the currently installed version (read from .app_version file).
+   * Used by the frontend to know its current version after an update.
+   */
+  @Get('version')
+  getCurrentVersion() {
+    return this.releasesService.getCurrentVersion();
+  }
+
+  /**
    * GET /api/updates/check?version=1.2.3
    * Called by the portable client on startup to check if a newer stable release exists.
    */
