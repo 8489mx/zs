@@ -1,4 +1,4 @@
-﻿param(
+param(
   [switch]$NoBrowser
 )
 
@@ -201,6 +201,25 @@ try {
   Write-LauncherLog -Paths $paths -Name $logName -Message "Using npm runtime: $npmExe"
 
   Write-LauncherLog -Paths $paths -Name $logName -Message 'Starting backend process.'
+
+  # ── Check for a pending update before starting the backend ──────────────
+  $pendingUpdateFile = Join-Path $paths.RuntimeRunDir '.update_pending'
+  if (Test-Path $pendingUpdateFile) {
+    Write-LauncherLog -Paths $paths -Name $logName -Message 'Pending update detected. Running Apply-Update.ps1...'
+    Write-Host '[ZS Launcher] Applying pending update — please wait...'
+    $applyScript = Join-Path $paths.LauncherDir 'scripts/Apply-Update.ps1'
+    if (Test-Path $applyScript) {
+      try {
+        & powershell.exe -ExecutionPolicy Bypass -File $applyScript -PortableRoot $paths.Root
+        Write-LauncherLog -Paths $paths -Name $logName -Message "Apply-Update.ps1 finished (exit: $LASTEXITCODE)."
+      } catch {
+        Write-LauncherLog -Paths $paths -Name $logName -Message "Apply-Update.ps1 threw: $($_.Exception.Message)"
+      }
+    } else {
+      Write-LauncherLog -Paths $paths -Name $logName -Message "WARNING: Apply-Update.ps1 not found at: $applyScript"
+    }
+  }
+
   $backendProc = Start-ProcessHiddenTracked `
     -FilePath $nodeExe `
     -WorkingDirectory $paths.AppBackendDir `

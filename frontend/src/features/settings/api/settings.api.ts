@@ -192,6 +192,8 @@ export const settingsApi = {
       http<{ ok: boolean; message: string }>(`/api/admin/offline-releases/${id}/promote`, { method: 'POST' }),
     deactivate: (id: number) =>
       http<{ ok: boolean; message: string }>(`/api/admin/offline-releases/${id}/deactivate`, { method: 'POST' }),
+    triggerUpdate: () =>
+      http<{ ok: boolean; message: string; version: string }>('/api/admin/offline-releases/trigger-update', { method: 'POST' }),
   },
 };
 

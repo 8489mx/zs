@@ -61,4 +61,14 @@ export class OfflineReleasesAdminController {
   deactivateRelease(@Req() req: RequestWithAuth, @Param('id') id: string) {
     return this.releasesService.deactivateRelease(req.authContext!, Number(id));
   }
+
+  /**
+   * POST /api/admin/offline-releases/trigger-update
+   * Write .update_pending marker and exit so the launcher applies the update.
+   * Only works in portable/offline mode (APP_MODE=offline).
+   */
+  @Post('trigger-update')
+  triggerUpdate(@Req() req: RequestWithAuth) {
+    return this.releasesService.triggerUpdate(req.authContext!);
+  }
 }

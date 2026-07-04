@@ -3,6 +3,8 @@ import { Kysely } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class OfflineReleasesService {
@@ -143,5 +145,58 @@ export class OfflineReleasesService {
       .execute();
 
     return { ok: true, message: `تم إلغاء تفعيل الإصدار ${release.version}` };
+  }
+
+  /**
+   * Writes .update_pending marker (used by the portable launcher to download
+   * and apply the patch on next startup) then exits the process gracefully
+   * so the launcher's restart loop re-launches after applying the update.
+   */
+  async triggerUpdate(auth: AuthContext) {
+    // Get the currently active release
+    const active = await this.db
+      .selectFrom('offline_releases')
+      .selectAll()
+      .where('is_active', '=', true)
+      .orderBy('promoted_at', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    if (!active) {
+      throw new BadRequestException('لا يوجد إصدار مفعّل حالياً');
+    }
+
+    // Resolve the runtime/run directory relative to process.cwd()
+    // In portable mode the backend CWD is app/backend, so ../../runtime/run
+    const runtimeRunDir = path.resolve(process.cwd(), '../../runtime/run');
+
+    // Ensure the directory exists (best-effort)
+    try {
+      fs.mkdirSync(runtimeRunDir, { recursive: true });
+    } catch {
+      // ignore
+    }
+
+    const pendingFile = path.join(runtimeRunDir, '.update_pending');
+    const payload = {
+      version: active.version,
+      patchUrl: active.patch_url,
+      changelog: active.changelog,
+      triggeredBy: auth.username ?? auth.role,
+      triggeredAt: new Date().toISOString(),
+    };
+
+    fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
+
+    // Schedule process exit after response is sent
+    setTimeout(() => {
+      process.exit(0);
+    }, 1500);
+
+    return {
+      ok: true,
+      message: `جاري تطبيق الإصدار ${active.version} — سيتم إعادة تشغيل التطبيق تلقائياً`,
+      version: active.version,
+    };
   }
 }

@@ -2163,3 +2163,27 @@
   background: rgba(255, 255, 255, 0.2);
   color: #e2e8f0;
 }
+
+.offline-update-banner__spinner {
+  font-size: 20px;
+  color: #93c5fd;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+.offline-update-banner__countdown {
+  font-size: 13px;
+  color: #93c5fd;
+  font-weight: 500;
+  animation: pulse-text 1.2s ease-in-out infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
