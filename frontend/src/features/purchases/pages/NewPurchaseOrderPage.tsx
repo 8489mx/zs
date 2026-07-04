@@ -17,6 +17,7 @@ import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 
 import { useTranslation } from '../utils/i18n-purchase-prototype';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
+import { resolveSuggestedReceivingLocation } from '../utils/purchases.utils';
 
 type PrototypeLine = {
   id: number;
@@ -1057,7 +1058,7 @@ export function NewPurchaseOrderPage() {
           name: p.name,
           englishName: p.englishName,
           categoryId: p.categoryId?.toString(),
-          categoryName: cat?.name || '',
+          category: cat?.name || '',
           type: p.productType === 'service' ? 'service' : 'stock',
           price: p.purchasePrice ?? 0,
           warehouseId: p.defaultLocationId?.toString(),
@@ -1084,6 +1085,19 @@ export function NewPurchaseOrderPage() {
   const handleProductSelect = (lineId: number, option: ProductOption) => {
     markDocumentDirty();
     setLineError(lineId, 'product', undefined);
+
+    let category = option.category || '';
+    if (!category && option.categoryId) {
+      const cat = catalog.categoriesQuery.data?.find(c => c.id === String(option.categoryId));
+      if (cat) category = cat.name;
+    }
+
+    const suggestedLocation = resolveSuggestedReceivingLocation(
+      { defaultLocationId: option.warehouseId, type: option.type },
+      catalog.locationStocksQuery.data || [],
+      catalog.locationsQuery.data || []
+    );
+
     setLines((current) =>
       current.map((line) => {
         if (line.id !== lineId) {
@@ -1096,9 +1110,9 @@ export function NewPurchaseOrderPage() {
           itemName: option.name,
           qty: line.qty > 0 ? line.qty : 1,
           unitPrice: option.price,
-          warehouse: option.type === 'service' ? '\u0644\u0627 \u064a\u0624\u062b\u0631 \u0639\u0644\u0649 \u0627\u0644\u0645\u062e\u0632\u0648\u0646' : (option.warehouse || ''),
-          warehouseId: option.type === 'service' ? undefined : option.warehouseId,
-          category: option.category || '',
+          warehouse: suggestedLocation.warehouse,
+          warehouseId: suggestedLocation.warehouseId,
+          category,
           categoryId: option.categoryId,
           isService: option.type === 'service'
         };
@@ -1110,6 +1124,19 @@ export function NewPurchaseOrderPage() {
   const addProductAsLine = (option: ProductOption) => {
     const newLineId = Date.now();
     markDocumentDirty();
+
+    let category = option.category || '';
+    if (!category && option.categoryId) {
+      const cat = catalog.categoriesQuery.data?.find(c => c.id === String(option.categoryId));
+      if (cat) category = cat.name;
+    }
+
+    const suggestedLocation = resolveSuggestedReceivingLocation(
+      { defaultLocationId: option.warehouseId, type: option.type },
+      catalog.locationStocksQuery.data || [],
+      catalog.locationsQuery.data || []
+    );
+
     setLines((current) => [
       ...current,
       {
@@ -1118,9 +1145,9 @@ export function NewPurchaseOrderPage() {
         itemName: option.name,
         qty: 1,
         unitPrice: option.price,
-        warehouse: option.type === 'service' ? 'لا يؤثر على المخزون' : (option.warehouse || ''),
-        warehouseId: option.type === 'service' ? undefined : option.warehouseId,
-        category: option.category || '',
+        warehouse: suggestedLocation.warehouse,
+        warehouseId: suggestedLocation.warehouseId,
+        category,
         categoryId: option.categoryId,
         isService: option.type === 'service'
       }
@@ -1464,7 +1491,7 @@ export function NewPurchaseOrderPage() {
 
       const product = line.productId ? products.find((item) => item.id === line.productId) : undefined;
       const requiresWarehouse = product ? product.type === 'stock' : !line.isService;
-      if (requiresWarehouse && !line.warehouse.trim()) {
+      if (requiresWarehouse && (!line.warehouse.trim() || !line.warehouseId)) {
         rowErrors.warehouse = t('select_warehouse_error');
         addFirstTarget({ kind: 'line', lineId: line.id, field: 'warehouse' });
       }
@@ -1484,7 +1511,7 @@ export function NewPurchaseOrderPage() {
       const priceValue = Number.isFinite(line.unitPrice) ? line.unitPrice : parseLocalizedNumber(String(line.unitPrice));
       const product = products.find((item) => item.id === line.productId);
       const requiresWarehouse = product ? product.type === 'stock' : !line.isService;
-      return Number.isFinite(qtyValue) && qtyValue > 0 && Number.isFinite(priceValue) && priceValue >= 0 && (!requiresWarehouse || Boolean(line.warehouse.trim()));
+      return Number.isFinite(qtyValue) && qtyValue > 0 && Number.isFinite(priceValue) && priceValue >= 0 && (!requiresWarehouse || (Boolean(line.warehouse.trim()) && Boolean(line.warehouseId)));
     });
 
     if (!hasAnyValidLine) {
@@ -1578,7 +1605,9 @@ export function NewPurchaseOrderPage() {
       cost: line.unitPrice,
       total: line.qty * line.unitPrice,
       unitName: 'Piece',
-      unitMultiplier: 1
+      unitMultiplier: 1,
+      locationId: line.warehouseId,
+      categoryId: line.categoryId
     }));
 
     try {

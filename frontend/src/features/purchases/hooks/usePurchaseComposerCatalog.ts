@@ -3,6 +3,7 @@ import { queryKeys } from '@/app/query-keys';
 import { purchasesApi } from '@/features/purchases/api/purchases.api';
 import { referenceDataApi } from '@/services/reference-data.api';
 import { sharedProductsApi } from '@/shared/api/products';
+import { inventoryApi } from '@/features/inventory/api/inventory.api';
 
 export function usePurchaseComposerCatalog() {
   const productsQuery = useQuery({ queryKey: queryKeys.products, queryFn: purchasesApi.products });
@@ -14,6 +15,7 @@ export function usePurchaseComposerCatalog() {
   const purchasesQuery = useQuery({ queryKey: queryKeys.purchases, queryFn: purchasesApi.list });
   const costCentersQuery = useQuery({ queryKey: ['cost-centers'], queryFn: referenceDataApi.costCenters });
   const projectsQuery = useQuery({ queryKey: ['projects'], queryFn: referenceDataApi.projects });
+  const locationStocksQuery = useQuery({ queryKey: ['location-stocks'], queryFn: inventoryApi.locationStocks });
 
   return {
     productsQuery,
@@ -25,8 +27,9 @@ export function usePurchaseComposerCatalog() {
     purchasesQuery,
     costCentersQuery,
     projectsQuery,
-    isLoading: productsQuery.isLoading || suppliersQuery.isLoading || categoriesQuery.isLoading || settingsQuery.isLoading || branchesQuery.isLoading || locationsQuery.isLoading || purchasesQuery.isLoading || costCentersQuery.isLoading || projectsQuery.isLoading,
-    isError: productsQuery.isError || suppliersQuery.isError || categoriesQuery.isError || settingsQuery.isError || branchesQuery.isError || locationsQuery.isError || purchasesQuery.isError || costCentersQuery.isError || projectsQuery.isError,
-    error: productsQuery.error || suppliersQuery.error || categoriesQuery.error || settingsQuery.error || branchesQuery.error || locationsQuery.error || purchasesQuery.error || costCentersQuery.error || projectsQuery.error
+    locationStocksQuery,
+    isLoading: productsQuery.isLoading || suppliersQuery.isLoading || categoriesQuery.isLoading || settingsQuery.isLoading || branchesQuery.isLoading || locationsQuery.isLoading || purchasesQuery.isLoading || costCentersQuery.isLoading || projectsQuery.isLoading || locationStocksQuery.isLoading,
+    isError: productsQuery.isError || suppliersQuery.isError || categoriesQuery.isError || settingsQuery.isError || branchesQuery.isError || locationsQuery.isError || purchasesQuery.isError || costCentersQuery.isError || projectsQuery.isError || locationStocksQuery.isError,
+    error: productsQuery.error || suppliersQuery.error || categoriesQuery.error || settingsQuery.error || branchesQuery.error || locationsQuery.error || purchasesQuery.error || costCentersQuery.error || projectsQuery.error || locationStocksQuery.error
   };
 }

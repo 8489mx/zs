@@ -244,11 +244,12 @@ export class PurchasesWriteService {
 
 
         const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
+        const itemLocationId = item.locationId ?? locationId;
         const stockChange = await applyStockDelta(trx, {
           productId: item.productId,
           delta: increasedQty,
           branchId,
-          locationId,
+          locationId: itemLocationId,
           tenantId: scope.tenantId,
           accountId: scope.accountId,
         });
@@ -275,7 +276,7 @@ export class PurchasesWriteService {
           reference_type: 'purchase',
           reference_id: id,
           branch_id: branchId,
-          location_id: locationId,
+          location_id: itemLocationId,
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
@@ -324,21 +325,23 @@ export class PurchasesWriteService {
       if (!(Number(payload.supplierId || 0) > 0)) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
       for (const item of oldItems) {
         if (!item.product_id) continue;
-        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
+        const itemLocationId = item.location_id ?? purchase.location_id;
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, beforeQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         if (beforeQty < removeQty) throw new AppError(`Cannot edit purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_EDIT_STOCK_INVALID', 400);
       }
 
       for (const item of oldItems) {
         if (!item.product_id) continue;
-        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
+        const itemLocationId = item.location_id ?? purchase.location_id;
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
         const stockChange = await applyStockDelta(trx, {
           productId: Number(item.product_id),
           delta: -removeQty,
           branchId: purchase.branch_id,
-          locationId: purchase.location_id,
+          locationId: itemLocationId,
           tenantId: scope.tenantId,
           accountId: scope.accountId,
           errorCode: 'PURCHASE_EDIT_STOCK_INVALID',
@@ -355,7 +358,7 @@ export class PurchasesWriteService {
           reference_type: 'purchase',
           reference_id: purchaseId,
           branch_id: purchase.branch_id,
-          location_id: purchase.location_id,
+          location_id: itemLocationId,
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
@@ -420,11 +423,12 @@ export class PurchasesWriteService {
         } as any).execute();
 
         const { increasedQty: increaseQty } = calculatePurchaseStockIncrease(normalizedItem.qty, normalizedItem.unitMultiplier, 0);
+        const itemLocationId = normalizedItem.locationId ?? locationId;
         const stockChange = await applyStockDelta(trx, {
           productId: normalizedItem.productId,
           delta: increaseQty,
           branchId,
-          locationId,
+          locationId: itemLocationId,
           tenantId: scope.tenantId,
           accountId: scope.accountId,
         });
@@ -451,7 +455,7 @@ export class PurchasesWriteService {
           reference_type: 'purchase',
           reference_id: purchaseId,
           branch_id: branchId,
-          location_id: locationId,
+          location_id: itemLocationId,
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
@@ -506,7 +510,8 @@ export class PurchasesWriteService {
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       for (const item of items) {
         if (!item.product_id) continue;
-        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
+        const itemLocationId = item.location_id ?? purchase.location_id;
+        const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, beforeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         if (beforeQty < removeQty) throw new AppError(`Cannot cancel purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_CANCEL_STOCK_INVALID', 400);
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
@@ -514,7 +519,7 @@ export class PurchasesWriteService {
           productId: Number(item.product_id),
           delta: -removeQty,
           branchId: purchase.branch_id,
-          locationId: purchase.location_id,
+          locationId: itemLocationId,
           tenantId: scope.tenantId,
           accountId: scope.accountId,
           errorCode: 'PURCHASE_CANCEL_STOCK_INVALID',
@@ -531,7 +536,7 @@ export class PurchasesWriteService {
           reference_type: 'purchase',
           reference_id: purchaseId,
           branch_id: purchase.branch_id,
-          location_id: purchase.location_id,
+          location_id: itemLocationId,
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
