@@ -4,41 +4,81 @@ import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
-import { inventoryApi } from '@/features/inventory/api/inventory.api';
+
+import { catalogApi } from '@/shared/api/catalog';
 import { AssignProductsModal } from '../components/AssignProductsModal';
+import { useMemo } from 'react';
 
 export function WarehouseDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const locationId = Number(id);
-  const { locationsQuery } = useInventoryActionCatalog();
+  const { locationsQuery, productsQuery, locationStocksQuery } = useInventoryActionCatalog();
   const location = locationsQuery.data?.find((l) => l.id === id);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | number | null>(null);
   const [showZeroStock, setShowZeroStock] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
-  const categoriesQuery = useQuery({
-    queryKey: ['locationCategories', locationId],
-    queryFn: () => inventoryApi.locationCategories(locationId),
-    enabled: !!locationId,
-  });
+  const categoriesQuery = useQuery({ queryKey: ['catalogCategories'], queryFn: () => catalogApi.categories() });
 
-  const productsQuery = useQuery({
-    queryKey: ['locationCategoryProducts', locationId, selectedCategoryId],
-    queryFn: () => inventoryApi.locationCategoryProducts(locationId, selectedCategoryId!),
-    enabled: !!locationId && selectedCategoryId !== null,
-  });
+  const rawProducts = useMemo(() => productsQuery.data || [], [productsQuery.data]);
+  const stocks = useMemo(() => locationStocksQuery.data || [], [locationStocksQuery.data]);
+  const categories = useMemo(() => categoriesQuery.data || [], [categoriesQuery.data]);
 
-  const visibleCategories = (categoriesQuery.data || []).filter((cat: any) => {
-    if (showZeroStock) return Number(cat.assignedProductCount) > 0;
-    return Number(cat.positiveStockProductCount) > 0;
-  });
+  const locationProducts = useMemo(() => {
+    return rawProducts.map((p: any) => {
+      const productStocks = stocks.filter((s: any) => String(s.productId) === String(p.id));
+      const stockInThisLocation = productStocks.find((s: any) => String(s.locationId) === String(locationId));
+      const sumFromLocations = productStocks.reduce((sum: number, s: any) => sum + Number(s.qty || 0), 0);
+      const globalStockFromProduct = Number(p.stock || p.stockQty || 0);
+      const globalStockQty = sumFromLocations > 0 ? sumFromLocations : globalStockFromProduct;
 
-  const visibleProducts = (productsQuery.data || []).filter((p: any) => {
-    if (showZeroStock) return true;
-    return Number(p.stockQty ?? p.qty ?? 0) > 0;
-  });
+      return {
+        ...p,
+        stockQty: stockInThisLocation ? Number(stockInThisLocation.qty) : 0,
+        globalStockQty,
+        isAssignedToThisLocation: !!stockInThisLocation,
+      };
+    });
+  }, [rawProducts, stocks, locationId]);
+
+  const visibleCategories = useMemo(() => {
+    const categoriesMap = new Map<string, { id: string; name: string; assignedProductCount: number; positiveStockProductCount: number }>();
+    categories.forEach((cat: any) => {
+      categoriesMap.set(String(cat.id), { id: String(cat.id), name: cat.name, assignedProductCount: 0, positiveStockProductCount: 0 });
+    });
+    categoriesMap.set('uncategorized', { id: 'uncategorized', name: 'بدون قسم', assignedProductCount: 0, positiveStockProductCount: 0 });
+
+    locationProducts.forEach((p) => {
+      if (!p.isAssignedToThisLocation) return;
+      const catId = p.categoryId ? String(p.categoryId) : 'uncategorized';
+      const cat = categoriesMap.get(catId);
+      if (cat) {
+        cat.assignedProductCount++;
+        if (p.stockQty > 0) cat.positiveStockProductCount++;
+      }
+    });
+
+    return Array.from(categoriesMap.values()).filter(cat => {
+      if (showZeroStock) return cat.assignedProductCount > 0;
+      return cat.positiveStockProductCount > 0;
+    });
+  }, [locationProducts, categories, showZeroStock]);
+
+  const visibleProducts = useMemo(() => {
+    return locationProducts.filter((p) => {
+      if (!p.isAssignedToThisLocation) return false;
+      if (selectedCategoryId !== null && selectedCategoryId !== 'all') {
+        const pCatId = p.categoryId ? String(p.categoryId) : 'uncategorized';
+        if (pCatId !== String(selectedCategoryId)) return false;
+      }
+      if (!showZeroStock && p.stockQty <= 0) return false;
+      return true;
+    });
+  }, [locationProducts, selectedCategoryId, showZeroStock]);
+
+  const isLoading = productsQuery.isLoading || locationStocksQuery.isLoading || categoriesQuery.isLoading;
 
   return (
     <main className="document-prototype-column">
@@ -63,7 +103,7 @@ export function WarehouseDetailsPage() {
 
       {selectedCategoryId === null ? (
         <FormSection title="أقسام المخزن">
-          {categoriesQuery.isLoading ? (
+          {isLoading ? (
             <div className="muted small" style={{ padding: 20, textAlign: 'center' }}>جاري التحميل...</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', padding: '16px' }}>
@@ -169,8 +209,8 @@ export function WarehouseDetailsPage() {
           )}
         </FormSection>
       ) : (
-        <FormSection title={`الأصناف - ${selectedCategoryId === 'all' ? 'كل الأقسام' : categoriesQuery.data?.find((c: any) => c.id === selectedCategoryId)?.name}`} actions={<button type="button" className="secondary-button" onClick={() => setSelectedCategoryId(null)}>العودة للأقسام</button>}>
-          {productsQuery.isLoading ? (
+        <FormSection title={`الأصناف - ${selectedCategoryId === 'all' ? 'كل الأقسام' : visibleCategories.find((c: any) => c.id === String(selectedCategoryId))?.name}`} actions={<button type="button" className="secondary-button" onClick={() => setSelectedCategoryId(null)}>العودة للأقسام</button>}>
+          {isLoading ? (
             <div className="muted small" style={{ padding: 20, textAlign: 'center' }}>جاري التحميل...</div>
           ) : (
             <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
