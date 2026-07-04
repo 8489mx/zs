@@ -1,5 +1,5 @@
 export function resolveSuggestedReceivingLocation(
-  product: { id: string | number; defaultLocationId?: string | number | null; type?: 'stock' | 'service' },
+  product: { id: string | number; defaultLocationId?: string | number | null; type?: 'stock' | 'service'; activeLocationIds?: string[] | number[] },
   locationStocks: { locationId: string | number; productId: string | number; qty: number }[],
   locations: { id: string | number; name: string }[]
 ) {
@@ -43,6 +43,13 @@ export function resolveSuggestedReceivingLocation(
     if (loc) return { warehouseId: defaultLocId, warehouse: loc.name };
   }
 
-  // If no stock and no default location, leave it empty for manual selection
+  // If no stock and no default location, check activeLocationIds for a single location
+  if (product.activeLocationIds && product.activeLocationIds.length === 1) {
+    const locId = String(product.activeLocationIds[0]);
+    const loc = locations.find((l) => String(l.id) === locId);
+    if (loc) return { warehouseId: locId, warehouse: loc.name };
+  }
+
+  // If no stock, no default location, and no single active location, leave it empty for manual selection
   return { warehouseId: undefined, warehouse: '' };
 }

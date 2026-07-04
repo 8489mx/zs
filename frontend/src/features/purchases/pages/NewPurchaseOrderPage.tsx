@@ -18,6 +18,7 @@ import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { useTranslation } from '../utils/i18n-purchase-prototype';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { resolveSuggestedReceivingLocation } from '../utils/purchases.utils';
+import { PurchaseProductQuickCreateModal } from '../components/PurchaseProductQuickCreateModal';
 
 type PrototypeLine = {
   id: number;
@@ -75,6 +76,10 @@ type ProductOption = {
   category?: string;
   categoryId?: string;
   type: 'stock' | 'service';
+  defaultLocationId?: string;
+  defaultLocationName?: string;
+  activeLocationIds?: string[];
+  costPrice?: number;
 }
 
 type CategoryOption = {
@@ -629,6 +634,7 @@ export function NewPurchaseOrderPage() {
   const [pendingFocusQtyLineId, setPendingFocusQtyLineId] = useState<number | null>(null);
 
   const [quickCreateState, setQuickCreateState] = useState<QuickCreateState>(null);
+  const [productCreateModalState, setProductCreateModalState] = useState<{isOpen: boolean, query: string, barcode: string, lineId: number | null}>({ isOpen: false, query: '', barcode: '', lineId: null });
   const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
   const [barcodeScanQuery, setBarcodeScanQuery] = useState('');
   const navigate = useNavigate();
@@ -679,7 +685,11 @@ export function NewPurchaseOrderPage() {
           warehouseId: p.defaultLocationId ? String(p.defaultLocationId) : undefined,
           category: cat ? cat.name : '',
           categoryId: p.categoryId ? String(p.categoryId) : undefined,
-          type: p.itemKind === 'service' ? 'service' : 'stock'
+          type: p.itemKind === 'service' ? 'service' : 'stock',
+          defaultLocationId: p.defaultLocationId ? String(p.defaultLocationId) : undefined,
+          defaultLocationName: p.defaultLocationName || loc?.name,
+          activeLocationIds: Array.isArray(p.activeLocationIds) ? p.activeLocationIds.map(String) : [],
+          costPrice: p.costPrice
         };
       }));
     }
@@ -1047,13 +1057,17 @@ export function NewPurchaseOrderPage() {
           englishName: p.englishName,
           categoryId: p.categoryId?.toString(),
           category: cat?.name || '',
-          type: p.productType === 'service' ? 'service' : 'stock',
-          price: p.purchasePrice ?? 0,
+          type: p.productType === 'service' || p.itemKind === 'service' ? 'service' : 'stock',
+          price: p.purchasePrice ?? p.costPrice ?? 0,
           warehouseId: p.defaultLocationId?.toString(),
-          warehouse: loc?.name || '',
+          warehouse: loc?.name || p.defaultLocationName || '',
           sku: p.sku || '',
           barcode: p.barcode || '',
-          code: p.sku || p.barcode || `PRD-${p.id}`
+          code: p.sku || p.barcode || `PRD-${p.id}`,
+          defaultLocationId: p.defaultLocationId?.toString(),
+          defaultLocationName: p.defaultLocationName || loc?.name,
+          activeLocationIds: Array.isArray(p.activeLocationIds) ? p.activeLocationIds.map(String) : [],
+          costPrice: p.costPrice
         };
       }) as ProductOption[];
 
@@ -1081,7 +1095,12 @@ export function NewPurchaseOrderPage() {
     }
 
     const suggestedLocation = resolveSuggestedReceivingLocation(
-      { id: option.id, defaultLocationId: option.warehouseId, type: option.type },
+      { 
+        id: option.id, 
+        defaultLocationId: option.defaultLocationId || option.warehouseId, 
+        type: option.type,
+        activeLocationIds: option.activeLocationIds 
+      },
       catalog.locationStocksQuery.data || [],
       catalog.locationsQuery.data || []
     );
@@ -1120,7 +1139,12 @@ export function NewPurchaseOrderPage() {
     }
 
     const suggestedLocation = resolveSuggestedReceivingLocation(
-      { id: option.id, defaultLocationId: option.warehouseId, type: option.type },
+      { 
+        id: option.id, 
+        defaultLocationId: option.defaultLocationId || option.warehouseId, 
+        type: option.type,
+        activeLocationIds: option.activeLocationIds 
+      },
       catalog.locationStocksQuery.data || [],
       catalog.locationsQuery.data || []
     );
@@ -1171,7 +1195,12 @@ export function NewPurchaseOrderPage() {
     }
 
     const suggestedLocation = resolveSuggestedReceivingLocation(
-      { id: matchedProduct.id, defaultLocationId: matchedProduct.warehouseId, type: matchedProduct.type },
+      { 
+        id: matchedProduct.id, 
+        defaultLocationId: matchedProduct.defaultLocationId || matchedProduct.warehouseId, 
+        type: matchedProduct.type,
+        activeLocationIds: matchedProduct.activeLocationIds 
+      },
       catalog.locationStocksQuery.data || [],
       catalog.locationsQuery.data || []
     );
@@ -1330,12 +1359,29 @@ export function NewPurchaseOrderPage() {
   };
 
   const openQuickCreate = (kind: Exclude<QuickCreateState, null>['kind'], query: string, lineId: number | null = null) => {
+    if (kind === 'product') {
+      setProductCreateModalState({ isOpen: true, query, barcode: '', lineId });
+      return;
+    }
     setQuickCreateState({ kind, query, lineId } as QuickCreateState);
   };
 
   const openProductQuickCreateFromBarcode = (barcode: string) => {
     setBarcodeScanOpen(false);
-    setQuickCreateState({ kind: 'product', query: '', lineId: null, barcode } as QuickCreateState);
+    setProductCreateModalState({ isOpen: true, query: '', barcode, lineId: null });
+  };
+
+  const handleProductCreateSuccess = (product: any) => {
+    setProductCreateModalState(prev => ({ ...prev, isOpen: false }));
+    if (productCreateModalState.lineId !== null) {
+      handleProductSelect(productCreateModalState.lineId, product as ProductOption);
+    } else {
+      addProductAsLine(product as ProductOption);
+    }
+  };
+
+  const closeProductCreateModal = () => {
+    setProductCreateModalState(prev => ({ ...prev, isOpen: false }));
   };
 
   const handleBarcodeScanSubmit = (barcode: string) => {
@@ -2352,6 +2398,16 @@ export function NewPurchaseOrderPage() {
         onClose={() => setBarcodeScanOpen(false)}
         onScan={handleBarcodeScanSubmit}
         onOpenQuickCreate={openProductQuickCreateFromBarcode}
+      />
+      <PurchaseProductQuickCreateModal
+        isOpen={productCreateModalState.isOpen}
+        initialName={productCreateModalState.query}
+        initialBarcode={productCreateModalState.barcode}
+        onClose={closeProductCreateModal}
+        onSuccess={handleProductCreateSuccess}
+        categories={categories.map(c => ({ id: c.id, name: c.name }))}
+        suppliers={suppliers.map(s => ({ id: s.id, name: s.name }))}
+        warehouses={warehouses.map(w => ({ id: w.id, name: w.name }))}
       />
       <QuickCreateDialog state={quickCreateState} onCancel={closeQuickCreate} onSubmit={handleQuickCreateSubmit} />
     </div>
