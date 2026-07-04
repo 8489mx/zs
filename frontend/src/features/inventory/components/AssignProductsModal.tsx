@@ -6,17 +6,18 @@ import { inventoryApi } from '@/features/inventory/api/inventory.api';
 
 interface AssignProductsModalProps {
   locationId: number;
+  locationName?: string;
   onClose: () => void;
 }
 
-export function AssignProductsModal({ locationId, onClose }: AssignProductsModalProps) {
+export function AssignProductsModal({ locationId, locationName, onClose }: AssignProductsModalProps) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(new Set());
 
   const catalogQuery = useQuery({
     queryKey: ['catalogProducts'],
-    queryFn: () => catalogApi.products(),
+    queryFn: () => inventoryApi.products(),
   });
 
   const locationProductsQuery = useQuery({
@@ -30,6 +31,10 @@ export function AssignProductsModal({ locationId, onClose }: AssignProductsModal
       queryClient.invalidateQueries({ queryKey: ['locationCategoryProducts', locationId] });
       queryClient.invalidateQueries({ queryKey: ['locationCategories', locationId] });
       onClose();
+    },
+    onError: (err: any) => {
+      console.error('Assign error:', err);
+      alert(err?.message || 'حدث خطأ أثناء الإضافة للمخزن');
     }
   });
 
@@ -85,7 +90,7 @@ export function AssignProductsModal({ locationId, onClose }: AssignProductsModal
         dir="rtl"
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>إضافة أصناف للمخزن</h2>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>إضافة أصناف لمخزن {locationName ? `(${locationName})` : ''}</h2>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>&times;</button>
         </div>
 

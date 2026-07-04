@@ -212,19 +212,32 @@ export class InventoryScopeService {
     const tenantId = this.tenantId(auth);
     if (!productIds || productIds.length === 0) return { success: true };
 
-    const location = await this.db.selectFrom('stock_locations').select('branch_id').where('id', '=', locationId).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
-    if (!location) throw new AppError('Location not found', 'NOT_FOUND', 404);
+    await this.db.transaction().execute(async trx => {
+      const location = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', locationId).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
+      if (!location) throw new AppError('Location not found', 'NOT_FOUND', 404);
 
-    await this.db.insertInto('product_location_stock')
-      .values(productIds.map(pid => ({
-        product_id: pid,
-        location_id: locationId,
-        branch_id: location.branch_id || null,
-        qty: 0,
-        tenant_id: tenantId,
-      } as any)))
-      .onConflict(oc => oc.columns(['product_id', 'location_id']).where('location_id', 'is not', null).doNothing())
-      .execute();
+      // Find existing ones
+      const existing = await trx.selectFrom('product_location_stock')
+        .select('product_id')
+        .where('location_id', '=', locationId)
+        .where('product_id', 'in', productIds)
+        .execute();
+      
+      const existingIds = new Set(existing.map(e => e.product_id));
+      const toInsert = productIds.filter(id => !existingIds.has(id));
+
+      if (toInsert.length > 0) {
+        await trx.insertInto('product_location_stock')
+          .values(toInsert.map(pid => ({
+            product_id: pid,
+            location_id: locationId,
+            branch_id: location.branch_id || null,
+            qty: 0,
+            tenant_id: tenantId,
+          } as any)))
+          .execute();
+      }
+    });
 
     return { success: true };
   }

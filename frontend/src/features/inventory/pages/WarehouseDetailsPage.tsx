@@ -58,7 +58,7 @@ export function WarehouseDetailsPage() {
       />
 
       {isAssignModalOpen && (
-        <AssignProductsModal locationId={locationId} onClose={() => setIsAssignModalOpen(false)} />
+        <AssignProductsModal locationId={locationId} locationName={location?.name} onClose={() => setIsAssignModalOpen(false)} />
       )}
 
       {selectedCategoryId === null ? (
