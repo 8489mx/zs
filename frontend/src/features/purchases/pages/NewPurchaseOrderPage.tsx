@@ -1105,6 +1105,19 @@ export function NewPurchaseOrderPage() {
       catalog.locationsQuery.data || []
     );
 
+    console.log('--- DEBUG: Product Selection in NewPurchaseOrderPage ---');
+    console.log({
+      'product.id': option.id,
+      'product.name': option.name,
+      'stock': (catalog.locationStocksQuery.data || []).filter(ls => String(ls.productId) === String(option.id)).reduce((sum, ls) => sum + ls.qty, 0),
+      'defaultLocationId': option.defaultLocationId,
+      'defaultLocationName': option.defaultLocationName,
+      'activeLocationIds': option.activeLocationIds,
+      'locationStocks': (catalog.locationStocksQuery.data || []).filter(ls => String(ls.productId) === String(option.id)),
+      'warehouseId': suggestedLocation.warehouseId,
+      'warehouse': suggestedLocation.warehouse
+    });
+
     setLines((current) =>
       current.map((line) => {
         if (line.id !== lineId) {

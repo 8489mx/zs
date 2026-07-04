@@ -1,5 +1,6 @@
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
+import { getProductLocationDisplayName } from './product-location.utils';
 
 export function matchProductSearch(product: Product, search: string, categoryName = '', supplierName = '') {
   const q = search.trim().toLowerCase();
@@ -39,7 +40,7 @@ export function getProductColumns(categoryNames: Record<string, string>, supplie
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <div>{categoryNames[product.categoryId] || '—'}</div>
           <div className="muted small" title="المورد">{supplierNames[product.supplierId] || '—'}</div>
-          <div className="muted small text-primary" title="المخزن الافتراضي">{locationNames[product.defaultLocationId as any] || 'الرئيسي'}</div>
+          <div className="muted small text-primary" title="المخزن الافتراضي">{getProductLocationDisplayName(product, locationNames)}</div>
         </div>
       )
     },

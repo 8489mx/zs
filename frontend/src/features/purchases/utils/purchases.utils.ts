@@ -7,7 +7,7 @@ export function resolveSuggestedReceivingLocation(
     return { warehouseId: undefined, warehouse: 'لا يؤثر على المخزون' };
   }
 
-  // Find all stock entries for this product that have > 0 qty
+  // Rule 1: Find all stock entries for this product that have > 0 qty
   const productStocks = locationStocks.filter((ls) => String(ls.productId) === String(product.id) && ls.qty > 0);
 
   // If there's only one location with stock, use it
@@ -17,39 +17,30 @@ export function resolveSuggestedReceivingLocation(
     if (loc) return { warehouseId: locId, warehouse: loc.name };
   }
 
-  // If multiple locations have stock
+  // If multiple locations have stock > 0, it should request manual selection (return undefined)
   if (productStocks.length > 1) {
-    const defaultLocId = product.defaultLocationId ? String(product.defaultLocationId) : null;
-    if (defaultLocId) {
-      // Check if default location is among the stocked ones
-      const hasStockInDefault = productStocks.some((ls) => String(ls.locationId) === defaultLocId);
-      if (hasStockInDefault) {
-        const loc = locations.find((l) => String(l.id) === defaultLocId);
-        if (loc) return { warehouseId: defaultLocId, warehouse: loc.name };
-      }
-    }
-
-    // Otherwise, pick the one with the highest stock
-    const highestStock = [...productStocks].sort((a, b) => b.qty - a.qty)[0];
-    const locId = String(highestStock.locationId);
-    const loc = locations.find((l) => String(l.id) === locId);
-    if (loc) return { warehouseId: locId, warehouse: loc.name };
+    return { warehouseId: undefined, warehouse: 'متعدد المخازن' };
   }
 
-  // If no actual stock exists, use defaultLocationId if provided
+  // Rule 2: If stock is 0, use defaultLocationId if provided
   if (product.defaultLocationId) {
     const defaultLocId = String(product.defaultLocationId);
     const loc = locations.find((l) => String(l.id) === defaultLocId);
     if (loc) return { warehouseId: defaultLocId, warehouse: loc.name };
   }
 
-  // If no stock and no default location, check activeLocationIds for a single location
+  // Rule 3: If no default location, check activeLocationIds for a single location
   if (product.activeLocationIds && product.activeLocationIds.length === 1) {
     const locId = String(product.activeLocationIds[0]);
     const loc = locations.find((l) => String(l.id) === locId);
     if (loc) return { warehouseId: locId, warehouse: loc.name };
   }
 
-  // If no stock, no default location, and no single active location, leave it empty for manual selection
-  return { warehouseId: undefined, warehouse: '' };
+  // Rule 4: If activeLocationIds has multiple, request manual selection
+  if (product.activeLocationIds && product.activeLocationIds.length > 1) {
+    return { warehouseId: undefined, warehouse: 'متعدد المخازن' };
+  }
+
+  // Rule 5: If no default location and no active locations, it's undefined
+  return { warehouseId: undefined, warehouse: 'غير محدد' };
 }

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useState, useMemo, useEffect } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -7,7 +7,9 @@ import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
 
-interface ProductsTableCardProps {
+import { getProductLocationDisplayName } from '../utils/product-location.utils';
+
+export interface ProductsTableCardProps {
   search: string;
   onSearchChange: (value: string) => void;
   viewFilter: 'all' | 'low' | 'out' | 'offers' | 'special';
@@ -88,6 +90,23 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   const totalPages = Math.max(1, Math.ceil((props.totalItems || 0) / props.pageSize));
   const rangeStart = props.totalItems ? ((props.page - 1) * props.pageSize) + 1 : 0;
   const rangeEnd = Math.min(props.page * props.pageSize, props.totalItems || 0);
+
+  useEffect(() => {
+    const zeroStock = props.visibleProducts.filter(p => !p.stock || p.stock === 0);
+    if (zeroStock.length) {
+      console.log('--- DEBUG: Zero Stock Products in ProductsTableCard ---');
+      zeroStock.slice(0, 3).forEach(p => {
+        console.log({
+          id: p.id,
+          name: p.name,
+          stock: p.stock,
+          defaultLocationId: p.defaultLocationId,
+          activeLocationIds: p.activeLocationIds,
+          defaultLocationName: (p as any).defaultLocationName
+        });
+      });
+    }
+  }, [props.visibleProducts]);
 
   function toggleExpand(key: string) {
     setExpandedKeys((current) => current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key]);
@@ -173,9 +192,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
 
                 if (!group.grouped) {
                   const product = group.representative;
-                  const activeLocationNames = product.activeLocationIds && product.activeLocationIds.length > 0 
-                    ? product.activeLocationIds.map(id => props.locationNames[id]).filter(Boolean).join(' ، ')
-                    : undefined;
+                  const activeLocationNames = getProductLocationDisplayName(product, props.locationNames);
 
                   return (
                     <tr key={group.key} className={props.selectedProduct?.id === product.id ? 'table-row-selected' : undefined} onClick={() => props.onSelectProduct(product)}>
@@ -194,7 +211,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
                           <div className="muted small" title="المورد">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
-                          <div className="muted small text-primary" title="أماكن التواجد">{activeLocationNames || props.locationNames[product.defaultLocationId as any] || 'غير محدد'}</div>
+                          <div className="muted small text-primary" title="أماكن التواجد">{activeLocationNames}</div>
                         </div>
                       </td>
                       <td>
@@ -221,9 +238,10 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 }
 
                 const groupActiveLocationIds = Array.from(new Set(group.children.flatMap(p => p.activeLocationIds || [])));
-                const groupActiveLocationNames = groupActiveLocationIds.length > 0 
-                  ? groupActiveLocationIds.map(id => props.locationNames[id]).filter(Boolean).join(' ، ')
-                  : undefined;
+                const groupActiveLocationNames = getProductLocationDisplayName(
+                  { ...group.representative, activeLocationIds: groupActiveLocationIds },
+                  props.locationNames
+                );
 
                 return (
                   <Fragment key={group.key}>
@@ -252,7 +270,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[group.representative.categoryId] || 'عام'}</div>
                           <div className="muted small" title="المورد">{props.supplierNames[group.representative.supplierId] || 'بدون مورد'}</div>
-                          <div className="muted small text-primary" title="أماكن التواجد">{groupActiveLocationNames || props.locationNames[group.representative.defaultLocationId as any] || 'غير محدد'}</div>
+                          <div className="muted small text-primary" title="أماكن التواجد">{groupActiveLocationNames}</div>
                         </div>
                       </td>
                       <td>
@@ -296,7 +314,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <div style={{ lineHeight: 1.4 }}>
                             <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
                             <div className="muted small" title="المورد">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
-                            <div className="muted small text-primary" title="أماكن التواجد">{product.activeLocationIds && product.activeLocationIds.length > 0 ? product.activeLocationIds.map(id => props.locationNames[id]).filter(Boolean).join(' ، ') : (props.locationNames[product.defaultLocationId as any] || 'غير محدد')}</div>
+                            <div className="muted small text-primary" title="أماكن التواجد">{getProductLocationDisplayName(product, props.locationNames)}</div>
                           </div>
                         </td>
                         <td>

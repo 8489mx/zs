@@ -128,6 +128,8 @@ export function PurchaseProductQuickCreateModal({
         result ||
         {};
 
+      const selectedWarehouseName = warehouses?.find(w => String(w.id) === String(payload.warehouseId))?.name || '';
+
       onSuccess({
         id: (createdObj.id ?? createdObj.data?.id)?.toString() || Date.now().toString(),
         name: trimmedName,
@@ -136,6 +138,8 @@ export function PurchaseProductQuickCreateModal({
         costPrice: payload.costPrice,
         categoryId: payload.categoryId,
         defaultLocationId: payload.warehouseId,
+        defaultLocationName: selectedWarehouseName,
+        activeLocationIds: payload.warehouseId ? [String(payload.warehouseId)] : [],
         type: 'stock'
       });
     } catch (err) {

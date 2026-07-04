@@ -516,7 +516,7 @@ export class CatalogProductService {
       .selectFrom('product_location_stock as pls')
       .select(['pls.product_id', 'pls.location_id', 'pls.qty'])
       .where('pls.product_id', 'in', productIds)
-      .where((eb) => scopedLocationId ? eb.or([eb('pls.location_id', '=', scopedLocationId), eb('pls.location_id', 'is', null)]) : eb('pls.qty', '>', 0))
+      .where((eb) => scopedLocationId ? eb.or([eb('pls.location_id', '=', scopedLocationId), eb('pls.location_id', 'is', null)]) : eb('pls.qty', '>=', 0))
       .where(this.tenantPredicate(actor, 'pls'))
       .execute();
 
@@ -527,7 +527,7 @@ export class CatalogProductService {
       const qty = Number(row.qty || 0);
       
       if (!activeLocationsByProduct.has(key)) activeLocationsByProduct.set(key, []);
-      if (row.location_id && qty > 0) activeLocationsByProduct.get(key)!.push(row.location_id);
+      if (row.location_id) activeLocationsByProduct.get(key)!.push(row.location_id);
 
       if (row.location_id == null) unassignedQtyByProduct.set(key, qty);
       if (scopedLocationId && Number(row.location_id || 0) === scopedLocationId) locationQtyByProduct.set(key, qty);

@@ -753,7 +753,7 @@ export function InventoryTreePage() {
   const [search, setSearch] = useState('');
   const [filterLocationId, setFilterLocationId] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('default');
-  const [showOnlyWithStock, setShowOnlyWithStock] = useState(false);
+  const [showOnlyWithStock, setShowOnlyWithStock] = useState(true);
   const [showUnassigned, setShowUnassigned] = useState(false);
 
   // Selection
@@ -806,21 +806,43 @@ export function InventoryTreePage() {
 
   const filteredRows = useMemo(() => {
     let rows = productRows;
+
+    // ── text search ────────────────────────────────────────────────────────────
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       rows = rows.filter((p) => p.name.toLowerCase().includes(q) || p.barcode.toLowerCase().includes(q));
     }
+
     if (showUnassigned) {
       rows = rows.filter((p) => p.isUnassigned);
     } else {
-      if (showOnlyWithStock) {
-        rows = rows.filter((p) => p.totalQty > 0);
+      if (filterLocationId) {
+        // ── location filter: keep products that exist in this location ──────────
+        // Helper: effective qty for a product in the selected location
+        const locationQty = (p: ProductRow) =>
+          p.locationStocks.find((s) => s.locationId === filterLocationId)?.qty ?? 0;
+
+        // Keep only products that have a stock record in this location
+        rows = rows.filter((p) => p.locationStocks.some((s) => s.locationId === filterLocationId));
+
+        // When "show only with stock" is on, further filter by location qty > 0
+        if (showOnlyWithStock) {
+          rows = rows.filter((p) => locationQty(p) > 0);
+        }
+
+        // Sort by location qty
+        if (sortMode === 'qtyDesc') rows = [...rows].sort((a, b) => locationQty(b) - locationQty(a));
+        else if (sortMode === 'qtyAsc') rows = [...rows].sort((a, b) => locationQty(a) - locationQty(b));
       } else {
-        if (filterLocationId) rows = rows.filter((p) => p.locationStocks.some((s) => s.locationId === filterLocationId));
+        // ── no location filter: use global totalQty ────────────────────────────
+        if (showOnlyWithStock) {
+          rows = rows.filter((p) => p.totalQty > 0);
+        }
+        if (sortMode === 'qtyDesc') rows = [...rows].sort((a, b) => b.totalQty - a.totalQty);
+        else if (sortMode === 'qtyAsc') rows = [...rows].sort((a, b) => a.totalQty - b.totalQty);
       }
     }
-    if (sortMode === 'qtyDesc') rows = [...rows].sort((a, b) => b.totalQty - a.totalQty);
-    else if (sortMode === 'qtyAsc') rows = [...rows].sort((a, b) => a.totalQty - b.totalQty);
+
     return rows;
   }, [productRows, search, showOnlyWithStock, showUnassigned, filterLocationId, sortMode]);
 
@@ -853,9 +875,10 @@ export function InventoryTreePage() {
   const selectedProducts = useMemo(() => productRows.filter((p) => selectedIds.has(p.id)), [productRows, selectedIds]);
 
   const handleDone = useCallback(() => {
-    queryClient.refetchQueries({ queryKey: ['locationStocks'] });
-    queryClient.refetchQueries({ queryKey: ['catalogProducts'] });
-    queryClient.refetchQueries({ queryKey: ['inventory'] });
+    queryClient.invalidateQueries({ queryKey: ['location-stocks'] });
+    queryClient.invalidateQueries({ queryKey: ['catalogProducts'] });
+    queryClient.invalidateQueries({ queryKey: ['locations'] });
+    queryClient.invalidateQueries({ queryKey: ['catalogCategories'] });
     setActiveModal(null);
     setModalProducts([]);
     setCategoryTransferData(null);
@@ -865,11 +888,11 @@ export function InventoryTreePage() {
   const handleRemoveLocation = async (productId: string, locationId: string) => {
     try {
       await inventoryApi.removeProductFromLocation(Number(locationId), Number(productId));
-      await queryClient.refetchQueries({ queryKey: ['locationStocks'] });
+      await queryClient.invalidateQueries({ queryKey: ['location-stocks'] });
     } catch (e: any) {
       if (e?.status === 404) {
         // If it's already deleted in the backend but stuck in UI cache, force refetch
-        await queryClient.refetchQueries({ queryKey: ['locationStocks'] });
+        await queryClient.invalidateQueries({ queryKey: ['location-stocks'] });
       } else {
         alert(e?.message || 'حدث خطأ غير متوقع');
       }
