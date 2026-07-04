@@ -30,6 +30,10 @@ export class InventoryService {
     return this.scopeService.getLocationCategoryProducts(locationId, categoryId, auth);
   }
 
+  assignProductsToLocation(locationId: number, productIds: number[], auth: AuthContext): Promise<{ success: boolean }> {
+    return this.scopeService.assignProductsToLocation(locationId, productIds, auth);
+  }
+
   getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {
     return this.scopeService.getAllLocationStocks(auth);
   }

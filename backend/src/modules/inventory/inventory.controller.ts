@@ -44,6 +44,15 @@ export class InventoryController {
     return this.inventoryService.getLocationCategoryProducts(id, parsedCategoryId, req.authContext!);
   }
 
+  @Post('locations/:id/assign-products')
+  assignProductsToLocation(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { productIds: number[] },
+    @Req() req: RequestWithAuth
+  ): Promise<{ success: boolean }> {
+    return this.inventoryService.assignProductsToLocation(id, body.productIds || [], req.authContext!);
+  }
+
   @Get('stock-transfers')
   listTransfers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.listStockTransfers(query, req.authContext!);

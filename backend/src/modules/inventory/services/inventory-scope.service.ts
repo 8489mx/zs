@@ -112,18 +112,27 @@ export class InventoryScopeService {
     const tenantId = this.tenantId(auth);
     const rows = await this.db
       .selectFrom('product_categories as c')
-      .innerJoin('products as p', 'p.category_id', 'c.id')
-      .innerJoin('product_location_stock as s', 's.product_id', 'p.id')
-      .select(['c.id', 'c.name'])
-      .where('s.location_id', '=', locationId)
-      .where('p.is_active', '=', true)
+      .leftJoin('products as p', 'p.category_id', 'c.id')
+      .leftJoin('product_location_stock as s', join => join.onRef('s.product_id', '=', 'p.id').on('s.location_id', '=', locationId))
+      .select([
+        'c.id', 
+        'c.name',
+        sql<number>`COUNT(s.product_id)`.as('assignedProductCount'),
+        sql<number>`SUM(CASE WHEN s.qty > 0 THEN 1 ELSE 0 END)`.as('positiveStockProductCount')
+      ])
+      .where('c.is_active', '=', true)
       .where(sql<boolean>`c.tenant_id = ${tenantId}`)
-      .distinct()
+      .groupBy(['c.id', 'c.name'])
       .orderBy('c.name')
       .execute();
       
     return {
-      categories: rows.map(r => ({ id: String(r.id), name: r.name || '' }))
+      categories: rows.map(r => ({ 
+        id: String(r.id), 
+        name: r.name || '',
+        assignedProductCount: Number(r.assignedProductCount) || 0,
+        positiveStockProductCount: Number(r.positiveStockProductCount) || 0
+      }))
     };
   }
 
@@ -197,5 +206,25 @@ export class InventoryScopeService {
     });
     
     return { locations: overview };
+  }
+  async assignProductsToLocation(locationId: number, productIds: number[], auth: AuthContext): Promise<{ success: boolean }> {
+    const tenantId = this.tenantId(auth);
+    if (!productIds || productIds.length === 0) return { success: true };
+
+    const location = await this.db.selectFrom('stock_locations').select('branch_id').where('id', '=', locationId).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
+    if (!location) throw new AppError('Location not found', 'NOT_FOUND', 404);
+
+    await this.db.insertInto('product_location_stock')
+      .values(productIds.map(pid => ({
+        product_id: pid,
+        location_id: locationId,
+        branch_id: location.branch_id || null,
+        qty: 0,
+        tenant_id: tenantId,
+      } as any)))
+      .onConflict(oc => oc.columns(['product_id', 'location_id']).where('location_id', 'is not', null).doNothing())
+      .execute();
+
+    return { success: true };
   }
 }

@@ -68,6 +68,7 @@ export const inventoryApi = {
   locationStocks: async () => unwrapArray<{ productId: string; locationId: string; qty: number }>(await http<{ stocks: { productId: string; locationId: string; qty: number }[] }>('/api/location-stocks'), 'stocks'),
   locationCategories: async (locationId: number) => unwrapArray<{ id: string; name: string }>(await http<{ categories: { id: string; name: string }[] }>(`/api/locations/${locationId}/categories`), 'categories'),
   locationCategoryProducts: async (locationId: number, categoryId: string | number) => unwrapArray<{ id: string; name: string; barcode: string; stockQty: number }>(await http<{ products: { id: string; name: string; barcode: string; stockQty: number }[] }>(`/api/locations/${locationId}/categories/${categoryId}/products`), 'products'),
+  assignProductsToLocation: async (locationId: number, productIds: number[]) => await http<{ success: boolean }>(`/api/locations/${locationId}/assign-products`, { method: 'POST', body: JSON.stringify({ productIds }) }),
   createAdjustment: (payload: unknown) => http('/api/inventory-adjustments', { method: 'POST', body: JSON.stringify(payload) }),
   createDamaged: (payload: unknown) => http('/api/damaged-stock', { method: 'POST', body: JSON.stringify(payload) }),
   stockTransfers: async () => unwrapArray<StockTransfer>(await http<StockTransfer[] | { stockTransfers: StockTransfer[] }>('/api/stock-transfers'), 'stockTransfers'),
