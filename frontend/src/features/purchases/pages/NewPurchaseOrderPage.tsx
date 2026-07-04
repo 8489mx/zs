@@ -925,19 +925,7 @@ export function NewPurchaseOrderPage() {
   const tax = useMemo(() => (taxableBase * taxRate) / 100, [taxableBase, taxRate]);
   const total = taxableBase + tax;
 
-  const selectedSupplierStats = useMemo(() => {
-    if (!supplier) return { ordersCount: 0, balance: 0 };
-    
-    const matchedSupplier = suppliers.find(s => s.name === supplier);
-    const balance = matchedSupplier?.balance || 0;
-    
-    const rawPurchases = (catalog.purchasesQuery?.data as any)?.rows || catalog.purchasesQuery?.data || [];
-    const ordersCount = Array.isArray(rawPurchases) 
-      ? rawPurchases.filter((p: any) => p.supplier?.name === supplier || p.supplierName === supplier).length
-      : 0;
 
-    return { ordersCount, balance };
-  }, [supplier, suppliers, catalog.purchasesQuery?.data]);
 
   const addLine = () => {
     const newLineId = Date.now();
@@ -1804,12 +1792,12 @@ export function NewPurchaseOrderPage() {
           
           <div className="document-smart-buttons-box">
              <button className="document-smart-button">
-               <span className="document-smart-button-value">{selectedSupplierStats.ordersCount}</span>
-               <span className="document-smart-button-label">{t('previous_orders')}</span>
+               <span className="document-smart-button-value">{formatMoney(total, language)}</span>
+               <span className="document-smart-button-label">الإجمالي</span>
              </button>
              <button className="document-smart-button">
-               <span className="document-smart-button-value">{formatMoney(selectedSupplierStats.balance, language)}</span>
-               <span className="document-smart-button-label">{t('credit_balance')}</span>
+               <span className="document-smart-button-value">{attachments.length || 0}</span>
+               <span className="document-smart-button-label">أوامر مرفقة</span>
              </button>
           </div>
           <div className="document-prototype-topbar-actions">
@@ -1973,6 +1961,10 @@ export function NewPurchaseOrderPage() {
               dropdownClassName={purchaseDropdownClassName}
             />
           </div>
+          
+        </section>
+        <section className="document-prototype-section">
+          <h3 className="document-prototype-section-title">الشحن والاستلام</h3>
           <div className="document-prototype-grid compact-grid-1">
             <SearchableCombobox
               label={t("shipping_address") || "وجهة الاستلام (المخزن أو الفرع)"}
@@ -1998,10 +1990,9 @@ export function NewPurchaseOrderPage() {
             />
           </div>
         </section>
-
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">{t('attach_docs')}</h3>
-          <label className="document-prototype-upload" style={{ display: 'flex', cursor: 'pointer' }}>
+          <label className="document-prototype-upload" style={{ display: 'flex', cursor: 'pointer', padding: '12px' }}>
             <input type="file" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
             <span aria-hidden="true" className="document-prototype-upload-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -2012,20 +2003,19 @@ export function NewPurchaseOrderPage() {
           </label>
           
           {attachments.length > 0 && (
-            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {attachments.map((att, index) => (
                 <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', border: '1px solid var(--border-light)', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '13px' }}>{att.fileName}</span>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{(att.fileSize / 1024).toFixed(1)} KB</span>
                   </div>
-                  <button type="button" onClick={() => handleRemoveAttachment(index)} style={{ color: 'var(--danger-color)', background: 'none', border: 'none', cursor: 'pointer' }}>حذف</button>
+                  <button type="button" onClick={() => handleRemoveAttachment(index)} style={{ color: 'var(--danger-color)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}>حذف</button>
                 </div>
               ))}
             </div>
           )}
         </section>
-
         <section className="document-prototype-section">
           <div className="document-prototype-section-header">
             <h3 className="document-prototype-section-title">{t('items_section')}</h3>
@@ -2128,13 +2118,13 @@ export function NewPurchaseOrderPage() {
             <table className="document-line-items-table">
               <thead>
                 <tr>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-product">{t("item_label")}</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse">المخزن</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-qty">{t('quantity')}</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-price">{t('price_title')}</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-category">القسم</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-amount">{t('total_amount')}</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-actions"></th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '35%' }}>{t("item_label")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%' }}>القسم</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%' }}>المخزن</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%' }}>{t('quantity')}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%' }}>{t('price_title')}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '10%' }}>{t('total_amount')}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-actions" style={{ width: '5%' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -2183,6 +2173,33 @@ export function NewPurchaseOrderPage() {
                           dropdownClassName={purchaseDropdownClassName}
                         />
                       </td>
+                      <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category">
+                        {line.isService ? (
+                          <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
+                        ) : (
+                          <SearchableCombobox
+                            inline
+                            className="purchase-prototype-inline-combobox"
+                            inputId={`category-input-${line.id}`}
+                            inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                            placeholder="ابحث عن قسم..."
+                            value={line.category || ''}
+                            onChange={(value) => {
+                              markDocumentDirty();
+                              setLineError(line.id, 'category' as any, undefined);
+                              updateLine(line.id, 'category', value);
+                            }}
+                            options={categories}
+                            search={searchCategory}
+                            getLabel={(option) => option.name}
+                            getMeta={(option) => option.code}
+                            onSelect={(option) => handleCategorySelect(line.id, option)}
+                            onCreate={(query) => openQuickCreate('category', query, line.id)}
+                            createLabel={(query) => `+ إنشاء قسم جديد "${query}"`}
+                            dropdownClassName={purchaseDropdownClassName}
+                          />
+                        )}
+                      </td>
                       <td className="purchase-prototype-table-cell purchase-prototype-table-cell-warehouse">
                         {line.isService ? (
                           <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
@@ -2223,33 +2240,6 @@ export function NewPurchaseOrderPage() {
                         const parsed = parseLocalizedNumber(event.target.value);
                         updateLine(line.id, 'unitPrice', Number.isFinite(parsed) ? parsed : 0);
                       }} /></td>
-                      <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category">
-                        {line.isService ? (
-                          <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
-                        ) : (
-                          <SearchableCombobox
-                            inline
-                            className="purchase-prototype-inline-combobox"
-                            inputId={`category-input-${line.id}`}
-                            inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                            placeholder="ابحث عن قسم..."
-                            value={line.category || ''}
-                            onChange={(value) => {
-                              markDocumentDirty();
-                              setLineError(line.id, 'category' as any, undefined);
-                              updateLine(line.id, 'category', value);
-                            }}
-                            options={categories}
-                            search={searchCategory}
-                            getLabel={(option) => option.name}
-                            getMeta={(option) => option.code}
-                            onSelect={(option) => handleCategorySelect(line.id, option)}
-                            onCreate={(query) => openQuickCreate('category', query, line.id)}
-                            createLabel={(query) => `+ إنشاء قسم جديد "${query}"`}
-                            dropdownClassName={purchaseDropdownClassName}
-                          />
-                        )}
-                      </td>
                       <td className="line-total">{formatMoney(amount, language)}</td>
                       <td className="purchase-prototype-table-cell purchase-prototype-table-cell-actions">
                         <button type="button" className="document-row-delete purchase-prototype-row-delete" onClick={() => removeLine(line.id)} disabled={lines.length === 1}>×</button>
@@ -2274,7 +2264,6 @@ export function NewPurchaseOrderPage() {
             <Button type="button" variant="dashedAction" onClick={addProductLine}><span aria-hidden="true">+</span><span>{t('new_product')}</span></Button>
           </div>
         </section>
-
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">{t('accounting_section')}</h3>
           <div className="document-prototype-grid compact-grid-2">
@@ -2318,7 +2307,6 @@ export function NewPurchaseOrderPage() {
             />
           </div>
         </section>
-
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">{t('terms_conditions')}</h3>
         <SearchableCombobox
@@ -2342,7 +2330,6 @@ export function NewPurchaseOrderPage() {
           dropdownClassName={purchaseDropdownClassName}
         />
         </section>
-
         <section className="document-prototype-bottom-grid">
           <div className="document-prototype-section">
             <h3 className="document-prototype-section-title">{t('notes_section')}</h3>
@@ -2357,7 +2344,6 @@ export function NewPurchaseOrderPage() {
             </div>
           </div>
         </section>
-
       </main>
       <BarcodeScanDialog
         open={barcodeScanOpen}

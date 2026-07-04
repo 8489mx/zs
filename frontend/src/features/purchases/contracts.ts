@@ -82,14 +82,8 @@ export function buildPurchaseUpdatePayload(purchase: Purchase, payload: {
   managerPin: string;
   items: Array<{ productId: string; qty: number; cost: number; unitName: string; unitMultiplier: number }>;
 }) {
-  const subTotal = Number(payload.items.reduce((sum, item) => sum + Number(item.qty || 0) * Number(item.cost || 0), 0).toFixed(2));
   const discount = Number(Math.max(0, payload.discount || 0).toFixed(2));
-  const taxable = Math.max(0, subTotal - discount);
   const taxRate = Number(purchase.taxRate || 0);
-  const taxAmount = !taxRate ? 0 : purchase.pricesIncludeTax
-    ? Number((taxable - taxable / (1 + taxRate / 100)).toFixed(2))
-    : Number((taxable * (taxRate / 100)).toFixed(2));
-  const total = purchase.pricesIncludeTax ? Number(taxable.toFixed(2)) : Number((taxable + taxAmount).toFixed(2));
 
   return {
     supplierId: purchase.supplierId ? Number(purchase.supplierId) : null,
@@ -108,9 +102,6 @@ export function buildPurchaseUpdatePayload(purchase: Purchase, payload: {
       cost: Number(item.cost),
       unitName: item.unitName,
       unitMultiplier: Number(item.unitMultiplier || 1)
-    })),
-    subTotal,
-    taxAmount,
-    total
+    }))
   };
 }

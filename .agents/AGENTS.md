@@ -18,6 +18,7 @@ When applying the "Document Prototype" spirit to a page to maintain visual consi
 6. **Card Priority & Stacking**: Stack the sections vertically based on importance. The most critical data (like a table of items) goes first, followed by details, and then secondary insights.
 
 ## Build and Git Workflow Rules
-1. **Never run `npm run build`, `git commit`, or `git push` automatically.** 
+1. **Never run `npm run build`, `git commit`, or `git push` automatically under any circumstances.**
 2. The user makes changes in bulk and will explicitly tell you when they are ready to run builds or push code.
-3. Keep this rule strictly in mind and do not assume you should finalize code with a build/commit/push cycle unless the user's prompt explicitly requests it (e.g., "اعمل رن بيلد وكوميت وبوش").
+3. Even if a task seems "complete", DO NOT run these commands. Wait for the user to say "اعمل رن بيلد" or "كوميت وبوش".
+4. Keep this rule strictly in mind and do not assume you should finalize code with a build/commit/push cycle unless the user's prompt explicitly requests it.
