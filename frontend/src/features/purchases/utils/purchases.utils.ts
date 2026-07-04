@@ -1,5 +1,5 @@
 export function resolveSuggestedReceivingLocation(
-  product: { defaultLocationId?: string | number | null; type?: 'stock' | 'service' },
+  product: { id: string | number; defaultLocationId?: string | number | null; type?: 'stock' | 'service' },
   locationStocks: { locationId: string | number; productId: string | number; qty: number }[],
   locations: { id: string | number; name: string }[]
 ) {
@@ -8,7 +8,7 @@ export function resolveSuggestedReceivingLocation(
   }
 
   // Find all stock entries for this product that have > 0 qty
-  const productStocks = locationStocks.filter((ls) => ls.qty > 0);
+  const productStocks = locationStocks.filter((ls) => String(ls.productId) === String(product.id) && ls.qty > 0);
 
   // If there's only one location with stock, use it
   if (productStocks.length === 1) {

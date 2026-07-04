@@ -1093,7 +1093,7 @@ export function NewPurchaseOrderPage() {
     }
 
     const suggestedLocation = resolveSuggestedReceivingLocation(
-      { defaultLocationId: option.warehouseId, type: option.type },
+      { id: option.id, defaultLocationId: option.warehouseId, type: option.type },
       catalog.locationStocksQuery.data || [],
       catalog.locationsQuery.data || []
     );
@@ -1132,7 +1132,7 @@ export function NewPurchaseOrderPage() {
     }
 
     const suggestedLocation = resolveSuggestedReceivingLocation(
-      { defaultLocationId: option.warehouseId, type: option.type },
+      { id: option.id, defaultLocationId: option.warehouseId, type: option.type },
       catalog.locationStocksQuery.data || [],
       catalog.locationsQuery.data || []
     );
@@ -1174,9 +1174,19 @@ export function NewPurchaseOrderPage() {
     }
 
     markDocumentDirty();
-    // Use the functional form to ensure we have the latest matched reference if needed
-    // But since setLines takes a callback, we can just use the matched object.
     const matchedProduct = matched;
+
+    let category = matchedProduct.category || '';
+    if (!category && matchedProduct.categoryId) {
+      const cat = catalog.categoriesQuery.data?.find(c => c.id === String(matchedProduct.categoryId));
+      if (cat) category = cat.name;
+    }
+
+    const suggestedLocation = resolveSuggestedReceivingLocation(
+      { id: matchedProduct.id, defaultLocationId: matchedProduct.warehouseId, type: matchedProduct.type },
+      catalog.locationStocksQuery.data || [],
+      catalog.locationsQuery.data || []
+    );
     
     setLines((current) => {
       const existing = current.find((line) => line.productId === matchedProduct.id);
@@ -1191,10 +1201,10 @@ export function NewPurchaseOrderPage() {
           itemName: matchedProduct.name,
           qty: 1,
           unitPrice: matchedProduct.price,
-          warehouseId: matchedProduct.warehouseId,
-          warehouse: matchedProduct.warehouse,
+          warehouseId: suggestedLocation.warehouseId,
+          warehouse: suggestedLocation.warehouse,
           categoryId: matchedProduct.categoryId,
-          category: matchedProduct.category,
+          category: category,
           isService: matchedProduct.type === 'service'
         }
       ];
