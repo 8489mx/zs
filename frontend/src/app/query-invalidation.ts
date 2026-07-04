@@ -61,10 +61,13 @@ export async function invalidateInventoryDomain(
     queryClient.invalidateQueries({ queryKey: queryKeys.damagedStock }),
     queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements }),
     queryClient.invalidateQueries({ queryKey: ['location-stocks'] }),
+    queryClient.invalidateQueries({ queryKey: ['locationCategories'] }),
+    queryClient.invalidateQueries({ queryKey: ['locationCategoryProducts'] }),
     invalidateAuditLogs(queryClient),
   ];
   if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.products }));
   if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: ['products', 'pos'] }));
+  if (includeProducts) tasks.push(queryClient.invalidateQueries({ queryKey: ['catalogProducts'] }));
   if (includeDashboard) {
     tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
     tasks.push(queryClient.invalidateQueries({ queryKey: ['manager-actions'] }));

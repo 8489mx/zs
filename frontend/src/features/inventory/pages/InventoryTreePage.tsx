@@ -768,7 +768,7 @@ export function InventoryTreePage() {
   // Queries
   const productsQuery = useQuery({ queryKey: ['catalogProducts'], queryFn: () => inventoryApi.products() });
   const locationsQuery = useQuery({ queryKey: ['locations'], queryFn: () => inventoryApi.locations() });
-  const stocksQuery = useQuery({ queryKey: ['locationStocks'], queryFn: () => inventoryApi.locationStocks() });
+  const stocksQuery = useQuery({ queryKey: ['location-stocks'], queryFn: () => inventoryApi.locationStocks() });
   const categoriesQuery = useQuery({ queryKey: ['catalogCategories'], queryFn: () => catalogApi.categories() });
 
   const isLoading = productsQuery.isLoading || locationsQuery.isLoading || stocksQuery.isLoading || categoriesQuery.isLoading;
