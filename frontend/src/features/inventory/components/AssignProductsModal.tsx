@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { catalogApi } from '@/shared/api/catalog';
 
 interface AssignProductsModalProps {
   locationId: number;
@@ -13,6 +14,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(new Set());
+  const [transferSelections, setTransferSelections] = useState<Record<number, { fromLocationId: number, qty: number }>>({});
 
   const catalogQuery = useQuery({
     queryKey: ['catalogProducts'],
@@ -24,23 +26,70 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
     queryFn: () => inventoryApi.locationCategoryProducts(locationId, 'all'),
   });
 
+  const locationsQuery = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => catalogApi.locations(),
+  });
+
+  const stocksQuery = useQuery({
+    queryKey: ['locationStocks'],
+    queryFn: () => inventoryApi.locationStocks(),
+  });
+
   const assignMutation = useMutation({
-    mutationFn: (productIds: number[]) => inventoryApi.assignProductsToLocation(locationId, productIds),
+    mutationFn: async (productIds: number[]) => {
+      // 1. Assign products to location
+      await inventoryApi.assignProductsToLocation(locationId, productIds);
+      
+      // 2. Perform any selected transfers
+      const transfersBySource = new Map<number, { productId: number; qty: number }[]>();
+      
+      for (const [productIdStr, transfer] of Object.entries(transferSelections)) {
+        if (!selectedProductIds.has(Number(productIdStr))) continue;
+        if (!transfer.qty || transfer.qty <= 0 || !transfer.fromLocationId) continue;
+        
+        if (!transfersBySource.has(transfer.fromLocationId)) {
+          transfersBySource.set(transfer.fromLocationId, []);
+        }
+        transfersBySource.get(transfer.fromLocationId)!.push({
+          productId: Number(productIdStr),
+          qty: transfer.qty
+        });
+      }
+
+      // Execute transfers sequentially
+      for (const [fromLocationId, items] of Array.from(transfersBySource.entries())) {
+        await inventoryApi.internalTransferProducts({
+          fromLocationId,
+          toLocationId: locationId,
+          items,
+          note: `نقل مباشر أثناء تعريف الصنف على مخزن ${locationName || locationId}`
+        });
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['locationCategoryProducts', locationId] });
       queryClient.invalidateQueries({ queryKey: ['locationCategories', locationId] });
+      queryClient.invalidateQueries({ queryKey: ['locationStocks'] });
+      queryClient.invalidateQueries({ queryKey: ['catalogProducts'] });
       onClose();
     },
     onError: (err: any) => {
-      console.error('Assign error:', err);
-      alert(err?.message || 'حدث خطأ أثناء الإضافة للمخزن');
+      console.error('Assign/Transfer error:', err);
+      alert(err?.message || 'حدث خطأ أثناء الحفظ أو نقل الرصيد');
     }
   });
 
   const handleToggleProduct = (id: number) => {
     const next = new Set(selectedProductIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    if (next.has(id)) {
+      next.delete(id);
+      const newTransfers = { ...transferSelections };
+      delete newTransfers[id];
+      setTransferSelections(newTransfers);
+    } else {
+      next.add(id);
+    }
     setSelectedProductIds(next);
   };
 
@@ -48,6 +97,13 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
     const next = new Set(selectedProductIds);
     filteredProducts.forEach(p => next.add(Number(p.id)));
     setSelectedProductIds(next);
+  };
+
+  const updateTransfer = (productId: number, fromLocationId: number, qty: number) => {
+    setTransferSelections(prev => ({
+      ...prev,
+      [productId]: { fromLocationId, qty }
+    }));
   };
 
   const productsInLocation = useMemo(() => {
@@ -69,7 +125,9 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
     );
   }, [availableProducts, searchQuery]);
 
-  const isLoading = catalogQuery.isLoading || locationProductsQuery.isLoading;
+  const isLoading = catalogQuery.isLoading || locationProductsQuery.isLoading || locationsQuery.isLoading || stocksQuery.isLoading;
+  const locationsData = locationsQuery.data || [];
+  const stocksData = stocksQuery.data || [];
 
   const modalContent = (
     <div style={{
@@ -80,7 +138,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
       <div 
         style={{
           background: '#fff', borderRadius: '12px', padding: '24px',
-          width: '90%', maxWidth: '600px', maxHeight: '90vh',
+          width: '90%', maxWidth: '800px', maxHeight: '90vh',
           display: 'flex', flexDirection: 'column', gap: '16px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           overflow: 'hidden'
@@ -89,7 +147,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
         dir="rtl"
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>إضافة أصناف لمخزن {locationName ? `(${locationName})` : ''}</h2>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>ربط أصناف ونقل أرصدة لمخزن {locationName ? `(${locationName})` : ''}</h2>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>&times;</button>
         </div>
 
@@ -113,32 +171,93 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا توجد أصناف غير مربوطة تطابق بحثك</div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-                  <thead style={{ backgroundColor: 'var(--surface-color)', position: 'sticky', top: 0 }}>
+                  <thead style={{ backgroundColor: 'var(--surface-color)', position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
                       <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '40px' }}></th>
                       <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>اسم الصنف</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>الباركود</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)' }}>إجمالي الرصيد بالنظام</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map(p => (
-                      <tr 
-                        key={p.id} 
-                        style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', background: selectedProductIds.has(Number(p.id)) ? 'var(--primary-light)' : 'transparent' }}
-                        onClick={() => handleToggleProduct(Number(p.id))}
-                      >
-                        <td style={{ padding: '12px 16px' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={selectedProductIds.has(Number(p.id))} 
-                            readOnly
-                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                          />
-                        </td>
-                        <td style={{ padding: '12px 16px', fontWeight: 500 }}>{p.name}</td>
-                        <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{p.barcode || '-'}</td>
-                      </tr>
-                    ))}
+                    {filteredProducts.map(p => {
+                      const isSelected = selectedProductIds.has(Number(p.id));
+                      const productStocks = stocksData.filter(s => String(s.productId) === String(p.id) && Number(s.qty) > 0);
+                      const totalStock = productStocks.reduce((sum, s) => sum + Number(s.qty), 0);
+                      
+                      return (
+                        <React.Fragment key={p.id}>
+                          <tr 
+                            style={{ borderBottom: isSelected && productStocks.length > 0 ? 'none' : '1px solid var(--border-color)', cursor: 'pointer', background: isSelected ? 'var(--primary-light)' : 'transparent' }}
+                            onClick={() => handleToggleProduct(Number(p.id))}
+                          >
+                            <td style={{ padding: '12px 16px' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isSelected} 
+                                readOnly
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                              />
+                            </td>
+                            <td style={{ padding: '12px 16px', fontWeight: 500 }}>
+                              {p.name}
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{p.barcode || '-'}</div>
+                            </td>
+                            <td style={{ padding: '12px 16px', color: totalStock > 0 ? 'var(--success-color)' : 'var(--text-secondary)', fontWeight: totalStock > 0 ? 600 : 400 }}>
+                              {totalStock} قطعة
+                            </td>
+                          </tr>
+                          {isSelected && productStocks.length > 0 && (
+                            <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--primary-light)' }}>
+                              <td colSpan={3} style={{ padding: '0 16px 16px 48px' }}>
+                                <div style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid var(--border-color)' }}>
+                                  <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>خيارات النقل الداخلي المباشر (اختياري)</div>
+                                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <select 
+                                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', minWidth: '200px' }}
+                                      value={transferSelections[Number(p.id)]?.fromLocationId || ''}
+                                      onChange={(e) => updateTransfer(Number(p.id), Number(e.target.value), transferSelections[Number(p.id)]?.qty || 0)}
+                                    >
+                                      <option value="">-- اختر المخزن لسحب الرصيد --</option>
+                                      {productStocks.map(s => {
+                                        const loc = locationsData.find(l => String(l.id) === String(s.locationId));
+                                        return (
+                                          <option key={s.locationId} value={s.locationId}>
+                                            {loc?.name || `مخزن ${s.locationId}`} (متاح: {s.qty})
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                    
+                                    {transferSelections[Number(p.id)]?.fromLocationId ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <input 
+                                          type="number" 
+                                          min={0}
+                                          max={productStocks.find(s => String(s.locationId) === String(transferSelections[Number(p.id)]?.fromLocationId))?.qty || 0}
+                                          placeholder="الكمية"
+                                          value={transferSelections[Number(p.id)]?.qty || ''}
+                                          onChange={(e) => updateTransfer(Number(p.id), transferSelections[Number(p.id)].fromLocationId, Number(e.target.value))}
+                                          style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', width: '120px' }}
+                                        />
+                                        <button 
+                                          type="button" 
+                                          className="secondary-button"
+                                          style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                                          onClick={() => {
+                                            const maxQty = productStocks.find(s => String(s.locationId) === String(transferSelections[Number(p.id)]?.fromLocationId))?.qty || 0;
+                                            updateTransfer(Number(p.id), transferSelections[Number(p.id)].fromLocationId, Number(maxQty));
+                                          }}
+                                        >نقل الكل</button>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
@@ -154,7 +273,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                   disabled={selectedProductIds.size === 0 || assignMutation.isPending}
                   onClick={() => assignMutation.mutate(Array.from(selectedProductIds))}
                 >
-                  {assignMutation.isPending ? 'جاري الحفظ...' : 'حفظ وإضافة'}
+                  {assignMutation.isPending ? 'جاري الحفظ ونقل الأرصدة...' : 'حفظ وإضافة'}
                 </button>
               </div>
             </div>
