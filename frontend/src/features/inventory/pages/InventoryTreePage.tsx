@@ -612,11 +612,10 @@ function ProductTreeRow({
 
       {/* Total + Action */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
-        {!isUnassigned && (
-          <span style={{ fontWeight: 800, fontSize: '14px', color: (filterLocationId ? totalInFilter : product.totalQty) === 0 ? '#ef4444' : 'var(--text-primary, #111)', minWidth: '28px', textAlign: 'center' }}>
-            {filterLocationId ? totalInFilter : product.totalQty}
-          </span>
-        )}
+        <span style={{ fontWeight: 800, fontSize: '14px', color: (filterLocationId ? totalInFilter : product.totalQty) === 0 ? '#ef4444' : 'var(--text-primary, #111)', minWidth: '28px', textAlign: 'center' }}>
+          {filterLocationId ? totalInFilter : product.totalQty}
+        </span>
+
         {isUnassigned ? (
           <button onClick={() => onAssign(product)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#92400e', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}>
             ربط بمخزن
@@ -789,7 +788,10 @@ export function InventoryTreePage() {
         })
         .filter((s) => !s.locationName.includes('(محذوف)'));
 
-      const totalQty = locationStocks.reduce((sum, s) => sum + s.qty, 0);
+      const sumFromLocations = locationStocks.reduce((sum, s) => sum + s.qty, 0);
+      const globalStock = Number(p.stock || p.stockQty || 0);
+      const totalQty = sumFromLocations > 0 ? sumFromLocations : globalStock;
+
       const cat = categories.find((c: any) => String(c.id) === String(p.categoryId));
       return {
         id: String(p.id),
