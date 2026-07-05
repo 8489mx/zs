@@ -9,7 +9,7 @@
     "build": "npm run repair:permissions && node ./node_modules/typescript/lib/tsc.js -b && node ./node_modules/vite/bin/vite.js build",
     "build:portable": "npm run repair:permissions && node ./node_modules/typescript/lib/tsc.js -b && node ./node_modules/vite/bin/vite.js build --mode portable",
     "build:electron-frontend": "npm run repair:permissions && node ./node_modules/typescript/lib/tsc.js -b && node ./node_modules/vite/bin/vite.js build --mode electron",
-    "build:exe": "npm run build:electron-frontend && node ../scripts/sync-electron-backend.cjs && electron-builder",
+    "build:exe": "npm run build:electron-frontend && node ../scripts/sync-electron-backend.cjs && node ../scripts/build-electron-release.cjs",
     "start:exe": "electron .",
     "preview": "vite preview",
     "qa:routes": "node scripts/route-qa.mjs",

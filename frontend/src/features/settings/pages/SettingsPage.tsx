@@ -2,13 +2,14 @@ import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { SettingsSectionContent } from '@/features/settings/pages/SettingsSectionContent';
-import { isSettingsSection, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
+import { isSettingsSection, settingsSections, settingsStandaloneLinks, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import { downloadJsonFile } from '@/lib/browser';
 import { SettingsPageShell } from '@/features/settings/components/SettingsPageShell';
 import { SettingsSectionErrorBoundary } from '@/features/settings/components/SettingsSectionErrorBoundary';
 import { downloadSettingsTemplate, getSettingsSectionDescription } from '@/features/settings/pages/settings-page.helpers';
 import { useSettingsPageController } from '@/features/settings/pages/useSettingsPageController';
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function SettingsPage() {
   const { section } = useParams<{ section?: string }>();
@@ -22,7 +23,13 @@ export function SettingsPage() {
     if (section === 'overview') navigate(setupFlow.currentStep?.to || '/settings/core?setup=1', { replace: true });
   }, [activeSetupSection, navigate, section, setupFlow.currentStep, setupMode]);
 
-  if (!isSettingsSection(section)) return <Navigate to="/settings/overview" replace />;
+  const sectionConfig = settingsSections.find(s => s.key === section) || settingsStandaloneLinks.find(s => s.to.endsWith(section || ''));
+  const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
+  
+  if (!isSettingsSection(section) && !sectionConfig) return <Navigate to="/settings/overview" replace />;
+  if (sectionConfig?.superAdminOnly && page.currentUserRole !== 'super_admin') return <Navigate to="/settings/overview" replace />;
+  if (sectionConfig?.adminOnly && page.currentUserRole !== 'super_admin' && page.currentUserRole !== 'admin') return <Navigate to="/settings/overview" replace />;
+  if (sectionConfig?.offlineOnly && deploymentMode !== 'desktop') return <Navigate to="/settings/overview" replace />;
 
   return (
     <SettingsPageShell

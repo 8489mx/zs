@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Req, Query } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
-import { AdminRoleGuard } from '../../../core/auth/guards/admin-role.guard';
+import { SuperAdminRoleGuard } from '../../../core/auth/guards/super-admin-role.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { OfflineReleasesService } from '../services/offline-releases.service';
 
@@ -27,11 +27,19 @@ export class OfflineUpdatesPublicController {
   async checkForUpdate(@Query('version') currentVersion = '') {
     return this.releasesService.checkForUpdate(currentVersion);
   }
+  /**
+   * GET /api/updates/history
+   * Called by the portable client to view past updates.
+   */
+  @Get('history')
+  async getHistory() {
+    return this.releasesService.listReleaseHistory();
+  }
 }
 
 // ─── Admin endpoints — manage releases ───
 @Controller('api/admin/offline-releases')
-@UseGuards(SessionAuthGuard, AdminRoleGuard)
+@UseGuards(SessionAuthGuard, SuperAdminRoleGuard)
 export class OfflineReleasesAdminController {
   constructor(private readonly releasesService: OfflineReleasesService) {}
 

@@ -7,6 +7,7 @@ import {
   renderUsersSection,
   type SharedSettingsSectionProps,
 } from '@/features/settings/pages/settings-section-content/render-section';
+import { SystemUpdatesSection } from '@/features/settings/components/workspace-sections/SystemUpdatesSection';
 
 type QueryState = { isLoading: boolean; isError: boolean; error?: unknown; isSuccess?: boolean; data?: unknown };
 
@@ -46,5 +47,6 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
   if (section === 'reference') return renderReferenceSection(props);
   if (section === 'backup') return renderBackupSection(props);
   if (section === 'users') return renderUsersSection(props);
+  if (section === 'system-updates') return <SystemUpdatesSection />;
   return null;
 }

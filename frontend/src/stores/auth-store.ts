@@ -9,6 +9,10 @@ export const isAdminUser = (user: AuthUser | null | undefined): boolean => {
   return user?.role === 'admin' || user?.role === 'super_admin';
 };
 
+export const isSuperAdmin = (user: AuthUser | null | undefined): boolean => {
+  return user?.role === 'super_admin';
+};
+
 export type AppGate = 'loading' | 'activation' | 'setup' | 'login' | 'ready';
 
 interface AuthState {

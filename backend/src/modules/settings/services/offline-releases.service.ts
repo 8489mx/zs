@@ -45,6 +45,22 @@ export class OfflineReleasesService {
     };
   }
 
+  async listReleaseHistory() {
+    const rows = await this.db
+      .selectFrom('offline_releases')
+      .selectAll()
+      .where('is_active', '=', true)
+      .orderBy('promoted_at', 'desc')
+      .execute();
+
+    return rows.map((r) => ({
+      version: r.version,
+      changelog: r.changelog,
+      patchUrl: r.patch_url,
+      promotedAt: r.promoted_at,
+    }));
+  }
+
   // ─── Admin ────────────────────────────────────────────────────────────────
 
   async listReleases(_auth: AuthContext) {
