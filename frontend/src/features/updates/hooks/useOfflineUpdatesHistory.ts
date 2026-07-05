@@ -8,7 +8,7 @@ export interface UpdateHistoryRecord {
 }
 
 export function useOfflineUpdatesHistory(deploymentMode: string | null | undefined) {
-  const isDesktop = deploymentMode === 'desktop';
+  const isDesktop = deploymentMode === 'desktop' || import.meta.env.DEV;
 
   return useQuery<UpdateHistoryRecord[]>({
     queryKey: ['offline-updates-history'],

@@ -33,7 +33,7 @@ export function OfflineUpdateBanner({ update }: OfflineUpdateBannerProps) {
     },
   });
 
-  if (!update.hasUpdate || dismissed) return null;
+  if (!update.updateAvailable || dismissed) return null;
 
   return (
     <div className="offline-update-banner" role="alert" aria-live="polite" dir="rtl">
@@ -46,7 +46,7 @@ export function OfflineUpdateBanner({ update }: OfflineUpdateBannerProps) {
           <>
             <strong className="offline-update-banner__title">
               يوجد تحديث جديد —{' '}
-              <span className="offline-update-banner__version">v{update.latest}</span>
+              <span className="offline-update-banner__version">v{update.latestVersion}</span>
             </strong>
             {update.changelog && (
               <p className="offline-update-banner__changelog">{update.changelog}</p>
@@ -64,7 +64,7 @@ export function OfflineUpdateBanner({ update }: OfflineUpdateBannerProps) {
           <>
             <strong className="offline-update-banner__title">
               ✅ تم تثبيت الإصدار{' '}
-              <span className="offline-update-banner__version">v{update.latest}</span>
+              <span className="offline-update-banner__version">v{update.latestVersion}</span>
             </strong>
             <p className="offline-update-banner__changelog">
               جاري إعادة تشغيل التطبيق تلقائياً... سيتم تحديث الصفحة بعد لحظات.
@@ -90,7 +90,7 @@ export function OfflineUpdateBanner({ update }: OfflineUpdateBannerProps) {
             type="button"
             className="offline-update-banner__download-btn"
             onClick={() => triggerMutation.mutate()}
-            aria-label={`تثبيت تحديث الإصدار ${update.latest} تلقائياً`}
+            aria-label={`تثبيت تحديث الإصدار ${update.latestVersion} تلقائياً`}
           >
             ⬇ تثبيت التحديث تلقائياً
           </button>

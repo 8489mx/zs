@@ -29,7 +29,7 @@ export function SettingsPage() {
   if (!isSettingsSection(section) && !sectionConfig) return <Navigate to="/settings/overview" replace />;
   if (sectionConfig?.superAdminOnly && page.currentUserRole !== 'super_admin') return <Navigate to="/settings/overview" replace />;
   if (sectionConfig?.adminOnly && page.currentUserRole !== 'super_admin' && page.currentUserRole !== 'admin') return <Navigate to="/settings/overview" replace />;
-  if (sectionConfig?.offlineOnly && deploymentMode !== 'desktop') return <Navigate to="/settings/overview" replace />;
+  if (sectionConfig?.offlineOnly && deploymentMode !== 'desktop' && !import.meta.env.DEV) return <Navigate to="/settings/overview" replace />;
 
   return (
     <SettingsPageShell

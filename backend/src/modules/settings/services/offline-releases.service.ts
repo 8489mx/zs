@@ -26,22 +26,51 @@ export class OfflineReleasesService {
       .limit(1)
       .executeTakeFirst();
 
+    const history = await this.listReleaseHistory();
+
     if (!active) {
-      return { hasUpdate: false };
+      return {
+        updateAvailable: false,
+        currentVersion,
+        latestVersion: null,
+        patchUrl: null,
+        changelog: null,
+        releases: history,
+      };
     }
 
-    // Simple version comparison: if the client version differs from active, offer update.
-    const isSame = currentVersion.trim() === active.version.trim();
-    if (isSame) {
-      return { hasUpdate: false };
+    const currentParts = currentVersion.replace('v', '').split('.').map(Number);
+    const activeParts = active.version.replace('v', '').split('.').map(Number);
+    let isNewer = false;
+    for (let i = 0; i < Math.max(currentParts.length, activeParts.length); i++) {
+      const c = currentParts[i] || 0;
+      const a = activeParts[i] || 0;
+      if (a > c) {
+        isNewer = true;
+        break;
+      } else if (c > a) {
+        break;
+      }
+    }
+
+    if (!isNewer) {
+      return {
+        updateAvailable: false,
+        currentVersion,
+        latestVersion: active.version,
+        patchUrl: null,
+        changelog: null,
+        releases: history,
+      };
     }
 
     return {
-      hasUpdate: true,
-      latest: active.version,
-      changelog: active.changelog,
+      updateAvailable: true,
+      currentVersion,
+      latestVersion: active.version,
       patchUrl: active.patch_url,
-      promotedAt: active.promoted_at,
+      changelog: active.changelog,
+      releases: history,
     };
   }
 
@@ -49,7 +78,7 @@ export class OfflineReleasesService {
     const rows = await this.db
       .selectFrom('offline_releases')
       .selectAll()
-      .where('is_active', '=', true)
+      .where('promoted_at', 'is not', null)
       .orderBy('promoted_at', 'desc')
       .execute();
 

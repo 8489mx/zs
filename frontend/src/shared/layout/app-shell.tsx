@@ -415,7 +415,7 @@ export function AppShell({ children }: PropsWithChildren) {
             <BootstrapAdminBanner />
             <TrialStatusBanner />
             <SystemStatusBanner />
-            {updateInfo?.hasUpdate && <OfflineUpdateBanner update={updateInfo} />}
+            {updateInfo?.updateAvailable && <OfflineUpdateBanner update={updateInfo} />}
           </div>
           <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>

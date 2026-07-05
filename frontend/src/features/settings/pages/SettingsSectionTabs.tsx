@@ -10,7 +10,7 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
   const visibleSections = settingsSections.filter((section) => {
     if (section.superAdminOnly && currentUserRole !== 'super_admin') return false;
     if (section.adminOnly && !isPrivilegedUser) return false;
-    if (section.offlineOnly && deploymentMode !== 'desktop') return false;
+    if (section.offlineOnly && deploymentMode !== 'desktop' && !import.meta.env.DEV) return false;
     return true;
   });
 

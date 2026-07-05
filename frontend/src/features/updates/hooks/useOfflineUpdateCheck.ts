@@ -1,11 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 
 export interface UpdateCheckResult {
-  hasUpdate: boolean;
-  latest?: string;
-  changelog?: string;
-  patchUrl?: string;
-  promotedAt?: string;
+  updateAvailable: boolean;
+  currentVersion: string;
+  latestVersion: string | null;
+  patchUrl: string | null;
+  changelog: string | null;
+  releases: Array<{
+    version: string;
+    changelog: string;
+    patchUrl: string;
+    promotedAt: string;
+  }>;
 }
 
 /**
@@ -18,7 +24,7 @@ export interface UpdateCheckResult {
  * Only runs when deploymentMode === 'desktop'.
  */
 export function useOfflineUpdateCheck(deploymentMode: string | null | undefined) {
-  const isDesktop = deploymentMode === 'desktop';
+  const isDesktop = deploymentMode === 'desktop' || import.meta.env.DEV;
 
   // We now rely purely on the frontend build-time constant as the single source of truth
   // to ensure consistency between UI version and update check version.
@@ -32,43 +38,30 @@ export function useOfflineUpdateCheck(deploymentMode: string | null | undefined)
   return useQuery<UpdateCheckResult>({
     queryKey: ['offline-update-check', currentVersion],
     queryFn: async () => {
-      console.log('--- [DEBUG: UPDATE CHECKER] ---');
-      console.log('1. currentAppVersion (source: build-time __APP_VERSION__):', currentVersion);
-      console.log('2. updateCheckUrl:', checkUpdatesUrl);
-      console.log('3. APP_MODE (Electron):', window.process?.env?.APP_MODE || 'UNKNOWN (Renderer)');
-      console.log('4. Online status:', navigator.onLine ? 'ONLINE' : 'OFFLINE');
+      const fallback: UpdateCheckResult = {
+        updateAvailable: false,
+        currentVersion,
+        latestVersion: null,
+        patchUrl: null,
+        changelog: null,
+        releases: []
+      };
 
       if (!navigator.onLine) {
-        console.log('   -> Device is offline. Update check aborted.');
-        return { hasUpdate: false };
+        return fallback;
       }
 
       try {
         const res = await fetch(checkUpdatesUrl, { headers: { 'Accept': 'application/json' } });
         if (!res.ok) {
-          console.log(`   -> Failed to fetch updates. Status: ${res.status}`);
-          return { hasUpdate: false };
+          return fallback;
         }
 
         const data = await res.json();
-        console.log('5. latestRelease response:', data);
-
-        const latestVersion = data.latest;
-        console.log(`6. Comparing: latestVersion (${latestVersion}) vs currentAppVersion (${currentVersion})`);
-        console.log('7. patchUrl:', data.patchUrl);
-        console.log('8. changelog:', data.changelog);
-
-        if (data.hasUpdate) {
-          console.log('   -> RESULT: isUpdateAvailable = TRUE (latestVersion > currentAppVersion). Displaying alert.');
-        } else {
-          console.log('   -> RESULT: isUpdateAvailable = FALSE (latestVersion <= currentAppVersion). No alert shown.');
-        }
-        console.log('---------------------------------');
-        
         return data as UpdateCheckResult;
       } catch (err) {
         console.error('   -> Error checking for updates:', err);
-        return { hasUpdate: false };
+        return fallback;
       }
     },
     enabled: isDesktop,

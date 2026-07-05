@@ -3,7 +3,6 @@ import { Button } from '@/shared/ui/button';
 import { FormSection } from '@/shared/components/form-section';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
-import { useOfflineUpdatesHistory } from '@/features/updates/hooks/useOfflineUpdatesHistory';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { ClientPortal } from '@/shared/components/ClientPortal';
 
@@ -12,8 +11,7 @@ export function SystemUpdatesSection() {
   const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
   
   // Update checker hooks
-  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt } = useOfflineUpdateCheck(deploymentMode);
-  const { data: updateHistory, isLoading: isLoadingHistory } = useOfflineUpdatesHistory(deploymentMode);
+  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt, isLoading: isCheckingHistory } = useOfflineUpdateCheck(deploymentMode);
   
   const [updateCheckResult, setUpdateCheckResult] = useState<{ open: boolean; type: 'checking' | 'up-to-date' | 'error' | 'available'; data?: any } | null>(null);
   const [selectedReleaseIndex, setSelectedReleaseIndex] = useState<number | null>(null);
@@ -23,7 +21,7 @@ export function SystemUpdatesSection() {
   const handleCheckUpdates = () => {
     setUpdateCheckResult({ open: true, type: 'checking' });
     checkUpdates().then((res) => {
-      if (res.data?.hasUpdate) {
+      if (res.data?.updateAvailable) {
         setUpdateCheckResult({ open: true, type: 'available', data: res.data });
       } else if (res.isError || !navigator.onLine) {
         setUpdateCheckResult({ open: true, type: 'error' });
@@ -33,6 +31,7 @@ export function SystemUpdatesSection() {
     });
   };
 
+  const updateHistory = updateInfo?.releases || [];
   const selectedRelease = selectedReleaseIndex !== null && updateHistory ? updateHistory[selectedReleaseIndex] : null;
 
   return (
@@ -53,11 +52,11 @@ export function SystemUpdatesSection() {
             </div>
           </div>
           
-          {updateInfo?.hasUpdate && (
+          {updateInfo?.updateAvailable && (
             <div style={{ padding: '16px', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', borderRadius: '8px', border: '1px solid var(--color-warning)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, marginBottom: 8 }}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                يوجد تحديث متوفر ({updateInfo.latest})
+                يوجد تحديث متوفر ({updateInfo.latestVersion})
               </div>
               <p className="small" style={{ marginBottom: 12 }}>يرجى تحميل التحديث للحصول على أحدث الميزات وإصلاحات الأمان.</p>
               <Button variant="secondary" onClick={() => {
@@ -70,9 +69,26 @@ export function SystemUpdatesSection() {
         </div>
       </FormSection>
 
+      {/* Temporary Debug Block */}
+      <FormSection title="Debug مرئي (مؤقت)">
+        <div style={{ background: '#1e1e1e', color: '#00ff00', padding: '16px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left', overflowX: 'auto' }}>
+          <div><strong>currentVersion:</strong> {currentVersion}</div>
+          <div><strong>updateCheckUrl:</strong> https://app.karimzakaria.com/api/updates/check?version={currentVersion}</div>
+          <div><strong>response status:</strong> {isCheckingUpdates ? 'Checking...' : (updateInfo ? 'Success' : 'Failed/Not checked')}</div>
+          <div><strong>latestVersion:</strong> {updateInfo?.latestVersion || 'N/A'}</div>
+          <div><strong>patchUrl:</strong> {updateInfo?.patchUrl || 'N/A'}</div>
+          <div><strong>releases count:</strong> {updateHistory?.length ?? 'N/A'}</div>
+          <div><strong>decision:</strong> {updateCheckResult?.type || (updateInfo?.updateAvailable ? 'update' : 'no_update')}</div>
+          <hr style={{ borderColor: '#333', margin: '12px 0' }} />
+          <pre style={{ margin: 0 }}>
+            {JSON.stringify({ updateInfo, updateCheckResult }, null, 2)}
+          </pre>
+        </div>
+      </FormSection>
+
       <FormSection title="سجل الإصدارات المتاحة">
         <div className="stack gap-12">
-          {isLoadingHistory ? (
+          {isCheckingHistory ? (
             <div className="muted small" style={{ padding: 16, textAlign: 'center' }}>جارِ تحميل سجل الإصدارات...</div>
           ) : updateHistory && updateHistory.length > 0 ? (
             <div className="data-table-container">
@@ -107,7 +123,7 @@ export function SystemUpdatesSection() {
 
       {/* Release Details Modal */}
       {selectedRelease && (
-        <ClientPortal targetId="modal-root">
+        <ClientPortal targetId="root">
           <DialogShell open={true} onClose={() => setSelectedReleaseIndex(null)} width="min(600px, 100%)" ariaLabel="تفاصيل الإصدار">
             <div className="dialog-header">
               <h3 className="dialog-title">تفاصيل التحديث v{selectedRelease.version}</h3>
@@ -139,7 +155,7 @@ export function SystemUpdatesSection() {
 
       {/* Update Check Result Modal */}
       {updateCheckResult && updateCheckResult.open && (
-        <ClientPortal targetId="modal-root">
+        <ClientPortal targetId="root">
           <DialogShell open={true} onClose={() => setUpdateCheckResult(null)} width="min(450px, 100%)" ariaLabel="فحص التحديثات">
             <div className="dialog-header">
               <h3 className="dialog-title">فحص التحديثات</h3>
@@ -172,7 +188,7 @@ export function SystemUpdatesSection() {
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-muted)' }}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     <div style={{ flex: 1, padding: 12, background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: 8, textAlign: 'center' }}>
                       <div className="small">الإصدار الجديد</div>
-                      <div style={{ fontWeight: 600 }}>{updateCheckResult.data.latest}</div>
+                      <div style={{ fontWeight: 600 }}>{updateCheckResult.data.latestVersion}</div>
                     </div>
                   </div>
                   {updateCheckResult.data.changelog && (
