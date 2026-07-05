@@ -45,7 +45,7 @@ export function SupplierEditorCard({ supplier, onSaved }: { supplier?: Supplier;
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر تحديث المورد" successText="تم تحديث المورد بنجاح." />
       <div className="actions sticky-form-actions">
         <Button type="button" variant="secondary" onClick={() => form.reset()} disabled={mutation.isPending}>إعادة القيم</Button>
-        <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ التعديل" pendingText="جارٍ الحفظ..." />
+        <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ التعديل" pendingText="جارٍ الحفظ..." />
       </div>
     </form>
   );

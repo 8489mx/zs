@@ -86,7 +86,7 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
       <SubmitButton
         type="button"
         variant="secondary"
-        disabled={mutation.isPending || !canManageSettings}
+        isPending={mutation.isPending} disabled={!canManageSettings}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();

@@ -143,7 +143,7 @@ export function PurchaseQuickCreateDialog({
           <MutationFeedback isError={Boolean(error)} error={error} errorFallback="تعذر إنشاء الصنف الجديد من صفحة المشتريات." />
 
           <div className="actions sticky-form-actions">
-            <SubmitButton type="submit" disabled={isPending} idleText="حفظ الصنف وإضافته" pendingText="جارٍ إنشاء الصنف..." />
+            <SubmitButton type="submit" isPending={isPending} idleText="حفظ الصنف وإضافته" pendingText="جارٍ إنشاء الصنف..." />
             <Button type="button" variant="secondary" onClick={handleClose} disabled={isPending}>إغلاق</Button>
           </div>
         </form>

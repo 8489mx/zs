@@ -71,7 +71,7 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
       <SubmitButton
         type="button"
         variant="secondary"
-        disabled={mutation.isPending || !canManageSettings}
+        isPending={mutation.isPending} disabled={!canManageSettings}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();

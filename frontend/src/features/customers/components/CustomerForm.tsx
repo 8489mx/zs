@@ -55,7 +55,7 @@ export function CustomerForm() {
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ العميل" successText="تم حفظ العميل بنجاح." />
       <div className="actions sticky-form-actions">
         <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ النموذج</FormResetButton>
-        <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ العميل" pendingText="جارٍ الحفظ..." />
+        <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ العميل" pendingText="جارٍ الحفظ..." />
       </div>
     </form>
   );

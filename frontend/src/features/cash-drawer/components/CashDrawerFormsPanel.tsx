@@ -150,7 +150,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           </Field>}
           <Field label="ملاحظة الافتتاح"><textarea rows={2} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>
           <MutationFeedback isError={props.openMutation.isError} isSuccess={props.openMutation.isSuccess} error={props.openMutation.error} errorFallback="تعذر فتح وردية نقطة البيع" successText="تم فتح وردية نقطة البيع بنجاح." />
-          <SubmitButton type="submit" disabled={props.openMutation.isPending} idleText="فتح وردية نقطة البيع" pendingText="جارٍ الفتح..." />
+          <SubmitButton type="submit" isPending={props.openMutation.isPending} idleText="فتح وردية نقطة البيع" pendingText="جارٍ الفتح..." />
         </form>
         </div>
       )}
@@ -174,7 +174,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           <Field label="المبلغ"><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} /></Field>
           <Field label="سبب الحركة"><textarea rows={2} placeholder="اكتب السبب بوضوح" {...props.movementForm.register('note')} disabled={props.movementMutation.isPending} /></Field>
           <MutationFeedback isError={props.movementMutation.isError} isSuccess={props.movementMutation.isSuccess} error={props.movementMutation.error} errorFallback="تعذر تسجيل الحركة" successText="تم تسجيل حركة درج النقدية بنجاح." />
-          <SubmitButton type="submit" disabled={props.movementMutation.isPending} idleText="حفظ الحركة" pendingText="جارٍ الحفظ..." />
+          <SubmitButton type="submit" isPending={props.movementMutation.isPending} idleText="حفظ الحركة" pendingText="جارٍ الحفظ..." />
         </form>
         </div>
       )}
@@ -305,7 +305,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق وردية نقطة البيع" successText="تم إغلاق وردية نقطة البيع بنجاح." />
           <SubmitButton
             type="submit"
-            disabled={props.closeMutation.isPending || !props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue)}
+            isPending={props.closeMutation.isPending}
+            disabled={!props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue)}
             idleText={isBlindCloseMode ? 'إرسال إقرار الإغلاق' : 'إغلاق وردية نقطة البيع'}
             pendingText="جارٍ الإغلاق..."
           />

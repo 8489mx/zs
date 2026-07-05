@@ -49,7 +49,7 @@ export function SupplierForm() {
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ المورد" successText="تم حفظ المورد بنجاح." />
       <div className="actions sticky-form-actions">
         <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ النموذج</FormResetButton>
-        <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ المورد" pendingText="جارٍ الحفظ..." />
+        <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ المورد" pendingText="جارٍ الحفظ..." />
       </div>
     </form>
   );

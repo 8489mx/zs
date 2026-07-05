@@ -108,7 +108,7 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
             successText="تم حفظ فاتورة الشراء وتحديث المخزون بنجاح."
           />
           <div className="actions sticky-form-actions" style={{ gridColumn: '1 / -1' }}>
-            <SubmitButton type="submit" variant="success" disabled={mutation.isPending} idleText="حفظ فاتورة الشراء" pendingText="جارٍ حفظ الفاتورة..." />
+            <SubmitButton type="submit" variant="success" isPending={mutation.isPending} idleText="حفظ فاتورة الشراء" pendingText="جارٍ حفظ الفاتورة..." />
             <Button type="button" variant="secondary" disabled={mutation.isPending} onClick={() => actions.handleReset()}>إعادة ضبط</Button>
           </div>
         </form>

@@ -79,7 +79,7 @@ export function StockTransferComposerCard({
           <span>العناصر</span>
           <div className="actions compact-actions">
             <Button type="button" variant="secondary" onClick={onAddItem}>إضافة إلى إذن الصرف</Button>
-            <SubmitButton type="button" onClick={onSubmit} disabled={isPending || !items.length} idleText="حفظ إذن الصرف" pendingText="جارٍ الحفظ..." />
+            <SubmitButton type="button" onClick={onSubmit} isPending={isPending} disabled={!items.length} idleText="حفظ إذن الصرف" pendingText="جارٍ الحفظ..." />
           </div>
         </div>
       </div>

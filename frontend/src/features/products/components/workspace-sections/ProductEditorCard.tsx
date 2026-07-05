@@ -150,7 +150,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
             setUnits(normalizeProductUnits(product.units, product.barcode || ''));
             setCustomerPrices(normalizeCustomerPrices(product));
           }} disabled={mutation.isPending}>إعادة القيم</Button>
-          <SubmitButton type="submit" disabled={mutation.isPending} idleText="حفظ التعديل" pendingText="جارٍ الحفظ..." />
+          <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ التعديل" pendingText="جارٍ الحفظ..." />
         </div>
       </form>
       <ProductCustomerPricesCard product={product} customers={customers} customerPrices={customerPrices} onChange={setCustomerPrices} onSave={saveCustomerPricesOnly} isSaving={mutation.isPending} />

@@ -215,7 +215,7 @@ export function ServiceFormCard({
         ) : null}
         <SubmitButton
           type="submit"
-          disabled={mutation.isPending}
+          isPending={mutation.isPending}
           idleText={service ? 'حفظ التعديل' : 'إضافة الخدمة'}
           pendingText="جاري الحفظ..."
         />

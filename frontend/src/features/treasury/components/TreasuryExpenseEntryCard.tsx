@@ -159,7 +159,8 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
           <SubmitButton
             type="button"
             onClick={() => expenseMutation.mutate(expenseForm)}
-            disabled={expenseMutation.isPending || expenseValidationErrors.length > 0}
+            isPending={expenseMutation.isPending}
+            disabled={expenseValidationErrors.length > 0}
             idleText="حفظ المصروف"
             pendingText="جارٍ الحفظ..."
           />

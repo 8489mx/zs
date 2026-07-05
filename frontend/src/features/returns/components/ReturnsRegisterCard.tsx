@@ -63,32 +63,34 @@ export function ReturnsRegisterCard({
         <Button variant={viewFilter === 'today' ? 'primary' : 'secondary'} onClick={() => onFilterChange('today')}>اليوم</Button>
       </div>
       {isLoading ? <div className="loading-card">جاري تحميل المرتجعات...</div> : rows.length ? (
-        <DataTable
-          rows={rows}
-          rowKey={(row) => String(row.id)}
-          rowClassName={(row) => selectedReturnId === String(row.id) ? 'table-row-selected' : ''}
-          onRowClick={(row) => onSelectReturn(String(row.id))}
-          rowTitle={() => 'انقر لعرض تفاصيل المرتجع'}
-          pagination={{
-            page,
-            pageSize,
-            totalItems,
-            onPageChange,
-            onPageSizeChange: (nextPageSize) => { onPageSizeChange(nextPageSize); onPageChange(1); },
-            itemLabel: 'مرتجع'
-          }}
-          columns={[
-            { key: 'docNo', header: 'رقم المستند', cell: (row) => row.docNo || '—' },
-            { key: 'type', header: 'النوع', cell: (row) => returnTypeLabel(row) },
-            { key: 'product', header: 'الصنف', cell: (row) => row.productName || '—' },
-            { key: 'qty', header: 'الكمية', cell: (row) => row.qty },
-            { key: 'total', header: 'الإجمالي', cell: (row) => formatCurrency(row.total) },
-            { key: 'note', header: 'ملاحظات', cell: (row) => row.note || '—' },
-            { key: 'date', header: 'التاريخ', cell: (row) => formatDate(getReturnDateValue(row)) },
-            { key: 'createdBy', header: 'منفذ المرتجع', cell: (row) => row.createdByName || row.createdBy || '—' },
-            { key: 'actions', header: 'إجراءات', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button variant="secondary" onClick={(event) => { event.stopPropagation(); onPrintReturn(row); }}>طباعة</Button></div> }
-          ]}
-        />
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <DataTable
+            rows={rows}
+            rowKey={(row) => String(row.id)}
+            rowClassName={(row) => selectedReturnId === String(row.id) ? 'table-row-selected' : ''}
+            onRowClick={(row) => onSelectReturn(String(row.id))}
+            rowTitle={() => 'انقر لعرض تفاصيل المرتجع'}
+            pagination={{
+              page,
+              pageSize,
+              totalItems,
+              onPageChange,
+              onPageSizeChange: (nextPageSize) => { onPageSizeChange(nextPageSize); onPageChange(1); },
+              itemLabel: 'مرتجع'
+            }}
+            columns={[
+              { key: 'docNo', header: 'رقم المستند', cell: (row) => row.docNo || '—' },
+              { key: 'type', header: 'النوع', cell: (row) => returnTypeLabel(row) },
+              { key: 'product', header: 'الصنف', cell: (row) => row.productName || '—' },
+              { key: 'qty', header: 'الكمية', cell: (row) => row.qty },
+              { key: 'total', header: 'الإجمالي', cell: (row) => formatCurrency(row.total) },
+              { key: 'note', header: 'ملاحظات', cell: (row) => row.note || '—' },
+              { key: 'date', header: 'التاريخ', cell: (row) => formatDate(getReturnDateValue(row)) },
+              { key: 'createdBy', header: 'منفذ المرتجع', cell: (row) => row.createdByName || row.createdBy || '—' },
+              { key: 'actions', header: 'إجراءات', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button variant="secondary" onClick={(event) => { event.stopPropagation(); onPrintReturn(row); }}>طباعة</Button></div> }
+            ]}
+          />
+        </div>
       ) : <div className="empty-state-card">لا توجد مرتجعات حاليًا</div>}
     </FormSection>
   );

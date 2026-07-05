@@ -299,7 +299,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
               {!canManageInventory ? <div className="muted small">هذا الحساب يملك صلاحية متابعة المخزون فقط. تنفيذ التسويات والتالف يتطلب canAdjustInventory.</div> : null}
               <MutationFeedback isError={adjustmentMutation.isError} isSuccess={adjustmentMutation.isSuccess} error={adjustmentMutation.error} errorFallback="تعذر تنفيذ حركة المخزون" successText="تم حفظ حركة المخزون وتحديث الرصيد بنجاح." />
               <div className="actions">
-                <SubmitButton type="button" onClick={adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))} disabled={adjustmentMutation.isPending || !canManageInventory} idleText="حفظ حركة المخزون" pendingText="جارٍ الحفظ..." />
+                <SubmitButton type="button" onClick={adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))} isPending={adjustmentMutation.isPending} disabled={!canManageInventory} idleText="حفظ حركة المخزون" pendingText="جارٍ الحفظ..." />
                 <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending || !canManageInventory} onClick={resetAdjustmentForm}>تفريغ</Button>
                 <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending} onClick={closeAdjustmentForm}>إلغاء وإغلاق</Button>
               </div>
@@ -372,7 +372,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
               </div>
               <MutationFeedback isError={damagedMutation.isError} isSuccess={damagedMutation.isSuccess} error={damagedMutation.error} errorFallback="تعذر تسجيل التالف" successText="تم تسجيل التالف وتحديث المخزون بنجاح." />
               <div className="actions">
-                <SubmitButton type="button" variant="danger" onClick={damagedForm.handleSubmit((values) => damagedMutation.mutate(values))} disabled={damagedMutation.isPending || !canManageInventory} idleText="تسجيل التالف" pendingText="جارٍ التسجيل..." />
+                <SubmitButton type="button" variant="danger" onClick={damagedForm.handleSubmit((values) => damagedMutation.mutate(values))} isPending={damagedMutation.isPending} disabled={!canManageInventory} idleText="تسجيل التالف" pendingText="جارٍ التسجيل..." />
                 <Button type="button" variant="secondary" disabled={damagedMutation.isPending || !canManageInventory} onClick={resetDamagedForm}>تفريغ</Button>
               </div>
             </div>

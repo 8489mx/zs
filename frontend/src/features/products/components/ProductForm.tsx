@@ -390,7 +390,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
       {usesVariantBuilder && duplicateFashionBarcodes ? <div className="muted small" style={{ color: '#b91c1c' }}>يوجد باركودات مكررة داخل نفس المجموعة. صححها قبل الحفظ.</div> : null}
       <div className="actions">
         <FormResetButton onReset={handleReset} disabled={!hasDraftChanges || mutation.isPending}>إعادة القيم</FormResetButton>
-        <SubmitButton type="submit" disabled={mutation.isPending || (usesVariantBuilder && (!fashionVariantRows.length || duplicateFashionBarcodes > 0 || !String(watchedStyleCode || '').trim()))} idleText={submitText} pendingText="جارٍ الحفظ..." />
+        <SubmitButton type="submit" isPending={mutation.isPending} disabled={(usesVariantBuilder && (!fashionVariantRows.length || duplicateFashionBarcodes > 0 || !String(watchedStyleCode || '').trim()))} idleText={submitText} pendingText="جارٍ الحفظ..." />
       </div>
     </form>
   );

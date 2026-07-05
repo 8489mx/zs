@@ -38,7 +38,7 @@ export function CustomerPaymentForm({ customers, activeCustomerId, disabled = fa
       <Field label="ملاحظات"><textarea rows={4} {...form.register('note')} disabled={mutation.isPending || disabled} /></Field>
       {disabled ? <div className="muted small">هذا الحساب يملك متابعة كشوف الحساب فقط بدون تسجيل تحصيل جديد.</div> : null}
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ التحصيل" successText="تم حفظ التحصيل بنجاح." />
-      <SubmitButton type="submit" variant="success" disabled={mutation.isPending || disabled} idleText="حفظ التحصيل" pendingText="جارٍ الحفظ..." />
+      <SubmitButton type="submit" variant="success" isPending={mutation.isPending} disabled={disabled} idleText="حفظ التحصيل" pendingText="جارٍ الحفظ..." />
     </form>
   );
 }
@@ -62,7 +62,7 @@ export function SupplierPaymentForm({ suppliers, activeSupplierId, disabled = fa
       <Field label="ملاحظات"><textarea rows={4} {...form.register('note')} disabled={mutation.isPending || disabled} /></Field>
       {disabled ? <div className="muted small">هذا الحساب يملك متابعة كشوف الحساب فقط بدون تسجيل تحصيل جديد.</div> : null}
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الدفع" successText="تم حفظ الدفع بنجاح." />
-      <SubmitButton type="submit" variant="primary" disabled={mutation.isPending || disabled} idleText="حفظ الدفع" pendingText="جارٍ الحفظ..." />
+      <SubmitButton type="submit" variant="primary" isPending={mutation.isPending} disabled={disabled} idleText="حفظ الدفع" pendingText="جارٍ الحفظ..." />
     </form>
   );
 }

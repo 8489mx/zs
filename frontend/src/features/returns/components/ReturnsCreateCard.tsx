@@ -87,17 +87,19 @@ export function ReturnsCreateCard(props: Props) {
               ? 'اختر الفاتورة ثم حدّد البنود وطريقة التسوية المناسبة.'
               : 'اختر الفاتورة ثم حدّد البنود المراد إرجاعها.'}
         </div>
-        <ReturnsInvoiceItemsTable
-          invoiceItems={selectedInvoice ? invoiceItems : []}
-          selectedItems={selectedItems}
-          onToggleItem={onToggleItem}
-          onSetItemQty={onSetItemQty}
-          returnedQtyByProduct={returnedQtyByProduct}
-        />
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <ReturnsInvoiceItemsTable
+            invoiceItems={selectedInvoice ? invoiceItems : []}
+            selectedItems={selectedItems}
+            onToggleItem={onToggleItem}
+            onSetItemQty={onSetItemQty}
+            returnedQtyByProduct={returnedQtyByProduct}
+          />
+        </div>
         <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر حفظ المرتجع" successText="تم حفظ المرتجع بنجاح." />
         <div className="actions">
           <Button type="button" variant="secondary" onClick={onResetForm}>تفريغ</Button>
-          <SubmitButton type="button" onClick={onOpenConfirm} disabled={isBusy || !form.invoiceId || !selectedItemsCount} idleText={form.type === 'sale' ? 'تسجيل مرتجع البيع' : 'تسجيل مرتجع الشراء'} pendingText="جارٍ الحفظ..." />
+          <SubmitButton type="button" onClick={onOpenConfirm} isPending={isBusy} disabled={!form.invoiceId || !selectedItemsCount} idleText={form.type === 'sale' ? 'تسجيل مرتجع البيع' : 'تسجيل مرتجع الشراء'} pendingText="جارٍ الحفظ..." />
         </div>
       </div>
     </FormSection>
