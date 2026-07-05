@@ -235,16 +235,16 @@ export class InventoryScopeService {
 
       const locQtyMap = new Map<number, number>();
       for (const s of allLocStocks) {
-        locQtyMap.set(s.product_id, (locQtyMap.get(s.product_id) || 0) + Number(s.qty));
+        locQtyMap.set(Number(s.product_id), (locQtyMap.get(Number(s.product_id)) || 0) + Number(s.qty));
       }
 
       for (const pid of productIds) {
-        const pInfo = productsInfo.find(p => p.id === pid);
+        const pInfo = productsInfo.find(p => Number(p.id) === Number(pid));
         const globalStock = Number(pInfo?.stock_qty || 0);
-        const assignedStock = locQtyMap.get(pid) || 0;
+        const assignedStock = locQtyMap.get(Number(pid)) || 0;
         const unassignedStock = Math.max(0, globalStock - assignedStock);
 
-        const existingRecord = allLocStocks.find(s => s.product_id === pid && s.location_id === locationId);
+        const existingRecord = allLocStocks.find(s => Number(s.product_id) === Number(pid) && Number(s.location_id) === Number(locationId));
 
         if (existingRecord) {
           // If already assigned but has unassigned stock elsewhere, and we are assigning,
@@ -252,16 +252,16 @@ export class InventoryScopeService {
           if (unassignedStock > 0) {
              await trx.updateTable('product_location_stock')
                .set({ qty: Number(existingRecord.qty) + unassignedStock })
-               .where('product_id', '=', pid)
-               .where('location_id', '=', locationId)
+               .where('product_id', '=', Number(pid))
+               .where('location_id', '=', Number(locationId))
                .execute();
           }
         } else {
           // Insert new record with unassigned stock
           await trx.insertInto('product_location_stock')
             .values({
-              product_id: pid,
-              location_id: locationId,
+              product_id: Number(pid),
+              location_id: Number(locationId),
               branch_id: location.branch_id || null,
               qty: unassignedStock,
               tenant_id: tenantId,

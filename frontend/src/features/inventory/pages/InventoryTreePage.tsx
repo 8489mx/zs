@@ -566,25 +566,19 @@ function ProductTreeRow({
 
       {/* Global total qty */}
       <div style={{ textAlign: 'center' }}>
-        {isUnassigned ? (
-          <span style={{ fontSize: '11px', color: '#bbb' }}>—</span>
-        ) : (
-          <span style={{
-            fontWeight: 800,
-            fontSize: '15px',
-            color: product.totalQty === 0 ? '#ef4444' : product.totalQty > 50 ? '#16a34a' : '#d97706',
-          }}>
-            {product.totalQty}
-          </span>
-        )}
+        <span style={{
+          fontWeight: 800,
+          fontSize: '15px',
+          color: product.totalQty === 0 ? '#ef4444' : product.totalQty > 50 ? '#16a34a' : '#d97706',
+        }}>
+          {product.totalQty}
+        </span>
       </div>
 
       {/* Location stocks chips */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', alignItems: 'center' }}>
-        {isUnassigned ? (
+        {visibleStocks.length === 0 ? (
           <span style={{ fontSize: '12px', color: '#bbb' }}>—</span>
-        ) : visibleStocks.length === 0 ? (
-          <span style={{ fontSize: '12px', color: '#ef4444' }}>لا يوجد رصيد</span>
         ) : (
           visibleStocks.map((s) => (
             <div key={s.locationId} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fff', border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
