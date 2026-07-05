@@ -1105,26 +1105,6 @@ export function NewPurchaseOrderPage() {
       catalog.locationsQuery.data || []
     );
 
-    console.log('--- DEBUG START ---');
-    console.log('1. بيانات الصنف قبل الإضافة:', {
-      'product.id': option.id,
-      'product.name': option.name,
-      'product.defaultLocationId': option.defaultLocationId,
-      'product.defaultLocationName': option.defaultLocationName,
-      'product.activeLocationIds': option.activeLocationIds,
-      'product.warehouseId': option.warehouseId,
-      'product.warehouse': option.warehouse,
-    });
-    console.log('2. نتيجة resolveSuggestedReceivingLocation:', {
-      'resolved.locationId': suggestedLocation.warehouseId,
-      'resolved.locationName': suggestedLocation.warehouse,
-    });
-    console.log('4. بيانات المخازن المتاحة:', {
-      'locations count': (catalog.locationsQuery.data || []).length,
-      'first 5 locations ids/names': (catalog.locationsQuery.data || []).slice(0, 5).map(l => ({ id: l.id, name: l.name })),
-      'is defaultLocationId in locations': option.defaultLocationId ? (catalog.locationsQuery.data || []).some(l => String(l.id) === String(option.defaultLocationId)) : false
-    });
-
     setLines((current) =>
       current.map((line) => {
         if (line.id !== lineId) {
@@ -1143,11 +1123,6 @@ export function NewPurchaseOrderPage() {
           categoryId: option.categoryId,
           isService: option.type === 'service'
         };
-        console.log('3. بيانات السطر بعد الإضافة:', {
-          'line.productId': newLine.productId,
-          'line.warehouseId': newLine.warehouseId,
-          'line.warehouse': newLine.warehouse,
-        });
         return newLine;
       })
     );
@@ -1175,21 +1150,6 @@ export function NewPurchaseOrderPage() {
       catalog.locationsQuery.data || []
     );
 
-    console.log('--- DEBUG START (addProductAsLine) ---');
-    console.log('1. بيانات الصنف قبل الإضافة:', {
-      'product.id': option.id,
-      'product.name': option.name,
-      'product.defaultLocationId': option.defaultLocationId,
-      'product.defaultLocationName': option.defaultLocationName,
-      'product.activeLocationIds': option.activeLocationIds,
-      'product.warehouseId': option.warehouseId,
-      'product.warehouse': option.warehouse,
-    });
-    console.log('2. نتيجة resolveSuggestedReceivingLocation:', {
-      'resolved.locationId': suggestedLocation.warehouseId,
-      'resolved.locationName': suggestedLocation.warehouse,
-    });
-
     const newLine: PrototypeLine = {
       id: newLineId,
       productId: option.id,
@@ -1203,11 +1163,6 @@ export function NewPurchaseOrderPage() {
       isService: option.type === 'service'
     };
 
-    console.log('3. بيانات السطر بعد الإضافة:', {
-      'line.productId': newLine.productId,
-      'line.warehouseId': newLine.warehouseId,
-      'line.warehouse': newLine.warehouse,
-    });
 
     setLines((current) => [...current, newLine]);
     setPendingFocusQtyLineId(newLineId);
