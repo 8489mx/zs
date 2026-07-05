@@ -13,6 +13,7 @@ interface ProductRow {
   categoryName: string;
   locationStocks: { locationId: string; locationName: string; qty: number }[];
   totalQty: number;
+  unassignedQty?: number;
   isUnassigned: boolean;
 }
 
@@ -792,6 +793,8 @@ export function InventoryTreePage() {
       const globalStock = Number(p.stock || p.stockQty || 0);
       const totalQty = sumFromLocations > 0 ? sumFromLocations : globalStock;
 
+      const unassignedQty = globalStock > sumFromLocations ? globalStock - sumFromLocations : 0;
+
       const cat = categories.find((c: any) => String(c.id) === String(p.categoryId));
       return {
         id: String(p.id),
@@ -801,7 +804,8 @@ export function InventoryTreePage() {
         categoryName: cat ? String(cat.name) : (p.categoryName || 'بدون قسم'),
         locationStocks,
         totalQty,
-        isUnassigned: locationStocks.length === 0,
+        unassignedQty,
+        isUnassigned: locationStocks.length === 0 || unassignedQty > 0,
       };
     });
   }, [rawProducts, stocks, allLocations, categories]);

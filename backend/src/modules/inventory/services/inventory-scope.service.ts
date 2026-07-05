@@ -221,26 +221,53 @@ export class InventoryScopeService {
       const location = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', locationId).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
       if (!location) throw new AppError('Location not found', 'NOT_FOUND', 404);
 
-      // Find existing ones
-      const existing = await trx.selectFrom('product_location_stock')
-        .select('product_id')
-        .where('location_id', '=', locationId)
+      // Find global stock
+      const productsInfo = await trx.selectFrom('products')
+        .select(['id', 'stock_qty'])
+        .where('id', 'in', productIds)
+        .execute();
+
+      // Find all location stocks for these products
+      const allLocStocks = await trx.selectFrom('product_location_stock')
+        .select(['product_id', 'location_id', 'qty'])
         .where('product_id', 'in', productIds)
         .execute();
-      
-      const existingIds = new Set(existing.map(e => e.product_id));
-      const toInsert = productIds.filter(id => !existingIds.has(id));
 
-      if (toInsert.length > 0) {
-        await trx.insertInto('product_location_stock')
-          .values(toInsert.map(pid => ({
-            product_id: pid,
-            location_id: locationId,
-            branch_id: location.branch_id || null,
-            qty: 0,
-            tenant_id: tenantId,
-          } as any)))
-          .execute();
+      const locQtyMap = new Map<number, number>();
+      for (const s of allLocStocks) {
+        locQtyMap.set(s.product_id, (locQtyMap.get(s.product_id) || 0) + Number(s.qty));
+      }
+
+      for (const pid of productIds) {
+        const pInfo = productsInfo.find(p => p.id === pid);
+        const globalStock = Number(pInfo?.stock_qty || 0);
+        const assignedStock = locQtyMap.get(pid) || 0;
+        const unassignedStock = Math.max(0, globalStock - assignedStock);
+
+        const existingRecord = allLocStocks.find(s => s.product_id === pid && s.location_id === locationId);
+
+        if (existingRecord) {
+          // If already assigned but has unassigned stock elsewhere, and we are assigning,
+          // pull the unassigned stock into this location!
+          if (unassignedStock > 0) {
+             await trx.updateTable('product_location_stock')
+               .set({ qty: Number(existingRecord.qty) + unassignedStock })
+               .where('product_id', '=', pid)
+               .where('location_id', '=', locationId)
+               .execute();
+          }
+        } else {
+          // Insert new record with unassigned stock
+          await trx.insertInto('product_location_stock')
+            .values({
+              product_id: pid,
+              location_id: locationId,
+              branch_id: location.branch_id || null,
+              qty: unassignedStock,
+              tenant_id: tenantId,
+            } as any)
+            .execute();
+        }
       }
     });
 
