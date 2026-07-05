@@ -60,9 +60,12 @@ async function bootstrap(): Promise<void> {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  app.enableCors({
-    origin: corsOrigins,
-    credentials: true,
+  app.enableCors((req: any, callback: any) => {
+    if (req.url && req.url.startsWith('/api/updates/')) {
+      callback(null, { origin: '*', credentials: false });
+    } else {
+      callback(null, { origin: corsOrigins, credentials: true });
+    }
   });
 
   if (process.env.APP_MODE === 'SELF_CONTAINED' || process.env.PORTABLE_MODE === 'true') {
