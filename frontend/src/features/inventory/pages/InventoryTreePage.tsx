@@ -889,9 +889,23 @@ export function InventoryTreePage() {
     setSelectedIds(new Set());
   }, [queryClient]);
 
-  const handleExpandAll = useCallback(() => setCollapsedCategories(new Set()), []);
-  const handleCollapseAll = useCallback(() => setCollapsedCategories(new Set(grouped.map(g => g[0]))), [grouped]);
-  const handleSelectAll = useCallback(() => setSelectedIds(new Set(filteredRows.map(p => p.id))), [filteredRows]);
+  const isAllExpanded = collapsedCategories.size === 0;
+  const toggleExpandCollapseAll = useCallback(() => {
+    if (isAllExpanded) {
+      setCollapsedCategories(new Set(grouped.map(g => g[0]))); // Collapse all
+    } else {
+      setCollapsedCategories(new Set()); // Expand all
+    }
+  }, [isAllExpanded, grouped]);
+
+  const allSelected = filteredRows.length > 0 && selectedIds.size === filteredRows.length;
+  const handleSelectAll = useCallback(() => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredRows.map(p => p.id)));
+    }
+  }, [allSelected, filteredRows]);
 
   const handleRemoveLocation = async (productId: string, locationId: string) => {
     try {
@@ -985,14 +999,11 @@ export function InventoryTreePage() {
           {selectedIds.size > 0 && <span style={{ marginRight: '8px', color: 'var(--primary, #170c5c)', fontWeight: 700 }}>— {selectedIds.size} صنف محدد</span>}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={handleSelectAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--primary, #170c5c)', background: 'transparent', color: 'var(--primary, #170c5c)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
-            تحديد الكل ☑️
+          <button onClick={handleSelectAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--primary, #170c5c)', background: allSelected ? 'var(--primary, #170c5c)' : 'transparent', color: allSelected ? '#fff' : 'var(--primary, #170c5c)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            {allSelected ? 'إلغاء التحديد ⬜' : 'تحديد الكل ☑️'}
           </button>
-          <button onClick={handleExpandAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #ccc)', background: '#fff', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
-            فرد الأقسام ▼
-          </button>
-          <button onClick={handleCollapseAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #ccc)', background: '#fff', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
-            ضم الأقسام ▶
+          <button onClick={toggleExpandCollapseAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #ccc)', background: '#fff', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            {isAllExpanded ? 'ضم الأقسام ▶' : 'فرد الأقسام ▼'}
           </button>
         </div>
       </div>
