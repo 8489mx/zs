@@ -73,7 +73,7 @@ export function SystemUpdatesSection() {
       <FormSection title="Debug مرئي (مؤقت)">
         <div style={{ background: '#1e1e1e', color: '#00ff00', padding: '16px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left', overflowX: 'auto' }}>
           <div><strong>currentVersion:</strong> {currentVersion}</div>
-          <div><strong>updateCheckUrl:</strong> https://app.karimzakaria.com/api/updates/check?version={currentVersion}</div>
+          <div><strong>updateCheckUrl:</strong> {import.meta.env.VITE_OFFLINE_UPDATE_API_BASE_URL || 'https://api.karimzakaria.com'}/api/updates/check?version={currentVersion}</div>
           <div><strong>response status:</strong> {isCheckingUpdates ? 'Checking...' : (updateInfo ? 'Success' : 'Failed/Not checked')}</div>
           <div><strong>latestVersion:</strong> {updateInfo?.latestVersion || 'N/A'}</div>
           <div><strong>patchUrl:</strong> {updateInfo?.patchUrl || 'N/A'}</div>

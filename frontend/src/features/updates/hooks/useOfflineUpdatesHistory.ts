@@ -14,7 +14,8 @@ export function useOfflineUpdatesHistory(deploymentMode: string | null | undefin
     queryKey: ['offline-updates-history'],
     queryFn: async () => {
       try {
-        const response = await fetch('https://app.karimzakaria.com/api/updates/history');
+        const baseUrl = import.meta.env.VITE_OFFLINE_UPDATE_API_BASE_URL || 'https://api.karimzakaria.com';
+        const response = await fetch(`${baseUrl}/api/updates/history`);
         if (!response.ok) {
           throw new Error('Failed to fetch update history');
         }
