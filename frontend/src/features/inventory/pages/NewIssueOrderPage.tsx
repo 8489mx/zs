@@ -213,6 +213,15 @@ export function NewIssueOrderPage() {
       return;
     }
 
+    const seenProducts = new Map<string, string>();
+    for (const line of validLines) {
+      if (seenProducts.has(line.productId!)) {
+        setErrorMsg(`الصنف "${line.productName}" مكرر. يرجى دمجه في سطر واحد أو حذف المكرر.`);
+        return;
+      }
+      seenProducts.set(line.productId!, String(line.id));
+    }
+
     if (fromLocationId === 'all') {
       const missingLocations = validLines.some(l => !l.fromLocationId);
       if (missingLocations) {

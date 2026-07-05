@@ -1509,6 +1509,7 @@ export function NewPurchaseOrderPage() {
       return { valid: false, errors: nextErrors, firstInvalidTarget };
     }
 
+    const seenProducts = new Map<string, string>();
     lines.forEach((line) => {
       const isBlankRow = !line.productId && !line.itemName.trim() && line.qty === 1 && line.unitPrice === 0 && !line.warehouse.trim();
       if (isBlankRow) {
@@ -1520,6 +1521,13 @@ export function NewPurchaseOrderPage() {
       if (!line.productId) {
         rowErrors.product = t('select_item_error');
         addFirstTarget({ kind: 'line', lineId: line.id, field: 'product' });
+      } else {
+        if (seenProducts.has(line.productId)) {
+          rowErrors.product = `الصنف "${line.itemName}" مكرر. يرجى دمجه أو حذفه.`;
+          addFirstTarget({ kind: 'line', lineId: line.id, field: 'product' });
+        } else {
+          seenProducts.set(line.productId, String(line.id));
+        }
       }
 
       const qtyValue = Number.isFinite(line.qty) ? line.qty : parseLocalizedNumber(String(line.qty));
@@ -1609,7 +1617,30 @@ export function NewPurchaseOrderPage() {
     if (!validation.valid) {
       setValidationErrors(validation.errors);
       setDocumentStatus('draft');
-      setInlineMessage({ tone: 'error', text: t('please_complete_data') });
+      
+      let errorMsg = t('please_complete_data');
+      if (validation.errors.supplier) {
+        errorMsg = validation.errors.supplier;
+      } else {
+        for (const rowId in validation.errors.rows) {
+          const rowErr = validation.errors.rows[rowId];
+          if (rowErr?.product) {
+            errorMsg = rowErr.product;
+            break;
+          } else if (rowErr?.qty) {
+            errorMsg = rowErr.qty;
+            break;
+          } else if (rowErr?.price) {
+            errorMsg = rowErr.price;
+            break;
+          } else if (rowErr?.warehouse) {
+            errorMsg = rowErr.warehouse;
+            break;
+          }
+        }
+      }
+
+      setInlineMessage({ tone: 'error', text: errorMsg });
       focusFirstInvalidField(validation.firstInvalidTarget ?? null);
       return;
     }
@@ -1617,7 +1648,7 @@ export function NewPurchaseOrderPage() {
     const selectedSupplierObj = suppliers.find(s => s.name === supplier);
     const supplierId = selectedSupplierObj?.id || '';
     if (!supplierId) {
-      setInlineMessage({ tone: 'error', text: t('please_complete_data') });
+      setInlineMessage({ tone: 'error', text: 'يرجى اختيار مورد صالح من القائمة.' });
       return;
     }
 
