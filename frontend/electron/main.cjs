@@ -30,6 +30,16 @@ const createWindow = () => {
 };
 
 app.whenReady().then(async () => {
+  // Log App Version details for Update Checker & Debugging
+  const packageVersion = require('../package.json').version;
+  console.log('----------------------------------------');
+  console.log(`[ELECTRON] Application started`);
+  console.log(`[ELECTRON] app.getVersion(): ${app.getVersion()}`);
+  console.log(`[ELECTRON] package.json version: ${packageVersion}`);
+  console.log(`[ELECTRON] process.env.APP_MODE: ${process.env.APP_MODE || 'SELF_CONTAINED'}`);
+  console.log(`[ELECTRON] Default UpdateCheckUrl (if any): ...`);
+  console.log('----------------------------------------');
+
   // Show Splash Screen Immediately
   const splash = new BrowserWindow({
     width: 400,

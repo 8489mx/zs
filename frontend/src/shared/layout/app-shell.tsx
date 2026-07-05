@@ -135,7 +135,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const storeName = useAuthStore((state) => state.storeName);
   const clearSession = useAuthStore((state) => state.clearSession);
   const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
-  const { data: updateInfo } = useOfflineUpdateCheck(deploymentMode);
+  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates } = useOfflineUpdateCheck(deploymentMode);
   const displayName = user?.displayName || user?.username || 'المستخدم';
   const workspaceName = storeName || DEFAULT_STORE_NAME;
   const isPosRoute = location.pathname.startsWith('/pos');
@@ -381,6 +381,25 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="sidebar-footer">
             <div className="sidebar-footer-info" style={{ marginBottom: 12 }}>
               <div className="muted small">{t("sidebar.welcome_msg")} {displayName}</div>
+              <div className="muted small" style={{ opacity: 0.7, marginTop: 4, fontSize: '0.75rem' }}>الإصدار الحالي: {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}</div>
+              <Button 
+                variant="secondary" 
+                disabled={isCheckingUpdates}
+                onClick={() => {
+                  checkUpdates().then((res) => {
+                    if (res.data?.hasUpdate) {
+                      alert('يوجد تحديث متوفر: ' + res.data.latest);
+                    } else if (res.isError || !navigator.onLine) {
+                      alert('فشل الاتصال أو الجهاز غير متصل بالإنترنت');
+                    } else {
+                      alert('لا يوجد تحديث، أنت على أحدث إصدار!');
+                    }
+                  });
+                }}
+                style={{ marginTop: 8, fontSize: '0.7rem', padding: '4px 8px', height: 'auto', width: '100%' }}
+              >
+                {isCheckingUpdates ? 'جارِ الفحص...' : 'فحص التحديثات الآن'}
+              </Button>
             </div>
             <div className="sidebar-footer-actions">
               <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" title={t("sidebar.logout")}>

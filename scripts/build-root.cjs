@@ -12,6 +12,27 @@ function run(command, args) {
   }
 }
 
+function checkVersions() {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const rootPkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
+    const fePkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../frontend/package.json'), 'utf8'));
+    
+    if (rootPkg.version !== fePkg.version) {
+      console.error(`[ERROR] Version mismatch detected!`);
+      console.error(`Root package.json version: ${rootPkg.version}`);
+      console.error(`Frontend package.json version: ${fePkg.version}`);
+      console.error(`Please synchronize versions before building.`);
+      process.exit(1);
+    }
+  } catch (e) {
+    console.warn(`[WARN] Could not check versions: ${e.message}`);
+  }
+}
+
+checkVersions();
+
 const deployTarget = String(process.env.ZS_DEPLOY_TARGET || '').trim().toLowerCase();
 
 if (deployTarget === 'backend' || deployTarget === 'api' || deployTarget === 'hostinger-api') {
