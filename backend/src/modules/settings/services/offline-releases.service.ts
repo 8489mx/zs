@@ -18,6 +18,7 @@ export class OfflineReleasesService {
    * Returns the latest active release if it is newer than the client's current version.
    */
   async checkForUpdate(currentVersion: string) {
+    console.log(`[DEBUG] updates/check endpoint hit. requestedVersion: ${currentVersion}`);
     const active = await this.db
       .selectFrom('offline_releases')
       .selectAll()
@@ -27,9 +28,10 @@ export class OfflineReleasesService {
       .executeTakeFirst();
 
     const history = await this.listReleaseHistory();
+    console.log(`[DEBUG] approvedReleasesCount (history): ${history.length}`);
 
     if (!active) {
-      return {
+      const result = {
         updateAvailable: false,
         currentVersion,
         latestVersion: null,
@@ -37,6 +39,8 @@ export class OfflineReleasesService {
         changelog: null,
         releases: history,
       };
+      console.log(`[DEBUG] response body (no active release):`, JSON.stringify(result));
+      return result;
     }
 
     const currentParts = currentVersion.replace('v', '').split('.').map(Number);
@@ -54,7 +58,7 @@ export class OfflineReleasesService {
     }
 
     if (!isNewer) {
-      return {
+      const result = {
         updateAvailable: false,
         currentVersion,
         latestVersion: active.version,
@@ -62,9 +66,11 @@ export class OfflineReleasesService {
         changelog: null,
         releases: history,
       };
+      console.log(`[DEBUG] response body (not newer):`, JSON.stringify(result));
+      return result;
     }
 
-    return {
+    const result = {
       updateAvailable: true,
       currentVersion,
       latestVersion: active.version,
@@ -72,6 +78,8 @@ export class OfflineReleasesService {
       changelog: active.changelog,
       releases: history,
     };
+    console.log(`[DEBUG] response body (update available):`, JSON.stringify(result));
+    return result;
   }
 
   async listReleaseHistory() {
