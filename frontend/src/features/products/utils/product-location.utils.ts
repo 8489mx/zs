@@ -2,6 +2,7 @@ export function getProductLocationDisplayName(
   product: {
     stock?: number;
     defaultLocationId?: string | number | null;
+    defaultLocationName?: string;
     activeLocationIds?: string[] | number[];
   },
   locationNames: Record<string, string>
@@ -19,7 +20,7 @@ export function getProductLocationDisplayName(
 
   // Rule 2: If stock = 0, show defaultLocationId if exists
   if (product.defaultLocationId) {
-    return locationNames[String(product.defaultLocationId)] || 'غير محدد';
+    return locationNames[String(product.defaultLocationId)] || product.defaultLocationName || 'غير محدد';
   }
 
   // Rule 3 & 4: If no defaultLocationId, fallback to activeLocationIds

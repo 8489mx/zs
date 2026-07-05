@@ -163,8 +163,8 @@ export class CatalogProductService {
       this.db
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
-        .leftJoin('stock_locations as sl', 'sl.id', 'products.default_location_id')
-        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'products.default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
+        .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
+        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
         .where('products.is_active', '=', true)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -1199,8 +1199,8 @@ export class CatalogProductService {
     const product = await this.db
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
-      .leftJoin('stock_locations as sl', 'sl.id', 'products.default_location_id')
-      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'products.default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
+      .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
+      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
       .where('products.id', '=', id)
       .where('products.is_active', '=', true)
       .where(this.tenantPredicate(actor, 'products'))

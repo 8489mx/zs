@@ -1,4 +1,4 @@
-import { Fragment, useState, useMemo, useEffect } from 'react';
+import { Fragment, useState, useMemo } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -91,22 +91,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   const rangeStart = props.totalItems ? ((props.page - 1) * props.pageSize) + 1 : 0;
   const rangeEnd = Math.min(props.page * props.pageSize, props.totalItems || 0);
 
-  useEffect(() => {
-    const zeroStock = props.visibleProducts.filter(p => !p.stock || p.stock === 0);
-    if (zeroStock.length) {
-      console.log('--- DEBUG: Zero Stock Products in ProductsTableCard ---');
-      zeroStock.slice(0, 3).forEach(p => {
-        console.log({
-          id: p.id,
-          name: p.name,
-          stock: p.stock,
-          defaultLocationId: p.defaultLocationId,
-          activeLocationIds: p.activeLocationIds,
-          defaultLocationName: (p as any).defaultLocationName
-        });
-      });
-    }
-  }, [props.visibleProducts]);
+
 
   function toggleExpand(key: string) {
     setExpandedKeys((current) => current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key]);
