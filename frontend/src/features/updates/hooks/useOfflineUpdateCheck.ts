@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { getOfflineUpdateApiBaseUrl } from '../utils/update-api';
 
 export interface UpdateCheckResult {
   updateAvailable: boolean;
@@ -33,7 +34,7 @@ export function useOfflineUpdateCheck(deploymentMode: string | null | undefined)
   const currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
   // Step 2 — check if a newer stable release exists
-  const baseUrl = import.meta.env.VITE_OFFLINE_UPDATE_API_BASE_URL || 'https://api.karimzakaria.com';
+  const baseUrl = getOfflineUpdateApiBaseUrl();
   const checkUpdatesUrl = `${baseUrl}/api/updates/check?version=${encodeURIComponent(currentVersion)}`;
 
   return useQuery<UpdateCheckResult>({

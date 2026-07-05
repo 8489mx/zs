@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { SuperAdminRoleGuard } from '../../../core/auth/guards/super-admin-role.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
@@ -34,6 +35,25 @@ export class OfflineUpdatesPublicController {
   @Get('history')
   async getHistory() {
     return this.releasesService.listReleaseHistory();
+  }
+
+  /**
+   * POST /api/updates/apply
+   * Called by the local desktop client to trigger downloading and applying a patch.
+   */
+  @Post('apply')
+  async applyUpdate(@Body() body: { version: string; patchUrl: string; changelog: string }) {
+    return this.releasesService.applyLocalUpdate(body);
+  }
+
+  /**
+   * POST /api/updates/apply-local-zip
+   * Called by the local desktop client to trigger applying a manual local patch.
+   */
+  @Post('apply-local-zip')
+  @UseInterceptors(FileInterceptor('file'))
+  async applyLocalZipUpdate(@UploadedFile() file: Express.Multer.File) {
+    return this.releasesService.applyLocalZipUpdate(file);
   }
 }
 

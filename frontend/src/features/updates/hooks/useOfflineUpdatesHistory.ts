@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { getOfflineUpdateApiBaseUrl } from '../utils/update-api';
 
 export interface UpdateHistoryRecord {
   version: string;
@@ -14,7 +15,7 @@ export function useOfflineUpdatesHistory(deploymentMode: string | null | undefin
     queryKey: ['offline-updates-history'],
     queryFn: async () => {
       try {
-        const baseUrl = import.meta.env.VITE_OFFLINE_UPDATE_API_BASE_URL || 'https://api.karimzakaria.com';
+        const baseUrl = getOfflineUpdateApiBaseUrl();
         const response = await fetch(`${baseUrl}/api/updates/history`);
         if (!response.ok) {
           throw new Error('Failed to fetch update history');

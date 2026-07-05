@@ -12,7 +12,6 @@ import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
 import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
-import { OfflineUpdateBanner } from '@/features/updates/components/OfflineUpdateBanner';
 import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
 import {
   POS_SHELL_VISIBILITY_KEY,
@@ -382,7 +381,12 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="sidebar-footer">
             <div className="sidebar-footer-info" style={{ marginBottom: 12 }}>
               <div className="muted small">{t("sidebar.welcome_msg")} {displayName}</div>
-              <div className="muted small" style={{ opacity: 0.7, marginTop: 4, fontSize: '0.75rem' }}>الإصدار الحالي: {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}</div>
+              <div className="muted small" style={{ opacity: 0.7, marginTop: 4, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                الإصدار الحالي: {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+                {updateInfo?.updateAvailable && (
+                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--color-warning)', flexShrink: 0 }} title="تحديث جديد متاح" />
+                )}
+              </div>
             </div>
             <div className="sidebar-footer-actions">
               <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" title={t("sidebar.logout")}>
@@ -415,7 +419,6 @@ export function AppShell({ children }: PropsWithChildren) {
             <BootstrapAdminBanner />
             <TrialStatusBanner />
             <SystemStatusBanner />
-            {updateInfo?.updateAvailable && <OfflineUpdateBanner update={updateInfo} />}
           </div>
           <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>

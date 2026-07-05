@@ -7,6 +7,7 @@
     "build": "node ./scripts/build-root.cjs",
     "build:all": "npm --prefix backend run build && npm --prefix frontend run build",
     "build:exe": "npm --prefix frontend run build:exe",
+    "build:up": "node ./scripts/build-update-patch.cjs",
     "sync:portable-backend": "node ./scripts/sync-portable-backend-runtime.cjs",
     "sync:electron-backend": "node ./scripts/sync-electron-backend.cjs",
     "qa": "npm --prefix backend run check:commercial-ready && npm --prefix frontend run qa",

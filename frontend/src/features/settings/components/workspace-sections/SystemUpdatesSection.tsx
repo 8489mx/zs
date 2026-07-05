@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/shared/ui/button';
 import { FormSection } from '@/shared/components/form-section';
 import { useAuthStore } from '@/stores/auth-store';
@@ -15,8 +15,39 @@ export function SystemUpdatesSection() {
   
   const [updateCheckResult, setUpdateCheckResult] = useState<{ open: boolean; type: 'checking' | 'up-to-date' | 'error' | 'available'; data?: any } | null>(null);
   const [selectedReleaseIndex, setSelectedReleaseIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [localUpdateState, setLocalUpdateState] = useState<{ open: boolean; file: File | null; status: 'idle' | 'uploading' | 'error' | 'success'; error?: string }>({ open: false, file: null, status: 'idle' });
 
   const currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setLocalUpdateState({ open: true, file: e.target.files[0], status: 'idle' });
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleApplyLocalUpdate = async () => {
+    if (!localUpdateState.file) return;
+    setLocalUpdateState(s => ({ ...s, status: 'uploading' }));
+    
+    const formData = new FormData();
+    formData.append('file', localUpdateState.file);
+
+    try {
+      const res = await fetch('/api/updates/apply-local-zip', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'فشل تطبيق التحديث');
+      }
+      setLocalUpdateState(s => ({ ...s, status: 'success' }));
+    } catch (e: any) {
+      setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));
+    }
+  };
 
   const handleCheckUpdates = () => {
     setUpdateCheckResult({ open: true, type: 'checking' });
@@ -46,6 +77,10 @@ export function SystemUpdatesSection() {
               </div>
             </div>
             <div>
+              <input type="file" accept=".zip" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
+              <Button variant="secondary" onClick={() => fileInputRef.current?.click()} style={{ marginLeft: 8 }}>
+                تحديث من ملف
+              </Button>
               <Button variant="primary" onClick={handleCheckUpdates} disabled={isCheckingUpdates}>
                 {isCheckingUpdates ? 'جارِ الفحص...' : 'فحص التحديثات الآن'}
               </Button>
@@ -69,22 +104,6 @@ export function SystemUpdatesSection() {
         </div>
       </FormSection>
 
-      {/* Temporary Debug Block */}
-      <FormSection title="Debug مرئي (مؤقت)">
-        <div style={{ background: '#1e1e1e', color: '#00ff00', padding: '16px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', direction: 'ltr', textAlign: 'left', overflowX: 'auto' }}>
-          <div><strong>currentVersion:</strong> {currentVersion}</div>
-          <div><strong>updateCheckUrl:</strong> {import.meta.env.VITE_OFFLINE_UPDATE_API_BASE_URL || 'https://api.karimzakaria.com'}/api/updates/check?version={currentVersion}</div>
-          <div><strong>response status:</strong> {isCheckingUpdates ? 'Checking...' : (updateInfo ? 'Success' : 'Failed/Not checked')}</div>
-          <div><strong>latestVersion:</strong> {updateInfo?.latestVersion || 'N/A'}</div>
-          <div><strong>patchUrl:</strong> {updateInfo?.patchUrl || 'N/A'}</div>
-          <div><strong>releases count:</strong> {updateHistory?.length ?? 'N/A'}</div>
-          <div><strong>decision:</strong> {updateCheckResult?.type || (updateInfo?.updateAvailable ? 'update' : 'no_update')}</div>
-          <hr style={{ borderColor: '#333', margin: '12px 0' }} />
-          <pre style={{ margin: 0 }}>
-            {JSON.stringify({ updateInfo, updateCheckResult }, null, 2)}
-          </pre>
-        </div>
-      </FormSection>
 
       <FormSection title="سجل الإصدارات المتاحة">
         <div className="stack gap-12">
@@ -215,6 +234,57 @@ export function SystemUpdatesSection() {
                 <div style={{ marginTop: 24 }}>
                   <Button variant="secondary" onClick={() => setUpdateCheckResult(null)}>إغلاق</Button>
                 </div>
+              )}
+            </div>
+          </DialogShell>
+        </ClientPortal>
+      )}
+
+      {/* Local Update Modal */}
+      {localUpdateState.open && localUpdateState.file && (
+        <ClientPortal targetId="root">
+          <DialogShell open={true} onClose={() => localUpdateState.status !== 'uploading' && setLocalUpdateState(s => ({ ...s, open: false }))} width="min(450px, 100%)" ariaLabel="تحديث من ملف">
+            <div className="dialog-header">
+              <h3 className="dialog-title">تحديث النظام من ملف محلي</h3>
+            </div>
+            <div className="dialog-body stack gap-16" style={{ padding: '24px 20px', textAlign: 'center' }}>
+              {localUpdateState.status === 'idle' && (
+                <>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 600 }}>{localUpdateState.file.name}</div>
+                    <div className="muted small">{(localUpdateState.file.size / 1024 / 1024).toFixed(2)} MB</div>
+                  </div>
+                  <div style={{ background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', padding: 12, borderRadius: 8, fontSize: '0.9rem', marginBottom: 16 }}>
+                    سيتم أخذ نسخة احتياطية أولاً، ثم تطبيق التحديث وإعادة تشغيل البرنامج تلقائياً. يرجى عدم إغلاق البرنامج أثناء هذه العملية.
+                  </div>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <Button variant="primary" style={{ flex: 1 }} onClick={handleApplyLocalUpdate}>تأكيد وتطبيق التحديث</Button>
+                    <Button variant="secondary" onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>إلغاء</Button>
+                  </div>
+                </>
+              )}
+              {localUpdateState.status === 'uploading' && (
+                <div style={{ padding: '32px 0' }}>
+                  <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: 8 }}>جاري تطبيق التحديث...</div>
+                  <div className="muted small">الرجاء الانتظار، سيتم إعادة تشغيل التطبيق تلقائياً.</div>
+                </div>
+              )}
+              {localUpdateState.status === 'error' && (
+                <>
+                  <svg style={{ width: 48, height: 48, color: '#ef4444', margin: '0 auto 12px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <h4 style={{ margin: 0 }}>حدث خطأ أثناء التحديث</h4>
+                  <p className="muted small" style={{ marginTop: 8 }}>{localUpdateState.error}</p>
+                  <div style={{ marginTop: 24 }}>
+                    <Button variant="secondary" onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>إغلاق</Button>
+                  </div>
+                </>
+              )}
+              {localUpdateState.status === 'success' && (
+                <>
+                  <svg style={{ width: 48, height: 48, color: '#10b981', margin: '0 auto 12px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <h4 style={{ margin: 0 }}>تم بدء التحديث بنجاح</h4>
+                  <p className="muted small" style={{ marginTop: 8 }}>يتم الآن إعادة تشغيل التطبيق. يرجى الانتظار بضع ثوانٍ...</p>
+                </>
               )}
             </div>
           </DialogShell>

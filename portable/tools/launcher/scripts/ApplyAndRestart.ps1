@@ -73,7 +73,14 @@ if (-not (Test-Path $pendingFile)) {
 $pending = Get-Content -Path $pendingFile -Raw -Encoding utf8 | ConvertFrom-Json
 
 $version     = $pending.version
-$patchUrl    = $pending.patchUrl
+$patchUrl    = ''
+if ($pending.PSObject.Properties['patchUrl'] -and $pending.patchUrl) {
+  $patchUrl = $pending.patchUrl
+}
+$localPatchPath = ''
+if ($pending.PSObject.Properties['localPatchPath'] -and $pending.localPatchPath) {
+  $localPatchPath = $pending.localPatchPath
+}
 
 # Override params with values from the pending file if they were embedded there
 if ($pending.PSObject.Properties['nodeExe']     -and $pending.nodeExe)    { $NodeExe      = $pending.nodeExe }
@@ -93,13 +100,70 @@ if ([string]::IsNullOrWhiteSpace($NodeExe) -or -not (Test-Path $NodeExe)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($BackendCwd))  { $BackendCwd  = $paths.AppBackendDir }
-if ([string]::IsNullOrWhiteSpace($patchUrl)) {
-  Write-Log 'ERROR: patchUrl is empty. Aborting.'
+
+if ([string]::IsNullOrWhiteSpace($patchUrl) -and [string]::IsNullOrWhiteSpace($localPatchPath)) {
+  Write-Log 'ERROR: Both patchUrl and localPatchPath are empty. Aborting.'
   exit 1
 }
 
-Write-Log "Applying update to v$version  |  URL: $patchUrl"
+Write-Log "Applying update to v$version"
 Write-Log "Node: $NodeExe | CWD: $BackendCwd | Entry: $BackendEntry | Port: $BackendPort"
+
+# ── Pre-Update Backup ────────────────────────────────────────────────────────
+$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$backupDir = Join-Path $paths.RuntimeDir "backups\pre-update-v$version-$timestamp"
+Ensure-Directory -Path $backupDir
+
+Write-Log "Creating pre-update backup at $backupDir..."
+try {
+  # Backup backend/dist
+  $backendDistSrc = Join-Path $paths.AppBackendDir 'dist'
+  $backendDistDest = Join-Path $backupDir 'backend\dist'
+  if (Test-Path $backendDistSrc) {
+    robocopy $backendDistSrc $backendDistDest /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+  }
+  
+  # Backup backend/package.json
+  $pkgSrc = Join-Path $paths.AppBackendDir 'package.json'
+  $pkgDest = Join-Path $backupDir 'backend\package.json'
+  if (Test-Path $pkgSrc) {
+    Ensure-Directory -Path (Join-Path $backupDir 'backend')
+    Copy-Item -Path $pkgSrc -Destination $pkgDest -Force
+  }
+  
+  # Backup frontend/dist
+  $frontendDistSrc = Join-Path $paths.AppFrontendDir 'dist'
+  $frontendDistDest = Join-Path $backupDir 'frontend\dist'
+  if (Test-Path $frontendDistSrc) {
+    robocopy $frontendDistSrc $frontendDistDest /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+  }
+  
+  # Backup database using pg_dump
+  $envFile = Join-Path $paths.ConfigDir '.env.offline'
+  if (Test-Path $envFile) {
+    $envMap = Get-EnvMap -EnvFile $envFile
+    $dbPort = Get-EnvValue -EnvMap $envMap -Key 'DB_PORT' -Default '5432'
+    $dbUser = Get-EnvValue -EnvMap $envMap -Key 'DB_USER' -Default 'postgres'
+    $dbName = Get-EnvValue -EnvMap $envMap -Key 'DB_NAME' -Default 'postgres'
+    $dbPass = Get-EnvValue -EnvMap $envMap -Key 'DB_PASSWORD' -Default 'postgres'
+    
+    $pgDump = Join-Path $paths.PostgresBinDir 'pg_dump.exe'
+    if (Test-Path $pgDump) {
+      $env:PGPASSWORD = $dbPass
+      $dbBackupPath = Join-Path $backupDir "database.sql"
+      & $pgDump -h 127.0.0.1 -p $dbPort -U $dbUser -d $dbName -F c -f $dbBackupPath
+      if ($LASTEXITCODE -ne 0) {
+        Write-Log "WARNING: pg_dump failed with exit code $LASTEXITCODE."
+      } else {
+        Write-Log "Database backup completed successfully."
+      }
+    }
+  }
+  Write-Log "Pre-update backup completed."
+} catch {
+  Write-Log "ERROR: Pre-update backup failed — $($_.Exception.Message). Aborting update."
+  exit 1
+}
 
 # ── Staging ──────────────────────────────────────────────────────────────────
 $stagingDir  = Join-Path $paths.RuntimeRunDir 'update-staging'
@@ -108,14 +172,19 @@ $extractDir  = Join-Path $stagingDir 'extracted'
 Ensure-Directory -Path $stagingDir
 
 # ── Download ─────────────────────────────────────────────────────────────────
-Write-Log 'Downloading patch.zip...'
-try {
-  Invoke-WebRequest -Uri $patchUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300
-  Write-Log "Download complete ($([Math]::Round((Get-Item $zipPath).Length / 1MB, 1)) MB)"
-} catch {
-  Write-Log "ERROR: Download failed — $($_.Exception.Message)"
-  Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-  exit 1
+if (-not [string]::IsNullOrWhiteSpace($localPatchPath) -and (Test-Path $localPatchPath)) {
+  Write-Log "Using local patch file: $localPatchPath"
+  Copy-Item -Path $localPatchPath -Destination $zipPath -Force
+} else {
+  Write-Log 'Downloading patch.zip...'
+  try {
+    Invoke-WebRequest -Uri $patchUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300
+    Write-Log "Download complete ($([Math]::Round((Get-Item $zipPath).Length / 1MB, 1)) MB)"
+  } catch {
+    Write-Log "ERROR: Download failed — $($_.Exception.Message)"
+    Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
+    exit 1
+  }
 }
 
 # ── Extract ──────────────────────────────────────────────────────────────────

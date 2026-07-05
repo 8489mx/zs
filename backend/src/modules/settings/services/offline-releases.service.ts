@@ -6,6 +6,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process';
+import AdmZip from 'adm-zip';
 
 @Injectable()
 export class OfflineReleasesService {
@@ -266,6 +267,159 @@ export class OfflineReleasesService {
       ok: true,
       message: `جاري تطبيق الإصدار ${active.version} — سيتم إعادة تشغيل التطبيق تلقائياً خلال لحظات`,
       version: active.version,
+    };
+  }
+
+  /**
+   * Called by the local desktop client to apply an update downloaded from SaaS.
+   */
+  async applyLocalUpdate(body: { version: string; patchUrl: string; changelog: string }) {
+    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
+      throw new BadRequestException('Updates can only be applied in Desktop/Offline mode');
+    }
+
+    if (!body.version || !body.patchUrl) {
+      throw new BadRequestException('version and patchUrl are required');
+    }
+
+    const portableRoot  = path.resolve(process.cwd(), '../..');
+    const runtimeRunDir = path.join(portableRoot, 'runtime', 'run');
+
+    try { fs.mkdirSync(runtimeRunDir, { recursive: true }); } catch { /* ignore */ }
+
+    const pendingFile = path.join(runtimeRunDir, '.update_pending');
+    const payload = {
+      version:      body.version,
+      patchUrl:     body.patchUrl,
+      changelog:    body.changelog || '',
+      triggeredBy:  'Local User',
+      triggeredAt:  new Date().toISOString(),
+      nodeExe:      process.execPath,
+      backendCwd:   process.cwd(),
+      backendEntry: process.argv[1] ?? 'dist/main.js',
+      backendPort:  process.env.BACKEND_PORT ?? '3001',
+    };
+    fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
+
+    const applyScript = path.join(portableRoot, 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
+    if (fs.existsSync(applyScript)) {
+      const ps = spawn(
+        'powershell.exe',
+        [
+          '-ExecutionPolicy', 'Bypass',
+          '-NonInteractive',
+          '-WindowStyle', 'Hidden',
+          '-File', applyScript,
+          '-PortableRoot', portableRoot,
+        ],
+        { detached: true, stdio: 'ignore', windowsHide: true },
+      );
+      ps.unref();
+    }
+
+    setTimeout(() => process.exit(0), 1500);
+
+    return {
+      ok: true,
+      message: `جاري تحميل وتطبيق الإصدار ${body.version} — سيتم إعادة تشغيل التطبيق تلقائياً خلال لحظات`,
+      version: body.version,
+    };
+  }
+
+  /**
+   * Called by the local desktop client to apply a manual ZIP update.
+   */
+  async applyLocalZipUpdate(file: Express.Multer.File) {
+    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
+      throw new BadRequestException('Updates can only be applied in Desktop/Offline mode');
+    }
+
+    if (!file || !file.buffer) {
+      throw new BadRequestException('ملف التحديث غير موجود');
+    }
+
+    // Verify zip structure
+    try {
+      const zip = new AdmZip(file.buffer);
+      const entries = zip.getEntries();
+      
+      let hasBackendDist = false;
+      let hasBackendPackage = false;
+      let hasFrontendDist = false;
+
+      for (const entry of entries) {
+        const name = entry.entryName.replace(/\\/g, '/');
+        if (name.startsWith('backend/dist/')) hasBackendDist = true;
+        if (name === 'backend/package.json') hasBackendPackage = true;
+        if (name.startsWith('frontend/dist/')) hasFrontendDist = true;
+      }
+
+      if (!hasBackendDist || !hasBackendPackage || !hasFrontendDist) {
+        throw new Error('ملف التحديث غير صالح.');
+      }
+    } catch (e) {
+      throw new BadRequestException('ملف التحديث غير صالح. تأكد من أن الملف بصيغة ZIP يحتوي على بنية التحديث الصحيحة.');
+    }
+
+    const portableRoot  = path.resolve(process.cwd(), '../..');
+    const stagingDir = path.join(portableRoot, 'runtime', 'run', 'update-staging');
+
+    try { fs.mkdirSync(stagingDir, { recursive: true }); } catch { /* ignore */ }
+    
+    const patchPath = path.join(stagingDir, 'manual-patch.zip');
+    fs.writeFileSync(patchPath, file.buffer);
+
+    const runtimeRunDir = path.join(portableRoot, 'runtime', 'run');
+    const pendingFile = path.join(runtimeRunDir, '.update_pending');
+    
+    // We can extract a version from backend/package.json
+    let version = 'manual';
+    try {
+      const zip = new AdmZip(file.buffer);
+      const pkgEntry = zip.getEntry('backend/package.json');
+      if (pkgEntry) {
+        const pkgStr = pkgEntry.getData().toString('utf8');
+        const pkg = JSON.parse(pkgStr);
+        if (pkg.version) version = pkg.version;
+      }
+    } catch (e) { /* ignore */ }
+
+    const payload = {
+      version:        version,
+      patchUrl:       '',
+      localPatchPath: patchPath,
+      changelog:      'تحديث محلي يدوي من ملف ZIP',
+      triggeredBy:    'Local User',
+      triggeredAt:    new Date().toISOString(),
+      nodeExe:        process.execPath,
+      backendCwd:     process.cwd(),
+      backendEntry:   process.argv[1] ?? 'dist/main.js',
+      backendPort:    process.env.BACKEND_PORT ?? '3001',
+    };
+    fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
+
+    const applyScript = path.join(portableRoot, 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
+    if (fs.existsSync(applyScript)) {
+      const ps = spawn(
+        'powershell.exe',
+        [
+          '-ExecutionPolicy', 'Bypass',
+          '-NonInteractive',
+          '-WindowStyle', 'Hidden',
+          '-File', applyScript,
+          '-PortableRoot', portableRoot,
+        ],
+        { detached: true, stdio: 'ignore', windowsHide: true },
+      );
+      ps.unref();
+    }
+
+    setTimeout(() => process.exit(0), 1500);
+
+    return {
+      ok: true,
+      message: `جاري تطبيق التحديث المحلي (الإصدار ${version}) — سيتم إعادة تشغيل التطبيق تلقائياً خلال لحظات`,
+      version: version,
     };
   }
 
