@@ -642,12 +642,16 @@ function CategorySection({
   onConsolidate,
   onTransferCategory,
   onRemoveLocation,
+  collapsed,
+  onToggleCollapse,
 }: {
   categoryName: string;
   products: ProductRow[];
   locations: { id: string; name: string }[];
   filterLocationId: string;
   selectedIds: Set<string>;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   onToggleSelect: (id: string) => void;
   onTransfer: (p: ProductRow) => void;
   onAssign: (p: ProductRow) => void;
@@ -655,7 +659,6 @@ function CategorySection({
   onTransferCategory: (categoryName: string, products: ProductRow[]) => void;
   onRemoveLocation: (productId: string, locationId: string) => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
 
   const totalQty = products.reduce((sum, p) => {
     if (filterLocationId) return sum + (p.locationStocks.find((s) => s.locationId === filterLocationId)?.qty ?? 0);
@@ -678,7 +681,7 @@ function CategorySection({
     <div style={{ border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '12px', overflow: 'hidden', marginBottom: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
       {/* Header */}
       <div
-        onClick={() => setCollapsed((v) => !v)}
+        onClick={onToggleCollapse}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', cursor: 'pointer', background: 'linear-gradient(135deg, var(--primary, #170c5c) 0%, var(--primary2, #10003b) 100%)', color: '#fff', userSelect: 'none' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -758,6 +761,7 @@ export function InventoryTreePage() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [modalProducts, setModalProducts] = useState<ProductRow[]>([]);
   const [categoryTransferData, setCategoryTransferData] = useState<{ name: string; products: ProductRow[] } | null>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   // Queries
   const productsQuery = useQuery({ queryKey: ['catalogProducts'], queryFn: () => inventoryApi.products() });
@@ -885,6 +889,10 @@ export function InventoryTreePage() {
     setSelectedIds(new Set());
   }, [queryClient]);
 
+  const handleExpandAll = useCallback(() => setCollapsedCategories(new Set()), []);
+  const handleCollapseAll = useCallback(() => setCollapsedCategories(new Set(grouped.map(g => g[0]))), [grouped]);
+  const handleSelectAll = useCallback(() => setSelectedIds(new Set(filteredRows.map(p => p.id))), [filteredRows]);
+
   const handleRemoveLocation = async (productId: string, locationId: string) => {
     try {
       await inventoryApi.removeProductFromLocation(Number(locationId), Number(productId));
@@ -971,9 +979,22 @@ export function InventoryTreePage() {
         )}
       </div>
 
-      <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--text-secondary, #888)' }}>
-        عرض {filteredRows.length} صنف من أصل {productRows.length}
-        {selectedIds.size > 0 && <span style={{ marginRight: '8px', color: 'var(--primary, #170c5c)', fontWeight: 700 }}>— {selectedIds.size} صنف محدد</span>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-secondary, #888)' }}>
+          عرض {filteredRows.length} صنف من أصل {productRows.length}
+          {selectedIds.size > 0 && <span style={{ marginRight: '8px', color: 'var(--primary, #170c5c)', fontWeight: 700 }}>— {selectedIds.size} صنف محدد</span>}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={handleSelectAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--primary, #170c5c)', background: 'transparent', color: 'var(--primary, #170c5c)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            تحديد الكل ☑️
+          </button>
+          <button onClick={handleExpandAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #ccc)', background: '#fff', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            فرد الأقسام ▼
+          </button>
+          <button onClick={handleCollapseAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #ccc)', background: '#fff', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            ضم الأقسام ▶
+          </button>
+        </div>
       </div>
 
       {/* Tree */}
@@ -997,6 +1018,15 @@ export function InventoryTreePage() {
               locations={locations as any}
               filterLocationId={filterLocationId}
               selectedIds={selectedIds}
+              collapsed={collapsedCategories.has(catKey)}
+              onToggleCollapse={() => {
+                setCollapsedCategories(prev => {
+                  const next = new Set(prev);
+                  if (next.has(catKey)) next.delete(catKey);
+                  else next.add(catKey);
+                  return next;
+                });
+              }}
               onToggleSelect={toggleSelect}
               onTransfer={(p) => openTransfer([p])}
               onAssign={(p) => openAssign([p])}
