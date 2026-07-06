@@ -117,7 +117,7 @@ export class ReturnsService {
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
     const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
 
-    const inMemoryReturnedQtyForProduct = new Map<number, number>();
+    const inMemoryReturnedQtyForProduct = new Map<string, number>();
 
     for (const requestItem of items) {
       const saleItem = requestItem.saleItemId
@@ -126,13 +126,20 @@ export class ReturnsService {
       if (!saleItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       
       const alreadyReturnedQty = await this.getReturnedQty(trx, 'sale', Number(payload.invoiceId), requestItem.productId, auth, requestItem.saleItemId);
-      const currentInMemory = inMemoryReturnedQtyForProduct.get(requestItem.productId) || 0;
-      const invoiceTotalQtyForProduct = saleItems
-        .filter((entry) => Number(entry.product_id) === requestItem.productId)
-        .reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+      const limitKey = requestItem.saleItemId ? `line_${requestItem.saleItemId}` : `prod_${requestItem.productId}`;
+      const currentInMemory = inMemoryReturnedQtyForProduct.get(limitKey) || 0;
+      
+      let invoiceMaxLimit = 0;
+      if (requestItem.saleItemId) {
+        invoiceMaxLimit = Number(saleItem.qty || 0);
+      } else {
+        invoiceMaxLimit = saleItems
+          .filter((entry) => Number(entry.product_id) === requestItem.productId)
+          .reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+      }
         
-      ensureReturnQtyWithinLimit(requestItem.qty + currentInMemory, alreadyReturnedQty, invoiceTotalQtyForProduct);
-      inMemoryReturnedQtyForProduct.set(requestItem.productId, currentInMemory + requestItem.qty);
+      ensureReturnQtyWithinLimit(requestItem.qty + currentInMemory, alreadyReturnedQty, invoiceMaxLimit);
+      inMemoryReturnedQtyForProduct.set(limitKey, currentInMemory + requestItem.qty);
 
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
@@ -172,7 +179,7 @@ export class ReturnsService {
     const purchaseItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
     const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
 
-    const inMemoryReturnedQtyForProduct = new Map<number, number>();
+    const inMemoryReturnedQtyForProduct = new Map<string, number>();
 
     for (const requestItem of items) {
       const purchaseItem = requestItem.purchaseItemId
@@ -181,13 +188,20 @@ export class ReturnsService {
       if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       
       const alreadyReturnedQty = await this.getReturnedQty(trx, 'purchase', Number(payload.invoiceId), requestItem.productId, auth, requestItem.purchaseItemId);
-      const currentInMemory = inMemoryReturnedQtyForProduct.get(requestItem.productId) || 0;
-      const invoiceTotalQtyForProduct = purchaseItems
-        .filter((entry) => Number(entry.product_id) === requestItem.productId)
-        .reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+      const limitKey = requestItem.purchaseItemId ? `line_${requestItem.purchaseItemId}` : `prod_${requestItem.productId}`;
+      const currentInMemory = inMemoryReturnedQtyForProduct.get(limitKey) || 0;
+      
+      let invoiceMaxLimit = 0;
+      if (requestItem.purchaseItemId) {
+        invoiceMaxLimit = Number(purchaseItem.qty || 0);
+      } else {
+        invoiceMaxLimit = purchaseItems
+          .filter((entry) => Number(entry.product_id) === requestItem.productId)
+          .reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+      }
         
-      ensureReturnQtyWithinLimit(requestItem.qty + currentInMemory, alreadyReturnedQty, invoiceTotalQtyForProduct);
-      inMemoryReturnedQtyForProduct.set(requestItem.productId, currentInMemory + requestItem.qty);
+      ensureReturnQtyWithinLimit(requestItem.qty + currentInMemory, alreadyReturnedQty, invoiceMaxLimit);
+      inMemoryReturnedQtyForProduct.set(limitKey, currentInMemory + requestItem.qty);
 
       const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();

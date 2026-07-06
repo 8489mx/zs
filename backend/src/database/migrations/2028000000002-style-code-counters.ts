@@ -4,7 +4,7 @@ export const migration = {
   up: async (db: Kysely<any>): Promise<void> => {
     await db.schema
       .createTable('style_code_counters')
-      .addColumn('tenant_id', 'integer', (col) => col.notNull())
+      .addColumn('tenant_id', 'varchar(50)', (col) => col.notNull())
       .addColumn('scope', 'varchar(50)', (col) => col.notNull())
       .addColumn('next_value', 'integer', (col) => col.notNull().defaultTo(101))
       .addPrimaryKeyConstraint('pk_style_code_counters', ['tenant_id', 'scope'])

@@ -178,10 +178,11 @@ export class CatalogProductService {
 
   async allocateStyleCode(actor: AuthContext): Promise<{ styleCode: string }> {
     return this.db.transaction().execute(async (trx) => {
+      const { tenantId } = requireTenantScope(actor);
       let counter = await trx
         .selectFrom('style_code_counters')
         .select('next_value')
-        .where('tenant_id', '=', Number(actor.tenantId))
+        .where('tenant_id', '=', tenantId)
         .where('scope', '=', 'fashion')
         .forUpdate()
         .executeTakeFirst();
@@ -209,7 +210,7 @@ export class CatalogProductService {
         await trx
           .insertInto('style_code_counters')
           .values({
-            tenant_id: Number(actor.tenantId),
+            tenant_id: tenantId,
             scope: 'fashion',
             next_value: seedValue
           })
@@ -219,7 +220,7 @@ export class CatalogProductService {
         counter = await trx
           .selectFrom('style_code_counters')
           .select('next_value')
-          .where('tenant_id', '=', Number(actor.tenantId))
+          .where('tenant_id', '=', tenantId)
           .where('scope', '=', 'fashion')
           .forUpdate()
           .executeTakeFirst();
@@ -230,7 +231,7 @@ export class CatalogProductService {
       await trx
         .updateTable('style_code_counters')
         .set({ next_value: allocated + 1 })
-        .where('tenant_id', '=', Number(actor.tenantId))
+        .where('tenant_id', '=', tenantId)
         .where('scope', '=', 'fashion')
         .execute();
         

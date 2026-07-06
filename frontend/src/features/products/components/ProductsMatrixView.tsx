@@ -15,18 +15,37 @@ function getSizeRank(size: string) {
 
 export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
   const { colors, sizes, matrix } = useMemo(() => {
+    let hasAnyColor = false;
+    let hasAnySize = false;
+
+    products.forEach((p) => {
+      if (String(p.color || '').trim()) hasAnyColor = true;
+      if (String(p.size || '').trim()) hasAnySize = true;
+    });
+
+    if (!hasAnyColor && !hasAnySize) {
+      return { colors: [], sizes: [], matrix: {} };
+    }
+
     const colorSet = new Set<string>();
     const sizeSet = new Set<string>();
     
     products.forEach((p) => {
-      const c = String(p.color || '').trim();
-      const s = String(p.size || '').trim();
-      if (c) colorSet.add(c);
-      if (s) sizeSet.add(s);
+      const c = String(p.color || '').trim() || 'بدون لون';
+      const s = String(p.size || '').trim() || 'بدون مقاس';
+      colorSet.add(c);
+      sizeSet.add(s);
     });
 
-    const colors = Array.from(colorSet).sort((a, b) => a.localeCompare(b, 'ar'));
+    const colors = Array.from(colorSet).sort((a, b) => {
+      if (a === 'بدون لون') return 1;
+      if (b === 'بدون لون') return -1;
+      return a.localeCompare(b, 'ar');
+    });
+
     const sizes = Array.from(sizeSet).sort((a, b) => {
+      if (a === 'بدون مقاس') return 1;
+      if (b === 'بدون مقاس') return -1;
       const rankA = getSizeRank(a);
       const rankB = getSizeRank(b);
       if (rankA !== rankB) return rankA - rankB;
@@ -36,18 +55,10 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
       return a.localeCompare(b, 'en');
     });
 
-    // If there are no colors/sizes, handle gracefully (shouldn't happen for valid fashion variants, but just in case)
-    if (!colors.length && !sizes.length) {
-      return { colors: [], sizes: [], matrix: {} };
-    }
-
-    const effectiveColors = colors.length ? colors : ['بدون لون'];
-    const effectiveSizes = sizes.length ? sizes : ['بدون مقاس'];
-
     const matrix: Record<string, Record<string, Product | undefined>> = {};
-    effectiveColors.forEach((c) => {
+    colors.forEach((c) => {
       matrix[c] = {};
-      effectiveSizes.forEach((s) => {
+      sizes.forEach((s) => {
         matrix[c][s] = undefined;
       });
     });
@@ -55,12 +66,11 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
     products.forEach((p) => {
       const c = String(p.color || '').trim() || 'بدون لون';
       const s = String(p.size || '').trim() || 'بدون مقاس';
-      // If there are duplicates, we just keep the first one
       if (!matrix[c]) matrix[c] = {};
       if (!matrix[c][s]) matrix[c][s] = p;
     });
 
-    return { colors: effectiveColors, sizes: effectiveSizes, matrix };
+    return { colors, sizes, matrix };
   }, [products]);
 
   if (!colors.length && !sizes.length) {

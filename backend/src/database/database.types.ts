@@ -241,7 +241,7 @@ export interface ProductTable {
 }
 
 export interface StyleCodeCounterTable {
-  tenant_id: number;
+  tenant_id: string;
   scope: string;
   next_value: number;
 }
