@@ -54,6 +54,18 @@ export class CatalogController {
     return this.catalogService.listProducts(query, req.authContext!);
   }
 
+  @Get('products/next-style-code')
+  @RequirePermissions('products')
+  getNextStyleCode(@Req() req: RequestWithAuth): Promise<{ styleCode: string }> {
+    return this.catalogService.getNextStyleCode(req.authContext!);
+  }
+
+  @Post('products/allocate-style-code')
+  @RequirePermissions('products')
+  allocateStyleCode(@Req() req: RequestWithAuth): Promise<{ styleCode: string }> {
+    return this.catalogService.allocateStyleCode(req.authContext!);
+  }
+
   @Get('products/:id')
   getProduct(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.getProduct(id, req.authContext!);

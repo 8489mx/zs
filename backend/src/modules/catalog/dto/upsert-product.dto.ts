@@ -238,6 +238,7 @@ export type NormalizedUpsertProduct = {
   styleCode: string;
   color: string;
   size: string;
+  binLocation?: string;
   categoryId: number | null;
   supplierId: number | null;
   costPrice: number;

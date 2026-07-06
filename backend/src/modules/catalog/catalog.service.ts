@@ -23,4 +23,6 @@ export class CatalogService {
   createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.createProduct(payload, actor); }
   updateProduct(id: number, payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.updateProduct(id, payload, actor); }
   deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.deleteProduct(id, actor); }
+  getNextStyleCode(actor: AuthContext): Promise<{ styleCode: string }> { return this.productService.getNextStyleCode(actor); }
+  allocateStyleCode(actor: AuthContext): Promise<{ styleCode: string }> { return this.productService.allocateStyleCode(actor); }
 }

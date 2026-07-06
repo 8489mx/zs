@@ -67,17 +67,8 @@ function serializeVariantRows(rows: FashionVariantDraft[]) {
 const LazyFashionVariantsBuilder = lazy(() => import('@/features/products/components/FashionVariantsBuilder').then((module) => ({ default: module.FashionVariantsBuilder })));
 
 async function generateNextStyleCode() {
-  const payload = await productsApi.listAll();
-  const usedCodes = new Set(
-    (payload.products || [])
-      .map((product) => String(product.styleCode || '').trim())
-      .filter((value) => /^\d+$/.test(value))
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value) && value >= 101),
-  );
-  let nextCode = 101;
-  while (usedCodes.has(nextCode)) nextCode += 1;
-  return String(nextCode);
+  const result = await productsApi.allocateStyleCode();
+  return result.styleCode;
 }
 
 // ===== Combobox Component =====

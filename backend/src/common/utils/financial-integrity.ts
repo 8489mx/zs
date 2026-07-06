@@ -4,6 +4,7 @@ export type FlowItem = {
   productId: number;
   qty: number;
   unitMultiplier?: number;
+  lineId?: number;
 };
 
 export type PaymentEntry = {
@@ -22,7 +23,9 @@ export function roundQty(value: number): number {
 export function ensureUniqueFlowItems(items: FlowItem[], code: string, message: string): void {
   const seen = new Set<string>();
   for (const item of items) {
-    const key = `${Number(item.productId)}::${Number(item.unitMultiplier || 1)}`;
+    const key = item.lineId 
+      ? `line::${item.lineId}` 
+      : `${Number(item.productId)}::${Number(item.unitMultiplier || 1)}`;
     if (seen.has(key)) throw new AppError(message, code, 400);
     seen.add(key);
   }

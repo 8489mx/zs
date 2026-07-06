@@ -77,7 +77,8 @@ export function ReturnsWorkspace() {
 
   const selectedReturnItems = useMemo(() => invoiceItems
     .map((item) => {
-      const qty = Number(selectedItems[String(item.productId)] || 0);
+      const lineId = String(item.id || item.productId || '');
+      const qty = Number(selectedItems[lineId] || 0);
       const baseQty = Number(item.qty || 0);
       const lineTotal = qty > 0 ? qty * (baseQty > 0 ? Number(item.total || 0) / baseQty : 0) : 0;
       return { item, qty, lineTotal };
@@ -117,7 +118,13 @@ export function ReturnsWorkspace() {
     mutationFn: ({ managerPin, reason }: { managerPin: string; reason: string }) => returnsApi.create({
       type: form.type,
       invoiceId: form.invoiceId,
-      items: selectedReturnItems.map(({ item, qty }) => ({ productId: Number(item.productId || 0), productName: item.name, qty })),
+      items: selectedReturnItems.map(({ item, qty }) => ({ 
+        productId: Number(item.productId || 0), 
+        productName: item.name, 
+        qty,
+        saleItemId: form.type === 'sale' ? Number(item.id || 0) : undefined,
+        purchaseItemId: form.type === 'purchase' ? Number(item.id || 0) : undefined,
+      })),
       settlementMode: form.settlementMode,
       refundMethod: form.refundMethod,
       note: [reason.trim(), String(form.note || '').trim()].filter(Boolean).join(' — '),
@@ -154,28 +161,30 @@ export function ReturnsWorkspace() {
     });
   };
 
-  const toggleItem = (productId: string, checked: boolean) => {
+  const toggleItem = (itemId: string, checked: boolean) => {
     setSelectedItems((current) => {
       const next = { ...current };
       if (!checked) {
-        delete next[productId];
+        delete next[itemId];
         return next;
       }
-      next[productId] = next[productId] || '1';
+      next[itemId] = next[itemId] || '1';
       return next;
     });
   };
 
-  const setItemQty = (productId: string, value: string) => {
+  const setItemQty = (itemId: string, value: string) => {
+    const invoiceItem = invoiceItems.find((item) => String(item.id || item.productId || '') === String(itemId));
+    if (!invoiceItem) return;
+    const productId = String(invoiceItem.productId || '');
     const alreadyReturnedQty = Number(returnedQtyByProduct[productId] || 0);
-    const invoiceItem = invoiceItems.find((item) => String(item.productId || '') === String(productId));
-    const remainingQty = Math.max(0, Number(invoiceItem?.qty || 0) - alreadyReturnedQty);
+    const remainingQty = Math.max(0, Number(invoiceItem.qty || 0) - alreadyReturnedQty);
     const requestedQty = Number(value || 0);
     if (requestedQty > remainingQty) {
-      setSelectedItems((current) => ({ ...current, [productId]: String(remainingQty) }));
+      setSelectedItems((current) => ({ ...current, [itemId]: String(remainingQty) }));
       return;
     }
-    setSelectedItems((current) => ({ ...current, [productId]: value }));
+    setSelectedItems((current) => ({ ...current, [itemId]: value }));
   };
 
   const copyReturnsSummary = async () => {

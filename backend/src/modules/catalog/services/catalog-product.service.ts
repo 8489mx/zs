@@ -19,6 +19,7 @@ type ProductRow = {
   style_code: string | null;
   color: string | null;
   size: string | null;
+  bin_location: string | null;
   category_id: number | null;
   supplier_id: number | null;
   cost_price: string | number;
@@ -153,6 +154,90 @@ export class CatalogProductService {
     }
   }
 
+  async getNextStyleCode(actor: AuthContext): Promise<{ styleCode: string }> {
+    const result = await this.db
+      .selectFrom('products')
+      .select(['style_code'])
+      .where('style_code', 'is not', null)
+      .where(this.tenantPredicate(actor))
+      .execute();
+      
+    let maxNumeric = 100;
+    for (const row of result) {
+      if (!row.style_code) continue;
+      const parsed = parseInt(row.style_code.trim(), 10);
+      if (!isNaN(parsed) && parsed.toString() === row.style_code.trim()) {
+        if (parsed > maxNumeric) {
+          maxNumeric = parsed;
+        }
+      }
+    }
+    
+    return { styleCode: (maxNumeric + 1).toString() };
+  }
+
+  async allocateStyleCode(actor: AuthContext): Promise<{ styleCode: string }> {
+    return this.db.transaction().execute(async (trx) => {
+      let counter = await trx
+        .selectFrom('style_code_counters')
+        .select('next_value')
+        .where('tenant_id', '=', Number(actor.tenantId))
+        .where('scope', '=', 'fashion')
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!counter) {
+        const maxResult = await trx
+          .selectFrom('products')
+          .select(['style_code'])
+          .where('style_code', 'is not', null)
+          .where(this.tenantPredicate(actor))
+          .execute();
+          
+        let maxNumeric = 100;
+        for (const row of maxResult) {
+          if (!row.style_code) continue;
+          const parsed = parseInt(row.style_code.trim(), 10);
+          if (!isNaN(parsed) && parsed.toString() === row.style_code.trim()) {
+            if (parsed > maxNumeric) {
+              maxNumeric = parsed;
+            }
+          }
+        }
+        
+        const seedValue = maxNumeric + 1;
+        await trx
+          .insertInto('style_code_counters')
+          .values({
+            tenant_id: Number(actor.tenantId),
+            scope: 'fashion',
+            next_value: seedValue
+          })
+          .onConflict((oc) => oc.columns(['tenant_id', 'scope']).doNothing())
+          .execute();
+          
+        counter = await trx
+          .selectFrom('style_code_counters')
+          .select('next_value')
+          .where('tenant_id', '=', Number(actor.tenantId))
+          .where('scope', '=', 'fashion')
+          .forUpdate()
+          .executeTakeFirst();
+      }
+
+      const allocated = counter!.next_value;
+      
+      await trx
+        .updateTable('style_code_counters')
+        .set({ next_value: allocated + 1 })
+        .where('tenant_id', '=', Number(actor.tenantId))
+        .where('scope', '=', 'fashion')
+        .execute();
+        
+      return { styleCode: allocated.toString() };
+    });
+  }
+
   async listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { page, pageSize, q, view, requestedLocationId } = this.parseListProductsQuery(query);
     const canViewCost = this.hasPermission(actor, 'canViewCost');
@@ -164,7 +249,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
+        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
         .where('products.is_active', '=', true)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -323,7 +408,7 @@ export class CatalogProductService {
 
   private async searchPosProducts(q: string, limit: number, view: 'all' | 'offers' = 'all', actor: AuthContext): Promise<PosProductLookupRow[]> {
     const normalized = q.trim().toLowerCase();
-    const pattern = `%${normalized}%`;
+    const tokens = normalized.split(/\s+/).filter(Boolean);
     let productQuery = this.db
       .selectFrom('products as p')
       .leftJoin('product_units as pu', 'pu.product_id', 'p.id')
@@ -347,11 +432,14 @@ export class CatalogProductService {
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(actor, 'p'));
 
-    if (normalized) {
+    for (const token of tokens) {
+      const pattern = `%${token}%`;
       productQuery = productQuery.where(sql<boolean>`(
         LOWER(p.name) LIKE ${pattern}
         OR LOWER(COALESCE(p.barcode, '')) LIKE ${pattern}
         OR LOWER(COALESCE(p.style_code, '')) LIKE ${pattern}
+        OR LOWER(COALESCE(p.color, '')) LIKE ${pattern}
+        OR LOWER(COALESCE(p.size, '')) LIKE ${pattern}
         OR LOWER(COALESCE(pu.barcode, '')) LIKE ${pattern}
         OR LOWER(COALESCE(pu.name, '')) LIKE ${pattern}
       )`);
@@ -741,6 +829,7 @@ export class CatalogProductService {
         styleCode: product.style_code || '',
         color: product.color || '',
         size: product.size || '',
+        binLocation: product.bin_location || '',
         costPrice: Number(product.cost_price || 0),
         retailPrice: Number(product.retail_price || 0),
         wholesalePrice: Number(product.wholesale_price || 0),
@@ -862,6 +951,7 @@ export class CatalogProductService {
       styleCode: String(payload.styleCode || '').trim(),
       color: normalizeArabicInput(payload.color),
       size: normalizeArabicInput(payload.size),
+      binLocation: String(payload.binLocation || '').trim(),
       categoryId: payload.categoryId ? Number(payload.categoryId) : null,
       supplierId: payload.supplierId ? Number(payload.supplierId) : null,
       costPrice: Number(payload.costPrice || 0),
@@ -900,21 +990,49 @@ export class CatalogProductService {
     return normalized;
   }
 
-  private async ensureStyleCodeAvailable(styleCode: string, actor: AuthContext, excludeProductIds: number[] = []): Promise<void> {
+  private async ensureStyleCodeAvailable(
+    styleCode: string | null | undefined,
+    itemKind: 'standard' | 'fashion' | null | undefined,
+    actor: AuthContext,
+    excludeProductIds: number[] = [],
+    drafts: Pick<NormalizedUpsertProduct, 'color' | 'size'>[] = [],
+  ): Promise<void> {
     const normalized = String(styleCode || '').trim();
     if (!normalized) return;
+    
     let query = this.db
       .selectFrom('products')
-      .select(['id'])
+      .select(['id', 'item_kind', 'color', 'size'])
       .where('is_active', '=', true)
       .where('style_code', '=', normalized)
       .where(this.tenantPredicate(actor));
+
     if (excludeProductIds.length) {
       query = query.where('id', 'not in', excludeProductIds);
     }
-    const existing = await query.executeTakeFirst();
-    if (existing) {
+    const existingRows = await query.execute();
+    if (existingRows.length === 0) return;
+
+    if (itemKind !== 'fashion') {
       throw new AppError('هذا الكود مستخدم بالفعل في صنف سابق', 'STYLE_CODE_EXISTS', 400);
+    }
+
+    const hasNonFashion = existingRows.some(row => row.item_kind !== 'fashion');
+    if (hasNonFashion) {
+      throw new AppError('هذا الكود مستخدم بالفعل في صنف غير ملابس', 'STYLE_CODE_EXISTS', 400);
+    }
+
+    for (const row of existingRows) {
+      const normExistingColor = String(row.color || '').trim().toLowerCase();
+      const normExistingSize = String(row.size || '').trim().toLowerCase();
+      
+      for (const draft of drafts) {
+        const normDraftColor = String(draft.color || '').trim().toLowerCase();
+        const normDraftSize = String(draft.size || '').trim().toLowerCase();
+        if (normExistingColor === normDraftColor && normExistingSize === normDraftSize) {
+          throw new AppError('هذا اللون والمقاس موجودان بالفعل لهذا الموديل', 'VARIANT_EXISTS', 400);
+        }
+      }
     }
   }
 
@@ -1034,11 +1152,6 @@ export class CatalogProductService {
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
     normalized.styleCode = this.coerceNewStyleCode(normalized.styleCode);
-    await this.ensureStyleCodeAvailable(normalized.styleCode, actor);
-    this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
-    await this.ensureCategoryAndSupplierInTenant(normalized, actor);
-    await this.ensureCustomerPricesInTenant(normalized, actor);
-
     const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
     const drafts = shouldExpandVariants
       ? normalized.fashionVariants.map((variant) => {
@@ -1054,6 +1167,11 @@ export class CatalogProductService {
           };
         })
       : [normalized];
+
+    await this.ensureStyleCodeAvailable(normalized.styleCode, normalized.itemKind, actor, [], drafts);
+    this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
+    await this.ensureCategoryAndSupplierInTenant(normalized, actor);
+    await this.ensureCustomerPricesInTenant(normalized, actor);
 
     const duplicateDraftNames = new Set<string>();
     const duplicateDraftBarcodes = new Set<string>();
@@ -1082,6 +1200,7 @@ export class CatalogProductService {
             style_code: draft.styleCode || null,
             color: draft.color || null,
             size: draft.size || null,
+            bin_location: draft.binLocation || null,
             category_id: draft.categoryId,
             supplier_id: draft.supplierId,
             cost_price: draft.costPrice,
@@ -1122,21 +1241,11 @@ export class CatalogProductService {
     const styleCodeChanged = requestedStyleCode !== existingStyleCode;
     if (styleCodeChanged) {
       normalized.styleCode = this.coerceNewStyleCode(requestedStyleCode);
-      const existingGroupCount = existingStyleCode
-        ? Number((await this.db
-            .selectFrom('products')
-            .select((eb) => eb.fn.countAll<number>().as('count'))
-            .where('is_active', '=', true)
-            .where('style_code', '=', existingStyleCode)
-            .where(this.tenantPredicate(actor))
-            .executeTakeFirst())?.count || 0)
-        : 0;
-      if (existingGroupCount <= 1) {
-        await this.ensureStyleCodeAvailable(normalized.styleCode, actor, [id]);
-      }
     } else {
       normalized.styleCode = existingStyleCode;
     }
+
+    await this.ensureStyleCodeAvailable(normalized.styleCode, normalized.itemKind, actor, [id], [normalized]);
 
     await this.ensureProductIdentityAvailable(normalized, actor, id);
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
@@ -1162,6 +1271,7 @@ export class CatalogProductService {
         style_code: normalized.styleCode || null,
         color: normalized.color || null,
         size: normalized.size || null,
+        bin_location: normalized.binLocation || null,
         category_id: normalized.categoryId,
         supplier_id: normalized.supplierId,
         cost_price: normalized.costPrice,
@@ -1200,7 +1310,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
       .where('products.id', '=', id)
       .where('products.is_active', '=', true)
       .where(this.tenantPredicate(actor, 'products'))

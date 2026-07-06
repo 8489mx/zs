@@ -22,8 +22,15 @@ assert.equal(saleItems.length, 2);
 expectAppError(() => normalizeReturnItems({
   type: 'sale',
   invoiceId: 1,
-  items: [{ productId: 1, qty: 1 }, { productId: 1, qty: 1 }],
+  items: [{ productId: 1, qty: 1, saleItemId: 1 }, { productId: 1, qty: 1, saleItemId: 1 }],
 }), 'RETURN_DUPLICATE_PRODUCT');
+
+const saleItemsDupOk = normalizeReturnItems({
+  type: 'sale',
+  invoiceId: 1,
+  items: [{ productId: 1, qty: 1, saleItemId: 1 }, { productId: 1, qty: 1, saleItemId: 2 }],
+});
+assert.equal(saleItemsDupOk.length, 2);
 
 expectAppError(() => normalizeReturnItems({
   type: 'purchase',

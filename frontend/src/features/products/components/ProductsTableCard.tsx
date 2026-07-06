@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
 
 import { getProductLocationDisplayName } from '../utils/product-location.utils';
+import { ProductsMatrixView } from './ProductsMatrixView';
 
 export interface ProductsTableCardProps {
   search: string;
@@ -277,6 +278,13 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         </div>
                       </td>
                     </tr>
+                    {isExpanded && group.grouped && group.representative.styleCode && group.representative.itemKind === 'fashion' ? (
+                      <tr className="products-matrix-row">
+                        <td colSpan={9} style={{ padding: 0 }}>
+                          <ProductsMatrixView products={group.children} />
+                        </td>
+                      </tr>
+                    ) : null}
                     {isExpanded ? group.children.map((product) => (
                       <tr key={`child-${product.id}`} className={`products-group-child-row ${props.selectedProduct?.id === product.id ? 'table-row-selected' : ''}`} onClick={() => props.onSelectProduct(product)}>
                         <td className="table-selection-cell" onClick={(event) => event.stopPropagation()}>

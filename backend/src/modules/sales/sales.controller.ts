@@ -25,7 +25,7 @@ export class SalesController {
 
   @Post('sales')
   @RequirePermissions('sales')
-  createSale(@Body() payload: UpsertSaleDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> { console.log('==== CREATE SALE PAYLOAD ====', payload.managerPin, payload.discount);
+  createSale(@Body() payload: UpsertSaleDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.salesService.createSale(payload, req.authContext!);
   }
 

@@ -17,6 +17,8 @@ export interface ProductsPageResponse {
 }
 
 export const productsApi = {
+  getNextStyleCode: () => http<{ styleCode: string }>('/api/products/next-style-code'),
+  allocateStyleCode: () => http<{ styleCode: string }>('/api/products/allocate-style-code', { method: 'POST' }),
   list: async () => (await productsApi.listAll()).products,
   listPage: (params: ProductsListParams) => http<ProductsPageResponse>(`/api/products${buildQueryString(params)}`),
   listAll: async (params: Omit<ProductsListParams, 'page' | 'pageSize'> = {}) => {

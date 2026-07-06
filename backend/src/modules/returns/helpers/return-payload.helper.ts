@@ -2,12 +2,14 @@ import { AppError } from '../../../common/errors/app-error';
 import { ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { CreateReturnDto } from '../dto/create-return.dto';
 
-export function normalizeReturnItems(payload: CreateReturnDto): Array<{ productId: number; productName: string; qty: number }> {
+export function normalizeReturnItems(payload: CreateReturnDto): Array<{ productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number }> {
   const normalized = (payload.items || [])
     .map((item) => ({
       productId: Number(item.productId || 0),
       productName: String(item.productName || '').trim(),
       qty: Number(item.qty || 0),
+      saleItemId: item.saleItemId ? Number(item.saleItemId) : undefined,
+      purchaseItemId: item.purchaseItemId ? Number(item.purchaseItemId) : undefined,
     }))
     .filter((item) => item.productId > 0 && item.qty > 0);
 
@@ -16,7 +18,11 @@ export function normalizeReturnItems(payload: CreateReturnDto): Array<{ productI
   }
 
   ensureUniqueFlowItems(
-    normalized.map((item) => ({ productId: item.productId, qty: item.qty })),
+    normalized.map((item) => ({ 
+      productId: item.productId, 
+      qty: item.qty,
+      lineId: payload.type === 'sale' ? item.saleItemId : item.purchaseItemId 
+    })),
     'RETURN_DUPLICATE_PRODUCT',
     'Return must not contain duplicate products',
   );

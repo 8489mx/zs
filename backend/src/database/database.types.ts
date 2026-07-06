@@ -240,6 +240,12 @@ export interface ProductTable {
   updated_at: ColumnType<Date, string | undefined, string | undefined>;
 }
 
+export interface StyleCodeCounterTable {
+  tenant_id: number;
+  scope: string;
+  next_value: number;
+}
+
 export interface ProductUnitTable {
   id: Generated<number>;
   product_id: number;
@@ -522,6 +528,8 @@ export interface ReturnItemTable {
   qty: number;
   unit_total: number;
   line_total: number;
+  sale_item_id: number | null;
+  purchase_item_id: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -1402,6 +1410,7 @@ export interface Database {
   manufacturing_wo_consumptions: ManufacturingWoConsumptionTable;
   hr_employee_adjustments: HrEmployeeAdjustmentTable;
   offline_releases: OfflineReleaseTable;
+  style_code_counters: StyleCodeCounterTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;

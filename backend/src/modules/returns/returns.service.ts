@@ -16,7 +16,7 @@ import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { CreateReturnDto } from './dto/create-return.dto';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 
-type ReturnInputItem = { productId: number; productName: string; qty: number };
+type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null };
 
 @Injectable()
@@ -70,12 +70,22 @@ export class ReturnsService {
     return id;
   }
 
-  private async insertReturnItem(trx: Kysely<Database>, row: { returnDocumentId: number; productId: number | null; productName: string; qty: number; unitTotal: number; lineTotal: number }, auth: AuthContext): Promise<void> {
-    await trx.insertInto('return_items').values({ return_document_id: row.returnDocumentId, product_id: row.productId, product_name: row.productName, qty: row.qty, unit_total: row.unitTotal, line_total: row.lineTotal, ...this.tenantFields(auth) } as any).execute();
+  private async insertReturnItem(trx: Kysely<Database>, row: { returnDocumentId: number; productId: number | null; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }, auth: AuthContext): Promise<void> {
+    await trx.insertInto('return_items').values({ return_document_id: row.returnDocumentId, product_id: row.productId, product_name: row.productName, qty: row.qty, unit_total: row.unitTotal, line_total: row.lineTotal, sale_item_id: row.saleItemId, purchase_item_id: row.purchaseItemId, ...this.tenantFields(auth) } as any).execute();
   }
 
-  private async getReturnedQty(trx: Kysely<Database>, returnType: 'sale' | 'purchase', invoiceId: number, productId: number, auth: AuthContext): Promise<number> {
-    const result = await trx.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').select((eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty')).where('rd.return_type', '=', returnType).where('rd.invoice_id', '=', invoiceId).where('ri.product_id', '=', productId).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri')).executeTakeFirst();
+  private async getReturnedQty(trx: Kysely<Database>, returnType: 'sale' | 'purchase', invoiceId: number, productId: number, auth: AuthContext, lineItemId?: number): Promise<number> {
+    let query = trx.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').select((eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty')).where('rd.return_type', '=', returnType).where('rd.invoice_id', '=', invoiceId).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri'));
+    
+    if (lineItemId) {
+      query = returnType === 'sale' 
+        ? query.where((eb) => eb.or([eb('ri.sale_item_id', '=', lineItemId), eb('ri.sale_item_id', 'is', null).and('ri.product_id', '=', productId)]))
+        : query.where((eb) => eb.or([eb('ri.purchase_item_id', '=', lineItemId), eb('ri.purchase_item_id', 'is', null).and('ri.product_id', '=', productId)]));
+    } else {
+      query = query.where('ri.product_id', '=', productId);
+    }
+    
+    const result = await query.executeTakeFirst();
     return Number(result?.total_qty || 0);
   }
 
@@ -105,19 +115,31 @@ export class ReturnsService {
     const saleItems = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
     const settlementMode = payload.settlementMode === 'store_credit' ? 'store_credit' : 'refund';
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
-    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number }> = [];
+    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
+
+    const inMemoryReturnedQtyForProduct = new Map<number, number>();
 
     for (const requestItem of items) {
-      const saleItem = saleItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
+      const saleItem = requestItem.saleItemId
+        ? saleItems.find((entry) => Number(entry.id) === requestItem.saleItemId)
+        : saleItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
       if (!saleItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
-      const alreadyReturnedQty = await this.getReturnedQty(trx, 'sale', Number(payload.invoiceId), requestItem.productId, auth);
-      ensureReturnQtyWithinLimit(requestItem.qty, alreadyReturnedQty, Number(saleItem.qty || 0));
+      
+      const alreadyReturnedQty = await this.getReturnedQty(trx, 'sale', Number(payload.invoiceId), requestItem.productId, auth, requestItem.saleItemId);
+      const currentInMemory = inMemoryReturnedQtyForProduct.get(requestItem.productId) || 0;
+      const invoiceTotalQtyForProduct = saleItems
+        .filter((entry) => Number(entry.product_id) === requestItem.productId)
+        .reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+        
+      ensureReturnQtyWithinLimit(requestItem.qty + currentInMemory, alreadyReturnedQty, invoiceTotalQtyForProduct);
+      inMemoryReturnedQtyForProduct.set(requestItem.productId, currentInMemory + requestItem.qty);
+
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const preparedLine = buildSaleReturnLine(saleItem, product, requestItem);
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
       await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) } as any).execute();
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal });
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, saleItemId: requestItem.saleItemId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);
@@ -125,7 +147,7 @@ export class ReturnsService {
     // Do not post full-sale reversal journals for this flow.
     // Implement dedicated partial return accounting entries when reliable line-level accounting mapping is finalized.
     const returnDocumentId = await this.insertReturnDocument(trx, { returnType: 'sale', invoiceId: Number(payload.invoiceId), settlementMode, refundMethod, total, note: String(payload.note || '').trim(), branchId: sale.branch_id, locationId: sale.location_id }, auth);
-    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal }, auth);
+    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, saleItemId: line.saleItemId }, auth);
     const customerId = sale.customer_id ? Number(sale.customer_id) : null;
     if (settlementMode === 'store_credit' && customerId) await this.addStoreCredit(trx, customerId, total, auth);
     else if (sale.payment_type === 'credit' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -total, 'sale_return', 'sale return RET-' + String(returnDocumentId), returnDocumentId, auth, sale.branch_id, sale.location_id);
@@ -148,26 +170,38 @@ export class ReturnsService {
     const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).executeTakeFirst();
     if (!purchase) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     const purchaseItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
-    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number }> = [];
+    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
+
+    const inMemoryReturnedQtyForProduct = new Map<number, number>();
 
     for (const requestItem of items) {
-      const purchaseItem = purchaseItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
+      const purchaseItem = requestItem.purchaseItemId
+        ? purchaseItems.find((entry) => Number(entry.id) === requestItem.purchaseItemId)
+        : purchaseItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
       if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
-      const alreadyReturnedQty = await this.getReturnedQty(trx, 'purchase', Number(payload.invoiceId), requestItem.productId, auth);
-      ensureReturnQtyWithinLimit(requestItem.qty, alreadyReturnedQty, Number(purchaseItem.qty || 0));
+      
+      const alreadyReturnedQty = await this.getReturnedQty(trx, 'purchase', Number(payload.invoiceId), requestItem.productId, auth, requestItem.purchaseItemId);
+      const currentInMemory = inMemoryReturnedQtyForProduct.get(requestItem.productId) || 0;
+      const invoiceTotalQtyForProduct = purchaseItems
+        .filter((entry) => Number(entry.product_id) === requestItem.productId)
+        .reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+        
+      ensureReturnQtyWithinLimit(requestItem.qty + currentInMemory, alreadyReturnedQty, invoiceTotalQtyForProduct);
+      inMemoryReturnedQtyForProduct.set(requestItem.productId, currentInMemory + requestItem.qty);
+
       const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const preparedLine = buildPurchaseReturnLine(purchaseItem, { ...product, stock_qty: availableQty }, requestItem);
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return' });
       await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: purchase.location_id, created_by: auth.userId, ...this.tenantFields(auth) } as any).execute();
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal });
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, purchaseItemId: requestItem.purchaseItemId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
     const returnDocumentId = await this.insertReturnDocument(trx, { returnType: 'purchase', invoiceId: Number(payload.invoiceId), settlementMode: 'refund', refundMethod, total, note: String(payload.note || '').trim(), branchId: purchase.branch_id, locationId: purchase.location_id }, auth);
-    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal }, auth);
+    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, purchaseItemId: line.purchaseItemId }, auth);
     if (purchase.payment_type === 'credit' && purchase.supplier_id) await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -total, 'purchase_return', 'purchase return RET-' + String(returnDocumentId), returnDocumentId, auth, purchase.branch_id, purchase.location_id);
     else await this.addTreasuryTransaction(trx, 'purchase_return_refund', total, 'purchase return RET-' + String(returnDocumentId), returnDocumentId, auth, purchase.branch_id, purchase.location_id);
     return [returnDocumentId];

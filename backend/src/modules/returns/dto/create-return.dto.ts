@@ -15,6 +15,17 @@ class ReturnItemDto {
   @IsNumber()
   @Min(0.001)
   qty!: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  saleItemId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  purchaseItemId?: number;
 }
 
 export class CreateReturnDto {
