@@ -62,6 +62,27 @@ export function SystemUpdatesSection() {
     });
   };
 
+  const handleApplyOnlineUpdate = async (version: string, patchUrl: string, changelog?: string) => {
+    setUpdateCheckResult(null);
+    setSelectedReleaseIndex(null);
+    setLocalUpdateState({ open: true, file: null, status: 'uploading' });
+
+    try {
+      const res = await fetch('/api/updates/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version, patchUrl, changelog }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'فشل بدء التحديث');
+      }
+      setLocalUpdateState(s => ({ ...s, status: 'success' }));
+    } catch (e: any) {
+      setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));
+    }
+  };
+
   const updateHistory = updateInfo?.releases || [];
   const selectedRelease = selectedReleaseIndex !== null && updateHistory ? updateHistory[selectedReleaseIndex] : null;
 
@@ -95,9 +116,11 @@ export function SystemUpdatesSection() {
               </div>
               <p className="small" style={{ marginBottom: 12 }}>يرجى تحميل التحديث للحصول على أحدث الميزات وإصلاحات الأمان.</p>
               <Button variant="secondary" onClick={() => {
-                if (updateInfo.patchUrl) window.open(updateInfo.patchUrl, '_blank');
+                if (updateInfo.latestVersion && updateInfo.patchUrl) {
+                  handleApplyOnlineUpdate(updateInfo.latestVersion, updateInfo.patchUrl, updateInfo.changelog ?? undefined);
+                }
               }} style={{ borderColor: 'var(--color-warning-dark)', color: 'var(--color-warning-dark)' }}>
-                تحميل التحديث الآن
+                تطبيق التحديث الآن
               </Button>
             </div>
           )}
@@ -161,9 +184,10 @@ export function SystemUpdatesSection() {
               )}
               <div style={{ marginTop: 24, textAlign: 'left' }}>
                 <Button variant="primary" onClick={() => {
-                  if (selectedRelease.patchUrl) window.open(selectedRelease.patchUrl, '_blank');
-                  setSelectedReleaseIndex(null);
-                }}>تحميل هذا الإصدار</Button>
+                  if (selectedRelease.version && selectedRelease.patchUrl) {
+                    handleApplyOnlineUpdate(selectedRelease.version, selectedRelease.patchUrl, selectedRelease.changelog ?? undefined);
+                  }
+                }}>تطبيق هذا الإصدار</Button>
                 <span style={{ margin: '0 8px' }}></span>
                 <Button variant="secondary" onClick={() => setSelectedReleaseIndex(null)}>إغلاق</Button>
               </div>
@@ -220,11 +244,10 @@ export function SystemUpdatesSection() {
                   )}
                   <div style={{ display: 'flex', gap: 12 }}>
                     <Button variant="primary" style={{ flex: 1 }} onClick={() => {
-                      if (updateCheckResult.data.patchUrl) {
-                        window.open(updateCheckResult.data.patchUrl, '_blank');
+                      if (updateCheckResult.data.latestVersion && updateCheckResult.data.patchUrl) {
+                        handleApplyOnlineUpdate(updateCheckResult.data.latestVersion, updateCheckResult.data.patchUrl, updateCheckResult.data.changelog ?? undefined);
                       }
-                      setUpdateCheckResult(null);
-                    }}>تحميل التحديث</Button>
+                    }}>تطبيق التحديث الآن</Button>
                     <Button variant="secondary" onClick={() => setUpdateCheckResult(null)}>لاحقاً</Button>
                   </div>
                 </div>
@@ -241,14 +264,14 @@ export function SystemUpdatesSection() {
       )}
 
       {/* Local Update Modal */}
-      {localUpdateState.open && localUpdateState.file && (
+      {localUpdateState.open && (
         <ClientPortal targetId="root">
-          <DialogShell open={true} onClose={() => localUpdateState.status !== 'uploading' && setLocalUpdateState(s => ({ ...s, open: false }))} width="min(450px, 100%)" ariaLabel="تحديث من ملف">
+          <DialogShell open={true} onClose={() => localUpdateState.status !== 'uploading' && setLocalUpdateState(s => ({ ...s, open: false }))} width="min(450px, 100%)" ariaLabel="تطبيق التحديث">
             <div className="dialog-header">
-              <h3 className="dialog-title">تحديث النظام من ملف محلي</h3>
+              <h3 className="dialog-title">تطبيق التحديث</h3>
             </div>
             <div className="dialog-body stack gap-16" style={{ padding: '24px 20px', textAlign: 'center' }}>
-              {localUpdateState.status === 'idle' && (
+              {localUpdateState.status === 'idle' && localUpdateState.file && (
                 <>
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontWeight: 600 }}>{localUpdateState.file.name}</div>
@@ -265,8 +288,8 @@ export function SystemUpdatesSection() {
               )}
               {localUpdateState.status === 'uploading' && (
                 <div style={{ padding: '32px 0' }}>
-                  <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: 8 }}>جاري تطبيق التحديث...</div>
-                  <div className="muted small">الرجاء الانتظار، سيتم إعادة تشغيل التطبيق تلقائياً.</div>
+                  <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: 8 }}>جاري تطبيق التحديث وإعادة تشغيل البرنامج تلقائيًا.</div>
+                  <div className="muted small" style={{ color: 'var(--color-warning-dark)' }}>لا تغلق البرنامج أثناء هذه العملية...</div>
                 </div>
               )}
               {localUpdateState.status === 'error' && (

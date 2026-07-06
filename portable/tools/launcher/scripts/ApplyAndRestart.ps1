@@ -116,11 +116,11 @@ Ensure-Directory -Path $backupDir
 
 Write-Log "Creating pre-update backup at $backupDir..."
 try {
-  # Backup backend/dist
   $backendDistSrc = Join-Path $paths.AppBackendDir 'dist'
   $backendDistDest = Join-Path $backupDir 'backend\dist'
   if (Test-Path $backendDistSrc) {
     robocopy $backendDistSrc $backendDistDest /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy failed for backend dist with exit code $LASTEXITCODE" }
   }
   
   # Backup backend/package.json
@@ -131,11 +131,11 @@ try {
     Copy-Item -Path $pkgSrc -Destination $pkgDest -Force
   }
   
-  # Backup frontend/dist
   $frontendDistSrc = Join-Path $paths.AppFrontendDir 'dist'
   $frontendDistDest = Join-Path $backupDir 'frontend\dist'
   if (Test-Path $frontendDistSrc) {
     robocopy $frontendDistSrc $frontendDistDest /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy failed for frontend dist with exit code $LASTEXITCODE" }
   }
   
   # Backup database using pg_dump
@@ -153,7 +153,7 @@ try {
       $dbBackupPath = Join-Path $backupDir "database.sql"
       & $pgDump -h 127.0.0.1 -p $dbPort -U $dbUser -d $dbName -F c -f $dbBackupPath
       if ($LASTEXITCODE -ne 0) {
-        Write-Log "WARNING: pg_dump failed with exit code $LASTEXITCODE."
+        throw "pg_dump failed with exit code $LASTEXITCODE."
       } else {
         Write-Log "Database backup completed successfully."
       }
