@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { resolveRequestUrl } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { FormSection } from '@/shared/components/form-section';
 import { useAuthStore } from '@/stores/auth-store';
@@ -18,7 +19,19 @@ export function SystemUpdatesSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [localUpdateState, setLocalUpdateState] = useState<{ open: boolean; file: File | null; status: 'idle' | 'uploading' | 'error' | 'success'; error?: string }>({ open: false, file: null, status: 'idle' });
 
-  const currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
+  const staticVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
+  const [currentVersion, setCurrentVersion] = useState<string>(staticVersion);
+
+  useEffect(() => {
+    fetch(resolveRequestUrl('/api/updates/version'))
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.version) {
+          setCurrentVersion(data.version);
+        }
+      })
+      .catch(err => console.error('Failed to fetch runtime version:', err));
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -35,7 +48,7 @@ export function SystemUpdatesSection() {
     formData.append('file', localUpdateState.file);
 
     try {
-      const res = await fetch('/api/updates/apply-local-zip', {
+      const res = await fetch(resolveRequestUrl('/api/updates/apply-local-zip'), {
         method: 'POST',
         body: formData,
       });
@@ -68,7 +81,7 @@ export function SystemUpdatesSection() {
     setLocalUpdateState({ open: true, file: null, status: 'uploading' });
 
     try {
-      const res = await fetch('/api/updates/apply', {
+      const res = await fetch(resolveRequestUrl('/api/updates/apply'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ version, patchUrl, changelog }),

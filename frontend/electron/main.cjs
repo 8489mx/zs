@@ -19,13 +19,18 @@ const createWindow = () => {
   mainWindow.maximize();
   mainWindow.show();
 
-  // In production, we load the built index.html
+  // In production, load from app.asar.unpacked/dist so updates can replace frontend files
   // Also load it for local testing if running 'electron .'
   const isDev = process.env.NODE_ENV === 'development';
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // Prefer the unpacked dist (updateable) over the ASAR-bundled one
+    const unpackedDist = path.join(
+      __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
+      '../dist/index.html'
+    );
+    mainWindow.loadFile(unpackedDist);
   }
 };
 
@@ -88,6 +93,8 @@ app.whenReady().then(async () => {
     // Allow requests from the Electron renderer (file:// origin)
     CORS_ORIGINS: 'http://localhost:3001,http://127.0.0.1:3001,file://',
     ALLOW_SESSION_ID_HEADER: 'true',
+    // Pass the Electron EXE path so the backend can include it in update payloads
+    ELECTRON_EXE_PATH: process.execPath,
   };
 
   const backendProcess = fork(backendPath, [], {
@@ -99,8 +106,21 @@ app.whenReady().then(async () => {
     console.error('Backend process error:', err);
   });
 
+  // When the backend exits cleanly (code 0, no signal), it means it triggered
+  // a self-update. Close Electron so ApplyAndRestart.ps1 can replace the files
+  // and relaunch the EXE.
+  let isQuitting = false;
+  backendProcess.on('exit', (code, signal) => {
+    if (code === 0 && !signal && !isQuitting) {
+      console.log('[ELECTRON] Backend exited cleanly — closing Electron for update restart...');
+      isQuitting = true;
+      app.quit();
+    }
+  });
+
   // Ensure backend shuts down when Electron closes
   app.on('will-quit', () => {
+    isQuitting = true;
     if (backendProcess) {
       backendProcess.kill();
     }

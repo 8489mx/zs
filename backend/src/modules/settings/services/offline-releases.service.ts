@@ -8,6 +8,18 @@ import * as path from 'path';
 import { spawn } from 'child_process';
 import AdmZip from 'adm-zip';
 
+/**
+ * Determines the portable/Electron root directory.
+ * - In Electron mode: ELECTRON_EXE_PATH env is set by main.cjs → use its directory.
+ * - In portable mode: CWD is app/backend → go 2 levels up.
+ */
+function getPortableRoot(): string {
+  if (process.env.ELECTRON_EXE_PATH) {
+    return path.dirname(process.env.ELECTRON_EXE_PATH);
+  }
+  return path.resolve(process.cwd(), '../..');
+}
+
 @Injectable()
 export class OfflineReleasesService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
@@ -220,8 +232,8 @@ export class OfflineReleasesService {
       throw new BadRequestException('لا يوجد إصدار مفعّل حالياً');
     }
 
-    // Resolve paths (CWD = app/backend in portable mode)
-    const portableRoot  = path.resolve(process.cwd(), '../..');
+    // Resolve paths
+    const portableRoot  = getPortableRoot();
     const runtimeRunDir = path.join(portableRoot, 'runtime', 'run');
 
     try { fs.mkdirSync(runtimeRunDir, { recursive: true }); } catch { /* ignore */ }
@@ -229,16 +241,17 @@ export class OfflineReleasesService {
     // Write the pending marker with all runtime info the restart script needs
     const pendingFile = path.join(runtimeRunDir, '.update_pending');
     const payload = {
-      version:      active.version,
-      patchUrl:     active.patch_url,
-      changelog:    active.changelog,
-      triggeredBy:  auth.username ?? auth.role,
-      triggeredAt:  new Date().toISOString(),
+      version:         active.version,
+      patchUrl:        active.patch_url,
+      changelog:       active.changelog,
+      triggeredBy:     auth.username ?? auth.role,
+      triggeredAt:     new Date().toISOString(),
       // Runtime context for ApplyAndRestart.ps1
-      nodeExe:      process.execPath,
-      backendCwd:   process.cwd(),
-      backendEntry: process.argv[1] ?? 'dist/main.js',
-      backendPort:  process.env.BACKEND_PORT ?? '3001',
+      nodeExe:         process.execPath,
+      backendCwd:      process.cwd(),
+      backendEntry:    process.argv[1] ?? 'dist/main.js',
+      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      electronExePath: process.env.ELECTRON_EXE_PATH || '',
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -282,22 +295,23 @@ export class OfflineReleasesService {
       throw new BadRequestException('version and patchUrl are required');
     }
 
-    const portableRoot  = path.resolve(process.cwd(), '../..');
+    const portableRoot  = getPortableRoot();
     const runtimeRunDir = path.join(portableRoot, 'runtime', 'run');
 
     try { fs.mkdirSync(runtimeRunDir, { recursive: true }); } catch { /* ignore */ }
 
     const pendingFile = path.join(runtimeRunDir, '.update_pending');
     const payload = {
-      version:      body.version,
-      patchUrl:     body.patchUrl,
-      changelog:    body.changelog || '',
-      triggeredBy:  'Local User',
-      triggeredAt:  new Date().toISOString(),
-      nodeExe:      process.execPath,
-      backendCwd:   process.cwd(),
-      backendEntry: process.argv[1] ?? 'dist/main.js',
-      backendPort:  process.env.BACKEND_PORT ?? '3001',
+      version:         body.version,
+      patchUrl:        body.patchUrl,
+      changelog:       body.changelog || '',
+      triggeredBy:     'Local User',
+      triggeredAt:     new Date().toISOString(),
+      nodeExe:         process.execPath,
+      backendCwd:      process.cwd(),
+      backendEntry:    process.argv[1] ?? 'dist/main.js',
+      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      electronExePath: process.env.ELECTRON_EXE_PATH || '',
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -361,7 +375,7 @@ export class OfflineReleasesService {
       throw new BadRequestException('ملف التحديث غير صالح. تأكد من أن الملف بصيغة ZIP يحتوي على بنية التحديث الصحيحة.');
     }
 
-    const portableRoot  = path.resolve(process.cwd(), '../..');
+    const portableRoot  = getPortableRoot();
     const stagingDir = path.join(portableRoot, 'runtime', 'run', 'update-staging');
 
     try { fs.mkdirSync(stagingDir, { recursive: true }); } catch { /* ignore */ }
@@ -372,11 +386,11 @@ export class OfflineReleasesService {
     const runtimeRunDir = path.join(portableRoot, 'runtime', 'run');
     const pendingFile = path.join(runtimeRunDir, '.update_pending');
     
-    // We can extract a version from backend/package.json
     let version = 'manual';
     try {
       const zip = new AdmZip(file.buffer);
-      const pkgEntry = zip.getEntry('backend/package.json');
+      let pkgEntry = zip.getEntry('backend/package.json');
+      if (!pkgEntry) pkgEntry = zip.getEntry('backend\\package.json');
       if (pkgEntry) {
         const pkgStr = pkgEntry.getData().toString('utf8');
         const pkg = JSON.parse(pkgStr);
@@ -385,32 +399,29 @@ export class OfflineReleasesService {
     } catch (e) { /* ignore */ }
 
     const payload = {
-      version:        version,
-      patchUrl:       '',
-      localPatchPath: patchPath,
-      changelog:      'تحديث محلي يدوي من ملف ZIP',
-      triggeredBy:    'Local User',
-      triggeredAt:    new Date().toISOString(),
-      nodeExe:        process.execPath,
-      backendCwd:     process.cwd(),
-      backendEntry:   process.argv[1] ?? 'dist/main.js',
-      backendPort:    process.env.BACKEND_PORT ?? '3001',
+      version:         version,
+      patchUrl:        '',
+      localPatchPath:  patchPath,
+      changelog:       'اختبار تحديث محلي من 1.1.7 إلى 1.1.8',
+      triggeredBy:     'Local User',
+      triggeredAt:     new Date().toISOString(),
+      nodeExe:         process.execPath,
+      backendCwd:      process.cwd(),
+      backendEntry:    process.argv[1] ?? 'dist/main.js',
+      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      electronExePath: process.env.ELECTRON_EXE_PATH || '',
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
     const applyScript = path.join(portableRoot, 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
     if (fs.existsSync(applyScript)) {
-      const ps = spawn(
-        'powershell.exe',
-        [
-          '-ExecutionPolicy', 'Bypass',
-          '-NonInteractive',
-          '-WindowStyle', 'Hidden',
-          '-File', applyScript,
-          '-PortableRoot', portableRoot,
-        ],
-        { detached: true, stdio: 'ignore', windowsHide: true },
-      );
+      const wmiCmd = `powershell.exe -ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File "${applyScript}" -PortableRoot "${portableRoot}"`;
+      const b64 = Buffer.from(wmiCmd, 'utf16le').toString('base64');
+      const ps = spawn('powershell.exe', [
+        '-NoProfile',
+        '-Command',
+        `Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList "powershell.exe -EncodedCommand ${b64}"`
+      ], { detached: true, stdio: 'ignore', windowsHide: true });
       ps.unref();
     }
 
@@ -434,8 +445,10 @@ export class OfflineReleasesService {
    * This means zero manual intervention is required from the developer or client.
    */
   getCurrentVersion(): { version: string } {
+    const portableRoot = getPortableRoot();
+    
     // 1. Written by the auto-update script on success
-    const versionFile = path.resolve(process.cwd(), '../../runtime/run/.app_version');
+    const versionFile = path.join(portableRoot, 'runtime', 'run', '.app_version');
     try {
       if (fs.existsSync(versionFile)) {
         const ver = fs.readFileSync(versionFile, 'utf8').trim();
@@ -445,9 +458,18 @@ export class OfflineReleasesService {
 
     // 2. Read the backend's own package.json (baked in at build time, always accurate)
     try {
-      const pkgPath = path.join(process.cwd(), 'package.json');
+      const pkgPath = path.join(portableRoot, 'resources', 'app.asar.unpacked', 'electron', 'backend', 'package.json');
       if (fs.existsSync(pkgPath)) {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { version?: string };
+        if (pkg?.version) return { version: pkg.version };
+      }
+    } catch { /* ignore */ }
+    
+    // Fallback for local development if not in portable structure
+    try {
+      const devPkgPath = path.join(process.cwd(), 'package.json');
+      if (fs.existsSync(devPkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(devPkgPath, 'utf8')) as { version?: string };
         if (pkg?.version) return { version: pkg.version };
       }
     } catch { /* ignore */ }
