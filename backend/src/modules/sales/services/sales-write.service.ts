@@ -294,6 +294,9 @@ export class SalesWriteService {
       const preparedItems = [];
       const autoProduceItems = [];
       for (const item of normalized.items) {
+        if (Number(item.price || 0) <= 0) {
+          throw new AppError('Sale item price must be greater than zero', 'INVALID_SALE_PRICE', 400);
+        }
         const product = await trx.selectFrom('products as p')
           .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
           .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'b.id as bom_id'])
@@ -344,7 +347,26 @@ export class SalesWriteService {
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
 
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
-      if (normalized.paymentType !== 'credit' && !['admin', 'super_admin'].includes(auth.role) && (normalized.payments.some((entry) => entry.paymentChannel === 'cash') || normalized.paymentChannel === 'cash')) {
+      
+      const requireCashierShiftForSales = await trx
+        .selectFrom('settings')
+        .select('value')
+        .where('key', '=', 'requireCashierShiftForSales')
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst()
+        .then((row) => {
+          if (!row || !row.value) return true;
+          try {
+            return JSON.parse(row.value) !== false;
+          } catch {
+            return String(row.value).toLowerCase() !== 'false';
+          }
+        });
+
+      if (normalized.source === 'pos' && requireCashierShiftForSales) {
+        const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth);
+        if (!hasOpenShift) throw new AppError('Open cashier shift is required before posting a POS sale', 'OPEN_SHIFT_REQUIRED', 400);
+      } else if (normalized.paymentType !== 'credit' && !['admin', 'super_admin'].includes(auth.role) && (normalized.payments.some((entry) => entry.paymentChannel === 'cash') || normalized.paymentChannel === 'cash')) {
         const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth);
         if (!hasOpenShift) throw new AppError('Open cashier shift is required before posting a cash sale', 'OPEN_SHIFT_REQUIRED', 400);
       }
@@ -672,6 +694,9 @@ export class SalesWriteService {
       const preparedItems = [];
       const autoProduceItems = [];
       for (const item of normalized.items) {
+        if (Number(item.price || 0) <= 0) {
+          throw new AppError('Sale item price must be greater than zero', 'INVALID_SALE_PRICE', 400);
+        }
         const product = await trx.selectFrom('products as p')
           .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
           .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'b.id as bom_id'])

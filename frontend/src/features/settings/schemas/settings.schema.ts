@@ -30,6 +30,8 @@ export const settingsFormSchema = z.object({
   defaultProductKind: z.enum(['standard', 'fashion']).default('standard'),
   defaultPosMode: z.enum(['scanner', 'touch']).default('scanner'),
   allowNegativeStockSales: z.boolean().default(false),
+  allowZeroPurchaseCost: z.boolean().default(false),
+  requireCashierShiftForSales: z.boolean().default(true),
   posKitchenPrinterEnabled: z.boolean().default(false),
   posKitchenPrinterAuto: z.boolean().default(false),
   weightedBarcodeEnabled: z.boolean().default(false),

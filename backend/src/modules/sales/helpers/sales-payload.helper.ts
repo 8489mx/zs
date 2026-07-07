@@ -92,6 +92,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     managerPin: String(payload.managerPin || '').trim(),
     branchId: payload.branchId ? Number(payload.branchId) : null,
     locationId: payload.locationId ? Number(payload.locationId) : null,
+    source: payload.source === 'pos' ? 'pos' : 'dashboard',
     payments,
     items: payload.items
       .map((item) => ({

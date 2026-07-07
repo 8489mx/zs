@@ -38,6 +38,8 @@ export interface AppSettings {
   defaultPosMode?: 'scanner' | 'touch' | string;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
+  allowZeroPurchaseCost?: boolean;
+  requireCashierShiftForSales?: boolean;
   posKitchenPrinterEnabled?: boolean;
   posKitchenPrinterAuto?: boolean;
   weightedBarcodeEnabled?: boolean;

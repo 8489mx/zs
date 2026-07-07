@@ -174,7 +174,25 @@ export class PurchasesWriteService {
 
       const normalizedItems = [];
       const repricingCandidates: PurchaseRepricingCandidate[] = [];
+      const allowZeroPurchaseCost = await trx
+        .selectFrom('settings')
+        .select('value')
+        .where('key', '=', 'allowZeroPurchaseCost')
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst()
+        .then((row) => {
+          if (!row || !row.value) return false;
+          try {
+            return JSON.parse(row.value) === true;
+          } catch {
+            return String(row.value).toLowerCase() === 'true';
+          }
+        });
+
       for (const item of items) {
+        if (Number(item.cost || 0) <= 0 && !allowZeroPurchaseCost) {
+          throw new AppError('Purchase item cost must be greater than zero', 'INVALID_PURCHASE_COST', 400);
+        }
         const product = await trx.selectFrom('products').select(['id', 'name', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         normalizedItems.push(buildNormalizedPurchaseItem(item, product));
@@ -384,7 +402,25 @@ export class PurchasesWriteService {
       let subtotal = 0;
       const normalizedItems = [];
       const repricingCandidates: PurchaseRepricingCandidate[] = [];
+      const allowZeroPurchaseCost = await trx
+        .selectFrom('settings')
+        .select('value')
+        .where('key', '=', 'allowZeroPurchaseCost')
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst()
+        .then((row) => {
+          if (!row || !row.value) return false;
+          try {
+            return JSON.parse(row.value) === true;
+          } catch {
+            return String(row.value).toLowerCase() === 'true';
+          }
+        });
+
       for (const item of payload.items || []) {
+        if (Number(item.cost || 0) <= 0 && !allowZeroPurchaseCost) {
+          throw new AppError('Purchase item cost must be greater than zero', 'INVALID_PURCHASE_COST', 400);
+        }
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const incomingCost = Number(item.cost || 0);

@@ -210,6 +210,7 @@ export function createPosWorkspaceAsyncActions(
 
     try {
       const createdSale = await params.createSale.mutateAsync({
+        source: 'pos',
         cart: params.cart,
         customerId: effectiveCustomerId,
         paymentType: effectivePaymentType,

@@ -23,6 +23,7 @@ export interface CreatePosSaleInput {
   managerPin?: string;
   branchId?: string | null;
   locationId?: string | null;
+  source?: 'pos' | 'dashboard';
 }
 
 function normalizeMoney(value: number) {
@@ -95,6 +96,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     pricesIncludeTax: Boolean(input.pricesIncludeTax),
     branchId: input.branchId || null,
     locationId: input.locationId || null,
+    source: input.source || 'pos',
     items: normalizeCart(input.cart)
   };
 }
@@ -130,6 +132,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     pricesIncludeTax: Boolean(input.pricesIncludeTax),
     branchId: input.branchId || null,
     locationId: input.locationId || null,
+    source: input.source || 'pos',
     items: normalizedItems.map((item) => ({
       productId: item.productId,
       qty: item.qty,
@@ -152,6 +155,7 @@ export function buildMinimalPosSalePayload(input: CreatePosSaleInput) {
     customerId: customerId || null,
     paymentType: input.paymentType,
     ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
+    source: input.source || 'pos',
     items: normalizedItems.map((item) => ({
       productId: item.productId,
       qty: item.qty,

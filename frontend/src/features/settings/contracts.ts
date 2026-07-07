@@ -41,6 +41,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     manufacturingModuleEnabled: values.manufacturingModuleEnabled === true,
     allowNegativeStockSales: values.allowNegativeStockSales === true,
     allowSellingBelowStock: values.allowNegativeStockSales === true,
+    allowZeroPurchaseCost: values.allowZeroPurchaseCost === true,
+    requireCashierShiftForSales: values.requireCashierShiftForSales !== false,
     posKitchenPrinterEnabled: values.posKitchenPrinterEnabled === true,
     posKitchenPrinterAuto: values.posKitchenPrinterAuto === true,
     weightedBarcodeEnabled: values.weightedBarcodeEnabled === true,

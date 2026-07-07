@@ -110,6 +110,10 @@ export class UpsertSaleDto {
   @Min(1)
   locationId?: number;
 
+  @IsOptional()
+  @IsIn(['pos', 'dashboard'])
+  source?: 'pos' | 'dashboard';
+
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
@@ -135,6 +139,7 @@ export type NormalizedSalePayload = {
   managerPin: string;
   branchId: number | null;
   locationId: number | null;
+  source: 'pos' | 'dashboard';
   items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; notes: string; modifiers: any }>;
   payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }>;
 };

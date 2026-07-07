@@ -98,6 +98,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       defaultProductKind: 'standard',
       defaultPosMode: 'scanner',
       allowNegativeStockSales: false,
+      allowZeroPurchaseCost: false,
+      requireCashierShiftForSales: true,
       weightedBarcodeEnabled: false,
       weightedBarcodePrefix: '21',
       weightedBarcodeProductCodeLength: 5,
@@ -224,6 +226,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
       manufacturingModuleEnabled: settings.manufacturingModuleEnabled === true,
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
+      allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
+      requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
       posKitchenPrinterEnabled: settings.posKitchenPrinterEnabled === true,
       posKitchenPrinterAuto: settings.posKitchenPrinterAuto === true,
       weightedBarcodeEnabled: settings.weightedBarcodeEnabled === true,
@@ -681,6 +685,14 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('allowNegativeStockSales')} disabled={disabled} />
               السماح بالبيع بالسالب (تخطي تحذير المخزون)
+            </label>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
+              السماح بسعر شراء صفر للمخازن والعطايا
+            </label>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('requireCashierShiftForSales')} disabled={disabled} />
+              إجبار فتح وردية لعمليات الكاشير
             </label>
             <div className="field">
               <label>حد التنبيه للمخزون</label>
