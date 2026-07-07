@@ -24,6 +24,9 @@ param(
   [int]$WaitBeforeApplySecs = 4
 )
 
+$entryLog = Join-Path $PortableRoot 'runtime\logs\ps-entry.log'
+"ENTERED SCRIPT $(Get-Date)" | Out-File $entryLog -Append -Encoding utf8
+
 $ErrorActionPreference = 'Stop'
 
 # ── Log setup ─────────────────────────────────────────────────────────────────
@@ -210,58 +213,65 @@ try {
   exit 1
 }
 
-# ── Copy backend/dist ─────────────────────────────────────────────────────────
-$srcBackend = $null
-$candidates = @(
-  (Join-Path $extractDir 'backend\dist'),
-  (Join-Path $extractDir 'backend/dist')
-)
-foreach ($c in $candidates) {
-  if (Test-Path $c) { $srcBackend = $c; break }
-}
+try {
+  # ── Copy backend/dist ─────────────────────────────────────────────────────────
+  $srcBackend = $null
+  $candidates = @(
+    (Join-Path $extractDir 'backend\dist'),
+    (Join-Path $extractDir 'backend/dist')
+  )
+  foreach ($c in $candidates) {
+    if (Test-Path $c) { $srcBackend = $c; break }
+  }
 
-if ($srcBackend) {
-  $destBackend = Join-Path $pathMap.AppBackendDir 'dist'
-  Write-Log "Copying backend/dist -> $destBackend"
-  robocopy $srcBackend $destBackend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
-  Write-Log 'backend/dist applied.'
-} else {
-  Write-Log 'WARNING: backend/dist not found in patch, skipping.'
-}
+  if ($srcBackend) {
+    $destBackend = Join-Path $pathMap.AppBackendDir 'dist'
+    Write-Log "Copying backend/dist -> $destBackend"
+    robocopy $srcBackend $destBackend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy failed for backend dist (exit $LASTEXITCODE)" }
+    Write-Log 'backend/dist applied.'
+  } else {
+    Write-Log 'WARNING: backend/dist not found in patch, skipping.'
+  }
 
-# ── Copy backend/package.json ─────────────────────────────────────────────────
-$srcPkg = $null
-$pkgCandidates = @(
-  (Join-Path $extractDir 'backend\package.json'),
-  (Join-Path $extractDir 'backend/package.json')
-)
-foreach ($c in $pkgCandidates) {
-  if (Test-Path $c) { $srcPkg = $c; break }
-}
+  # ── Copy backend/package.json ─────────────────────────────────────────────────
+  $srcPkg = $null
+  $pkgCandidates = @(
+    (Join-Path $extractDir 'backend\package.json'),
+    (Join-Path $extractDir 'backend/package.json')
+  )
+  foreach ($c in $pkgCandidates) {
+    if (Test-Path $c) { $srcPkg = $c; break }
+  }
 
-if ($srcPkg) {
-  $destPkg = Join-Path $pathMap.AppBackendDir 'package.json'
-  Copy-Item -Path $srcPkg -Destination $destPkg -Force
-  Write-Log 'backend/package.json updated.'
-}
+  if ($srcPkg) {
+    $destPkg = Join-Path $pathMap.AppBackendDir 'package.json'
+    Copy-Item -Path $srcPkg -Destination $destPkg -Force -ErrorAction Stop
+    Write-Log 'backend/package.json updated.'
+  }
 
-# ── Copy frontend/dist ────────────────────────────────────────────────────────
-$srcFrontend = $null
-$frontendCandidates = @(
-  (Join-Path $extractDir 'frontend\dist'),
-  (Join-Path $extractDir 'frontend/dist')
-)
-foreach ($c in $frontendCandidates) {
-  if (Test-Path $c) { $srcFrontend = $c; break }
-}
+  # ── Copy frontend/dist ────────────────────────────────────────────────────────
+  $srcFrontend = $null
+  $frontendCandidates = @(
+    (Join-Path $extractDir 'frontend\dist'),
+    (Join-Path $extractDir 'frontend/dist')
+  )
+  foreach ($c in $frontendCandidates) {
+    if (Test-Path $c) { $srcFrontend = $c; break }
+  }
 
-if ($srcFrontend) {
-  $destFrontend = $pathMap.AppFrontendDir
-  Write-Log "Copying frontend/dist -> $destFrontend"
-  robocopy $srcFrontend $destFrontend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
-  Write-Log 'frontend/dist applied.'
-} else {
-  Write-Log 'WARNING: frontend/dist not found in patch, skipping.'
+  if ($srcFrontend) {
+    $destFrontend = $pathMap.AppFrontendDir
+    Write-Log "Copying frontend/dist -> $destFrontend"
+    robocopy $srcFrontend $destFrontend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy failed for frontend dist (exit $LASTEXITCODE)" }
+    Write-Log 'frontend/dist applied.'
+  } else {
+    Write-Log 'WARNING: frontend/dist not found in patch, skipping.'
+  }
+} catch {
+  Write-Log "ERROR: Failed to apply update files: $($_.Exception.Message)"
+  exit 1
 }
 
 # ── Run database migrations (portable mode only) ──────────────────────────────
@@ -292,9 +302,8 @@ Write-Log "Written .app_version = $version"
 
 # ── Restart ───────────────────────────────────────────────────────────────────
 if ($isElectronMode) {
-  Write-Log "Restarting Electron app: $electronExePath"
-  Start-Process -FilePath $electronExePath -WorkingDirectory (Split-Path -Parent $electronExePath)
-  Write-Log 'Electron app relaunched successfully.'
+  Write-Log 'Skipping automatic relaunch in Electron mode (Manual Relaunch requested).'
+
 } else {
   if ([string]::IsNullOrWhiteSpace($NodeExe) -or -not (Test-Path $NodeExe)) {
     $envFile = Join-Path $pathMap.ConfigDir '.env.offline'
