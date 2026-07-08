@@ -765,13 +765,13 @@ export function InventoryTreePage() {
 
   // Queries
   const productsQuery = useQuery({ queryKey: ['catalogProducts'], queryFn: () => inventoryApi.products() });
-  const locationsQuery = useQuery({ queryKey: ['locations'], queryFn: () => inventoryApi.locations() });
+  const locationsQuery = useQuery({ queryKey: ['locations', 'inventoryTree'], queryFn: () => inventoryApi.locations() });
   const stocksQuery = useQuery({ queryKey: ['location-stocks'], queryFn: () => inventoryApi.locationStocks() });
   const categoriesQuery = useQuery({ queryKey: ['catalogCategories'], queryFn: () => catalogApi.categories() });
 
   const isLoading = productsQuery.isLoading || locationsQuery.isLoading || stocksQuery.isLoading || categoriesQuery.isLoading;
 
-  const locations = useMemo(() => (locationsQuery.data || []).filter((l: any) => !String(l.name || '').includes('(محذوف)')), [locationsQuery.data]);
+  const locations = useMemo(() => locationsQuery.data || [], [locationsQuery.data]);
   const allLocations = useMemo(() => locationsQuery.data || [], [locationsQuery.data]);
   const stocks = useMemo(() => stocksQuery.data || [], [stocksQuery.data]);
   const categories = useMemo(() => categoriesQuery.data || [], [categoriesQuery.data]);
@@ -784,8 +784,7 @@ export function InventoryTreePage() {
         .map((s: any) => {
           const loc = allLocations.find((l: any) => String(l.id) === String(s.locationId));
           return { locationId: String(s.locationId), locationName: loc ? String(loc.name) : `مخزن ${s.locationId}`, qty: Number(s.qty) };
-        })
-        .filter((s) => !s.locationName.includes('(محذوف)'));
+        });
 
       const sumFromLocations = locationStocks.reduce((sum, s) => sum + s.qty, 0);
       const globalStock = Number(p.stock || p.stockQty || 0);
@@ -881,7 +880,7 @@ export function InventoryTreePage() {
   const handleDone = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['location-stocks'] });
     queryClient.invalidateQueries({ queryKey: ['catalogProducts'] });
-    queryClient.invalidateQueries({ queryKey: ['locations'] });
+    queryClient.invalidateQueries({ queryKey: ['locations', 'inventoryTree'] });
     queryClient.invalidateQueries({ queryKey: ['catalogCategories'] });
     setActiveModal(null);
     setModalProducts([]);

@@ -45,6 +45,7 @@ const BACKUP_AUTOMATION_SETTING_KEY = 'backupAutomation';
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function normalizeRowForInsert(row: Record<string, unknown>, scope: { tenantId: string; accountId: string }, tableName?: string): Record<string, unknown> { const normalized: Record<string, unknown> = {}; for (const [key, value] of Object.entries(row)) normalized[key] = key.endsWith('_json') && typeof value !== 'string' && value != null ? JSON.stringify(value) : value; normalized.tenant_id = scope.tenantId; if (tableName !== 'journal_entry_lines') normalized.account_id = scope.accountId; return normalized; }
+const sortSelfReferencing = (rows: any[], parentCol: string) => { const sorted = []; const inserted = new Set(); const pending = [...rows]; let iterations = 0; while (pending.length > 0 && iterations < 1000) { for (let i = pending.length - 1; i >= 0; i--) { const row = pending[i]; if (row[parentCol] == null || inserted.has(String(row[parentCol]))) { sorted.push(row); if (row.id != null) inserted.add(String(row.id)); pending.splice(i, 1); } } iterations++; } sorted.push(...pending); return sorted; };
 
 @Injectable()
 export class SettingsBackupService {
@@ -100,12 +101,53 @@ export class SettingsBackupService {
   async verifyBackup(payload: unknown): Promise<Record<string, unknown>> { const envelope = this.normalizeEnvelope(payload); const summary: Record<string, unknown> = { version: envelope.meta.version, exportedAt: envelope.meta.exportedAt || 'unknown', source: envelope.meta.source, tenantId: envelope.meta.tenantId || '' }; for (const table of BACKUP_TABLES) summary[table] = Array.isArray(envelope.tables[table]) ? envelope.tables[table]!.length : 0; return { ok: true, summary, tablesPresent: BACKUP_TABLES.filter((table) => Array.isArray(envelope.tables[table]) && (envelope.tables[table]?.length || 0) > 0).length }; }
   private async tableHasId(trx: Kysely<Database>, table: string): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = 'id') as exists`.execute(trx); return Boolean(result.rows[0]?.exists); }
   private async resetIdentity(trx: Kysely<Database>, table: string): Promise<void> { const hasId = await this.tableHasId(trx, table); if (!hasId) return; const seqResult = await sql<{ seq_name: string | null }>`select pg_get_serial_sequence(${table}, 'id') as seq_name`.execute(trx).catch(() => ({ rows: [{ seq_name: null }] } as { rows: { seq_name: string | null }[] })); const seqName = seqResult.rows[0]?.seq_name; if (!seqName) return; await sql`select setval(${seqName}, coalesce((select max(id)::bigint from ${sql.table(table)}), 0) + 1, false)`.execute(trx).catch(() => undefined); }
-  private async getTableColumns(trx: Kysely<Database>, table: string): Promise<Set<string>> { const result = await sql<{ column_name: string }>`select column_name from information_schema.columns where table_schema = 'public' and table_name = ${table}`.execute(trx); return new Set(result.rows.map(r => r.column_name)); }
+  private async getTableColumns(trx: Kysely<Database>, table: string): Promise<Map<string, { data_type: string, column_default: string | null, identity_generation: string | null }>> { const result = await sql<{ column_name: string, data_type: string, column_default: string | null, identity_generation: string | null }>`select column_name, data_type, column_default, identity_generation from information_schema.columns where table_schema = 'public' and table_name = ${table}`.execute(trx); return new Map(result.rows.map(r => [r.column_name, r])); }
   private async getAlwaysIdentityColumns(trx: Kysely<Database>, table: string): Promise<Set<string>> { const result = await sql<{ column_name: string }>`select column_name from information_schema.columns where table_schema = 'public' and table_name = ${table} and identity_generation = 'ALWAYS'`.execute(trx).catch(() => ({ rows: [] })); return new Set(result.rows.map(r => r.column_name)); }
 
   async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> { if (!dryRun) { this.assertCanRestoreBackup(actor); this.assertRestoreConfirmation(payload); } else { this.assertAdmin(actor); } const scope = this.scope(actor); const envelope = this.normalizeEnvelope(payload); const verification = await this.verifyBackup(payload); if (dryRun) return { ok: true, dryRun: true, summary: verification.summary, scope }; 
     try {
-      await this.db.transaction().execute(async (trx) => { await sql`SET LOCAL session_replication_role = 'replica'`.execute(trx); for (const table of CLEAR_ORDER) { if (!(await this.tableExists(String(table))) || !(await this.tableHasColumn(String(table), 'tenant_id'))) continue; await sql`delete from ${sql.table(table)} where tenant_id = ${scope.tenantId}`.execute(trx); } for (const table of BACKUP_TABLES) { if (!(await this.tableExists(String(table)))) continue; const validColumns = await this.getTableColumns(trx as unknown as Kysely<Database>, String(table)); const hasTenant = validColumns.has('tenant_id'); if (!hasTenant) continue; const alwaysIdentityCols = await this.getAlwaysIdentityColumns(trx as unknown as Kysely<Database>, String(table)); const hasAlwaysIdentity = alwaysIdentityCols.size > 0; const rows = Array.isArray(envelope.tables[table]) ? envelope.tables[table]! : []; if (!rows.length) continue; for (const row of rows) { if (!isObjectRecord(row)) continue; const normalized = normalizeRowForInsert(row, scope, String(table)); const filteredRow: Record<string, unknown> = {}; for (const key of Object.keys(normalized)) { if (validColumns.has(key)) { filteredRow[key] = normalized[key]; } } const keys = Object.keys(filteredRow); if (keys.length === 0) continue; if (hasAlwaysIdentity) { const colsSql = sql.join(keys.map(k => sql.ref(k))); const valsSql = sql.join(keys.map(k => sql`${filteredRow[k]}`)); await sql`insert into ${sql.table(String(table))} (${colsSql}) overriding system value values (${valsSql})`.execute(trx); } else { await (trx as any).insertInto(table).values(filteredRow).execute(); } } await this.resetIdentity(trx as unknown as Kysely<Database>, String(table)); } }); 
+      let sourceTenantId: string | null = null;
+      for (const t of BACKUP_TABLES) {
+        if (envelope.tables[t]?.length) {
+          sourceTenantId = String((envelope.tables[t] as any[])[0].tenant_id || '');
+          if (sourceTenantId) break;
+        }
+      }
+      const isCrossTenant = sourceTenantId ? sourceTenantId !== scope.tenantId : false;
+      const idMap = new Map<string, Map<string, string>>();
+
+      await this.db.transaction().execute(async (trx) => { await sql`SET LOCAL session_replication_role = 'replica'`.execute(trx); for (const table of CLEAR_ORDER) { if (!(await this.tableExists(String(table))) || !(await this.tableHasColumn(String(table), 'tenant_id'))) continue; await sql`delete from ${sql.table(table)} where tenant_id = ${scope.tenantId}`.execute(trx); } for (const table of BACKUP_TABLES) { if (!(await this.tableExists(String(table)))) continue; const colMeta = await this.getTableColumns(trx as unknown as Kysely<Database>, String(table)); const hasTenant = colMeta.has('tenant_id'); if (!hasTenant) continue; const alwaysIdentityCols = await this.getAlwaysIdentityColumns(trx as unknown as Kysely<Database>, String(table)); const hasAlwaysIdentity = alwaysIdentityCols.size > 0; let rows = Array.isArray(envelope.tables[table]) ? envelope.tables[table]! : []; if (!rows.length) continue; if (colMeta.has('parent_id') && colMeta.has('id')) { rows = sortSelfReferencing(rows, 'parent_id'); } const fksResult = await sql<{ column_name: string, foreign_table_name: string }>`SELECT kcu.column_name, ccu.table_name AS foreign_table_name FROM information_schema.table_constraints AS tc JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = ${String(table)}`.execute(trx); const fkMap = fksResult.rows; if (!idMap.has(String(table))) idMap.set(String(table), new Map()); const tableIdMap = idMap.get(String(table))!; const idMeta = colMeta.get('id'); const isIdAutoGenerated = idMeta && (idMeta.column_default !== null || idMeta.identity_generation !== null); const isCrossTenantRemappingNeeded = isCrossTenant && isIdAutoGenerated; 
+        
+        if (isCrossTenantRemappingNeeded) {
+          for (const row of rows) { if (!isObjectRecord(row)) continue; for (const fk of fkMap) { if (fk.column_name === 'tenant_id' || fk.column_name === 'account_id') continue; const oldFkVal = row[fk.column_name]; if (oldFkVal != null && idMap.has(fk.foreign_table_name)) { const newFkVal = idMap.get(fk.foreign_table_name)!.get(String(oldFkVal)); if (newFkVal !== undefined) row[fk.column_name] = newFkVal; } } const normalized = normalizeRowForInsert(row, scope, String(table)); const filteredRow: Record<string, unknown> = {}; for (const key of Object.keys(normalized)) { if (colMeta.has(key)) { filteredRow[key] = normalized[key]; } } const oldId = filteredRow.id; delete filteredRow.id; const keys = Object.keys(filteredRow); if (keys.length === 0) continue; if (hasAlwaysIdentity) { const colsSql = sql.join(keys.map(k => sql.ref(k))); const valsSql = sql.join(keys.map(k => sql`${filteredRow[k]}`)); const inserted = await sql<{id: string|number}>`insert into ${sql.table(String(table))} (${colsSql}) overriding system value values (${valsSql}) returning id`.execute(trx); if (oldId != null && inserted.rows[0]?.id != null) tableIdMap.set(String(oldId), String(inserted.rows[0].id)); } else { const inserted = await (trx as any).insertInto(table).values(filteredRow).returning('id').executeTakeFirst(); if (oldId != null && inserted?.id != null) { tableIdMap.set(String(oldId), String(inserted.id)); } } }
+        } else {
+          const bulkRows: any[] = [];
+          for (const row of rows) {
+            if (!isObjectRecord(row)) continue;
+            if (isCrossTenant) {
+              for (const fk of fkMap) { if (fk.column_name === 'tenant_id' || fk.column_name === 'account_id') continue; const oldFkVal = row[fk.column_name]; if (oldFkVal != null && idMap.has(fk.foreign_table_name)) { const newFkVal = idMap.get(fk.foreign_table_name)!.get(String(oldFkVal)); if (newFkVal !== undefined) row[fk.column_name] = newFkVal; } }
+            }
+            const normalized = normalizeRowForInsert(row, scope, String(table));
+            const filteredRow: Record<string, unknown> = {};
+            for (const key of Object.keys(normalized)) { if (colMeta.has(key)) filteredRow[key] = normalized[key]; }
+            if (Object.keys(filteredRow).length > 0) bulkRows.push(filteredRow);
+          }
+          
+          const CHUNK_SIZE = 500;
+          for (let i = 0; i < bulkRows.length; i += CHUNK_SIZE) {
+            const chunk = bulkRows.slice(i, i + CHUNK_SIZE);
+            if (!chunk.length) continue;
+            if (hasAlwaysIdentity) {
+              const keys = Object.keys(chunk[0]);
+              const colsSql = sql.join(keys.map(k => sql.ref(k)));
+              const valsSql = sql.join(chunk.map(row => sql`(${sql.join(keys.map(k => sql`${row[k]}`))})`));
+              await sql`insert into ${sql.table(String(table))} (${colsSql}) overriding system value values ${valsSql}`.execute(trx);
+            } else {
+              await (trx as any).insertInto(table).values(chunk).execute();
+            }
+          }
+        }
+        await this.resetIdentity(trx as unknown as Kysely<Database>, String(table)); } }); 
     } catch (error: any) {
       throw new AppError(`فشل الاستعادة: ${error.message} - ${error.detail || ''} - Table: ${error.table || ''} - Constraint: ${error.constraint || ''}`, 'RESTORE_ERROR', 400);
     }

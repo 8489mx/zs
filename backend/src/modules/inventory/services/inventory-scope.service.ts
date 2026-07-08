@@ -35,13 +35,13 @@ export class InventoryScopeService {
     return Array.from(new Set(ids));
   }
 
-  async assertLocationScope(locationId: number, auth: AuthContext): Promise<{ id: number; name: string; branchId: number | null }> {
+  async assertLocationScope(locationId: number, auth: AuthContext, allowInactive = false): Promise<{ id: number; name: string; branchId: number | null }> {
     const tenantId = this.tenantId(auth);
     const location = await this.db
       .selectFrom('stock_locations')
       .select(['id', 'name', 'branch_id'])
       .where('id', '=', locationId)
-      .where('is_active', '=', true)
+      .where((eb) => allowInactive ? eb.val(true) : eb('is_active', '=', true))
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
 
@@ -76,7 +76,15 @@ export class InventoryScopeService {
       .orderBy('l.id', 'asc');
       
     if (!includeInactive) {
-      query = query.where('l.is_active', '=', true);
+      query = query.where((eb) => eb.or([
+        eb('l.is_active', '=', true),
+        eb.exists(
+          eb.selectFrom('product_location_stock as s')
+            .select('s.id')
+            .whereRef('s.location_id', '=', 'l.id')
+            .where('s.qty', '>', 0)
+        )
+      ]));
     }
     // if (scope.length) query = query.where('l.branch_id', 'in', scope);
     const rows = await query.execute();
@@ -93,7 +101,10 @@ export class InventoryScopeService {
       .innerJoin('stock_locations as l', 'l.id', 's.location_id')
       .select(['s.product_id', 's.location_id', 's.qty'])
       .where('p.is_active', '=', true)
-      .where('l.is_active', '=', true)
+      .where((eb) => eb.or([
+        eb('l.is_active', '=', true),
+        eb('s.qty', '>', 0)
+      ]))
       .where(sql<boolean>`s.tenant_id = ${tenantId}`);
 
     if (scope.length) {
@@ -170,11 +181,24 @@ export class InventoryScopeService {
   async getAdvancedOverview(auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantId = this.tenantId(auth);
     
-    const locations = await this.db.selectFrom('stock_locations')
-      .select(['id', 'name'])
-      .where('is_active', '=', true)
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
+    const locationsRaw = await this.db.selectFrom('stock_locations as l')
+      .select(['l.id', 'l.name', 'l.is_active'])
+      .where((eb) => eb.or([
+        eb('l.is_active', '=', true),
+        eb.exists(
+          eb.selectFrom('product_location_stock as s')
+            .select('s.id')
+            .whereRef('s.location_id', '=', 'l.id')
+            .where('s.qty', '>', 0)
+        )
+      ]))
+      .where(sql<boolean>`l.tenant_id = ${tenantId}`)
       .execute();
+      
+    const locations = locationsRaw.map(l => ({
+      id: l.id,
+      name: l.name + (!l.is_active ? ' (محذوف)' : '')
+    }));
       
     const categories = await this.db.selectFrom('product_categories')
       .select(['id', 'name'])

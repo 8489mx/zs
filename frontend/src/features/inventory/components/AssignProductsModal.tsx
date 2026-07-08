@@ -27,7 +27,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
   });
 
   const locationsQuery = useQuery({
-    queryKey: ['locations'],
+    queryKey: ['locations', 'inventoryTree'],
     queryFn: () => inventoryApi.locations(),
   });
 

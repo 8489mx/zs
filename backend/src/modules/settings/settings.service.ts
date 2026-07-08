@@ -149,12 +149,33 @@ export class SettingsService {
   }
 
   async deleteLocation(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const location = await this.db.selectFrom('stock_locations').select(['id']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+    const location = await this.db.selectFrom('stock_locations').select(['id', 'is_active']).where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!location) throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
-    const stockMovements = await this.db.selectFrom('stock_movements').select((eb) => eb.fn.countAll<number>().as('count')).where('location_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
-    if (Number(stockMovements.count || 0) > 0) throw new AppError('Location has stock history and cannot be deleted', 'LOCATION_HAS_HISTORY', 400);
-    await this.db.updateTable('stock_locations').set({ is_active: false }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
-    await this.audit.log('حذف مخزن', `تم إلغاء تفعيل المخزن #${id} بواسطة ${actor.username}`, actor);
+
+    const stocks = await this.db.selectFrom('product_location_stock').select((eb) => eb.fn.sum<number>('qty').as('total_qty')).where('location_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
+    if (Number(stocks?.total_qty || 0) > 0) throw new AppError('لا يمكن حذف المخزن طالما يوجد به رصيد. يجب تحويل الرصيد أولاً', 'LOCATION_HAS_STOCK', 400);
+
+    // Clean up empty stock records first
+    await this.db.deleteFrom('product_location_stock').where('location_id', '=', id).where('qty', '<=', 0).where(this.tenantPredicate(actor)).execute();
+
+    try {
+      // Clear movement history for this location to allow hard deletion
+      await this.db.deleteFrom('stock_movements').where('location_id', '=', id).where(this.tenantPredicate(actor)).execute();
+
+      // Try to hard delete
+      await this.db.deleteFrom('stock_locations').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      await this.audit.log('حذف مخزن نهائي', `تم حذف المخزن #${id} نهائياً بواسطة ${actor.username}`, actor);
+    } catch (error: any) {
+      // If foreign key constraint fails (e.g. stock_movements), fallback to soft delete
+      if (error.code === '23503') {
+        if (location.is_active) {
+          await this.db.updateTable('stock_locations').set({ is_active: false }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+          await this.audit.log('أرشفة مخزن', `تم أرشفة المخزن #${id} لوجود حركات سابقة بواسطة ${actor.username}`, actor);
+        }
+      } else {
+        throw error;
+      }
+    }
     return { ok: true, removedLocationId: String(id), ...(await this.listLocations(actor)) };
   }
 }
