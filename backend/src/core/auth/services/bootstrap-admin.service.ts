@@ -57,7 +57,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
       })
-      .onConflict((oc) => oc.column('username').doNothing())
+      .onConflict((oc) => oc.columns(['tenant_id', 'username']).doNothing())
       .execute();
   }
 
