@@ -39,9 +39,10 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
 
     const passwordRecord = await createPasswordRecord(input.password);
 
-    await this.db
-      .insertInto('users')
-      .values({
+    try {
+      await this.db
+        .insertInto('users')
+        .values({
         username: input.username,
         password_hash: passwordRecord.hash,
         password_salt: passwordRecord.salt,
@@ -57,8 +58,12 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
       })
-      .onConflict((oc) => oc.columns(['tenant_id', 'username']).doNothing())
       .execute();
+    } catch (e: any) {
+      if (e.code !== '23505') { // ignore unique violation
+        throw e;
+      }
+    }
   }
 
   async onApplicationBootstrap(): Promise<void> {
