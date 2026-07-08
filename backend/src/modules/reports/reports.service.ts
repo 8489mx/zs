@@ -370,7 +370,7 @@ export class ReportsService {
     const pagination = buildPagination(page, pageSize, totalItems);
     const rows = await rowsQuery
       .orderBy(query.locationId ? 'pls.qty' : 'p.stock_qty', 'asc')
-      .orderBy('p.id asc')
+      .orderBy('p.id', 'asc')
       .limit(pageSize)
       .offset(offset)
       .execute();
@@ -385,8 +385,8 @@ export class ReportsService {
           .select(['pls.product_id', 'pls.location_id', 'pls.branch_id', 'pls.qty', 'l.name as location_name', 'branches.name as branch_name'])
           .where('pls.product_id', 'in', productIds)
           .where(this.tenantPredicate(auth, 'pls'))
-          .orderBy('pls.product_id asc')
-          .orderBy('pls.qty desc')
+          .orderBy('pls.product_id', 'asc')
+          .orderBy('pls.qty', 'desc')
           .execute()
       : [];
 
@@ -462,7 +462,7 @@ export class ReportsService {
       .select(['id', 'name', 'phone', 'balance', 'credit_limit'])
       .where('is_active', '=', true)
       .where(this.tenantPredicate(auth))
-      .orderBy('name asc')
+      .orderBy('name', 'asc')
       .execute();
 
     const ledgerRows = await this.db
@@ -508,7 +508,7 @@ export class ReportsService {
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await entriesQuery.orderBy('created_at asc').orderBy('id asc').limit(pageSize).offset(offset).execute();
+    const rows = await entriesQuery.orderBy('created_at', 'asc').orderBy('id', 'asc').limit(pageSize).offset(offset).execute();
 
     const totalsRow = await entriesQuery
       .clearSelect()
@@ -527,7 +527,7 @@ export class ReportsService {
       .select(['id', 'name', 'phone', 'balance'])
       .where('is_active', '=', true)
       .where(this.tenantPredicate(auth))
-      .orderBy('name asc')
+      .orderBy('name', 'asc')
       .execute();
 
     const ledgerRows = await this.db
@@ -573,7 +573,7 @@ export class ReportsService {
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await entriesQuery.orderBy('created_at asc').orderBy('id asc').limit(pageSize).offset(offset).execute();
+    const rows = await entriesQuery.orderBy('created_at', 'asc').orderBy('id', 'asc').limit(pageSize).offset(offset).execute();
 
     const totalsRow = await entriesQuery
       .clearSelect()

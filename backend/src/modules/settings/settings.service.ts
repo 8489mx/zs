@@ -22,7 +22,7 @@ export class SettingsService {
   }
 
   async listBranches(actor: AuthContext): Promise<Record<string, unknown>> {
-    const rows = await this.db.selectFrom('branches').select(['id', 'name', 'code']).where('is_active', '=', true).where(this.tenantPredicate(actor)).orderBy('id asc').execute();
+    const rows = await this.db.selectFrom('branches').select(['id', 'name', 'code']).where('is_active', '=', true).where(this.tenantPredicate(actor)).orderBy('id', 'asc').execute();
     return { branches: rows.map((row) => ({ id: String(row.id), name: row.name || '', code: row.code || '' })), scope: this.scope(actor) };
   }
 
@@ -33,7 +33,7 @@ export class SettingsService {
       .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${scope.tenantId}`))
       .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active'])
       .where(this.tenantPredicate(actor, 'l'))
-      .orderBy('l.id asc')
+      .orderBy('l.id', 'asc')
       .execute();
     return { locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', isActive: row.is_active })), scope };
   }

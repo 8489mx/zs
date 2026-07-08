@@ -46,7 +46,7 @@ export class InventoryTransferService {
       transfersQuery = transfersQuery.where((eb) => eb.or([eb('t.from_location_id', '=', locId), eb('t.to_location_id', '=', locId)]));
     }
 
-    const transfers = await transfersQuery.orderBy('t.id desc').execute();
+    const transfers = await transfersQuery.orderBy('t.id', 'desc').execute();
 
     const transferIds = transfers.map((t) => Number(t.id || 0)).filter((id) => id > 0);
     const items = transferIds.length ? await this.db
@@ -54,7 +54,7 @@ export class InventoryTransferService {
       .select(['id', 'transfer_id', 'product_id', 'product_name', 'qty'])
       .where('transfer_id', 'in', transferIds)
       .where(this.tenantPredicate(auth))
-      .orderBy('transfer_id asc')
+      .orderBy('transfer_id', 'asc')
       .execute() : [];
 
     const byTransfer = new Map<string, Record<string, unknown>[]>();

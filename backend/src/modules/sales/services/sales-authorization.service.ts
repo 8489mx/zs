@@ -57,7 +57,7 @@ export class SalesAuthorizationService {
       .where('opened_by', '=', auth.userId)
       .where('status', '=', 'open')
       .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
     return Boolean(row?.id);
   }

@@ -39,7 +39,7 @@ export class CatalogCategoryService {
       .where('product_categories.is_active', '=', true)
       .where(sql<boolean>`product_categories.tenant_id = ${this.tenantId(actor)}`)
       .groupBy(['product_categories.id', 'product_categories.name'])
-      .orderBy('product_categories.id asc')
+      .orderBy('product_categories.id', 'asc')
       .execute();
     return { 
       categories: categories.map((entry) => ({ 

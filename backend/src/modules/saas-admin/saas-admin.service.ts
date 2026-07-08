@@ -70,8 +70,8 @@ export class SaasAdminService {
       .select(['id', 'username', 'tenant_id', 'is_active', 'must_change_password', 'failed_login_count', 'locked_until'])
       .where('tenant_id', '=', tenantId)
       .where('role', '=', 'super_admin')
-      .orderBy('created_at asc')
-      .orderBy('id asc')
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
       .executeTakeFirst();
 
     if (!owner) {
@@ -121,7 +121,7 @@ export class SaasAdminService {
         't.created_at',
         't.updated_at',
       ])
-      .orderBy('t.created_at desc');
+      .orderBy('t.created_at', 'desc');
 
     if (status) {
       listQuery = listQuery.where('t.status', '=', status as TenantStatus);
@@ -145,8 +145,8 @@ export class SaasAdminService {
           .select(['tenant_id', 'username', 'is_active', 'failed_login_count', 'locked_until'])
           .where('tenant_id', 'in', tenantIds)
           .where('role', '=', 'super_admin')
-          .orderBy('created_at asc')
-          .orderBy('id asc')
+          .orderBy('created_at', 'asc')
+          .orderBy('id', 'asc')
           .execute()
       : [];
 

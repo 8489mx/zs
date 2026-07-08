@@ -81,7 +81,7 @@ export class UsersService {
   async listUsers(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalizedQuery = normalizeUserListQuery(query);
 
-    const allRows = await this.db.selectFrom('users').selectAll().where(this.tenantPredicate(actor)).orderBy('id asc').execute();
+    const allRows = await this.db.selectFrom('users').selectAll().where(this.tenantPredicate(actor)).orderBy('id', 'asc').execute();
     const branchMap = await this.loadBranchMap(allRows.map((row) => Number(row.id)), actor);
     const users = filterUsers(
       allRows.map((row) => mapUserRow(row, branchMap.get(Number(row.id)) ?? [])),
@@ -348,7 +348,7 @@ export class UsersService {
       .selectAll()
       .where('id', 'in', requestedIds)
       .where(this.tenantPredicate(actor))
-      .orderBy('id asc')
+      .orderBy('id', 'asc')
       .execute();
 
     if (!selectedRows.length) {

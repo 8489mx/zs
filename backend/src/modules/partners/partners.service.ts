@@ -135,12 +135,12 @@ export class PartnersService {
     }
 
     if (isUnpagedDefault) {
-      const rows = await listQuery.orderBy('id asc').execute();
+      const rows = await listQuery.orderBy('id', 'asc').execute();
       return { customers: rows.map((row) => mapCustomerRow(row)) };
     }
 
     const [rows, countRow, summaryRow] = await Promise.all([
-      listQuery.orderBy('id asc').limit(pageSize).offset((page - 1) * pageSize).execute(),
+      listQuery.orderBy('id', 'asc').limit(pageSize).offset((page - 1) * pageSize).execute(),
       countQuery.executeTakeFirstOrThrow(),
       summaryQuery.executeTakeFirstOrThrow(),
     ]);
@@ -349,12 +349,12 @@ export class PartnersService {
     }
 
     if (isUnpagedDefault) {
-      const rows = await listQuery.orderBy('id asc').execute();
+      const rows = await listQuery.orderBy('id', 'asc').execute();
       return { suppliers: rows.map((row) => mapSupplierRow(row)) };
     }
 
     const [rows, countRow, summaryRow] = await Promise.all([
-      listQuery.orderBy('id asc').limit(pageSize).offset((page - 1) * pageSize).execute(),
+      listQuery.orderBy('id', 'asc').limit(pageSize).offset((page - 1) * pageSize).execute(),
       countQuery.executeTakeFirstOrThrow(),
       summaryQuery.executeTakeFirstOrThrow(),
     ]);

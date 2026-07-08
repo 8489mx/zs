@@ -108,7 +108,7 @@ export class AccountingService {
         'sort_order',
       ])
       .where(this.tenantPredicate(auth))
-      .orderBy('code asc')
+      .orderBy('code', 'asc')
       .execute();
 
     const rowsById = new Map(rows.map((row) => [String(row.id), row]));
@@ -193,7 +193,7 @@ export class AccountingService {
       .where('source_type', '=', 'opening_balance')
       .where('status', '=', 'posted')
       .where('tenant_id', '=', scope.tenantId)
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
     return row ? { id: Number(row.id) } : null;
   }
@@ -554,7 +554,7 @@ export class AccountingService {
         'a.name_en as account_name_en',
       ])
       .where('l.journal_entry_id', '=', id)
-      .orderBy('l.id asc')
+      .orderBy('l.id', 'asc')
       .execute();
 
     const totalDebit = this.toMoney(lines.reduce((sum, line) => sum + Number(line.debit || 0), 0));
@@ -769,14 +769,14 @@ export class AccountingService {
           .select(['id', 'name', 'phone', 'balance'])
           .where('is_active', '=', true)
           .where(this.tenantPredicate(auth))
-          .orderBy('name asc')
+          .orderBy('name', 'asc')
           .execute(),
         this.db
           .selectFrom('suppliers')
           .select(['id', 'name', 'phone', 'balance'])
           .where('is_active', '=', true)
           .where(this.tenantPredicate(auth))
-          .orderBy('name asc')
+          .orderBy('name', 'asc')
           .execute(),
         this.db
           .selectFrom('customer_ledger')
@@ -950,7 +950,7 @@ export class AccountingService {
     if (branchId) query = query.where('je.branch_id', '=', branchId);
     if (locationId) query = query.where('je.location_id', '=', locationId);
 
-    const rows = await query.orderBy('je.entry_date desc').execute();
+    const rows = await query.orderBy('je.entry_date', 'desc').execute();
 
     let totalDebit = 0;
     let totalCredit = 0;
@@ -1043,7 +1043,7 @@ export class AccountingService {
       );
     }
 
-    const rows = await query.orderBy('p.name asc').execute();
+    const rows = await query.orderBy('p.name', 'asc').execute();
     const items = rows
       .map((row) => {
         const quantityOnHand = this.toMoney(row.stock_qty);
@@ -1134,7 +1134,7 @@ export class AccountingService {
         .where('source_type', '=', 'opening_balance')
         .where('status', '=', 'posted')
         .where('tenant_id', '=', scope.tenantId)
-        .orderBy('id desc')
+        .orderBy('id', 'desc')
         .executeTakeFirst();
       if (existing) return { id: Number(existing.id), posted: false };
 

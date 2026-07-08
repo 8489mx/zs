@@ -88,7 +88,7 @@ export class PricingService {
   }
 
   async listRuns(actor: AuthContext): Promise<Record<string, unknown>> {
-    const rows = await this.db.selectFrom('price_change_runs as runs').leftJoin('users as users', 'users.id', 'runs.created_by').select(['runs.id', 'runs.filters_json', 'runs.operation_json', 'runs.options_json', 'runs.summary_json', 'runs.status', 'runs.created_at', 'runs.created_by', 'runs.undone_at', 'runs.undone_by', 'runs.affected_count', 'users.display_name', 'users.username']).where(this.tenantPredicate(actor, 'runs')).orderBy('runs.id desc').limit(50).execute() as RunRow[];
+    const rows = await this.db.selectFrom('price_change_runs as runs').leftJoin('users as users', 'users.id', 'runs.created_by').select(['runs.id', 'runs.filters_json', 'runs.operation_json', 'runs.options_json', 'runs.summary_json', 'runs.status', 'runs.created_at', 'runs.created_by', 'runs.undone_at', 'runs.undone_by', 'runs.affected_count', 'users.display_name', 'users.username']).where(this.tenantPredicate(actor, 'runs')).orderBy('runs.id', 'desc').limit(50).execute() as RunRow[];
     const latestAppliedId = rows.find((row) => row.status === 'applied')?.id ?? null;
     return { runs: rows.map((row) => ({ id: Number(row.id), createdAt: row.created_at, createdBy: row.display_name || row.username || 'مستخدم', status: row.status, affectedCount: Number(row.affected_count || 0), filters: this.safeJsonParse(row.filters_json), operation: this.safeJsonParse(row.operation_json), options: this.safeJsonParse(row.options_json), summary: this.safeJsonParse(row.summary_json), undoneAt: row.undone_at, canUndo: row.status === 'applied' && Number(row.id) === Number(latestAppliedId || 0) })) };
   }
@@ -97,7 +97,7 @@ export class PricingService {
     const run = await this.db.selectFrom('price_change_runs').select(['id', 'status']).where('id', '=', runId).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!run) throw new AppError('موجة التسعير غير موجودة.', 'PRICING_RUN_NOT_FOUND', 404);
     if (run.status !== 'applied') throw new AppError('لا يمكن التراجع عن هذه الموجة.', 'PRICING_RUN_UNDO_FORBIDDEN', 400);
-    const latestApplied = await this.db.selectFrom('price_change_runs').select(['id']).where('status', '=', 'applied').where(this.tenantPredicate(actor)).orderBy('id desc').executeTakeFirst();
+    const latestApplied = await this.db.selectFrom('price_change_runs').select(['id']).where('status', '=', 'applied').where(this.tenantPredicate(actor)).orderBy('id', 'desc').executeTakeFirst();
     if (!latestApplied || Number(latestApplied.id) !== runId) throw new AppError('التراجع متاح فقط لآخر موجة تسعير مطبقة.', 'PRICING_RUN_NOT_LATEST', 400);
     const items = await this.db.selectFrom('price_change_items').select(['product_id', 'old_retail_price', 'old_wholesale_price']).where('run_id', '=', runId).where(this.tenantPredicate(actor)).execute() as RunItemRow[];
     await this.db.transaction().execute(async (trx) => {

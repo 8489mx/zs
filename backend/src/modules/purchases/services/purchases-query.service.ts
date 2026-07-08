@@ -30,7 +30,7 @@ export class PurchasesQueryService {
         'p.required_date', 'p.currency', 'p.company_name', 'p.contact_id', 'p.shipping_address_id', 'p.cost_center_id', 'p.project_id', 'p.terms_template'
       ])
       .where(this.tenantPredicate(auth, 'p'))
-      .orderBy('p.id desc')
+      .orderBy('p.id', 'desc')
       .execute();
 
     const purchaseIds = purchases.map((row) => Number(row.id || 0)).filter((id) => id > 0);
@@ -39,16 +39,16 @@ export class PurchasesQueryService {
       .select(['id', 'purchase_id', 'product_id', 'product_name', 'qty', 'unit_cost', 'line_total', 'unit_name', 'unit_multiplier'])
       .where('purchase_id', 'in', purchaseIds)
       .where(this.tenantPredicate(auth))
-      .orderBy('purchase_id asc')
-      .orderBy('id asc')
+      .orderBy('purchase_id', 'asc')
+      .orderBy('id', 'asc')
       .execute() : [];
 
     const attachments = purchaseIds.length ? await this.db
       .selectFrom('purchase_attachments')
       .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
       .where('purchase_id', 'in', purchaseIds)
-      .orderBy('purchase_id asc')
-      .orderBy('id asc')
+      .orderBy('purchase_id', 'asc')
+      .orderBy('id', 'asc')
       .execute() : [];
 
     return mapPurchaseRows(purchases as unknown as Array<Record<string, unknown>>, items as unknown as Array<Record<string, unknown>>, attachments as unknown as Array<Record<string, unknown>>);
@@ -79,7 +79,7 @@ export class PurchasesQueryService {
       .leftJoin('users as u', 'u.id', 'sp.created_by')
       .select(['sp.id', 'sp.doc_no', 'sp.supplier_id', 'sp.amount', 'sp.note', 'sp.payment_date', 'sp.branch_id', 'sp.location_id', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name'])
       .where(this.tenantPredicate(auth, 'sp'))
-      .orderBy('sp.id desc')
+      .orderBy('sp.id', 'desc')
       .execute();
     return {
       supplierPayments: rows.map((row) => ({

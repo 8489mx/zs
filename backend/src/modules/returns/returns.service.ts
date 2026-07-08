@@ -33,7 +33,7 @@ export class ReturnsService {
   private tenantFields(auth: AuthContext) { const scope = this.scope(auth); return { tenant_id: scope.tenantId, account_id: scope.accountId }; }
 
   private async findOwnOpenShift(trx: Kysely<Database>, auth: AuthContext): Promise<{ id: number; docNo: string } | null> {
-    const shift = await trx.selectFrom('cashier_shifts').select(['id']).where('opened_by', '=', auth.userId).where('status', '=', 'open').where(this.tenantPredicate(auth)).orderBy('id desc').executeTakeFirst();
+    const shift = await trx.selectFrom('cashier_shifts').select(['id']).where('opened_by', '=', auth.userId).where('status', '=', 'open').where(this.tenantPredicate(auth)).orderBy('id', 'desc').executeTakeFirst();
     return shift?.id ? { id: Number(shift.id), docNo: `SHIFT-${shift.id}` } : null;
   }
 
@@ -90,7 +90,7 @@ export class ReturnsService {
   }
 
   async listReturns(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    const rows = await this.db.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').leftJoin('users as u', 'u.id', 'rd.created_by').select(['ri.id', 'rd.id as return_document_id', 'rd.doc_no', 'rd.return_type', 'rd.invoice_id', 'ri.product_id', 'ri.product_name', 'ri.qty', 'ri.line_total', 'rd.note', 'rd.settlement_mode', 'rd.refund_method', 'rd.created_at', 'rd.created_by', 'u.username as created_by_name']).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri')).orderBy('rd.id desc').orderBy('ri.id asc').execute();
+    const rows = await this.db.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').leftJoin('users as u', 'u.id', 'rd.created_by').select(['ri.id', 'rd.id as return_document_id', 'rd.doc_no', 'rd.return_type', 'rd.invoice_id', 'ri.product_id', 'ri.product_name', 'ri.qty', 'ri.line_total', 'rd.note', 'rd.settlement_mode', 'rd.refund_method', 'rd.created_at', 'rd.created_by', 'u.username as created_by_name']).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri')).orderBy('rd.id', 'desc').orderBy('ri.id', 'asc').execute();
     const today = new Date().toISOString().slice(0, 10);
     const mapped = filterReturnRows(mapReturnRows(rows as Array<Record<string, unknown>>), query, today);
     const paged = paginateRows(mapped, query, { defaultSize: 20 });

@@ -62,7 +62,7 @@ export class AccountingPostingService {
       .where('source_id', '=', saleId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -74,7 +74,7 @@ export class AccountingPostingService {
       .where('source_id', '=', saleId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -86,7 +86,7 @@ export class AccountingPostingService {
       .where('source_id', '=', purchaseId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -98,7 +98,7 @@ export class AccountingPostingService {
       .where('source_id', '=', paymentId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -110,7 +110,7 @@ export class AccountingPostingService {
       .where('source_id', '=', settlementId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -122,7 +122,7 @@ export class AccountingPostingService {
       .where('source_id', '=', paymentId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -134,7 +134,7 @@ export class AccountingPostingService {
       .where('source_id', '=', expenseId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -146,7 +146,7 @@ export class AccountingPostingService {
       .where('source_id', '=', saleId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -158,7 +158,7 @@ export class AccountingPostingService {
       .where('source_id', '=', purchaseId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -170,7 +170,7 @@ export class AccountingPostingService {
       .where('source_id', '=', returnId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
   }
 
@@ -797,7 +797,7 @@ export class AccountingPostingService {
       .where('source_id', '=', saleId)
       .where('status', '=', 'posted')
       .where('tenant_id', '=', scope.tenantId)
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
     if (!sourceJournal) {
       this.logger.warn(`No posted sale journal found for sale ${saleId}; skipping accounting reversal`);
@@ -817,7 +817,7 @@ export class AccountingPostingService {
       .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
       .where('journal_entry_id', '=', Number(sourceJournal.id))
       .where('tenant_id', '=', scope.tenantId)
-      .orderBy('id asc')
+      .orderBy('id', 'asc')
       .execute();
 
     const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({
@@ -1226,7 +1226,7 @@ export class AccountingPostingService {
       .where('source_id', '=', purchaseId)
       .where('status', '=', 'posted')
       .where('tenant_id', '=', scope.tenantId)
-      .orderBy('id desc')
+      .orderBy('id', 'desc')
       .executeTakeFirst();
     if (!sourceJournal) {
       this.logger.warn(`No posted purchase journal found for purchase ${purchaseId}; skipping accounting reversal`);
@@ -1246,7 +1246,7 @@ export class AccountingPostingService {
       .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
       .where('journal_entry_id', '=', Number(sourceJournal.id))
       .where('tenant_id', '=', scope.tenantId)
-      .orderBy('id asc')
+      .orderBy('id', 'asc')
       .execute();
 
     const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({

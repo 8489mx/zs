@@ -77,7 +77,7 @@ export class ReportsAdminService {
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await rowsQuery.orderBy('t.id desc').limit(pageSize).offset(offset).execute();
+    const rows = await rowsQuery.orderBy('t.id', 'desc').limit(pageSize).offset(offset).execute();
     const summaryRow = await summaryQuery
       .select([
         sql<number>`coalesce(sum(case when t.amount > 0 then t.amount else 0 end), 0)`.as('cash_in'),
@@ -121,7 +121,7 @@ export class ReportsAdminService {
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
-    const rows = await rowsQuery.orderBy('a.id desc').limit(pageSize).offset(offset).execute();
+    const rows = await rowsQuery.orderBy('a.id', 'desc').limit(pageSize).offset(offset).execute();
     const distinctUsersRow = await distinctUsersQuery.select(sql<number>`count(distinct coalesce(u.username, 'guest'))`.as('count')).executeTakeFirst();
     const todayCountRow = await todayCountQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
 

@@ -152,7 +152,7 @@ export class SessionService {
         .where(sql<string>`LOWER(COALESCE(t.owner_email, ''))`, '=', normalized.toLowerCase())
         .where('u.is_active', '=', true)
         .where('u.role', '=', 'super_admin')
-        .orderBy('u.id asc')
+        .orderBy('u.id', 'asc')
         .execute();
 
       if (matchedByEmail.length > 1) {
@@ -205,7 +205,7 @@ export class SessionService {
 
   async listSessions(auth: AuthContext, userId: number = auth.userId): Promise<Array<Record<string, unknown>>> {
     const { tenantId } = this.scope(auth);
-    return this.db.selectFrom('sessions').select(['id', 'created_at', 'expires_at', 'last_seen_at', 'ip_address', 'user_agent']).where('user_id', '=', userId).where(sql<boolean>`tenant_id = ${tenantId}`).orderBy('created_at desc').execute();
+    return this.db.selectFrom('sessions').select(['id', 'created_at', 'expires_at', 'last_seen_at', 'ip_address', 'user_agent']).where('user_id', '=', userId).where(sql<boolean>`tenant_id = ${tenantId}`).orderBy('created_at', 'desc').execute();
   }
 
   async revokeSessionForUser(sessionId: string, auth: AuthContext, userId: number = auth.userId): Promise<number> {

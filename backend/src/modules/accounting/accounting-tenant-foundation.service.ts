@@ -62,7 +62,7 @@ export class AccountingTenantFoundationService {
       .select('account_id')
       .where('tenant_id', '=', sourceTenantId)
       .where('account_id', 'is not', null)
-      .orderBy('id asc')
+      .orderBy('id', 'asc')
       .executeTakeFirst();
     const source: Scope = {
       tenantId: sourceTenantId,
@@ -74,8 +74,8 @@ export class AccountingTenantFoundationService {
         .selectFrom('accounting_accounts')
         .selectAll()
         .where('tenant_id', '=', source.tenantId)
-        .orderBy('sort_order asc')
-        .orderBy('id asc')
+        .orderBy('sort_order', 'asc')
+        .orderBy('id', 'asc')
         .execute();
       if (!sourceAccounts.length) {
         throw new InternalServerErrorException(

@@ -35,7 +35,7 @@ export class SalesQueryService {
         's.status', 's.note', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
       ])
       .where(this.tenantPredicate(auth, 's'))
-      .orderBy('s.id desc')
+      .orderBy('s.id', 'desc')
       .execute() as unknown as Array<Record<string, unknown>>;
   }
 
@@ -80,16 +80,16 @@ export class SalesQueryService {
         .select(['id', 'sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'line_total', 'unit_name', 'unit_multiplier', 'cost_price', 'price_type'])
         .where('sale_id', 'in', saleIds)
         .where(this.tenantPredicate(auth))
-        .orderBy('sale_id asc')
-        .orderBy('id asc')
+        .orderBy('sale_id', 'asc')
+        .orderBy('id', 'asc')
         .execute(),
       this.db
         .selectFrom('sale_payments')
         .select(['id', 'sale_id', 'payment_channel', 'amount'])
         .where('sale_id', 'in', saleIds)
         .where(this.tenantPredicate(auth))
-        .orderBy('sale_id asc')
-        .orderBy('id asc')
+        .orderBy('sale_id', 'asc')
+        .orderBy('id', 'asc')
         .execute(),
     ]);
 
@@ -163,7 +163,7 @@ export class SalesQueryService {
       ])
       .where(this.tenantPredicate(auth, 'hs'))
       .$if(!canManageHeldSales, (qb) => qb.where('hs.created_by', '=', ownerUserId ?? -1))
-      .orderBy('hs.id desc')
+      .orderBy('hs.id', 'desc')
       .execute();
 
     const heldSaleIds = rows
@@ -175,8 +175,8 @@ export class SalesQueryService {
         .select(['id', 'held_sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'unit_name', 'unit_multiplier', 'price_type'])
         .where('held_sale_id', 'in', heldSaleIds)
         .where(this.tenantPredicate(auth))
-        .orderBy('held_sale_id asc')
-        .orderBy('id asc')
+        .orderBy('held_sale_id', 'asc')
+        .orderBy('id', 'asc')
         .execute()
       : [];
 

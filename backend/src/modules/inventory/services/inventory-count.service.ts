@@ -39,7 +39,7 @@ export class InventoryCountService {
         .select(['m.id', 'm.product_id', 'm.movement_type', 'm.qty', 'm.before_qty', 'm.after_qty', 'm.reason', 'm.note', 'm.reference_type', 'm.reference_id', 'm.branch_id', 'm.location_id', 'm.created_at', 'p.name as product_name', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name'])
         .where(this.tenantPredicate(auth, 'm'))
         .where((eb) => eb.or([eb('st.status', 'is', null), eb('st.status', '!=', 'cancelled')]))
-        .orderBy('m.id desc')
+        .orderBy('m.id', 'desc')
         .execute();
     let mapped = rows.map(mapStockMovementRow);
     mapped = await this.scope.filterByScope(mapped, auth);
@@ -67,11 +67,11 @@ export class InventoryCountService {
       .leftJoin('users as au', 'au.id', 's.approved_by')
       .select(['s.id', 's.doc_no', 's.branch_id', 's.location_id', 's.status', 's.note', 's.posted_at', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'cu.username as counted_by_name', 'au.username as approved_by_name'])
       .where(this.tenantPredicate(auth, 's'))
-      .orderBy('s.id desc')
+      .orderBy('s.id', 'desc')
       .execute();
 
     const sessionIds = sessions.map((row) => Number(row.id || 0)).filter((id) => id > 0);
-    const items = sessionIds.length ? await this.db.selectFrom('stock_count_items').selectAll().where('session_id', 'in', sessionIds).where(this.tenantPredicate(auth)).orderBy('session_id asc').execute() : [];
+    const items = sessionIds.length ? await this.db.selectFrom('stock_count_items').selectAll().where('session_id', 'in', sessionIds).where(this.tenantPredicate(auth)).orderBy('session_id', 'asc').execute() : [];
     const bySession = groupStockCountItemsBySession(items as never);
     let mapped = sessions.map((row) => mapStockCountSessionRow(row as never, bySession));
     mapped = await this.scope.filterByScope(mapped, auth);
@@ -109,7 +109,7 @@ export class InventoryCountService {
       const session = await trx.selectFrom('stock_count_sessions').selectAll().where('id', '=', sessionId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!session) throw new AppError('Stock count session not found', 'SESSION_NOT_FOUND', 404);
       if ((session.status || 'draft') !== 'draft') throw new AppError('Stock count session already posted', 'SESSION_ALREADY_POSTED', 400);
-      const items = await trx.selectFrom('stock_count_items').selectAll().where('session_id', '=', sessionId).where(this.tenantPredicate(auth)).orderBy('id asc').execute();
+      const items = await trx.selectFrom('stock_count_items').selectAll().where('session_id', '=', sessionId).where(this.tenantPredicate(auth)).orderBy('id', 'asc').execute();
       if (!items.length) throw new AppError('Stock count session has no items', 'SESSION_EMPTY', 400);
       for (const item of items) {
         const variance = Number(item.variance_qty || 0);
@@ -134,7 +134,7 @@ export class InventoryCountService {
       .leftJoin('users as u', 'u.id', 'd.created_by')
       .select(['d.id', 'd.product_id', 'd.branch_id', 'd.location_id', 'd.qty', 'd.reason', 'd.note', 'd.created_at', 'p.name as product_name', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name'])
       .where(this.tenantPredicate(auth, 'd'))
-      .orderBy('d.id desc')
+      .orderBy('d.id', 'desc')
       .execute();
     let mapped = rows.map(mapDamagedStockRow);
     mapped = await this.scope.filterByScope(mapped, auth);

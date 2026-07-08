@@ -91,7 +91,7 @@ export class ManagerActionsService {
       .select(['id', 'doc_no', 'subtotal', 'discount', 'total', 'created_at'])
       .where('status', '=', 'posted')
       .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .orderBy('created_at desc')
+      .orderBy('created_at', 'desc')
       .limit(100)
       .execute();
   }
@@ -111,7 +111,7 @@ export class ManagerActionsService {
       .where(sql<boolean>`s.tenant_id = ${tenantId}`)
       .where(sql<boolean>`si.tenant_id = ${tenantId}`)
       .groupBy(['si.sale_id', 's.doc_no', 's.created_at'])
-      .orderBy('s.created_at desc')
+      .orderBy('s.created_at', 'desc')
       .limit(100)
       .execute();
   }

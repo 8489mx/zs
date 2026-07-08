@@ -73,7 +73,7 @@ export class InventoryScopeService {
       .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${tenantId}`))
       .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active'])
       .where(sql<boolean>`l.tenant_id = ${tenantId}`)
-      .orderBy('l.id asc');
+      .orderBy('l.id', 'asc');
       
     if (!includeInactive) {
       query = query.where('l.is_active', '=', true);

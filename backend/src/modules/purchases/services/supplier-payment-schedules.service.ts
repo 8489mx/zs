@@ -157,10 +157,10 @@ export class SupplierPaymentSchedulesService {
     let query = db.selectFrom('supplier_payment_schedules').selectAll().where(this.tenantPredicate(auth));
     if (where.purchaseId != null) query = query.where('purchase_id', '=', where.purchaseId);
     if (where.supplierId != null) query = query.where('supplier_id', '=', where.supplierId).where('purchase_id', 'is', null);
-    const rows = await query.orderBy('installment_no asc').execute() as ScheduleRow[];
+    const rows = await query.orderBy('installment_no', 'asc').execute() as ScheduleRow[];
     const ids = rows.map((row) => Number(row.id)).filter(Boolean);
     const logs = ids.length
-      ? await db.selectFrom('supplier_payment_schedule_logs').selectAll().where('schedule_id', 'in', ids).where(this.tenantPredicate(auth)).orderBy('created_at asc').execute() as SchedulePaymentLogRow[]
+      ? await db.selectFrom('supplier_payment_schedule_logs').selectAll().where('schedule_id', 'in', ids).where(this.tenantPredicate(auth)).orderBy('created_at', 'asc').execute() as SchedulePaymentLogRow[]
       : [] as SchedulePaymentLogRow[];
     const logsBySchedule = new Map<number, SchedulePaymentLogRow[]>();
     logs.forEach((log) => {
@@ -257,7 +257,7 @@ export class SupplierPaymentSchedulesService {
         .where('opened_by', '=', auth.userId)
         .where('status', '=', 'open')
         .where(this.tenantPredicate(auth))
-        .orderBy('id desc')
+        .orderBy('id', 'desc')
         .executeTakeFirst() as OpenCashierShiftRow | undefined;
       const scope = normalizePurchaseScope({ branchId: payload.branchId ?? openShift?.branch_id ?? undefined, locationId: payload.locationId ?? openShift?.location_id ?? undefined });
       const branchId = scope.branchId;
