@@ -59,11 +59,41 @@ export class SessionService {
     if (!normalizedTenantId || normalizedTenantId === 'default') return;
     const tenant = await this.db.selectFrom('tenants').select(['id', 'slug', 'status', 'trial_ends_at']).where('id', '=', normalizedTenantId).executeTakeFirst();
     if (!tenant) return;
-    if (tenant.status === 'suspended') throw new UnauthorizedException('تم إيقاف هذه النسخة التجريبية. تواصل مع الدعم لتفعيلها.');
-    if (tenant.status === 'expired') throw new UnauthorizedException('انتهت الفترة التجريبية لهذه النسخة. تواصل معنا لتفعيل الاشتراك.');
-    if (tenant.status === 'trial' && tenant.trial_ends_at <= new Date()) {
-      await this.db.updateTable('tenants').set({ status: 'expired', updated_at: new Date().toISOString() }).where('id', '=', tenant.id).execute();
+    if (tenant.status === 'suspended') throw new UnauthorizedException('تم إيقاف هذه النسخة. تواصل مع الدعم لتفعيلها.');
+    if (tenant.status === 'expired') throw new UnauthorizedException('انتهى اشتراك هذه النسخة. تواصل معنا لتفعيل الاشتراك.');
+    
+    const now = new Date();
+    if (tenant.status === 'trial' && tenant.trial_ends_at <= now) {
+      await this.db.updateTable('tenants').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', tenant.id).execute();
       throw new UnauthorizedException('انتهت الفترة التجريبية لهذه النسخة. تواصل معنا لتفعيل الاشتراك.');
+    }
+
+    if (tenant.status === 'active') {
+      const subscription = await this.db
+        .selectFrom('tenant_subscriptions')
+        .selectAll()
+        .where('tenant_id', '=', tenant.id)
+        .where('status', 'in', ['active', 'past_due'])
+        .orderBy('created_at', 'desc')
+        .executeTakeFirst();
+
+      if (!subscription) {
+        await this.db.updateTable('tenants').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', tenant.id).execute();
+        throw new UnauthorizedException('لا يوجد اشتراك فعال لهذه النسخة. تواصل معنا لتفعيل الاشتراك.');
+      }
+
+      if (subscription.ends_at <= now) {
+        const graceEndsAt = subscription.grace_ends_at ? new Date(subscription.grace_ends_at) : subscription.ends_at;
+        if (graceEndsAt <= now) {
+          await this.db.transaction().execute(async (trx) => {
+            await trx.updateTable('tenant_subscriptions').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', subscription.id).execute();
+            await trx.updateTable('tenants').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', tenant.id).execute();
+          });
+          throw new UnauthorizedException('انتهى اشتراك هذه النسخة وانتهت فترة السماح. تواصل معنا لتفعيل الاشتراك.');
+        } else if (subscription.status === 'active') {
+          await this.db.updateTable('tenant_subscriptions').set({ status: 'past_due', updated_at: now.toISOString() }).where('id', '=', subscription.id).execute();
+        }
+      }
     }
   }
 

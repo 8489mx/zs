@@ -1,11 +1,12 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'node:crypto';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AuditService } from '../../core/audit/audit.service';
-import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto } from './dto/saas-admin.dto';
+import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto } from './dto/saas-admin.dto';
 import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 
@@ -17,6 +18,7 @@ export class SaasAdminService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
     private readonly provisioning: TrialTenantProvisioningService,
+    private readonly configService: ConfigService,
   ) {}
 
   private assertPlatformAccess(auth: AuthContext): void {
@@ -259,6 +261,115 @@ export class SaasAdminService {
 
     await this.audit.log('إنشاء نسخة تجريبية', `تم إنشاء نسخة تجريبية: ${result.tenant.slug} (${result.tenant.id})`, auth);
     return result;
+  }
+
+
+  async listPlans(auth: AuthContext): Promise<Record<string, unknown>[]> {
+    this.assertPlatformAccess(auth);
+    return await this.db.selectFrom('saas_plans').selectAll().orderBy('price', 'asc').execute();
+  }
+
+  async createPlan(body: CreateSaasPlanDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertPlatformAccess(auth);
+    const result = await this.db.insertInto('saas_plans').values({
+      code: body.code,
+      name: body.name,
+      price: body.price,
+      currency: body.currency || 'EGP',
+      billing_period_months: body.billingPeriodMonths,
+      max_users: body.maxUsers ?? null,
+      max_branches: body.maxBranches ?? null,
+      is_active: true,
+    }).returningAll().executeTakeFirstOrThrow();
+    
+    await this.audit.log('إنشاء خطة اشتراك', `تم إنشاء خطة اشتراك: ${body.name}`, auth);
+    return result;
+  }
+
+  async getSubscriptions(tenantId: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertPlatformAccess(auth);
+    const tenant = await this.getTenantForMutation(tenantId);
+    
+    const subscriptions = await this.db.selectFrom('tenant_subscriptions as s')
+      .leftJoin('saas_plans as p', 'p.id', 's.plan_id')
+      .select([
+        's.id', 's.status', 's.starts_at', 's.ends_at', 's.grace_ends_at', 's.auto_renew',
+        'p.name as plan_name', 'p.code as plan_code', 'p.price as plan_price', 'p.billing_period_months'
+      ])
+      .where('s.tenant_id', '=', tenant.id)
+      .orderBy('s.created_at', 'desc')
+      .execute();
+      
+    const payments = await this.db.selectFrom('tenant_subscription_payments')
+      .selectAll()
+      .where('tenant_id', '=', tenant.id)
+      .orderBy('paid_at', 'desc')
+      .execute();
+
+    return { subscriptions, payments };
+  }
+
+  async renewTenant(id: string, body: RenewTenantDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertPlatformAccess(auth);
+    const tenant = await this.getTenantForMutation(id);
+    this.assertNotPlatformTenantTarget(tenant.id);
+    
+    const plan = await this.db.selectFrom('saas_plans').selectAll().where('id', '=', body.planId).executeTakeFirst();
+    if (!plan) throw new NotFoundException('خطة الاشتراك غير موجودة');
+
+    const now = new Date();
+    
+    const activeSub = await this.db.selectFrom('tenant_subscriptions').selectAll()
+      .where('tenant_id', '=', tenant.id)
+      .where('status', 'in', ['active', 'past_due', 'expired'])
+      .orderBy('ends_at', 'desc')
+      .executeTakeFirst();
+      
+    let startsAt = now;
+    if (activeSub && activeSub.status !== 'expired' && activeSub.ends_at > now) {
+      startsAt = new Date(activeSub.ends_at);
+    }
+    
+    const endsAt = new Date(startsAt);
+    endsAt.setMonth(endsAt.getMonth() + body.durationMonths);
+    
+    const graceDays = this.configService.get<number>('SAAS_DEFAULT_GRACE_DAYS') ?? 7;
+    const graceEndsAt = new Date(endsAt);
+    graceEndsAt.setDate(graceEndsAt.getDate() + graceDays);
+    
+    await this.db.transaction().execute(async (trx) => {
+      if (activeSub && (activeSub.status === 'active' || activeSub.status === 'past_due')) {
+        await trx.updateTable('tenant_subscriptions').set({ status: 'expired', updated_at: now }).where('id', '=', activeSub.id).execute();
+      }
+      
+      const newSub = await trx.insertInto('tenant_subscriptions').values({
+        tenant_id: tenant.id,
+        plan_id: plan.id,
+        status: 'active',
+        starts_at: startsAt,
+        ends_at: endsAt,
+        grace_ends_at: graceEndsAt,
+        auto_renew: false,
+      }).returning('id').executeTakeFirstOrThrow();
+      
+      if (body.paymentAmount) {
+        await trx.insertInto('tenant_subscription_payments').values({
+          tenant_id: tenant.id,
+          subscription_id: newSub.id,
+          amount: body.paymentAmount,
+          currency: plan.currency,
+          method: body.paymentMethod || 'manual',
+          reference: body.paymentReference || null,
+          paid_at: new Date(),
+          created_by: auth.userId,
+        }).execute();
+      }
+      
+      await trx.updateTable('tenants').set({ status: 'active', updated_at: now }).where('id', '=', tenant.id).execute();
+    });
+    
+    await this.audit.log('تجديد اشتراك', `تم تجديد اشتراك النسخة: ${tenant.slug} لمدة ${body.durationMonths} أشهر`, auth);
+    return { ok: true };
   }
 
   private async getTenantForMutation(id: string) {

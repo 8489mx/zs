@@ -1249,7 +1249,52 @@ export interface HrSettingsTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+
+export interface SaasPlanTable {
+  id: Generated<number>;
+  code: string;
+  name: string;
+  price: number;
+  currency: string;
+  billing_period_months: number;
+  max_users: number | null;
+  max_branches: number | null;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface TenantSubscriptionTable {
+  id: Generated<number>;
+  tenant_id: string;
+  plan_id: number;
+  status: 'active' | 'past_due' | 'expired' | 'cancelled';
+  starts_at: Date;
+  ends_at: Date;
+  grace_ends_at: Date | null;
+  auto_renew: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface TenantSubscriptionPaymentTable {
+  id: Generated<number>;
+  tenant_id: string;
+  subscription_id: number;
+  amount: number;
+  currency: string;
+  method: string;
+  reference: string | null;
+  paid_at: Date;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface Database {
+  saas_plans: SaasPlanTable;
+  tenant_subscriptions: TenantSubscriptionTable;
+  tenant_subscription_payments: TenantSubscriptionPaymentTable;
   _phase1_bootstrap: Phase1BootstrapTable;
   sessions: SessionTable;
   users: UserTable;

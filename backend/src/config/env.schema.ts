@@ -45,6 +45,7 @@ const envSchema = z.object({
   TENANT_ID: z.string().trim().default('default'),
   ACCOUNT_ID: z.string().trim().default('default'),
   PORTABLE_MODE: booleanString.optional(),
+  SAAS_DEFAULT_GRACE_DAYS: z.coerce.number().int().min(0).max(365).default(7),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -111,6 +112,7 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     BUSINESS_TIMEZONE: config.BUSINESS_TIMEZONE ?? 'UTC',
     TENANT_ID: config.TENANT_ID ?? 'default',
     ACCOUNT_ID: config.ACCOUNT_ID ?? 'default',
+    SAAS_DEFAULT_GRACE_DAYS: config.SAAS_DEFAULT_GRACE_DAYS ?? 7,
   };
 
   const parsed = envSchema.parse(raw);

@@ -87,7 +87,78 @@ export class ActivateTenantDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  planId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  paymentAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentReference?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   @Min(1)
   @Max(120)
   durationMonths?: number;
+}
+
+export class RenewTenantDto {
+  @Type(() => Number)
+  @IsInt()
+  planId!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(120)
+  durationMonths!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  paymentAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentReference?: string;
+}
+
+export class CreateSaasPlanDto {
+  @IsString()
+  code!: string;
+
+  @IsString()
+  name!: string;
+
+  @Type(() => Number)
+  price!: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  billingPeriodMonths!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  maxUsers?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  maxBranches?: number;
 }

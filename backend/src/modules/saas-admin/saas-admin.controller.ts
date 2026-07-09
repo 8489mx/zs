@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
-import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto } from './dto/saas-admin.dto';
+import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto } from './dto/saas-admin.dto';
 import { SaasAdminService } from './saas-admin.service';
 
 @Controller('api/saas-admin')
@@ -9,7 +9,29 @@ import { SaasAdminService } from './saas-admin.service';
 export class SaasAdminController {
   constructor(private readonly service: SaasAdminService) {}
 
+
+  @Get('plans')
+  listPlans(@Req() req: RequestWithAuth) {
+    return this.service.listPlans(req.authContext!);
+  }
+
+  @Post('plans')
+  createPlan(@Body() body: CreateSaasPlanDto, @Req() req: RequestWithAuth) {
+    return this.service.createPlan(body, req.authContext!);
+  }
+
+  @Get('tenants/:id/subscriptions')
+  getSubscriptions(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.service.getSubscriptions(id, req.authContext!);
+  }
+
+  @Post('tenants/:id/renew')
+  renewTenant(@Param('id') id: string, @Body() body: RenewTenantDto, @Req() req: RequestWithAuth) {
+    return this.service.renewTenant(id, body, req.authContext!);
+  }
+
   @Get('tenants')
+
   listTenants(@Query() query: ListSaasTenantsQueryDto, @Req() req: RequestWithAuth) {
     return this.service.listTenants(query, req.authContext!);
   }
