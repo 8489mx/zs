@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, Req, Res, UseGuards, UseInterceptors, UploadedFile, BadRequestException, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { extname, join } from 'path';
+import { randomUUID } from 'crypto';
+import type { Response } from 'express';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -104,18 +106,61 @@ export class PurchasesController {
     storage: diskStorage({
       destination: './uploads/purchases',
       filename: (req: any, file: any, cb: any) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + extname(file.originalname));
+        // Strip out any potentially dangerous characters or multiple extensions from the original name
+        const ext = extname(file.originalname).toLowerCase();
+        // Server generated completely random name to prevent path traversal
+        cb(null, randomUUID() + ext);
       }
     })
   }))
-  uploadAttachment(@UploadedFile() file: any) {
+  uploadAttachment(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
+          new FileTypeValidator({ fileType: /^(application\/pdf|image\/png|image\/jpeg|image\/webp)$/ }),
+        ],
+        fileIsRequired: true,
+      }),
+    ) file: Express.Multer.File
+  ) {
     if (!file) throw new BadRequestException('No file uploaded');
+
+    // Reject double extensions explicitly just to be extra safe
+    if (file.originalname.split('.').length > 2) {
+      throw new BadRequestException('الملفات ذات الامتدادات المتعددة غير مسموحة');
+    }
+    const ext = extname(file.originalname).toLowerCase();
+    const dangerous = ['.exe', '.bat', '.cmd', '.ps1', '.js', '.html', '.svg', '.zip', '.rar'];
+    if (dangerous.includes(ext)) {
+      throw new BadRequestException('نوع الملف غير مسموح به');
+    }
+
     return {
       fileName: file.originalname,
-      fileUrl: `/uploads/purchases/${file.filename}`,
+      fileUrl: file.filename,
       fileSize: file.size,
       fileType: file.mimetype
     };
+  }
+
+  @Get('purchases/:purchaseId/attachments/:attachmentId/download')
+  @RequirePermissions('purchases')
+  async downloadPurchaseAttachment(
+    @Param('purchaseId', ParseIntPipe) purchaseId: number,
+    @Param('attachmentId', ParseIntPipe) attachmentId: number,
+    @Req() req: RequestWithAuth,
+    @Res() res: Response
+  ) {
+    const { attachment } = await this.purchasesService.getPurchaseAttachment(purchaseId, attachmentId, req.authContext!);
+    const fileUrl = String((attachment as Record<string, unknown>).file_url || '').trim();
+    
+    // Safety check against path traversal stored in DB
+    if (!fileUrl || fileUrl.includes('..') || fileUrl.includes('/') || fileUrl.includes('\\')) {
+      throw new BadRequestException('مسار الملف غير صالح');
+    }
+
+    const filePath = join(process.cwd(), 'uploads/purchases', fileUrl);
+    res.sendFile(filePath);
   }
 }

@@ -20,6 +20,10 @@ export class PurchasesService {
     return this.queryService.getPurchaseById(id, auth);
   }
 
+  getPurchaseAttachment(purchaseId: number, attachmentId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.queryService.getPurchaseAttachment(purchaseId, attachmentId, auth);
+  }
+
   createPurchase(payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.writeService.createPurchase(payload, auth);
   }

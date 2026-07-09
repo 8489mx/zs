@@ -28,7 +28,7 @@ export function mapPurchaseRows(
     attachmentsByPurchase.get(key)!.push({
       id: String(att.id),
       fileName: att.file_name,
-      fileUrl: att.file_url,
+      fileUrl: `/api/purchases/${att.purchase_id}/attachments/${att.id}/download`,
       fileSize: att.file_size,
       fileType: att.file_type
     });

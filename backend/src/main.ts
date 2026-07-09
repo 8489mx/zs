@@ -29,9 +29,6 @@ async function bootstrap(): Promise<void> {
     bufferLogs: true,
   });
 
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
-    prefix: '/uploads/',
-  });
 
   const logger = app.get(LoggerService);
   app.useLogger(logger);

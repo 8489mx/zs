@@ -70,6 +70,20 @@ export class PurchasesQueryService {
     return { purchase, scope };
   }
 
+  async getPurchaseAttachment(purchaseId: number, attachmentId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
+    const row = await this.db
+      .selectFrom('purchase_attachments')
+      .selectAll()
+      .where('id', '=', attachmentId)
+      .where('purchase_id', '=', purchaseId)
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
+      
+    if (!row) throw new AppError('Attachment not found', 'ATTACHMENT_NOT_FOUND', 404);
+    return { attachment: row };
+  }
+
   async listSupplierPayments(auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const rows = await this.db
