@@ -1,6 +1,7 @@
 # zs-main
 
-نسخة محسنة وقابلة للتسليم لنظام إدارة مبيعات ومشتريات ومخزون وتقارير.
+نظام إدارة مبيعات ومخازن متكامل، يدعم العمل كسحابة (SaaS) أو نسخة أوفلاين (Portable).
+**[📚 حالة جاهزية المنتج (Product Readiness Status)](docs/PRODUCT_READINESS_STATUS.md)**
 
 ## المكونات
 - `backend/` API مبني بـ NestJS + TypeScript + PostgreSQL
