@@ -1,5 +1,6 @@
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
+import { settingsApi } from '@/features/settings/api/settings.api';
 import { SummaryList, downloadSummaryCsv, printSummaryList } from '@/features/settings/components/SettingsWorkspacePrimitives';
 
 interface SettingsDiagnosticsSectionProps {
@@ -73,6 +74,7 @@ export function SettingsDiagnosticsSection({
             <Button variant="secondary" onClick={onReconcileCustomers} disabled={reconcileCustomersPending || !canManageMaintenance}>مطابقة أرصدة العملاء</Button>
             <Button variant="secondary" onClick={onReconcileSuppliers} disabled={reconcileSuppliersPending || !canManageMaintenance}>مطابقة أرصدة الموردين</Button>
             <Button onClick={onReconcileAll} disabled={reconcileAllPending || !canManageMaintenance}>مطابقة كل الأرصدة</Button>
+            <Button variant="primary" onClick={() => window.open(settingsApi.supportBundleDownloadUrl(), '_blank')} disabled={!canManageMaintenance}>تنزيل حزمة الدعم</Button>
           </div>
         </QueryCard>
       </div>

@@ -8,9 +8,12 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
+import * as crypto from 'crypto';
+import AdmZip from 'adm-zip';
 
 type BackupTableName = Exclude<keyof Database, 'backup_snapshots'>;
 
+interface BackupManifest { formatVersion: string; appVersion: string; createdAt: string; backupType: string; includesDatabase: boolean; includesFiles: boolean; databaseChecksumSha256: string; backupSchemaVersion?: string; legacyFormat?: boolean; }
 interface BackupEnvelope { meta: { version: string; exportedAt: string; source: string; tenantId?: string; accountId?: string }; tables: Partial<Record<BackupTableName, unknown[]>> }
 interface BackupAutomationState { enabled: boolean; frequency: 'daily' | 'weekly'; time: string; weeklyDay: number; lastSuccessAt?: string; lastAttemptAt?: string; lastAttemptStatus?: 'success' | 'failed' | ''; lastError?: string; lastScheduledFor?: string; lastSavedPath?: string }
 interface BackupConfigState { folderPath: string; automation: BackupAutomationState }
@@ -85,10 +88,10 @@ export class SettingsBackupService {
     const storeSlug = storeNameStr.replace(/[^\w\s\u0600-\u06FF-]/g, '').trim().replace(/\s+/g, '-');
     const userSlug = userNameStr.replace(/[^\w\s\u0600-\u06FF-]/g, '').trim().replace(/\s+/g, '-');
 
-    return `ZERP-${storeSlug}-${userSlug}-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}.json`;
+    return `ZERP-${storeSlug}-${userSlug}-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}.zip`;
   }
   private async ensureWritableFolder(folderPath: string): Promise<void> { await fs.mkdir(folderPath, { recursive: true }); const probeFile = path.join(folderPath, `.zs-write-test-${Date.now()}.tmp`); await fs.writeFile(probeFile, 'ok', 'utf8'); await fs.unlink(probeFile); }
-  private async saveBackupToFolder(folderPath: string, source: string, actor: AuthContext): Promise<{ filePath: string; fileName: string }> { const resolvedFolder = this.normalizeFolderPath(folderPath); await this.ensureWritableFolder(resolvedFolder); const backupPayload = await this.exportBackup(actor); const now = new Date(); const fileName = await this.buildBackupFileName(actor, now); const filePath = path.join(resolvedFolder, fileName); const scope = this.scope(actor); await fs.writeFile(filePath, JSON.stringify(backupPayload, null, 2), 'utf8'); await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${`file-${now.toISOString()}`}, ${source}, ${JSON.stringify(backupPayload)}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db).catch(() => undefined); return { filePath, fileName }; }
+  private async saveBackupToFolder(folderPath: string, source: string, actor: AuthContext): Promise<{ filePath: string; fileName: string }> { const resolvedFolder = this.normalizeFolderPath(folderPath); await this.ensureWritableFolder(resolvedFolder); const { zipBuffer, manifest } = await this.exportBackup(actor); const now = new Date(); const fileName = await this.buildBackupFileName(actor, now); const filePath = path.join(resolvedFolder, fileName); const scope = this.scope(actor); await fs.writeFile(filePath, zipBuffer); await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'file-' + now.toISOString()}, ${source}, ${JSON.stringify({ manifest })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db).catch(() => undefined); return { filePath, fileName }; }
 
   async runAutoBackupIfDue(actor?: AuthContext | null): Promise<Record<string, unknown>> { if (!actor) return { ok: true, ran: false, reason: 'no-actor' }; this.assertAdmin(actor); try { this.assertDesktopMode(); } catch { return { ok: true, ran: false, reason: 'disabled' }; } const state = await this.getBackupConfigState(actor); if (!state.automation.enabled) return { ok: true, ran: false, reason: 'disabled', config: state }; const now = new Date(); const scheduledAt = this.getLastScheduledDate(now, state.automation); const scheduledIso = scheduledAt.toISOString(); if (String(state.automation.lastScheduledFor || '').trim() === scheduledIso) return { ok: true, ran: false, reason: 'already-attempted', config: state }; const lastSuccessAt = state.automation.lastSuccessAt ? new Date(state.automation.lastSuccessAt) : null; if (lastSuccessAt && lastSuccessAt.getTime() >= scheduledAt.getTime()) { state.automation.lastScheduledFor = scheduledIso; await this.saveBackupConfigState(state, actor); return { ok: true, ran: false, reason: 'already-succeeded', config: state }; } state.automation.lastAttemptAt = now.toISOString(); state.automation.lastScheduledFor = scheduledIso; try { const result = await this.saveBackupToFolder(state.folderPath, 'auto-scheduled', actor); state.automation.lastAttemptStatus = 'success'; state.automation.lastSuccessAt = now.toISOString(); state.automation.lastError = ''; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي تلقائي', `تم إنشاء نسخة احتياطية تلقائية في ${result.filePath}`, actor).catch(() => undefined); return { ok: true, ran: true, success: true, filePath: result.filePath, config: state }; } catch (error) { state.automation.lastAttemptStatus = 'failed'; state.automation.lastError = error instanceof Error ? error.message : 'تعذر تنفيذ النسخ التلقائي'; await this.saveBackupConfigState(state, actor); return { ok: false, ran: true, success: false, error: state.automation.lastError, config: state }; } }
   async getBackupConfig(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); await this.runAutoBackupIfDue(actor); const state = await this.getBackupConfigState(actor); return { ok: true, defaultFolderPath: DEFAULT_BACKUP_FOLDER, folderPath: state.folderPath || DEFAULT_BACKUP_FOLDER, automation: state.automation, scope: this.scope(actor) }; }
@@ -96,15 +99,76 @@ export class SettingsBackupService {
   async testBackupFolder(payload: unknown, actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const input = isObjectRecord(payload) ? payload : {}; const folderPath = this.normalizeFolderPath(input.folderPath); try { await this.ensureWritableFolder(folderPath); return { ok: true, success: true, folderPath, message: `تم اختبار المسار بنجاح: ${folderPath}` }; } catch (error) { return { ok: false, success: false, folderPath, message: error instanceof Error ? error.message : 'تعذر الوصول إلى المجلد المحدد' }; } }
   async saveBackupToConfiguredFolder(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const state = await this.getBackupConfigState(actor); const result = await this.saveBackupToFolder(state.folderPath, 'manual-save-to-folder', actor); state.automation.lastAttemptAt = new Date().toISOString(); state.automation.lastAttemptStatus = 'success'; state.automation.lastError = ''; state.automation.lastSuccessAt = state.automation.lastAttemptAt; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي إلى مجلد', `تم حفظ نسخة احتياطية في ${result.filePath} بواسطة ${actor.username}`, actor).catch(() => undefined); return { ok: true, folderPath: state.folderPath, fileName: result.fileName, filePath: result.filePath, message: `تم حفظ النسخة في: ${result.filePath}` }; }
 
-  async exportBackup(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); const scope = this.scope(actor); const tables = {} as Partial<Record<BackupTableName, unknown[]>>; for (const table of BACKUP_TABLES) { const tableName = String(table); const exists = await this.tableExists(tableName); if (!exists) { tables[table] = []; continue; } const hasTenant = await this.tableHasColumn(tableName, 'tenant_id'); if (!hasTenant) { tables[table] = []; continue; } const baseQuery = (this.db).selectFrom(table).selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`); const hasId = await this.tableHasColumn(tableName, 'id'); const hasCreatedAt = !hasId && await this.tableHasColumn(tableName, 'created_at'); if (hasId) { tables[table] = await baseQuery.orderBy('id', 'asc').execute(); } else if (hasCreatedAt) { tables[table] = await baseQuery.orderBy('created_at', 'asc').execute(); } else { tables[table] = await baseQuery.execute(); } } return { meta: { version: '1.2.0', exportedAt: new Date().toISOString(), source: 'manual-export', tenantId: scope.tenantId, accountId: scope.accountId }, tables }; }
+  async exportBackup(actor: AuthContext): Promise<{ zipBuffer: Buffer; manifest: BackupManifest; envelope: BackupEnvelope }> { this.assertAdmin(actor); const scope = this.scope(actor); const tables = {} as Partial<Record<BackupTableName, unknown[]>>; for (const table of BACKUP_TABLES) { const tableName = String(table); const exists = await this.tableExists(tableName); if (!exists) { tables[table] = []; continue; } const hasTenant = await this.tableHasColumn(tableName, 'tenant_id'); if (!hasTenant) { tables[table] = []; continue; } const baseQuery = (this.db).selectFrom(table).selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`); const hasId = await this.tableHasColumn(tableName, 'id'); const hasCreatedAt = !hasId && await this.tableHasColumn(tableName, 'created_at'); if (hasId) { tables[table] = await baseQuery.orderBy('id', 'asc').execute(); } else if (hasCreatedAt) { tables[table] = await baseQuery.orderBy('created_at', 'asc').execute(); } else { tables[table] = await baseQuery.execute(); } } const envelope: BackupEnvelope = { meta: { version: '1.2.0', exportedAt: new Date().toISOString(), source: 'manual-export', tenantId: scope.tenantId, accountId: scope.accountId }, tables }; const dbJson = JSON.stringify(envelope); const hash = crypto.createHash('sha256').update(dbJson).digest('hex'); const manifest: BackupManifest = { formatVersion: '1.0', appVersion: process.env.npm_package_version || '1.0.0', createdAt: new Date().toISOString(), backupType: 'full', includesDatabase: true, includesFiles: false, databaseChecksumSha256: hash, backupSchemaVersion: '1.2.0' }; const zip = new AdmZip(); zip.addFile('database.json', Buffer.from(dbJson, 'utf8')); zip.addFile('backup-manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8')); return { zipBuffer: zip.toBuffer(), manifest, envelope }; }
   async listSnapshots(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); const scope = this.scope(actor); const result = await sql<{ id: number; created_at: string; label: string; source: string; payload_json: unknown }>`select id, created_at, label, source, payload_json from backup_snapshots where tenant_id = ${scope.tenantId} order by created_at desc, id desc limit 20`.execute(this.db); return { snapshots: result.rows.map((row) => ({ id: String(row.id), createdAt: row.created_at, reason: row.label || row.source || '', payload: row.payload_json })), scope }; }
-  async verifyBackup(payload: unknown): Promise<Record<string, unknown>> { const envelope = this.normalizeEnvelope(payload); const summary: Record<string, unknown> = { version: envelope.meta.version, exportedAt: envelope.meta.exportedAt || 'unknown', source: envelope.meta.source, tenantId: envelope.meta.tenantId || '' }; for (const table of BACKUP_TABLES) summary[table] = Array.isArray(envelope.tables[table]) ? envelope.tables[table]!.length : 0; return { ok: true, summary, tablesPresent: BACKUP_TABLES.filter((table) => Array.isArray(envelope.tables[table]) && (envelope.tables[table]?.length || 0) > 0).length }; }
+  
+  private async parseAndVerifyPayload(fileOrPayload: unknown): Promise<{ envelope: BackupEnvelope; manifest: BackupManifest }> {
+    let rawEnvelope: unknown;
+    let manifest: BackupManifest;
+    
+    if (Buffer.isBuffer(fileOrPayload) || (fileOrPayload && typeof (fileOrPayload as any).buffer !== 'undefined')) {
+      const buffer = Buffer.isBuffer(fileOrPayload) ? fileOrPayload : (fileOrPayload as any).buffer;
+      
+      let zip;
+      try {
+        zip = new AdmZip(buffer);
+        // Sometimes AdmZip doesn't throw on invalid buffer but returns empty entries
+        if (zip.getEntries().length === 0) throw new Error('Not a zip');
+      } catch (e) {
+        // Fallback to JSON
+        return this.parseAndVerifyPayload(JSON.parse(buffer.toString('utf8')));
+      }
+
+      const manifestEntry = zip.getEntry('backup-manifest.json');
+      const dbEntry = zip.getEntry('database.json');
+      
+      if (!manifestEntry || !dbEntry) {
+        throw new AppError('ملف النسخة الاحتياطية غير صالح (ينقصه manifest أو database)', 'BACKUP_INVALID_ZIP', 400);
+      }
+      
+      const manifestContent = manifestEntry.getData().toString('utf8');
+      manifest = JSON.parse(manifestContent);
+      
+      const dbContent = dbEntry.getData().toString('utf8');
+      const hash = crypto.createHash('sha256').update(dbContent).digest('hex');
+      
+      if (hash !== manifest.databaseChecksumSha256) {
+        throw new AppError('النسخة الاحتياطية تالفة (Checksum mismatch)', 'BACKUP_CORRUPTED', 400);
+      }
+      
+      rawEnvelope = JSON.parse(dbContent);
+    } else {
+      // Legacy JSON backup
+      // Check if it's a string, maybe it was uploaded as raw string or parsed
+      const payloadStr = typeof fileOrPayload === 'string' ? fileOrPayload : JSON.stringify(fileOrPayload);
+      try {
+        rawEnvelope = typeof fileOrPayload === 'string' ? JSON.parse(payloadStr) : fileOrPayload;
+      } catch (e) {
+        throw new AppError('صيغة النسخة الاحتياطية غير مدعومة (يجب أن تكون ZIP صالحة أو JSON قديم صالح)', 'BACKUP_INVALID_FORMAT', 400);
+      }
+      
+      manifest = {
+        formatVersion: 'legacy',
+        appVersion: 'unknown',
+        createdAt: 'unknown',
+        backupType: 'full',
+        includesDatabase: true,
+        includesFiles: false,
+        databaseChecksumSha256: '',
+        legacyFormat: true
+      };
+    }
+    
+    return { envelope: this.normalizeEnvelope(rawEnvelope), manifest };
+  }
+
+  async verifyBackup(payload: unknown): Promise<Record<string, unknown>> { const { envelope, manifest } = await this.parseAndVerifyPayload(payload);  const summary: Record<string, unknown> = { version: envelope.meta.version, exportedAt: envelope.meta.exportedAt || 'unknown', source: envelope.meta.source, tenantId: envelope.meta.tenantId || '' }; for (const table of BACKUP_TABLES) summary[table] = Array.isArray(envelope.tables[table]) ? envelope.tables[table]!.length : 0; return { ok: true, summary, manifest, tablesPresent: BACKUP_TABLES.filter((table) => Array.isArray(envelope.tables[table]) && (envelope.tables[table]?.length || 0) > 0).length }; }
   private async tableHasId(trx: Kysely<Database>, table: string): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = 'id') as exists`.execute(trx); return Boolean(result.rows[0]?.exists); }
   private async resetIdentity(trx: Kysely<Database>, table: string): Promise<void> { const hasId = await this.tableHasId(trx, table); if (!hasId) return; const seqResult = await sql<{ seq_name: string | null }>`select pg_get_serial_sequence(${table}, 'id') as seq_name`.execute(trx).catch(() => ({ rows: [{ seq_name: null }] } as { rows: { seq_name: string | null }[] })); const seqName = seqResult.rows[0]?.seq_name; if (!seqName) return; await sql`select setval(${seqName}, coalesce((select max(id)::bigint from ${sql.table(table)}), 0) + 1, false)`.execute(trx).catch(() => undefined); }
   private async getTableColumns(trx: Kysely<Database>, table: string): Promise<Map<string, { data_type: string, column_default: string | null, identity_generation: string | null }>> { const result = await sql<{ column_name: string, data_type: string, column_default: string | null, identity_generation: string | null }>`select column_name, data_type, column_default, identity_generation from information_schema.columns where table_schema = 'public' and table_name = ${table}`.execute(trx); return new Map(result.rows.map(r => [r.column_name, r])); }
   private async getAlwaysIdentityColumns(trx: Kysely<Database>, table: string): Promise<Set<string>> { const result = await sql<{ column_name: string }>`select column_name from information_schema.columns where table_schema = 'public' and table_name = ${table} and identity_generation = 'ALWAYS'`.execute(trx).catch(() => ({ rows: [] })); return new Set(result.rows.map(r => r.column_name)); }
 
-  async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> { if (!dryRun) { this.assertCanRestoreBackup(actor); this.assertRestoreConfirmation(payload); } else { this.assertAdmin(actor); } const scope = this.scope(actor); const envelope = this.normalizeEnvelope(payload); const verification = await this.verifyBackup(payload); if (dryRun) return { ok: true, dryRun: true, summary: verification.summary, scope }; 
+  async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> { if (!dryRun) { this.assertCanRestoreBackup(actor); this.assertRestoreConfirmation(payload); } else { this.assertAdmin(actor); } const scope = this.scope(actor); const { envelope, manifest } = await this.parseAndVerifyPayload(payload); const verification = await this.verifyBackup(payload); if (dryRun) return { ok: true, dryRun: true, summary: verification.summary, manifest, scope }; 
     try {
       let sourceTenantId: string | null = null;
       for (const t of BACKUP_TABLES) {

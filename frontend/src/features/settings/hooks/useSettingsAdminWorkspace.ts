@@ -160,11 +160,12 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     setBackupMessage(mode === 'restore' ? 'جارٍ فحص الملف ثم تنفيذ الاسترداد...' : 'جارٍ فحص الملف...');
     setBackupMessageKind('success');
     try {
-      const payload = JSON.parse(await readTextFile(file));
+      const payload = file;
       const verified = await settingsApi.verifyBackup(payload);
       setBackupResult(verified);
       if (mode === 'restore') {
-        const restorePayload = withRestoreConfirmation(payload);
+        const fileContent = JSON.parse(await readTextFile(file));
+        const restorePayload = withRestoreConfirmation(fileContent);
         await settingsApi.restoreBackup(restorePayload, true);
         const restored = await settingsApi.restoreBackup(restorePayload, false);
         setBackupResult(restored);

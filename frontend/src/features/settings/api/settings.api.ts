@@ -132,8 +132,31 @@ export const settingsApi = {
   reconcileBalances: () => http<Record<string, unknown>>('/api/admin/maintenance/reconcile-balances', { method: 'POST' }),
   reconcileCustomers: () => http<Record<string, unknown>>('/api/admin/maintenance/reconcile-customers', { method: 'POST' }),
   reconcileSuppliers: () => http<Record<string, unknown>>('/api/admin/maintenance/reconcile-suppliers', { method: 'POST' }),
-  verifyBackup: (payload: unknown) => http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', body: JSON.stringify(payload) }),
-  restoreBackup: (payload: unknown, dryRun = false) => http<Record<string, unknown>>(`/api/backup/restore${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: JSON.stringify(payload), timeoutMs: BACKUP_RESTORE_TIMEOUT_MS }),
+  verifyBackup: (payload: unknown) => {
+    if (payload instanceof File) {
+      const formData = new FormData();
+      formData.append('file', payload);
+      return http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', body: formData });
+    }
+    return http<Record<string, unknown>>('/api/backup/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  },
+  restoreBackup: (payload: unknown, dryRun = false) => {
+    const isFile = payload instanceof File;
+    const isObjectWithFile = payload && typeof payload === 'object' && 'file' in payload && (payload as any).file instanceof File;
+    
+    if (isFile || isObjectWithFile) {
+      const formData = new FormData();
+      if (isFile) {
+        formData.append('file', payload as File);
+      } else {
+        formData.append('file', (payload as any).file);
+        if ((payload as any).confirmation) formData.append('confirmation', (payload as any).confirmation);
+      }
+      return http<Record<string, unknown>>(`/api/backup/restore${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', body: formData, timeoutMs: BACKUP_RESTORE_TIMEOUT_MS });
+    }
+    
+    return http<Record<string, unknown>>(`/api/backup/restore${dryRun ? '?dryRun=true' : ''}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), timeoutMs: BACKUP_RESTORE_TIMEOUT_MS });
+  },
   backupConfig: () => http<BackupConfigResponse>('/api/backup/config'),
   saveBackupConfig: (payload: unknown) => http<BackupConfigResponse>('/api/backup/config', { method: 'POST', body: JSON.stringify(payload) }),
   testBackupFolder: (payload: unknown) => http<Record<string, unknown>>('/api/backup/folder/test', { method: 'POST', body: JSON.stringify(payload) }),
@@ -182,6 +205,7 @@ export const settingsApi = {
     }),
   saveUsers: (users: ManagedUserRecord[]) => http<{ ok: boolean; users: ManagedUserRecord[] }>('/api/users', { method: 'PUT', body: JSON.stringify({ users: users.map(sanitizeUserPayload) }) }),
   backupDownloadUrl: () => resolveRequestUrl('/api/backup'),
+  supportBundleDownloadUrl: () => resolveRequestUrl('/api/support-bundle/download'),
 
   // ─── Offline Releases ────────────────────────────────────────────────────
   offlineReleases: {
