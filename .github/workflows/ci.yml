@@ -38,6 +38,8 @@ jobs:
       ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: 'false'
       DEFAULT_ADMIN_USERNAME: owner
       DEFAULT_ADMIN_PASSWORD: OwnerBootstrap2026!
+      SESSION_COOKIE_NAME: 'zs_cloud_session'
+      SESSION_CSRF_COOKIE_NAME: 'zs_cloud_csrf_token'
       SESSION_COOKIE_SECURE: 'false'
       SESSION_COOKIE_SAME_SITE: lax
       SESSION_CSRF_SECRET: ci-csrf-secret-0123456789
