@@ -154,6 +154,36 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     }
   };
 
+  const handleSupportBundleDownload = async () => {
+    setBackupBusy(true);
+    setBackupMessage('');
+    setBackupMessageKind('success');
+    try {
+      const response = await fetch(settingsApi.supportBundleDownloadUrl(), {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('فشل تنزيل حزمة الدعم. تأكد من صلاحياتك وأن الملف متاح.');
+      }
+      const blob = await response.blob();
+      
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      
+      const fileName = `ZERP-support-${yyyy}-${mm}-${dd}.zip`;
+      triggerDownload(blob, fileName);
+      setBackupMessage('تم تنزيل حزمة الدعم بنجاح.');
+      setBackupMessageKind('success');
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : 'تعذر تنزيل حزمة الدعم.');
+      setBackupMessageKind('error');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
   const handleBackupFile = async (file: File, mode: 'verify' | 'restore') => {
     setBackupBusy(true);
     setBackupSelectedFileName(file.name || 'backup.json');
@@ -336,6 +366,7 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     supportCopyStatus,
     restoreSnapshotId,
     handleBackupDownload,
+    handleSupportBundleDownload,
     handleBackupFile,
     handleSnapshotDownload,
     handleSnapshotRestore,

@@ -111,6 +111,7 @@ export function SettingsPage() {
           importSuppliersPending={page.importSuppliersMutation.isPending}
           importOpeningStockPending={page.importOpeningStockMutation.isPending}
           handleBackupDownload={page.handleBackupDownload}
+          handleSupportBundleDownload={page.handleSupportBundleDownload}
           saveBackupConfig={page.saveBackupConfig}
           testBackupFolder={page.testBackupFolder}
           saveBackupFileToFolderNow={page.saveBackupFileToFolderNow}

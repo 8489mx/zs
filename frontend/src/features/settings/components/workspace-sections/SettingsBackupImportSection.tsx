@@ -37,6 +37,7 @@ interface SettingsBackupImportSectionProps {
   saveBackupConfig: () => Promise<void>;
   testBackupFolder: () => Promise<void>;
   saveBackupFileToFolderNow: () => Promise<void>;
+  handleSupportBundleDownload?: () => Promise<void>;
   handleBackupFile: (file: File, mode: 'verify' | 'restore') => void | Promise<void>;
   handleSnapshotDownload: (snapshot: BackupSnapshotRecord) => void;
   onRequestRestoreFile: (file: File) => void;
@@ -103,6 +104,7 @@ export function SettingsBackupImportSection({
   backupResult,
   restoreSnapshotId,
   handleBackupDownload,
+  handleSupportBundleDownload,
   saveBackupConfig,
   testBackupFolder,
   saveBackupFileToFolderNow,
@@ -128,8 +130,16 @@ export function SettingsBackupImportSection({
   return (
     <div className="page-stack">
       <QueryCard className="settings-admin-card settings-backup-card" title="النسخ والاسترداد" actions={<span className="nav-pill">نسخ احتياطي</span>}>
-        <div className="actions" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+        <div className="actions" style={{ marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
           <Button onClick={handleBackupDownload} disabled={backupBusy || !canManageBackups}>تنزيل نسخة احتياطية الآن</Button>
+          <Button onClick={handleSupportBundleDownload} variant="secondary" disabled={backupBusy || !canManageBackups}>
+            تنزيل حزمة الدعم
+          </Button>
+        </div>
+        
+        <div style={{ padding: '0 12px 16px', fontSize: '13px', color: 'var(--text-color)' }}>
+          <span style={{ color: 'var(--warning-color)', fontWeight: 'bold' }}>ملاحظة هامة: </span>
+          حزمة الدعم لا تحتوي على كلمات مرور أو أسرار، وتُستخدم فقط لمراجعة الأعطال ومشاكل النظام.
         </div>
 
         <div className="surface-card" style={{ marginBottom: 16, padding: 12 }}>

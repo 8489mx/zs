@@ -22,6 +22,22 @@ export type SaasTenantRow = {
   ownerLocked: boolean;
   ownerIsActive: boolean;
   ownerUsername: string;
+  planName: string | null;
+  subscriptionStatus: string | null;
+  subscriptionEndDate: string | null;
+  graceEndDate: string | null;
+};
+
+export type SaasPlan = {
+  id: number;
+  code: string;
+  name: string;
+  price: number;
+  currency: string;
+  billing_period_months: number;
+  max_users: number | null;
+  max_branches: number | null;
+  is_active: boolean;
 };
 
 export type CreateTrialTenantPayload = {
@@ -37,6 +53,15 @@ export type CreateTrialTenantPayload = {
   source?: string;
   campaign?: string;
   notes?: string;
+};
+
+export type RecordPaymentPayload = {
+  amount: number;
+  currency: string;
+  method: string;
+  reference?: string;
+  notes?: string;
+  date?: string;
 };
 
 export const saasAdminApi = {
@@ -55,7 +80,7 @@ export const saasAdminApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  activateTenant: (id: string, durationMonths?: number) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/activate`, { method: 'POST', body: JSON.stringify({ durationMonths }) }),
+  activateTenant: (id: string, payload: { durationMonths?: number; planId?: number; paymentAmount?: number; paymentMethod?: string; paymentReference?: string }) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/activate`, { method: 'POST', body: JSON.stringify(payload) }),
   suspendTenant: (id: string, notes?: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/suspend`, { method: 'POST', body: JSON.stringify({ notes: notes || '' }) }),
   expireTenant: (id: string, notes?: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/expire`, { method: 'POST', body: JSON.stringify({ notes: notes || '' }) }),
   extendTrial: (id: string, days: number) =>
@@ -70,4 +95,12 @@ export const saasAdminApi = {
       { method: 'POST', body: JSON.stringify({ newPassword }) },
     ),
   deleteTenant: (id: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/delete`, { method: 'POST', body: JSON.stringify({}) }),
+  
+  listPlans: () => http<SaasPlan[]>('/api/saas-admin/plans'),
+  createPlan: (payload: Omit<SaasPlan, 'id' | 'is_active'>) => http<{ ok: boolean }>('/api/saas-admin/plans', { method: 'POST', body: JSON.stringify(payload) }),
+  getSubscriptions: (id: string) => http<{ subscriptions: any[]; payments: any[] }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/subscriptions`),
+  renewTenant: (id: string, payload: { planId: number; durationMonths: number; paymentAmount?: number; paymentMethod?: string; paymentReference?: string }) => 
+    http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/renew`, { method: 'POST', body: JSON.stringify(payload) }),
+  recordPayment: (id: string, payload: RecordPaymentPayload) => 
+    http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/payment`, { method: 'POST', body: JSON.stringify(payload) }),
 };

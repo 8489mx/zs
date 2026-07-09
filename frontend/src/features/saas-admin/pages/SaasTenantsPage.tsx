@@ -54,6 +54,28 @@ export function SaasTenantsPage() {
   
   const [upgradeTenant, setUpgradeTenant] = useState<{ id: string } | null>(null);
   const [upgradeDuration, setUpgradeDuration] = useState<number>(1);
+  const [upgradePlanId, setUpgradePlanId] = useState<number | ''>('');
+  const [upgradePaymentAmount, setUpgradePaymentAmount] = useState<number | ''>('');
+  const [upgradePaymentMethod, setUpgradePaymentMethod] = useState('cash');
+
+  const [renewTenant, setRenewTenant] = useState<{ id: string } | null>(null);
+  const [renewDuration, setRenewDuration] = useState<number>(1);
+  const [renewPlanId, setRenewPlanId] = useState<number | ''>('');
+  const [renewPaymentAmount, setRenewPaymentAmount] = useState<number | ''>('');
+  const [renewPaymentMethod, setRenewPaymentMethod] = useState('cash');
+
+  const [recordPaymentTenant, setRecordPaymentTenant] = useState<{ id: string } | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
+  const [paymentCurrency, setPaymentCurrency] = useState('EGP');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentReference, setPaymentReference] = useState('');
+
+  const plansQuery = useQuery({
+    queryKey: ['saas-plans'],
+    queryFn: () => saasAdminApi.listPlans(),
+    enabled: canAccess,
+  });
+  const plans = plansQuery.data || [];
   
   const [createForm, setCreateForm] = useState({
     slug: '',
@@ -98,8 +120,13 @@ export function SaasTenantsPage() {
   const invalidateTenants = () => queryClient.invalidateQueries({ queryKey: ['saas-admin-tenants'] });
 
   const tenantActionMutation = useMutation({
-    mutationFn: async (input: { action: TenantActionKey; tenantId: string; durationMonths?: number }) => {
-      if (input.action === 'activate') return saasAdminApi.activateTenant(input.tenantId, input.durationMonths);
+    mutationFn: async (input: { action: TenantActionKey; tenantId: string; durationMonths?: number; planId?: number; paymentAmount?: number; paymentMethod?: string }) => {
+      if (input.action === 'activate') return saasAdminApi.activateTenant(input.tenantId, {
+        durationMonths: input.durationMonths,
+        planId: input.planId,
+        paymentAmount: input.paymentAmount,
+        paymentMethod: input.paymentMethod,
+      });
       if (input.action === 'suspend') return saasAdminApi.suspendTenant(input.tenantId);
       if (input.action === 'unlockOwner') return saasAdminApi.unlockOwner(input.tenantId);
       if (input.action === 'delete') return saasAdminApi.deleteTenant(input.tenantId);
@@ -110,6 +137,28 @@ export function SaasTenantsPage() {
       await invalidateTenants();
     },
     onError: (error) => setFeedback(getFriendlyApiErrorMessage(error, 'تعذر تحديث حالة النسخة.')),
+  });
+
+  const renewMutation = useMutation({
+    mutationFn: (input: { tenantId: string; durationMonths: number; planId: number; paymentAmount?: number; paymentMethod?: string }) => 
+      saasAdminApi.renewTenant(input.tenantId, input),
+    onSuccess: async () => {
+      setFeedback('تم تجديد الاشتراك بنجاح.');
+      await invalidateTenants();
+      setRenewTenant(null);
+    },
+    onError: (error) => setFeedback(getFriendlyApiErrorMessage(error, 'تعذر تجديد الاشتراك.')),
+  });
+
+  const recordPaymentMutation = useMutation({
+    mutationFn: (input: { tenantId: string; amount: number; currency: string; method: string; reference?: string }) => 
+      saasAdminApi.recordPayment(input.tenantId, input),
+    onSuccess: async () => {
+      setFeedback('تم تسجيل الدفعة بنجاح.');
+      await invalidateTenants();
+      setRecordPaymentTenant(null);
+    },
+    onError: (error) => setFeedback(getFriendlyApiErrorMessage(error, 'تعذر تسجيل الدفعة.')),
   });
 
   const extendTrialMutation = useMutation({
@@ -266,6 +315,26 @@ export function SaasTenantsPage() {
                 render: (row) => <span>{row.ownerEmail || '-'}</span>,
               },
               {
+                id: 'billing',
+                header: 'الاشتراك الحالي',
+                render: (row) => (
+                  <div className="stack gap-4">
+                    <strong>{row.planName || 'بدون خطة'}</strong>
+                    <span className="muted small">{row.subscriptionStatus === 'active' ? 'مفعل' : row.subscriptionStatus === 'past_due' ? 'فترة سماح' : row.subscriptionStatus || '-'}</span>
+                  </div>
+                ),
+              },
+              {
+                id: 'dates',
+                header: 'صلاحية الاشتراك',
+                render: (row) => (
+                  <div className="stack gap-4">
+                    <span className="small">{row.subscriptionEndDate ? `ينتهي: ${formatDate(row.subscriptionEndDate)}` : '-'}</span>
+                    <span className="muted small">{row.graceEndDate ? `سماح لغاية: ${formatDate(row.graceEndDate)}` : ''}</span>
+                  </div>
+                ),
+              },
+              {
                 id: 'status',
                 header: 'الحالة',
                 sortable: true,
@@ -295,6 +364,8 @@ export function SaasTenantsPage() {
                   return (
                     <div className="actions compact-actions">
                       <button type="button" className="button button-secondary" onClick={() => setUpgradeTenant({ id: row.id })}>تفعيل / ترقية</button>
+                      <button type="button" className="button button-secondary" onClick={() => setRenewTenant({ id: row.id })}>تجديد الاشتراك</button>
+                      <button type="button" className="button button-secondary" onClick={() => setRecordPaymentTenant({ id: row.id })}>تسجيل دفعة</button>
                       <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'suspend', tenantId: row.id })}>إيقاف</button>
                       <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'expire', tenantId: row.id })}>إنهاء</button>
                       <button type="button" className="button button-secondary" onClick={() => extendTrialMutation.mutate({ tenantId: row.id, days: 7 })}>+7 أيام</button>
@@ -381,6 +452,14 @@ export function SaasTenantsPage() {
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="ترقية النسخة">
             <FormSection title="تفعيل / ترقية النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">
+                <Field label="الخطة">
+                  <select value={upgradePlanId} onChange={(e) => setUpgradePlanId(Number(e.target.value) || '')}>
+                    <option value="">-- اختر الخطة --</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.price} {p.currency})</option>
+                    ))}
+                  </select>
+                </Field>
                 <Field label="مدة الاشتراك">
                   <select value={upgradeDuration} onChange={(e) => setUpgradeDuration(Number(e.target.value))}>
                     <option value={1}>شهر واحد</option>
@@ -390,12 +469,123 @@ export function SaasTenantsPage() {
                     <option value={60}>5 سنوات (مدى الحياة)</option>
                   </select>
                 </Field>
+                <Field label="المبلغ المدفوع (اختياري)">
+                  <input type="number" min="0" value={upgradePaymentAmount} onChange={(e) => setUpgradePaymentAmount(Number(e.target.value))} />
+                </Field>
+                <Field label="طريقة الدفع">
+                  <select value={upgradePaymentMethod} onChange={(e) => setUpgradePaymentMethod(e.target.value)}>
+                    <option value="cash">نقدي</option>
+                    <option value="transfer">تحويل بنكي</option>
+                    <option value="card">بطاقة</option>
+                  </select>
+                </Field>
                 <div className="actions">
                   <button type="button" className="button" onClick={() => {
-                    tenantActionMutation.mutate({ action: 'activate', tenantId: upgradeTenant.id, durationMonths: upgradeDuration });
+                    tenantActionMutation.mutate({ 
+                      action: 'activate', 
+                      tenantId: upgradeTenant.id, 
+                      durationMonths: upgradeDuration,
+                      planId: upgradePlanId ? Number(upgradePlanId) : undefined,
+                      paymentAmount: upgradePaymentAmount ? Number(upgradePaymentAmount) : undefined,
+                      paymentMethod: upgradePaymentMethod,
+                    });
                     setUpgradeTenant(null);
-                  }} disabled={tenantActionMutation.isPending}>
+                  }} disabled={tenantActionMutation.isPending || !upgradePlanId}>
                     تأكيد التفعيل
+                  </button>
+                </div>
+              </div>
+            </FormSection>
+          </div>
+        </div>
+      ) : null}
+
+      {renewTenant ? (
+        <div className="dialog-overlay" role="presentation">
+          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="تجديد الاشتراك">
+            <FormSection title="تجديد اشتراك النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setRenewTenant(null)}>إغلاق</button>}>
+              <div className="stack gap-12">
+                <Field label="الخطة">
+                  <select value={renewPlanId} onChange={(e) => setRenewPlanId(Number(e.target.value) || '')}>
+                    <option value="">-- اختر الخطة --</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.price} {p.currency})</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="مدة التجديد (أشهر)">
+                  <select value={renewDuration} onChange={(e) => setRenewDuration(Number(e.target.value))}>
+                    <option value={1}>شهر واحد</option>
+                    <option value={3}>3 أشهر</option>
+                    <option value={6}>6 أشهر</option>
+                    <option value={12}>سنة واحدة</option>
+                  </select>
+                </Field>
+                <Field label="المبلغ المدفوع (اختياري)">
+                  <input type="number" min="0" value={renewPaymentAmount} onChange={(e) => setRenewPaymentAmount(Number(e.target.value))} />
+                </Field>
+                <Field label="طريقة الدفع">
+                  <select value={renewPaymentMethod} onChange={(e) => setRenewPaymentMethod(e.target.value)}>
+                    <option value="cash">نقدي</option>
+                    <option value="transfer">تحويل بنكي</option>
+                    <option value="card">بطاقة</option>
+                  </select>
+                </Field>
+                <div className="actions">
+                  <button type="button" className="button" onClick={() => {
+                    renewMutation.mutate({ 
+                      tenantId: renewTenant.id, 
+                      durationMonths: renewDuration,
+                      planId: Number(renewPlanId),
+                      paymentAmount: renewPaymentAmount ? Number(renewPaymentAmount) : undefined,
+                      paymentMethod: renewPaymentMethod,
+                    });
+                  }} disabled={renewMutation.isPending || !renewPlanId}>
+                    تأكيد التجديد
+                  </button>
+                </div>
+              </div>
+            </FormSection>
+          </div>
+        </div>
+      ) : null}
+
+      {recordPaymentTenant ? (
+        <div className="dialog-overlay" role="presentation">
+          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="تسجيل دفعة">
+            <FormSection title="تسجيل دفعة يدوية" actions={<button type="button" className="button button-secondary" onClick={() => setRecordPaymentTenant(null)}>إغلاق</button>}>
+              <div className="stack gap-12">
+                <Field label="المبلغ">
+                  <input type="number" min="0" value={paymentAmount} onChange={(e) => setPaymentAmount(Number(e.target.value))} />
+                </Field>
+                <Field label="العملة">
+                  <select value={paymentCurrency} onChange={(e) => setPaymentCurrency(e.target.value)}>
+                    <option value="EGP">EGP</option>
+                    <option value="USD">USD</option>
+                    <option value="SAR">SAR</option>
+                  </select>
+                </Field>
+                <Field label="طريقة الدفع">
+                  <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                    <option value="cash">نقدي</option>
+                    <option value="transfer">تحويل بنكي</option>
+                    <option value="card">بطاقة</option>
+                  </select>
+                </Field>
+                <Field label="رقم المرجع (اختياري)">
+                  <input value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} />
+                </Field>
+                <div className="actions">
+                  <button type="button" className="button" onClick={() => {
+                    recordPaymentMutation.mutate({ 
+                      tenantId: recordPaymentTenant.id, 
+                      amount: Number(paymentAmount),
+                      currency: paymentCurrency,
+                      method: paymentMethod,
+                      reference: paymentReference,
+                    });
+                  }} disabled={recordPaymentMutation.isPending || !paymentAmount}>
+                    تسجيل الدفعة
                   </button>
                 </div>
               </div>

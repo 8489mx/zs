@@ -55,6 +55,7 @@ export interface SharedSettingsSectionProps {
   backupResult: unknown;
   restoreSnapshotId: string;
   handleBackupDownload: () => Promise<void>;
+  handleSupportBundleDownload: () => Promise<void>;
   saveBackupConfig: () => Promise<void>;
   testBackupFolder: () => Promise<void>;
   saveBackupFileToFolderNow: () => Promise<void>;
@@ -172,6 +173,7 @@ export function renderBackupSection(props: SharedSettingsSectionProps) {
       backupResult={props.backupResult}
       restoreSnapshotId={props.restoreSnapshotId}
       handleBackupDownload={props.handleBackupDownload}
+      handleSupportBundleDownload={props.handleSupportBundleDownload}
       saveBackupConfig={props.saveBackupConfig}
       testBackupFolder={props.testBackupFolder}
       saveBackupFileToFolderNow={props.saveBackupFileToFolderNow}

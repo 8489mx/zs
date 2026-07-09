@@ -69,8 +69,8 @@ export class SettingsSupportService {
           // Basic redaction for tokens/passwords
           const redacted = content
             .replace(/(eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/g, '[REDACTED_JWT]')
-            .replace(/password[:=]\s*['"]?[^'"\s,]+['"]?/gi, 'password=[REDACTED]')
-            .replace(/secret[:=]\s*['"]?[^'"\s,]+['"]?/gi, 'secret=[REDACTED]');
+            .replace(/(password|secret|pwd|pass|token|smtp_pass|smtp_user|session_?id|sid)[\s:=]+['"]?[^'"\s,]+['"]?/gi, '$1=[REDACTED]')
+            .replace(/(?:mongodb|postgres|mysql|redis):\/\/[^"\s]+/gi, '[REDACTED_CONNECTION_STRING]');
           
           // Take configurable number of lines
           const tailLines = parseInt(process.env.SUPPORT_BUNDLE_LOG_TAIL_LINES || '2000', 10);

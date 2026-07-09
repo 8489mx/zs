@@ -48,7 +48,9 @@ Whenever releasing a major update to the SaaS billing engine, run a manual or au
 
 - [ ] **Signup**: Trigger `/api/public/trial-signup`. Verify the tenant is created, the owner is seeded, and an email is dispatched.
 - [ ] **Login**: Authenticate and confirm access.
-- [ ] **SaaS Activation**: Use the SaaS Admin dashboard to assign a paid plan to the tenant.
+- [ ] **SaaS Plans**: Verify Platform Admin can view and create pricing plans in the SaaS Admin dashboard.
+- [ ] **SaaS Activation**: Use the SaaS Admin dashboard to assign a paid plan to the tenant, specifying duration and recording the initial payment.
+- [ ] **SaaS Renewal**: Test renewing the tenant subscription and verify the end date is extended correctly.
 - [ ] **Expiry**: Manually update the `ends_at` date in the database or via API to an expired date.
 - [ ] **Grace Period Check**: Verify login still works if within `SAAS_DEFAULT_GRACE_DAYS`.
 - [ ] **Lockout Check**: Shift the `ends_at` date past the grace period. Verify login is blocked with `SubscriptionExpired` or `PaymentRequired`.
@@ -131,8 +133,8 @@ For a Cloud SaaS environment, proactive monitoring is critical to detect and res
 
 ### Where to Find Logs
 - **Hostinger Logs:** If using PM2, logs are usually viewed via pm2 logs api.
-- **File Logs:** The system logger (pino) writes warnings and errors to ackend/logs/system-errors.log.
-- **Support Bundle:** Tenants or admins can generate a support bundle which securely extracts the last SUPPORT_BUNDLE_LOG_TAIL_LINES (default 2000) from the logs. Secrets such as JWTs and passwords are automatically redacted.
+- **File Logs:** The system logger (pino) writes warnings and errors to  ackend/logs/system-errors.log.
+- **Support Bundle:** A UI button is available in the Backup & Restore settings section allowing Platform Admins to download a secure zip containing redacted logs, status markers, and health snapshots. (Redacts passwords, tokens, connection strings, etc.)
 
 ### What NOT to Log
 - Never log plain text passwords, session tokens, or JWTs. The logger has basic redaction, but avoid passing sensitive objects to logger.info() directly.

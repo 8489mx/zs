@@ -11,12 +11,22 @@ export const saasAdminRouteModule: FeatureRouteModule = {
       path: 'saas-admin/offline-releases',
       element: createLazyRoute(() => import('@/features/settings/pages/OfflineReleasesPage').then((module) => ({ default: module.OfflineReleasesPage }))),
     },
+    {
+      path: 'saas-admin/plans',
+      element: createLazyRoute(() => import('@/features/saas-admin/pages/SaasPlansPage').then((module) => ({ default: module.SaasPlansPage }))),
+    },
   ],
   navigation: [
     {
       key: 'saas-admin-tenants',
       label: 'إدارة النسخ',
       to: '/saas-admin/tenants',
+      platformOnly: true,
+    },
+    {
+      key: 'saas-admin-plans',
+      label: 'باقات الاشتراك',
+      to: '/saas-admin/plans',
       platformOnly: true,
     },
     {

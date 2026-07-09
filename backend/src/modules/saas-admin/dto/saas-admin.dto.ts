@@ -162,3 +162,27 @@ export class CreateSaasPlanDto {
   @IsInt()
   maxBranches?: number;
 }
+
+export class RecordPaymentDto {
+  @Type(() => Number)
+  amount!: number;
+
+  @IsString()
+  currency!: string;
+
+  @IsString()
+  method!: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  date?: string;
+}
+
