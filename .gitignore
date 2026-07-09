@@ -57,3 +57,5 @@ safe_backup_data/
 # Electron Env
 frontend/.env.electron
 
+ 
+backend/runtime/
