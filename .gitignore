@@ -59,3 +59,9 @@ frontend/.env.electron
 
  
 backend/runtime/
+ 
+*.production.env
+*.local.env
+ 
+.env.production.local
+*.production.local

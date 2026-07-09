@@ -9,7 +9,9 @@ import { SettingsSupportService } from './services/settings-support.service';
 import { SettingsSupportController } from './controllers/settings-support.controller';
 import { SettingsImportController } from './controllers/settings-import.controller';
 import { SettingsImportService } from './services/settings-import.service';
-import { OfflineReleasesAdminController, OfflineUpdatesPublicController } from './controllers/offline-releases.controller';
+import { OfflineReleasesAdminController,
+    OfflineUpdatesPublicController,
+    OfflineUpdatesProtectedController } from './controllers/offline-releases.controller';
 import { OfflineReleasesService } from './services/offline-releases.service';
 
 @Module({
