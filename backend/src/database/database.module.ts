@@ -30,6 +30,9 @@ import { resolvePgSslConfig } from './ssl.util';
             caCert: sslCaCert,
           }),
           application_name: 'backend-new',
+          max: configService.get<number>('database.poolMax', 10),
+          idleTimeoutMillis: configService.get<number>('database.poolIdleTimeoutMs', 10000),
+          connectionTimeoutMillis: configService.get<number>('database.poolConnectionTimeoutMs', 10000),
         });
 
         return new Kysely<Database>({

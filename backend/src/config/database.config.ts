@@ -20,4 +20,7 @@ export default registerAs('database', () => ({
   sslRejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
   sslCaCert: readSslCaCert(),
   logging: process.env.DATABASE_LOGGING === 'true',
+  poolMax: Number(process.env.DATABASE_POOL_MAX ?? 10),
+  poolIdleTimeoutMs: Number(process.env.DATABASE_POOL_IDLE_TIMEOUT_MS ?? 10000),
+  poolConnectionTimeoutMs: Number(process.env.DATABASE_POOL_CONNECTION_TIMEOUT_MS ?? 10000),
 }));

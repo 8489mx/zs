@@ -103,3 +103,15 @@ When migrating to a new domain or environment, ensure you use the securely track
   - Successful Login via Frontend (validates CORS + Cookies).
   - Stateful Operations (validates CSRF protection works cross-subdomain/domain).
   - /health/live and /health/ready check.
+
+## 10. Supabase Connection Pooling
+
+For scalable SaaS operations, connections to Supabase should be managed properly to avoid exhausting database connection limits:
+
+- **App Runtime Connection (Pooled):** The main application runtime MUST connect to Supabase via its Connection Pooler (PgBouncer/Supavisor). Ensure `DATABASE_HOST` points to the pooler address (usually IPv4 or port 6543) and not the direct DB address.
+- **Recommended Env Vars:**
+  - `DATABASE_POOL_MAX=20` (Adjust based on Supabase plan limits and number of running Node instances)
+  - `DATABASE_POOL_IDLE_TIMEOUT_MS=10000`
+  - `DATABASE_POOL_CONNECTION_TIMEOUT_MS=10000`
+- **Migration Connection (Direct):** When running `npm run migration:run`, you should temporarily use the *Direct Connection* (port 5432) to avoid transaction locks or statement timeout issues through the pooler.
+- **Troubleshooting Connection Errors:** If you see `timeout` or `too many clients` errors in Kysely logs, ensure your instances aren't exceeding the max pooled connections allowed by your Supabase tier. Verify `DATABASE_POOL_MAX` is appropriately scaled across your Hostinger PM2 cluster.
