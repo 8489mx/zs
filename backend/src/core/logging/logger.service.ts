@@ -18,7 +18,7 @@ export class LoggerService implements NestLoggerService {
     if (baseDir.endsWith('backend') && !isElectron) {
       baseDir = path.join(baseDir, '..');
     }
-    const logFilePath = path.join(baseDir, 'errors', 'system-errors.log');
+    const logFilePath = path.join(baseDir, 'logs', 'system-errors.log');
     const transport = pino.transport({
       targets: [
         {

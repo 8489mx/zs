@@ -72,9 +72,10 @@ export class SettingsSupportService {
             .replace(/password[:=]\s*['"]?[^'"\s,]+['"]?/gi, 'password=[REDACTED]')
             .replace(/secret[:=]\s*['"]?[^'"\s,]+['"]?/gi, 'secret=[REDACTED]');
           
-          // Take last 2000 lines
+          // Take configurable number of lines
+          const tailLines = parseInt(process.env.SUPPORT_BUNDLE_LOG_TAIL_LINES || '2000', 10);
           const lines = redacted.split('\n');
-          const tail = lines.slice(-2000).join('\n');
+          const tail = lines.slice(-tailLines).join('\n');
           
           zip.addFile(`logs/${file}`, Buffer.from(tail, 'utf8'));
         }

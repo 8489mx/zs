@@ -49,6 +49,9 @@ const envSchema = z.object({
   ACCOUNT_ID: z.string().trim().default('default'),
   PORTABLE_MODE: booleanString.optional(),
   SAAS_DEFAULT_GRACE_DAYS: z.coerce.number().int().min(0).max(365).default(7),
+  SENTRY_DSN: z.string().default(''),
+  ERROR_TRACKING_ENABLED: booleanString,
+  SUPPORT_BUNDLE_LOG_TAIL_LINES: z.coerce.number().int().min(100).max(10000).default(2000),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -119,6 +122,9 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     TENANT_ID: config.TENANT_ID ?? 'default',
     ACCOUNT_ID: config.ACCOUNT_ID ?? 'default',
     SAAS_DEFAULT_GRACE_DAYS: config.SAAS_DEFAULT_GRACE_DAYS ?? 7,
+    SENTRY_DSN: config.SENTRY_DSN ?? '',
+    ERROR_TRACKING_ENABLED: config.ERROR_TRACKING_ENABLED ?? 'false',
+    SUPPORT_BUNDLE_LOG_TAIL_LINES: config.SUPPORT_BUNDLE_LOG_TAIL_LINES ?? 2000,
   };
 
   const parsed = envSchema.parse(raw);

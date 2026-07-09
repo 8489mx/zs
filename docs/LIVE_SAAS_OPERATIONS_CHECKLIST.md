@@ -115,3 +115,24 @@ For scalable SaaS operations, connections to Supabase should be managed properly
   - `DATABASE_POOL_CONNECTION_TIMEOUT_MS=10000`
 - **Migration Connection (Direct):** When running `npm run migration:run`, you should temporarily use the *Direct Connection* (port 5432) to avoid transaction locks or statement timeout issues through the pooler.
 - **Troubleshooting Connection Errors:** If you see `timeout` or `too many clients` errors in Kysely logs, ensure your instances aren't exceeding the max pooled connections allowed by your Supabase tier. Verify `DATABASE_POOL_MAX` is appropriately scaled across your Hostinger PM2 cluster.
+
+## 11. Monitoring and Alerts
+
+For a Cloud SaaS environment, proactive monitoring is critical to detect and resolve issues before they affect multiple tenants.
+
+### Health Check URLs
+- **Liveness (/api/health/live):** Returns 200 OK if the Node.js process is running. Suitable for uptime monitoring (e.g., UptimeRobot, Pingdom). Does not query the database.
+- **Readiness (/api/health/ready):** Returns 200 OK only if the application is ready to accept traffic and the database connection is healthy. Suitable for load balancer routing or Kubernetes readiness probes.
+
+### What to Monitor & Alert Thresholds
+- **Uptime Monitor:** Ping /api/health/live every 1 minute. Alert if down for >2 minutes.
+- **Database Health:** Ping /api/health/ready every 1 minute. Alert if down for >2 minutes.
+- **Error Tracking (Sentry):** Use SENTRY_DSN and ERROR_TRACKING_ENABLED=true to capture unhandled exceptions automatically. Set an alert if the error rate exceeds 1% of total requests or if a critical boot error occurs.
+
+### Where to Find Logs
+- **Hostinger Logs:** If using PM2, logs are usually viewed via pm2 logs api.
+- **File Logs:** The system logger (pino) writes warnings and errors to ackend/logs/system-errors.log.
+- **Support Bundle:** Tenants or admins can generate a support bundle which securely extracts the last SUPPORT_BUNDLE_LOG_TAIL_LINES (default 2000) from the logs. Secrets such as JWTs and passwords are automatically redacted.
+
+### What NOT to Log
+- Never log plain text passwords, session tokens, or JWTs. The logger has basic redaction, but avoid passing sensitive objects to logger.info() directly.
