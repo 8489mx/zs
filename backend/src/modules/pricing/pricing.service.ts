@@ -65,7 +65,7 @@ export class PricingService {
         status: 'applied',
         created_by: actor.userId,
         ...this.tenantFields(actor),
-      } as any).returning('id').executeTakeFirstOrThrow();
+      }).returning('id').executeTakeFirstOrThrow();
       const runIdValue = Number(insertedRun.id);
       await trx.insertInto('price_change_items').values(changedRows.map((row) => ({
         run_id: runIdValue,
@@ -130,7 +130,7 @@ export class PricingService {
         if (current) {
           await trx.updateTable('product_pricing_profiles').set({ pricing_mode: requestedMode, pricing_group_key: nextGroupKey, updated_by: actor.userId, updated_at: sql`NOW()` }).where('product_id', '=', productId).where(this.tenantPredicate(actor)).execute();
         } else {
-          await trx.insertInto('product_pricing_profiles').values({ product_id: productId, pricing_mode: requestedMode, pricing_group_key: nextGroupKey, created_by: actor.userId, updated_by: actor.userId, ...this.tenantFields(actor) } as any).execute();
+          await trx.insertInto('product_pricing_profiles').values({ product_id: productId, pricing_mode: requestedMode, pricing_group_key: nextGroupKey, created_by: actor.userId, updated_by: actor.userId, ...this.tenantFields(actor) }).execute();
         }
       }
     });
@@ -156,9 +156,9 @@ export class PricingService {
     if (ruleId > 0) {
       const existing = await this.db.selectFrom('pricing_rules').select(['id']).where('id', '=', ruleId).where(this.tenantPredicate(actor)).executeTakeFirst();
       if (!existing) throw new AppError('قاعدة التسعير غير موجودة.', 'PRICING_RULE_NOT_FOUND', 404);
-      await this.db.updateTable('pricing_rules').set(values as any).where('id', '=', ruleId).where(this.tenantPredicate(actor)).execute();
+      await this.db.updateTable('pricing_rules').set(values).where('id', '=', ruleId).where(this.tenantPredicate(actor)).execute();
     } else {
-      const inserted = await this.db.insertInto('pricing_rules').values({ ...values, created_by: actor.userId, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
+      const inserted = await this.db.insertInto('pricing_rules').values({ ...values, created_by: actor.userId, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
       ruleId = Number(inserted.id);
     }
     const rule = await this.getRuleById(ruleId, actor);

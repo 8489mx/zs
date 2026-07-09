@@ -202,18 +202,27 @@ if ((-not [string]::IsNullOrWhiteSpace($localPatchPath)) -and (Test-Path $localP
   }
 }
 
-# ── Extract ───────────────────────────────────────────────────────────────────
-Write-Log 'Extracting ZIP...'
+# ── Extract and Apply ─────────────────────────────────────────────────────────
+$applySuccess = $false
 try {
+  Write-Log 'Extracting ZIP...'
   if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
   Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
   Write-Log 'Extraction complete.'
-} catch {
-  Write-Log "ERROR: Extraction failed: $($_.Exception.Message)"
-  exit 1
-}
 
-try {
+  # ── Validate update-manifest.json ───────────────────────────────────────────
+  $manifestPath = Join-Path $extractDir 'update-manifest.json'
+  if (-not (Test-Path $manifestPath)) {
+    throw "update-manifest.json is missing from the update package."
+  }
+  
+  # Note: The backend already validated the checksums for local patches,
+  # but doing basic validation ensures the payload wasn't corrupted on disk.
+  $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+  if (-not $manifest.version) {
+    throw "Invalid update-manifest.json (missing version)."
+  }
+  
   # ── Copy backend/dist ─────────────────────────────────────────────────────────
   $srcBackend = $null
   $candidates = @(
@@ -231,7 +240,7 @@ try {
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for backend dist (exit $LASTEXITCODE)" }
     Write-Log 'backend/dist applied.'
   } else {
-    Write-Log 'WARNING: backend/dist not found in patch, skipping.'
+    throw 'backend/dist not found in patch.'
   }
 
   # ── Copy backend/package.json ─────────────────────────────────────────────────
@@ -248,6 +257,8 @@ try {
     $destPkg = Join-Path $pathMap.AppBackendDir 'package.json'
     Copy-Item -Path $srcPkg -Destination $destPkg -Force -ErrorAction Stop
     Write-Log 'backend/package.json updated.'
+  } else {
+    throw 'backend/package.json not found in patch.'
   }
 
   # ── Copy frontend/dist ────────────────────────────────────────────────────────
@@ -267,43 +278,84 @@ try {
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for frontend dist (exit $LASTEXITCODE)" }
     Write-Log 'frontend/dist applied.'
   } else {
-    Write-Log 'WARNING: frontend/dist not found in patch, skipping.'
+    throw 'frontend/dist not found in patch.'
   }
-} catch {
-  Write-Log "ERROR: Failed to apply update files: $($_.Exception.Message)"
-  exit 1
-}
 
-# ── Run database migrations (portable mode only) ──────────────────────────────
-if (-not $isElectronMode) {
-  Write-Log 'Running database migrations...'
-  try {
+  # ── Run database migrations (portable mode only) ──────────────────────────────
+  if (-not $isElectronMode) {
+    Write-Log 'Running database migrations...'
     $envFile = Join-Path $pathMap.ConfigDir '.env.offline'
     if (Test-Path $envFile) {
       $envMap = Get-EnvMap -EnvFile $envFile
       Export-EnvMap -EnvMap $envMap
       $migrationCmd = Resolve-MigrationCommand -Paths $cmn -EnvMap $envMap
       if ($migrationCmd) {
-        Invoke-BackendCommand -Command $migrationCmd -WorkingDirectory $BackendCwd -Label 'Migrations'
+        $migrationOutput = Invoke-BackendCommand -Command $migrationCmd -WorkingDirectory $BackendCwd -Label 'Migrations'
+        if ($LASTEXITCODE -ne 0) {
+          throw "Database migrations failed (exit $LASTEXITCODE)."
+        }
         Write-Log 'Migrations complete.'
       }
     }
-  } catch {
-    Write-Log "WARNING: Migrations threw: $($_.Exception.Message) - continuing restart."
+  } else {
+    Write-Log 'Skipping migrations in Electron mode (NestJS runs them on startup).'
   }
-} else {
-  Write-Log 'Skipping migrations in Electron mode (NestJS runs them on startup).'
+
+  $applySuccess = $true
+
+} catch {
+  Write-Log "ERROR: Update application failed: $($_.Exception.Message)"
 }
 
-# ── Write version marker ──────────────────────────────────────────────────────
-$versionFile = Join-Path $pathMap.RuntimeRunDir '.app_version'
-Set-Content -Path $versionFile -Value $version -Encoding ascii
-Write-Log "Written .app_version = $version"
+if (-not $applySuccess) {
+  Write-Log "Initiating Rollback from $backupDir ..."
+  try {
+    if (Test-Path (Join-Path $backupDir 'backend\dist')) {
+       robocopy (Join-Path $backupDir 'backend\dist') (Join-Path $pathMap.AppBackendDir 'dist') /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    }
+    if (Test-Path (Join-Path $backupDir 'backend\package.json')) {
+       Copy-Item (Join-Path $backupDir 'backend\package.json') (Join-Path $pathMap.AppBackendDir 'package.json') -Force
+    }
+    if (Test-Path (Join-Path $backupDir 'frontend\dist')) {
+       robocopy (Join-Path $backupDir 'frontend\dist') $pathMap.AppFrontendDir /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    }
+    if (-not $isElectronMode) {
+      $dbBackupPath = Join-Path $backupDir 'database.sql'
+      if (Test-Path $dbBackupPath) {
+        Write-Log "Restoring database from $dbBackupPath ..."
+        $pgRestore = Join-Path $pathMap.PostgresBinDir 'pg_restore.exe'
+        if (Test-Path $pgRestore) {
+          $envFile = Join-Path $pathMap.ConfigDir '.env.offline'
+          $envMap  = Get-EnvMap -EnvFile $envFile
+          $dbPort  = Get-EnvValue -EnvMap $envMap -Key 'DB_PORT'     -Default '5432'
+          $dbUser  = Get-EnvValue -EnvMap $envMap -Key 'DB_USER'     -Default 'postgres'
+          $dbName  = Get-EnvValue -EnvMap $envMap -Key 'DB_NAME'     -Default 'postgres'
+          $dbPass  = Get-EnvValue -EnvMap $envMap -Key 'DB_PASSWORD' -Default 'postgres'
+          $env:PGPASSWORD = $dbPass
+          & $pgRestore -h 127.0.0.1 -p $dbPort -U $dbUser -d $dbName --clean --if-exists $dbBackupPath
+          Write-Log 'Database restored.'
+        }
+      }
+    }
+    Write-Log "Rollback complete. Restarting with previous version..."
+  } catch {
+    Write-Log "CRITICAL ERROR during rollback: $($_.Exception.Message)"
+  }
+} else {
+  # ── Write version marker ──────────────────────────────────────────────────────
+  $versionFile = Join-Path $pathMap.RuntimeRunDir '.app_version'
+  Set-Content -Path $versionFile -Value $version -Encoding ascii
+  Write-Log "Written .app_version = $version"
+  
+  # Remove pending marker ONLY on full success
+  Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
+}
 
 # ── Restart ───────────────────────────────────────────────────────────────────
 if ($isElectronMode) {
-  Write-Log 'Skipping automatic relaunch in Electron mode (Manual Relaunch requested).'
-
+  Write-Log "Starting Electron: $electronExePath"
+  $electronProc = Start-Process -FilePath $electronExePath -WindowStyle Normal -PassThru
+  Write-Log "Electron process started (PID: $($electronProc.Id))"
 } else {
   if ([string]::IsNullOrWhiteSpace($NodeExe) -or -not (Test-Path $NodeExe)) {
     $envFile = Join-Path $pathMap.ConfigDir '.env.offline'
@@ -346,6 +398,5 @@ if ($isElectronMode) {
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 Remove-Item -Path $stagingDir  -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -Path $pendingFile -Force         -ErrorAction SilentlyContinue
 Write-Log "Update to v$version applied and restarted successfully."
 exit 0

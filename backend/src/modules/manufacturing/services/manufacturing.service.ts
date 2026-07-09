@@ -270,7 +270,7 @@ export class ManufacturingService {
           quantity_consumed: requiredQty,
           unit_cost: Number(line.expected_cost),
           line_total: lineTotalCost,
-        } as any).execute();
+        }).execute();
 
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(line.component_product_id), branchId: null, locationId: sourceLocation };
         const beforeQty = sourceLocation ? await previewAssignedLocationStockQty(trx, stockScope) : 0;
@@ -296,7 +296,7 @@ export class ManufacturingService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
       }
 
       // Add overhead cost
@@ -325,7 +325,7 @@ export class ManufacturingService {
         created_by: auth.userId,
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
-      } as any).execute();
+      }).execute();
 
       await trx.updateTable('manufacturing_work_orders')
         .set({

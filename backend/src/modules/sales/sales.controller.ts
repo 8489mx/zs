@@ -14,11 +14,13 @@ export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Get('sales')
+  @RequirePermissions('sales')
   listSales(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.salesService.listSales(query, req.authContext!);
   }
 
   @Get('sales/:id')
+  @RequirePermissions('sales')
   getSale(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.salesService.getSaleById(id, req.authContext!);
   }

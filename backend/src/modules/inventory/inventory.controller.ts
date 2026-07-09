@@ -15,26 +15,31 @@ export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Get('locations')
+  @RequirePermissions('inventory')
   listLocations(@Req() req: RequestWithAuth, @Query('includeInactive') includeInactive?: string): Promise<Record<string, unknown>> {
     return this.inventoryService.listLocations(req.authContext!, includeInactive === 'true');
   }
 
   @Get('location-stocks')
+  @RequirePermissions('inventory')
   getAllLocationStocks(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.getAllLocationStocks(req.authContext!);
   }
 
   @Get('inventory/advanced-overview')
+  @RequirePermissions('inventory')
   getAdvancedOverview(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.getAdvancedOverview(req.authContext!);
   }
 
   @Get('locations/:id/categories')
+  @RequirePermissions('inventory')
   getLocationCategories(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.getLocationCategories(id, req.authContext!);
   }
 
   @Get('locations/:id/categories/:categoryId/products')
+  @RequirePermissions('inventory')
   getLocationCategoryProducts(
     @Param('id', ParseIntPipe) id: number,
     @Param('categoryId') categoryId: string,
@@ -45,6 +50,7 @@ export class InventoryController {
   }
 
   @Post('locations/:id/assign-products')
+  @RequirePermissions('inventory')
   assignProductsToLocation(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { productIds: number[] },
@@ -54,6 +60,7 @@ export class InventoryController {
   }
 
   @Delete('locations/:id/products/:productId')
+  @RequirePermissions('inventory')
   removeProductFromLocation(
     @Param('id', ParseIntPipe) id: number,
     @Param('productId', ParseIntPipe) productId: number,
@@ -63,11 +70,13 @@ export class InventoryController {
   }
 
   @Get('stock-transfers')
+  @RequirePermissions('inventory')
   listTransfers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.listStockTransfers(query, req.authContext!);
   }
 
   @Get('stock-movements')
+  @RequirePermissions('inventory')
   listMovements(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.listStockMovements(query, req.authContext!);
   }

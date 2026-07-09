@@ -176,7 +176,7 @@ export class UsersService {
       updates.locked_until = null;
     }
 
-    await this.db.updateTable('users').set(updates as any).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+    await this.db.updateTable('users').set(updates).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     await this.replaceUserBranches(id, payload.branchIds, actor);
 
     const { tenantId } = this.scope(actor);
@@ -251,7 +251,7 @@ export class UsersService {
     }
 
     if (Object.keys(updates).length > 0) {
-      await this.db.updateTable('users').set(updates as any).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      await this.db.updateTable('users').set(updates).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
       await this.audit.log('تعديل الملف الشخصي', `المستخدم ${existing.username} قام بتعديل بيانات ملفه الشخصي`, actor);
     }
 

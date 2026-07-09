@@ -72,6 +72,7 @@ class FakeBootstrapDb {
   insertInto() {
     return {
       values: () => ({
+        execute: async () => ({}),
         onConflict: () => ({ execute: async () => ({}) }),
       }),
     };

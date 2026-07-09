@@ -120,7 +120,7 @@ export class TreasuryService {
         created_by: auth.userId,
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
-      } as any).execute();
+      }).execute();
 
       // Source-of-truth accounting post is the expense document itself.
       // Treasury transaction is an operational cash movement side-effect for the same expense.

@@ -293,7 +293,7 @@ export class SaasAdminService {
     const tenant = await this.getTenantForMutation(id);
     this.assertNotPlatformTenantTarget(tenant.id);
     const now = new Date();
-    await this.db.updateTable('tenants').set({ status: 'suspended', updated_at: now } as any).where('id', '=', tenant.id).execute();
+    await this.db.updateTable('tenants').set({ status: 'suspended', updated_at: now }).where('id', '=', tenant.id).execute();
     const note = [this.normalizeOptional(body.reason), this.normalizeOptional(body.notes)].filter(Boolean).join(' - ');
     await this.audit.log('إيقاف نسخة', `تم إيقاف النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth);
     return { ok: true };

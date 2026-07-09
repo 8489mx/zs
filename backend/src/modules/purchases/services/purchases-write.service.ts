@@ -258,7 +258,7 @@ export class PurchasesWriteService {
           location_id: item.locationId ?? null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
 
 
         const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
@@ -298,7 +298,7 @@ export class PurchasesWriteService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
       }
 
       if (payload.attachments && payload.attachments.length > 0) {
@@ -309,7 +309,7 @@ export class PurchasesWriteService {
             file_url: attachment.fileUrl,
             file_size: attachment.fileSize,
             file_type: attachment.fileType,
-          } as any).execute();
+          }).execute();
         }
       }
 
@@ -383,7 +383,7 @@ export class PurchasesWriteService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
       }
 
       if (purchase.payment_type === 'credit' && purchase.supplier_id) {
@@ -459,7 +459,7 @@ export class PurchasesWriteService {
           location_id: normalizedItem.locationId ?? null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
 
         const { increasedQty: increaseQty } = calculatePurchaseStockIncrease(normalizedItem.qty, normalizedItem.unitMultiplier, 0);
         const itemLocationId = normalizedItem.locationId ?? locationId;
@@ -498,7 +498,7 @@ export class PurchasesWriteService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
       }
 
       if (paymentType === 'credit') {
@@ -579,7 +579,7 @@ export class PurchasesWriteService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
       }
 
       if (purchase.payment_type === 'credit' && purchase.supplier_id) {

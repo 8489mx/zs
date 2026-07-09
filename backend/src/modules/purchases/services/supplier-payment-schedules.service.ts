@@ -193,7 +193,7 @@ export class SupplierPaymentSchedulesService {
       const intervalDays = Number(payload.intervalDays || 1);
       await db.deleteFrom('supplier_payment_schedules').where('purchase_id', '=', purchaseId).where(this.tenantPredicate(auth)).execute();
       for (let index = 0; index < amounts.length; index += 1) {
-        await db.insertInto('supplier_payment_schedules').values({ purchase_id: purchaseId, supplier_id: Number(purchase.supplier_id), installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId, ...this.tenantFields(auth) } as any).execute();
+        await db.insertInto('supplier_payment_schedules').values({ purchase_id: purchaseId, supplier_id: Number(purchase.supplier_id), installment_no: index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId, ...this.tenantFields(auth) }).execute();
       }
     });
     return this.listForPurchase(purchaseId, auth);
@@ -224,7 +224,7 @@ export class SupplierPaymentSchedulesService {
       const intervalDays = Number(payload.intervalDays || 1);
       
       for (let index = 0; index < amounts.length; index += 1) {
-        await db.insertInto('supplier_payment_schedules').values({ purchase_id: null, supplier_id: supplierId, installment_no: startInstallmentNo + index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId, ...this.tenantFields(auth) } as any).execute();
+        await db.insertInto('supplier_payment_schedules').values({ purchase_id: null, supplier_id: supplierId, installment_no: startInstallmentNo + index + 1, due_date: this.addDays(firstDueDate, index * intervalDays), amount: amounts[index], paid_amount: 0, status: 'pending', note: normalizeOptionalNote(payload.note), created_by: auth.userId, updated_by: auth.userId, ...this.tenantFields(auth) }).execute();
       }
     });
     return this.listForSupplier(supplierId, auth);
@@ -266,7 +266,7 @@ export class SupplierPaymentSchedulesService {
       const treasuryReferenceType = openShift?.id ? 'cashier_shift' : 'supplier_payment_schedule';
       const treasuryReferenceId = openShift?.id ? Number(openShift.id) : installmentId;
       await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).where(this.tenantPredicate(auth)).execute();
-      const insertedLog = await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, note, created_by: auth.userId, created_by_name: auth.username || '', ...this.tenantFields(auth) } as any).returning('id').executeTakeFirstOrThrow();
+      const insertedLog = await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, note, created_by: auth.userId, created_by_name: auth.username || '', ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
       await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, 'supplier_payment_schedule', `دفعة مورد مجدولة - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفعة مورد مجدولة - ${note}${openShift?.id ? ` - مرتبطة بالوردية SHIFT-${openShift.id}` : ''}`, treasuryReferenceType, treasuryReferenceId, auth, branchId, locationId);
       await this.accountingPosting.postSupplierPaymentScheduleSettlement(trx, Number(insertedLog.id), auth);

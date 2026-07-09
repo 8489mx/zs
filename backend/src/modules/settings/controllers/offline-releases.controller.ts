@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req, Query, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { SuperAdminRoleGuard } from '../../../core/auth/guards/super-admin-role.guard';
+import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
+import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { OfflineReleasesService } from '../services/offline-releases.service';
 
@@ -37,22 +39,42 @@ export class OfflineUpdatesPublicController {
     return this.releasesService.listReleaseHistory();
   }
 
+}
+
+// ─── Protected endpoints — apply updates locally ───
+@Controller('api/local-updates')
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+export class OfflineUpdatesProtectedController {
+  constructor(private readonly releasesService: OfflineReleasesService) {}
+
   /**
-   * POST /api/updates/apply
+   * POST /api/local-updates/apply
    * Called by the local desktop client to trigger downloading and applying a patch.
    */
   @Post('apply')
+  @RequirePermissions('canManageSettings')
   async applyUpdate(@Body() body: { version: string; patchUrl: string; changelog: string }) {
     return this.releasesService.applyLocalUpdate(body);
   }
 
   /**
-   * POST /api/updates/apply-local-zip
+   * POST /api/local-updates/apply-local-zip
    * Called by the local desktop client to trigger applying a manual local patch.
    */
   @Post('apply-local-zip')
+  @RequirePermissions('canManageSettings')
   @UseInterceptors(FileInterceptor('file'))
-  async applyLocalZipUpdate(@UploadedFile() file: Express.Multer.File) {
+  async applyLocalZipUpdate(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 500 * 1024 * 1024 }), // 500MB
+          new FileTypeValidator({ fileType: /^(application\/zip|application\/x-zip-compressed)$/ }),
+        ],
+        fileIsRequired: true,
+      }),
+    ) file: Express.Multer.File
+  ) {
     return this.releasesService.applyLocalZipUpdate(file);
   }
 }

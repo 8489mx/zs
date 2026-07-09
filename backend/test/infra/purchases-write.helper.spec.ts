@@ -11,9 +11,12 @@ assert.deepEqual(normalized, {
   name: 'Coffee',
   qty: 2,
   cost: 7.5,
+  oldCostPrice: 0,
   unitName: 'علبة',
   unitMultiplier: 3,
   total: 15,
+  categoryId: null,
+  locationId: null,
 });
 assert.equal(calculatePurchaseSubtotal([{ total: 10 }, { total: 4.255 }]), 14.26);
 assert.deepEqual(calculatePurchaseStockIncrease('2', '1.5', '4'), { increasedQty: 3, beforeQty: 4, afterQty: 7 });

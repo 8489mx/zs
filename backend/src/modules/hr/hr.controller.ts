@@ -33,11 +33,13 @@ import { HrService } from './hr.service';
 export class HrController {
 
   @Get('settings/payroll-policies')
+  @RequirePermissions('hr')
   async getPayrollPolicies(@Req() req: RequestWithAuth) {
-    return this.hr.getPayrollPoliciesConfig({ tenantId: req.authContext!.tenantId, userId: req.authContext!.userId } as any);
+    return this.hr.getPayrollPoliciesConfig({ tenantId: req.authContext!.tenantId, userId: req.authContext!.userId });
   }
 
   @Put('settings/payroll-policies')
+  @RequirePermissions('hr')
   async updatePayrollPolicies(@Req() req: RequestWithAuth, @Body() body: any) {
     return this.hr.updatePayrollPolicies({ tenantId: req.authContext!.tenantId, userId: req.authContext!.userId } as any, body);
   }

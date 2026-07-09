@@ -1116,7 +1116,7 @@ export class CatalogProductService {
         is_sale_unit_default: unit.isSaleUnit,
         is_purchase_unit_default: unit.isPurchaseUnit,
         ...this.tenantFields(actor),
-      } as any).execute();
+      }).execute();
     }
 
     for (const offer of payload.offers) {
@@ -1130,7 +1130,7 @@ export class CatalogProductService {
           end_date: offer.to,
           is_active: true,
           ...this.tenantFields(actor),
-        } as any).execute();
+        }).execute();
       } else {
         await db.insertInto('product_offers').values({
           product_id: productId,
@@ -1140,12 +1140,12 @@ export class CatalogProductService {
           end_date: offer.to,
           is_active: true,
           ...this.tenantFields(actor),
-        } as any).execute();
+        }).execute();
       }
     }
 
     for (const price of payload.customerPrices) {
-      await db.insertInto('product_customer_prices').values({ product_id: productId, customer_id: price.customerId, price: price.price, ...this.tenantFields(actor) } as any).execute();
+      await db.insertInto('product_customer_prices').values({ product_id: productId, customer_id: price.customerId, price: price.price, ...this.tenantFields(actor) }).execute();
     }
   }
 
@@ -1219,7 +1219,7 @@ export class CatalogProductService {
         const productId = Number(result.id);
         await this.replaceProductRelations(trx, productId, draft, actor);
         if (initialStockQty > 0) {
-          await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: draft.warehouseId || null, qty: initialStockQty, ...this.tenantFields(actor) } as any).execute();
+          await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: draft.warehouseId || null, qty: initialStockQty, ...this.tenantFields(actor) }).execute();
         }
       }
     });

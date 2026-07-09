@@ -1247,7 +1247,7 @@ export class AccountingService {
           partner_id: line.partnerId,
           branch_id: line.branchId,
           location_id: line.locationId,
-        } as any).execute();
+        }).execute();
       }
 
       return Number(entry.id);

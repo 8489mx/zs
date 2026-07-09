@@ -13,6 +13,7 @@ export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 
   @Get('categories')
+  @RequirePermissions('products')
   listCategories(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.listCategories(req.authContext!);
   }
@@ -50,6 +51,7 @@ export class CatalogController {
   }
 
   @Get('products')
+  @RequirePermissions('products')
   listProducts(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.listProducts(query, req.authContext!);
   }
@@ -67,6 +69,7 @@ export class CatalogController {
   }
 
   @Get('products/:id')
+  @RequirePermissions('products')
   getProduct(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.getProduct(id, req.authContext!);
   }

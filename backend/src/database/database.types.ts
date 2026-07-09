@@ -49,7 +49,7 @@ export interface TenantTable {
   trial_ends_at: Date;
   activated_at: Date | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface TrialSignupTable {
@@ -64,6 +64,8 @@ export interface TrialSignupTable {
 }
 
 export interface SettingTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   key: string;
   value: string;
 }
@@ -72,7 +74,7 @@ export interface AccountingAccountTable {
   id: Generated<number>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
-  code: string;
+  code: ColumnType<string, string | undefined, string | undefined>;
   name_ar: string;
   name_en: string;
   account_type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'contra_asset' | 'contra_revenue';
@@ -91,7 +93,7 @@ export interface AccountingAccountTable {
   description_ar: string;
   sort_order: number;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface JournalEntryTable {
@@ -113,7 +115,7 @@ export interface JournalEntryTable {
   cancelled_at: Date | null;
   cancel_reason: string;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface JournalEntryLineTable {
@@ -147,10 +149,12 @@ export interface AccountingSettingsTable {
   expenses_account_id: number | null;
   sales_tax_account_id: number | null;
   purchase_tax_account_id: number | null;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface AuditLogTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   action: string;
   details: string;
@@ -159,21 +163,27 @@ export interface AuditLogTable {
 }
 
 export interface BranchTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
-  code: string;
+  code: ColumnType<string, string | undefined, string | undefined>;
   is_active: boolean;
 }
 
 export interface StockLocationTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
-  code: string;
+  code: ColumnType<string, string | undefined, string | undefined>;
   branch_id: number | null;
   is_active: boolean;
 }
 
 export interface UserBranchTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   user_id: number;
   branch_id: number;
@@ -181,26 +191,32 @@ export interface UserBranchTable {
 }
 
 export interface ProductCategoryTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface SupplierTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
   phone: string;
   address: string;
   balance: number;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface CustomerTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
   phone: string;
@@ -213,10 +229,12 @@ export interface CustomerTable {
   tax_number: string;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ProductTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
   barcode: string | null;
@@ -234,10 +252,10 @@ export interface ProductTable {
   wholesale_price: number;
   stock_qty: number;
   min_stock_qty: number;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface StyleCodeCounterTable {
@@ -247,6 +265,8 @@ export interface StyleCodeCounterTable {
 }
 
 export interface ProductUnitTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number;
   name: string;
@@ -256,10 +276,12 @@ export interface ProductUnitTable {
   is_sale_unit_default: boolean;
   is_purchase_unit_default: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ProductOfferTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number;
   offer_type: 'percent' | 'fixed' | 'price';
@@ -269,21 +291,25 @@ export interface ProductOfferTable {
   end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ProductCustomerPriceTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number;
   customer_id: number;
   price: number;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 
 
 export interface ProductPricingProfileTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number;
   pricing_group_key: string | null;
@@ -291,10 +317,12 @@ export interface ProductPricingProfileTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface PricingRuleTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
   supplier_id: number | null;
@@ -308,25 +336,29 @@ export interface PricingRuleTable {
   rounding_nearest_step: number | null;
   rounding_ending: number | null;
   options_json: string;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   is_active: boolean;
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ProductLocationStockTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number;
   branch_id: number | null;
   location_id: number | null;
   qty: number;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface StockMovementTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number | null;
   movement_type: string;
@@ -344,6 +376,8 @@ export interface StockMovementTable {
 }
 
 export interface StockTransferTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   doc_no: string | null;
   from_location_id: number;
@@ -359,10 +393,12 @@ export interface StockTransferTable {
   received_at: Date | null;
   cancelled_at: Date | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface StockTransferItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   transfer_id: number;
   product_id: number;
@@ -371,6 +407,8 @@ export interface StockTransferItemTable {
 }
 
 export interface StockCountSessionTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   doc_no: string;
   branch_id: number | null;
@@ -381,10 +419,12 @@ export interface StockCountSessionTable {
   approved_by: number | null;
   posted_at: Date | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface StockCountItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   session_id: number;
   product_id: number;
@@ -397,6 +437,8 @@ export interface StockCountItemTable {
 }
 
 export interface DamagedStockRecordTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number;
   branch_id: number | null;
@@ -409,6 +451,8 @@ export interface DamagedStockRecordTable {
 }
 
 export interface SalesTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   doc_no: string | null;
   customer_id: number | null;
@@ -432,10 +476,12 @@ export interface SalesTable {
   cancelled_by: number | null;
   cancel_reason: string;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface SaleItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   sale_id: number;
   product_id: number | null;
@@ -447,11 +493,13 @@ export interface SaleItemTable {
   unit_multiplier: number;
   cost_price: number;
   price_type: 'retail' | 'wholesale';
-  notes: string;
-  modifiers: unknown;
+  notes: ColumnType<string, string | undefined, string | undefined>;
+  modifiers: ColumnType<unknown, unknown | undefined, unknown | undefined>;
 }
 
 export interface SalePaymentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   sale_id: number;
   payment_channel: 'cash' | 'card' | 'wallet' | 'instapay';
@@ -460,6 +508,8 @@ export interface SalePaymentTable {
 }
 
 export interface HeldSaleTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   customer_id: number | null;
   payment_type: 'cash' | 'credit';
@@ -475,10 +525,12 @@ export interface HeldSaleTable {
   location_id: number | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HeldSaleItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   held_sale_id: number;
   product_id: number | null;
@@ -493,6 +545,8 @@ export interface HeldSaleItemTable {
 
 
 export interface ExpenseTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   title: string;
   amount: number;
@@ -505,6 +559,8 @@ export interface ExpenseTable {
 }
 
 export interface ReturnDocumentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   doc_no: string | null;
   return_type: 'sale' | 'purchase';
@@ -521,6 +577,8 @@ export interface ReturnDocumentTable {
 }
 
 export interface ReturnItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   return_document_id: number;
   product_id: number | null;
@@ -534,6 +592,8 @@ export interface ReturnItemTable {
 }
 
 export interface TreasuryTransactionTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   txn_type: string;
   amount: number;
@@ -548,12 +608,16 @@ export interface TreasuryTransactionTable {
 }
 
 export interface CashierShiftTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   opened_by: number;
   status: string;
 }
 
 export interface CustomerPaymentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   customer_id: number;
   amount: number;
@@ -565,6 +629,8 @@ export interface CustomerPaymentTable {
 }
 
 export interface CustomerLedgerTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   customer_id: number;
   entry_type: string;
@@ -582,6 +648,8 @@ export interface CustomerLedgerTable {
 
 
 export interface PriceChangeRunTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   filters_json: string;
   operation_json: string;
@@ -596,6 +664,8 @@ export interface PriceChangeRunTable {
 }
 
 export interface PriceChangeItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   run_id: number;
   product_id: number;
@@ -618,7 +688,7 @@ export interface PartnerContactTable {
   phone: ColumnType<string, string | undefined, string | undefined>;
   email: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface PartnerAddressTable {
@@ -631,29 +701,29 @@ export interface PartnerAddressTable {
   city: ColumnType<string, string | undefined, string | undefined>;
   address_line: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface CostCenterTable {
   id: Generated<number>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
-  code: string;
+  code: ColumnType<string, string | undefined, string | undefined>;
   name: string;
   is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ProjectTable {
   id: Generated<number>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
-  code: string;
+  code: ColumnType<string, string | undefined, string | undefined>;
   name: string;
   is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ManufacturingBomTable {
@@ -664,12 +734,14 @@ export interface ManufacturingBomTable {
   expected_cost: number;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
 }
 
 export interface ManufacturingBomLineTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   bom_id: number;
   component_product_id: number;
@@ -679,7 +751,7 @@ export interface ManufacturingBomLineTable {
   waste_percentage: number;
   expected_cost: number;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ManufacturingWorkOrderTable {
@@ -697,12 +769,14 @@ export interface ManufacturingWorkOrderTable {
   note: string;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
 }
 
 export interface ManufacturingWoConsumptionTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   work_order_id: number;
   component_product_id: number;
@@ -713,6 +787,8 @@ export interface ManufacturingWoConsumptionTable {
 }
 
 export interface PurchaseAttachmentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   purchase_id: number;
   file_name: string;
@@ -720,7 +796,7 @@ export interface PurchaseAttachmentTable {
   file_size: number;
   file_type: string;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface PurchaseTable {
@@ -753,10 +829,12 @@ export interface PurchaseTable {
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface PurchaseItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   purchase_id: number;
   product_id: number | null;
@@ -771,6 +849,8 @@ export interface PurchaseItemTable {
 }
 
 export interface SupplierPaymentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   doc_no: string | null;
   supplier_id: number;
@@ -799,7 +879,7 @@ export interface SupplierPaymentScheduleTable {
   tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   account_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface SupplierPaymentScheduleLogTable {
@@ -816,6 +896,8 @@ export interface SupplierPaymentScheduleLogTable {
 }
 
 export interface SupplierLedgerTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   supplier_id: number;
   entry_type: string;
@@ -832,15 +914,17 @@ export interface SupplierLedgerTable {
 }
 
 export interface HrDepartmentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
-  code: string;
+  code: ColumnType<string, string | undefined, string | undefined>;
   description: string;
   is_active: boolean;
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrJobTitleTable extends HrDepartmentTable {}
@@ -853,6 +937,8 @@ export interface HrPositionTable extends HrDepartmentTable {
 }
 
 export interface HrEmployeeTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_no: string;
   national_id: string | null;
@@ -874,41 +960,47 @@ export interface HrEmployeeTable {
   scheduled_check_out_time: string | null;
   grace_minutes: number;
   overtime_policy: 'review_only' | 'disabled' | 'auto_approved';
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrEmployeeContactTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   contact_type: string;
   value: string;
   label: string;
   is_primary: boolean;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrEmployeeDocumentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   title: string;
   document_type: string;
   file_url: string;
   expiry_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   uploaded_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrEmploymentContractTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   contract_no: string;
@@ -918,14 +1010,16 @@ export interface HrEmploymentContractTable {
   end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   base_salary: number;
   currency: string;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrCompensationPackageTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   contract_id: number | null;
@@ -934,14 +1028,16 @@ export interface HrCompensationPackageTable {
   deduction_amount: number;
   effective_from: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   effective_to: ColumnType<string | null, string | null | undefined, string | null | undefined>;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrEmployeeLoanTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   loan_no: string;
@@ -959,7 +1055,7 @@ export interface HrEmployeeLoanTable {
   first_due_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   branch_id: number | null;
   location_id: number | null;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   approved_by: number | null;
   approved_at: Date | null;
   disbursed_by: number | null;
@@ -967,10 +1063,12 @@ export interface HrEmployeeLoanTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrEmployeeLoanInstallmentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   loan_id: number;
   installment_no: number;
@@ -980,10 +1078,12 @@ export interface HrEmployeeLoanInstallmentTable {
   status: 'pending' | 'partial' | 'paid' | 'cancelled';
   paid_at: Date | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrEmployeeLedgerTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   entry_type: string;
@@ -1000,6 +1100,8 @@ export interface HrEmployeeLedgerTable {
 }
 
 export interface HrAttendanceRecordTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   work_date: ColumnType<string, string | undefined, string | undefined>;
@@ -1011,10 +1113,12 @@ export interface HrAttendanceRecordTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrAttendanceExceptionTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   attendance_record_id: number | null;
@@ -1029,10 +1133,12 @@ export interface HrAttendanceExceptionTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrLeaveTypeTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
   code: string | null;
@@ -1042,10 +1148,12 @@ export interface HrLeaveTypeTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrLeaveRequestTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   leave_type_id: number | null;
@@ -1062,10 +1170,12 @@ export interface HrLeaveRequestTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrEmployeeAssetTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   asset_type: string;
@@ -1080,24 +1190,28 @@ export interface HrEmployeeAssetTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrPayrollRunTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   period_month: string;
   status: 'draft' | 'reviewed' | 'approved' | 'cancelled';
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   reviewed_by: number | null;
   approved_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   reviewed_at: Date | null;
   approved_at: Date | null;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrPayrollRunItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   run_id: number;
   employee_id: number;
@@ -1109,18 +1223,20 @@ export interface HrPayrollRunItemTable {
   gross_pay: number;
   net_pay: number;
   status: 'draft' | 'reviewed' | 'approved' | 'excluded';
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrPayrollItemAdjustmentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   payroll_item_id: number;
   adjustment_type: 'allowance' | 'deduction';
   label: string;
   amount: number;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -1130,7 +1246,7 @@ export interface HrSettingsTable {
   key: string;
   value: string;
   updated_by: number | null;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface Database {
@@ -1206,10 +1322,12 @@ export interface Database {
     price_change_items: PriceChangeItemTable;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrAttendanceExceptionTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   attendance_record_id: number | null;
@@ -1224,10 +1342,12 @@ export interface HrAttendanceExceptionTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrLeaveTypeTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
   code: string | null;
@@ -1237,10 +1357,12 @@ export interface HrLeaveTypeTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrLeaveRequestTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   leave_type_id: number | null;
@@ -1257,10 +1379,12 @@ export interface HrLeaveRequestTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrEmployeeAssetTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   employee_id: number;
   asset_type: string;
@@ -1275,24 +1399,28 @@ export interface HrEmployeeAssetTable {
   created_by: number | null;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrPayrollRunTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   period_month: string;
   status: 'draft' | 'reviewed' | 'approved' | 'cancelled';
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   reviewed_by: number | null;
   approved_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   reviewed_at: Date | null;
   approved_at: Date | null;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrPayrollRunItemTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   run_id: number;
   employee_id: number;
@@ -1304,18 +1432,20 @@ export interface HrPayrollRunItemTable {
   gross_pay: number;
   net_pay: number;
   status: 'draft' | 'reviewed' | 'approved' | 'excluded';
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface HrPayrollItemAdjustmentTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   payroll_item_id: number;
   adjustment_type: 'allowance' | 'deduction';
   label: string;
   amount: number;
-  notes: string;
+  notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -1325,7 +1455,7 @@ export interface HrSettingsTable {
   key: string;
   value: string;
   updated_by: number | null;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface Database {
@@ -1426,10 +1556,12 @@ export interface HrEmployeeAdjustmentTable {
   created_by: number;
   updated_by: number;
   created_at: ColumnType<Date, string | undefined, string | undefined>;
-  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface OfflineReleaseTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   version: string;
   changelog: string;

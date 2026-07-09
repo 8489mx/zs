@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Kysely } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -352,27 +353,61 @@ export class OfflineReleasesService {
       throw new BadRequestException('ملف التحديث غير موجود');
     }
 
-    // Verify zip structure
+    // Verify zip structure and security
+    let version = 'manual';
     try {
       const zip = new AdmZip(file.buffer);
       const entries = zip.getEntries();
       
-      let hasBackendDist = false;
-      let hasBackendPackage = false;
-      let hasFrontendDist = false;
+      let manifestEntry = null;
 
       for (const entry of entries) {
         const name = entry.entryName.replace(/\\/g, '/');
-        if (name.startsWith('backend/dist/')) hasBackendDist = true;
-        if (name === 'backend/package.json') hasBackendPackage = true;
-        if (name.startsWith('frontend/dist/')) hasFrontendDist = true;
+        
+        // 1. Path Traversal Protection
+        if (name.includes('../') || name.startsWith('/') || /^[a-zA-Z]:\//.test(name) || name.includes('\0')) {
+          throw new Error('مسار غير آمن في الملف (Path Traversal)');
+        }
+
+        if (name === 'update-manifest.json') manifestEntry = entry;
       }
 
-      if (!hasBackendDist || !hasBackendPackage || !hasFrontendDist) {
-        throw new Error('ملف التحديث غير صالح.');
+      if (!manifestEntry) {
+        throw new Error('ملف التحديث لا يحتوي على update-manifest.json');
       }
-    } catch (e) {
-      throw new BadRequestException('ملف التحديث غير صالح. تأكد من أن الملف بصيغة ZIP يحتوي على بنية التحديث الصحيحة.');
+
+      const manifestStr = manifestEntry.getData().toString('utf8');
+      const manifest = JSON.parse(manifestStr);
+
+      if (!manifest.version) {
+        throw new Error('ملف التحديث يحتوي على manifest غير صالح');
+      }
+      
+      version = manifest.version;
+
+      // 2. Checksum validation
+      const crypto = require('crypto');
+      for (const f of manifest.files || []) {
+        const fileEntry = zip.getEntry(f.path) || zip.getEntry(f.path.replace(/\//g, '\\'));
+        if (!fileEntry) throw new Error(`الملف المذكور في manifest غير موجود: ${f.path}`);
+        
+        const hash = crypto.createHash('sha256').update(fileEntry.getData()).digest('hex');
+        if (hash !== f.sha256) {
+           throw new Error(`الملف ${f.path} تالف أو تم التلاعب به (Checksum Mismatch)`);
+        }
+      }
+
+      // 3. Expected structure validation
+      for (const folder of manifest.expectedFolders || []) {
+        let found = false;
+        for (const entry of entries) {
+           const name = entry.entryName.replace(/\\/g, '/');
+           if (name.startsWith(folder + '/') || name === folder) { found = true; break; }
+        }
+        if (!found) throw new Error(`المجلد المطلوب ${folder} غير موجود في ملف التحديث`);
+      }
+    } catch (e: any) {
+      throw new BadRequestException(e.message || 'ملف التحديث غير صالح.');
     }
 
     const portableRoot  = getPortableRoot();
@@ -385,18 +420,6 @@ export class OfflineReleasesService {
 
     const runtimeRunDir = path.join(portableRoot, 'runtime', 'run');
     const pendingFile = path.join(runtimeRunDir, '.update_pending');
-    
-    let version = 'manual';
-    try {
-      const zip = new AdmZip(file.buffer);
-      let pkgEntry = zip.getEntry('backend/package.json');
-      if (!pkgEntry) pkgEntry = zip.getEntry('backend\\package.json');
-      if (pkgEntry) {
-        const pkgStr = pkgEntry.getData().toString('utf8');
-        const pkg = JSON.parse(pkgStr);
-        if (pkg.version) version = pkg.version;
-      }
-    } catch (e) { /* ignore */ }
 
     const payload = {
       version:         version,
@@ -416,6 +439,10 @@ export class OfflineReleasesService {
     const applyScript = path.join(portableRoot, 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
     if (!fs.existsSync(applyScript)) {
       throw new BadRequestException('ApplyAndRestart.ps1 not found at: ' + applyScript);
+    }
+
+    if (process.env.NODE_ENV === 'test') {
+      return { ok: true, version };
     }
 
     const logsDir = path.join(portableRoot, 'runtime', 'logs');

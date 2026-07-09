@@ -114,6 +114,28 @@ robocopy $frontendDistSrc $frontendDistDst /E /NFL /NDL /NJH /NJS /NP | Out-Null
 
 Write-Host "      Files staged." -ForegroundColor Green
 
+Write-Host "      Generating update-manifest.json..." -ForegroundColor Cyan
+$manifestPath = Join-Path $stagingDir 'update-manifest.json'
+$allFiles = Get-ChildItem -Path $stagingDir -File -Recurse
+$filesArray = @()
+foreach ($f in $allFiles) {
+    $relPath = $f.FullName.Substring($stagingDir.Length + 1).Replace('\', '/')
+    $hash = (Get-FileHash -Path $f.FullName -Algorithm SHA256).Hash.ToLower()
+    $filesArray += @{
+        path = $relPath
+        sha256 = $hash
+    }
+}
+
+$manifestObj = @{
+    version = $Version
+    createdAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    expectedFolders = @('backend/dist', 'backend/package.json', 'frontend/dist')
+    files = $filesArray
+}
+$manifestObj | ConvertTo-Json -Depth 10 | Set-Content -Path $manifestPath -Encoding UTF8
+Write-Host "      Manifest generated." -ForegroundColor Green
+
 # ── Step 4: Create ZIP ───────────────────────────────────────────────────────
 Write-Host "[4/4] Creating patch ZIP..." -ForegroundColor Yellow
 

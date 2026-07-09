@@ -91,7 +91,7 @@ export class SettingsService {
     const name = String(payload.name || '').trim();
     const code = String(payload.code || '').trim();
     if (!name) throw new AppError('Branch name is required', 'BRANCH_NAME_REQUIRED', 400);
-    const inserted = await this.db.insertInto('branches').values({ name, code, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId } as any).returning(['id', 'name', 'code']).executeTakeFirstOrThrow();
+    const inserted = await this.db.insertInto('branches').values({ name, code, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId }).returning(['id', 'name', 'code']).executeTakeFirstOrThrow();
     await this.audit.log('إضافة فرع', `تمت إضافة الفرع ${name} بواسطة ${actor.username}`, actor);
     return { ok: true, branch: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '' }, ...(await this.listBranches(actor)) };
   }
@@ -106,7 +106,7 @@ export class SettingsService {
       const branch = await this.db.selectFrom('branches').select(['id']).where('id', '=', branchId).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
       if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);
     }
-    const inserted = await this.db.insertInto('stock_locations').values({ name, code, branch_id: branchId, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId } as any).returning(['id', 'name', 'code', 'branch_id']).executeTakeFirstOrThrow();
+    const inserted = await this.db.insertInto('stock_locations').values({ name, code, branch_id: branchId, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId }).returning(['id', 'name', 'code', 'branch_id']).executeTakeFirstOrThrow();
     await this.audit.log('إضافة مخزن', `تمت إضافة المخزن ${name} بواسطة ${actor.username}`, actor);
     return { ok: true, location: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '', branchId: inserted.branch_id ? String(inserted.branch_id) : '' }, ...(await this.listLocations(actor)) };
   }

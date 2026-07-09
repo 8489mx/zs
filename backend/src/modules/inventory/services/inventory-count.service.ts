@@ -89,13 +89,13 @@ export class InventoryCountService {
     const location = await this.scope.assertLocationScope(payload.locationId, auth);
     assertInventoryLocationBranchMatch(payload.branchId, location.branchId);
     const sessionId = await this.tx.runInTransaction(this.db, async (trx) => {
-      const result = await trx.insertInto('stock_count_sessions').values({ doc_no: buildStockCountSessionDocNo(), branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) } as any).returning('id').executeTakeFirstOrThrow();
+      const result = await trx.insertInto('stock_count_sessions').values({ doc_no: buildStockCountSessionDocNo(), branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
       const id = Number(result.id);
       for (const item of payload.items) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError('Product not found in stock count session', 'PRODUCT_NOT_FOUND', 404);
         const expectedQty = await previewAssignedLocationStockQty(trx, { productId: item.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
-        await trx.insertInto('stock_count_items').values({ ...buildStockCountItemValues({ ...product, stock_qty: expectedQty }, item, id), ...this.tenantFields(auth) } as any).execute();
+        await trx.insertInto('stock_count_items').values({ ...buildStockCountItemValues({ ...product, stock_qty: expectedQty }, item, id), ...this.tenantFields(auth) }).execute();
       }
       return id;
     });
@@ -116,8 +116,8 @@ export class InventoryCountService {
         if (variance === 0) continue;
         const counted = Number(item.counted_qty || 0);
         const stockChange = await setScopedStockQty(trx, { productId: Number(item.product_id), nextQty: counted, branchId: session.branch_id, locationId: session.location_id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Stock count posting cannot drive total stock below zero' });
-        await trx.insertInto('stock_movements').values({ ...buildStockCountPostingMovement(item, sessionId, auth.userId), before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, branch_id: session.branch_id, location_id: session.location_id, ...this.tenantFields(auth) } as any).execute();
-        if (shouldCreateDamageRecordFromCount(item)) await trx.insertInto('damaged_stock_records').values({ ...buildDamageRecordFromCount(item, session, auth.userId), ...this.tenantFields(auth) } as any).execute();
+        await trx.insertInto('stock_movements').values({ ...buildStockCountPostingMovement(item, sessionId, auth.userId), before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, branch_id: session.branch_id, location_id: session.location_id, ...this.tenantFields(auth) }).execute();
+        if (shouldCreateDamageRecordFromCount(item)) await trx.insertInto('damaged_stock_records').values({ ...buildDamageRecordFromCount(item, session, auth.userId), ...this.tenantFields(auth) }).execute();
       }
       await trx.updateTable('stock_count_sessions').set({ status: 'posted', approved_by: auth.userId, posted_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', sessionId).where(this.tenantPredicate(auth)).execute();
     });
@@ -156,8 +156,8 @@ export class InventoryCountService {
       const availableQty = await previewConsumableStockQty(trx, { productId: payload.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
       const writeModels = buildDamagedStockWriteModels({ ...product, stock_qty: availableQty }, payload, location, auth.userId);
       const stockChange = await applyStockDelta(trx, { productId: payload.productId, delta: -Number(payload.qty || 0), branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Cannot mark more damaged stock than current stock' });
-      await trx.insertInto('stock_movements').values({ ...writeModels.stockMovement, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, branch_id: location.branchId ?? null, location_id: location.id, ...this.tenantFields(auth) } as any).execute();
-      await trx.insertInto('damaged_stock_records').values({ ...writeModels.damagedRecord, ...this.tenantFields(auth) } as any).execute();
+      await trx.insertInto('stock_movements').values({ ...writeModels.stockMovement, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, branch_id: location.branchId ?? null, location_id: location.id, ...this.tenantFields(auth) }).execute();
+      await trx.insertInto('damaged_stock_records').values({ ...writeModels.damagedRecord, ...this.tenantFields(auth) }).execute();
     });
     await this.audit.log('تسجيل تالف', JSON.stringify({ actorUserId: auth.userId, productId: payload.productId, qty: payload.qty }), auth);
     return { ok: true, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords, stockMovements: (await this.listStockMovements({}, auth)).stockMovements };

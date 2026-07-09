@@ -63,7 +63,7 @@ export class CatalogCategoryService {
     if (duplicate) throw new AppError('Category already exists', 'CATEGORY_EXISTS', 400);
     await this.db
       .insertInto('product_categories')
-      .values({ name, is_active: true, tenant_id: this.tenantId(actor), account_id: this.accountId(actor) } as any)
+      .values({ name, is_active: true, tenant_id: this.tenantId(actor), account_id: this.accountId(actor) })
       .execute();
     await this.audit.log('إضافة تصنيف', `تم إضافة تصنيف ${name} بواسطة ${actor.username}`, actor);
     return { ok: true, ...(await this.listCategories(actor)) };

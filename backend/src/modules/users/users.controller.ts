@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { AllowAuthenticated, RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { UpsertUserDto } from './dto/upsert-user.dto';
 import { SyncUsersDto } from './dto/sync-users.dto';
@@ -16,11 +16,13 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Put('me/password')
+  @AllowAuthenticated()
   changePassword(@Body() payload: ChangePasswordDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.usersService.changePassword(payload, req.authContext!);
   }
 
   @Put('me')
+  @AllowAuthenticated()
   updateProfile(@Body() payload: UpdateProfileDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.usersService.updateProfile(payload, req.authContext!);
   }

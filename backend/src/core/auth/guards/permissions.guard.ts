@@ -15,9 +15,17 @@ export class PermissionsGuard implements CanActivate {
     const required = this.reflector.getAllAndOverride<string[]>(REQUIRED_PERMISSIONS_KEY, [
       context.getHandler(),
       context.getClass(),
-    ]) ?? [];
+    ]);
+    const allowAuth = this.reflector.getAllAndOverride<boolean>('allow_authenticated', [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-    if (required.length === 0) {
+    if (!required && !allowAuth) {
+      throw new Error(`Endpoint ${context.getClass().name}.${context.getHandler().name} is protected by PermissionsGuard but lacks @RequirePermissions or @AllowAuthenticated marker.`);
+    }
+
+    if (!required || required.length === 0) {
       return true;
     }
 

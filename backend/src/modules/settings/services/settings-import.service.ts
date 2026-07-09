@@ -252,7 +252,7 @@ export class SettingsImportService {
     const scope = this.scope(actor);
     const existing = await db.selectFrom('product_categories').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', normalized.toLowerCase()).executeTakeFirst();
     if (existing) return Number(existing.id);
-    const inserted = await db.insertInto('product_categories').values({ name: normalized, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
+    const inserted = await db.insertInto('product_categories').values({ name: normalized, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
     return Number(inserted.id);
   }
 
@@ -262,7 +262,7 @@ export class SettingsImportService {
     const scope = this.scope(actor);
     const existing = await db.selectFrom('suppliers').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', normalized.toLowerCase()).executeTakeFirst();
     if (existing) return Number(existing.id);
-    const inserted = await db.insertInto('suppliers').values({ name: normalized, phone: '', address: '', balance: 0, notes: '', is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
+    const inserted = await db.insertInto('suppliers').values({ name: normalized, phone: '', address: '', balance: 0, notes: '', is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
     return Number(inserted.id);
   }
 
@@ -277,7 +277,7 @@ export class SettingsImportService {
     const branch = await db.selectFrom('branches').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
     const branchId = branch ? Number(branch.id) : null;
     
-    const inserted = await db.insertInto('stock_locations').values({ name: normalized, branch_id: branchId, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
+    const inserted = await db.insertInto('stock_locations').values({ name: normalized, branch_id: branchId, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
     return Number(inserted.id);
   }
 
@@ -296,7 +296,7 @@ export class SettingsImportService {
       branch_id: null,
       location_id: null,
       ...this.tenantFields(actor),
-    } as any).execute();
+    }).execute();
     await db.updateTable('customers').set({ balance: amount, updated_at: sql`NOW()` }).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
   }
 
@@ -315,7 +315,7 @@ export class SettingsImportService {
       branch_id: null,
       location_id: null,
       ...this.tenantFields(actor),
-    } as any).execute();
+    }).execute();
     await db.updateTable('suppliers').set({ balance: amount, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
   }
 
@@ -362,9 +362,9 @@ export class SettingsImportService {
           updated += 1;
         } else {
           const initialStockQty = toNumber(row.stockQty || 0);
-          const insertedProduct = await trx.insertInto('products').values({ ...payload, stock_qty: initialStockQty, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
+          const insertedProduct = await trx.insertInto('products').values({ ...payload, stock_qty: initialStockQty, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
           if (initialStockQty > 0) {
-            await trx.insertInto('product_location_stock').values({ product_id: Number(insertedProduct.id), branch_id: null, location_id: locationId, qty: initialStockQty, ...this.tenantFields(actor) } as any).execute();
+            await trx.insertInto('product_location_stock').values({ product_id: Number(insertedProduct.id), branch_id: null, location_id: locationId, qty: initialStockQty, ...this.tenantFields(actor) }).execute();
           }
           inserted += 1;
         }
@@ -408,7 +408,7 @@ export class SettingsImportService {
           await trx.updateTable('customers').set({ ...payload, store_credit_balance: storeCreditBalance, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
           updated += 1;
         } else {
-          const insertedRow = await trx.insertInto('customers').values({ ...payload, balance: 0, store_credit_balance: storeCreditBalance, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
+          const insertedRow = await trx.insertInto('customers').values({ ...payload, balance: 0, store_credit_balance: storeCreditBalance, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
           await this.addCustomerOpeningBalance(trx, Number(insertedRow.id), openingBalance, actor);
           inserted += 1;
         }
@@ -443,7 +443,7 @@ export class SettingsImportService {
           await trx.updateTable('suppliers').set({ ...payload, updated_at: sql`NOW()` }).where('id', '=', Number(existing.id)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
           updated += 1;
         } else {
-          const insertedRow = await trx.insertInto('suppliers').values({ ...payload, balance: 0, is_active: true, ...this.tenantFields(actor) } as any).returning('id').executeTakeFirstOrThrow();
+          const insertedRow = await trx.insertInto('suppliers').values({ ...payload, balance: 0, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
           await this.addSupplierOpeningBalance(trx, Number(insertedRow.id), openingBalance, actor);
           inserted += 1;
         }
@@ -509,7 +509,7 @@ export class SettingsImportService {
           branch_id: branchId,
           location_id: locationId,
           ...this.tenantFields(actor),
-        } as any).execute();
+        }).execute();
         updated += 1;
       }
 

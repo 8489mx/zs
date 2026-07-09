@@ -61,7 +61,7 @@ async function bootstrap(): Promise<void> {
     .filter(Boolean);
 
   app.enableCors((req: any, callback: any) => {
-    if (req.url && req.url.startsWith('/api/updates/')) {
+    if (req.url && req.url.startsWith('/api/updates/') && req.method === 'GET') {
       callback(null, { origin: '*', credentials: false });
     } else {
       callback(null, { origin: corsOrigins, credentials: true });

@@ -75,7 +75,7 @@ export class PartnersService {
       branch_id: null,
       location_id: null,
       ...this.tenantFields(actor),
-    } as any).execute();
+    }).execute();
 
     await this.db.updateTable('customers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(actor)).execute();
   }
@@ -96,7 +96,7 @@ export class PartnersService {
       branch_id: null,
       location_id: null,
       ...this.tenantFields(actor),
-    } as any).execute();
+    }).execute();
 
     await this.db.updateTable('suppliers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(this.tenantPredicate(actor)).execute();
   }

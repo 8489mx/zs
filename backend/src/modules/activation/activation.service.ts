@@ -148,7 +148,7 @@ export class ActivationService {
     await executor
       .insertInto('settings')
       .values(insertValues as any)
-      .onConflict((oc) => oc.columns(['tenant_id', 'key'] as never).doUpdateSet(updateValues as any))
+      .onConflict((oc) => oc.columns(['tenant_id', 'key'] as never).doUpdateSet(updateValues))
       .execute();
   }
 

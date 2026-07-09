@@ -121,7 +121,7 @@ export class SalesWriteService {
         created_by: auth.userId,
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
-      } as any).returning('id').executeTakeFirstOrThrow();
+      }).returning('id').executeTakeFirstOrThrow();
       
       const woId = Number(wo.id);
 
@@ -171,7 +171,7 @@ export class SalesWriteService {
           quantity_consumed: requiredMaterialQty,
           unit_cost: Number(line.expected_cost),
           line_total: lineTotalCost,
-        } as any).execute();
+        }).execute();
 
         const stockChange = await applyStockDelta(trx, {
           tenantId: scope.tenantId,
@@ -198,7 +198,7 @@ export class SalesWriteService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
       }
 
       const fgStockChange = await applyStockDelta(trx, {
@@ -225,7 +225,7 @@ export class SalesWriteService {
         created_by: auth.userId,
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
-      } as any).execute();
+      }).execute();
 
       const finishedProduct = await trx.selectFrom('products').select(['stock_qty', 'cost_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
       if (finishedProduct) {
@@ -422,7 +422,7 @@ export class SalesWriteService {
       await trx.updateTable('sales').set({ doc_no: `S-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       for (const payment of payments) {
-        await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId } as any).execute();
+        await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();
       }
 
       await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);
@@ -650,7 +650,7 @@ export class SalesWriteService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
       }
 
       const oldCollectibleTotal = Math.max(0, Number(sale.total || 0) - Number(sale.store_credit_used || 0));
@@ -776,10 +776,10 @@ export class SalesWriteService {
         branch_id: normalized.branchId,
         location_id: normalized.locationId,
         updated_at: sql`NOW()`,
-      } as any).where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      }).where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       for (const payment of payments) {
-        await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId } as any).execute();
+        await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();
       }
 
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
@@ -798,7 +798,7 @@ export class SalesWriteService {
           price_type: item.priceType as 'retail' | 'wholesale',
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
 
         const stockChange = await applyStockDelta(trx, {
           productId: item.productId,
@@ -826,7 +826,7 @@ export class SalesWriteService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        } as any).execute();
+        }).execute();
       }
 
       if (normalized.storeCreditUsed > 0 && customer) {

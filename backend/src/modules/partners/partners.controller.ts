@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { AllowAuthenticated, RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -15,6 +15,7 @@ export class PartnersController {
   constructor(private readonly partnersService: PartnersService) {}
 
   @Get('customers')
+  @RequirePermissions('customers')
   listCustomers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.partnersService.listCustomers(query, req.authContext!);
   }
@@ -26,6 +27,7 @@ export class PartnersController {
   }
 
   @Get('customers/:id/pos-summary')
+  @RequirePermissions('customers')
   getCustomerPosSummary(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.partnersService.getCustomerPosSummary(id, req.authContext!);
   }
@@ -47,6 +49,7 @@ export class PartnersController {
   }
 
   @Get('suppliers')
+  @RequirePermissions('suppliers')
   listSuppliers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.partnersService.listSuppliers(query, req.authContext!);
   }
@@ -74,6 +77,7 @@ export class PartnersController {
   }
 
   @Get(':partnerType/:partnerId/contacts')
+  @AllowAuthenticated()
   listContacts(
     @Param('partnerType') partnerType: string,
     @Param('partnerId', ParseIntPipe) partnerId: number,
@@ -83,6 +87,7 @@ export class PartnersController {
   }
 
   @Post(':partnerType/:partnerId/contacts')
+  @AllowAuthenticated()
   createContact(
     @Param('partnerType') partnerType: string,
     @Param('partnerId', ParseIntPipe) partnerId: number,
@@ -93,6 +98,7 @@ export class PartnersController {
   }
 
   @Get(':partnerType/:partnerId/addresses')
+  @AllowAuthenticated()
   listAddresses(
     @Param('partnerType') partnerType: string,
     @Param('partnerId', ParseIntPipe) partnerId: number,
@@ -102,6 +108,7 @@ export class PartnersController {
   }
 
   @Post(':partnerType/:partnerId/addresses')
+  @AllowAuthenticated()
   createAddress(
     @Param('partnerType') partnerType: string,
     @Param('partnerId', ParseIntPipe) partnerId: number,

@@ -48,7 +48,7 @@ export function SystemUpdatesSection() {
     formData.append('file', localUpdateState.file);
 
     try {
-      const res = await fetch(resolveRequestUrl('/api/updates/apply-local-zip'), {
+      const res = await fetch(resolveRequestUrl('/api/local-updates/apply-local-zip'), {
         method: 'POST',
         body: formData,
       });
@@ -81,7 +81,7 @@ export function SystemUpdatesSection() {
     setLocalUpdateState({ open: true, file: null, status: 'uploading' });
 
     try {
-      const res = await fetch(resolveRequestUrl('/api/updates/apply'), {
+      const res = await fetch(resolveRequestUrl('/api/local-updates/apply'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ version, patchUrl, changelog }),
