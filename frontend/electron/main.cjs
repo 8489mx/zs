@@ -81,7 +81,7 @@ app.whenReady().then(async () => {
   // Load or generate session secrets securely
   const fsLib = require('fs');
   const cryptoLib = require('crypto');
-  const dataDir = app.isPackaged ? path.join(path.dirname(process.execPath), 'data') : path.join(process.cwd(), 'portable_data');
+  const dataDir = app.isPackaged ? path.join(path.dirname(process.execPath), 'runtime', 'data') : path.join(process.cwd(), 'portable_data');
   const secretsPath = path.join(dataDir, 'secrets.json');
   let sessionSecret, csrfSecret;
   try {
@@ -110,7 +110,7 @@ app.whenReady().then(async () => {
   const backendEnv = {
     ...process.env,
     ...pgManager.getEnvironmentVariables(),
-    Z_DATA_DIR: app.isPackaged ? path.join(path.dirname(process.execPath), 'data') : path.join(process.cwd(), 'portable_data'),
+    Z_DATA_DIR: app.isPackaged ? path.join(path.dirname(process.execPath), 'runtime', 'data') : path.join(process.cwd(), 'portable_data'),
     PORTABLE_MODE: 'false',
     APP_PORT: '3001',
     APP_HOST: '127.0.0.1',
