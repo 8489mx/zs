@@ -136,3 +136,38 @@ For a Cloud SaaS environment, proactive monitoring is critical to detect and res
 
 ### What NOT to Log
 - Never log plain text passwords, session tokens, or JWTs. The logger has basic redaction, but avoid passing sensitive objects to logger.info() directly.
+
+## 12. Deployment Procedure (Manual/Hostinger)
+
+Currently, backend deployment on Hostinger is **Manual** via SSH. Frontend deployment is automated via GitHub Actions (FTP).
+
+### Backend Deployment Steps:
+1. **Backup:** Take a database backup (via Supabase dashboard or pg_dump) before any major release.
+2. **Pull Code:** SSH into Hostinger, navigate to the backend directory, and run \`git pull origin main\`.
+3. **Install Dependencies:** If \`package.json\` changed, run \`npm ci\`.
+4. **Build:** Run \`npm run build\` to compile TypeScript.
+5. **Run Migrations (CRITICAL):** Run \`npm run migration:run\`. If it fails, **DO NOT** restart the API.
+6. **Restart Backend:** Run \`pm2 restart api\` (or the respective PM2 process name).
+
+### Post-Deploy Smoke Test
+- Check Liveness: \`/api/health/live\` should return 200.
+- Check Readiness: \`/api/health/ready\` should return 200.
+- Login Test: Open the frontend and log in as an existing tenant.
+- SaaS Admin Test: Verify the platform admin dashboard loads without errors.
+
+## 13. Production Rollback Procedure
+
+If a deployment breaks the production environment:
+
+1. **Revert Git Commit:** SSH into Hostinger and run \`git checkout <last-stable-commit-hash>\` (or revert the merge commit in GitHub).
+2. **Rebuild:** Run \`npm ci\` and \`npm run build\`.
+3. **Database Migrations (WARNING):** 
+   - We **DO NOT** automatically rollback database migrations, as destructive down-migrations can lead to data loss.
+   - If a migration caused the issue, analyze if the code can be rolled back without breaking the schema. If the schema change broke the old code, you must either write a patch forward or restore the database from the pre-deploy backup.
+4. **Restart Backend:** \`pm2 restart api\`.
+5. **Analyze Logs:** Generate a support bundle or check \`pm2 logs api\` to find the root cause of the failure.
+
+## 14. Manual Deployment Risks & Future CD Automation
+
+- **Risks of Manual Backend Deploy:** Human error (forgetting to build, skipping migrations, or running migrations on the wrong environment).
+- **Future CD:** Backend deployments should eventually be automated via GitHub Actions (e.g., using SSH Appleboy action or Hostinger VPS webhooks) to ensure atomic deployments and migration safety.
