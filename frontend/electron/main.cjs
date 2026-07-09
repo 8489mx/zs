@@ -78,6 +78,34 @@ app.whenReady().then(async () => {
     'main.js'
   );
   
+  // Load or generate session secrets securely
+  const fsLib = require('fs');
+  const cryptoLib = require('crypto');
+  const dataDir = app.isPackaged ? path.join(path.dirname(process.execPath), 'data') : path.join(process.cwd(), 'portable_data');
+  const secretsPath = path.join(dataDir, 'secrets.json');
+  let sessionSecret, csrfSecret;
+  try {
+    if (fsLib.existsSync(secretsPath)) {
+      const secretsData = JSON.parse(fsLib.readFileSync(secretsPath, 'utf8'));
+      sessionSecret = secretsData.sessionSecret;
+      csrfSecret = secretsData.csrfSecret;
+    }
+  } catch (err) {
+    console.error('Error reading secrets.json', err);
+  }
+  if (!sessionSecret || !csrfSecret) {
+    sessionSecret = cryptoLib.randomBytes(32).toString('hex');
+    csrfSecret = cryptoLib.randomBytes(32).toString('hex');
+    try {
+      if (!fsLib.existsSync(dataDir)) {
+        fsLib.mkdirSync(dataDir, { recursive: true });
+      }
+      fsLib.writeFileSync(secretsPath, JSON.stringify({ sessionSecret, csrfSecret }), { mode: 0o600 });
+    } catch (err) {
+      console.error('Error writing secrets.json', err);
+    }
+  }
+
   // Provide environment variables for the backend
   const backendEnv = {
     ...process.env,
@@ -88,8 +116,8 @@ app.whenReady().then(async () => {
     APP_HOST: '127.0.0.1',
     APP_MODE: 'SELF_CONTAINED',
     NODE_ENV: 'production',
-    SESSION_SECRET: 'portable-session-secret-local-only-1234567890',
-    SESSION_CSRF_SECRET: 'portable-csrf-secret-local-only-1234567890',
+    SESSION_SECRET: sessionSecret,
+    SESSION_CSRF_SECRET: csrfSecret,
     // Allow requests from the Electron renderer (file:// origin)
     CORS_ORIGINS: 'http://localhost:3001,http://127.0.0.1:3001,file://',
     ALLOW_SESSION_ID_HEADER: 'true',

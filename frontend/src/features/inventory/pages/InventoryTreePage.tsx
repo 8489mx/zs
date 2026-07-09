@@ -136,11 +136,14 @@ function QuickTransferModal({
 
   // For single product: show available sources with qty
   const availableFrom = isSingle
-    ? products[0].locationStocks.filter((s) => s.qty > 0)
+    ? [
+        ...(products[0]?.locationStocks || []).filter((s) => s.qty > 0),
+        ...((products[0]?.unassignedQty || 0) > 0 ? [{ locationId: '-1', locationName: 'رصيد غير مربوط', qty: products[0].unassignedQty }] : [])
+      ]
     : [];
 
   const maxQty = isSingle && fromLocationId
-    ? products[0].locationStocks.find((s) => String(s.locationId || '-1') === fromLocationId)?.qty ?? 0
+    ? availableFrom.find((s) => String(s.locationId) === fromLocationId)?.qty ?? 0
     : 0;
 
   const validTo = locations.filter((l) => !l.name.includes('(محذوف)') && l.id !== fromLocationId);
