@@ -214,10 +214,11 @@ export async function http<T>(path: string, init?: HttpRequestInit): Promise<T> 
   const { signal, clear } = withTimeout(init);
 
   try {
+    const { headers: _overrideHeaders, ...restInit } = init || {};
     const response = await fetch(resolveRequestUrl(path), {
       credentials: 'include',
+      ...restInit,
       headers: buildHeaders(init),
-      ...init,
       signal
     });
 
