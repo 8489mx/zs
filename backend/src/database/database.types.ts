@@ -158,6 +158,7 @@ export interface AuditLogTable {
   id: Generated<number>;
   action: string;
   details: string;
+  target_tenant_id: string | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }

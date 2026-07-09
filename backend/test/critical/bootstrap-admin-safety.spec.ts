@@ -108,6 +108,7 @@ async function runMePayloadSafety(): Promise<void> {
       { id: 'tenant-test', slug: 'tenant-test', business_name: 'Tenant Test', status: 'trial', trial_ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), created_at: new Date() },
     ]) as any,
     new FakeConfigService({ DEFAULT_ADMIN_USERNAME: 'admin', DEFAULT_ADMIN_PASSWORD: defaultPassword }) as any,
+    { log: async () => {} } as any,
   );
 
   const payload = await service.buildMePayload({

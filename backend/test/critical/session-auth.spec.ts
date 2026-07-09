@@ -212,7 +212,7 @@ async function run(): Promise<void> {
     },
   ], [], [{ key: 'storeName', value: 'Z Systems', tenant_id: 'default' }], [{ user_id: 1, branch_id: 7, tenant_id: 'default' }, { user_id: 1, branch_id: 9, tenant_id: 'default' }]);
 
-  const service = new SessionService(db as any, new FakeConfigService({ LOGIN_MAX_ATTEMPTS: 3, LOGIN_LOCKOUT_MINUTES: 15 }) as any);
+  const service = new SessionService(db as any, new FakeConfigService({ LOGIN_MAX_ATTEMPTS: 3, LOGIN_LOCKOUT_MINUTES: 15 }) as any, { log: async () => {} } as any);
 
   const invalid1 = await service.authenticate('admin', 'wrong-pass');
   assert.equal(invalid1, null);

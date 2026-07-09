@@ -241,6 +241,27 @@ export class SaasAdminService {
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
 
+    const owner = await this.db
+      .selectFrom('users')
+      .select(['id', 'username', 'last_login_at'])
+      .where('tenant_id', '=', tenantId)
+      .where('role', '=', 'super_admin')
+      .orderBy('created_at', 'asc')
+      .executeTakeFirst();
+
+    let lastSeenAt: string | null = null;
+    if (owner) {
+      const session = await this.db
+        .selectFrom('sessions')
+        .select(['last_seen_at'])
+        .where('user_id', '=', owner.id)
+        .orderBy('last_seen_at', 'desc')
+        .executeTakeFirst();
+      if (session?.last_seen_at) {
+        lastSeenAt = new Date(session.last_seen_at).toISOString();
+      }
+    }
+
     return {
       tenant: {
         id: tenant.id,
@@ -259,7 +280,42 @@ export class SaasAdminService {
         trialDaysRemaining: this.trialDaysRemaining(tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null),
         usersCount: Number(usersSummary?.users_count || 0),
         activeUsersCount: Number(usersSummary?.active_users_count || 0),
+        lastLoginAt: owner?.last_login_at ? new Date(owner.last_login_at).toISOString() : null,
+        lastSeenAt: lastSeenAt,
       },
+    };
+  }
+
+  async getTenantTimeline(id: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertPlatformAccess(auth);
+    const tenantId = String(id || '').trim();
+    
+    const events = await this.db
+      .selectFrom('audit_logs as a')
+      .leftJoin('users as u', 'u.id', 'a.created_by')
+      .select([
+        'a.id',
+        'a.action',
+        'a.details',
+        'a.created_at',
+        'u.username as actor_name'
+      ])
+      .where((eb) => eb.or([
+        eb('a.tenant_id', '=', tenantId),
+        eb('a.target_tenant_id', '=', tenantId)
+      ]))
+      .orderBy('a.created_at', 'desc')
+      .limit(100)
+      .execute();
+      
+    return {
+      events: events.map(e => ({
+        id: e.id,
+        action: e.action,
+        details: e.details,
+        actorName: e.actor_name || 'System',
+        createdAt: new Date(e.created_at).toISOString()
+      }))
     };
   }
 
@@ -288,7 +344,7 @@ export class SaasAdminService {
       },
     );
 
-    await this.audit.log('إنشاء نسخة تجريبية', `تم إنشاء نسخة تجريبية: ${result.tenant.slug} (${result.tenant.id})`, auth);
+    await this.audit.log('إنشاء نسخة تجريبية', `تم إنشاء نسخة تجريبية: ${result.tenant.slug} (${result.tenant.id})`, auth, { targetTenantId: String(result.tenant.id) });
     return result;
   }
 
@@ -363,7 +419,7 @@ export class SaasAdminService {
       created_at: now,
     } as any).execute();
 
-    await this.audit.log('تسجيل دفعة', `تم تسجيل دفعة بقيمة ${body.amount} ${body.currency} لاشتراك النسخة: ${tenant.slug}`, auth);
+    await this.audit.log('تسجيل دفعة', `تم تسجيل دفعة بقيمة ${body.amount} ${body.currency} لاشتراك النسخة: ${tenant.slug}`, auth, { targetTenantId: tenant.id });
     return { ok: true };
   }
 
@@ -424,7 +480,7 @@ export class SaasAdminService {
       await trx.updateTable('tenants').set({ status: 'active', updated_at: now }).where('id', '=', tenant.id).execute();
     });
     
-    await this.audit.log('تجديد اشتراك', `تم تجديد اشتراك النسخة: ${tenant.slug} لمدة ${body.durationMonths} أشهر`, auth);
+    await this.audit.log('تجديد اشتراك', `تم تجديد اشتراك النسخة: ${tenant.slug} لمدة ${body.durationMonths} أشهر`, auth, { targetTenantId: tenant.id });
     return { ok: true };
   }
 
@@ -498,7 +554,7 @@ export class SaasAdminService {
       }
     });
 
-    await this.audit.log('تفعيل نسخة', `تم تفعيل/ترقية النسخة: ${tenant.slug} (${tenant.id}) ${body.planId ? `بخطة ${body.planId}` : ''}`, auth);
+    await this.audit.log('تفعيل نسخة', `تم تفعيل/ترقية النسخة: ${tenant.slug} (${tenant.id}) ${body.planId ? `بخطة ${body.planId}` : ''}`, auth, { targetTenantId: tenant.id });
     return { ok: true };
   }
 
@@ -509,7 +565,7 @@ export class SaasAdminService {
     const now = new Date();
     await this.db.updateTable('tenants').set({ status: 'suspended', updated_at: now }).where('id', '=', tenant.id).execute();
     const note = [this.normalizeOptional(body.reason), this.normalizeOptional(body.notes)].filter(Boolean).join(' - ');
-    await this.audit.log('إيقاف نسخة', `تم إيقاف النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth);
+    await this.audit.log('إيقاف نسخة', `تم إيقاف النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth, { targetTenantId: tenant.id });
     return { ok: true };
   }
 
@@ -526,7 +582,7 @@ export class SaasAdminService {
       .where('id', '=', tenant.id)
       .execute();
     const note = [this.normalizeOptional(body.reason), this.normalizeOptional(body.notes)].filter(Boolean).join(' - ');
-    await this.audit.log('إنهاء نسخة', `تم إنهاء النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth);
+    await this.audit.log('إنهاء نسخة', `تم إنهاء النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth, { targetTenantId: tenant.id });
     return { ok: true };
   }
 
@@ -551,7 +607,7 @@ export class SaasAdminService {
       } as any)
       .where('id', '=', tenant.id)
       .execute();
-    await this.audit.log('تمديد نسخة تجريبية', `تم تمديد النسخة ${tenant.slug} (${tenant.id}) لمدة ${days} يوم`, auth);
+    await this.audit.log('تمديد نسخة تجريبية', `تم تمديد النسخة ${tenant.slug} (${tenant.id}) لمدة ${days} يوم`, auth, { targetTenantId: tenant.id });
 
     return { ok: true, trialEndsAt: nextTrialEnd.toISOString(), daysAdded: days };
   }
@@ -572,7 +628,7 @@ export class SaasAdminService {
       .where('id', '=', owner.id)
       .execute();
 
-    await this.audit.log('فك قفل مالك النسخة', `تم فك قفل مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth);
+    await this.audit.log('فك قفل مالك النسخة', `تم فك قفل مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth, { targetTenantId: tenant.id });
     return { ok: true };
   }
 
@@ -599,14 +655,8 @@ export class SaasAdminService {
       .where('id', '=', owner.id)
       .execute();
 
-    await this.audit.log('إعادة كلمة مرور مالك النسخة', `تمت إعادة كلمة مرور مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth);
-    return {
-      ok: true,
-      owner: {
-        username: owner.username,
-        temporaryPassword: finalPassword,
-      },
-    };
+    await this.audit.log('إعادة كلمة مرور مالك النسخة', `تمت إعادة كلمة مرور مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth, { targetTenantId: tenant.id });
+    return { ok: true, password: finalPassword, username: owner.username };
   }
 
   async deleteTenant(id: string, auth: AuthContext): Promise<{ ok: boolean }> {
@@ -647,7 +697,7 @@ export class SaasAdminService {
 
     await this.db.deleteFrom('tenants').where('id', '=', tenant.id).execute();
 
-    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) بالكامل من النظام`, auth);
+    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) بالكامل من النظام`, auth, { targetTenantId: tenant.id });
     return { ok: true };
   }
 }

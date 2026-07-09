@@ -26,6 +26,16 @@ export type SaasTenantRow = {
   subscriptionStatus: string | null;
   subscriptionEndDate: string | null;
   graceEndDate: string | null;
+  lastLoginAt?: string | null;
+  lastSeenAt?: string | null;
+};
+
+export type TenantTimelineEvent = {
+  id: number;
+  action: string;
+  details: string;
+  actorName: string;
+  createdAt: string;
 };
 
 export type SaasPlan = {
@@ -99,8 +109,8 @@ export const saasAdminApi = {
   listPlans: () => http<SaasPlan[]>('/api/saas-admin/plans'),
   createPlan: (payload: Omit<SaasPlan, 'id' | 'is_active'>) => http<{ ok: boolean }>('/api/saas-admin/plans', { method: 'POST', body: JSON.stringify(payload) }),
   getSubscriptions: (id: string) => http<{ subscriptions: any[]; payments: any[] }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/subscriptions`),
-  renewTenant: (id: string, payload: { planId: number; durationMonths: number; paymentAmount?: number; paymentMethod?: string; paymentReference?: string }) => 
-    http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/renew`, { method: 'POST', body: JSON.stringify(payload) }),
-  recordPayment: (id: string, payload: RecordPaymentPayload) => 
-    http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/payment`, { method: 'POST', body: JSON.stringify(payload) }),
+  renewTenant: (id: string, payload: { durationMonths: number; planId: number; paymentAmount?: number; paymentMethod?: string; paymentReference?: string }) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/renew`, { method: 'POST', body: JSON.stringify(payload) }),
+  recordPayment: (id: string, payload: RecordPaymentPayload) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/payment`, { method: 'POST', body: JSON.stringify(payload) }),
+  getTenantById: (id: string) => http<{ tenant: SaasTenantRow }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}`),
+  getTenantTimeline: (id: string) => http<{ events: TenantTimelineEvent[] }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/timeline`),
 };

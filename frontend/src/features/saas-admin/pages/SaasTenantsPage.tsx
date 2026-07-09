@@ -14,6 +14,7 @@ import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 import { ApiError } from '@/lib/http';
 import { isPlatformAdmin } from '@/app/router/access';
 import { saasAdminApi, SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
+import { TenantDetailsModal } from '../components/TenantDetailsModal';
 
 type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner' | 'delete';
 type SaasTenantsResponse = { tenants: SaasTenantRow[] };
@@ -69,6 +70,8 @@ export function SaasTenantsPage() {
   const [paymentCurrency, setPaymentCurrency] = useState('EGP');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentReference, setPaymentReference] = useState('');
+
+  const [detailsTenantId, setDetailsTenantId] = useState<string | null>(null);
 
   const plansQuery = useQuery({
     queryKey: ['saas-plans'],
@@ -284,7 +287,11 @@ export function SaasTenantsPage() {
                 header: 'النشاط',
                 sortable: true,
                 sortValue: (row) => row.businessName,
-                render: (row) => <strong>{row.businessName}</strong>,
+                render: (row) => (
+                  <button type="button" className="text-blue-600 hover:underline font-bold" onClick={() => setDetailsTenantId(row.id)}>
+                    {row.businessName || row.slug}
+                  </button>
+                ),
               },
               {
                 id: 'owner',
@@ -593,6 +600,8 @@ export function SaasTenantsPage() {
           </div>
         </div>
       ) : null}
+
+      <TenantDetailsModal tenantId={detailsTenantId} onClose={() => setDetailsTenantId(null)} />
 
     </div>
   );

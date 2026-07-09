@@ -51,6 +51,7 @@ Whenever releasing a major update to the SaaS billing engine, run a manual or au
 - [ ] **SaaS Plans**: Verify Platform Admin can view and create pricing plans in the SaaS Admin dashboard.
 - [ ] **SaaS Activation**: Use the SaaS Admin dashboard to assign a paid plan to the tenant, specifying duration and recording the initial payment.
 - [ ] **SaaS Renewal**: Test renewing the tenant subscription and verify the end date is extended correctly.
+- [ ] **Tenant Details & Timeline**: Click on a tenant's name in the SaaS Admin dashboard. Verify the modal displays correct tenant details and timeline events (e.g. activation, login success/failure).
 - [ ] **Expiry**: Manually update the `ends_at` date in the database or via API to an expired date.
 - [ ] **Grace Period Check**: Verify login still works if within `SAAS_DEFAULT_GRACE_DAYS`.
 - [ ] **Lockout Check**: Shift the `ends_at` date past the grace period. Verify login is blocked with `SubscriptionExpired` or `PaymentRequired`.

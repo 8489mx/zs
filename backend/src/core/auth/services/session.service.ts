@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { AuditService } from '../../audit/audit.service';
 import { createPasswordRecord, verifyPassword } from '../utils/password-hasher';
 import { assertStrongPassword } from '../utils/password-policy';
 import { resolveTenantContext } from '../utils/tenant-context';
@@ -34,6 +35,7 @@ export class SessionService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly configService: ConfigService,
+    private readonly audit: AuditService,
   ) {}
 
   private get lockoutConfig() {
@@ -206,6 +208,8 @@ export class SessionService {
       const nextFailedLoginCount = Number(user.failed_login_count ?? 0) + 1;
       const shouldLock = nextFailedLoginCount >= maxAttempts;
       await this.db.updateTable('users').set({ failed_login_count: shouldLock ? 0 : nextFailedLoginCount, locked_until: shouldLock ? new Date(Date.now() + lockoutMinutes * 60 * 1000) : null }).where('id', '=', user.id).execute();
+      const tenantContext = this.resolveUserTenantContext(user);
+      await this.audit.log('تسجيل دخول فاشل', `محاولة دخول فاشلة للمستخدم ${user.username}`, { userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId }, { targetTenantId: tenantContext.tenantId });
       return null;
     }
     const tenantContext = this.resolveUserTenantContext(user);
@@ -221,6 +225,7 @@ export class SessionService {
       userSecurityUpdates.password_salt = upgradedPassword.salt;
     }
     await this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute();
+    await this.audit.log('تسجيل الدخول', `نجاح تسجيل الدخول للمستخدم ${user.username}`, { userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId }, { targetTenantId: tenantContext.tenantId });
     return { sessionId, expiresAt, auth: { userId: user.id, sessionId, username: user.username, role: user.role, permissions: safeJsonArray(user.permissions_json), ...tenantContext } };
   }
 
@@ -229,6 +234,7 @@ export class SessionService {
     if (auth) {
       const { tenantId } = this.scope(auth);
       query = query.where(sql<boolean>`tenant_id = ${tenantId}`);
+      await this.audit.log('تسجيل الخروج', `تم تسجيل الخروج للمستخدم ${auth.username}`, auth, { targetTenantId: auth.tenantId });
     }
     await query.execute();
   }

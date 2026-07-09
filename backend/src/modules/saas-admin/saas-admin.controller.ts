@@ -46,6 +46,11 @@ export class SaasAdminController {
     return this.service.getTenantById(id, req.authContext!);
   }
 
+  @Get('tenants/:id/timeline')
+  getTenantTimeline(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.service.getTenantTimeline(id, req.authContext!);
+  }
+
   @Post('tenants/trial')
   createTrialTenant(@Body() body: CreateTrialTenantDto, @Req() req: RequestWithAuth) {
     return this.service.createTrialTenant(body, req.authContext!);

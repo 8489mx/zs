@@ -31,6 +31,7 @@ The following critical milestones have been achieved and verified:
   - Billing engine to handle Plans, Subscriptions, Renewals, and Manual Payments.
   - Grace period enforcement and automatic lockout upon subscription expiry.
   - Comprehensive SaaS Admin Dashboard for managing tenants, plans, and payments.
+  - Platform Super Admin has access to Tenant Details & Activity Timeline, displaying core events securely (no secrets, no full page histories) and restricted from normal tenant owners.
 
 - **Live SaaS Operations & Infrastructure**:
   - Supabase connection pooling (PgBouncer/Supavisor) configured for scale.
