@@ -216,7 +216,9 @@ export class InventoryTransferService {
     if (payload.fromLocationId === payload.toLocationId) throw new AppError('Source and destination locations must be different', 'INVALID_TRANSFER', 400);
     ensureUniqueFlowItems(payload.items || [], 'TRANSFER_DUPLICATE_PRODUCT', 'Transfer must not contain duplicate product rows');
     const scope = this.tenantScope(auth);
-    const from = await this.scope.assertLocationScope(payload.fromLocationId, auth, true);
+    const from = payload.fromLocationId === -1 
+      ? { id: null, branchId: null, name: 'رصيد غير مربوط' } 
+      : await this.scope.assertLocationScope(payload.fromLocationId, auth, true);
     const to = await this.scope.assertLocationScope(payload.toLocationId, auth);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
@@ -227,7 +229,7 @@ export class InventoryTransferService {
 
         // Deduct from source
         const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
-        const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `Insufficient stock at ${from.name} for ${product.name}` });
+        const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `Insufficient stock for ${product.name}` });
         await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'internal_transfer', qty: -qty, before_qty: fromChange.scopeBefore, after_qty: fromChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل داخلي إلى ${to.name}`, reference_type: 'none', reference_id: null, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
 
         // Add to destination

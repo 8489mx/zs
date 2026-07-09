@@ -140,7 +140,7 @@ function QuickTransferModal({
     : [];
 
   const maxQty = isSingle && fromLocationId
-    ? products[0].locationStocks.find((s) => s.locationId === fromLocationId)?.qty ?? 0
+    ? products[0].locationStocks.find((s) => String(s.locationId || '-1') === fromLocationId)?.qty ?? 0
     : 0;
 
   const validTo = locations.filter((l) => !l.name.includes('(محذوف)') && l.id !== fromLocationId);
@@ -164,7 +164,7 @@ function QuickTransferModal({
         
         if (consolidate) {
           // If we transferred everything from the source, we can safely delete the source location link
-          if (transferAll) {
+          if (transferAll && Number(fromLocationId) !== -1) {
             await inventoryApi.removeProductFromLocation(Number(fromLocationId), Number(products[0].id));
           }
           // Also clean up any other 0-qty locations to fully consolidate
@@ -220,7 +220,7 @@ function QuickTransferModal({
           <FieldLabel>من مخزن</FieldLabel>
           <select value={fromLocationId} onChange={(e) => setFromLocationId(e.target.value)} style={selectStyle}>
             <option value="">اختر مخزن المصدر...</option>
-            {availableFrom.map((s) => <option key={s.locationId} value={s.locationId}>{s.locationName} ({s.qty})</option>)}
+            {availableFrom.map((s) => <option key={s.locationId || '-1'} value={s.locationId || '-1'}>{s.locationName || 'رصيد غير مربوط'} ({s.qty})</option>)}
           </select>
         </>
       )}
