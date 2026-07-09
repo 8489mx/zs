@@ -75,6 +75,23 @@ function QuickAssignModal({
     setLoading(true);
     try {
       await inventoryApi.assignProductsToLocation(Number(toLocationId), products.map((p) => Number(p.id)));
+      
+      // Transfer unassigned stock if any
+      for (const p of products) {
+        if (p.unassignedQty && p.unassignedQty > 0) {
+          try {
+            await inventoryApi.internalTransferProducts({
+              fromLocationId: -1,
+              toLocationId: Number(toLocationId),
+              items: [{ productId: Number(p.id), qty: p.unassignedQty }],
+              note: 'ربط الرصيد العائم بمخزن',
+            });
+          } catch (err) {
+            console.warn('Could not transfer unlinked stock', err);
+          }
+        }
+      }
+
       onDone();
     } catch (e: any) {
       setError(e?.message || 'حدث خطأ');
@@ -324,6 +341,19 @@ function QuickConsolidateModal({
             await inventoryApi.removeProductFromLocation(Number(stock.locationId), Number(p.id));
           } catch (e: any) {
             console.warn('Could not remove location link (might be already removed):', e);
+          }
+        }
+
+        if (p.unassignedQty && p.unassignedQty > 0) {
+          try {
+            await inventoryApi.internalTransferProducts({
+              fromLocationId: -1,
+              toLocationId: Number(toLocationId),
+              items: [{ productId: Number(p.id), qty: p.unassignedQty }],
+              note: 'توحيد مخازن الصنف (رصيد عائم)',
+            });
+          } catch (err: any) {
+            console.warn('Could not transfer unlinked stock', err);
           }
         }
       }
@@ -791,7 +821,7 @@ export function InventoryTreePage() {
 
       const sumFromLocations = locationStocks.reduce((sum, s) => sum + s.qty, 0);
       const globalStock = Number(p.stock || p.stockQty || 0);
-      const totalQty = sumFromLocations > 0 ? sumFromLocations : globalStock;
+      const totalQty = Math.max(globalStock, sumFromLocations);
 
       const unassignedQty = globalStock > sumFromLocations ? globalStock - sumFromLocations : 0;
 

@@ -16,7 +16,7 @@ class StockTransferItemDto {
 export class CreateStockTransferDto {
   @Type(() => Number)
   @IsNumber()
-  @Min(1)
+  @Min(-1)
   fromLocationId!: number;
 
   @IsOptional()
