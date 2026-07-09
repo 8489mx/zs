@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import * as Sentry from '@sentry/react';
 
 interface Props {
   children: ReactNode;
@@ -20,6 +21,14 @@ export class SilentErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     
+    if (import.meta.env.VITE_ERROR_TRACKING_ENABLED === 'true') {
+      Sentry.captureException(error, {
+        contexts: {
+          react: { componentStack: errorInfo.componentStack }
+        }
+      });
+    }
+
     // Silently log to backend
     fetch('/api/logs/frontend-error', {
       method: 'POST',

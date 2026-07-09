@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { json, urlencoded } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -25,6 +26,49 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 
 async function bootstrap(): Promise<void> {
+  if (process.env.ERROR_TRACKING_ENABLED === 'true' && process.env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.SENTRY_ENVIRONMENT || 'production',
+      release: process.env.SENTRY_RELEASE,
+      tracesSampleRate: 0,
+      profilesSampleRate: 0,
+      beforeSend(event) {
+        if (event.request?.headers) {
+          const headers = event.request.headers;
+          const sensitiveHeaders = ['authorization', 'cookie', 'session-id', 'csrf-token'];
+          for (const key of Object.keys(headers)) {
+            if (sensitiveHeaders.some(h => key.toLowerCase().includes(h))) {
+              headers[key] = '[REDACTED]';
+            }
+          }
+        }
+        
+        if (event.request?.cookies) {
+          event.request.cookies = { redacted: '[REDACTED]' };
+        }
+
+        if (event.request?.data) {
+          try {
+            const data = typeof event.request.data === 'string' ? JSON.parse(event.request.data) : event.request.data;
+            if (data && typeof data === 'object') {
+              const sensitiveKeys = ['password', 'token', 'secret', 'connection', 'smtp', 'db'];
+              for (const key of Object.keys(data)) {
+                if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+                  data[key] = '[REDACTED]';
+                }
+              }
+              event.request.data = typeof event.request.data === 'string' ? JSON.stringify(data) : data;
+            }
+          } catch (e) {
+            // ignore JSON parse errors
+          }
+        }
+        return event;
+      }
+    });
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });

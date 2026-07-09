@@ -173,3 +173,10 @@ If a deployment breaks the production environment:
 
 - **Risks of Manual Backend Deploy:** Human error (forgetting to build, skipping migrations, or running migrations on the wrong environment).
 - **Future CD:** Backend deployments should eventually be automated via GitHub Actions (e.g., using SSH Appleboy action or Hostinger VPS webhooks) to ensure atomic deployments and migration safety.
+
+### Sentry Error Tracking
+- Sentry is configured for backend and frontend but is **disabled by default**.
+- Production activation requires setting `ERROR_TRACKING_ENABLED=true` (backend) or `VITE_ERROR_TRACKING_ENABLED=true` (frontend) and providing the respective `DSN` in the environment variables.
+- To keep it lightweight and secure, tracing, session replay, and profiling are disabled by default (rates set to 0).
+- No secrets (passwords, tokens, DB connection strings, cookies, auth headers) will be sent due to built-in redaction logic.
+- Source map uploads are postponed unless done with secure CI secrets.

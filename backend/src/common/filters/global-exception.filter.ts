@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { mapToHttpException } from '../mappers/error.mapper';
 import { LoggerService } from '../../core/logging/logger.service';
+import * as Sentry from '@sentry/node';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -56,6 +57,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         },
         `Unhandled server error ${status}`,
       );
+      
+      if (process.env.ERROR_TRACKING_ENABLED === 'true') {
+        Sentry.captureException(exception);
+      }
     } else {
       this.logger.error(
         {

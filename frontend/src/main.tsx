@@ -4,6 +4,18 @@ import { AppProviders } from '@/app/providers';
 import { AppRouter } from '@/app/router';
 import '@/styles/app.css';
 import '@/lib/i18n';
+import * as Sentry from '@sentry/react';
+
+if (import.meta.env.VITE_ERROR_TRACKING_ENABLED === 'true' && import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || 'production',
+    release: import.meta.env.VITE_SENTRY_RELEASE,
+    tracesSampleRate: 0,
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
+  });
+}
 
 const reportGlobalError = (error: any, type: string) => {
   try {

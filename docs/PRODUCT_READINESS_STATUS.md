@@ -56,3 +56,9 @@ The development phase for core platform readiness is officially complete. The pr
 2. Monitor Supabase connection limits during initial scaling.
 3. Train the support team on using the SaaS Admin dashboard for billing and tenant life cycle management.
 4. Schedule regular reviews of the application error logs (Sentry/Pino) to proactively identify production issues.
+
+### Lightweight Error Tracking
+- **Sentry Integration:** Implemented safely on backend and frontend.
+- **Status:** Disabled by default; opt-in via environment variables.
+- **Privacy:** Strong redaction prevents secret/PII leaks.
+- **Performance:** Replay, profiling, and performance tracing are explicitly disabled to maintain zero overhead by default.
