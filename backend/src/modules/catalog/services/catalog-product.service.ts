@@ -1188,6 +1188,23 @@ export class CatalogProductService {
       await this.ensureProductIdentityAvailable(draft, actor);
     }
 
+    let resolvedLocationId = normalized.warehouseId || null;
+    const hasAnyInitialStock = drafts.some(d => Number(d.stock || 0) > 0);
+    if (hasAnyInitialStock && !resolvedLocationId) {
+      const settingsRaw = await this.db.selectFrom('settings').selectAll().where(this.tenantPredicate(actor)).execute();
+      const settings = settingsRaw.reduce<Record<string, unknown>>((acc, row) => { try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; } return acc; }, {});
+      if (settings.currentLocationId) {
+        resolvedLocationId = Number(settings.currentLocationId);
+      } else {
+        const activeLocs = await this.db.selectFrom('stock_locations').select('id').where('is_active', '=', true).where(this.tenantPredicate(actor)).execute();
+        if (activeLocs.length === 1) {
+          resolvedLocationId = activeLocs[0].id;
+        } else if (activeLocs.length > 1) {
+          throw new AppError('يجب تحديد مكان استلام عند إضافة رصيد افتتاحي، وتوجد عدة أماكن متاحة.', 'LOCATION_REQUIRED', 400);
+        }
+      }
+    }
+
     await this.db.transaction().execute(async (trx) => {
       for (const draft of drafts) {
         const initialStockQty = Number(draft.stock || 0);
@@ -1209,7 +1226,7 @@ export class CatalogProductService {
             wholesale_price: draft.wholesalePrice,
             stock_qty: initialStockQty,
             min_stock_qty: draft.minStock,
-            default_location_id: draft.warehouseId || null,
+            default_location_id: resolvedLocationId,
             notes: draft.notes,
             is_active: true,
             ...this.tenantFields(actor),
@@ -1219,7 +1236,7 @@ export class CatalogProductService {
         const productId = Number(result.id);
         await this.replaceProductRelations(trx, productId, draft, actor);
         if (initialStockQty > 0) {
-          await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: draft.warehouseId || null, qty: initialStockQty, ...this.tenantFields(actor) }).execute();
+          await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: resolvedLocationId, qty: initialStockQty, ...this.tenantFields(actor) }).execute();
         }
       }
     });

@@ -70,7 +70,8 @@ export const branchFormSchema = z.object({
 export const locationFormSchema = z.object({
   name: z.string().min(2, 'اسم المخزن مطلوب'),
   code: z.string().optional(),
-  branchId: z.string().optional()
+  branchId: z.string().optional(),
+  locationType: z.enum(['internal_warehouse', 'branch_stock']).default('internal_warehouse'),
 });
 
 export type SettingsFormInput = z.input<typeof settingsFormSchema>;

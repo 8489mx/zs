@@ -53,7 +53,7 @@ export interface LocationFormProps {
   canManageSettings: boolean;
   setupMode?: boolean;
   onSetupAdvance?: () => void;
-  initialValues?: { name?: string; code?: string; branchId?: string };
+  initialValues?: { name?: string; code?: string; branchId?: string; locationType?: 'internal_warehouse' | 'branch_stock' };
   onCreated?: (payload: { locationId?: string | null; name: string; branchId: string }) => void;
 }
 

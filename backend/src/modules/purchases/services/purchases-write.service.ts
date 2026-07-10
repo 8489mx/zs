@@ -174,27 +174,46 @@ export class PurchasesWriteService {
 
       const normalizedItems = [];
       const repricingCandidates: PurchaseRepricingCandidate[] = [];
-      const allowZeroPurchaseCost = await trx
+      const settingsResult = await trx
         .selectFrom('settings')
-        .select('value')
-        .where('key', '=', 'allowZeroPurchaseCost')
+        .select(['key', 'value'])
+        .where('key', 'in', ['allowZeroPurchaseCost', 'currentLocationId'])
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .executeTakeFirst()
-        .then((row) => {
-          if (!row || !row.value) return false;
-          try {
-            return JSON.parse(row.value) === true;
-          } catch {
-            return String(row.value).toLowerCase() === 'true';
-          }
-        });
+        .execute();
+      
+      const allowZeroRow = settingsResult.find((r) => r.key === 'allowZeroPurchaseCost');
+      let allowZeroPurchaseCost = false;
+      if (allowZeroRow && allowZeroRow.value) {
+        try { allowZeroPurchaseCost = JSON.parse(allowZeroRow.value) === true; } catch { allowZeroPurchaseCost = String(allowZeroRow.value).toLowerCase() === 'true'; }
+      }
+      
+      const defaultReceivingLocationRow = settingsResult.find((r) => r.key === 'currentLocationId');
+      const defaultReceivingLocationId = defaultReceivingLocationRow?.value ? Number(defaultReceivingLocationRow.value) : null;
+      
+      const activeLocations = await trx.selectFrom('stock_locations').select('id').where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).execute();
+      const singleActiveLocationId = activeLocations.length === 1 ? Number(activeLocations[0].id) : null;
 
       for (const item of items) {
         if (Number(item.cost || 0) <= 0 && !allowZeroPurchaseCost) {
           throw new AppError('Purchase item cost must be greater than zero', 'INVALID_PURCHASE_COST', 400);
         }
-        const product = await trx.selectFrom('products').select(['id', 'name', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price', 'default_location_id']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        let finalLocationId = item.locationId ? Number(item.locationId) : null;
+        if (!finalLocationId) {
+          finalLocationId = product.default_location_id ? Number(product.default_location_id) : null;
+        }
+        if (!finalLocationId) {
+          finalLocationId = defaultReceivingLocationId;
+        }
+        if (!finalLocationId && singleActiveLocationId) {
+          finalLocationId = singleActiveLocationId;
+        }
+        if (!finalLocationId) {
+          throw new AppError(`يجب تحديد مكان الاستلام للسطر الخاص بالصنف ${product.name}`, 'LOCATION_REQUIRED', 400);
+        }
+        item.locationId = finalLocationId;
+        
         normalizedItems.push(buildNormalizedPurchaseItem(item, product));
         repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, Number(item.cost || 0)));
       }
@@ -262,7 +281,7 @@ export class PurchasesWriteService {
 
 
         const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
-        const itemLocationId = item.locationId ?? locationId;
+        const itemLocationId = item.locationId!;
         const stockChange = await applyStockDelta(trx, {
           productId: item.productId,
           delta: increasedQty,
@@ -417,17 +436,39 @@ export class PurchasesWriteService {
           }
         });
 
+      const settingsRaw = await trx.selectFrom('settings').selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      const settings = settingsRaw.reduce<Record<string, unknown>>((acc, row) => { try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; } return acc; }, {});
+      const activeLocs = await trx.selectFrom('stock_locations').select('id').where('is_active', '=', true).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      const activeLocationsCount = activeLocs.length;
+      const singleActiveLocationId = activeLocationsCount === 1 ? activeLocs[0].id : null;
+      const defaultReceivingLocationId = settings.currentLocationId ? Number(settings.currentLocationId) : null;
+
       for (const item of payload.items || []) {
         if (Number(item.cost || 0) <= 0 && !allowZeroPurchaseCost) {
           throw new AppError('Purchase item cost must be greater than zero', 'INVALID_PURCHASE_COST', 400);
         }
-        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price', 'default_location_id']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const incomingCost = Number(item.cost || 0);
         const originalCost = oldByProduct.has(Number(item.productId)) ? Number(oldByProduct.get(Number(item.productId)) || 0) : incomingCost;
         if (Math.abs(incomingCost - originalCost) > 0.0001 && !this.hasPermission(auth, 'canEditPrice')) {
           throw new AppError(`Cost edit is not allowed for ${product.name}`, 'COST_EDIT_NOT_ALLOWED', 403);
         }
+        let finalLocationId = item.locationId ? Number(item.locationId) : null;
+        if (!finalLocationId) {
+          finalLocationId = product.default_location_id ? Number(product.default_location_id) : null;
+        }
+        if (!finalLocationId) {
+          finalLocationId = defaultReceivingLocationId;
+        }
+        if (!finalLocationId && singleActiveLocationId) {
+          finalLocationId = singleActiveLocationId;
+        }
+        if (!finalLocationId) {
+          throw new AppError(`يجب تحديد مكان الاستلام للسطر الخاص بالصنف ${product.name}`, 'LOCATION_REQUIRED', 400);
+        }
+        item.locationId = finalLocationId;
+
         const normalizedItem = buildNormalizedPurchaseItem({ ...item, cost: incomingCost }, product);
         normalizedItems.push(normalizedItem);
         repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, incomingCost));
@@ -462,7 +503,7 @@ export class PurchasesWriteService {
         }).execute();
 
         const { increasedQty: increaseQty } = calculatePurchaseStockIncrease(normalizedItem.qty, normalizedItem.unitMultiplier, 0);
-        const itemLocationId = normalizedItem.locationId ?? locationId;
+        const itemLocationId = normalizedItem.locationId!;
         const stockChange = await applyStockDelta(trx, {
           productId: normalizedItem.productId,
           delta: increaseQty,

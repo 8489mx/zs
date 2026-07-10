@@ -36,5 +36,6 @@ export const SUPER_ADMIN_PERMISSIONS = [
   'canDelete',
   'canEditInvoices',
   'canAdjustInventory',
+  'canManageBranchStock',
   'cashDrawer',
 ];

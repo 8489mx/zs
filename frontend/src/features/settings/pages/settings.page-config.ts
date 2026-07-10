@@ -3,7 +3,7 @@ export type SettingsSectionKey = 'overview' | 'core' | 'reference' | 'backup' | 
 export const settingsSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
   { key: 'overview', label: 'ملخص سريع' },
   { key: 'core', label: 'بيانات النشاط' },
-  { key: 'reference', label: 'المخازن' },
+  { key: 'reference', label: 'أماكن المخزون' },
   { key: 'users', label: 'المستخدمون والصلاحيات', adminOnly: true },
   { key: 'system-updates', label: 'الإصدارات والتحديثات', offlineOnly: true },
   { key: 'backup', label: 'النسخ والاستيراد' },
@@ -13,7 +13,7 @@ export const settingsSections: Array<{ key: SettingsSectionKey; label: string; a
 // Extra standalone pages linked from settings sidebar
 export const settingsStandaloneLinks: Array<{ label: string; to: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
   { label: 'إصدارات الأوفلاين 🖥️', to: '/settings/offline-releases', superAdminOnly: true },
-  { label: 'إدارة المخازن المتقدمة', to: '/settings/locations', adminOnly: true },
+  { label: 'إدارة أماكن المخزون المتقدمة', to: '/settings/locations', adminOnly: true },
 ];
 
 

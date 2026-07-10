@@ -28,14 +28,19 @@ export class SettingsService {
 
   async listLocations(actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(actor);
-    const rows = await this.db
+    let query = this.db
       .selectFrom('stock_locations as l')
       .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${scope.tenantId}`))
-      .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active'])
+      .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active', 'l.location_type'])
       .where(this.tenantPredicate(actor, 'l'))
-      .orderBy('l.id', 'asc')
-      .execute();
-    return { locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', isActive: row.is_active })), scope };
+      .orderBy('l.id', 'asc');
+
+    if (actor.role === 'storekeeper' && !actor.permissions?.includes('canManageBranchStock')) {
+      query = query.where('l.location_type', '!=', 'branch_stock');
+    }
+
+    const rows = await query.execute();
+    return { locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', isActive: row.is_active, locationType: row.location_type })), scope };
   }
 
   async saveSettings(payload: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
@@ -96,19 +101,20 @@ export class SettingsService {
     return { ok: true, branch: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '' }, ...(await this.listBranches(actor)) };
   }
 
-  async createLocation(payload: { name?: string; code?: string; branchId?: string | number | null }, actor: AuthContext): Promise<Record<string, unknown>> {
+  async createLocation(payload: { name?: string; code?: string; branchId?: string | number | null; locationType?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(actor);
     const name = String(payload.name || '').trim();
     const code = String(payload.code || '').trim();
     const branchId = payload.branchId === '' || payload.branchId == null ? null : Number(payload.branchId);
+    const locationType = String(payload.locationType || 'internal_warehouse').trim();
     if (!name) throw new AppError('Location name is required', 'LOCATION_NAME_REQUIRED', 400);
     if (branchId !== null) {
       const branch = await this.db.selectFrom('branches').select(['id']).where('id', '=', branchId).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
       if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);
     }
-    const inserted = await this.db.insertInto('stock_locations').values({ name, code, branch_id: branchId, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId }).returning(['id', 'name', 'code', 'branch_id']).executeTakeFirstOrThrow();
+    const inserted = await this.db.insertInto('stock_locations').values({ name, code, branch_id: branchId, location_type: locationType as any, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId }).returning(['id', 'name', 'code', 'branch_id', 'location_type']).executeTakeFirstOrThrow();
     await this.audit.log('إضافة مخزن', `تمت إضافة المخزن ${name} بواسطة ${actor.username}`, actor);
-    return { ok: true, location: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '', branchId: inserted.branch_id ? String(inserted.branch_id) : '' }, ...(await this.listLocations(actor)) };
+    return { ok: true, location: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '', branchId: inserted.branch_id ? String(inserted.branch_id) : '', locationType: inserted.location_type }, ...(await this.listLocations(actor)) };
   }
 
   async updateBranch(id: number, payload: { name?: string; code?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
@@ -132,18 +138,19 @@ export class SettingsService {
     return { ok: true, removedBranchId: String(id), ...(await this.listBranches(actor)) };
   }
 
-  async updateLocation(id: number, payload: { name?: string; code?: string; branchId?: string | number | null }, actor: AuthContext): Promise<Record<string, unknown>> {
+  async updateLocation(id: number, payload: { name?: string; code?: string; branchId?: string | number | null; locationType?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
     const location = await this.db.selectFrom('stock_locations').select(['id']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!location) throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
     const name = String(payload.name || '').trim();
     const code = String(payload.code || '').trim();
     const branchId = payload.branchId === '' || payload.branchId == null ? null : Number(payload.branchId);
+    const locationType = String(payload.locationType || 'internal_warehouse').trim();
     if (!name) throw new AppError('Location name is required', 'LOCATION_NAME_REQUIRED', 400);
     if (branchId !== null) {
       const branch = await this.db.selectFrom('branches').select(['id']).where('id', '=', branchId).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
       if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);
     }
-    await this.db.updateTable('stock_locations').set({ name, code, branch_id: branchId }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+    await this.db.updateTable('stock_locations').set({ name, code, branch_id: branchId, location_type: locationType as any }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     await this.audit.log('تعديل مخزن', `تم تحديث المخزن #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, locationId: String(id), ...(await this.listLocations(actor)) };
   }

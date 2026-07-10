@@ -20,8 +20,8 @@ export const inventoryRouteModule: FeatureRouteModule = {
   ],
   navigation: [
     { key: 'inventory', label: 'المخزون والأصناف', to: '/inventory', end: true },
-    { key: 'inventory-warehouses', label: 'المخازن', to: '/inventory/warehouses' },
-    { key: 'inventory-warehouses-management', label: 'إدارة المخازن', to: '/inventory/warehouses-management' },
+    { key: 'inventory-warehouses', label: 'أماكن المخزون', to: '/inventory/warehouses' },
+    { key: 'inventory-warehouses-management', label: 'إدارة أماكن المخزون', to: '/inventory/warehouses-management' },
     { key: 'inventory-issue-order-new', label: 'إذن صرف جديد', to: '/inventory/issue-order/new' },
     { key: 'inventory-issue-orders', label: 'سجل أذونات الصرف', to: '/inventory/transfers' }
   ]

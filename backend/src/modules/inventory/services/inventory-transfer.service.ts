@@ -78,8 +78,8 @@ export class InventoryTransferService {
     if (payload.fromLocationId === payload.toLocationId && payload.toLocationId != null) throw new AppError('Source and destination locations must be different', 'INVALID_TRANSFER', 400);
     ensureUniqueFlowItems(payload.items || [], 'TRANSFER_DUPLICATE_PRODUCT', 'Transfer must not contain duplicate product rows with the same unit');
     const scope = this.tenantScope(auth);
-    const from = await this.scope.assertLocationScope(payload.fromLocationId, auth, true);
-    const to = payload.toLocationId ? await this.scope.assertLocationScope(payload.toLocationId, auth) : null;
+    const from = await this.scope.assertLocationScope(payload.fromLocationId, auth, true, 'write');
+    const to = payload.toLocationId ? await this.scope.assertLocationScope(payload.toLocationId, auth, false, 'write') : null;
     
     if (!to && !payload.toBranchId) {
       throw new AppError('Destination location or branch is required', 'INVALID_TRANSFER', 400);
@@ -158,8 +158,8 @@ export class InventoryTransferService {
   async transferCategory(payload: { categoryId: number; fromLocationId: number; toLocationId: number; notes?: string }, auth: AuthContext): Promise<Record<string, unknown>> {
     if (payload.fromLocationId === payload.toLocationId) throw new AppError('Source and destination locations must be different', 'INVALID_TRANSFER', 400);
     const scope = this.tenantScope(auth);
-    const from = await this.scope.assertLocationScope(payload.fromLocationId, auth, true);
-    const to = await this.scope.assertLocationScope(payload.toLocationId, auth);
+    const from = await this.scope.assertLocationScope(payload.fromLocationId, auth, true, 'write');
+    const to = await this.scope.assertLocationScope(payload.toLocationId, auth, false, 'write');
     
     await this.tx.runInTransaction(this.db, async (trx) => {
       // Find all products in this category that have stock > 0 in the fromLocation
@@ -218,8 +218,8 @@ export class InventoryTransferService {
     const scope = this.tenantScope(auth);
     const from = payload.fromLocationId === -1 
       ? { id: null, branchId: null, name: 'رصيد غير مربوط' } 
-      : await this.scope.assertLocationScope(payload.fromLocationId, auth, true);
-    const to = await this.scope.assertLocationScope(payload.toLocationId, auth);
+      : await this.scope.assertLocationScope(payload.fromLocationId, auth, true, 'write');
+    const to = await this.scope.assertLocationScope(payload.toLocationId, auth, false, 'write');
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       for (const item of payload.items) {
@@ -255,8 +255,8 @@ export class InventoryTransferService {
   async internalTransferCategory(payload: { categoryId: number; fromLocationId: number; toLocationId: number; note?: string }, auth: AuthContext): Promise<Record<string, unknown>> {
     if (payload.fromLocationId === payload.toLocationId) throw new AppError('Source and destination locations must be different', 'INVALID_TRANSFER', 400);
     const scope = this.tenantScope(auth);
-    const from = await this.scope.assertLocationScope(payload.fromLocationId, auth, true);
-    const to = await this.scope.assertLocationScope(payload.toLocationId, auth);
+    const from = await this.scope.assertLocationScope(payload.fromLocationId, auth, true, 'write');
+    const to = await this.scope.assertLocationScope(payload.toLocationId, auth, false, 'write');
     
     await this.tx.runInTransaction(this.db, async (trx) => {
       // Find all products in this category that have stock > 0 in the fromLocation

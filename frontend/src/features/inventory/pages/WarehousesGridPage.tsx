@@ -11,8 +11,8 @@ export function WarehousesGridPage() {
   return (
     <main className="document-prototype-column">
       <PageHeader 
-        title="المخازن" 
-        description="استعراض وتقسيم المخازن وعرض أرصدة الأصناف" 
+        title="أماكن المخزون" 
+        description="استعراض وتقسيم أماكن المخزون وعرض أرصدة الأصناف" 
         actions={(
           <div className="actions compact-actions page-header-actions">
             <button 
@@ -21,14 +21,14 @@ export function WarehousesGridPage() {
               style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4z"/><path d="M4 11l8 4 8-4"/><path d="M4 15l8 4 8-4"/></svg>
-              الإدارة من خلال شجرة المخازن المجمعة
+              الإدارة من خلال شجرة أماكن المخزون المجمعة
             </button>
-            <button className="btn" onClick={() => navigate('/inventory/warehouses-management')}>إدارة إعدادات المخازن</button>
+            <button className="btn" onClick={() => navigate('/inventory/warehouses-management')}>إدارة إعدادات أماكن المخزون</button>
           </div>
         )}
       />
 
-      <FormSection title="قائمة المخازن">
+      <FormSection title="قائمة أماكن المخزون">
         {locationsQuery.isLoading ? (
           <div className="muted small" style={{ padding: 20, textAlign: 'center' }}>جاري التحميل...</div>
         ) : locations.length === 0 ? (

@@ -2,10 +2,10 @@ import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','cashDrawer'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','canManageBranchStock','cashDrawer'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageSettings'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageBranchStock','canManageSettings'
 ];
 export const DEFAULT_CASHIER_PERMS = ['sales', 'cashDrawer', 'customers', 'returns', 'products', 'canPrint'];
 
@@ -29,6 +29,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   canEditPrice: 'تعديل السعر',
   canEditInvoices: 'تعديل الفواتير',
   canAdjustInventory: 'تعديل رصيد المخزون',
+  canManageBranchStock: 'إدارة مخزون الفروع',
   settings: 'الإعدادات',
   canManageSettings: 'إدارة الإعدادات',
   canEditUsers: 'تعديل المستخدمين',
@@ -57,7 +58,7 @@ export function getPermissionLabel(permission: string) {
 export const USER_PERMISSION_GROUPS = [
   { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'accounting', 'reports', 'pricingCenterView'] },
   { title: 'الموارد البشرية', items: ['hr', 'hrEmployees', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove'] },
-  { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory', 'pricingCenterManage'] },
+  { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory', 'canManageBranchStock', 'pricingCenterManage'] },
   { title: 'إدارة النظام', items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups'] },
   { title: 'بيانات حساسة', items: ['canViewProfit', 'hrSalaryView', 'hrSalaryManage', 'audit', 'treasury', 'services', 'canDelete'] }
 ] as const;
@@ -65,7 +66,7 @@ export const USER_PERMISSION_GROUPS = [
 export const USER_ROLE_TEMPLATES = {
   cashier: { label: 'كاشير', role: 'cashier', permissions: [...DEFAULT_CASHIER_PERMS] },
   owner: { label: 'مالك / مدير', role: 'admin', permissions: [...DEFAULT_ADMIN_PERMS] },
-  inventory: { label: 'مسؤول مخزون', role: 'admin', permissions: ['dashboard','products','inventory','purchases','suppliers','reports','pricingCenterView','pricingCenterManage','canPrint','canAdjustInventory'] },
+  inventory: { label: 'مسؤول مخزون', role: 'admin', permissions: ['dashboard','products','inventory','purchases','suppliers','reports','pricingCenterView','pricingCenterManage','canPrint','canAdjustInventory','canManageBranchStock'] },
   accountant: { label: 'محاسب', role: 'admin', permissions: ['dashboard','accounts','accounting','reports','customers','suppliers','treasury','canPrint','canViewProfit'] }
 } as const;
 

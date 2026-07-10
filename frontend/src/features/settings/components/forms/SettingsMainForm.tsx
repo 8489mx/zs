@@ -365,7 +365,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     }
     
     if (isLocationMissing) {
-      form.setError('currentLocationId', { type: 'manual', message: 'يجب اختيار المخزن الأساسي قبل حفظ الإعدادات.' });
+      form.setError('currentLocationId', { type: 'manual', message: 'يجب اختيار مكان الاستلام الافتراضي قبل حفظ الإعدادات.' });
     }
 
     const missingCoreFields =
@@ -528,11 +528,17 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             )}
 
             {SINGLE_STORE_MODE ? (
-              <RequiredField label="المخزن الأساسي" error={form.formState.errors.currentLocationId?.message}>
-                <input className="purchase-prototype-field-input" value={selectedLocation?.name || 'سيتم الربط تلقائيًا بعد حفظ المخزن الأساسي'} disabled readOnly />
+              <RequiredField label="مكان الاستلام الافتراضي" error={form.formState.errors.currentLocationId?.message}>
+                <select className="purchase-prototype-field-input" {...form.register('currentLocationId')} disabled={disabled}>
+                  <option value="">-- سيتم الربط تلقائياً، أو اختر مكان --</option>
+                  {filteredWarehouses.map((loc) => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+                </select>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>يُستخدم فقط عند عدم تحديد مكان للصنف أو للسطر.</div>
               </RequiredField>
             ) : (
-              <RequiredField label="المخزن الأساسي" error={form.formState.errors.currentLocationId?.message}>
+              <RequiredField label="مكان الاستلام الافتراضي" error={form.formState.errors.currentLocationId?.message}>
                 <input
                   className="purchase-prototype-field-input"
                   value={warehouseQuery}
@@ -586,6 +592,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                   </div>
                 ) : null}
                 {warehouseAddError ? <small className="field-error">{warehouseAddError}</small> : null}
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>يُستخدم فقط عند عدم تحديد مكان للصنف أو للسطر.</div>
               </RequiredField>
             )}
 

@@ -158,6 +158,7 @@ export class TrialTenantProvisioningService {
       'canDelete',
       'canEditInvoices',
       'canAdjustInventory',
+      'canManageBranchStock',
       'canManageSettings',
       'canManageUsers',
       'canEditUsers',

@@ -277,7 +277,7 @@ export class SettingsImportService {
     const branch = await db.selectFrom('branches').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
     const branchId = branch ? Number(branch.id) : null;
     
-    const inserted = await db.insertInto('stock_locations').values({ name: normalized, branch_id: branchId, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
+    const inserted = await db.insertInto('stock_locations').values({ name: normalized, branch_id: branchId, is_active: true, location_type: 'internal_warehouse' as const, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
     return Number(inserted.id);
   }
 

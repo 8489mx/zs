@@ -73,6 +73,7 @@ export async function migrateBranchesAndLocations(ctx: MigrationContext): Promis
           code: asString(row.code),
           branch_id: row.branch_id ? asNumber(row.branch_id) : null,
           is_active: asBoolean(row.is_active),
+          location_type: 'internal_warehouse',
         })
         .onConflict((oc: any) => oc.column('id').doNothing())
         .execute();

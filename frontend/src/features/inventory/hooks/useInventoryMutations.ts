@@ -8,7 +8,30 @@ export function useInventoryAdjustmentMutation(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: InventoryAdjustmentOutput) => inventoryApi.createAdjustment(buildInventoryAdjustmentPayload(values)),
-    onSuccess: async () => {
+    onSuccess: async (res: any) => {
+      if (res?.data?.productId && res?.data?.locationId) {
+        const { productId, locationId, scopeAfter, globalAfter } = res.data;
+        queryClient.setQueryData(['location-stocks'], (old: any) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((ls: any) => 
+            (ls.productId === productId && ls.locationId === locationId) 
+              ? { ...ls, qty: scopeAfter } 
+              : ls
+          );
+        });
+        
+        queryClient.setQueryData(['products'], (old: any) => {
+          if (!old?.products) return old;
+          return {
+            ...old,
+            products: old.products.map((p: any) => 
+              (p.id === productId)
+                ? { ...p, stock: globalAfter }
+                : p
+            )
+          };
+        });
+      }
       await invalidateInventoryDomain(queryClient, { includeProducts: true });
       onSuccess?.();
     }

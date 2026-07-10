@@ -1101,8 +1101,8 @@ export function NewPurchaseOrderPage() {
         type: option.type,
         activeLocationIds: option.activeLocationIds 
       },
-      catalog.locationStocksQuery.data || [],
-      catalog.locationsQuery.data || []
+      catalog.locationsQuery.data || [],
+      rawSettings?.currentLocationId
     );
 
     setLines((current) =>
@@ -1146,8 +1146,8 @@ export function NewPurchaseOrderPage() {
         type: option.type,
         activeLocationIds: option.activeLocationIds 
       },
-      catalog.locationStocksQuery.data || [],
-      catalog.locationsQuery.data || []
+      catalog.locationsQuery.data || [],
+      rawSettings?.currentLocationId
     );
 
     const newLine: PrototypeLine = {
@@ -1202,8 +1202,8 @@ export function NewPurchaseOrderPage() {
         type: matchedProduct.type,
         activeLocationIds: matchedProduct.activeLocationIds 
       },
-      catalog.locationStocksQuery.data || [],
-      catalog.locationsQuery.data || []
+      catalog.locationsQuery.data || [],
+      rawSettings?.currentLocationId
     );
     
     setLines((current) => {

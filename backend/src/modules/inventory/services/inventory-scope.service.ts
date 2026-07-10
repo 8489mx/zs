@@ -35,22 +35,34 @@ export class InventoryScopeService {
     return Array.from(new Set(ids));
   }
 
-  async assertLocationScope(locationId: number, auth: AuthContext, allowInactive = false): Promise<{ id: number; name: string; branchId: number | null }> {
+  async assertLocationScope(locationId: number, auth: AuthContext, allowInactive = false, action: 'read' | 'write' = 'read'): Promise<{ id: number; name: string; branchId: number | null }> {
     const tenantId = this.tenantId(auth);
     const location = await this.db
       .selectFrom('stock_locations')
-      .select(['id', 'name', 'branch_id'])
+      .select(['id', 'name', 'branch_id', 'location_type'])
       .where('id', '=', locationId)
       .where((eb) => allowInactive ? eb.val(true) : eb('is_active', '=', true))
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
 
-    if (!location) throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
+    if (!location) {
+      throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
+    }
+
+    if (location.location_type === 'branch_stock') {
+      const isSuper = ['owner', 'admin', 'super_admin'].includes(auth.role);
+      const hasPerm = auth.permissions?.includes('canManageBranchStock');
+      
+      if (action === 'write' && !isSuper && !hasPerm) {
+        throw new AppError('You do not have permission to modify branch stock', 'LOCATION_SCOPE_FORBIDDEN', 403);
+      }
+      
+      if (action === 'read' && auth.role === 'storekeeper' && !hasPerm) {
+        throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
+      }
+    }
 
     const scope = await this.branchScope(auth);
-    // if (scope.length && location.branch_id && !scope.includes(location.branch_id)) {
-    //   throw new AppError('Selected location is outside your assigned scope', 'LOCATION_SCOPE_FORBIDDEN', 400);
-    // }
 
     return { id: location.id, name: location.name || '', branchId: location.branch_id || null };
   }
@@ -74,6 +86,10 @@ export class InventoryScopeService {
       .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active'])
       .where(sql<boolean>`l.tenant_id = ${tenantId}`)
       .orderBy('l.id', 'asc');
+      
+    if (auth.role === 'storekeeper' && !auth.permissions?.includes('canManageBranchStock')) {
+      query = query.where('l.location_type', '!=', 'branch_stock');
+    }
       
     if (!includeInactive) {
       query = query.where((eb) => eb.or([
@@ -106,6 +122,10 @@ export class InventoryScopeService {
         eb('s.qty', '>', 0)
       ]))
       .where(sql<boolean>`s.tenant_id = ${tenantId}`);
+
+    if (auth.role === 'storekeeper' && !auth.permissions?.includes('canManageBranchStock')) {
+      query = query.where('l.location_type', '!=', 'branch_stock');
+    }
 
     if (scope.length) {
       query = query.where((eb) => eb.or([

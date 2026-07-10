@@ -11,6 +11,7 @@ import { TransactionHelper } from '../../../database/helpers/transaction.helper'
 import { Database } from '../../../database/database.types';
 import { InventoryAdjustmentDto } from '../dto/inventory-adjustment.dto';
 import { InventoryCountService } from './inventory-count.service';
+import { InventoryScopeService } from './inventory-scope.service';
 
 @Injectable()
 export class InventoryAdjustmentService {
@@ -19,11 +20,16 @@ export class InventoryAdjustmentService {
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
     private readonly countService: InventoryCountService,
+    private readonly scopeService: InventoryScopeService,
   ) {}
 
   async createInventoryAdjustment(payload: InventoryAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    let result: { productId: number; beforeQty: number; afterQty: number } = { productId: payload.productId, beforeQty: 0, afterQty: 0 };
+  let result: any = { productId: payload.productId, locationId: payload.locationId, beforeQty: 0, afterQty: 0, scopeBefore: 0, scopeAfter: 0, globalBefore: 0, globalAfter: 0 };
+
+    if (payload.locationId) {
+      await this.scopeService.assertLocationScope(payload.locationId, auth, false, 'write');
+    }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       const product = await trx
@@ -40,7 +46,7 @@ export class InventoryAdjustmentService {
         : Number(product.stock_qty || 0);
       let afterQty = beforeQty;
       let movementQty = Number(payload.qty || 0);
-      let stockChange: { scopeBefore: number; scopeAfter: number };
+      let stockChange: { scopeBefore: number; scopeAfter: number; globalBefore: number; globalAfter: number; };
 
       if (payload.actionType === 'adjust') {
         afterQty = Number(payload.qty || 0);
@@ -87,7 +93,7 @@ export class InventoryAdjustmentService {
           account_id: scope.accountId,
         } as any)
         .execute();
-      result = { productId: payload.productId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter };
+      result = { productId: payload.productId, locationId: payload.locationId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter, scopeBefore: stockChange.scopeBefore, scopeAfter: stockChange.scopeAfter, globalBefore: stockChange.globalBefore, globalAfter: stockChange.globalAfter };
     });
 
     await this.audit.log('تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth);

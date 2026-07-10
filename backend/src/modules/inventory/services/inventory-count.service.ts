@@ -86,7 +86,7 @@ export class InventoryCountService {
 
   async createStockCountSession(payload: CreateStockCountSessionDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantScope = this.tenantScope(auth);
-    const location = await this.scope.assertLocationScope(payload.locationId, auth);
+    const location = await this.scope.assertLocationScope(payload.locationId, auth, false, 'write');
     assertInventoryLocationBranchMatch(payload.branchId, location.branchId);
     const sessionId = await this.tx.runInTransaction(this.db, async (trx) => {
       const result = await trx.insertInto('stock_count_sessions').values({ doc_no: buildStockCountSessionDocNo(), branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
@@ -147,7 +147,7 @@ export class InventoryCountService {
 
   async createDamagedStock(payload: CreateDamagedStockDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantScope = this.tenantScope(auth);
-    const location = await this.scope.assertLocationScope(payload.locationId, auth);
+    const location = await this.scope.assertLocationScope(payload.locationId, auth, false, 'write');
     assertInventoryLocationBranchMatch(payload.branchId, location.branchId);
     if (String(payload.note || '').trim().length < 8) throw new AppError('اكتب سبب التالف بوضوح في 8 أحرف على الأقل', 'DAMAGE_NOTE_REQUIRED', 400);
     await this.tx.runInTransaction(this.db, async (trx) => {

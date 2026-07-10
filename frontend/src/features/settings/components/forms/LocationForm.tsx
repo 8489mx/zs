@@ -14,18 +14,18 @@ import type { LocationFormProps } from '@/features/settings/components/forms/set
 export function LocationForm({ branches, canManageSettings, setupMode = false, onSetupAdvance, initialValues, onCreated }: LocationFormProps) {
   const form = useForm<LocationFormInput, undefined, LocationFormOutput>({
     resolver: zodResolver(locationFormSchema),
-    defaultValues: { name: initialValues?.name || '', code: initialValues?.code || '', branchId: initialValues?.branchId || '' },
+    defaultValues: { name: initialValues?.name || '', code: initialValues?.code || '', branchId: initialValues?.branchId || '', locationType: initialValues?.locationType || 'internal_warehouse' },
   });
 
   useEffect(() => {
     if (!initialValues) return;
-    form.reset({ name: initialValues.name || '', code: initialValues.code || '', branchId: initialValues.branchId || '' });
-  }, [form, initialValues?.branchId, initialValues?.code, initialValues?.name]);
+    form.reset({ name: initialValues.name || '', code: initialValues.code || '', branchId: initialValues.branchId || '', locationType: initialValues.locationType || 'internal_warehouse' });
+  }, [form, initialValues?.branchId, initialValues?.code, initialValues?.name, initialValues?.locationType]);
 
   const mutation = useCreateLocationMutation((result) => {
     const savedName = String(form.getValues('name') || '').trim();
     const savedBranchId = String(form.getValues('branchId') || '');
-    form.reset({ name: '', code: '', branchId: SINGLE_STORE_MODE ? (branches[0]?.id || '') : '' });
+    form.reset({ name: '', code: '', branchId: SINGLE_STORE_MODE ? (branches[0]?.id || '') : '', locationType: 'internal_warehouse' });
     onCreated?.({ locationId: result?.locationId, name: savedName, branchId: savedBranchId });
     if (setupMode && branches.length > 0) onSetupAdvance?.();
   });
@@ -55,6 +55,12 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
           </select>
         </Field>
       ) : null}
+      <Field label="نوع المخزن">
+        <select {...form.register('locationType')} disabled={mutation.isPending || !canManageSettings}>
+          <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
+          <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
+        </select>
+      </Field>
 
       <DraftStateNotice
         visible={form.formState.isDirty && !mutation.isPending}
@@ -67,7 +73,7 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
           type="button"
           className="btn btn-secondary"
           onClick={() => {
-            if (canNavigateAway()) form.reset({ name: '', code: '', branchId: SINGLE_STORE_MODE ? (branches[0]?.id || '') : '' });
+            if (canNavigateAway()) form.reset({ name: '', code: '', branchId: SINGLE_STORE_MODE ? (branches[0]?.id || '') : '', locationType: 'internal_warehouse' });
           }}
           disabled={mutation.isPending || !form.formState.isDirty}
         >

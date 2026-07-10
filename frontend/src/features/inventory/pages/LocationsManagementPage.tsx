@@ -20,6 +20,7 @@ export function LocationsManagementPage() {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [branchId, setBranchId] = useState('');
+  const [locationType, setLocationType] = useState<'internal_warehouse' | 'branch_stock'>('internal_warehouse');
 
   const createMutation = useCreateLocationMutation(() => setModalOpen(false));
   const updateMutation = useUpdateLocationMutation(() => setModalOpen(false));
@@ -32,6 +33,7 @@ export function LocationsManagementPage() {
     setName(location.name);
     setCode(location.code || '');
     setBranchId(String(location.branchId || ''));
+    setLocationType((location as any).locationType || 'internal_warehouse');
     setModalOpen(true);
   };
 
@@ -40,6 +42,7 @@ export function LocationsManagementPage() {
     setName('');
     setCode('');
     setBranchId('');
+    setLocationType('internal_warehouse');
     setModalOpen(true);
   };
 
@@ -51,9 +54,9 @@ export function LocationsManagementPage() {
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingLocation) {
-      updateMutation.mutate({ locationId: String(editingLocation.id), values: { name, code, branchId } });
+      updateMutation.mutate({ locationId: String(editingLocation.id), values: { name, code, branchId, locationType } });
     } else {
-      createMutation.mutate({ name, code, branchId });
+      createMutation.mutate({ name, code, branchId, locationType });
     }
   };
 
@@ -81,8 +84,8 @@ export function LocationsManagementPage() {
   return (
     <main className="document-prototype-column" style={{ maxWidth: '1000px' }}>
       <PageHeader
-        title="إدارة المخازن"
-        description="إضافة، تعديل، وحذف المخازن في النظام"
+        title="إدارة أماكن المخزون"
+        description="إضافة، تعديل، وحذف أماكن المخزون في النظام"
         actions={(
           <Button variant="primary" onClick={handleCreate}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 8 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>

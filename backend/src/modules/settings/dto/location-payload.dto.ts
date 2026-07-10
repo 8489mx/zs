@@ -17,4 +17,8 @@ export class LocationPayloadDto {
   @IsInt()
   @Min(1)
   branchId?: number;
+
+  @IsOptional()
+  @IsString()
+  locationType?: string;
 }
