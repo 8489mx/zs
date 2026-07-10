@@ -60,10 +60,13 @@ async function main() {
   const products = expectArray((await client.get(`/api/products?q=${encodeURIComponent(productName)}`)).products, 'products');
   const product = findByName(products, productName);
 
-  const locationsPayload = await client.get('/api/inventory/locations');
-  const locations = expectArray(locationsPayload.locations, 'locations');
-  const location = locations[0];
-  assert.ok(location?.id, 'at least one location must exist');
+  const locationName = `E2E Location ${suffix}`;
+  const createLocationRes = await client.post('/api/settings/locations', {
+    name: locationName,
+    locationType: 'internal_warehouse',
+  }, 201);
+  const location = createLocationRes.location || createLocationRes;
+  assert.ok(location?.id, 'at least one location must exist after creation');
 
   const purchase = await client.post('/api/purchases', {
     locationId: Number(location.id),
