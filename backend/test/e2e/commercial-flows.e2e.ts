@@ -60,7 +60,13 @@ async function main() {
   const products = expectArray((await client.get(`/api/products?q=${encodeURIComponent(productName)}`)).products, 'products');
   const product = findByName(products, productName);
 
+  const locationsPayload = await client.get('/api/locations');
+  const locations = expectArray(locationsPayload.locations, 'locations');
+  const location = locations[0];
+  assert.ok(location?.id, 'at least one location must exist');
+
   const purchase = await client.post('/api/purchases', {
+    locationId: Number(location.id),
     supplierId: Number(supplier.id),
     paymentType: 'cash',
     discount: 0,
@@ -82,6 +88,7 @@ async function main() {
   assert.ok(purchase.purchase?.id, 'purchase response must include purchase');
 
   const sale = await client.post('/api/sales', {
+    locationId: Number(location.id),
     customerId: Number(customer.id),
     paymentType: 'cash',
     paymentChannel: 'cash',
