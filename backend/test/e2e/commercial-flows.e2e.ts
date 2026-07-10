@@ -60,7 +60,7 @@ async function main() {
   const products = expectArray((await client.get(`/api/products?q=${encodeURIComponent(productName)}`)).products, 'products');
   const product = findByName(products, productName);
 
-  const locationsPayload = await client.get('/api/locations');
+  const locationsPayload = await client.get('/api/inventory/locations');
   const locations = expectArray(locationsPayload.locations, 'locations');
   const location = locations[0];
   assert.ok(location?.id, 'at least one location must exist');
