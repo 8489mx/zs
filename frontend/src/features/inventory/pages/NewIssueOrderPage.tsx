@@ -44,7 +44,8 @@ export function NewIssueOrderPage() {
   const [isPolling, setIsPolling] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const idempotencyKeyRef = useRef(crypto.randomUUID());
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const currentPayloadRef = useRef<string | null>(null);
 
   const [issueMode, setIssueMode] = useState<'final_issue' | 'transfer_to_branch_stock'>('final_issue');
 
@@ -255,6 +256,19 @@ export function NewIssueOrderPage() {
 
     setIsSubmitting(true);
     try {
+      const payloadString = JSON.stringify({
+        fromLocationId,
+        toLocationId,
+        recipientName,
+        note,
+        issueMode,
+        lines: validLines.map(l => ({ productId: l.productId, qty: l.qty, locId: l.fromLocationId }))
+      });
+      if (!idempotencyKeyRef.current || currentPayloadRef.current !== payloadString) {
+        idempotencyKeyRef.current = crypto.randomUUID();
+        currentPayloadRef.current = payloadString;
+      }
+
       const groupedLines = validLines.reduce((acc, line) => {
         const locId = fromLocationId === 'all' ? line.fromLocationId! : fromLocationId;
         if (!acc[locId]) acc[locId] = [];
@@ -267,7 +281,7 @@ export function NewIssueOrderPage() {
 
       const results = await Promise.allSettled(
         Object.entries(groupedLines).map(async ([locId, items], _idx) => {
-          const idemKey = _idx === 0 ? idempotencyKeyRef.current : crypto.randomUUID();
+          const idemKey = _idx === 0 ? idempotencyKeyRef.current! : `${idempotencyKeyRef.current!}-${_idx}`;
 
           return withIdempotency(
             (headers) => inventoryApi.createStockTransfer({
@@ -318,16 +332,27 @@ export function NewIssueOrderPage() {
       }
 
       if (successfulTransfers.length > 0) {
-        idempotencyKeyRef.current = crypto.randomUUID(); // Reset for next successful submit
+        idempotencyKeyRef.current = null;
+        currentPayloadRef.current = null;
         setCreatedTransfers(successfulTransfers);
       } else {
-        idempotencyKeyRef.current = crypto.randomUUID(); // Reset
+        idempotencyKeyRef.current = null;
+        currentPayloadRef.current = null;
         navigate('/inventory');
       }
     } catch (error: any) {
       console.error(error);
+      const isNetworkOrTimeout = error.message?.includes('network') || error.message?.includes('timeout') || error.message?.includes('Network') || error.name === 'TypeError';
+      const is5xx = error.response?.status >= 500 && error.response?.status < 600;
+      const isRecovery = error.message?.includes('Recovery polling');
+      
       const msg = error?.message || 'تعذر تأكيد نتيجة العملية، يرجى مراجعة سجل العمليات.';
       setErrorMsg(msg);
+      
+      if (!isNetworkOrTimeout && !is5xx && !isRecovery) {
+         idempotencyKeyRef.current = null;
+         currentPayloadRef.current = null;
+      }
     } finally {
       setIsSubmitting(false);
     }

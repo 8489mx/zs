@@ -5,7 +5,7 @@ export interface BranchActionState {
 
 export interface LocationActionState {
   locationId: string;
-  values: { name: string; code: string; branchId: string };
+  values: { name: string; code: string; branchId: string; locationType: string };
 }
 
 export interface ReferenceDeleteConfirmState {

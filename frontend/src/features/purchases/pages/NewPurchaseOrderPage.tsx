@@ -640,6 +640,7 @@ export function NewPurchaseOrderPage() {
   const [createdPurchase, setCreatedPurchase] = useState<any>(null);
   const [isPolling, setIsPolling] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
+  const currentPayloadRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const catalog = usePurchaseComposerCatalog();
   const createMutation = useCreatePurchaseMutation((result) => {
@@ -1686,9 +1687,10 @@ export function NewPurchaseOrderPage() {
 
     try {
       setIsPolling(true);
-      // Generate key lazily on first submit. Reuse for retries of same payload/attempt.
-      if (!idempotencyKeyRef.current) {
+      const payloadString = JSON.stringify({ values, items, taxRate, attachments: attachments.length });
+      if (!idempotencyKeyRef.current || currentPayloadRef.current !== payloadString) {
         idempotencyKeyRef.current = crypto.randomUUID();
+        currentPayloadRef.current = payloadString;
       }
       await createMutation.mutateAsync({
         values,
@@ -1700,12 +1702,19 @@ export function NewPurchaseOrderPage() {
       });
       // After committed success, invalidate the key so a new invoice gets a fresh one.
       idempotencyKeyRef.current = null;
+      currentPayloadRef.current = null;
 
     } catch (e: any) {
-      if (e.message?.includes('Recovery polling')) {
+      const isNetworkOrTimeout = e.message?.includes('network') || e.message?.includes('timeout') || e.message?.includes('Network') || e.name === 'TypeError';
+      const is5xx = e.response?.status >= 500 && e.response?.status < 600;
+      const isRecovery = e.message?.includes('Recovery polling');
+      
+      if (isNetworkOrTimeout || is5xx || isRecovery) {
          setInlineMessage({ tone: 'error', text: 'تعذر تأكيد نتيجة العملية، يرجى مراجعة صفحة المشتريات للتأكد.' });
       } else {
          setInlineMessage({ tone: 'error', text: e?.message || 'Error saving invoice' });
+         idempotencyKeyRef.current = null;
+         currentPayloadRef.current = null;
       }
     } finally {
       setIsPolling(false);

@@ -112,6 +112,7 @@ export interface Location {
   code: string;
   branchId?: string;
   branchName?: string;
+  locationType?: string;
 }
 
 export interface AppSettings {

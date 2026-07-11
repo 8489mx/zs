@@ -12,7 +12,12 @@ export class SettingsService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
 
   private scope(actor: AuthContext) { return requireTenantScope(actor); }
-  private tenantPredicate(actor: AuthContext, alias?: string) { const { tenantId } = this.scope(actor); return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`; }
+  private tenantPredicate(actor: AuthContext, alias?: string) {
+    const { tenantId, accountId } = this.scope(actor);
+    return alias
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId} AND ${sql.ref(`${alias}.account_id`)} = ${accountId}`
+      : sql<boolean>`tenant_id = ${tenantId} AND account_id = ${accountId}`;
+  }
 
   async getSettings(actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(actor);
@@ -30,7 +35,7 @@ export class SettingsService {
     const scope = this.scope(actor);
     let query = this.db
       .selectFrom('stock_locations as l')
-      .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${scope.tenantId}`))
+      .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${scope.tenantId} AND b.account_id = ${scope.accountId}`))
       .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active', 'l.location_type'])
       .where(this.tenantPredicate(actor, 'l'))
       .where('l.location_type', '!=', 'in_transit')
@@ -129,6 +134,16 @@ export class SettingsService {
     const code = String(payload.code || '').trim();
     const branchId = payload.branchId === '' || payload.branchId == null ? null : Number(payload.branchId);
     const locationType = String(payload.locationType || 'internal_warehouse').trim();
+    if (locationType === 'in_transit') {
+      throw new AppError('لا يمكن إنشاء المخزن ليكون قيد النقل يدوياً', 'INVALID_LOCATION_TYPE', 400);
+    }
+    const validTypes = ['internal_warehouse', 'external_warehouse', 'branch_stock', 'damaged'];
+    if (!validTypes.includes(locationType)) {
+      throw new AppError('نوع المخزن غير صالح', 'INVALID_LOCATION_TYPE', 400);
+    }
+    if (locationType === 'branch_stock' && !branchId) {
+      throw new AppError('يجب ربط رصيد الفرع بفرع محدد', 'BRANCH_REQUIRED_FOR_BRANCH_STOCK', 400);
+    }
     if (!name) throw new AppError('Location name is required', 'LOCATION_NAME_REQUIRED', 400);
     if (branchId !== null) {
       const branch = await this.db.selectFrom('branches').select(['id']).where('id', '=', branchId).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
@@ -161,12 +176,22 @@ export class SettingsService {
   }
 
   async updateLocation(id: number, payload: { name?: string; code?: string; branchId?: string | number | null; locationType?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
-    const location = await this.db.selectFrom('stock_locations').select(['id']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+    const location = await this.db.selectFrom('stock_locations').select(['id', 'location_type']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!location) throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
     const name = String(payload.name || '').trim();
     const code = String(payload.code || '').trim();
     const branchId = payload.branchId === '' || payload.branchId == null ? null : Number(payload.branchId);
-    const locationType = String(payload.locationType || 'internal_warehouse').trim();
+    const locationType = String(payload.locationType || location.location_type).trim();
+    if (payload.locationType === 'in_transit' && location.location_type !== 'in_transit') {
+      throw new AppError('لا يمكن إنشاء أو تعديل المخزن ليكون قيد النقل يدوياً', 'INVALID_LOCATION_TYPE', 400);
+    }
+    const validTypes = ['internal_warehouse', 'external_warehouse', 'branch_stock', 'damaged', 'in_transit'];
+    if (!validTypes.includes(locationType)) {
+      throw new AppError('نوع المخزن غير صالح', 'INVALID_LOCATION_TYPE', 400);
+    }
+    if (locationType === 'branch_stock' && !branchId) {
+      throw new AppError('يجب ربط رصيد الفرع بفرع محدد', 'BRANCH_REQUIRED_FOR_BRANCH_STOCK', 400);
+    }
     if (!name) throw new AppError('Location name is required', 'LOCATION_NAME_REQUIRED', 400);
     if (branchId !== null) {
       const branch = await this.db.selectFrom('branches').select(['id']).where('id', '=', branchId).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();

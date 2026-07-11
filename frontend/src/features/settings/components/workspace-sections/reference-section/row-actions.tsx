@@ -48,7 +48,7 @@ export function LocationRowActions({ location, branches, isEditing, onStartEdit,
   isEditing: boolean;
   onStartEdit: (location: Location) => void;
   onCancelEdit: () => void;
-  onChange: (field: 'name' | 'code' | 'branchId', value: string) => void;
+  onChange: (field: 'name' | 'code' | 'branchId' | 'locationType', value: string) => void;
   onSave: () => void;
   onDelete: (location: Location) => void;
   canManageSettings: boolean;
@@ -62,6 +62,12 @@ export function LocationRowActions({ location, branches, isEditing, onStartEdit,
           <Field label={SINGLE_STORE_MODE ? 'اسم المخزن' : 'اسم المخزن'}><input value={location.name} onChange={(event) => onChange('name', event.target.value)} disabled={isBusy} /></Field>
           <Field label={SINGLE_STORE_MODE ? 'كود المخزن' : 'كود المخزن'}><input value={location.code || ''} onChange={(event) => onChange('code', event.target.value)} disabled={isBusy} /></Field>
           {!SINGLE_STORE_MODE ? <Field label="الفرع المرتبط"><select value={location.branchId || ''} onChange={(event) => onChange('branchId', event.target.value)} disabled={isBusy}><option value="">بدون ربط</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></Field> : null}
+          <Field label="نوع المخزن">
+            <select value={location.locationType || 'internal_warehouse'} onChange={(event) => onChange('locationType', event.target.value)} disabled={isBusy}>
+              <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
+              <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
+            </select>
+          </Field>
         </div>
         <div className="actions compact-actions">
           <Button variant="primary" onClick={onSave} disabled={isBusy || !location.name.trim()}>{isBusy ? 'جارٍ الحفظ...' : 'حفظ'}</Button>
@@ -74,7 +80,10 @@ export function LocationRowActions({ location, branches, isEditing, onStartEdit,
   return (
     <div className="list-row" key={location.id}>
       <div>
-        <strong>{location.name}</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <strong>{location.name}</strong>
+          {location.locationType === 'branch_stock' ? <span className="status-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>رصيد فرع</span> : <span className="status-badge" style={{ backgroundColor: '#f1f5f9', color: '#475569' }}>مخزن داخلي</span>}
+        </div>
         <div className="muted small">{SINGLE_STORE_MODE ? (location.code || 'المخزن الأساسي') : (location.branchName || 'بدون فرع')}</div>
       </div>
       <div className="actions compact-actions">

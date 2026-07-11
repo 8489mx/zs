@@ -87,6 +87,7 @@ export function buildLocationPayload(values: LocationFormOutput) {
   return {
     name: cleanText(values.name),
     code: cleanText(values.code),
-    branchId: cleanText(values.branchId) || ''
+    branchId: cleanText(values.branchId) || '',
+    locationType: values.locationType || 'internal_warehouse'
   };
 }
