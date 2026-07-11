@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, Req, Res, UseGuards, UseInterceptors, UploadedFile, BadRequestException, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, ParseIntPipe, Post, Put, Query, Req, Res, UseGuards, UseInterceptors, UploadedFile, BadRequestException, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -36,8 +36,12 @@ export class PurchasesController {
 
   @Post('purchases')
   @RequirePermissions('purchases')
-  createPurchase(@Body() payload: UpsertPurchaseDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.purchasesService.createPurchase(payload, req.authContext!);
+  createPurchase(
+    @Body() payload: UpsertPurchaseDto,
+    @Req() req: RequestWithAuth,
+    @Headers('x-idempotency-key') idempotencyKey?: string,
+  ): Promise<Record<string, unknown>> {
+    return this.purchasesService.createPurchase(payload, req.authContext!, idempotencyKey);
   }
 
   @Put('purchases/:id')
@@ -154,7 +158,7 @@ export class PurchasesController {
   ) {
     const { attachment } = await this.purchasesService.getPurchaseAttachment(purchaseId, attachmentId, req.authContext!);
     const fileUrl = String((attachment as Record<string, unknown>).file_url || '').trim();
-    
+
     // Safety check against path traversal stored in DB
     if (!fileUrl || fileUrl.includes('..') || fileUrl.includes('/') || fileUrl.includes('\\')) {
       throw new BadRequestException('مسار الملف غير صالح');

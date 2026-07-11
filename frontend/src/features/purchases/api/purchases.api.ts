@@ -105,8 +105,8 @@ export const purchasesApi = {
   searchProducts: async (query: string) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(`/api/products?q=${encodeURIComponent(query)}&pageSize=50`), 'products'),
   suppliers: async () => unwrapArray<Supplier>(await http<Supplier[] | { suppliers: Supplier[] }>('/api/suppliers'), 'suppliers'),
   getById: async (purchaseId: string) => unwrapEntity<Purchase>(await http<Purchase | PurchaseEnvelope>(`/api/purchases/${purchaseId}`), 'purchase'),
-  create: async (payload: unknown) => {
-    const response = await http<Purchase | PurchaseMutationResult>('/api/purchases', { method: 'POST', body: JSON.stringify(payload) });
+  create: async (payload: unknown, headers?: Record<string, string>) => {
+    const response = await http<Purchase | PurchaseMutationResult>('/api/purchases', { method: 'POST', headers, body: JSON.stringify(payload) });
     if (response && typeof response === 'object' && 'purchase' in response) return response as PurchaseMutationResult;
     return { purchase: response as Purchase, repricingInsights: null } satisfies PurchaseMutationResult;
   },

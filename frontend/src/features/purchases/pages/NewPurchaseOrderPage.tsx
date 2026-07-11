@@ -638,6 +638,8 @@ export function NewPurchaseOrderPage() {
   const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
   const [barcodeScanQuery, setBarcodeScanQuery] = useState('');
   const [createdPurchase, setCreatedPurchase] = useState<any>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const catalog = usePurchaseComposerCatalog();
   const createMutation = useCreatePurchaseMutation((result) => {
@@ -1683,15 +1685,30 @@ export function NewPurchaseOrderPage() {
     }));
 
     try {
+      setIsPolling(true);
+      // Generate key lazily on first submit. Reuse for retries of same payload/attempt.
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current = crypto.randomUUID();
+      }
       await createMutation.mutateAsync({
         values,
         items,
         taxRate: taxRate,
         pricesIncludeTax: false,
-        attachments
+        attachments,
+        idempotencyKey: idempotencyKeyRef.current
       });
+      // After committed success, invalidate the key so a new invoice gets a fresh one.
+      idempotencyKeyRef.current = null;
+
     } catch (e: any) {
-      setInlineMessage({ tone: 'error', text: e?.message || 'Error saving invoice' });
+      if (e.message?.includes('Recovery polling')) {
+         setInlineMessage({ tone: 'error', text: 'تعذر تأكيد نتيجة العملية، يرجى مراجعة صفحة المشتريات للتأكد.' });
+      } else {
+         setInlineMessage({ tone: 'error', text: e?.message || 'Error saving invoice' });
+      }
+    } finally {
+      setIsPolling(false);
     }
   };
 
@@ -1957,7 +1974,7 @@ export function NewPurchaseOrderPage() {
               type="button" 
               className={`purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary ${inlineMessage?.text === t('invoice_confirmed') ? 'is-success-state' : ''}`} 
               onClick={handleConfirmInvoice} 
-              disabled={documentStatus === 'confirmed'}
+              disabled={documentStatus === 'confirmed' || createMutation.isPending || isPolling}
               style={inlineMessage?.text === t('invoice_confirmed') ? { backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', borderColor: 'rgba(34, 197, 94, 0.3)' } : {}}
             >
               {inlineMessage?.text === t('invoice_confirmed') ? (

@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
@@ -27,6 +28,9 @@ interface PurchaseComposerProps {
 }
 
 export function PurchaseComposer({ products, suppliers, categories, branches, locations, settings, isCatalogLoading, isCatalogError, catalogError }: PurchaseComposerProps) {
+  // Key starts null. Generated lazily on first Submit. Reused for retries of the same attempt.
+  // Must be reset when user explicitly starts a new invoice or after confirmed committed/failed.
+  const idempotencyKeyRef = useRef<string | null>(null);
   const controller = usePurchaseComposerController({ products, suppliers, categories, branches, locations, settings });
   const { headerForm, items, lineDraft, mutation, repricingInsights, hasDraftChanges, totals, quickCreate, actions } = controller;
 
@@ -42,8 +46,13 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
         emptyTitle="لا يمكن إنشاء فاتورة شراء الآن"
         emptyHint="تأكد من وجود مورد واحد وصنف واحد على الأقل قبل إنشاء الفاتورة."
       >
-        <form className="form-grid purchase-composer-form" onSubmit={headerForm.handleSubmit((values) => mutation.mutate({ values, items, taxRate: totals.taxRate, pricesIncludeTax: totals.pricesIncludeTax }))}>
-          <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة" hint="احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد." />
+        <form className="form-grid purchase-composer-form" onSubmit={headerForm.handleSubmit((values) => {
+          // Generate key lazily on first submit attempt, then reuse for retries.
+          if (!idempotencyKeyRef.current) {
+            idempotencyKeyRef.current = crypto.randomUUID();
+          }
+          mutation.mutate({ values, items, taxRate: totals.taxRate, pricesIncludeTax: totals.pricesIncludeTax, idempotencyKey: idempotencyKeyRef.current });
+        })}>          <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة" hint="احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد." />
           <Field label="المورد" error={headerForm.formState.errors.supplierId?.message}>
             <select {...headerForm.register('supplierId')} disabled={mutation.isPending}>
               <option value="">اختر المورد</option>

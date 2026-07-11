@@ -12,6 +12,8 @@ import { Database } from '../../../database/database.types';
 import { InventoryAdjustmentDto } from '../dto/inventory-adjustment.dto';
 import { InventoryCountService } from './inventory-count.service';
 import { InventoryScopeService } from './inventory-scope.service';
+import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
+import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 
 @Injectable()
 export class InventoryAdjustmentService {
@@ -21,11 +23,18 @@ export class InventoryAdjustmentService {
     private readonly audit: AuditService,
     private readonly countService: InventoryCountService,
     private readonly scopeService: InventoryScopeService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   async createInventoryAdjustment(payload: InventoryAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-  let result: any = { productId: payload.productId, locationId: payload.locationId, beforeQty: 0, afterQty: 0, scopeBefore: 0, scopeAfter: 0, globalBefore: 0, globalAfter: 0 };
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, scope);
+      if (cached) return cached.response;
+    }
+
+    let result: any = { productId: payload.productId, locationId: payload.locationId, beforeQty: 0, afterQty: 0, scopeBefore: 0, scopeAfter: 0, globalBefore: 0, globalAfter: 0 };
 
     if (payload.locationId) {
       await this.scopeService.assertLocationScope(payload.locationId, auth, false, 'write');
@@ -94,16 +103,28 @@ export class InventoryAdjustmentService {
         } as any)
         .execute();
       result = { productId: payload.productId, locationId: payload.locationId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter, scopeBefore: stockChange.scopeBefore, scopeAfter: stockChange.scopeAfter, globalBefore: stockChange.globalBefore, globalAfter: stockChange.globalAfter };
+
+      await this.audit.logWithExecutor(trx, 'تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth);
+
+      const responsePayload = {
+        ok: true,
+        adjustment: result,
+        products: (await trx.selectFrom('products').select(['id', 'name']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).execute()).map((p) => ({ id: String(p.id), name: p.name })),
+        stockMovements: (await this.countService.listStockMovements({}, auth)).stockMovements,
+        auditLogs: [],
+      };
+
+      if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+          responsePayload
+        );
+      }
+
+      return responsePayload;
     });
 
-    await this.audit.log('تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth);
-
-    return {
-      ok: true,
-      adjustment: result,
-      products: (await this.db.selectFrom('products').select(['id', 'name']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).execute()).map((p) => ({ id: String(p.id), name: p.name })),
-      stockMovements: (await this.countService.listStockMovements({}, auth)).stockMovements,
-      auditLogs: [],
-    };
+    return result as Record<string, unknown>;
   }
 }

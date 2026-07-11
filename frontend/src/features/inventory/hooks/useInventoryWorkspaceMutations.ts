@@ -2,6 +2,7 @@ import { useMutation, type QueryClient } from '@tanstack/react-query';
 import type { Dispatch, SetStateAction } from 'react';
 import { invalidateInventoryDomain } from '@/app/query-invalidation';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { withIdempotency } from '@/lib/idempotency';
 import type { StockCountItem, StockTransferItem, StockTransfer } from '@/types/domain';
 
 export function useInventoryWorkspaceMutations({
@@ -38,13 +39,17 @@ export function useInventoryWorkspaceMutations({
   };
 
   const createTransferMutation = useMutation({
-    mutationFn: () => inventoryApi.createStockTransfer({
-      fromLocationId: transferForm.fromLocationId,
-      toLocationId: transferForm.toLocationId,
-      note: transferForm.note,
-      recipientName: transferForm.recipientName,
-      items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty })),
-    }),
+    mutationFn: () => withIdempotency(
+      (headers) => inventoryApi.createStockTransfer({
+        fromLocationId: transferForm.fromLocationId,
+        toLocationId: transferForm.toLocationId,
+        note: transferForm.note,
+        recipientName: transferForm.recipientName,
+        items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty })),
+      }, headers),
+      'createStockTransfer',
+      crypto.randomUUID()
+    ),
     onSuccess: async (data: unknown) => {
       await refreshInventoryQueries();
       setTransferItems([]);
@@ -56,8 +61,11 @@ export function useInventoryWorkspaceMutations({
   const transferActionMutation = useMutation({
     mutationFn: async ({ transferIds, action }: { transferIds: string[]; action: 'receive' | 'cancel' }) => {
       for (const transferId of transferIds) {
-        if (action === 'receive') await inventoryApi.receiveStockTransfer(transferId);
-        else await inventoryApi.cancelStockTransfer(transferId);
+        if (action === 'receive') {
+          await withIdempotency((headers) => inventoryApi.receiveStockTransfer(transferId, headers), 'receiveStockTransfer', crypto.randomUUID());
+        } else {
+          await withIdempotency((headers) => inventoryApi.cancelStockTransfer(transferId, headers), 'cancelStockTransfer', crypto.randomUUID());
+        }
       }
     },
     onSuccess: async () => {

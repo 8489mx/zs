@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -8,6 +8,7 @@ import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { useAuthStore } from '@/stores/auth-store';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { withIdempotency } from '@/lib/idempotency';
 import { referenceDataApi } from '@/services/reference-data.api';
 import { queryKeys } from '@/app/query-keys';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -40,7 +41,10 @@ export function NewIssueOrderPage() {
   const [note, setNote] = useState('');
   const [lines, setLines] = useState<LineItem[]>([{ id: Date.now(), productId: '', qty: 1, fromLocationId: '' }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const idempotencyKeyRef = useRef(crypto.randomUUID());
 
   const [issueMode, setIssueMode] = useState<'final_issue' | 'transfer_to_branch_stock'>('final_issue');
 
@@ -55,7 +59,7 @@ export function NewIssueOrderPage() {
       setIssueMode(settingsQuery.data.defaultBranchIssueMode as any);
     }
   }, [settingsQuery.data?.defaultBranchIssueMode]);
-  
+
   const productOptions = products
     .filter(p => {
       if (fromLocationId === 'all') {
@@ -110,7 +114,7 @@ export function NewIssueOrderPage() {
   }));
 
   const addLine = () => setLines([...lines, { id: Date.now(), productId: '', qty: 1, fromLocationId: '' }]);
-  
+
   const removeLine = (id: number) => {
     if (lines.length === 1) return;
     setLines(lines.filter(l => l.id !== id));
@@ -124,10 +128,10 @@ export function NewIssueOrderPage() {
       if (field === 'qty' && lineToUpdate && lineToUpdate.productId) {
         const val = Number(value);
         let maxQty = 0;
-        const locId = lineToUpdate.fromLocationId && lineToUpdate.fromLocationId !== 'all' 
-          ? lineToUpdate.fromLocationId 
+        const locId = lineToUpdate.fromLocationId && lineToUpdate.fromLocationId !== 'all'
+          ? lineToUpdate.fromLocationId
           : (fromLocationId !== 'all' ? fromLocationId : null);
-          
+
         if (locId && locId !== 'all') {
           const locStock = stocks.find(s => String(s.productId) === String(lineToUpdate.productId) && String(s.locationId) === String(locId));
           if (locStock) maxQty = locStock.qty;
@@ -144,7 +148,7 @@ export function NewIssueOrderPage() {
       }
 
       let newLines = prevLines.map(l => l.id === id ? { ...l, [field]: actualValue } : l);
-      
+
       if (field === 'productId' && value) {
         const product = products.find(p => String(p.id) === String(value));
         if (product) {
@@ -153,10 +157,10 @@ export function NewIssueOrderPage() {
 
         const stocks = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
         const productStocks = stocks.filter(s => String(s.productId) === String(value) && s.qty > 0);
-        
+
         let newLocationId = '';
         let newLocationName = '';
-        
+
         if (fromLocationId === 'all') {
           const bestStock = productStocks.sort((a, b) => b.qty - a.qty)[0];
           if (bestStock) {
@@ -191,17 +195,17 @@ export function NewIssueOrderPage() {
           } else {
              maxQty = 0;
           }
-          
+
           const currentQty = Number(lineToUpdate?.qty || 1);
           let newQty = currentQty;
-          
+
           if (lineToUpdate?.productId && currentQty > maxQty) {
              setErrorMsg(`مخزون غير كافي في هذا المخزن. أقصى كمية متاحة هي ${maxQty}`);
              newQty = maxQty;
           } else {
              setErrorMsg('');
           }
-          
+
           newLines = newLines.map(l => l.id === id ? { ...l, fromLocationName: loc.name, qty: newQty } : l);
         }
       }
@@ -259,45 +263,54 @@ export function NewIssueOrderPage() {
       }, {} as Record<string, LineItem[]>);
 
       const successfulTransfers: any[] = [];
+      const errors: string[] = [];
 
       const results = await Promise.allSettled(
-        Object.entries(groupedLines).map(async ([locId, items]) => {
-          const res = await inventoryApi.createStockTransfer({
-            fromLocationId: Number(locId),
-            toBranchId: Number(toLocationId),
-            recipientName,
-            note,
-            issueMode,
-            items: items.map(l => ({
-              productId: Number(l.productId),
-              qty: Number(l.qty)
-            }))
-          }) as any;
-          
+        Object.entries(groupedLines).map(async ([locId, items], _idx) => {
+          const idemKey = _idx === 0 ? idempotencyKeyRef.current : crypto.randomUUID();
+
+          return withIdempotency(
+            (headers) => inventoryApi.createStockTransfer({
+              fromLocationId: Number(locId),
+              toBranchId: Number(toLocationId),
+              recipientName,
+              note,
+              issueMode,
+              items: items.map(l => ({
+                productId: Number(l.productId),
+                qty: Number(l.qty)
+              }))
+            }, headers),
+            'createStockTransfer',
+            idemKey,
+            setIsPolling
+          );
+        })
+      );
+
+      results.forEach((r) => {
+        if (r.status === 'fulfilled') {
+          const res = r.value as any;
           if (res && res.ok && res.transferId) {
-            await inventoryApi.receiveStockTransfer(res.transferId);
             const transfers = res.stockTransfers || [];
             const transfer = transfers.find((t: any) => String(t.id) === String(res.transferId));
             if (transfer) {
               successfulTransfers.push(transfer);
             } else {
-              // fallback if not found in list for some reason
               successfulTransfers.push({ id: res.transferId, docNo: `TR-${res.transferId}` });
             }
           }
-        })
-      );
-      
-      const errors = results
-        .filter(r => r.status === 'rejected')
-        .map(r => (r as PromiseRejectedResult).reason?.message || 'حدث خطأ أثناء اعتماد إذن الصرف');
+        } else {
+          errors.push(r.reason?.message || 'حدث خطأ أثناء اعتماد إذن الصرف');
+        }
+      });
 
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
       queryClient.invalidateQueries({ queryKey: ['manager-actions'] });
-      
+
       if (errors.length > 0) {
-        setErrorMsg(errors.join('\\n'));
+        setErrorMsg(errors.join('\n'));
         if (successfulTransfers.length === 0) {
           setIsSubmitting(false);
           return;
@@ -305,13 +318,15 @@ export function NewIssueOrderPage() {
       }
 
       if (successfulTransfers.length > 0) {
+        idempotencyKeyRef.current = crypto.randomUUID(); // Reset for next successful submit
         setCreatedTransfers(successfulTransfers);
       } else {
-        navigate('/inventory'); 
+        idempotencyKeyRef.current = crypto.randomUUID(); // Reset
+        navigate('/inventory');
       }
     } catch (error: any) {
       console.error(error);
-      const msg = error?.message || 'حدث خطأ أثناء اعتماد إذن الصرف';
+      const msg = error?.message || 'تعذر تأكيد نتيجة العملية، يرجى مراجعة سجل العمليات.';
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -388,13 +403,13 @@ export function NewIssueOrderPage() {
               <h1>إذن صرف جديد</h1>
               <span className="document-prototype-status-badge is-draft">مسودة</span>
             </div>
-            
+
             <div className="document-prototype-topbar-actions">
-              <Button 
-                variant="secondary" 
-                type="button" 
-                className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary" 
-                onClick={() => navigate('/inventory')} 
+              <Button
+                variant="secondary"
+                type="button"
+                className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary"
+                onClick={() => navigate('/inventory')}
                 style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
               >
                 <span aria-hidden="true" className="purchase-prototype-save-icon">
@@ -407,15 +422,15 @@ export function NewIssueOrderPage() {
                 <span>إلغاء المسودة</span>
               </Button>
 
-              <Button 
-                type="button" 
-                className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary" 
-                onClick={handleSubmit} 
-                disabled={isSubmitting}
+              <Button
+                type="button"
+                className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary"
+                onClick={handleSubmit}
+                disabled={isSubmitting || !!createdTransfers.length}
               >
-                <span>{isSubmitting ? 'جاري الاعتماد...' : 'اعتماد إذن الصرف'}</span>
+                <span>{isPolling ? 'جارٍ تأكيد العملية...' : isSubmitting ? 'جارٍ الحفظ...' : 'اعتماد إذن الصرف'}</span>
               </Button>
-              
+
               {errorMsg && (
                 <div className="purchase-prototype-inline-message is-error" role="alert" aria-live="polite">
                   {errorMsg}
@@ -445,7 +460,7 @@ export function NewIssueOrderPage() {
               createLabel={(q) => `إضافة "${q}"`}
               inputClassName="purchase-prototype-field-input"
             />
-            
+
             <SearchableCombobox
               label="إلى فرع / محل (المستلم)"
               placeholder="اختر الفرع..."
@@ -461,7 +476,7 @@ export function NewIssueOrderPage() {
               createLabel={(q) => `إضافة "${q}"`}
               inputClassName="purchase-prototype-field-input"
             />
-            
+
             <div className="field">
               <label>وضع الصرف</label>
               <select className="purchase-prototype-field-input" value={issueMode} onChange={(e) => setIssueMode(e.target.value as any)}>
@@ -471,22 +486,22 @@ export function NewIssueOrderPage() {
             </div>
 
             <Field label="مسئول الصرف">
-              <input 
-                type="text" 
-                className="purchase-prototype-field-input purchase-prototype-readonly-input" 
-                value={user?.displayName || user?.username || ''} 
-                readOnly 
-                disabled 
+              <input
+                type="text"
+                className="purchase-prototype-field-input purchase-prototype-readonly-input"
+                value={user?.displayName || user?.username || ''}
+                readOnly
+                disabled
               />
             </Field>
 
             <Field label="اسم المستلم / السائق">
-              <input 
-                type="text" 
-                className="purchase-prototype-field-input" 
-                value={recipientName} 
-                onChange={e => setRecipientName(e.target.value)} 
-                placeholder="اكتب اسم المستلم هنا..." 
+              <input
+                type="text"
+                className="purchase-prototype-field-input"
+                value={recipientName}
+                onChange={e => setRecipientName(e.target.value)}
+                placeholder="اكتب اسم المستلم هنا..."
               />
             </Field>
           </div>
@@ -511,12 +526,12 @@ export function NewIssueOrderPage() {
                 <tbody style={{ }}>
                   {lines.map((line) => {
                     const product = products.find(p => String(p.id) === line.productId);
-                    let availableStock = '-'; 
-                    
+                    let availableStock = '-';
+
                     if (product) {
                       const stocks = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
                       const locId = fromLocationId === 'all' ? line.fromLocationId : fromLocationId;
-                      
+
                       if (locId && locId !== 'all') {
                         const locStock = stocks.find(s => String(s.productId) === String(line.productId) && String(s.locationId) === String(locId));
                         if (locStock) {
@@ -530,7 +545,7 @@ export function NewIssueOrderPage() {
                         availableStock = String(Math.max(0, totalStock - (line.qty || 0)));
                       }
                     }
-                    
+
                     return (
                       <tr key={line.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '8px 16px' }}>
@@ -578,14 +593,14 @@ export function NewIssueOrderPage() {
                           />
                         </td>
                         <td style={{ padding: '8px 16px', textAlign: 'center' }}>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => removeLine(line.id)}
                             disabled={lines.length === 1 && !line.productId}
-                            style={{ 
-                              color: 'var(--danger-color)', 
-                              background: 'none', 
-                              border: 'none', 
+                            style={{
+                              color: 'var(--danger-color)',
+                              background: 'none',
+                              border: 'none',
                               cursor: (lines.length === 1 && !line.productId) ? 'not-allowed' : 'pointer',
                               padding: '8px',
                               opacity: (lines.length === 1 && !line.productId) ? 0.5 : 1
@@ -603,15 +618,15 @@ export function NewIssueOrderPage() {
                 </tbody>
               </table>
             </div>
-            
+
             <div style={{ marginTop: '16px' }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={addLine}
-                style={{ 
-                  color: 'var(--primary-color)', 
-                  background: 'none', 
-                  border: 'none', 
+                style={{
+                  color: 'var(--primary-color)',
+                  background: 'none',
+                  border: 'none',
                   cursor: 'pointer',
                   fontWeight: 500,
                   display: 'flex',
@@ -628,8 +643,8 @@ export function NewIssueOrderPage() {
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">ملاحظات</h3>
           <div className="document-prototype-grid">
-            <textarea 
-              className="purchase-prototype-field-input" 
+            <textarea
+              className="purchase-prototype-field-input"
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="أي ملاحظات إضافية على إذن الصرف..."

@@ -24,8 +24,8 @@ export class PurchasesService {
     return this.queryService.getPurchaseAttachment(purchaseId, attachmentId, auth);
   }
 
-  createPurchase(payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.writeService.createPurchase(payload, auth);
+  createPurchase(payload: UpsertPurchaseDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
+    return this.writeService.createPurchase(payload, auth, idempotencyKey);
   }
 
   updatePurchase(id: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {

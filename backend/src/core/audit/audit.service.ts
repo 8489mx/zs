@@ -12,8 +12,12 @@ export class AuditService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   async log(action: string, details: string, actor: AuditActor, options?: { targetTenantId?: string }): Promise<void> {
+    await this.logWithExecutor(this.db, action, details, actor, options);
+  }
+
+  async logWithExecutor(executor: Kysely<Database>, action: string, details: string, actor: AuditActor, options?: { targetTenantId?: string }): Promise<void> {
     const scope = requireTenantScope(actor as AuthContext);
-    await this.db
+    await executor
       .insertInto('audit_logs')
       .values({
         action,

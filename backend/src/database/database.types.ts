@@ -5,6 +5,22 @@ export interface Phase1BootstrapTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface OperationExecutionTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  idempotency_key: string;
+  operation_type: string;
+  status: string; // processing, committed, failed, recovery_required
+  request_hash: string;
+  document_id: string | null;
+  response_payload: string | null;
+  error_code: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  completed_at: Date | null;
+}
+
 export interface SessionTable {
   id: string;
   user_id: number;
@@ -1298,6 +1314,7 @@ export interface Database {
   tenant_subscriptions: TenantSubscriptionTable;
   tenant_subscription_payments: TenantSubscriptionPaymentTable;
   _phase1_bootstrap: Phase1BootstrapTable;
+  operation_executions: OperationExecutionTable;
   sessions: SessionTable;
   users: UserTable;
   tenants: TenantTable;

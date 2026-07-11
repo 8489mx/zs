@@ -6,6 +6,7 @@ import { HealthModule } from './core/health/health.module';
 import { LoggingModule } from './core/logging/logging.module';
 import { AuthFoundationModule } from './core/auth/auth.module';
 import { AuditModule } from './core/audit/audit.module';
+import { IdempotencyModule } from './core/idempotency/idempotency.module';
 import { UsersModule } from './modules/users/users.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
@@ -40,6 +41,7 @@ import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit
     DatabaseModule,
     AuthFoundationModule,
     AuditModule,
+    IdempotencyModule,
     HealthModule,
     UsersModule,
     SettingsModule,

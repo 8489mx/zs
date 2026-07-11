@@ -72,7 +72,7 @@ export const inventoryApi = {
   locationCategoryProducts: async (locationId: number, categoryId: string | number) => unwrapArray<{ id: string; name: string; barcode: string; stockQty: number; globalStockQty?: number }>(await http<{ products: { id: string; name: string; barcode: string; stockQty: number; globalStockQty?: number }[] }>(`/api/locations/${locationId}/categories/${categoryId}/products`), 'products'),
   assignProductsToLocation: async (locationId: number, productIds: number[]) => await http<{ success: boolean }>(`/api/locations/${locationId}/assign-products`, { method: 'POST', body: JSON.stringify({ productIds }) }),
   removeProductFromLocation: async (locationId: number, productId: number) => await http<{ success: boolean }>(`/api/locations/${locationId}/products/${productId}`, { method: 'DELETE' }),
-  createAdjustment: (payload: unknown) => http('/api/inventory-adjustments', { method: 'POST', body: JSON.stringify(payload) }),
+  createInventoryAdjustment: (payload: unknown, headers?: Record<string, string>) => http('/api/inventory-adjustments', { method: 'POST', body: JSON.stringify(payload), headers }),
   createDamaged: (payload: unknown) => http('/api/damaged-stock', { method: 'POST', body: JSON.stringify(payload) }),
   stockTransfers: async () => unwrapArray<StockTransfer>(await http<StockTransfer[] | { stockTransfers: StockTransfer[] }>('/api/stock-transfers'), 'stockTransfers'),
   stockTransfersPage: async (params: InventoryPageQueryParams = {}) => {
@@ -119,11 +119,11 @@ export const inventoryApi = {
       summary: response.summary || { positive: 0, negative: 0, totalItems: 0 },
     };
   },
-  createStockTransfer: (payload: unknown) => http('/api/stock-transfers', { method: 'POST', body: JSON.stringify(payload) }),
-  internalTransferProducts: (payload: unknown) => http('/api/internal-transfer', { method: 'POST', body: JSON.stringify(payload) }),
-  internalTransferCategory: (payload: unknown) => http('/api/internal-transfer-category', { method: 'POST', body: JSON.stringify(payload) }),
-  receiveStockTransfer: (transferId: string) => http(`/api/stock-transfers/${transferId}/receive`, { method: 'POST' }),
-  cancelStockTransfer: (transferId: string) => http(`/api/stock-transfers/${transferId}/cancel`, { method: 'POST' }),
+  createStockTransfer: (payload: unknown, headers?: Record<string, string>) => http('/api/stock-transfers', { method: 'POST', body: JSON.stringify(payload), headers }),
+  internalTransferProducts: (payload: unknown, headers?: Record<string, string>) => http('/api/internal-transfer', { method: 'POST', body: JSON.stringify(payload), headers }),
+  internalTransferCategory: (payload: unknown, headers?: Record<string, string>) => http('/api/internal-transfer-category', { method: 'POST', body: JSON.stringify(payload), headers }),
+  receiveStockTransfer: (transferId: string, headers?: Record<string, string>) => http(`/api/stock-transfers/${transferId}/receive`, { method: 'POST', headers }),
+  cancelStockTransfer: (transferId: string, headers?: Record<string, string>) => http(`/api/stock-transfers/${transferId}/cancel`, { method: 'POST', headers }),
   stockCountSessions: async () => {
     const payload = await http<{ stockCountSessions?: StockCountSession[]; damagedStockRecords?: DamagedStockRecord[] }>('/api/stock-count-sessions');
     return {

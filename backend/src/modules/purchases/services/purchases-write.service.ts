@@ -16,6 +16,7 @@ import { allocatePurchaseInvoiceDiscount, buildHistoricCostMap, buildNormalizedP
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { PurchasesQueryService } from './purchases-query.service';
+import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 
 type PurchaseRepricingCandidate = {
   productId: number;
@@ -65,6 +66,7 @@ export class PurchasesWriteService {
     private readonly financeService: PurchasesFinanceService,
     private readonly queryService: PurchasesQueryService,
     private readonly accountingPosting: AccountingPostingService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   private hasPermission(auth: AuthContext, permission: string): boolean {
@@ -162,8 +164,35 @@ export class PurchasesWriteService {
     return { ok: true, purchase, purchases: purchases.purchases, ...extras };
   }
 
-  async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
+  async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+
+    // SINGLE reservation point. The IdempotencyInterceptor is NOT applied to PurchasesController.
+    // This is the only place reserveOperation is called for purchase_create.
+    if (idempotencyKey) {
+      const existingResult = await this.idempotency.reserveOperation({
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        idempotencyKey,
+        operationType: 'purchase_create',
+        requestHash: this.idempotency.generateRequestHash(payload),
+      });
+      // If operation was already processed, return the cached result.
+      if (existingResult?.status === 'committed' && existingResult.responsePayload) {
+        return existingResult.responsePayload;
+      }
+      if (existingResult?.status === 'failed') {
+        throw new AppError(existingResult.errorCode || 'Operation previously failed', 'PURCHASE_IDEMPOTENCY_FAILED', 400);
+      }
+      if (existingResult?.status === 'processing') {
+        throw new AppError('Operation is currently processing, retry later', 'PURCHASE_PROCESSING', 409);
+      }
+      if (existingResult?.status === 'recovery_required') {
+        throw new AppError('Operation requires manual recovery', 'PURCHASE_RECOVERY_REQUIRED', 422);
+      }
+    }
+
+    try {
     const created = await this.tx.runInTransaction(this.db, async (trx) => {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
@@ -352,14 +381,54 @@ export class PurchasesWriteService {
 
       await this.accountingPosting.postPurchase(trx, id, auth);
 
+      const repricingInsights = this.buildPurchaseRepricingInsights(id, { id: Number(supplier.id), name: String(supplier.name || '') }, repricingCandidates);
+
+      // Commit idempotency record atomically inside the same business transaction.
+      if (idempotencyKey) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType: 'purchase_create' },
+          { purchaseId: id, repricingInsights },
+          String(id)
+        );
+      }
+
       return {
         purchaseId: id,
-        repricingInsights: this.buildPurchaseRepricingInsights(id, { id: Number(supplier.id), name: String(supplier.name || '') }, repricingCandidates),
+        repricingInsights,
       };
     });
 
     await this.audit.log('شراء', `تم تسجيل فاتورة شراء PUR-${created.purchaseId} بواسطة ${auth.username}`, auth);
     return this.buildPurchaseMutationResponse(created.purchaseId, auth, { repricingInsights: created.repricingInsights });
+    } catch (error: any) {
+      // Business transaction has rolled back at this point.
+      // Only mark 'failed' for known validation/AppErrors (statusCode < 500) — rollback is guaranteed.
+      // For unknown/technical errors, mark 'recovery_required' — outcome is ambiguous.
+      if (idempotencyKey) {
+        const isKnownError = error instanceof AppError && error.statusCode < 500;
+        if (isKnownError) {
+          await this.idempotency.recordFailure(
+            { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType: 'purchase_create' },
+            error.code || 'PURCHASE_VALIDATION_FAILED'
+          ).catch(() => { /* best effort */ });
+        } else {
+          // Unknown/5xx error — mark recovery_required (never automatically mark failed).
+          await this.db
+            .updateTable('operation_executions')
+            .set({ status: 'recovery_required', updated_at: sql`CURRENT_TIMESTAMP` })
+            .where('tenant_id', '=', scope.tenantId)
+            .where('account_id', '=', scope.accountId)
+            .where('idempotency_key', '=', idempotencyKey)
+            .where('operation_type', '=', 'purchase_create')
+            .where('status', '=', 'processing')
+            .where('document_id', 'is', null)
+            .execute()
+            .catch(() => { /* best effort */ });
+        }
+      }
+      throw error;
+    }
   }
 
   async updatePurchase(purchaseId: number, payload: UpsertPurchaseDto, auth: AuthContext): Promise<Record<string, unknown>> {
