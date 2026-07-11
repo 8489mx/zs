@@ -8,7 +8,7 @@ export function useInventoryAdjustmentMutation(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: InventoryAdjustmentOutput) => inventoryApi.createAdjustment(buildInventoryAdjustmentPayload(values)),
-    onSuccess: async (res: any, vars: InventoryAdjustmentOutput) => {
+    onSuccess: async (res: any) => {
       if (res?.adjustment?.productId) {
         const { productId, locationId, scopeAfter, globalAfter } = res.adjustment;
         queryClient.setQueryData(['location-stocks'], (old: any) => {
