@@ -33,6 +33,7 @@ type StockDeltaParams = StockScopeParams & {
   errorCode?: string;
   errorMessage?: string;
   allowNegative?: boolean;
+  skipGlobalUpdate?: boolean;
 };
 
 type StockSetParams = StockScopeParams & {
@@ -263,9 +264,13 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
     const scopeBefore = roundStockQty(unassigned.qty);
     const scopeAfter = roundStockQty(scopeBefore + delta);
     if (!params.allowNegative) ensureNonNegativeStock(scopeAfter, errorCode, errorMessage);
+    
+    const trueGlobalQty = roundStockQty(state.balances.reduce((sum, row) => sum + Number(row.qty), 0));
+    const correctedGlobalAfter = roundStockQty(trueGlobalQty + delta);
+    
     await updateBalanceQty(db, state.scope, unassigned, scopeAfter, null);
-    await updateGlobalQty(db, state.scope, params.productId, globalAfter);
-    return { globalBefore, globalAfter, scopeBefore, scopeAfter };
+    if (!params.skipGlobalUpdate) await updateGlobalQty(db, state.scope, params.productId, correctedGlobalAfter);
+    return { globalBefore, globalAfter: params.skipGlobalUpdate ? globalBefore : correctedGlobalAfter, scopeBefore, scopeAfter };
   }
 
   const unassigned = await ensureUnassignedBalance(db, state);
@@ -285,9 +290,13 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
 
   const scopeAfter = roundStockQty(locationBefore + delta);
   if (!params.allowNegative) ensureNonNegativeStock(scopeAfter, errorCode, errorMessage);
+  
+  const trueGlobalQty = roundStockQty(state.balances.reduce((sum, row) => sum + Number(row.qty), 0));
+  const correctedGlobalAfter = roundStockQty(trueGlobalQty + delta);
+  
   await updateBalanceQty(db, state.scope, location, scopeAfter, params.branchId ?? null);
-  await updateGlobalQty(db, state.scope, params.productId, globalAfter);
-  return { globalBefore, globalAfter, scopeBefore: locationBefore, scopeAfter };
+  if (!params.skipGlobalUpdate) await updateGlobalQty(db, state.scope, params.productId, correctedGlobalAfter);
+  return { globalBefore, globalAfter: params.skipGlobalUpdate ? globalBefore : correctedGlobalAfter, scopeBefore: locationBefore, scopeAfter };
 }
 
 export async function setScopedStockQty(db: Kysely<Database>, params: StockSetParams): Promise<StockDeltaResult> {
@@ -302,28 +311,46 @@ export async function setScopedStockQty(db: Kysely<Database>, params: StockSetPa
     const unassigned = await ensureUnassignedBalance(db, state);
     const scopeBefore = roundStockQty(unassigned.qty);
     const delta = roundStockQty(nextQty - scopeBefore);
-    if (delta === 0) {
-      return { globalBefore: state.globalQty, globalAfter: state.globalQty, scopeBefore, scopeAfter: nextQty };
-    }
+    
+    const trueGlobalQty = roundStockQty(state.balances.reduce((sum, row) => sum + Number(row.qty), 0));
     const globalBefore = state.globalQty;
-    const globalAfter = roundStockQty(globalBefore + delta);
+    const globalAfter = roundStockQty(trueGlobalQty + delta);
+
+    if (delta === 0 && globalBefore === globalAfter) {
+      return { globalBefore, globalAfter, scopeBefore, scopeAfter: nextQty };
+    }
+    
     ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
-    await updateBalanceQty(db, state.scope, unassigned, nextQty, null);
-    await updateGlobalQty(db, state.scope, params.productId, globalAfter);
+    
+    if (delta !== 0) {
+      await updateBalanceQty(db, state.scope, unassigned, nextQty, null);
+    }
+    if (delta !== 0 || globalBefore !== globalAfter) {
+      await updateGlobalQty(db, state.scope, params.productId, globalAfter);
+    }
     return { globalBefore, globalAfter, scopeBefore, scopeAfter: nextQty };
   }
 
   const location = await ensureLocationBalance(db, state, params.locationId, params.branchId ?? null);
   const scopeBefore = roundStockQty(location.qty);
   const delta = roundStockQty(nextQty - scopeBefore);
-  if (delta === 0) {
-    return { globalBefore: state.globalQty, globalAfter: state.globalQty, scopeBefore, scopeAfter: nextQty };
-  }
+  
+  const trueGlobalQty = roundStockQty(state.balances.reduce((sum, row) => sum + Number(row.qty), 0));
   const globalBefore = state.globalQty;
-  const globalAfter = roundStockQty(globalBefore + delta);
+  const globalAfter = roundStockQty(trueGlobalQty + delta);
+
+  if (delta === 0 && globalBefore === globalAfter) {
+    return { globalBefore, globalAfter, scopeBefore, scopeAfter: nextQty };
+  }
+
   ensureNonNegativeStock(globalAfter, errorCode, errorMessage);
-  await updateBalanceQty(db, state.scope, location, nextQty, params.branchId ?? null);
-  await updateGlobalQty(db, state.scope, params.productId, globalAfter);
+  
+  if (delta !== 0) {
+    await updateBalanceQty(db, state.scope, location, nextQty, params.branchId ?? null);
+  }
+  if (delta !== 0 || globalBefore !== globalAfter) {
+    await updateGlobalQty(db, state.scope, params.productId, globalAfter);
+  }
   return { globalBefore, globalAfter, scopeBefore, scopeAfter: nextQty };
 }
 

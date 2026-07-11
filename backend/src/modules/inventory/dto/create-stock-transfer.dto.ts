@@ -39,6 +39,10 @@ export class CreateStockTransferDto {
   @IsString()
   recipientName?: string;
 
+  @IsOptional()
+  @IsString()
+  issueMode?: 'final_issue' | 'transfer_to_branch_stock';
+
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

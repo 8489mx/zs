@@ -27,6 +27,13 @@ export class InventoryTransferService {
   private tenantPredicate(auth: AuthContext, alias?: string) { const tenantId = this.tenantScope(auth).tenantId; return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`; }
   private tenantFields(auth: AuthContext) { const scope = this.tenantScope(auth); return { tenant_id: scope.tenantId, account_id: scope.accountId }; }
 
+  private async getOrCreateInTransitLocation(trx: Kysely<Database>, scope: { tenantId: string; accountId: string }): Promise<number> {
+    const existing = await trx.selectFrom('stock_locations').select(['id']).where('location_type', '=', 'in_transit').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+    if (existing) return existing.id;
+    const inserted = await trx.insertInto('stock_locations').values({ name: 'بضاعة بالطريق', code: 'IN_TRANSIT', location_type: 'in_transit' as any, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId }).returning('id').executeTakeFirstOrThrow();
+    return inserted.id;
+  }
+
   async listStockTransfers(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     if (!auth.permissions.includes('inventory') && !auth.permissions.includes('canAdjustInventory')) throw new ForbiddenException('Missing required permissions');
     let transfersQuery = this.db
@@ -86,28 +93,49 @@ export class InventoryTransferService {
     }
     
     const transferId = await this.tx.runInTransaction(this.db, async (trx) => {
+      const issueMode = payload.issueMode || 'transfer_to_branch_stock';
+      const initialStatus = issueMode === 'final_issue' ? 'received' : 'sent';
+
       const result = await trx.insertInto('stock_transfers').values({ 
         from_location_id: from.id, 
         to_location_id: to ? to.id : null, 
         from_branch_id: from.branchId, 
         to_branch_id: to ? to.branchId : (payload.toBranchId || null), 
-        status: 'sent', 
+        status: initialStatus, 
         note: String(payload.note || '').trim(), 
         recipient_name: payload.recipientName || null, 
         created_by: auth.userId, 
+        ...(initialStatus === 'received' ? { received_by: auth.userId, received_at: sql`NOW()` } : {}),
         ...this.tenantFields(auth) 
       }).returning('id').executeTakeFirstOrThrow();
       const id = Number(result.id);
       await trx.updateTable('stock_transfers').set({ doc_no: `TR-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).where(this.tenantPredicate(auth)).execute();
+
+      let inTransitLocationId: number | null = null;
+      if (initialStatus === 'sent') {
+        inTransitLocationId = await this.getOrCreateInTransitLocation(trx, scope);
+      }
+
       for (const item of payload.items) {
         const product = await trx.selectFrom('products').select(['id', 'name']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
+        
+        // Ensure quantity is available in this specific location ONLY
         const availableAtSource = await previewAssignedLocationStockQty(trx, stockScope);
-        ensureNonNegativeStock(Number(availableAtSource || 0) - Number(item.qty || 0), 'INSUFFICIENT_LOCATION_STOCK', `Insufficient stock at ${from.name} for ${product.name}`);
+        ensureNonNegativeStock(Number(availableAtSource || 0) - Number(item.qty || 0), 'INSUFFICIENT_LOCATION_STOCK', `الكمية غير كافية في مخزن ${from.name} للصنف ${product.name}. المتاح: ${availableAtSource || 0}`);
+        
         await trx.insertInto('stock_transfer_items').values({ transfer_id: id, product_id: item.productId, product_name: product.name || '', qty: item.qty, ...this.tenantFields(auth) }).execute();
-        const stockChange = await applyStockDelta(trx, { ...stockScope, delta: -Number(item.qty || 0), errorCode: 'INSUFFICIENT_LOCATION_STOCK', errorMessage: `Insufficient stock at ${from.name} for ${product.name}` });
+        
+        // Deduct from source. Only reduce global stock if final_issue (inTransitLocationId is null)
+        const stockChange = await applyStockDelta(trx, { ...stockScope, delta: -Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, errorCode: 'INSUFFICIENT_LOCATION_STOCK', errorMessage: `Insufficient stock at ${from.name} for ${product.name}` });
         await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_send', qty: -Number(item.qty || 0), before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'transfer_send', note: `Sent transfer TR-${id}`, reference_type: 'transfer', reference_id: id, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
+
+        if (inTransitLocationId) {
+          const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, locationId: inTransitLocationId, branchId: null };
+          const transitChange = await applyStockDelta(trx, { ...transitScope, delta: Number(item.qty || 0), skipGlobalUpdate: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
+          await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_transit_in', qty: Number(item.qty || 0), before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_send', note: `In-transit for TR-${id}`, reference_type: 'transfer', reference_id: id, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
+        }
       }
       return id;
     });
@@ -119,15 +147,27 @@ export class InventoryTransferService {
   async receiveStockTransfer(transferId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.tenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
       if ((transfer.status || 'sent') !== 'sent') throw new AppError('Only sent transfers can be received', 'TRANSFER_STATUS_INVALID', 400);
       const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      
+      let inTransitLocationId: number | null = null;
+      const inTransitRow = await trx.selectFrom('stock_locations').select('id').where('location_type', '=', 'in_transit').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+      if (inTransitRow) inTransitLocationId = inTransitRow.id;
+
       if (transfer.to_location_id) {
         for (const item of items) {
           const qty = Number(item.qty || 0);
+
+          if (inTransitLocationId) {
+            const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), locationId: inTransitLocationId, branchId: null };
+            const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -qty, skipGlobalUpdate: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
+            await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_out', qty: -qty, before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_receive', note: `Out of transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
+          }
+
           const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.to_branch_id, locationId: transfer.to_location_id };
-          const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
+          const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, skipGlobalUpdate: true, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
           await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_receive', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'transfer_receive', note: `Received transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: transfer.to_branch_id, location_id: transfer.to_location_id, ...this.tenantFields(auth) }).execute();
         }
       }
@@ -140,13 +180,26 @@ export class InventoryTransferService {
   async cancelStockTransfer(transferId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.tenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
-      if (!['sent', 'received'].includes(transfer.status || 'sent')) throw new AppError('Only sent or received transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
+      if (!['sent'].includes(transfer.status || 'sent')) throw new AppError('Only sent transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
       const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      
+      let inTransitLocationId: number | null = null;
+      if (transfer.status === 'sent') {
+        const inTransitRow = await trx.selectFrom('stock_locations').select('id').where('location_type', '=', 'in_transit').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        if (inTransitRow) inTransitLocationId = inTransitRow.id;
+      }
+
       for (const item of items) {
+        if (inTransitLocationId) {
+          const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), locationId: inTransitLocationId, branchId: null };
+          const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -Number(item.qty || 0), skipGlobalUpdate: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
+          await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_cancel', qty: -Number(item.qty || 0), before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_cancel', note: `Cancel transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
+        }
+
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.from_branch_id, locationId: transfer.from_location_id };
-        const stockChange = await applyStockDelta(trx, { ...stockScope, delta: Number(item.qty || 0), errorCode: 'TRANSFER_CANCEL_ERROR', errorMessage: `Transfer TR-${transferId} cannot be cancelled` });
+        const stockChange = await applyStockDelta(trx, { ...stockScope, delta: Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, errorCode: 'TRANSFER_CANCEL_ERROR', errorMessage: `Transfer TR-${transferId} cannot be cancelled` });
         await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_cancel', qty: Number(item.qty || 0), before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'transfer_cancel', note: `Cancelled transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: transfer.from_branch_id, location_id: transfer.from_location_id, ...this.tenantFields(auth) }).execute();
       }
       await trx.updateTable('stock_transfers').set({ status: 'cancelled', cancelled_by: auth.userId, cancelled_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();

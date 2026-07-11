@@ -637,10 +637,11 @@ export function NewPurchaseOrderPage() {
   const [productCreateModalState, setProductCreateModalState] = useState<{isOpen: boolean, query: string, barcode: string, lineId: number | null}>({ isOpen: false, query: '', barcode: '', lineId: null });
   const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
   const [barcodeScanQuery, setBarcodeScanQuery] = useState('');
+  const [createdPurchase, setCreatedPurchase] = useState<any>(null);
   const navigate = useNavigate();
   const catalog = usePurchaseComposerCatalog();
-  const createMutation = useCreatePurchaseMutation(() => {
-    navigate('/purchases');
+  const createMutation = useCreatePurchaseMutation((result) => {
+    setCreatedPurchase(result.purchase);
   });
 
   const rawSettings = catalog.settingsQuery.data;
@@ -1544,8 +1545,8 @@ export function NewPurchaseOrderPage() {
 
       const product = line.productId ? products.find((item) => item.id === line.productId) : undefined;
       const requiresWarehouse = product ? product.type === 'stock' : !line.isService;
-      if (requiresWarehouse && (!line.warehouse.trim() || !line.warehouseId)) {
-        rowErrors.warehouse = t('select_warehouse_error');
+      if (requiresWarehouse && (!line.warehouse.trim() || !line.warehouseId || line.warehouseId === 'undefined' || line.warehouseId === 'null')) {
+        rowErrors.warehouse = `اختر مكان المخزون للصنف "${line.itemName}" من القائمة.`;
         addFirstTarget({ kind: 'line', lineId: line.id, field: 'warehouse' });
       }
 
@@ -1559,12 +1560,7 @@ export function NewPurchaseOrderPage() {
       if (isBlankRow || !line.productId) {
         return false;
       }
-
-      const qtyValue = Number.isFinite(line.qty) ? line.qty : parseLocalizedNumber(String(line.qty));
-      const priceValue = Number.isFinite(line.unitPrice) ? line.unitPrice : parseLocalizedNumber(String(line.unitPrice));
-      const product = products.find((item) => item.id === line.productId);
-      const requiresWarehouse = product ? product.type === 'stock' : !line.isService;
-      return Number.isFinite(qtyValue) && qtyValue > 0 && Number.isFinite(priceValue) && priceValue >= 0 && (!requiresWarehouse || (Boolean(line.warehouse.trim()) && Boolean(line.warehouseId)));
+      return true;
     });
 
     if (!hasAnyValidLine) {
@@ -1856,6 +1852,38 @@ export function NewPurchaseOrderPage() {
 
   return (
     <div className={`page-shell document-prototype-shell purchase-new-prototype${isDarkMode ? ' purchase-prototype-dark' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {createdPurchase && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="modal-content" style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+            <h2 className="text-xl font-bold text-emerald-600 mb-4">تم تسجيل فاتورة الشراء بنجاح</h2>
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600" style={{ margin: '0 auto' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-6">
+              تم تسجيل الفاتورة رقم {createdPurchase.docNo || createdPurchase.id}
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button type="button" onClick={() => {
+                import('@/features/purchases/lib/purchases-workspace.helpers').then(({ printPurchaseDocument }) => {
+                  printPurchaseDocument(createdPurchase);
+                });
+              }} className="w-full justify-center">
+                طباعة الفاتورة (A4)
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => window.location.reload()} className="w-full justify-center">
+                فاتورة شراء جديدة
+              </Button>
+              <button type="button" onClick={() => navigate('/purchases')} className="btn w-full justify-center mt-2 bg-transparent text-gray-600 hover:bg-gray-100 border-none shadow-none" style={{ marginTop: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
+                العودة لسجل الفواتير
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={`purchase-prototype-sticky-stack${isHeaderScrolled ? ' is-scrolled' : ''}`}>
         <div className="purchase-prototype-document-surface">
         <div className="document-prototype-topbar">

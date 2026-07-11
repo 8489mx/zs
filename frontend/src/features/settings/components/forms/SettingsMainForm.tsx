@@ -12,7 +12,7 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { BranchForm } from '@/features/settings/components/forms/BranchForm';
-import { LocationForm } from '@/features/settings/components/forms/LocationForm';
+
 import { BrandPreview, readFileAsDataUrl, type SettingsMainFormProps } from '@/features/settings/components/forms/settings-forms.shared';
 import { useLocalePreference } from '@/shared/locale/LocaleProvider';
 
@@ -126,53 +126,40 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       dateFormat: 'yyyy-MM-dd',
       timeFormat: '24h',
       whatsappLinkMode: 'wa_me',
+      defaultBranchIssueMode: 'final_issue',
     },
   });
 
   const mutation = useSettingsUpdateMutation(settings, onSetupAdvance);
   const [showBranchQuickAdd, setShowBranchQuickAdd] = useState(false);
-  const [showWarehouseQuickAdd, setShowWarehouseQuickAdd] = useState(false);
   const [branchQuery, setBranchQuery] = useState('');
-  const [warehouseQuery, setWarehouseQuery] = useState('');
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
-  const [warehouseMenuOpen, setWarehouseMenuOpen] = useState(false);
   const [branchPrefillName, setBranchPrefillName] = useState('');
-  const [warehousePrefillName, setWarehousePrefillName] = useState('');
-  const [warehouseAddError, setWarehouseAddError] = useState('');
   const currentBranchId = form.watch('currentBranchId');
-  const currentLocationId = form.watch('currentLocationId');
+
   const clothingModuleEnabled = form.watch('clothingModuleEnabled');
   const weightedBarcodeEnabled = form.watch('weightedBarcodeEnabled');
   const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
 
   const resolvedBranchId = SINGLE_STORE_MODE ? (currentBranchId || settings?.currentBranchId || branches[0]?.id || '') : currentBranchId;
-  const visibleLocations = useMemo(
-    () => locations.filter((location) => !resolvedBranchId || String(location.branchId || '') === String(resolvedBranchId)),
-    [locations, resolvedBranchId]
-  );
+  const visibleLocations = useMemo(() => locations, [locations]);
 
   const selectedBranch = branches.find((branch) => String(branch.id) === String(resolvedBranchId)) || branches[0] || null;
-  const selectedLocation = visibleLocations.find((location) => String(location.id) === String(currentLocationId)) || visibleLocations[0] || locations[0] || null;
+
   const filteredBranches = useMemo(
     () => branches.filter((branch) => !normalizeText(branchQuery) || normalizeText(String(branch.name || '')).includes(normalizeText(branchQuery))),
     [branchQuery, branches]
   );
-  const filteredWarehouses = useMemo(
-    () => visibleLocations.filter((location) => !normalizeText(warehouseQuery) || normalizeText(String(location.name || '')).includes(normalizeText(warehouseQuery))),
-    [warehouseQuery, visibleLocations]
-  );
+  
   const branchHasExactMatch = useMemo(
     () => branches.some((branch) => normalizeText(String(branch.name || '')) === normalizeText(branchQuery)),
     [branchQuery, branches]
   );
-  const warehouseHasExactMatch = useMemo(
-    () => visibleLocations.some((location) => normalizeText(String(location.name || '')) === normalizeText(warehouseQuery)),
-    [warehouseQuery, visibleLocations]
-  );
+  
   const branchCreateOptionVisible = Boolean(normalizeText(branchQuery) && !branchHasExactMatch);
-  const warehouseCreateOptionVisible = Boolean(normalizeText(warehouseQuery) && !warehouseHasExactMatch);
+  
   const branchMenuHasContent = filteredBranches.length > 0 || branchCreateOptionVisible;
-  const warehouseMenuHasContent = filteredWarehouses.length > 0 || warehouseCreateOptionVisible;
+  
 
   const commitSelectedBranch = (branchId: string, branchName?: string) => {
     const normalizedBranchId = String(branchId || '').trim();
@@ -181,23 +168,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     form.clearErrors('currentBranchId');
     form.clearErrors('currentLocationId');
     form.clearErrors('root.serverError');
-    setWarehouseAddError('');
     if (typeof branchName === 'string' && branchName.trim()) {
       setBranchQuery(branchName.trim());
     }
     setBranchMenuOpen(false);
-  };
-
-  const commitSelectedWarehouse = (locationId: string, locationName?: string) => {
-    const normalizedLocationId = String(locationId || '').trim();
-    if (!normalizedLocationId) return;
-    form.setValue('currentLocationId', normalizedLocationId, { shouldDirty: true, shouldValidate: true });
-    form.clearErrors('currentLocationId');
-    form.clearErrors('root.serverError');
-    if (typeof locationName === 'string' && locationName.trim()) {
-      setWarehouseQuery(locationName.trim());
-    }
-    setWarehouseMenuOpen(false);
   };
 
   useEffect(() => {
@@ -255,9 +229,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       timezone: String(settings.timezone || 'Africa/Cairo').trim() || 'Africa/Cairo',
       dateFormat: settings.dateFormat === 'dd/MM/yyyy' ? 'dd/MM/yyyy' : 'yyyy-MM-dd',
       timeFormat: settings.timeFormat === '12h' ? '12h' : '24h',
-      whatsappLinkMode: (['web', 'app', 'wa_me'].includes(settings.whatsappLinkMode || '') ? settings.whatsappLinkMode : 'wa_me') as 'web' | 'app' | 'wa_me',
+      whatsappLinkMode: settings.whatsappLinkMode === 'app' ? 'app' : settings.whatsappLinkMode === 'web' ? 'web' : 'wa_me',
+      defaultBranchIssueMode: settings.defaultBranchIssueMode === 'transfer_to_branch_stock' ? 'transfer_to_branch_stock' : 'final_issue',
     });
-  }, [settings, form]);
+  }, [settings, form, branches]);
 
   useEffect(() => {
     const selectedLocationId = form.getValues('currentLocationId');
@@ -267,8 +242,13 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   }, [visibleLocations, form]);
 
   useEffect(() => {
-    if (SINGLE_STORE_MODE && !form.getValues('currentBranchId') && branches[0]?.id) {
-      form.setValue('currentBranchId', String(branches[0].id), { shouldDirty: false });
+    if (SINGLE_STORE_MODE) {
+      const currentId = form.getValues('currentBranchId');
+      const branchExists = currentId ? branches.some((b) => String(b.id) === String(currentId)) : false;
+      
+      if ((!currentId || !branchExists) && branches[0]?.id) {
+        form.setValue('currentBranchId', String(branches[0].id), { shouldDirty: false });
+      }
     }
   }, [branches, form]);
 
@@ -300,15 +280,6 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     }
   }, [visibleLocations, form]);
 
-  useEffect(() => {
-    if (!warehouseMenuOpen) {
-      if (!selectedLocation?.name && visibleLocations.length === 0) {
-        setWarehouseQuery('مخزون المتجر الداخلي');
-      } else {
-        setWarehouseQuery(selectedLocation?.name || '');
-      }
-    }
-  }, [warehouseMenuOpen, selectedLocation?.name, visibleLocations.length]);
 
   const disabled = mutation.isPending || !canManageSettings;
   const watchedLanguage = form.watch('uiLanguage');
@@ -338,21 +309,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       }
     }
 
-    if (!locationIdToUse && warehouseQuery.trim()) {
-      const existingLocation = visibleLocations.find((l) => normalizeText(String(l.name || '')) === normalizeText(warehouseQuery));
-      if (existingLocation) {
-        locationIdToUse = String(existingLocation.id);
-      } else {
-        try {
-          const { settingsApi } = await import('@/features/settings/api/settings.api');
-          const res = await settingsApi.createLocation({ name: warehouseQuery.trim(), branchId: branchIdToUse || undefined });
-          const newId = res.locationId || res.location?.id;
-          if (res.ok && newId) locationIdToUse = String(newId);
-        } catch (err) {
-          console.error(err);
-        }
-      }
-    }
+
 
     values.currentBranchId = branchIdToUse;
     values.currentLocationId = locationIdToUse;
@@ -527,74 +484,21 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               </RequiredField>
             )}
 
-            {SINGLE_STORE_MODE ? (
-              <RequiredField label="مكان الاستلام الافتراضي" error={form.formState.errors.currentLocationId?.message}>
+            <RequiredField label="مكان الاستلام الافتراضي" error={form.formState.errors.currentLocationId?.message}>
+              {visibleLocations.length === 0 ? (
+                <div style={{ padding: '10px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.875rem' }}>
+                  لا توجد أماكن مخزون متاحة. أنشئ مكان مخزون أولاً من صفحة أماكن المخزون.
+                </div>
+              ) : (
                 <select className="purchase-prototype-field-input" {...form.register('currentLocationId')} disabled={disabled}>
-                  <option value="">-- سيتم الربط تلقائياً، أو اختر مكان --</option>
-                  {filteredWarehouses.map((loc) => (
+                  <option value="">-- اختر مكان الاستلام الافتراضي --</option>
+                  {visibleLocations.map((loc) => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                   ))}
                 </select>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>يُستخدم فقط عند عدم تحديد مكان للصنف أو للسطر.</div>
-              </RequiredField>
-            ) : (
-              <RequiredField label="مكان الاستلام الافتراضي" error={form.formState.errors.currentLocationId?.message}>
-                <input
-                  className="purchase-prototype-field-input"
-                  value={warehouseQuery}
-                  placeholder="ابحث أو اكتب اسم مخزن جديد لإضافته"
-                  disabled={disabled}
-                  onFocus={() => setWarehouseMenuOpen(true)}
-                  onChange={(event) => {
-                    setWarehouseQuery(event.target.value);
-                    setWarehouseMenuOpen(true);
-                    form.clearErrors('currentLocationId');
-                    form.clearErrors('root.serverError');
-                  }}
-                  onBlur={() => {
-                    window.setTimeout(() => setWarehouseMenuOpen(false), 120);
-                  }}
-                />
-                {warehouseMenuOpen && warehouseMenuHasContent ? (
-                  <div style={comboListStyle}>
-                    {filteredWarehouses.map((location) => (
-                      <button
-                        key={location.id}
-                        type="button"
-                        style={comboRowStyle}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          commitSelectedWarehouse(String(location.id), String(location.name || ''));
-                        }}
-                      >
-                        {location.name}
-                      </button>
-                    ))}
-                    {warehouseCreateOptionVisible ? (
-                      <button
-                        type="button"
-                        style={comboCreateStyle}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          if (!String(currentBranchId || '').trim()) {
-                            setWarehouseAddError('اختر الفرع الرئيسي أولًا قبل إضافة مخزن.');
-                            return;
-                          }
-                          setWarehouseAddError('');
-                          setWarehousePrefillName(warehouseQuery.trim());
-                          setShowWarehouseQuickAdd(true);
-                          setWarehouseMenuOpen(false);
-                        }}
-                      >
-                        + إضافة مخزن جديد: &quot;{warehouseQuery.trim()}&quot;
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-                {warehouseAddError ? <small className="field-error">{warehouseAddError}</small> : null}
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>يُستخدم فقط عند عدم تحديد مكان للصنف أو للسطر.</div>
-              </RequiredField>
-            )}
+              )}
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>يُستخدم فقط عند عدم تحديد مكان للصنف أو للسطر.</div>
+            </RequiredField>
 
             <RequiredField label="نمط الكاشير الافتراضي">
               <select className="purchase-prototype-field-input" {...form.register('defaultPosMode')} disabled={disabled}>
@@ -713,6 +617,16 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <input type="checkbox" {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
               طباعة شيت المطبخ تلقائياً
             </label>
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label>وضع إذن الصرف الافتراضي</label>
+              <select className="purchase-prototype-field-input" {...form.register('defaultBranchIssueMode')} disabled={disabled}>
+                <option value="final_issue">صرف نهائي (يتم خصم الرصيد فوراً)</option>
+                <option value="transfer_to_branch_stock">تحويل إلى رصيد فرع (يبقى في الطريق حتى يتم استلامه)</option>
+              </select>
+              <div className="muted small" style={{ marginTop: 4 }}>
+                استخدم <b>الصرف النهائي</b> إذا كان الفرع لا يدار مخزونه على النظام. واستخدم <b>تحويل إلى رصيد فرع</b> إذا كان الفرع يبيع من رصيده على النظام.
+              </div>
+            </div>
           </div>
         </FormSection>
 
@@ -845,35 +759,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         </div>
       </DialogShell>
 
-      {/* مودال إضافة مخزن سريع */}
-      <DialogShell open={!SINGLE_STORE_MODE && showWarehouseQuickAdd} onClose={() => setShowWarehouseQuickAdd(false)} width="min(620px, 100%)" ariaLabel="إضافة مخزن جديد">
-        <div className="page-stack">
-          <div><strong>إضافة مخزن جديد</strong></div>
-          <LocationForm
-            branches={branches}
-            canManageSettings={canManageSettings}
-            setupMode={setupMode}
-            onSetupAdvance={onSetupAdvance}
-            initialValues={{ name: warehousePrefillName, branchId: String(currentBranchId || '') }}
-            onCreated={(payload) => {
-              if (payload.locationId) {
-                commitSelectedWarehouse(String(payload.locationId), payload.name || warehousePrefillName);
-              } else if (payload.name) {
-                const matched = visibleLocations.find((location) => normalizeText(String(location.name || '')) === normalizeText(payload.name || ''));
-                if (matched?.id) {
-                  commitSelectedWarehouse(String(matched.id), String(matched.name || payload.name));
-                } else {
-                  setWarehouseQuery(payload.name || warehousePrefillName);
-                }
-              }
-              setShowWarehouseQuickAdd(false);
-            }}
-          />
-          <div className="actions compact-actions" style={{ justifyContent: 'flex-start' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowWarehouseQuickAdd(false)}>إلغاء</button>
-          </div>
-        </div>
-      </DialogShell>
+
     </form>
   );
 }

@@ -190,7 +190,7 @@ export class PurchasesWriteService {
       const defaultReceivingLocationRow = settingsResult.find((r) => r.key === 'currentLocationId');
       const defaultReceivingLocationId = defaultReceivingLocationRow?.value ? Number(defaultReceivingLocationRow.value) : null;
       
-      const activeLocations = await trx.selectFrom('stock_locations').select('id').where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).execute();
+      const activeLocations = await trx.selectFrom('stock_locations').select('id').where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).where((eb) => eb.or([eb('location_type', 'is', null), eb('location_type', '!=', 'in_transit')])).execute();
       const singleActiveLocationId = activeLocations.length === 1 ? Number(activeLocations[0].id) : null;
 
       for (const item of items) {
@@ -210,9 +210,21 @@ export class PurchasesWriteService {
           finalLocationId = singleActiveLocationId;
         }
         if (!finalLocationId) {
+          const stockRows = await trx
+            .selectFrom('product_location_stock')
+            .select(['location_id'])
+            .where('product_id', '=', item.productId)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .where('qty', '>', 0)
+            .execute();
+          if (stockRows.length === 1) {
+            finalLocationId = Number(stockRows[0].location_id);
+          }
+        }
+        if (!finalLocationId) {
           throw new AppError(`يجب تحديد مكان الاستلام للسطر الخاص بالصنف ${product.name}`, 'LOCATION_REQUIRED', 400);
         }
-        item.locationId = finalLocationId;
+        item.locationId = finalLocationId ?? undefined;
         
         normalizedItems.push(buildNormalizedPurchaseItem(item, product));
         repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, Number(item.cost || 0)));
@@ -465,9 +477,21 @@ export class PurchasesWriteService {
           finalLocationId = singleActiveLocationId;
         }
         if (!finalLocationId) {
+          const stockRows = await trx
+            .selectFrom('product_location_stock')
+            .select(['location_id'])
+            .where('product_id', '=', item.productId)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .where('qty', '>', 0)
+            .execute();
+          if (stockRows.length === 1) {
+            finalLocationId = Number(stockRows[0].location_id);
+          }
+        }
+        if (!finalLocationId) {
           throw new AppError(`يجب تحديد مكان الاستلام للسطر الخاص بالصنف ${product.name}`, 'LOCATION_REQUIRED', 400);
         }
-        item.locationId = finalLocationId;
+        item.locationId = finalLocationId ?? undefined;
 
         const normalizedItem = buildNormalizedPurchaseItem({ ...item, cost: incomingCost }, product);
         normalizedItems.push(normalizedItem);

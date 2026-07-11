@@ -53,4 +53,5 @@ export interface AppSettings {
   timezone?: string;
   dateFormat?: string;
   timeFormat?: '12h' | '24h' | string;
+  defaultBranchIssueMode?: 'final_issue' | 'transfer_to_branch_stock';
 }

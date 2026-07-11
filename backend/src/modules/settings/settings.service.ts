@@ -33,6 +33,7 @@ export class SettingsService {
       .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${scope.tenantId}`))
       .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active', 'l.location_type'])
       .where(this.tenantPredicate(actor, 'l'))
+      .where('l.location_type', '!=', 'in_transit')
       .orderBy('l.id', 'asc');
 
     if (actor.role === 'storekeeper' && !actor.permissions?.includes('canManageBranchStock')) {
@@ -63,25 +64,46 @@ export class SettingsService {
         .selectFrom('branches')
         .select(['id'])
         .where('id', '=', currentBranchId)
-        .where('is_active', '=', true)
         .where(this.tenantPredicate(actor))
         .executeTakeFirst(),
       this.db
         .selectFrom('stock_locations')
         .select(['id', 'branch_id'])
         .where('id', '=', currentLocationId)
-        .where('is_active', '=', true)
         .where(this.tenantPredicate(actor))
         .executeTakeFirst(),
     ]);
 
-    if (!branch || !location || Number(location.branch_id || 0) !== currentBranchId) {
+    let finalBranchId = currentBranchId;
+
+    if (!branch) {
+      const fallbackBranch = await this.db
+        .selectFrom('branches')
+        .select(['id'])
+        .where(this.tenantPredicate(actor))
+        .where('is_active', '=', true)
+        .orderBy('id', 'asc')
+        .executeTakeFirst();
+        
+      if (fallbackBranch) {
+        finalBranchId = fallbackBranch.id;
+      } else {
+        console.error('Settings update failed: no active branches found', { currentBranchId });
+        throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
+      }
+    }
+
+    if (!location) {
+      console.error('Settings update failed: location not found', { currentLocationId });
       throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
     }
 
-    const normalizedPayload = { ...payload };
+    const normalizedPayload = { ...payload, currentBranchId: String(finalBranchId) };
     if ('uiLanguage' in normalizedPayload) {
       normalizedPayload.uiLanguage = String(normalizedPayload.uiLanguage || '').trim().toLowerCase() === 'en' ? 'en' : 'ar';
+    }
+    if ('defaultBranchIssueMode' in normalizedPayload) {
+      normalizedPayload.defaultBranchIssueMode = normalizedPayload.defaultBranchIssueMode === 'transfer_to_branch_stock' ? 'transfer_to_branch_stock' : 'final_issue';
     }
 
     for (const [key, value] of Object.entries(normalizedPayload)) {

@@ -60,6 +60,7 @@ export const settingsFormSchema = z.object({
   dateFormat: z.enum(['yyyy-MM-dd', 'dd/MM/yyyy']).default('yyyy-MM-dd'),
   timeFormat: z.enum(['24h', '12h']).default('24h'),
   whatsappLinkMode: z.enum(['wa_me', 'web', 'app']).default('wa_me'),
+  defaultBranchIssueMode: z.enum(['final_issue', 'transfer_to_branch_stock']).default('final_issue'),
 });
 
 export const branchFormSchema = z.object({

@@ -167,12 +167,19 @@ export function translateErrorMessageFromCode(code?: string | null, fallbackMess
 
   if (code) {
     if (ERROR_CODE_MESSAGES[code]) return ERROR_CODE_MESSAGES[code];
+  }
+
+  if (fallback) {
+    if (looksArabic(fallback)) return fallback;
+  }
+
+  if (code) {
+    console.log(`Translating error code pattern: ${code}`);
     const pattern = translateByCodePattern(code);
     if (pattern) return pattern;
   }
 
   if (fallback) {
-    if (looksArabic(fallback)) return fallback;
     const translated = translateKnownEnglishMessage(fallback);
     if (translated) return translated;
   }

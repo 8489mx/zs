@@ -50,6 +50,7 @@ const baseSettingsMutationValues = {
   clothingModuleEnabled: false,
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,
+  defaultBranchIssueMode: 'final_issue' as const,
   allowNegativeStockSales: false,
   allowZeroPurchaseCost: false,
   requireCashierShiftForSales: true,

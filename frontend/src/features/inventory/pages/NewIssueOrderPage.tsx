@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -8,6 +8,8 @@ import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { useAuthStore } from '@/stores/auth-store';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { referenceDataApi } from '@/services/reference-data.api';
+import { queryKeys } from '@/app/query-keys';
 import { useAppToolbar } from '@/stores/toolbar-store';
 
 type LineItem = {
@@ -40,10 +42,19 @@ export function NewIssueOrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const [issueMode, setIssueMode] = useState<'final_issue' | 'transfer_to_branch_stock'>('final_issue');
+
   const products = Array.isArray(productsQuery.data) ? productsQuery.data : [];
   const locations = Array.isArray(locationsQuery.data) ? locationsQuery.data : [];
   const branches = Array.isArray(branchesQuery.data) ? branchesQuery.data : [];
   const stocks = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
+  const settingsQuery = useQuery({ queryKey: queryKeys.settings, queryFn: referenceDataApi.settings });
+
+  useEffect(() => {
+    if (settingsQuery.data?.defaultBranchIssueMode) {
+      setIssueMode(settingsQuery.data.defaultBranchIssueMode as any);
+    }
+  }, [settingsQuery.data?.defaultBranchIssueMode]);
   
   const productOptions = products
     .filter(p => {
@@ -85,7 +96,7 @@ export function NewIssueOrderPage() {
 
   const locationOptions = [
     { id: 'all', name: 'كل المخازن', searchTerms: 'كل المخازن all' },
-    ...locations.map((l) => ({
+    ...locations.filter((l: any) => l.locationType === 'internal_warehouse' || l.locationType === 'external_warehouse' || !l.locationType).map((l) => ({
       id: String(l.id),
       name: l.name,
       searchTerms: l.name.toLowerCase()
@@ -117,14 +128,14 @@ export function NewIssueOrderPage() {
           ? lineToUpdate.fromLocationId 
           : (fromLocationId !== 'all' ? fromLocationId : null);
           
-        if (locId) {
+        if (locId && locId !== 'all') {
           const locStock = stocks.find(s => String(s.productId) === String(lineToUpdate.productId) && String(s.locationId) === String(locId));
           if (locStock) maxQty = locStock.qty;
         } else {
-          maxQty = stocks.filter(s => String(s.productId) === String(lineToUpdate.productId)).reduce((acc, s) => acc + s.qty, 0);
+          maxQty = 0; // Require exact location for checking max qty accurately
         }
 
-        if (val > maxQty) {
+        if (val > maxQty && locId && locId !== 'all') {
           setErrorMsg(`مخزون غير كافي. أقصى كمية متاحة للصرف هي ${maxQty}`);
           actualValue = maxQty;
         } else {
@@ -178,7 +189,7 @@ export function NewIssueOrderPage() {
              const locStock = stocks.find(s => String(s.productId) === String(lineToUpdate?.productId) && String(s.locationId) === newLocationId);
              if (locStock) maxQty = locStock.qty;
           } else {
-             maxQty = stocks.filter(s => String(s.productId) === String(lineToUpdate?.productId)).reduce((acc, s) => acc + s.qty, 0);
+             maxQty = 0;
           }
           
           const currentQty = Number(lineToUpdate?.qty || 1);
@@ -211,6 +222,14 @@ export function NewIssueOrderPage() {
     if (validLines.length === 0) {
       setErrorMsg('يرجى إضافة صنف واحد على الأقل');
       return;
+    }
+
+    if (issueMode === 'transfer_to_branch_stock') {
+      const branchLocs = locations.filter((l: any) => String(l.branchId) === String(toLocationId) && l.locationType === 'branch_stock');
+      if (branchLocs.length === 0) {
+        setErrorMsg('لا يوجد رصيد مخزون مرتبط بهذا الفرع. أنشئ رصيد فرع أولًا من أماكن المخزون.');
+        return;
+      }
     }
 
     const seenProducts = new Map<string, string>();
@@ -248,6 +267,7 @@ export function NewIssueOrderPage() {
             toBranchId: Number(toLocationId),
             recipientName,
             note,
+            issueMode,
             items: items.map(l => ({
               productId: Number(l.productId),
               qty: Number(l.qty)
@@ -441,6 +461,14 @@ export function NewIssueOrderPage() {
               createLabel={(q) => `إضافة "${q}"`}
               inputClassName="purchase-prototype-field-input"
             />
+            
+            <div className="field">
+              <label>وضع الصرف</label>
+              <select className="purchase-prototype-field-input" value={issueMode} onChange={(e) => setIssueMode(e.target.value as any)}>
+                <option value="final_issue">صرف نهائي (يتم خصم الرصيد فوراً)</option>
+                <option value="transfer_to_branch_stock">تحويل إلى رصيد فرع (يبقى في الطريق حتى يتم استلامه)</option>
+              </select>
+            </div>
 
             <Field label="مسئول الصرف">
               <input 

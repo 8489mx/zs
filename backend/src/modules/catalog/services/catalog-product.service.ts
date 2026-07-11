@@ -1196,7 +1196,7 @@ export class CatalogProductService {
       if (settings.currentLocationId) {
         resolvedLocationId = Number(settings.currentLocationId);
       } else {
-        const activeLocs = await this.db.selectFrom('stock_locations').select('id').where('is_active', '=', true).where(this.tenantPredicate(actor)).execute();
+        const activeLocs = await this.db.selectFrom('stock_locations').select('id').where('is_active', '=', true).where((eb) => eb.or([eb('location_type', 'is', null), eb('location_type', '!=', 'in_transit')])).where(this.tenantPredicate(actor)).execute();
         if (activeLocs.length === 1) {
           resolvedLocationId = activeLocs[0].id;
         } else if (activeLocs.length > 1) {
