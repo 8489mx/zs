@@ -9,6 +9,8 @@ export interface PurchaseDraftItem {
   total: number;
   unitName: string;
   unitMultiplier: number;
+  locationId?: string | number;
+  categoryId?: string | number;
 }
 
 export function buildPurchaseDraftItem(product: Product, qty: number, cost: number): PurchaseDraftItem {
@@ -65,7 +67,9 @@ export function buildPurchasePayload(values: PurchaseHeaderOutput, items: Purcha
       qty: Number(item.qty),
       cost: Number(item.cost),
       unitName: item.unitName,
-      unitMultiplier: Number(item.unitMultiplier || 1)
+      unitMultiplier: Number(item.unitMultiplier || 1),
+      locationId: item.locationId ? Number(item.locationId) : undefined,
+      categoryId: item.categoryId ? Number(item.categoryId) : undefined
     }))
   };
 }
@@ -80,7 +84,7 @@ export function buildPurchaseUpdatePayload(purchase: Purchase, payload: {
   note: string;
   editReason: string;
   managerPin: string;
-  items: Array<{ productId: string; qty: number; cost: number; unitName: string; unitMultiplier: number }>;
+  items: Array<{ productId: string; qty: number; cost: number; unitName: string; unitMultiplier: number; locationId?: string | number; categoryId?: string | number }>;
 }) {
   const discount = Number(Math.max(0, payload.discount || 0).toFixed(2));
   const taxRate = Number(purchase.taxRate || 0);
@@ -101,7 +105,9 @@ export function buildPurchaseUpdatePayload(purchase: Purchase, payload: {
       qty: Number(item.qty),
       cost: Number(item.cost),
       unitName: item.unitName,
-      unitMultiplier: Number(item.unitMultiplier || 1)
+      unitMultiplier: Number(item.unitMultiplier || 1),
+      locationId: item.locationId ? Number(item.locationId) : undefined,
+      categoryId: item.categoryId ? Number(item.categoryId) : undefined
     }))
   };
 }
