@@ -39,7 +39,7 @@ async function main() {
     branchId = branches[0]?.id;
     if (!branchId) {
       const newBranch = await client.post('/api/branches', { name: `E2E Branch ${suffix}` }, 201);
-      branchId = newBranch.id;
+      branchId = newBranch.branch?.id || newBranch.id;
     }
     assert.ok(branchId, 'Must have at least one branch');
 
