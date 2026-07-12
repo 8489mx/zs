@@ -94,7 +94,7 @@ class PostgresManager {
     });
   }
 
-  async waitForReady(retries = 30) {
+  async waitForReady(retries = 50) {
     console.log('Waiting for PostgreSQL to accept connections...');
     const psqlExe = path.join(this.postgresBinDir, 'psql.exe');
     
@@ -107,7 +107,7 @@ class PostgresManager {
         console.log('PostgreSQL is ready.');
         return true;
       } catch (err) {
-        await new Promise(res => setTimeout(res, 1000));
+        await new Promise(res => setTimeout(res, 100));
       }
     }
     throw new Error('PostgreSQL did not become ready in time.');
@@ -118,6 +118,11 @@ class PostgresManager {
       const psqlExe = path.join(this.postgresBinDir, 'psql.exe');
       const createdbExe = path.join(this.postgresBinDir, 'createdb.exe');
       
+      const flagFile = path.join(this.postgresDataDir, 'db_created.flag');
+      if (fs.existsSync(flagFile)) {
+        return resolve();
+      }
+
       try {
         // Check if database exists
         const checkCmd = `"${psqlExe}" -h 127.0.0.1 -p ${this.dbPort} -U ${this.dbUser} -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${this.dbName}';"`;
@@ -130,6 +135,7 @@ class PostgresManager {
             stdio: 'inherit'
           });
         }
+        fs.writeFileSync(flagFile, 'ok', 'utf8');
         resolve();
       } catch (err) {
         reject(new Error(`Failed to ensure database exists: ${err.message}`));
