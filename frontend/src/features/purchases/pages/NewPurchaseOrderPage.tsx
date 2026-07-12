@@ -1876,6 +1876,26 @@ export function NewPurchaseOrderPage() {
     { label: t('new_purchase_order') }
   ]);
 
+  const handleNewPurchaseOrder = () => {
+    setCreatedPurchase(null);
+    setLines([{ id: Date.now(), productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: '' }]);
+    setSupplier('');
+    setPaymentType('credit');
+    setDate(new Date().toISOString().split('T')[0]);
+    setRequiredDate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    setCurrency('');
+    setCompany('');
+    setContact('');
+    setShippingAddress('');
+    setTaxRate(14);
+    setDiscount(0);
+    setCostCenter('');
+    setProject('');
+    setTermsTemplate('');
+    setNotes('');
+    setAttachments([]);
+  };
+
   return (
     <div className={`page-shell document-prototype-shell purchase-new-prototype${isDarkMode ? ' purchase-prototype-dark' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {createdPurchase && (
@@ -1900,7 +1920,7 @@ export function NewPurchaseOrderPage() {
               }} className="w-full justify-center">
                 طباعة الفاتورة (A4)
               </Button>
-              <Button type="button" variant="secondary" onClick={() => window.location.reload()} className="w-full justify-center">
+              <Button type="button" variant="secondary" onClick={handleNewPurchaseOrder} className="w-full justify-center">
                 فاتورة شراء جديدة
               </Button>
               <button type="button" onClick={() => navigate('/purchases')} className="btn w-full justify-center mt-2 bg-transparent text-gray-600 hover:bg-gray-100 border-none shadow-none" style={{ marginTop: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
