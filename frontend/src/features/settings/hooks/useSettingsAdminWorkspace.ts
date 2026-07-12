@@ -42,9 +42,7 @@ function withRestoreConfirmation(payload: unknown): Record<string, unknown> {
   return { confirmation: RESTORE_BACKUP_CONFIRMATION, payload };
 }
 
-async function readTextFile(file: File) {
-  return await file.text();
-}
+
 
 async function fetchBackupBlob() {
   const response = await fetch(settingsApi.backupDownloadUrl(), { credentials: 'include' });
@@ -141,7 +139,7 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
       const storeSlug = slugifyArabic(storeName || 'store');
       const userSlug = slugifyArabic(authUser?.username || 'user');
       
-      const fileName = `ZERP-${storeSlug}-${userSlug}-${datePart}.json`;
+      const fileName = `ZERP-${storeSlug}-${userSlug}-${datePart}.zip`;
       
       triggerDownload(blob, fileName);
       setBackupMessage('تم تنزيل النسخة الاحتياطية بنجاح.');
@@ -194,8 +192,10 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
       const verified = await settingsApi.verifyBackup(payload);
       setBackupResult(verified);
       if (mode === 'restore') {
-        const fileContent = JSON.parse(await readTextFile(file));
-        const restorePayload = withRestoreConfirmation(fileContent);
+        const restorePayload = {
+          file,
+          confirmation: RESTORE_BACKUP_CONFIRMATION
+        };
         await settingsApi.restoreBackup(restorePayload, true);
         const restored = await settingsApi.restoreBackup(restorePayload, false);
         setBackupResult(restored);

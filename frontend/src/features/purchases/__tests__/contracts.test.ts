@@ -3,10 +3,10 @@ import { buildPurchasePayload, PurchaseDraftItem } from '../contracts';
 
 describe('Purchase Contracts - buildPurchasePayload', () => {
   const defaultValues = {
-    supplierId: 1,
+    supplierId: '1',
     paymentType: 'credit' as const,
-    branchId: null,
-    locationId: null,
+    branchId: 'br1',
+    locationId: 'loc1',
     note: '',
     requiredDate: '2026-07-15T00:00:00.000Z',
     currency: 'EGP',

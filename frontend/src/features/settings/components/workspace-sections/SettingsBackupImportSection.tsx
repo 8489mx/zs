@@ -219,10 +219,10 @@ export function SettingsBackupImportSection({
 
         <div className="form-grid two-col-form">
           <Field label="تحقق من ملف نسخة احتياطية">
-            <input type="file" accept="application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBackupFile(file, 'verify'); e.currentTarget.value = ''; }} />
+            <input type="file" accept=".zip,application/zip,application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBackupFile(file, 'verify'); e.currentTarget.value = ''; }} />
           </Field>
           <Field label="استعادة من ملف نسخة احتياطية">
-            <input type="file" accept="application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }} />
+            <input type="file" accept=".zip,application/zip,application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }} />
           </Field>
         </div>
 
