@@ -64,6 +64,7 @@ export function LocationsManagementPage() {
     { key: 'id', header: 'الرقم', cell: (row) => row.id },
     { key: 'name', header: 'الاسم', cell: (row) => row.name },
     { key: 'code', header: 'الكود', cell: (row) => row.code || '-' },
+    { key: 'locationType', header: 'النوع', cell: (row) => row.locationType === 'branch_stock' ? 'رصيد فرع' : 'مخزن داخلي' },
     { key: 'branchName', header: 'الفرع', cell: (row) => (row as any).branchName || row.branchId || 'الرئيسي' },
     {
       key: 'actions',
@@ -127,6 +128,12 @@ export function LocationsManagementPage() {
                   {(branchesQuery.data || []).map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
+                </select>
+              </Field>
+              <Field label="نوع المخزن">
+                <select value={locationType} onChange={(e) => setLocationType(e.target.value as 'internal_warehouse' | 'branch_stock')} disabled={createMutation.isPending || updateMutation.isPending}>
+                  <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
+                  <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
                 </select>
               </Field>
             </form>

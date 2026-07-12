@@ -83,7 +83,7 @@ export class InventoryScopeService {
     let query = this.db
       .selectFrom('stock_locations as l')
       .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${tenantId}`))
-      .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active'])
+      .select(['l.id', 'l.name', 'l.code', 'l.branch_id', 'b.name as branch_name', 'l.is_active', 'l.location_type'])
       .where(sql<boolean>`l.tenant_id = ${tenantId}`)
       .orderBy('l.id', 'asc');
       
@@ -105,7 +105,7 @@ export class InventoryScopeService {
     // if (scope.length) query = query.where('l.branch_id', 'in', scope);
     const rows = await query.execute();
     return {
-      locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '' })),
+      locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', locationType: row.location_type })),
     };
   }
   async getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {

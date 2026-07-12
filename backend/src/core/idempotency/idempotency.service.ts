@@ -28,9 +28,9 @@ export class IdempotencyService {
    * Generates a deterministic hash of the payload, ignoring volatile fields.
    */
   generateRequestHash(payload: any): string {
-    const cleanPayload = this.stripVolatileFields(payload);
+    const cleanPayload = this.stripVolatileFields(payload || {});
     // Sort keys recursively for deterministic serialization regardless of insertion order
-    const serialized = JSON.stringify(this.sortKeysRecursively(cleanPayload));
+    const serialized = JSON.stringify(this.sortKeysRecursively(cleanPayload)) || '{}';
     return crypto.createHash('sha256').update(serialized).digest('hex');
   }
 

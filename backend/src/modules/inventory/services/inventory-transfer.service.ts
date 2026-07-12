@@ -174,7 +174,14 @@ export class InventoryTransferService {
       const inTransitRow = await trx.selectFrom('stock_locations').select('id').where('location_type', '=', 'in_transit').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
       if (inTransitRow) inTransitLocationId = inTransitRow.id;
 
-      if (transfer.to_location_id) {
+      let effectiveToLocationId = transfer.to_location_id;
+      if (!effectiveToLocationId && transfer.to_branch_id) {
+        const branchStockRow = await trx.selectFrom('stock_locations').select('id').where('branch_id', '=', transfer.to_branch_id).where('location_type', '=', 'branch_stock').where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        if (branchStockRow) effectiveToLocationId = branchStockRow.id;
+        else throw new AppError('No branch stock location found for destination branch', 'DESTINATION_LOCATION_NOT_FOUND', 400);
+      }
+
+      if (effectiveToLocationId) {
         for (const item of items) {
           const qty = Number(item.qty || 0);
 
@@ -184,12 +191,12 @@ export class InventoryTransferService {
             await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_out', qty: -qty, before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_receive', note: `Out of transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
           }
 
-          const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.to_branch_id, locationId: transfer.to_location_id };
+          const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.to_branch_id, locationId: effectiveToLocationId };
           const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, skipGlobalUpdate: true, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
-          await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_receive', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'transfer_receive', note: `Received transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: transfer.to_branch_id, location_id: transfer.to_location_id, ...this.tenantFields(auth) }).execute();
+          await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_receive', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'transfer_receive', note: `Received transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: transfer.to_branch_id, location_id: effectiveToLocationId, ...this.tenantFields(auth) }).execute();
         }
       }
-      await trx.updateTable('stock_transfers').set({ status: 'received', received_by: auth.userId, received_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      await trx.updateTable('stock_transfers').set({ status: 'received', to_location_id: effectiveToLocationId, received_by: auth.userId, received_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
 
       await this.audit.logWithExecutor(trx, 'استلام تحويل مخزون', `تم استلام التحويل TR-${transferId}`, auth);
 
