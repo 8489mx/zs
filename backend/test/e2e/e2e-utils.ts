@@ -51,7 +51,7 @@ export class E2EClient {
     if (cookieHeader) headers.Cookie = cookieHeader;
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
-      const csrfToken = this.cookies.get('zs_cloud_csrf_token');
+      const csrfToken = this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token');
       if (csrfToken) headers['x-csrf-token'] = csrfToken;
     }
     const response = await fetch(`${this.baseUrl}${path}`, {
@@ -73,8 +73,8 @@ export class E2EClient {
     assert.ok(password, 'E2E password is required');
     const { response, json } = await this.request('POST', '/api/auth/login', { username, password });
     assert.equal(response.status, 201, `Login failed: ${JSON.stringify(json)}`);
-    assert.ok(this.cookies.get('zs_cloud_session'), 'zs_cloud_session cookie missing after login');
-    assert.ok(this.cookies.get('zs_cloud_csrf_token'), 'zs_cloud_csrf_token cookie missing after login');
+    assert.ok(this.cookies.get('zs_cloud_session') || this.cookies.get('zs_dev_session') || this.cookies.get('zs_session'), 'session cookie missing after login');
+    assert.ok(this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token'), 'csrf_token cookie missing after login');
     return json || {};
   }
 

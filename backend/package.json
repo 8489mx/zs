@@ -33,7 +33,7 @@
     "test:e2e:prepare": "ts-node test/e2e/ensure-e2e-admin.ts",
     "test:e2e:auth": "npm run test:e2e:prepare && ts-node test/e2e/auth-session.e2e.ts",
     "test:e2e:catalog": "npm run test:e2e:prepare && ts-node test/e2e/catalog-master-data.e2e.ts",
-    "test:e2e:flows": "npm run test:e2e:prepare && ts-node test/e2e/commercial-flows.e2e.ts",
+    "test:e2e:flows": "npm run test:e2e:prepare && ts-node test/e2e/commercial-flows.e2e.ts && ts-node test/e2e/purchase-multi-location.e2e.ts",
     "test:e2e:backup": "npm run test:e2e:prepare && ts-node test/e2e/backup-support.e2e.ts",
     "test:e2e": "npm run test:e2e:auth && npm run test:e2e:catalog && npm run test:e2e:flows && npm run test:e2e:backup",
     "check:architecture": "node scripts/check-architecture-guardrails.cjs",
