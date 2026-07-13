@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
+import { IdempotencyInterceptor } from '../../core/idempotency/idempotency.interceptor';
 import { HeldSaleDto } from './dto/held-sale.dto';
 import { PosAuditEventDto } from './dto/pos-audit-event.dto';
 import { UpsertSaleDto } from './dto/upsert-sale.dto';
@@ -27,6 +28,7 @@ export class SalesController {
 
   @Post('sales')
   @RequirePermissions('sales')
+  @UseInterceptors(IdempotencyInterceptor)
   createSale(@Body() payload: UpsertSaleDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.salesService.createSale(payload, req.authContext!);
   }

@@ -206,8 +206,7 @@ async function ensureLocationBalance(
 
   if (searchLocationId !== null) {
     existing = state.balances.find((row) => 
-      (row.location_id == null ? null : Number(row.location_id)) === searchLocationId && 
-      (row.branch_id == null ? null : Number(row.branch_id)) === searchBranchId
+      (row.location_id == null ? null : Number(row.location_id)) === searchLocationId
     );
   } else if (searchBranchId !== null) {
     existing = state.balances.find((row) => 

@@ -681,9 +681,11 @@ export class SaasAdminService {
           await sql`DELETE FROM ${sql.table(table)} WHERE tenant_id = ${tenant.id}`.execute(this.db);
           progress = true; 
         } catch (e: any) {
-          if (e.code === '23503') { // foreign_key_violation
+          const code = e.code || e.cause?.code || e.originalError?.code || e.error?.code;
+          if (code === '23503' || code === '23001') { // foreign_key_violation or restrict_violation
             nextTables.push(table);
           } else {
+            console.error('deleteTenant error:', e, 'Extracted code:', code, 'Table:', table);
             throw e;
           }
         }

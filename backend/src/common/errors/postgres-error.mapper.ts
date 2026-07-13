@@ -20,7 +20,9 @@ type KnownPgCode =
   | '42703'
   | '42P01'
   | '22001'
-  | '22P02';
+  | '22P02'
+  | '40P01'
+  | '40001';
 
 const MSG_REQUIRED_NATIONAL_ID = '\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0642\u0648\u0645\u064a \u0645\u0637\u0644\u0648\u0628.';
 const MSG_REQUIRED_NAME = '\u0627\u0644\u0627\u0633\u0645 \u0645\u0637\u0644\u0648\u0628.';
@@ -141,6 +143,8 @@ function mapKnownCode(code: KnownPgCode, error: PgErrorLike, message: string, de
   if (code === '42703') return new AppError(MSG_UNDEFINED_COLUMN, 'DB_UNDEFINED_COLUMN', 500);
   if (code === '42P01') return new AppError(MSG_UNDEFINED_TABLE, 'DB_UNDEFINED_TABLE', 500);
   if (code === '22001') return new AppError(MSG_TEXT_TOO_LONG, 'DB_STRING_TOO_LONG', 400);
+  if (code === '40P01') return new AppError('تعذّر إتمام العملية بسبب تعارض مع عملية متزامنة، يرجى إعادة المحاولة.', 'STOCK_CONFLICT', 409);
+  if (code === '40001') return new AppError('تعذّر إتمام العملية بسبب تعارض في البيانات، يرجى إعادة المحاولة.', 'STOCK_CONFLICT', 409);
   return new AppError(MSG_INVALID_FIELD, 'DB_INVALID_TEXT_REPRESENTATION', 400);
 }
 
@@ -173,7 +177,7 @@ export function mapPostgresErrorToAppError(error: unknown): AppError | null {
   const message = asText(extracted.message);
   const detail = asText(extracted.detail);
 
-  if (code && ['23502', '23505', '23503', '23514', '42703', '42P01', '22001', '22P02'].includes(code)) {
+  if (code && ['23502', '23505', '23503', '23514', '42703', '42P01', '22001', '22P02', '40P01', '40001'].includes(code)) {
     return mapKnownCode(code as KnownPgCode, extracted, message, detail);
   }
 

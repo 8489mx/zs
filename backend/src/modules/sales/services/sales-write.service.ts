@@ -19,6 +19,8 @@ import { AccountingPostingService } from '../../accounting/accounting-posting.se
 import { SalesAuthorizationService } from './sales-authorization.service';
 import { SalesFinanceService } from './sales-finance.service';
 import { SalesQueryService } from './sales-query.service';
+import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
+import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 
 @Injectable()
 export class SalesWriteService {
@@ -32,6 +34,7 @@ export class SalesWriteService {
     private readonly finance: SalesFinanceService,
     private readonly query: SalesQueryService,
     private readonly accountingPosting: AccountingPostingService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   private shouldLogCheckoutTimings(): boolean {
@@ -274,6 +277,14 @@ export class SalesWriteService {
   async createSale(payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const requestStartedAt = Date.now();
+
+    // Idempotency: check for a previously committed result for this key
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, scope);
+      if (cached) return cached.response as Record<string, unknown>;
+    }
+
     const normalized = normalizeSalePayload(payload);
     if (!normalized.items.length) throw new AppError('Sale must include at least one item', 'SALE_ITEMS_REQUIRED', 400);
     ensureUniqueFlowItems(normalized.items, 'SALE_DUPLICATE_PRODUCT', 'Sale must not contain duplicate product rows with the same unit');
@@ -310,25 +321,34 @@ export class SalesWriteService {
           .where('location_type', 'not in', ['damaged', 'in_transit'])
           .execute();
           
-        const defaultLocId = branch.default_stock_location_id;
+        const defaultLocId = Number(branch.default_stock_location_id);
+        const normBranchId = Number(normalized.branchId);
         
         const sortedLocs = allLocs.filter(l => {
-           if (l.id === defaultLocId) return true;
-           if (l.branch_id === normalized.branchId) return true;
+           const lId = Number(l.id);
+           const lBranchId = l.branch_id != null ? Number(l.branch_id) : null;
+           
+           if (lId === defaultLocId) return true;
+           if (lBranchId === normBranchId) return true;
            if (l.location_type === 'internal_warehouse' && l.branch_id === null) return true;
            if (branch.allow_external_sales_stock && l.location_type === 'external_warehouse') return true;
            return false;
         }).sort((a, b) => {
-           if (a.id === defaultLocId) return -1;
-           if (b.id === defaultLocId) return 1;
-           if (a.branch_id === normalized.branchId && b.branch_id !== normalized.branchId) return -1;
-           if (a.branch_id !== normalized.branchId && b.branch_id === normalized.branchId) return 1;
+           const aId = Number(a.id);
+           const bId = Number(b.id);
+           const aBranchId = a.branch_id != null ? Number(a.branch_id) : null;
+           const bBranchId = b.branch_id != null ? Number(b.branch_id) : null;
+           
+           if (aId === defaultLocId) return -1;
+           if (bId === defaultLocId) return 1;
+           if (aBranchId === normBranchId && bBranchId !== normBranchId) return -1;
+           if (aBranchId !== normBranchId && bBranchId === normBranchId) return 1;
            if (a.location_type === 'internal_warehouse' && b.location_type !== 'internal_warehouse') return -1;
            if (a.location_type !== 'internal_warehouse' && b.location_type === 'internal_warehouse') return 1;
            return 0;
         });
         
-        eligibleLocations = sortedLocs.map(l => ({ id: l.id, branchId: l.branch_id }));
+        eligibleLocations = sortedLocs.map(l => ({ id: Number(l.id), branchId: l.branch_id != null ? Number(l.branch_id) : null }));
       }
 
       const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx, scope.tenantId);
@@ -359,9 +379,30 @@ export class SalesWriteService {
         });
         this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
 
-        const availableStockQty = normalized.locationId
-          ? await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId, tenantId: scope.tenantId, accountId: scope.accountId })
-          : Number(product.stock_qty || 0);
+        let availableStockQty = 0;
+        if (!normalized.locationId) {
+          availableStockQty = Number(product.stock_qty || 0);
+        } else if (eligibleLocations.length === 1) {
+          availableStockQty = await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId, tenantId: scope.tenantId, accountId: scope.accountId });
+        } else {
+          // If all_operational_locations is enabled, sum the stock of all eligible locations + unassigned
+          const locIds = eligibleLocations.map(l => l.id).filter(id => id != null);
+          const stockRows = await trx.selectFrom('product_location_stock')
+            .select(['location_id', 'branch_id', 'qty'])
+            .where('product_id', '=', item.productId)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .execute();
+          
+          let totalEligible = 0;
+          for (const row of stockRows) {
+            if (row.location_id == null && row.branch_id == null) {
+              totalEligible += Number(row.qty || 0);
+            } else if (row.location_id != null && locIds.includes(Number(row.location_id))) {
+              totalEligible += Number(row.qty || 0);
+            }
+          }
+          availableStockQty = Number(totalEligible.toFixed(3));
+        }
           
         const hasBOM = !!product.bom_id;
         const preparedItem = buildPreparedSaleItem(
@@ -702,7 +743,18 @@ export class SalesWriteService {
       );
     }
 
-    return { ok: true, sale: sale.sale };
+    const result = { ok: true, sale: sale.sale };
+
+    // Idempotency: commit the response so future duplicate requests return it
+    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+      await this.idempotency.commitOperation(
+        this.db,
+        { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+        result
+      );
+    }
+
+    return result;
   }
 
   async updateSale(saleId: number, payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {

@@ -246,6 +246,7 @@ function createServices(db = new FakeDb()) {
     {} as any,
     query,
     { syncSalePosting: async () => undefined } as any,
+    { check: async () => null, commitOperation: async () => {} } as any,
   );
   return { db, query, write };
 }

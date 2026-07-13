@@ -45,8 +45,8 @@ export class E2EClient {
     }
   }
 
-  private async request(method: string, path: string, body?: unknown): Promise<{ response: Response; json: JsonValue | null }> {
-    const headers: Record<string, string> = { Accept: 'application/json' };
+  private async request(method: string, path: string, body?: unknown, customHeaders?: Record<string, string>): Promise<{ response: Response; json: JsonValue | null }> {
+    const headers: Record<string, string> = { Accept: 'application/json', ...customHeaders };
     const cookieHeader = this.cookieHeader();
     if (cookieHeader) headers.Cookie = cookieHeader;
     if (body !== undefined) {
@@ -84,8 +84,12 @@ export class E2EClient {
     return json || {};
   }
 
-  async post(path: string, body: unknown, expectedStatus = 201): Promise<JsonValue> {
-    const { response, json } = await this.request('POST', path, body);
+  async post(path: string, body: unknown, expectedStatus = 201, customHeaders?: Record<string, string>): Promise<JsonValue> {
+    const { response, json } = await this.request('POST', path, body, customHeaders);
+    if (response.status !== expectedStatus) {
+      console.log(`POST ${path} Payload:`, JSON.stringify(body));
+      console.log(`POST ${path} Response:`, JSON.stringify(json));
+    }
     assert.equal(response.status, expectedStatus, `POST ${path} failed: ${JSON.stringify(json)}`);
     return json || {};
   }

@@ -120,6 +120,20 @@ export class ReturnsService {
     const inMemoryReturnedQtyForProduct = new Map<string, number>();
 
     for (const requestItem of items) {
+      // If saleItemId is provided, validate it belongs to this invoice AND this product
+      if (requestItem.saleItemId) {
+        const matchedItem = saleItems.find(
+          (entry) => Number(entry.id) === requestItem.saleItemId && Number(entry.product_id) === requestItem.productId
+        );
+        if (!matchedItem) {
+          throw new AppError(
+            `saleItemId ${requestItem.saleItemId} does not belong to invoice ${payload.invoiceId} or product ${requestItem.productId}`,
+            'INVALID_SALE_ITEM_ID',
+            400
+          );
+        }
+      }
+
       const saleItem = requestItem.saleItemId
         ? saleItems.find((entry) => Number(entry.id) === requestItem.saleItemId)
         : saleItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
