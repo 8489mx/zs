@@ -156,6 +156,8 @@ export async function migrateSales(ctx: MigrationContext): Promise<EntityCounter
           prices_include_tax: false,
           total: asNumber(row.total),
           paid_amount: asNumber(row.total),
+          tendered_amount: asNumber(row.total),
+          change_amount: 0,
           store_credit_used: 0,
           status: 'posted',
           note: '',
