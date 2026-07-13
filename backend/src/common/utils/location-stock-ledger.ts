@@ -199,10 +199,17 @@ async function ensureLocationBalance(
   locationId: number | null,
   branchId: number | null,
 ): Promise<StockBalanceRow> {
-  let existing = state.balances.find((row) => 
-    (locationId === null ? row.location_id == null : Number(row.location_id) === Number(locationId)) &&
-    (locationId === null ? (branchId === null ? row.branch_id == null : Number(row.branch_id) === Number(branchId)) : true)
-  );
+  const searchLocationId = locationId ?? null;
+  const searchBranchId = branchId ?? null;
+
+  let existing: typeof state.balances[0] | undefined;
+
+  if (searchLocationId !== null) {
+    existing = state.balances.find((row) => (row.location_id ?? null) === searchLocationId && (row.branch_id ?? null) === searchBranchId);
+  } else if (searchBranchId !== null) {
+    existing = state.balances.find((row) => (row.branch_id ?? null) === searchBranchId && (row.location_id ?? null) === null);
+  }
+
   if (existing) {
     if (branchId != null && existing.branch_id == null) {
       await db
