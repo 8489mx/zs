@@ -33,6 +33,8 @@ export interface Sale {
   pricesIncludeTax: boolean;
   total: number;
   paidAmount: number;
+  tenderedAmount: number;
+  changeAmount: number;
   payments?: SalePayment[];
   status: string;
   note: string;

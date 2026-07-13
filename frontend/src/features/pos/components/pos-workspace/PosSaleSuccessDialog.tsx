@@ -50,8 +50,8 @@ export function PosSaleSuccessDialog({
   const viewInvoiceLinkRef = useRef<HTMLAnchorElement | null>(null);
   const customerPhone = String(customer?.phone || '').trim();
   const showManualPhone = !customerPhone;
-  const changeAmount = Number((sale as any)?.changeAmount || 0);
-  const tenderedAmount = Number((sale as any)?.tenderedAmount || 0);
+  const changeAmount = Number(sale?.changeAmount || 0);
+  const tenderedAmount = Number(sale?.tenderedAmount || 0);
   const changeOrRemain = sale?.paymentType === 'credit' ? Number(sale?.total || 0) : changeAmount;
   const changeOrRemainLabel = sale?.paymentType === 'credit' ? 'المتبقي' : 'الباقي';
 

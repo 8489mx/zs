@@ -396,7 +396,7 @@ export class SalesWriteService {
       if (finalTenderedAmount < appliedCash) {
         finalTenderedAmount = appliedCash;
       }
-      const changeAmount = Number(Math.max(0, finalTenderedAmount - appliedCash).toFixed(3));
+      const changeAmount = Number(Math.max(0, finalTenderedAmount - appliedCash).toFixed(2));
 
       const saleInsert = await trx
         .insertInto('sales')

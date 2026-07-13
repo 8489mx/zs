@@ -61,6 +61,8 @@ export function mapSaleRows(
     pricesIncludeTax: Boolean(sale.prices_include_tax),
     total: Number(sale.total || 0),
     paidAmount: Number(sale.paid_amount || 0),
+    tenderedAmount: Number(sale.tendered_amount || 0),
+    changeAmount: Number(sale.change_amount || 0),
     storeCreditUsed: Number(sale.store_credit_used || 0),
     status: sale.status || 'posted',
     note: sale.note || '',
