@@ -45,6 +45,25 @@ describe('POS stock handling', () => {
     expect(result.clampedCount).toBe(0);
   });
 
+  it('handles weighted quantities correctly when adding items', () => {
+    const weightedProduct = { ...product, stock: 3 };
+    const cart = addPosItem([], weightedProduct, { priceType: 'retail', isWeighted: true, quantity: 1.575 });
+    
+    expect(cart).toHaveLength(1);
+    expect(cart[0].qty).toBe(1.575);
+    expect(cart[0].isWeighted).toBe(true);
+  });
+
+  it('rejects weighted items that exceed available stock', () => {
+    const weightedProduct = { ...product, stock: 1 };
+    expect(() => addPosItem([], weightedProduct, { priceType: 'retail', isWeighted: true, quantity: 1.575 })).toThrow('الصنف غير متاح للبيع حاليًا');
+  });
+
+  it('validates weighted quantity limits accurately down to decimals without rounding up erroneously', () => {
+    const cart = addPosItem([], { ...product, stock: 1.575 }, { priceType: 'retail', isWeighted: true, quantity: 1.575 });
+    expect(cart[0].qty).toBe(1.575);
+  });
+
   it('uses date-only active offers for the cashier price', () => {
     const todayIso = localIsoDate();
     expect(getProductPrice({

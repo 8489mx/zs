@@ -1,8 +1,7 @@
 import { formatCurrency } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
-
 interface PosWorkspaceDockProps {
-  piecesCount: number;
+  qtySummaries: string[];
   itemsCount: number;
   total: number;
   canOpenCheckout: boolean;
@@ -16,9 +15,8 @@ interface PosWorkspaceDockProps {
   onOpenHeldDrafts: () => void;
   onSubmit: () => void;
 }
-
 export function PosWorkspaceDock({
-  piecesCount,
+  qtySummaries,
   itemsCount,
   total,
   canOpenCheckout,
@@ -35,8 +33,16 @@ export function PosWorkspaceDock({
         
         <div className="pos-workspace-dock-summary pos-workspace-dock-summary-extended" style={{ display: 'flex', alignItems: 'stretch', gap: '0', flexShrink: 0, padding: '0' }}>
           <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 20px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>عدد القطع</span>
-            <strong style={{ fontSize: '20px', lineHeight: '1' }}>{piecesCount.toLocaleString('ar-EG')}</strong>
+            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>إجمالي الكميات</span>
+            {qtySummaries.length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+                {qtySummaries.map((s, i) => (
+                  <strong key={i} style={{ fontSize: qtySummaries.length > 1 ? '16px' : '20px', lineHeight: '1' }}>{s}</strong>
+                ))}
+              </div>
+            ) : (
+              <strong style={{ fontSize: '20px', lineHeight: '1', marginTop: '2px' }}>0</strong>
+            )}
           </div>
           <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 20px' }}>
             <span style={{ fontSize: '13px', fontWeight: 'bold' }}>عدد العناصر</span>
@@ -49,7 +55,7 @@ export function PosWorkspaceDock({
         </div>
 
         <div className="pos-workspace-dock-actions pos-workspace-dock-actions-inline" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, padding: '0' }}>
-          <Button type="button" variant="secondary" onClick={onHoldDraft} disabled={!piecesCount || isPending}>تعليق F4</Button>
+          <Button type="button" variant="secondary" onClick={onHoldDraft} disabled={itemsCount === 0 || isPending}>تعليق F4</Button>
           <Button type="button" variant="secondary" onClick={onOpenHeldDrafts}>الفواتير المعلقة ({heldDraftsCount})</Button>
           <Button
             type="button"

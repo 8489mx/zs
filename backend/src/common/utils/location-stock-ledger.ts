@@ -170,8 +170,24 @@ async function insertBalanceRow(
 
 async function ensureUnassignedBalance(db: Kysely<Database>, state: LockedState): Promise<StockBalanceRow> {
   const existing = state.balances.find((row) => row.location_id == null && row.branch_id == null);
-  if (existing) return existing;
-  const seedQty = state.balances.length === 0 ? state.globalQty : 0;
+  const currentSum = roundStockQty(state.balances.reduce((sum, row) => sum + Number(row.qty || 0), 0));
+  const discrepancy = roundStockQty(state.globalQty - currentSum);
+
+  if (existing) {
+    if (discrepancy > 0.001) {
+      const nextQty = roundStockQty(Number(existing.qty || 0) + discrepancy);
+      await db
+        .updateTable('product_location_stock')
+        .set({ qty: nextQty, updated_at: sql`NOW()` })
+        .where('id', '=', existing.id)
+        .where(sql<boolean>`tenant_id = ${state.scope.tenantId}`)
+        .execute();
+      existing.qty = nextQty;
+    }
+    return existing;
+  }
+
+  const seedQty = discrepancy > 0.001 ? discrepancy : 0;
   const inserted = await insertBalanceRow(db, state.scope, state.product.id, null, null, seedQty);
   state.balances.push(inserted);
   return inserted;
@@ -277,13 +293,10 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
   const location = await ensureLocationBalance(db, state, params.locationId, params.branchId ?? null);
   let locationBefore = roundStockQty(location.qty);
 
-  if (!params.allowNegative && delta < 0 && locationBefore + 0.0001 < Math.abs(delta)) {
-    const shortage = roundStockQty(Math.abs(delta) - locationBefore);
+  if (unassigned && roundStockQty(unassigned.qty) > 0.001) {
     const unassignedBefore = roundStockQty(unassigned.qty);
-    const unassignedAfter = roundStockQty(unassignedBefore - shortage);
-    if (!params.allowNegative) ensureNonNegativeStock(unassignedAfter, errorCode, errorMessage);
-    const provisionedLocationQty = roundStockQty(locationBefore + shortage);
-    await updateBalanceQty(db, state.scope, unassigned, unassignedAfter, null);
+    const provisionedLocationQty = roundStockQty(locationBefore + unassignedBefore);
+    await updateBalanceQty(db, state.scope, unassigned, 0, null);
     await updateBalanceQty(db, state.scope, location, provisionedLocationQty, params.branchId ?? null);
     locationBefore = provisionedLocationQty;
   }
@@ -331,8 +344,18 @@ export async function setScopedStockQty(db: Kysely<Database>, params: StockSetPa
     return { globalBefore, globalAfter, scopeBefore, scopeAfter: nextQty };
   }
 
+  const unassigned = await ensureUnassignedBalance(db, state);
   const location = await ensureLocationBalance(db, state, params.locationId, params.branchId ?? null);
-  const scopeBefore = roundStockQty(location.qty);
+  let scopeBefore = roundStockQty(location.qty);
+
+  if (unassigned && roundStockQty(unassigned.qty) > 0.001) {
+    const unassignedBefore = roundStockQty(unassigned.qty);
+    const provisionedLocationQty = roundStockQty(scopeBefore + unassignedBefore);
+    await updateBalanceQty(db, state.scope, unassigned, 0, null);
+    await updateBalanceQty(db, state.scope, location, provisionedLocationQty, params.branchId ?? null);
+    scopeBefore = provisionedLocationQty;
+  }
+
   const delta = roundStockQty(nextQty - scopeBefore);
   
   const trueGlobalQty = roundStockQty(state.balances.reduce((sum, row) => sum + Number(row.qty), 0));

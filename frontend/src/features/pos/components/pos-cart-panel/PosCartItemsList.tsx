@@ -114,7 +114,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
               </div>
 
               <div className="pos-cart-col pos-cart-col-qty">
-                <div className="pos-cart-qty-shell">
+                <div className="pos-cart-qty-shell" style={{ gridTemplateColumns: '34px max-content 34px' }}>
                   <button
                     type="button"
                     className="pos-cart-qty-btn"
@@ -129,6 +129,8 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   </button>
                   <input
                     type="number"
+                    dir="ltr"
+                    style={{ fontVariantNumeric: 'tabular-nums', textAlign: 'center', fieldSizing: 'content', minWidth: '54px' } as any}
                     min={minQty}
                     step={inputStep}
                     max={item.stockLimit}

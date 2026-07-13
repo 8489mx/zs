@@ -16,7 +16,7 @@ interface PosWorkspaceMainContentProps {
   catalogsError: unknown;
   allowNegativeStockSales: boolean;
   searchInputRef: RefObject<HTMLInputElement | null>;
-  cartPiecesCount: number;
+  cartQtySummaries: string[];
   cartItemsCount: number;
   onSubmitFirstSearchResult: (rawQuery?: string) => boolean;
   onRequestDiscountAuthorization: () => void;
@@ -40,7 +40,7 @@ export function PosWorkspaceMainContent({
   catalogsError,
   allowNegativeStockSales,
   searchInputRef,
-  cartPiecesCount,
+  cartQtySummaries,
   cartItemsCount,
   onSubmitFirstSearchResult,
   onRequestDiscountAuthorization,
@@ -178,7 +178,7 @@ export function PosWorkspaceMainContent({
           />
 
           <PosWorkspaceDock
-            piecesCount={cartPiecesCount}
+            qtySummaries={cartQtySummaries}
             itemsCount={cartItemsCount}
             total={pos.totals.total}
             canOpenCheckout={pos.canOpenCheckout}

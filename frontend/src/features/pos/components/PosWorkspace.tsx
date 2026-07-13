@@ -49,7 +49,14 @@ export function PosWorkspace() {
     if (!customerId) return null;
     return (pos.customersQuery.data || []).find((customer) => String(customer.id) === customerId) || null;
   }, [pos.customerId, pos.customersQuery.data, pos.lastSale?.customerId]);
-  const cartPiecesCount = useMemo(() => pos.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0), [pos.cart]);
+  const cartQtySummaries = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of pos.cart) {
+      const unit = item.unitName || 'قطعة';
+      map.set(unit, (map.get(unit) || 0) + Number(item.qty || 0));
+    }
+    return Array.from(map.entries()).map(([unit, qty]) => `${qty.toLocaleString('ar-EG', { maximumFractionDigits: 3 })} ${unit}`);
+  }, [pos.cart]);
   const cartItemsCount = pos.cart.length;
   const lineDeleteConfirmItem = useMemo(
     () => pos.cart.find((item) => item.lineKey === lineDeleteConfirmKey) || null,
@@ -295,7 +302,7 @@ export function PosWorkspace() {
         catalogsError={catalogsError}
         allowNegativeStockSales={allowNegativeStockSales}
         searchInputRef={searchInputRef}
-        cartPiecesCount={cartPiecesCount}
+        cartQtySummaries={cartQtySummaries}
         cartItemsCount={cartItemsCount}
         onSubmitFirstSearchResult={submitFirstSearchResult}
         onRequestDiscountAuthorization={requestDiscountAuthorization}

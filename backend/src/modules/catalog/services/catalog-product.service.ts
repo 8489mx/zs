@@ -578,6 +578,7 @@ export class CatalogProductService {
       wholesalePrice: Number(product.wholesale_price || 0),
       categoryId: product.category_id ? String(product.category_id) : undefined,
       stock: this.getListProductStock(product, context.scopedLocationId, context.scopedStockByProduct),
+      globalStock: Number(product.stock_qty || 0),
       minStock: Number(product.min_stock_qty || 0),
       locationId: context.scopedLocationId ? String(context.scopedLocationId) : '',
       matchedUnitId: product.matched_unit_id ? String(product.matched_unit_id) : '',
@@ -605,7 +606,6 @@ export class CatalogProductService {
       .selectFrom('product_location_stock as pls')
       .select(['pls.product_id', 'pls.location_id', 'pls.qty'])
       .where('pls.product_id', 'in', productIds)
-      .where((eb) => scopedLocationId ? eb.or([eb('pls.location_id', '=', scopedLocationId), eb('pls.location_id', 'is', null)]) : eb('pls.qty', '>=', 0))
       .where(this.tenantPredicate(actor, 'pls'))
       .execute();
 
@@ -625,7 +625,16 @@ export class CatalogProductService {
     for (const product of products) {
       const key = String(product.id);
       if (scopedLocationId) {
-        scopedStockByProduct.set(key, Number((Number(locationQtyByProduct.get(key) || 0) + Number(unassignedQtyByProduct.get(key) || 0)).toFixed(3)));
+        const allLocationRowsForProduct = stockRows.filter(r => String(r.product_id) === key && r.location_id != null);
+        const currentSum = allLocationRowsForProduct.reduce((sum, r) => sum + Number(r.qty || 0), 0);
+        const discrepancy = Number(product.stock_qty || 0) - currentSum;
+        const locationQty = locationQtyByProduct.get(key) || 0;
+        const unassignedQty = unassignedQtyByProduct.get(key) || 0;
+        let available = locationQty + unassignedQty;
+        if (discrepancy > 0.001 && unassignedQty === 0) {
+           available += discrepancy;
+        }
+        scopedStockByProduct.set(key, Number(available.toFixed(3)));
       } else {
         scopedStockByProduct.set(key, Number(product.stock_qty || 0));
       }

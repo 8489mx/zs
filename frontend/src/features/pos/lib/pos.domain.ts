@@ -192,6 +192,10 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
   const requestedQty = normalizeSaleQuantity(options.quantity ?? 1, isWeighted);
   const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getResolvedStockLimit(product, unit, isWeighted);
   if (stockLimit < minQty) {
+    const globalStock = Number((product as any).globalStock || 0);
+    if (globalStock >= minQty && stockLimit <= 0) {
+      throw new Error(`الرصيد الإجمالي ${globalStock}، والمتاح في مخزن نقطة البيع 0`);
+    }
     throw new Error('الصنف غير متاح للبيع حاليًا');
   }
   const priceType = options.priceType;

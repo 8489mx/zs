@@ -141,7 +141,14 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
       customer.name.toLowerCase().includes(query) || String(customer.phone || '').toLowerCase().includes(query)
     )).slice(0, 40);
   }, [customerQuery, customers]);
-  const piecesCount = useMemo(() => pos.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0), [pos.cart]);
+  const cartQtySummaries = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of pos.cart) {
+      const unit = item.unitName || 'قطعة';
+      map.set(unit, (map.get(unit) || 0) + Number(item.qty || 0));
+    }
+    return Array.from(map.entries()).map(([unit, qty]) => `${qty.toLocaleString('ar-EG', { maximumFractionDigits: 3 })} ${unit}`);
+  }, [pos.cart]);
   const itemsCount = pos.cart.length;
 
   async function handleQuickCustomerSubmit(event: FormEvent<HTMLFormElement>) {
@@ -164,7 +171,18 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
             <div className="pos-checkout-section-head"><h4>ملخص الفاتورة</h4><span className="muted small">راجع الإجمالي قبل تأكيد البيع</span></div>
             <div className="pos-checkout-dialog-summary pos-checkout-dialog-summary-main">
               <div className="pos-checkout-dialog-chip"><span>عدد العناصر</span><strong>{itemsCount}</strong></div>
-              <div className="pos-checkout-dialog-chip"><span>عدد القطع</span><strong>{piecesCount}</strong></div>
+              <div className="pos-checkout-dialog-chip" style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ marginBottom: '2px' }}>إجمالي الكميات</span>
+                {cartQtySummaries.length ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                    {cartQtySummaries.map((s, i) => (
+                      <strong key={i} style={{ fontSize: cartQtySummaries.length > 1 ? '16px' : '20px', lineHeight: '1' }}>{s}</strong>
+                    ))}
+                  </div>
+                ) : (
+                  <strong style={{ fontSize: '20px', lineHeight: '1' }}>0</strong>
+                )}
+              </div>
               <div className="pos-checkout-dialog-chip is-total"><span>المطلوب دفعه</span><strong className="is-primary">{formatCurrency(pos.totals.total)}</strong></div>
             </div>
           </section>
