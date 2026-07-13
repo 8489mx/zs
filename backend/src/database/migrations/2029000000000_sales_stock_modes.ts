@@ -14,7 +14,7 @@ export const migration = {
     await db.schema
       .createTable('sale_line_stock_allocations')
       .addColumn('id', 'serial', (col) => col.primaryKey())
-      .addColumn('tenant_id', 'varchar(50)', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+      .addColumn('tenant_id', 'varchar(50)', (col) => col.notNull())
       .addColumn('account_id', 'varchar(50)', (col) => col.notNull())
       .addColumn('sale_id', 'integer', (col) => col.notNull().references('sales.id').onDelete('cascade'))
       .addColumn('sale_line_id', 'integer', (col) => col.notNull().references('sale_items.id').onDelete('cascade'))

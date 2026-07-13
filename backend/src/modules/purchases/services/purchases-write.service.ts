@@ -229,6 +229,9 @@ export class PurchasesWriteService {
         const product = await trx.selectFrom('products').select(['id', 'name', 'item_kind', 'style_code', 'cost_price', 'retail_price', 'wholesale_price', 'default_location_id']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         let finalLocationId = item.locationId ? Number(item.locationId) : null;
+        if (!finalLocationId && payload.locationId) {
+          finalLocationId = Number(payload.locationId);
+        }
         if (!finalLocationId) {
           finalLocationId = product.default_location_id ? Number(product.default_location_id) : null;
         }
