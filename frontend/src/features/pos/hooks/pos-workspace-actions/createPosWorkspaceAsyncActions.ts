@@ -218,6 +218,7 @@ export function createPosWorkspaceAsyncActions(
         discount: params.totals.discountValue,
         note: params.note,
         paidAmount: effectivePaidAmount,
+        tenderedAmount: effectiveCashAmount,
         payments: effectivePaymentType === 'credit'
           ? []
           : (effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay')

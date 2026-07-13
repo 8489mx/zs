@@ -31,7 +31,7 @@ export class SalesQueryService {
       .leftJoin('users as u', 'u.id', 's.created_by')
       .select([
         's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 's.customer_name', 's.payment_type', 's.payment_channel',
-        's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.store_credit_used',
+        's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.tendered_amount', 's.change_amount', 's.store_credit_used',
         's.status', 's.note', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
       ])
       .where(this.tenantPredicate(auth, 's'))
@@ -55,6 +55,8 @@ export class SalesQueryService {
       pricesIncludeTax: Boolean(sale.prices_include_tax),
       total: Number(sale.total || 0),
       paidAmount: Number(sale.paid_amount || 0),
+      tenderedAmount: Number(sale.tendered_amount || 0),
+      changeAmount: Number(sale.change_amount || 0),
       storeCreditUsed: Number(sale.store_credit_used || 0),
       status: sale.status || 'posted',
       note: sale.note || '',
@@ -137,7 +139,7 @@ export class SalesQueryService {
       .leftJoin('users as u', 'u.id', 's.created_by')
       .select([
         's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 's.customer_name', 's.payment_type', 's.payment_channel',
-        's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.store_credit_used',
+        's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.tendered_amount', 's.change_amount', 's.store_credit_used',
         's.status', 's.note', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
       ])
       .where('s.id', '=', id)

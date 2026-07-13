@@ -94,6 +94,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     locationId: payload.locationId ? Number(payload.locationId) : null,
     source: payload.source === 'pos' ? 'pos' : 'dashboard',
     payments,
+    tenderedAmount: Number(payload.tenderedAmount || 0),
     items: payload.items
       .map((item) => ({
         productId: Number(item.productId || 0),

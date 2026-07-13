@@ -104,6 +104,8 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     taxAmount: Number(sale.taxAmount || 0),
     total: Number(sale.total || 0),
     paidAmount: Number(sale.paidAmount || 0),
+    tenderedAmount: Number((sale as any).tenderedAmount || 0),
+    changeAmount: Number((sale as any).changeAmount || 0),
     payments: sale.payments,
   });
 }

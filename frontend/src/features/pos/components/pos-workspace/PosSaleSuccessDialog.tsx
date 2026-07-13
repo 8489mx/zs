@@ -50,7 +50,9 @@ export function PosSaleSuccessDialog({
   const viewInvoiceLinkRef = useRef<HTMLAnchorElement | null>(null);
   const customerPhone = String(customer?.phone || '').trim();
   const showManualPhone = !customerPhone;
-  const changeOrRemain = Number(sale?.paymentType === 'credit' ? sale?.total || 0 : Math.max(0, Number(sale?.paidAmount || 0) - Number(sale?.total || 0)));
+  const changeAmount = Number((sale as any)?.changeAmount || 0);
+  const tenderedAmount = Number((sale as any)?.tenderedAmount || 0);
+  const changeOrRemain = sale?.paymentType === 'credit' ? Number(sale?.total || 0) : changeAmount;
   const changeOrRemainLabel = sale?.paymentType === 'credit' ? 'المتبقي' : 'الباقي';
 
   function safePrint(printAction: () => void) {
@@ -172,8 +174,8 @@ export function PosSaleSuccessDialog({
         <div className="pos-sale-success-metrics">
           <span><b>رقم الفاتورة</b>{sale.docNo || sale.id}</span>
           <span><b>الإجمالي</b>{formatCurrency(Number(sale.total || 0))}</span>
-          <span><b>المدفوع</b>{formatCurrency(Number(sale.paidAmount || 0))}</span>
           <span><b>طريقة الدفع</b>{paymentLabel((sale.paymentType === 'credit' ? 'credit' : 'cash'), String(sale.paymentChannel || 'cash'))}</span>
+          {tenderedAmount > 0 && <span><b>المستلم نقديًا</b>{formatCurrency(tenderedAmount)}</span>}
           <span><b>{changeOrRemainLabel}</b>{formatCurrency(changeOrRemain)}</span>
           <span><b>العميل</b>{sale.customerName || customer?.name || 'عميل نقدي'}</span>
         </div>

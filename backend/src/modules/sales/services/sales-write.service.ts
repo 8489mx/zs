@@ -391,6 +391,13 @@ export class SalesWriteService {
         throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
       }
 
+      const appliedCash = payments.find((p) => p.paymentChannel === 'cash')?.amount || 0;
+      let finalTenderedAmount = normalized.tenderedAmount > 0 ? normalized.tenderedAmount : appliedCash;
+      if (finalTenderedAmount < appliedCash) {
+        finalTenderedAmount = appliedCash;
+      }
+      const changeAmount = Number(Math.max(0, finalTenderedAmount - appliedCash).toFixed(3));
+
       const saleInsert = await trx
         .insertInto('sales')
         .values({
@@ -405,6 +412,8 @@ export class SalesWriteService {
           prices_include_tax: normalized.pricesIncludeTax,
           total,
           paid_amount: paidAmount,
+          tendered_amount: finalTenderedAmount,
+          change_amount: changeAmount,
           store_credit_used: normalized.storeCreditUsed,
           status: 'posted',
           note: normalized.note,

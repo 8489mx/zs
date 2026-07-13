@@ -145,12 +145,16 @@ function renderTotals(options: {
   taxAmount: number;
   total: number;
   paidAmount?: number;
+  tenderedAmount?: number;
+  changeAmount?: number;
   items: Array<{ qty?: number }>;
   settings?: Partial<AppSettings> | null;
   compact?: boolean;
 }) {
   const totalPieces = (options.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
   const paidAmount = Number(options.paidAmount || 0);
+  const tenderedAmount = Number(options.tenderedAmount || 0);
+  const changeAmount = Number(options.changeAmount || 0);
   const remaining = Math.max(0, Number(options.total || 0) - paidAmount);
   const showTax = getPrintOption(options.settings, 'printShowTax', true);
   const showItemSummary = getPrintOption(options.settings, 'printShowItemSummary', true);
@@ -162,6 +166,8 @@ function renderTotals(options: {
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
     { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
     ...(remaining > 0 ? [{ label: 'المتبقي', value: formatReceiptMoney(remaining, options.settings) }] : []),
+    ...(tenderedAmount > 0 ? [{ label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) }] : []),
+    ...(changeAmount > 0 ? [{ label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) }] : []),
     ...(showItemSummary ? [
       { label: 'عدد البنود', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
       { label: 'إجمالي القطع', value: formatReceiptNumber(totalPieces, options.settings) },
@@ -272,6 +278,8 @@ export function buildReceiptDocument(options: {
   taxAmount: number;
   total: number;
   paidAmount?: number;
+  tenderedAmount?: number;
+  changeAmount?: number;
   payments?: Sale['payments'];
 }) {
   const compact = isCompactReceipt(options.pageSize, options.settings);
@@ -298,7 +306,7 @@ export function buildReceiptDocument(options: {
       ${renderStoreHeader(options.settings, compact)}
       ${renderMetaPanel(metaRows, compact, options.settings)}
       ${renderItemsTable(options.items, compact, options.settings)}
-      ${renderTotals({ subtotal: options.subtotal, discount: options.discount, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, items: options.items, settings: options.settings, compact })}
+      ${renderTotals({ subtotal: options.subtotal, discount: options.discount, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact })}
       ${renderPaymentBreakdown(options.payments, options.settings, compact)}
     `,
     compact,

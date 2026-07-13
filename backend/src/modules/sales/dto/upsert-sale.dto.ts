@@ -125,6 +125,12 @@ export class UpsertSaleDto {
   @Type(() => SalePaymentDto)
   @IsOptional()
   payments?: SalePaymentDto[];
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tenderedAmount?: number;
 }
 
 export type NormalizedSalePayload = {
@@ -142,4 +148,5 @@ export type NormalizedSalePayload = {
   source: 'pos' | 'dashboard';
   items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; notes: string; modifiers: any }>;
   payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }>;
+  tenderedAmount: number;
 };

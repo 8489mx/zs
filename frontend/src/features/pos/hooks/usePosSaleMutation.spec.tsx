@@ -55,6 +55,7 @@ function createSaleInput(): CreatePosSaleInput {
     discount: 0,
     note: '',
     paidAmount: 50,
+    tenderedAmount: 50,
     payments: [{ paymentChannel: 'cash', amount: 50 }],
     taxRate: 0,
     pricesIncludeTax: false,

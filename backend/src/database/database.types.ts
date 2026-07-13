@@ -484,6 +484,8 @@ export interface SalesTable {
   prices_include_tax: boolean;
   total: number;
   paid_amount: number;
+  tendered_amount: number;
+  change_amount: number;
   store_credit_used: number;
   status: string;
   note: string;

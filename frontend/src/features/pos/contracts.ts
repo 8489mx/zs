@@ -16,6 +16,7 @@ export interface CreatePosSaleInput {
   discount: number;
   note: string;
   paidAmount: number;
+  tenderedAmount: number;
   payments: PosPaymentInput[];
   taxRate: number;
   pricesIncludeTax: boolean;
@@ -66,6 +67,45 @@ export function validatePosSaleInput(input: CreatePosSaleInput) {
   if (input.paymentType !== 'credit' && paymentsTotal < Number(input.expectedTotal || 0)) {
     throw new Error('المبلغ المدفوع أقل من إجمالي الفاتورة');
   }
+
+  const nonCashTotal = (input.payments || [])
+    .filter(p => p.paymentChannel !== 'cash')
+    .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  if (nonCashTotal > Number(input.expectedTotal || 0)) {
+    throw new Error('لا يمكن دفع مبلغ أكبر من إجمالي الفاتورة باستخدام طرق الدفع الإلكترونية');
+  }
+}
+
+function normalizePaymentsCapped(payments: PosPaymentInput[], expectedTotal: number) {
+  const result: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }> = [];
+  let remainingTotal = Number(expectedTotal || 0);
+
+  // Process non-cash first
+  for (const p of payments.filter(p => p.paymentChannel !== 'cash')) {
+    const amountToApply = Math.min(Number(p.amount || 0), remainingTotal);
+    if (amountToApply > 0) {
+      result.push({ 
+        paymentChannel: p.paymentChannel as 'card' | 'wallet' | 'instapay', 
+        amount: normalizeMoney(amountToApply) 
+      });
+      remainingTotal -= amountToApply;
+    }
+  }
+
+  // Process cash
+  for (const p of payments.filter(p => p.paymentChannel === 'cash')) {
+    if (remainingTotal <= 0) break;
+    const amountToApply = Math.min(Number(p.amount || 0), remainingTotal);
+    if (amountToApply > 0) {
+      result.push({ 
+        paymentChannel: 'cash', 
+        amount: normalizeMoney(amountToApply) 
+      });
+      remainingTotal -= amountToApply;
+    }
+  }
+
+  return result;
 }
 
 export function buildPosSalePayload(input: CreatePosSaleInput) {
@@ -78,18 +118,8 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     paymentChannel: input.paymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
     note: String(input.note || '').trim(),
-    payments: (input.payments || [])
-      .filter((entry) => Number(entry.amount || 0) > 0)
-      .map((entry) => ({
-        paymentChannel: entry.paymentChannel === 'card'
-          ? 'card'
-          : entry.paymentChannel === 'wallet'
-            ? 'wallet'
-            : entry.paymentChannel === 'instapay'
-              ? 'instapay'
-              : 'cash',
-        amount: normalizeMoney(Number(entry.amount || 0))
-      })),
+    payments: normalizePaymentsCapped(input.payments || [], input.expectedTotal),
+    tenderedAmount: Number(input.tenderedAmount || 0),
     storeCreditUsed: 0,
     taxRate: normalizeMoney(Number(input.taxRate || 0)),
     ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
@@ -106,7 +136,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
 
   const customerId = normalizeCustomerId(input.customerId);
   const normalizedItems = normalizeCart(input.cart);
-  const positivePayments = (input.payments || []).filter((entry) => Number(entry.amount || 0) > 0);
+  const positivePayments = normalizePaymentsCapped(input.payments || [], input.expectedTotal);
   const uniqueChannels = Array.from(new Set(positivePayments.map((entry) => entry.paymentChannel)));
   const simplePaymentChannel: PaymentChannel =
     input.paymentType === 'credit'
@@ -127,6 +157,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     paymentChannel: simplePaymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
     note: String(input.note || '').trim(),
+    tenderedAmount: Number(input.tenderedAmount || 0),
     taxRate: normalizeMoney(Number(input.taxRate || 0)),
     ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
     pricesIncludeTax: Boolean(input.pricesIncludeTax),

@@ -163,9 +163,10 @@ export function resolveSalePayments(
   fallbackPaymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = 'cash',
 ): Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }> {
   if (paymentType === 'credit') return [];
-  if (payments.length) return payments;
-  if (collectibleTotal > 0) {
-    return [{
+  
+  let validPayments = payments;
+  if (!validPayments.length && collectibleTotal > 0) {
+    validPayments = [{
       paymentChannel: fallbackPaymentChannel === 'card'
         ? 'card'
         : fallbackPaymentChannel === 'wallet'
@@ -176,7 +177,30 @@ export function resolveSalePayments(
       amount: collectibleTotal,
     }];
   }
-  return [];
+
+  const result: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }> = [];
+  let remainingTotal = collectibleTotal;
+
+  // Process non-cash first
+  for (const p of validPayments.filter(p => p.paymentChannel !== 'cash')) {
+    const amountToApply = Math.min(Number(p.amount || 0), remainingTotal);
+    if (amountToApply > 0) {
+      result.push({ paymentChannel: p.paymentChannel, amount: roundCurrency(amountToApply) });
+      remainingTotal -= amountToApply;
+    }
+  }
+
+  // Process cash
+  for (const p of validPayments.filter(p => p.paymentChannel === 'cash')) {
+    if (remainingTotal <= 0) break;
+    const amountToApply = Math.min(Number(p.amount || 0), remainingTotal);
+    if (amountToApply > 0) {
+      result.push({ paymentChannel: p.paymentChannel, amount: roundCurrency(amountToApply) });
+      remainingTotal -= amountToApply;
+    }
+  }
+
+  return result;
 }
 
 export function calculatePaidAmount(payments: Array<{ amount: number }>): number {
