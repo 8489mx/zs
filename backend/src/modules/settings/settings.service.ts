@@ -27,8 +27,8 @@ export class SettingsService {
   }
 
   async listBranches(actor: AuthContext): Promise<Record<string, unknown>> {
-    const rows = await this.db.selectFrom('branches').select(['id', 'name', 'code']).where('is_active', '=', true).where(this.tenantPredicate(actor)).orderBy('id', 'asc').execute();
-    return { branches: rows.map((row) => ({ id: String(row.id), name: row.name || '', code: row.code || '' })), scope: this.scope(actor) };
+    const rows = await this.db.selectFrom('branches').select(['id', 'name', 'code', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock']).where('is_active', '=', true).where(this.tenantPredicate(actor)).orderBy('id', 'asc').execute();
+    return { branches: rows.map((row) => ({ id: String(row.id), name: row.name || '', code: row.code || '', defaultStockLocationId: row.default_stock_location_id ? String(row.default_stock_location_id) : null, salesStockMode: row.sales_stock_mode, allowExternalSalesStock: row.allow_external_sales_stock })), scope: this.scope(actor) };
   }
 
   async listLocations(actor: AuthContext): Promise<Record<string, unknown>> {
@@ -54,56 +54,46 @@ export class SettingsService {
     const scope = this.scope(actor);
     const currentBranchIdRaw = String(payload.currentBranchId ?? '').trim();
     const currentLocationIdRaw = String(payload.currentLocationId ?? '').trim();
-    if (!currentBranchIdRaw || !currentLocationIdRaw) {
-      throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
-    }
 
-    const currentBranchId = Number(currentBranchIdRaw);
-    const currentLocationId = Number(currentLocationIdRaw);
-    if (!Number.isFinite(currentBranchId) || currentBranchId <= 0 || !Number.isFinite(currentLocationId) || currentLocationId <= 0) {
-      throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
-    }
+    const normalizedPayload = { ...payload };
 
-    const [branch, location] = await Promise.all([
-      this.db
+    // Only process branch and location if they are provided
+    if (currentBranchIdRaw) {
+      const currentBranchId = Number(currentBranchIdRaw);
+      if (!Number.isFinite(currentBranchId) || currentBranchId <= 0) {
+        throw new AppError('يجب اختيار الفرع الرئيسي بشكل صحيح.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
+      }
+
+      const branch = await this.db
         .selectFrom('branches')
-        .select(['id'])
+        .select(['id', 'default_stock_location_id'])
         .where('id', '=', currentBranchId)
         .where(this.tenantPredicate(actor))
-        .executeTakeFirst(),
-      this.db
-        .selectFrom('stock_locations')
-        .select(['id', 'branch_id'])
-        .where('id', '=', currentLocationId)
-        .where(this.tenantPredicate(actor))
-        .executeTakeFirst(),
-    ]);
-
-    let finalBranchId = currentBranchId;
-
-    if (!branch) {
-      const fallbackBranch = await this.db
-        .selectFrom('branches')
-        .select(['id'])
-        .where(this.tenantPredicate(actor))
-        .where('is_active', '=', true)
-        .orderBy('id', 'asc')
         .executeTakeFirst();
-        
-      if (fallbackBranch) {
-        finalBranchId = fallbackBranch.id;
-      } else {
-        console.error('Settings update failed: no active branches found', { currentBranchId });
-        throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
+
+      if (!branch) {
+        throw new AppError('الفرع المختار غير موجود.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
+      }
+
+      normalizedPayload.currentBranchId = String(branch.id);
+
+      let locationId = currentLocationIdRaw ? Number(currentLocationIdRaw) : branch.default_stock_location_id;
+
+      if (locationId && Number.isFinite(locationId) && locationId > 0) {
+        const location = await this.db
+          .selectFrom('stock_locations')
+          .select(['id'])
+          .where('id', '=', locationId)
+          .where(this.tenantPredicate(actor))
+          .executeTakeFirst();
+          
+        if (location) {
+          normalizedPayload.currentLocationId = String(location.id);
+        }
       }
     }
 
-    if (!location) {
-      console.error('Settings update failed: location not found', { currentLocationId });
-      throw new AppError('يجب اختيار الفرع الرئيسي والمخزن الأساسي قبل حفظ الإعدادات.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
-    }
 
-    const normalizedPayload = { ...payload, currentBranchId: String(finalBranchId) };
     if ('uiLanguage' in normalizedPayload) {
       normalizedPayload.uiLanguage = String(normalizedPayload.uiLanguage || '').trim().toLowerCase() === 'en' ? 'en' : 'ar';
     }
@@ -123,7 +113,36 @@ export class SettingsService {
     const name = String(payload.name || '').trim();
     const code = String(payload.code || '').trim();
     if (!name) throw new AppError('Branch name is required', 'BRANCH_NAME_REQUIRED', 400);
-    const inserted = await this.db.insertInto('branches').values({ name, code, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId }).returning(['id', 'name', 'code']).executeTakeFirstOrThrow();
+
+    const inserted = await this.db.transaction().execute(async (trx) => {
+      // 1. Insert Branch
+      const newBranch = await trx.insertInto('branches').values({ name, code, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId, sales_stock_mode: 'single_location', allow_external_sales_stock: false }).returning(['id', 'name', 'code']).executeTakeFirstOrThrow();
+
+      // 2. Generate location name
+      let locationName = newBranch.name.trim();
+      if (locationName.startsWith('فرع')) {
+        locationName = `مخزون ${locationName}`;
+      } else {
+        locationName = `مخزون فرع ${locationName}`;
+      }
+
+      // 3. Create default stock location
+      const newLocation = await trx.insertInto('stock_locations').values({
+        name: locationName,
+        code: '',
+        branch_id: newBranch.id,
+        location_type: 'branch_stock',
+        is_active: true,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId
+      }).returning('id').executeTakeFirstOrThrow();
+
+      // 4. Update branch with default stock location id
+      await trx.updateTable('branches').set({ default_stock_location_id: newLocation.id }).where('id', '=', newBranch.id).execute();
+
+      return newBranch;
+    });
+
     await this.audit.log('إضافة فرع', `تمت إضافة الفرع ${name} بواسطة ${actor.username}`, actor);
     return { ok: true, branch: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '' }, ...(await this.listBranches(actor)) };
   }
@@ -154,13 +173,34 @@ export class SettingsService {
     return { ok: true, location: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '', branchId: inserted.branch_id ? String(inserted.branch_id) : '', locationType: inserted.location_type }, ...(await this.listLocations(actor)) };
   }
 
-  async updateBranch(id: number, payload: { name?: string; code?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
-    const branch = await this.db.selectFrom('branches').select(['id']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+  async updateBranch(id: number, payload: { name?: string; code?: string; defaultStockLocationId?: string | number | null; salesStockMode?: 'single_location' | 'all_operational_locations'; allowExternalSalesStock?: boolean; }, actor: AuthContext): Promise<Record<string, unknown>> {
+    const branch = await this.db.selectFrom('branches').select(['id', 'name', 'default_stock_location_id']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);
     const name = String(payload.name || '').trim();
     const code = String(payload.code || '').trim();
     if (!name) throw new AppError('Branch name is required', 'BRANCH_NAME_REQUIRED', 400);
-    await this.db.updateTable('branches').set({ name, code }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+
+    const updates: any = { name, code };
+    if (payload.defaultStockLocationId !== undefined) updates.default_stock_location_id = payload.defaultStockLocationId ? Number(payload.defaultStockLocationId) : null;
+    if (payload.salesStockMode !== undefined) updates.sales_stock_mode = payload.salesStockMode;
+    if (payload.allowExternalSalesStock !== undefined) updates.allow_external_sales_stock = payload.allowExternalSalesStock;
+
+    await this.db.transaction().execute(async (trx) => {
+      await trx.updateTable('branches').set(updates).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+
+      // Check if we need to auto-rename the default location
+      if (branch.default_stock_location_id && name !== branch.name) {
+        const defaultLocation = await trx.selectFrom('stock_locations').select(['id', 'name']).where('id', '=', branch.default_stock_location_id).where(this.tenantPredicate(actor)).executeTakeFirst();
+        if (defaultLocation) {
+          const expectedOldName = branch.name.startsWith('فرع') ? `مخزون ${branch.name.trim()}` : `مخزون فرع ${branch.name.trim()}`;
+          if (defaultLocation.name === expectedOldName) {
+            const expectedNewName = name.startsWith('فرع') ? `مخزون ${name.trim()}` : `مخزون فرع ${name.trim()}`;
+            await trx.updateTable('stock_locations').set({ name: expectedNewName }).where('id', '=', defaultLocation.id).execute();
+          }
+        }
+      }
+    });
+
     await this.audit.log('تعديل فرع', `تم تحديث الفرع #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, branchId: String(id), ...(await this.listBranches(actor)) };
   }
@@ -205,6 +245,9 @@ export class SettingsService {
   async deleteLocation(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
     const location = await this.db.selectFrom('stock_locations').select(['id', 'is_active']).where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!location) throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
+
+    const branchWithDefault = await this.db.selectFrom('branches').select('id').where('default_stock_location_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
+    if (branchWithDefault) throw new AppError('لا يمكن حذف المخزن الافتراضي لفرع. قم بتغيير المخزن الافتراضي للفرع أولاً', 'LOCATION_IS_DEFAULT_FOR_BRANCH', 400);
 
     const stocks = await this.db.selectFrom('product_location_stock').select((eb) => eb.fn.sum<number>('qty').as('total_qty')).where('location_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (Number(stocks?.total_qty || 0) > 0) throw new AppError('لا يمكن حذف المخزن طالما يوجد به رصيد. يجب تحويل الرصيد أولاً', 'LOCATION_HAS_STOCK', 400);

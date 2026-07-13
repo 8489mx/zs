@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { normalizePaymentChannel } from '@/features/pos/lib/pos-workspace.helpers';
 import { buildDraftState, persistDraftSnapshot, persistLastSale, persistRecentProductIds } from '@/features/pos/lib/pos.persistence';
 import { isNegativeStockSalesAllowed, syncPosCartStock } from '@/features/pos/lib/pos.domain';
@@ -24,10 +23,7 @@ export function usePosWorkspaceEffects({
   note,
   search,
   priceType,
-  branchId,
-  setBranchId,
-  locationId,
-  setLocationId,
+
   products,
   setCart,
   setSubmitMessage,
@@ -37,8 +33,6 @@ export function usePosWorkspaceEffects({
   setLastAddedLineKey,
   selectedLineKey,
   setSelectedLineKey,
-  branches,
-  locations,
   discountApprovalSecret,
   setDiscountApprovalSecret,
   settings,
@@ -59,10 +53,7 @@ export function usePosWorkspaceEffects({
   note: string;
   search: string;
   priceType: PosPriceType;
-  branchId: string;
-  setBranchId: (value: string) => void;
-  locationId: string;
-  setLocationId: (value: string) => void;
+
   products: Product[];
   setCart: (value: PosItem[] | ((current: PosItem[]) => PosItem[])) => void;
   setSubmitMessage: (value: string) => void;
@@ -72,16 +63,14 @@ export function usePosWorkspaceEffects({
   setLastAddedLineKey: (value: string) => void;
   selectedLineKey: string;
   setSelectedLineKey: (value: string) => void;
-  branches: Array<{ id: string | number }>;
-  locations: Array<{ id: string | number }>;
   discountApprovalSecret: string;
   setDiscountApprovalSecret: (value: string) => void;
   settings?: { allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown } | null;
 }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, branchId, locationId }));
-  }, [cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, branchId, locationId]);
+    persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, branchId: '', locationId: '' }));
+  }, [cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -106,11 +95,7 @@ export function usePosWorkspaceEffects({
     persistLastSale(lastSale);
   }, [lastSale]);
 
-  useEffect(() => {
-    if (!SINGLE_STORE_MODE) return;
-    if (!branchId && branches[0]?.id) setBranchId(String(branches[0].id));
-    if (!locationId && locations[0]?.id) setLocationId(String(locations[0].id));
-  }, [branchId, locationId, branches, locations, setBranchId, setLocationId]);
+
 
   useEffect(() => {
     const nextChannel = normalizePaymentChannel(paymentType, cashAmount, cardAmount, transferAmount, paymentChannel);

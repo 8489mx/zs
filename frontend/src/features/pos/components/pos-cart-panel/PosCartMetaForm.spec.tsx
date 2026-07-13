@@ -51,12 +51,7 @@ function renderMetaForm(initialCustomerId = '') {
           customers={customers}
           customerId={customerId}
           onCustomerChange={setCustomerId}
-          branches={[]}
-          branchId=""
-          onBranchChange={vi.fn()}
-          locations={[]}
-          locationId=""
-          onLocationChange={vi.fn()}
+
           quickCustomerName=""
           quickCustomerPhone=""
           isQuickCustomerPending={false}

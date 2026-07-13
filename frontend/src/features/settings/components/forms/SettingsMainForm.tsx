@@ -71,7 +71,7 @@ function RequiredField({ label, error, children }: RequiredFieldProps) {
   );
 }
 
-export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance }: SettingsMainFormProps) {
+export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsMainFormProps) {
   const locale = useLocalePreference();
   const setLocaleLanguage = locale.setLanguage;
   const form = useForm<SettingsFormInput, undefined, SettingsFormOutput>({
@@ -145,6 +145,26 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const visibleLocations = useMemo(() => locations, [locations]);
 
   const selectedBranch = branches.find((branch) => String(branch.id) === String(resolvedBranchId)) || branches[0] || null;
+
+  // Branch stock settings state
+  const [stockMode, setStockMode] = useState<'single_location' | 'all_operational_locations'>('single_location');
+  const [defaultStockLocationId, setDefaultStockLocationId] = useState<string>('');
+  const [allowExternalSalesStock, setAllowExternalSalesStock] = useState<boolean>(false);
+  const [branchStockSaving, setBranchStockSaving] = useState(false);
+  const [branchStockSaved, setBranchStockSaved] = useState(false);
+  const [branchStockError, setBranchStockError] = useState<string | null>(null);
+  const [branchStockDirty, setBranchStockDirty] = useState(false);
+
+  // Sync branch stock state when selected branch changes
+  useEffect(() => {
+    if (!selectedBranch) return;
+    setStockMode((selectedBranch as any).salesStockMode === 'all_operational_locations' ? 'all_operational_locations' : 'single_location');
+    setDefaultStockLocationId((selectedBranch as any).defaultStockLocationId || '');
+    setAllowExternalSalesStock((selectedBranch as any).allowExternalSalesStock === true);
+    setBranchStockDirty(false);
+    setBranchStockSaved(false);
+    setBranchStockError(null);
+  }, [selectedBranch?.id]);
 
   const filteredBranches = useMemo(
     () => branches.filter((branch) => !normalizeText(branchQuery) || normalizeText(String(branch.name || '')).includes(normalizeText(branchQuery))),
@@ -253,10 +273,16 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   }, [branches, form]);
 
   useEffect(() => {
-    if (SINGLE_STORE_MODE && !form.getValues('currentLocationId') && visibleLocations[0]?.id) {
-      form.setValue('currentLocationId', String(visibleLocations[0].id), { shouldDirty: false });
+    if (!form.getValues('currentLocationId')) {
+      const currentBranchId = form.getValues('currentBranchId');
+      const branch = branches.find(b => String(b.id) === String(currentBranchId)) || branches[0];
+      if (branch?.defaultStockLocationId) {
+        form.setValue('currentLocationId', String(branch.defaultStockLocationId), { shouldDirty: false });
+      } else if (SINGLE_STORE_MODE && visibleLocations[0]?.id) {
+        form.setValue('currentLocationId', String(visibleLocations[0].id), { shouldDirty: false });
+      }
     }
-  }, [visibleLocations, form]);
+  }, [visibleLocations, branches, form]);
 
   useEffect(() => {
     if (!clothingModuleEnabled && form.getValues('defaultProductKind') !== 'standard') {
@@ -515,6 +541,86 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             </RequiredField>
           </div>
         </FormSection>
+
+        {/* ===== مصدر مخزون البيع ===== */}
+        {selectedBranch && onUpdateBranch && (
+          <FormSection title="مصدر مخزون البيع" description={`إعدادات مخزون البيع للفرع: ${selectedBranch.name}`}>
+            <div className="document-prototype-grid compact-grid-2">
+              <div className="field">
+                <label>مصدر المخزون</label>
+                <select
+                  className="purchase-prototype-field-input"
+                  value={stockMode}
+                  disabled={!canManageSettings || branchStockSaving}
+                  onChange={(e) => { setStockMode(e.target.value as any); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                >
+                  <option value="single_location">مخزن محدد</option>
+                  <option value="all_operational_locations">كل المخازن التشغيلية</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>مخزن البيع الأساسي</label>
+                <select
+                  className="purchase-prototype-field-input"
+                  value={defaultStockLocationId}
+                  disabled={!canManageSettings || branchStockSaving}
+                  onChange={(e) => { setDefaultStockLocationId(e.target.value); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                >
+                  <option value="">-- غير محدد --</option>
+                  {locations.filter((loc) => !loc.branchId || loc.branchId === selectedBranch.id).map((loc) => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+                </select>
+              </div>
+              {stockMode === 'all_operational_locations' && (
+                <div className="field" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: canManageSettings ? 'pointer' : 'default' }}>
+                    <input
+                      type="checkbox"
+                      checked={allowExternalSalesStock}
+                      disabled={!canManageSettings || branchStockSaving}
+                      onChange={(e) => { setAllowExternalSalesStock(e.target.checked); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                    />
+                    السماح بالبيع من المخازن الخارجية
+                  </label>
+                </div>
+              )}
+            </div>
+            {branchStockDirty && canManageSettings && (
+              <div className="actions compact-actions" style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={branchStockSaving}
+                  onClick={async () => {
+                    if (!selectedBranch) return;
+                    setBranchStockSaving(true);
+                    setBranchStockError(null);
+                    try {
+                      await onUpdateBranch(selectedBranch.id, {
+                        name: selectedBranch.name || '',
+                        code: selectedBranch.code || '',
+                        defaultStockLocationId: defaultStockLocationId || undefined,
+                        salesStockMode: stockMode,
+                        allowExternalSalesStock,
+                      });
+                      setBranchStockSaved(true);
+                      setBranchStockDirty(false);
+                    } catch {
+                      setBranchStockError('تعذر حفظ إعدادات المخزون.');
+                    } finally {
+                      setBranchStockSaving(false);
+                    }
+                  }}
+                >
+                  {branchStockSaving ? 'جارٍ الحفظ...' : 'حفظ إعدادات المخزون'}
+                </button>
+              </div>
+            )}
+            {branchStockSaved && <div style={{ color: '#16a34a', marginTop: 8, fontSize: '0.875rem' }}>✓ تم حفظ إعدادات مخزون البيع بنجاح.</div>}
+            {branchStockError && <div style={{ color: '#dc2626', marginTop: 8, fontSize: '0.875rem' }}>{branchStockError}</div>}
+          </FormSection>
+        )}
 
         {/* ===== بيانات النشاط ===== */}
         <FormSection title="بيانات النشاط">

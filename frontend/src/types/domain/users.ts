@@ -11,6 +11,7 @@ export interface Branch {
   name: string;
   code?: string;
   isActive?: boolean;
+  defaultStockLocationId?: string | null;
 }
 
 export interface Location {

@@ -11,9 +11,10 @@ interface SettingsCoreSectionProps {
   canManageSettings: boolean;
   setupMode?: boolean;
   onSetupAdvance?: () => void;
+  onUpdateBranch?: (branchId: string, values: { name: string; code: string; defaultStockLocationId?: string; salesStockMode?: 'single_location' | 'all_operational_locations'; allowExternalSalesStock?: boolean }) => Promise<void>;
 }
 
-export function SettingsCoreSection({ settings, branches, locations, settingsQuery, canManageSettings, setupMode = false, onSetupAdvance }: SettingsCoreSectionProps) {
+export function SettingsCoreSection({ settings, branches, locations, settingsQuery, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsCoreSectionProps) {
   return (
     <div className="settings-main-grid">
       <QueryFeedback
@@ -25,7 +26,7 @@ export function SettingsCoreSection({ settings, branches, locations, settingsQue
         emptyTitle="لا توجد إعدادات حالية"
         emptyHint="يمكنك حفظ الإعدادات الأساسية من هذه الشاشة."
       >
-        <SettingsMainForm settings={settings} branches={branches} locations={locations} canManageSettings={canManageSettings} setupMode={setupMode} onSetupAdvance={onSetupAdvance} />
+        <SettingsMainForm settings={settings} branches={branches} locations={locations} canManageSettings={canManageSettings} setupMode={setupMode} onSetupAdvance={onSetupAdvance} onUpdateBranch={onUpdateBranch} />
       </QueryFeedback>
     </div>
   );

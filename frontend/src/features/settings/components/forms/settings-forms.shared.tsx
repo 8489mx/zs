@@ -37,6 +37,7 @@ export interface SettingsMainFormProps {
   canManageSettings: boolean;
   setupMode?: boolean;
   onSetupAdvance?: () => void;
+  onUpdateBranch?: (branchId: string, values: { name: string; code: string; defaultStockLocationId?: string; salesStockMode?: 'single_location' | 'all_operational_locations'; allowExternalSalesStock?: boolean }) => Promise<void>;
 }
 
 export interface BranchFormProps {

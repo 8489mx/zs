@@ -65,7 +65,10 @@ export const settingsFormSchema = z.object({
 
 export const branchFormSchema = z.object({
   name: z.string().min(2, 'اسم الفرع مطلوب'),
-  code: z.string().optional()
+  code: z.string().optional(),
+  defaultStockLocationId: z.string().optional(),
+  salesStockMode: z.enum(['single_location', 'all_operational_locations']).default('single_location'),
+  allowExternalSalesStock: z.boolean().default(false),
 });
 
 export const locationFormSchema = z.object({

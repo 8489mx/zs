@@ -58,8 +58,6 @@ export interface PosCartPanelProps {
   onQuickCustomerNameChange: (value: string) => void;
   onQuickCustomerPhoneChange: (value: string) => void;
   onQuickCustomerSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onBranchChange: (value: string) => void;
-  onLocationChange: (value: string) => void;
   onPaymentTypeChange: (value: PaymentType) => void;
   onPaymentPresetChange: (value: 'cash' | 'card' | 'wallet' | 'instapay' | 'credit') => void;
   onCashAmountChange: (value: number) => void;

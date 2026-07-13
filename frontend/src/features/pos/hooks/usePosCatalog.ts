@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
-import { getAvailableSaleProducts, isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
+import { getAvailableSaleProducts } from '@/features/pos/lib/pos.domain';
 import { POS_PRODUCT_CACHE_LIMIT, POS_PRODUCT_LOOKUP_LIMIT, isLikelyBarcodeQuery, mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import type { Product } from '@/types/domain';
 
-const posReferenceStaleTime = 45_000;
-
-export function usePosCatalog(search: string, locationId: string, productFilter: string = 'all') {
+export function usePosCatalog(search: string, branchId: string, locationId: string, productFilter: string = 'all') {
   const [productCache, setProductCache] = useState<Product[]>([]);
   const trimmedSearch = search.trim();
   const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
@@ -17,23 +14,19 @@ export function usePosCatalog(search: string, locationId: string, productFilter:
   const lookupMode: 'browse' | 'barcode' | 'search' = !lookupTerm ? 'browse' : isLikelyBarcodeQuery(lookupTerm) ? 'barcode' : 'search';
   const lookupView = productFilter === 'offers' ? 'offers' : '';
   const productsQuery = useQuery({
-    queryKey: ['products', 'pos', locationId || 'all', lookupMode, lookupTerm || '', lookupView || 'all', String(POS_PRODUCT_LOOKUP_LIMIT)] as const,
+    queryKey: ['products', 'pos', branchId || 'all', locationId || 'all', lookupMode, lookupTerm || '', lookupView || 'all', String(POS_PRODUCT_LOOKUP_LIMIT)] as const,
     queryFn: () => posApi.lookupProducts({
       ...(lookupMode === 'barcode' ? { barcode: lookupTerm } : lookupTerm ? { q: lookupTerm } : {}),
       ...(lookupView ? { view: lookupView } : {}),
+      branchId,
       locationId,
       limit: POS_PRODUCT_LOOKUP_LIMIT,
     }),
     staleTime: 10_000,
   });
-  const customersQuery = useQuery({ queryKey: queryKeys.posCustomers, queryFn: posApi.customers, staleTime: posReferenceStaleTime });
-  const settingsQuery = useQuery({ queryKey: queryKeys.posSettings, queryFn: posApi.settings, staleTime: posReferenceStaleTime });
-  const branchesQuery = useQuery({ queryKey: queryKeys.posBranches, queryFn: posApi.branches, staleTime: posReferenceStaleTime });
-  const locationsQuery = useQuery({ queryKey: queryKeys.posLocations, queryFn: posApi.locations, staleTime: posReferenceStaleTime });
-
   useEffect(() => {
     setProductCache([]);
-  }, [locationId]);
+  }, [locationId, branchId]);
 
   useEffect(() => {
     if (!productsQuery.data?.length) return;
@@ -41,17 +34,13 @@ export function usePosCatalog(search: string, locationId: string, productFilter:
   }, [productsQuery.data]);
 
   const saleProducts = useMemo(
-    () => getAvailableSaleProducts(productsQuery.data || [], '', isNegativeStockSalesAllowed(settingsQuery.data), productFilter),
-    [productsQuery.data, settingsQuery.data, productFilter],
+    () => getAvailableSaleProducts(productsQuery.data || [], '', productFilter),
+    [productsQuery.data, productFilter],
   );
   const catalogProducts = useMemo(() => mergeLookupProducts(productsQuery.data || [], productCache), [productCache, productsQuery.data]);
 
   return {
     productsQuery,
-    customersQuery,
-    settingsQuery,
-    branchesQuery,
-    locationsQuery,
     saleProducts,
     catalogProducts,
   };

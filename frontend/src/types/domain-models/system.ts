@@ -104,6 +104,9 @@ export interface Branch {
   id: string;
   name: string;
   code: string;
+  defaultStockLocationId?: string | null;
+  salesStockMode?: 'single_location' | 'all_operational_locations';
+  allowExternalSalesStock?: boolean;
 }
 
 export interface Location {

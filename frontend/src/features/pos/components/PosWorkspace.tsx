@@ -18,7 +18,7 @@ import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
-import { parseWeightedBarcode } from '@/features/pos/lib/weighted-barcode';
+import { parseWeightedBarcode, matchProductByWeightedCode } from '@/features/pos/lib/weighted-barcode';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
 
@@ -145,42 +145,42 @@ export function PosWorkspace() {
   const resolveRemoteBarcodeMatch = useCallback((query: string) => {
     void (async () => {
       try {
-        const lookupProducts = await posApi.lookupProducts({ barcode: query, locationId: pos.locationId, limit: 5 });
+        const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
+        if (weightedBarcode) {
+          const weightedLookupProducts = await posApi.lookupProducts({ barcode: weightedBarcode.productCode, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
+          const weightedSubmitted = pos.handleQuickAddCodeSubmit(query, weightedLookupProducts);
+          if (weightedSubmitted) {
+            pos.setSearch('');
+            return;
+          }
+
+          const strippedProductCode = weightedBarcode.productCode.replace(/^0+/, '') || weightedBarcode.productCode;
+          if (strippedProductCode !== weightedBarcode.productCode) {
+            const strippedSearchProducts = await posApi.lookupProducts({ q: strippedProductCode, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
+            const strippedSearchSubmitted = pos.handleQuickAddCodeSubmit(query, strippedSearchProducts);
+            if (strippedSearchSubmitted) {
+              pos.setSearch('');
+              return;
+            }
+          }
+          
+          pos.setSubmitMessage(`باركود ميزان: لم يتم العثور على كود الصنف ${weightedBarcode.productCode}.`);
+          focusBarcodeEntry();
+          return;
+        }
+
+        const lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
         const remoteMatch = matchProductByCode(lookupProducts, query);
         if (remoteMatch.status === 'matched') {
           const submitted = pos.handleQuickAddCodeSubmit(query, lookupProducts);
-          if (submitted) pos.setSearch('');
+          if (submitted) { pos.setSearch(''); return; }
+          // Product found but blocked (e.g. zero stock in this branch) — error already set by handleAddProduct
+          focusBarcodeEntry();
           return;
         }
         if (remoteMatch.status === 'ambiguous') {
           pos.setSubmitMessage('هذا الباركود غير واضح أو مرتبط بأكثر من نتيجة. راجع الصنف أو الوحدة أولًا.');
         } else {
-          const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
-          if (weightedBarcode) {
-            const weightedLookupProducts = await posApi.lookupProducts({ barcode: weightedBarcode.productCode, locationId: pos.locationId, limit: 5 });
-            const weightedSubmitted = pos.handleQuickAddCodeSubmit(query, weightedLookupProducts);
-            if (weightedSubmitted) {
-              pos.setSearch('');
-              return;
-            }
-
-            const weightedSearchProducts = await posApi.lookupProducts({ q: weightedBarcode.productCode, locationId: pos.locationId, limit: 5 });
-            const weightedSearchSubmitted = pos.handleQuickAddCodeSubmit(query, weightedSearchProducts);
-            if (weightedSearchSubmitted) {
-              pos.setSearch('');
-              return;
-            }
-
-            const strippedProductCode = weightedBarcode.productCode.replace(/^0+/, '') || weightedBarcode.productCode;
-            if (strippedProductCode !== weightedBarcode.productCode) {
-              const strippedSearchProducts = await posApi.lookupProducts({ q: strippedProductCode, locationId: pos.locationId, limit: 5 });
-              const strippedSearchSubmitted = pos.handleQuickAddCodeSubmit(query, strippedSearchProducts);
-              if (strippedSearchSubmitted) {
-                pos.setSearch('');
-                return;
-              }
-            }
-          }
           pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
         }
       } catch (error) {
@@ -213,10 +213,14 @@ export function PosWorkspace() {
     if (exactCodeMatch.status === 'not-found') {
       const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
       if (weightedBarcode) {
-        const submitted = handleQuickAddSubmit(query);
-        if (submitted) {
-          pos.setSearch('');
-          return true;
+        // Only submit locally if we are SURE it's in the cache. Otherwise fallback to remote so we don't flash a false error message.
+        const localWeightedMatch = matchProductByWeightedCode(pos.productsQuery.data || [], weightedBarcode.productCode);
+        if (localWeightedMatch.status === 'matched') {
+          const submitted = handleQuickAddSubmit(query);
+          if (submitted) {
+            pos.setSearch('');
+            return true;
+          }
         }
       }
     }

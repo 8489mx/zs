@@ -27,8 +27,6 @@ export function usePosWorkspaceState() {
   const [cart, setCart] = useState<PosItem[]>(storedDraft?.cart || []);
   const [selectedLineKey, setSelectedLineKey] = useState((storedDraft?.cart || [])[0]?.lineKey || '');
   const [priceType, setPriceType] = useState<PosPriceType>(storedDraft?.priceType || 'retail');
-  const [branchId, setBranchId] = useState(storedDraft?.branchId || '');
-  const [locationId, setLocationId] = useState(storedDraft?.locationId || '');
   const [productFilter, setProductFilter] = useState<PosProductFilter>('all');
   const [submitMessage, setSubmitMessage] = useState('');
   const [recentProductIds, setRecentProductIds] = useState<string[]>(persistedState.recentProductIds);
@@ -69,10 +67,6 @@ export function usePosWorkspaceState() {
     setSelectedLineKey,
     priceType,
     setPriceType,
-    branchId,
-    setBranchId,
-    locationId,
-    setLocationId,
     productFilter,
     setProductFilter,
     submitMessage,

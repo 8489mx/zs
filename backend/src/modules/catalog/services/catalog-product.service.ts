@@ -260,7 +260,7 @@ export class CatalogProductService {
     ]);
 
     const productIds = products.map((product) => Number(product.id));
-    const scopedStockResult = await this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, products, actor);
+    const scopedStockResult = await this.resolveScopedStockByProduct(productIds, scopedLocation ? [scopedLocation.id] : [], products, actor);
     const listContext = await this.buildListProductsContext(productIds, q, categories, suppliers, actor);
     const filteredBaseRows = this.filterListProducts(products, { q, view, scopedLocationId: scopedLocation?.id || null, scopedStockByProduct: scopedStockResult.stock, ...listContext });
 
@@ -306,7 +306,7 @@ export class CatalogProductService {
   }
 
   async listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
-    const { q, barcode, limit, requestedLocationId, view } = this.parsePosProductLookupQuery(query);
+    const { q, barcode, limit, requestedLocationId, requestedBranchId, view } = this.parsePosProductLookupQuery(query);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
     const productRows = barcode
@@ -315,9 +315,33 @@ export class CatalogProductService {
 
     const uniqueRows = this.uniquePosProductRows(productRows).slice(0, limit);
     const productIds = uniqueRows.map((product) => Number(product.id));
+
+    let eligibleLocationIds: number[] = scopedLocation ? [scopedLocation.id] : [];
+    if (requestedBranchId > 0) {
+      const branch = await this.db.selectFrom('branches').select(['default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock']).where('id', '=', requestedBranchId).where(this.tenantPredicate(actor)).executeTakeFirst();
+      if (branch && branch.sales_stock_mode === 'all_operational_locations') {
+        const allLocs = await this.db.selectFrom('stock_locations')
+          .select(['id', 'location_type', 'branch_id'])
+          .where(this.tenantPredicate(actor))
+          .where('is_active', '=', true)
+          .where('location_type', 'not in', ['damaged', 'in_transit'])
+          .execute();
+          
+        const defaultLocId = branch.default_stock_location_id;
+        const sortedLocs = allLocs.filter(l => {
+           if (l.id === defaultLocId) return true;
+           if (l.branch_id === requestedBranchId) return true;
+           if (l.location_type === 'internal_warehouse' && l.branch_id === null) return true;
+           if (branch.allow_external_sales_stock && l.location_type === 'external_warehouse') return true;
+           return false;
+        });
+        eligibleLocationIds = sortedLocs.map(l => l.id);
+      }
+    }
+
     const [unitsByProduct, scopedStockResult, offersByProduct] = await Promise.all([
       this.fetchPosProductUnits(productIds, actor),
-      this.resolveScopedStockByProduct(productIds, scopedLocation?.id || null, uniqueRows, actor),
+      this.resolveScopedStockByProduct(productIds, eligibleLocationIds, uniqueRows, actor),
       this.fetchProductOffers(productIds, offerCapabilities.hasMinQty, actor),
     ]);
 
@@ -348,6 +372,7 @@ export class CatalogProductService {
       barcode: String(query.barcode || '').trim(),
       limit: Math.min(maxLimit, Math.max(1, safeLimit)),
       requestedLocationId: Number(query.locationId || 0),
+      requestedBranchId: Number(query.branchId || 0),
       view,
     };
   }
@@ -597,7 +622,7 @@ export class CatalogProductService {
     };
   }
 
-  private async resolveScopedStockByProduct(productIds: number[], scopedLocationId: number | null, products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>, actor: AuthContext): Promise<{ stock: Map<string, number>, locations: Map<string, number[]> }> {
+  private async resolveScopedStockByProduct(productIds: number[], eligibleLocationIds: number[], products: Array<Pick<ProductRow, 'id' | 'stock_qty'>>, actor: AuthContext): Promise<{ stock: Map<string, number>, locations: Map<string, number[]> }> {
     const scopedStockByProduct = new Map<string, number>();
     const activeLocationsByProduct = new Map<string, number[]>();
     if (!productIds.length) return { stock: scopedStockByProduct, locations: activeLocationsByProduct };
@@ -619,12 +644,14 @@ export class CatalogProductService {
       if (row.location_id) activeLocationsByProduct.get(key)!.push(row.location_id);
 
       if (row.location_id == null) unassignedQtyByProduct.set(key, qty);
-      if (scopedLocationId && Number(row.location_id || 0) === scopedLocationId) locationQtyByProduct.set(key, qty);
+      if (eligibleLocationIds.includes(Number(row.location_id || 0))) {
+        locationQtyByProduct.set(key, (locationQtyByProduct.get(key) || 0) + qty);
+      }
     }
 
     for (const product of products) {
       const key = String(product.id);
-      if (scopedLocationId) {
+      if (eligibleLocationIds.length > 0) {
         const allLocationRowsForProduct = stockRows.filter(r => String(r.product_id) === key && r.location_id != null);
         const currentSum = allLocationRowsForProduct.reduce((sum, r) => sum + Number(r.qty || 0), 0);
         const discrepancy = Number(product.stock_qty || 0) - currentSum;
@@ -1347,7 +1374,7 @@ export class CatalogProductService {
 
     const productIds = [Number(product.id)];
     const relations = await this.fetchListProductRelations(productIds, offerCapabilities.hasMinQty, actor);
-    const scopedStockResult = await this.resolveScopedStockByProduct(productIds, null, [product], actor);
+    const scopedStockResult = await this.resolveScopedStockByProduct(productIds, [], [product], actor);
 
     const mapped = this.mapListProducts([product], {
       canViewCost,

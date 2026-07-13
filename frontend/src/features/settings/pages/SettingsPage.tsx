@@ -123,7 +123,7 @@ export function SettingsPage() {
           onReconcileCustomers={() => page.setConfirmAction({ kind: 'reconcile-customers' })}
           onReconcileSuppliers={() => page.setConfirmAction({ kind: 'reconcile-suppliers' })}
           onReconcileAll={() => page.setConfirmAction({ kind: 'reconcile-all' })}
-          onUpdateBranch={async (branchId: string, values: { name: string; code: string }) => { await page.updateBranchMutation.mutateAsync({ branchId, values }); }}
+          onUpdateBranch={async (branchId: string, values: any) => { await page.updateBranchMutation.mutateAsync({ branchId, values }); }}
           onDeleteBranch={async (branch) => { await page.deleteBranchMutation.mutateAsync(branch.id); }}
           onUpdateLocation={async (locationId: string, values: { name: string; code: string; branchId: string; locationType?: 'internal_warehouse' | 'branch_stock' }) => { await page.updateLocationMutation.mutateAsync({ locationId, values: values as any }); }}
           onDeleteLocation={async (location) => { await page.deleteLocationMutation.mutateAsync(location.id); }}

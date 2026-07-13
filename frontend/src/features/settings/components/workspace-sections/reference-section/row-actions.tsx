@@ -4,24 +4,49 @@ import { Field } from '@/shared/ui/field';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, Location } from '@/types/domain';
 
-export function BranchRowActions({ branch, isEditing, onStartEdit, onCancelEdit, onChange, onSave, onDelete, canManageSettings, isBusy, mutationError }: {
+export function BranchRowActions({ branch, locations, isEditing, onStartEdit, onCancelEdit, onChange, onSave, onDelete, canManageSettings, isBusy, mutationError, setupMode }: {
   branch: Branch;
+  locations?: Location[];
   isEditing: boolean;
   onStartEdit: (branch: Branch) => void;
   onCancelEdit: () => void;
-  onChange: (field: 'name' | 'code', value: string) => void;
+  onChange: (field: 'name' | 'code' | 'defaultStockLocationId' | 'salesStockMode' | 'allowExternalSalesStock', value: any) => void;
   onSave: () => void;
   onDelete: (branch: Branch) => void;
   canManageSettings: boolean;
   isBusy: boolean;
   mutationError?: unknown;
+  setupMode?: boolean;
 }) {
   if (isEditing) {
+    const eligibleLocations = locations?.filter((loc) => !loc.branchId || loc.branchId === branch.id) || [];
     return (
       <div className="list-row settings-reference-row editing-row">
         <div className="form-grid" style={{ flex: 1 }}>
           <Field label={SINGLE_STORE_MODE ? 'اسم النشاط' : 'اسم الفرع'}><input value={branch.name} onChange={(event) => onChange('name', event.target.value)} disabled={isBusy} /></Field>
           <Field label={SINGLE_STORE_MODE ? 'كود المتجر' : 'كود الفرع'}><input value={branch.code || ''} onChange={(event) => onChange('code', event.target.value)} disabled={isBusy} /></Field>
+          <Field label="مخزن البيع الأساسي">
+            <select value={branch.defaultStockLocationId || ''} onChange={(e) => onChange('defaultStockLocationId', e.target.value || null)} disabled={isBusy}>
+              <option value="">-- غير محدد --</option>
+              {eligibleLocations.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="مصدر مخزون البيع">
+            <select value={branch.salesStockMode || 'single_location'} onChange={(e) => onChange('salesStockMode', e.target.value)} disabled={isBusy}>
+              <option value="single_location">مخزن محدد</option>
+              <option value="all_operational_locations">كل المخازن التشغيلية</option>
+            </select>
+          </Field>
+          {branch.salesStockMode === 'all_operational_locations' && (
+             <Field label="مخزون خارجي">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input type="checkbox" checked={branch.allowExternalSalesStock || false} onChange={(e) => onChange('allowExternalSalesStock', e.target.checked)} disabled={isBusy} />
+                <span>السماح بالبيع من المخازن الخارجية</span>
+              </label>
+            </Field>
+          )}
         </div>
         <div className="actions compact-actions">
           <Button variant="primary" onClick={onSave} disabled={isBusy || !branch.name.trim()}>{isBusy ? 'جارٍ الحفظ...' : 'حفظ'}</Button>
@@ -36,6 +61,11 @@ export function BranchRowActions({ branch, isEditing, onStartEdit, onCancelEdit,
       <div>
         <strong>{branch.name}</strong>
         <div className="muted small">{branch.code || (SINGLE_STORE_MODE ? 'المعرف الداخلي غير محدد' : 'بدون كود')}</div>
+        {setupMode && branch.defaultStockLocationId && (
+          <div className="status-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1', marginTop: '4px' }}>
+            تم إنشاء المخزون الافتراضي للفرع بنجاح
+          </div>
+        )}
       </div>
       {canManageSettings ? <div className="actions compact-actions"><Button variant="secondary" onClick={() => onStartEdit(branch)} disabled={isBusy}>تعديل</Button>{!SINGLE_STORE_MODE ? <Button variant="danger" onClick={() => onDelete(branch)} disabled={isBusy}>حذف</Button> : null}</div> : null}
     </div>

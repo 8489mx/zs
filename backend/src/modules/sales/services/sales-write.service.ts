@@ -288,6 +288,49 @@ export class SalesWriteService {
         : null;
       if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
+
+      let branch: any = null;
+      if (normalized.source === 'pos') {
+        if (!normalized.branchId) {
+          throw new AppError('يجب تحديد الفرع لعمليات البيع عبر الكاشير.', 'POS_BRANCH_REQUIRED', 400);
+        }
+        branch = await trx.selectFrom('branches').select(['default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock']).where('id', '=', normalized.branchId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+        if (!branch?.default_stock_location_id) {
+          throw new AppError('لا يوجد مخزون افتراضي نشط لهذا الفرع، يرجى تحديده من الإعدادات قبل البيع.', 'POS_DEFAULT_STOCK_REQUIRED', 400);
+        }
+        normalized.locationId = branch.default_stock_location_id;
+      }
+
+      let eligibleLocations = [{ id: normalized.locationId, branchId: normalized.branchId }];
+      if (normalized.source === 'pos' && branch?.sales_stock_mode === 'all_operational_locations') {
+        const allLocs = await trx.selectFrom('stock_locations')
+          .select(['id', 'location_type', 'branch_id'])
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .where('is_active', '=', true)
+          .where('location_type', 'not in', ['damaged', 'in_transit'])
+          .execute();
+          
+        const defaultLocId = branch.default_stock_location_id;
+        
+        const sortedLocs = allLocs.filter(l => {
+           if (l.id === defaultLocId) return true;
+           if (l.branch_id === normalized.branchId) return true;
+           if (l.location_type === 'internal_warehouse' && l.branch_id === null) return true;
+           if (branch.allow_external_sales_stock && l.location_type === 'external_warehouse') return true;
+           return false;
+        }).sort((a, b) => {
+           if (a.id === defaultLocId) return -1;
+           if (b.id === defaultLocId) return 1;
+           if (a.branch_id === normalized.branchId && b.branch_id !== normalized.branchId) return -1;
+           if (a.branch_id !== normalized.branchId && b.branch_id === normalized.branchId) return 1;
+           if (a.location_type === 'internal_warehouse' && b.location_type !== 'internal_warehouse') return -1;
+           if (a.location_type !== 'internal_warehouse' && b.location_type === 'internal_warehouse') return 1;
+           return 0;
+        });
+        
+        eligibleLocations = sortedLocs.map(l => ({ id: l.id, branchId: l.branch_id }));
+      }
+
       const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx, scope.tenantId);
 
       let subtotal = 0;
@@ -437,7 +480,7 @@ export class SalesWriteService {
       await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);
 
       for (const item of preparedItems) {
-        await trx
+        const insertedLine = await trx
           .insertInto('sale_items')
           .values({
             sale_id: id,
@@ -455,75 +498,164 @@ export class SalesWriteService {
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           } as any)
-          .execute();
+          .returning('id')
+          .executeTakeFirstOrThrow();
+        const saleLineId = Number(insertedLine.id);
 
-        const stockChange = await applyStockDelta(trx, {
-          productId: item.productId,
-          delta: -item.requiredQty,
-          branchId: normalized.branchId,
-          locationId: normalized.locationId,
-          tenantId: scope.tenantId,
-          accountId: scope.accountId,
-          errorCode: 'INSUFFICIENT_STOCK',
-          errorMessage: `Insufficient stock for ${item.productName}`,
-          allowNegative: allowNegativeStockSales,
-        });
-        await trx
-          .insertInto('stock_movements')
-          .values({
-            product_id: item.productId,
-            movement_type: 'sale',
-            qty: -item.requiredQty,
-            before_qty: stockChange.scopeBefore,
-            after_qty: stockChange.scopeAfter,
-            reason: 'sale',
-            note: `Sale S-${id}`,
-            reference_type: 'sale',
-            reference_id: id,
-            branch_id: normalized.branchId,
-            location_id: normalized.locationId,
-            created_by: auth.userId,
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-          } as any)
-          .execute();
+        let remainingQty = item.requiredQty;
+        let allocationOrder = 1;
+        const allocations = [];
+
+        for (const loc of eligibleLocations) {
+          if (remainingQty <= 0) break;
+          const locStock = await trx.selectFrom('product_location_stock')
+            .select('qty')
+            .where('product_id', '=', item.productId)
+            .where('location_id', '=', loc.id)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .forUpdate()
+            .executeTakeFirst();
+          
+          const availableQty = Number(locStock?.qty || 0);
+          if (availableQty > 0) {
+            const allocateQty = Math.min(availableQty, remainingQty);
+            remainingQty = Number((remainingQty - allocateQty).toFixed(3));
+            allocations.push({ locationId: loc.id, branchId: loc.branchId, qty: allocateQty });
+          }
+        }
+
+        if (remainingQty > 0) {
+           if (!allowNegativeStockSales) {
+              throw new AppError(`Insufficient stock for ${item.productName}`, 'INSUFFICIENT_STOCK', 400);
+           }
+           allocations.push({ locationId: normalized.locationId, branchId: normalized.branchId, qty: remainingQty });
+           remainingQty = 0;
+        }
+
+        for (const alloc of allocations) {
+          const stockChange = await applyStockDelta(trx, {
+            productId: item.productId,
+            delta: -alloc.qty,
+            branchId: alloc.branchId,
+            locationId: alloc.locationId,
+            tenantId: scope.tenantId,
+            accountId: scope.accountId,
+            errorCode: 'INSUFFICIENT_STOCK',
+            errorMessage: `Insufficient stock for ${item.productName}`,
+            allowNegative: allowNegativeStockSales,
+          });
+          
+          await trx
+            .insertInto('stock_movements')
+            .values({
+              product_id: item.productId,
+              movement_type: 'sale',
+              qty: -alloc.qty,
+              before_qty: stockChange.scopeBefore,
+              after_qty: stockChange.scopeAfter,
+              reason: 'sale',
+              note: `Sale S-${id}`,
+              reference_type: 'sale',
+              reference_id: id,
+              branch_id: alloc.branchId,
+              location_id: alloc.locationId,
+              created_by: auth.userId,
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+            } as any)
+            .execute();
+
+          await trx.insertInto('sale_line_stock_allocations').values({
+             tenant_id: scope.tenantId,
+             account_id: scope.accountId,
+             sale_id: id,
+             sale_line_id: saleLineId,
+             product_id: item.productId,
+             location_id: alloc.locationId as number,
+             quantity: alloc.qty,
+             allocation_order: allocationOrder++,
+          }).execute();
+        }
 
         if (item.modifiers && Array.isArray(item.modifiers)) {
           for (const mod of item.modifiers) {
             if (mod.productId) {
               const modifierQty = Number(mod.qty || 1) * Number(item.qty || 1);
               
-              const modStockChange = await applyStockDelta(trx, {
-                productId: Number(mod.productId),
-                delta: -modifierQty,
-                branchId: normalized.branchId,
-                locationId: normalized.locationId,
-                tenantId: scope.tenantId,
-                accountId: scope.accountId,
-                errorCode: 'INSUFFICIENT_MODIFIER_STOCK',
-                errorMessage: `Insufficient stock for modifier ${mod.name}`,
-                allowNegative: allowNegativeStockSales,
-              });
+              let modRemainingQty = modifierQty;
+              let modAllocationOrder = 1;
+              const modAllocations = [];
 
-              await trx
-                .insertInto('stock_movements')
-                .values({
-                  product_id: Number(mod.productId),
-                  movement_type: 'sale',
-                  qty: -modifierQty,
-                  before_qty: modStockChange.scopeBefore,
-                  after_qty: modStockChange.scopeAfter,
-                  reason: 'sale_modifier',
-                  note: `إضافة للفاتورة S-${id} (${item.productName})`,
-                  reference_type: 'sale',
-                  reference_id: id,
-                  branch_id: normalized.branchId,
-                  location_id: normalized.locationId,
-                  created_by: auth.userId,
-                  tenant_id: scope.tenantId,
-                  account_id: scope.accountId,
-                } as any)
-                .execute();
+              for (const loc of eligibleLocations) {
+                if (modRemainingQty <= 0) break;
+                const locStock = await trx.selectFrom('product_location_stock')
+                  .select('qty')
+                  .where('product_id', '=', Number(mod.productId))
+                  .where('location_id', '=', loc.id)
+                  .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+                  .forUpdate()
+                  .executeTakeFirst();
+                
+                const availableQty = Number(locStock?.qty || 0);
+                if (availableQty > 0) {
+                  const allocateQty = Math.min(availableQty, modRemainingQty);
+                  modRemainingQty = Number((modRemainingQty - allocateQty).toFixed(3));
+                  modAllocations.push({ locationId: loc.id, branchId: loc.branchId, qty: allocateQty });
+                }
+              }
+
+              if (modRemainingQty > 0) {
+                 if (!allowNegativeStockSales) {
+                    throw new AppError(`Insufficient stock for modifier ${mod.name}`, 'INSUFFICIENT_MODIFIER_STOCK', 400);
+                 }
+                 modAllocations.push({ locationId: normalized.locationId, branchId: normalized.branchId, qty: modRemainingQty });
+                 modRemainingQty = 0;
+              }
+
+              for (const alloc of modAllocations) {
+                const modStockChange = await applyStockDelta(trx, {
+                  productId: Number(mod.productId),
+                  delta: -alloc.qty,
+                  branchId: alloc.branchId,
+                  locationId: alloc.locationId,
+                  tenantId: scope.tenantId,
+                  accountId: scope.accountId,
+                  errorCode: 'INSUFFICIENT_MODIFIER_STOCK',
+                  errorMessage: `Insufficient stock for modifier ${mod.name}`,
+                  allowNegative: allowNegativeStockSales,
+                });
+
+                await trx
+                  .insertInto('stock_movements')
+                  .values({
+                    product_id: Number(mod.productId),
+                    movement_type: 'sale',
+                    qty: -alloc.qty,
+                    before_qty: modStockChange.scopeBefore,
+                    after_qty: modStockChange.scopeAfter,
+                    reason: 'sale_modifier',
+                    note: `إضافة للفاتورة S-${id} (${item.productName})`,
+                    reference_type: 'sale',
+                    reference_id: id,
+                    branch_id: alloc.branchId,
+                    location_id: alloc.locationId,
+                    created_by: auth.userId,
+                    tenant_id: scope.tenantId,
+                    account_id: scope.accountId,
+                  } as any)
+                  .execute();
+
+                await trx.insertInto('sale_line_stock_allocations').values({
+                   tenant_id: scope.tenantId,
+                   account_id: scope.accountId,
+                   sale_id: id,
+                   sale_line_id: saleLineId,
+                   product_id: Number(mod.productId),
+                   location_id: alloc.locationId as number,
+                   quantity: alloc.qty,
+                   allocation_order: modAllocationOrder++,
+                }).execute();
+              }
             }
           }
         }
@@ -597,6 +729,48 @@ export class SalesWriteService {
       if (!sale) throw new AppError('الفاتورة غير موجودة.', 'SALE_NOT_FOUND', 404);
       if (sale.status === 'cancelled') throw new AppError('لا يمكن تعديل الفاتورة بعد إلغائها أو وجود عمليات مرتبطة تمنع التعديل.', 'SALE_EDIT_CANCELLED_FORBIDDEN', 400);
 
+      let branch: any = null;
+      if (normalized.source === 'pos') {
+        if (!normalized.branchId) {
+          throw new AppError('يجب تحديد الفرع لعمليات البيع عبر الكاشير.', 'POS_BRANCH_REQUIRED', 400);
+        }
+        branch = await trx.selectFrom('branches').select(['default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock']).where('id', '=', normalized.branchId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+        if (!branch?.default_stock_location_id) {
+          throw new AppError('لا يوجد مخزون افتراضي نشط لهذا الفرع، يرجى تحديده من الإعدادات قبل البيع.', 'POS_DEFAULT_STOCK_REQUIRED', 400);
+        }
+        normalized.locationId = branch.default_stock_location_id;
+      }
+
+      let eligibleLocations = [{ id: normalized.locationId, branchId: normalized.branchId }];
+      if (normalized.source === 'pos' && branch?.sales_stock_mode === 'all_operational_locations') {
+        const allLocs = await trx.selectFrom('stock_locations')
+          .select(['id', 'location_type', 'branch_id'])
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .where('is_active', '=', true)
+          .where('location_type', 'not in', ['damaged', 'in_transit'])
+          .execute();
+          
+        const defaultLocId = branch.default_stock_location_id;
+        
+        const sortedLocs = allLocs.filter(l => {
+           if (l.id === defaultLocId) return true;
+           if (l.branch_id === normalized.branchId) return true;
+           if (l.location_type === 'internal_warehouse' && l.branch_id === null) return true;
+           if (branch.allow_external_sales_stock && l.location_type === 'external_warehouse') return true;
+           return false;
+        }).sort((a, b) => {
+           if (a.id === defaultLocId) return -1;
+           if (b.id === defaultLocId) return 1;
+           if (a.branch_id === normalized.branchId && b.branch_id !== normalized.branchId) return -1;
+           if (a.branch_id !== normalized.branchId && b.branch_id === normalized.branchId) return 1;
+           if (a.location_type === 'internal_warehouse' && b.location_type !== 'internal_warehouse') return -1;
+           if (a.location_type !== 'internal_warehouse' && b.location_type === 'internal_warehouse') return 1;
+           return 0;
+        });
+        
+        eligibleLocations = sortedLocs.map(l => ({ id: l.id, branchId: l.branch_id }));
+      }
+
       const existingReturns = await trx
         .selectFrom('return_documents')
         .select((eb) => eb.fn.countAll<number>().as('count'))
@@ -636,30 +810,78 @@ export class SalesWriteService {
       for (const item of currentItems) {
         if (!item.product_id) continue;
         const restoreQty = Number((Number(item.qty || 0) * Number(item.unit_multiplier || 1)).toFixed(3));
-        const stockChange = await applyStockDelta(trx, {
-          productId: Number(item.product_id),
-          delta: restoreQty,
-          branchId: sale.branch_id,
-          locationId: sale.location_id,
-          tenantId: scope.tenantId,
-          accountId: scope.accountId,
-        });
-        await trx.insertInto('stock_movements').values({
-          product_id: item.product_id,
-          movement_type: 'sale_edit_reversal',
-          qty: restoreQty,
-          before_qty: stockChange.scopeBefore,
-          after_qty: stockChange.scopeAfter,
-          reason: 'sale_edit_reversal',
-          note: `Edit reversal S-${saleId}`,
-          reference_type: 'sale',
-          reference_id: saleId,
-          branch_id: sale.branch_id,
-          location_id: sale.location_id,
-          created_by: auth.userId,
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-        }).execute();
+
+        const allocations = await trx.selectFrom('sale_line_stock_allocations')
+           .selectAll()
+           .where('sale_line_id', '=', item.id)
+           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+           .execute();
+
+        if (allocations.length > 0) {
+           let remainingToRestore = restoreQty;
+           for (const alloc of allocations) {
+             if (remainingToRestore <= 0) break;
+             const allocQty = Number(alloc.quantity || 0);
+             const qtyToRestore = Math.min(allocQty, remainingToRestore);
+             remainingToRestore -= qtyToRestore;
+
+             // Find branch for this location
+             const locData = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', alloc.location_id).executeTakeFirst();
+             const branchId = locData?.branch_id || sale.branch_id;
+
+             const stockChange = await applyStockDelta(trx, {
+               productId: Number(item.product_id),
+               delta: qtyToRestore,
+               branchId: branchId,
+               locationId: alloc.location_id,
+               tenantId: scope.tenantId,
+               accountId: scope.accountId,
+             });
+
+             await trx.insertInto('stock_movements').values({
+               product_id: item.product_id,
+               movement_type: 'sale_edit_reversal',
+               qty: qtyToRestore,
+               before_qty: stockChange.scopeBefore,
+               after_qty: stockChange.scopeAfter,
+               reason: 'sale_edit_reversal',
+               note: `Edit reversal S-${saleId}`,
+               reference_type: 'sale',
+               reference_id: saleId,
+               branch_id: branchId,
+               location_id: alloc.location_id,
+               created_by: auth.userId,
+               tenant_id: scope.tenantId,
+               account_id: scope.accountId,
+             }).execute();
+           }
+        } else {
+           // Fallback for legacy sales without allocations
+           const stockChange = await applyStockDelta(trx, {
+             productId: Number(item.product_id),
+             delta: restoreQty,
+             branchId: sale.branch_id,
+             locationId: sale.location_id,
+             tenantId: scope.tenantId,
+             accountId: scope.accountId,
+           });
+           await trx.insertInto('stock_movements').values({
+             product_id: item.product_id,
+             movement_type: 'sale_edit_reversal',
+             qty: restoreQty,
+             before_qty: stockChange.scopeBefore,
+             after_qty: stockChange.scopeAfter,
+             reason: 'sale_edit_reversal',
+             note: `Edit reversal S-${saleId}`,
+             reference_type: 'sale',
+             reference_id: saleId,
+             branch_id: sale.branch_id,
+             location_id: sale.location_id,
+             created_by: auth.userId,
+             tenant_id: scope.tenantId,
+             account_id: scope.accountId,
+           }).execute();
+        }
       }
 
       const oldCollectibleTotal = Math.max(0, Number(sale.total || 0) - Number(sale.store_credit_used || 0));
@@ -794,7 +1016,7 @@ export class SalesWriteService {
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
 
       for (const item of preparedItems) {
-        await trx.insertInto('sale_items').values({
+        const insertedLine = await trx.insertInto('sale_items').values({
           sale_id: saleId,
           product_id: item.productId,
           product_name: item.productName,
@@ -805,37 +1027,166 @@ export class SalesWriteService {
           unit_multiplier: item.unitMultiplier,
           cost_price: item.costPrice,
           price_type: item.priceType as 'retail' | 'wholesale',
+          modifiers: item.modifiers ? JSON.stringify(item.modifiers) : '[]',
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        }).execute();
+        }).returning('id').executeTakeFirstOrThrow();
+        const saleLineId = Number(insertedLine.id);
 
-        const stockChange = await applyStockDelta(trx, {
-          productId: item.productId,
-          delta: -item.requiredQty,
-          branchId: normalized.branchId,
-          locationId: normalized.locationId,
-          tenantId: scope.tenantId,
-          accountId: scope.accountId,
-          errorCode: 'INSUFFICIENT_STOCK',
-          errorMessage: `Insufficient stock for ${item.productName}`,
-          allowNegative: allowNegativeStockSales,
-        });
-        await trx.insertInto('stock_movements').values({
-          product_id: item.productId,
-          movement_type: 'sale_edit',
-          qty: -item.requiredQty,
-          before_qty: stockChange.scopeBefore,
-          after_qty: stockChange.scopeAfter,
-          reason: 'sale_edit',
-          note: `Sale edit S-${saleId}`,
-          reference_type: 'sale',
-          reference_id: saleId,
-          branch_id: normalized.branchId,
-          location_id: normalized.locationId,
-          created_by: auth.userId,
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-        }).execute();
+        let remainingQty = item.requiredQty;
+        let allocationOrder = 1;
+        const allocations = [];
+
+        for (const loc of eligibleLocations) {
+          if (remainingQty <= 0) break;
+          const locStock = await trx.selectFrom('product_location_stock')
+            .select('qty')
+            .where('product_id', '=', item.productId)
+            .where('location_id', '=', loc.id)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .forUpdate()
+            .executeTakeFirst();
+          
+          const availableQty = Number(locStock?.qty || 0);
+          if (availableQty > 0) {
+            const allocateQty = Math.min(availableQty, remainingQty);
+            remainingQty = Number((remainingQty - allocateQty).toFixed(3));
+            allocations.push({ locationId: loc.id, branchId: loc.branchId, qty: allocateQty });
+          }
+        }
+
+        if (remainingQty > 0) {
+           if (!allowNegativeStockSales) {
+              throw new AppError(`Insufficient stock for ${item.productName}`, 'INSUFFICIENT_STOCK', 400);
+           }
+           allocations.push({ locationId: normalized.locationId, branchId: normalized.branchId, qty: remainingQty });
+           remainingQty = 0;
+        }
+
+        for (const alloc of allocations) {
+          const stockChange = await applyStockDelta(trx, {
+            productId: item.productId,
+            delta: -alloc.qty,
+            branchId: alloc.branchId,
+            locationId: alloc.locationId,
+            tenantId: scope.tenantId,
+            accountId: scope.accountId,
+            errorCode: 'INSUFFICIENT_STOCK',
+            errorMessage: `Insufficient stock for ${item.productName}`,
+            allowNegative: allowNegativeStockSales,
+          });
+
+          await trx.insertInto('stock_movements').values({
+            product_id: item.productId,
+            movement_type: 'sale_edit',
+            qty: -alloc.qty,
+            before_qty: stockChange.scopeBefore,
+            after_qty: stockChange.scopeAfter,
+            reason: 'sale_edit',
+            note: `Sale edit S-${saleId}`,
+            reference_type: 'sale',
+            reference_id: saleId,
+            branch_id: alloc.branchId,
+            location_id: alloc.locationId,
+            created_by: auth.userId,
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          }).execute();
+
+          await trx.insertInto('sale_line_stock_allocations').values({
+             tenant_id: scope.tenantId,
+             account_id: scope.accountId,
+             sale_id: saleId,
+             sale_line_id: saleLineId,
+             product_id: item.productId,
+             location_id: alloc.locationId as number,
+             quantity: alloc.qty,
+             allocation_order: allocationOrder++,
+          }).execute();
+        }
+
+        if (item.modifiers && Array.isArray(item.modifiers)) {
+          for (const mod of item.modifiers) {
+            if (mod.productId) {
+              const modifierQty = Number(mod.qty || 1) * Number(item.qty || 1);
+              
+              let modRemainingQty = modifierQty;
+              let modAllocationOrder = 1;
+              const modAllocations = [];
+
+              for (const loc of eligibleLocations) {
+                if (modRemainingQty <= 0) break;
+                const locStock = await trx.selectFrom('product_location_stock')
+                  .select('qty')
+                  .where('product_id', '=', Number(mod.productId))
+                  .where('location_id', '=', loc.id)
+                  .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+                  .forUpdate()
+                  .executeTakeFirst();
+                
+                const availableQty = Number(locStock?.qty || 0);
+                if (availableQty > 0) {
+                  const allocateQty = Math.min(availableQty, modRemainingQty);
+                  modRemainingQty = Number((modRemainingQty - allocateQty).toFixed(3));
+                  modAllocations.push({ locationId: loc.id, branchId: loc.branchId, qty: allocateQty });
+                }
+              }
+
+              if (modRemainingQty > 0) {
+                 if (!allowNegativeStockSales) {
+                    throw new AppError(`Insufficient stock for modifier ${mod.name}`, 'INSUFFICIENT_MODIFIER_STOCK', 400);
+                 }
+                 modAllocations.push({ locationId: normalized.locationId, branchId: normalized.branchId, qty: modRemainingQty });
+                 modRemainingQty = 0;
+              }
+
+              for (const alloc of modAllocations) {
+                const modStockChange = await applyStockDelta(trx, {
+                  productId: Number(mod.productId),
+                  delta: -alloc.qty,
+                  branchId: alloc.branchId,
+                  locationId: alloc.locationId,
+                  tenantId: scope.tenantId,
+                  accountId: scope.accountId,
+                  errorCode: 'INSUFFICIENT_MODIFIER_STOCK',
+                  errorMessage: `Insufficient stock for modifier ${mod.name}`,
+                  allowNegative: allowNegativeStockSales,
+                });
+
+                await trx
+                  .insertInto('stock_movements')
+                  .values({
+                    product_id: Number(mod.productId),
+                    movement_type: 'sale_edit',
+                    qty: -alloc.qty,
+                    before_qty: modStockChange.scopeBefore,
+                    after_qty: modStockChange.scopeAfter,
+                    reason: 'sale_edit_modifier',
+                    note: `Sale edit S-${saleId} (${item.productName})`,
+                    reference_type: 'sale',
+                    reference_id: saleId,
+                    branch_id: alloc.branchId,
+                    location_id: alloc.locationId,
+                    created_by: auth.userId,
+                    tenant_id: scope.tenantId,
+                    account_id: scope.accountId,
+                  } as any)
+                  .execute();
+
+                await trx.insertInto('sale_line_stock_allocations').values({
+                   tenant_id: scope.tenantId,
+                   account_id: scope.accountId,
+                   sale_id: saleId,
+                   sale_line_id: saleLineId,
+                   product_id: Number(mod.productId),
+                   location_id: alloc.locationId as number,
+                   quantity: alloc.qty,
+                   allocation_order: modAllocationOrder++,
+                }).execute();
+              }
+            }
+          }
+        }
       }
 
       if (normalized.storeCreditUsed > 0 && customer) {
@@ -875,33 +1226,80 @@ export class SalesWriteService {
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
         if (!product) continue;
         const { restoreQty } = calculateRestoredStockQuantity(product.stock_qty, item.qty, item.unit_multiplier);
-        const stockChange = await applyStockDelta(trx, {
-          productId: Number(item.product_id),
-          delta: restoreQty,
-          branchId: sale.branch_id,
-          locationId: sale.location_id,
-          tenantId: scope.tenantId,
-          accountId: scope.accountId,
-        });
-        await trx
-          .insertInto('stock_movements')
-          .values({
-            product_id: item.product_id,
-            movement_type: 'sale_cancel',
-            qty: restoreQty,
-            before_qty: stockChange.scopeBefore,
-            after_qty: stockChange.scopeAfter,
-            reason: 'sale_cancel',
-            note: `Cancel S-${saleId}`,
-            reference_type: 'sale',
-            reference_id: saleId,
-            branch_id: sale.branch_id,
-            location_id: sale.location_id,
-            created_by: auth.userId,
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-          } as any)
-          .execute();
+
+        const allocations = await trx.selectFrom('sale_line_stock_allocations')
+           .selectAll()
+           .where('sale_line_id', '=', item.id)
+           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+           .execute();
+
+        if (allocations.length > 0) {
+           for (const alloc of allocations) {
+             const qtyToRestore = Number(alloc.quantity || 0);
+
+             // Find branch for this location
+             const locData = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', alloc.location_id).executeTakeFirst();
+             const branchId = locData?.branch_id || sale.branch_id;
+
+             const stockChange = await applyStockDelta(trx, {
+               productId: alloc.product_id,
+               delta: qtyToRestore,
+               branchId: branchId,
+               locationId: alloc.location_id,
+               tenantId: scope.tenantId,
+               accountId: scope.accountId,
+             });
+
+             await trx
+               .insertInto('stock_movements')
+               .values({
+                 product_id: alloc.product_id,
+                 movement_type: 'sale_cancel',
+                 qty: qtyToRestore,
+                 before_qty: stockChange.scopeBefore,
+                 after_qty: stockChange.scopeAfter,
+                 reason: 'sale_cancel',
+                 note: `Cancel S-${saleId}`,
+                 reference_type: 'sale',
+                 reference_id: saleId,
+                 branch_id: branchId,
+                 location_id: alloc.location_id,
+                 created_by: auth.userId,
+                 tenant_id: scope.tenantId,
+                 account_id: scope.accountId,
+               } as any)
+               .execute();
+           }
+        } else {
+           // Fallback for legacy sales without allocations
+           const stockChange = await applyStockDelta(trx, {
+             productId: Number(item.product_id),
+             delta: restoreQty,
+             branchId: sale.branch_id,
+             locationId: sale.location_id,
+             tenantId: scope.tenantId,
+             accountId: scope.accountId,
+           });
+           await trx
+             .insertInto('stock_movements')
+             .values({
+               product_id: item.product_id,
+               movement_type: 'sale_cancel',
+               qty: restoreQty,
+               before_qty: stockChange.scopeBefore,
+               after_qty: stockChange.scopeAfter,
+               reason: 'sale_cancel',
+               note: `Cancel S-${saleId}`,
+               reference_type: 'sale',
+               reference_id: saleId,
+               branch_id: sale.branch_id,
+               location_id: sale.location_id,
+               created_by: auth.userId,
+               tenant_id: scope.tenantId,
+               account_id: scope.accountId,
+             } as any)
+             .execute();
+        }
       }
 
       const collectibleTotal = Math.max(0, Number(sale.total || 0) - Number(sale.store_credit_used || 0));

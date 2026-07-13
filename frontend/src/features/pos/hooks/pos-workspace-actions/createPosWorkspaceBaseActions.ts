@@ -60,7 +60,10 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     const currentQty = findLineQty(params.cart, lineKey);
 
     if (!allowNegativeStockSales && availableQty <= 0) {
-      const friendlyMessage = getAddProductErrorMessage(null, product, { availableQty, currentQty, requestedQty, isWeighted });
+      const globalStock = Number((product as any).globalStock || 0);
+      const friendlyMessage = globalStock > 0
+        ? 'الصنف موجود، لكنه غير متاح في مخزون هذا الفرع.'
+        : getAddProductErrorMessage(null, product, { availableQty, currentQty, requestedQty, isWeighted });
       params.setSubmitMessage(friendlyMessage);
       params.setScannerMessage(friendlyMessage);
       params.requestBarcodeFocus();

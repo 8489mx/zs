@@ -10,4 +10,14 @@ export class BranchPayloadDto {
   @IsString()
   @MaxLength(50)
   code?: string;
+
+  @IsOptional()
+  defaultStockLocationId?: string | number | null;
+
+  @IsOptional()
+  @IsString()
+  salesStockMode?: 'single_location' | 'all_operational_locations';
+
+  @IsOptional()
+  allowExternalSalesStock?: boolean;
 }

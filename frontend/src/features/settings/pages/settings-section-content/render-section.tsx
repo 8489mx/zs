@@ -111,6 +111,7 @@ export function renderCoreSection(props: SharedSettingsSectionProps) {
       canManageSettings={props.canManageSettings}
       setupMode={props.setupMode}
       onSetupAdvance={props.onSetupAdvance}
+      onUpdateBranch={props.onUpdateBranch}
     />
   );
 }
@@ -145,6 +146,8 @@ export function renderReferenceSection(props: SharedSettingsSectionProps) {
       locationActionBusy={props.locationActionBusy}
       branchActionError={props.branchActionError}
       locationActionError={props.locationActionError}
+      setupMode={props.setupMode}
+      onSetupAdvance={props.onSetupAdvance}
     />
   );
 }

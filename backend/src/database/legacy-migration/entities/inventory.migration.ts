@@ -53,6 +53,8 @@ export async function migrateBranchesAndLocations(ctx: MigrationContext): Promis
           name: asString(row.name),
           code: asString(row.code),
           is_active: asBoolean(row.is_active),
+          sales_stock_mode: 'single_location',
+          allow_external_sales_stock: false,
         })
         .onConflict((oc: any) => oc.column('id').doNothing())
         .execute();

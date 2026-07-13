@@ -57,7 +57,7 @@ interface BuildFirstRunSetupFlowStateInput {
   tenant?: AuthTenant | null;
   deploymentMode?: string | null;
   sessionStoreName: string;
-  branches: Array<{ id?: string | number }>;
+  branches: Array<{ id?: string | number; defaultStockLocationId?: string | null }>;
   locations: Array<{ id?: string | number }>;
   users: Array<{ isActive?: boolean; role?: string }>;
   settings: SetupSettingsSnapshot | null | undefined;
@@ -87,7 +87,6 @@ export function buildFirstRunSetupFlowState({
   deploymentMode,
   sessionStoreName,
   branches,
-  locations,
   users,
   settings,
 }: BuildFirstRunSetupFlowStateInput): FirstRunSetupFlowState {
@@ -99,7 +98,7 @@ export function buildFirstRunSetupFlowState({
     ? Boolean(settings?.storeName) || Boolean(tenant?.businessName && tenant?.businessName !== DEFAULT_STORE_NAME)
     : Boolean(settings?.storeName) || Boolean(resolvedStoreName && resolvedStoreName !== DEFAULT_STORE_NAME);
   const secureBootstrapAccount = hasSecureBootstrapAccount(user);
-  const hasBranchAndLocation = branches.length > 0 && locations.length > 0;
+  const hasBranchAndLocation = branches.length > 0 && branches.some(b => !!b.defaultStockLocationId);
   const hasLocaleSettings = hasValue(settings?.currency) && hasValue(settings?.timezone);
   const hasInvoiceSettings = hasValue(settings?.paperSize) && hasValue(settings?.taxMode) && settings?.taxRate !== undefined && settings?.taxRate !== null;
 
@@ -142,11 +141,11 @@ export function buildFirstRunSetupFlowState({
     },
     {
       key: 'branch-location',
-      title: SINGLE_STORE_MODE ? 'الفرع والمخزن الأساسي' : 'الفرع والمخزن الأساسي',
+      title: SINGLE_STORE_MODE ? 'الفرع الأساسي' : 'الفرع الأساسي',
       section: 'reference',
       to: '/settings/reference?setup=1',
       done: hasBranchAndLocation,
-      ctaLabel: SINGLE_STORE_MODE ? 'استكمال الفرع والمخزن الأساسي' : 'استكمال الفرع والمخزن الأساسي',
+      ctaLabel: SINGLE_STORE_MODE ? 'استكمال الفرع الأساسي' : 'استكمال الفرع الأساسي',
       nextLabel: 'تم، انتقل للخطوة التالية',
     },
   ];

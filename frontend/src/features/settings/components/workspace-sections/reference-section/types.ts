@@ -1,6 +1,6 @@
 export interface BranchActionState {
   branchId: string;
-  values: { name: string; code: string };
+  values: { name: string; code: string; defaultStockLocationId?: string; salesStockMode?: 'single_location' | 'all_operational_locations'; allowExternalSalesStock?: boolean };
 }
 
 export interface LocationActionState {

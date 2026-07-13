@@ -185,7 +185,23 @@ export interface BranchTable {
   id: Generated<number>;
   name: string;
   code: ColumnType<string, string | undefined, string | undefined>;
+  default_stock_location_id: number | null;
+  sales_stock_mode: 'single_location' | 'all_operational_locations';
+  allow_external_sales_stock: boolean;
   is_active: boolean;
+}
+
+export interface SaleLineStockAllocationTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  sale_id: number;
+  sale_line_id: number;
+  product_id: number;
+  location_id: number;
+  quantity: number;
+  allocation_order: number;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface StockLocationTable {
@@ -1348,6 +1364,7 @@ export interface Database {
   damaged_stock_records: DamagedStockRecordTable;
   sales: SalesTable;
   sale_items: SaleItemTable;
+  sale_line_stock_allocations: SaleLineStockAllocationTable;
   sale_payments: SalePaymentTable;
   held_sales: HeldSaleTable;
   held_sale_items: HeldSaleItemTable;
@@ -1557,6 +1574,7 @@ export interface Database {
   damaged_stock_records: DamagedStockRecordTable;
   sales: SalesTable;
   sale_items: SaleItemTable;
+  sale_line_stock_allocations: SaleLineStockAllocationTable;
   sale_payments: SalePaymentTable;
   held_sales: HeldSaleTable;
   held_sale_items: HeldSaleItemTable;

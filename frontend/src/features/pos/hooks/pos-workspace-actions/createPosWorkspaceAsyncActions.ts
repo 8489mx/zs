@@ -326,8 +326,6 @@ export function createPosWorkspaceAsyncActions(
     params.setPriceType(draft.priceType);
     params.setDiscountApprovalGranted(false);
     params.setDiscountApprovalSecret('');
-    params.setBranchId(draft.branchId);
-    params.setLocationId(draft.locationId);
     await params.deleteHeldDraftMutation.mutateAsync(draftId);
     params.setPostSaleSaleKey('');
     params.setSubmitMessage('تم استرجاع الفاتورة المعلقة');

@@ -141,8 +141,6 @@ export function PosWorkspaceMainContent({
             onQuickCustomerNameChange={pos.setQuickCustomerName}
             onQuickCustomerPhoneChange={pos.setQuickCustomerPhone}
             onQuickCustomerSubmit={pos.handleQuickCustomerSubmit}
-            onBranchChange={pos.setBranchId}
-            onLocationChange={pos.setLocationId}
             onPaymentTypeChange={pos.setPaymentType}
             onPaymentPresetChange={pos.setPaymentPreset}
             onCashAmountChange={pos.setCashAmount}

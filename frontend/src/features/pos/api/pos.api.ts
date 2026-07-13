@@ -7,6 +7,7 @@ type SaleMutationEnvelope = { ok?: boolean; sale: Sale };
 type PosLookupParams = {
   q?: string;
   barcode?: string;
+  branchId?: string;
   locationId?: string;
   limit?: number;
   view?: 'offers' | string;
@@ -41,12 +42,14 @@ function buildPosLookupPath(params: PosLookupParams = {}) {
   const searchParams = new URLSearchParams();
   const q = String(params.q || '').trim();
   const barcode = String(params.barcode || '').trim();
+  const branchId = String(params.branchId || '').trim();
   const locationId = String(params.locationId || '').trim();
   const limit = Number(params.limit || 0);
   const view = String(params.view || '').trim();
 
   if (q) searchParams.set('q', q);
   if (barcode) searchParams.set('barcode', barcode);
+  if (branchId) searchParams.set('branchId', branchId);
   if (locationId) searchParams.set('locationId', locationId);
   if (limit > 0) searchParams.set('limit', String(limit));
   if (view) searchParams.set('view', view);

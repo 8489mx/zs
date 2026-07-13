@@ -1,4 +1,6 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/app/query-keys';
+import { posApi } from '@/features/pos/api/pos.api';
 import { usePosCatalog } from '@/features/pos/hooks/usePosCatalog';
 import { usePosSaleMutation } from '@/features/pos/hooks/usePosSaleMutation';
 import { createPosWorkspaceActions } from '@/features/pos/hooks/usePosWorkspaceActions';
@@ -6,8 +8,11 @@ import { usePosWorkspaceDerived } from '@/features/pos/hooks/usePosWorkspaceDeri
 import { usePosWorkspaceEffects } from '@/features/pos/hooks/usePosWorkspaceEffects';
 import { usePosWorkspaceMutations } from '@/features/pos/hooks/usePosWorkspaceMutations';
 import { usePosWorkspaceState } from '@/features/pos/hooks/usePosWorkspaceState';
+import { usePosOperationalContext } from '@/features/pos/hooks/usePosOperationalContext';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import { useAuthStore } from '@/stores/auth-store';
+
+const posReferenceStaleTime = 45_000;
 
 export type PaymentType = 'cash' | 'credit';
 export type PaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit' | 'mixed';
@@ -49,7 +54,19 @@ export function usePosWorkspace() {
         : Number(state.cashAmount || 0) + Number(state.cardAmount || 0)
     ).toFixed(2));
 
-  const { saleProducts, catalogProducts, customersQuery, settingsQuery, branchesQuery, locationsQuery, productsQuery } = usePosCatalog(state.search, state.locationId, state.productFilter);
+  const customersQuery = useQuery({ queryKey: queryKeys.posCustomers, queryFn: posApi.customers, staleTime: posReferenceStaleTime });
+  const settingsQuery = useQuery({ queryKey: queryKeys.posSettings, queryFn: posApi.settings, staleTime: posReferenceStaleTime });
+  const branchesQuery = useQuery({ queryKey: queryKeys.posBranches, queryFn: posApi.branches, staleTime: posReferenceStaleTime });
+  const locationsQuery = useQuery({ queryKey: queryKeys.posLocations, queryFn: posApi.locations, staleTime: posReferenceStaleTime });
+
+  const operationalContext = usePosOperationalContext({
+    settings: settingsQuery.data || null,
+    branches: branchesQuery.data || [],
+    locations: locationsQuery.data || [],
+  });
+
+  const { saleProducts, catalogProducts, productsQuery } = usePosCatalog(state.search, operationalContext.branchId, operationalContext.locationId, state.productFilter);
+
   const createSale = usePosSaleMutation();
   const queryClient = useQueryClient();
   const authUser = useAuthStore((entry) => entry.user);
@@ -75,10 +92,6 @@ export function usePosWorkspace() {
     note: state.note,
     search: state.search,
     priceType: state.priceType,
-    branchId: state.branchId,
-    setBranchId: state.setBranchId,
-    locationId: state.locationId,
-    setLocationId: state.setLocationId,
     products: catalogProducts,
     setCart: state.setCart,
     setSubmitMessage: state.setSubmitMessage,
@@ -88,8 +101,6 @@ export function usePosWorkspace() {
     setLastAddedLineKey: state.setLastAddedLineKey,
     selectedLineKey: state.selectedLineKey,
     setSelectedLineKey: state.setSelectedLineKey,
-    branches: branchesQuery.data || [],
-    locations: locationsQuery.data || [],
     discountApprovalSecret: state.discountApprovalSecret,
     setDiscountApprovalSecret: state.setDiscountApprovalSecret,
     settings: settingsQuery.data || null,
@@ -115,8 +126,8 @@ export function usePosWorkspace() {
     paymentType: state.paymentType,
     paymentChannel: state.paymentChannel,
     customerId: state.customerId,
-    branchId: state.branchId,
-    locationId: state.locationId,
+    branchId: operationalContext.branchId,
+    locationId: operationalContext.locationId,
     search: state.search,
     lastSale: state.lastSale,
   });
@@ -150,10 +161,8 @@ export function usePosWorkspace() {
     setSearch: state.setSearch,
     priceType: state.priceType,
     setPriceType: state.setPriceType,
-    branchId: state.branchId,
-    setBranchId: state.setBranchId,
-    locationId: state.locationId,
-    setLocationId: state.setLocationId,
+    branchId: operationalContext.branchId,
+    locationId: operationalContext.locationId,
     quickAddCode: state.quickAddCode,
     setQuickAddCode: state.setQuickAddCode,
     quickCustomerName: state.quickCustomerName,
@@ -234,10 +243,8 @@ export function usePosWorkspace() {
     selectedLineKey: state.selectedLineKey,
     setSelectedLineKey: state.setSelectedLineKey,
     priceType: state.priceType,
-    branchId: state.branchId,
-    setBranchId: state.setBranchId,
-    locationId: state.locationId,
-    setLocationId: state.setLocationId,
+    branchId: operationalContext.branchId,
+    locationId: operationalContext.locationId,
     productFilter: state.productFilter,
     setProductFilter: state.setProductFilter,
     submitMessage: state.submitMessage,

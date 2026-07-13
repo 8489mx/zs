@@ -80,7 +80,17 @@ async function runTenantIsolationTest() {
 
   // 3. Test Delete Location
   capturedWhereClauses.length = 0;
-  await settingsService.deleteLocation(15, actor);
+  let errorThrown = false;
+  try {
+    await settingsService.deleteLocation(15, actor);
+  } catch (e: any) {
+    if (e.code === 'LOCATION_IS_DEFAULT_FOR_BRANCH') {
+      errorThrown = true;
+    } else {
+      throw e;
+    }
+  }
+  assert.ok(errorThrown, 'deleteLocation must throw an error when deleting a default stock location');
   hasTenantPredicate = false;
   for (const args of capturedWhereClauses) {
     if (args.length === 1 && typeof args[0] === 'object' && args[0].toOperationNode) {

@@ -54,6 +54,13 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
             <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
             <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
           </div>
+          {pos.currentBranch?.name && (
+             <div className="pos-header-branch-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', background: '#e2e8f0', padding: '4px 12px', borderRadius: '4px', fontWeight: 600 }}>
+               <span>{pos.currentBranch.name}</span>
+               <span style={{ opacity: 0.5 }}>|</span>
+               <span>{(pos.currentBranch as any).salesStockMode === 'all_operational_locations' ? 'كل المخازن' : 'مخزن أساسي'}</span>
+             </div>
+          )}
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
           <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>

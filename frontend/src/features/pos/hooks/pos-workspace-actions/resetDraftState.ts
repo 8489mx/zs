@@ -1,4 +1,3 @@
-import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { clearDraftSnapshot } from '@/features/pos/lib/pos.persistence';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 
@@ -17,8 +16,6 @@ export function resetDraftState(params: PosWorkspaceActionParams) {
   params.setNote('');
   params.setSearch('');
   params.setPriceType('retail');
-  params.setBranchId(SINGLE_STORE_MODE ? String(params.branches[0]?.id || '') : '');
-  params.setLocationId(SINGLE_STORE_MODE ? String(params.locations[0]?.id || '') : '');
   params.setQuickAddCode('');
   params.setScannerMessage('');
   params.setLastAddedLineKey('');

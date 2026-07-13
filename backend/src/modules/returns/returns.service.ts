@@ -144,8 +144,51 @@ export class ReturnsService {
       const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const preparedLine = buildSaleReturnLine(saleItem, product, requestItem);
-      const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
-      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+
+      const allocations = requestItem.saleItemId ? await trx.selectFrom('sale_line_stock_allocations')
+         .selectAll()
+         .where('sale_line_id', '=', requestItem.saleItemId)
+         .where(this.tenantPredicate(auth))
+         .orderBy('allocation_order', 'desc')
+         .execute() : [];
+
+      if (allocations.length > 0) {
+         let remainingToSkip = Number((alreadyReturnedQty * Number(saleItem.unit_multiplier || 1)).toFixed(3));
+         let remainingToReturn = preparedLine.stockDelta;
+
+         for (const alloc of allocations) {
+            if (remainingToReturn <= 0) break;
+            const allocQty = Number(alloc.quantity || 0);
+            
+            let availableInAlloc = allocQty;
+            if (remainingToSkip > 0) {
+               const skipFromThis = Math.min(availableInAlloc, remainingToSkip);
+               remainingToSkip -= skipFromThis;
+               availableInAlloc -= skipFromThis;
+            }
+
+            if (availableInAlloc > 0) {
+               const returnToThis = Math.min(availableInAlloc, remainingToReturn);
+               remainingToReturn = Number((remainingToReturn - returnToThis).toFixed(3));
+
+               const locData = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', alloc.location_id).executeTakeFirst();
+               const branchId = locData?.branch_id || sale.branch_id;
+
+               const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: returnToThis, branchId: branchId, locationId: alloc.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
+               await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+            }
+         }
+         
+         // Fallback if allocations are not enough (e.g. data anomaly)
+         if (remainingToReturn > 0) {
+            const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: remainingToReturn, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
+            await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: remainingToReturn, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return fallback S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+         }
+      } else {
+         const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
+         await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+      }
+
       normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, saleItemId: requestItem.saleItemId });
     }
 

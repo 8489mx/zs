@@ -79,7 +79,10 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
 export function buildBranchPayload(values: BranchFormOutput) {
   return {
     name: cleanText(values.name),
-    code: cleanText(values.code)
+    code: cleanText(values.code),
+    defaultStockLocationId: cleanText(values.defaultStockLocationId) || null,
+    salesStockMode: values.salesStockMode || 'single_location',
+    allowExternalSalesStock: values.allowExternalSalesStock === true
   };
 }
 

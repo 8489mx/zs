@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Button } from '@/shared/ui/button';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import type { Branch, Location } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
@@ -36,7 +37,7 @@ interface SettingsReferenceSectionProps {
   branchesQuery: { isLoading: boolean; isError: boolean; error?: unknown };
   locationsQuery: { isLoading: boolean; isError: boolean; error?: unknown };
   canManageSettings: boolean;
-  onUpdateBranch: (branchId: string, values: { name: string; code: string }) => Promise<void>;
+  onUpdateBranch: (branchId: string, values: { name: string; code: string; defaultStockLocationId?: string; salesStockMode?: 'single_location' | 'all_operational_locations'; allowExternalSalesStock?: boolean; }) => Promise<void>;
   onDeleteBranch: (branch: Branch) => Promise<void>;
   onUpdateLocation: (locationId: string, values: { name: string; code: string; branchId: string }) => Promise<void>;
   onDeleteLocation: (location: Location) => Promise<void>;
@@ -44,6 +45,8 @@ interface SettingsReferenceSectionProps {
   locationActionBusy: boolean;
   branchActionError?: unknown;
   locationActionError?: unknown;
+  setupMode?: boolean;
+  onSetupAdvance?: () => void;
 }
 
 export function SettingsReferenceSection({
@@ -74,6 +77,8 @@ export function SettingsReferenceSection({
   locationActionBusy,
   branchActionError,
   locationActionError,
+  setupMode,
+  onSetupAdvance,
 }: SettingsReferenceSectionProps) {
   const [editingBranch, setEditingBranch] = useState<BranchActionState | null>(null);
   const [editingLocation, setEditingLocation] = useState<LocationActionState | null>(null);
@@ -109,11 +114,18 @@ export function SettingsReferenceSection({
     return (
       <div className="page-stack">
         <QueryCard title="النشاط الرئيسي" className="settings-reference-card" isLoading={branchesQuery.isLoading} isError={branchesQuery.isError} error={branchesQuery.error} isEmpty={!editingPrimaryBranch} loadingText="جاري تحميل بيانات النشاط الرئيسي..." emptyTitle="لم تتم إضافة بيانات النشاط الرئيسي بعد" emptyHint="أضف تعريف النشاط الرئيسي مرة واحدة قبل متابعة باقي الإعدادات.">
-          {editingPrimaryBranch ? <BranchRowActions branch={editingPrimaryBranch} isEditing={editingBranch?.branchId === editingPrimaryBranch.id} onStartEdit={(currentBranch) => setEditingBranch({ branchId: currentBranch.id, values: { name: currentBranch.name || '', code: currentBranch.code || '' } })} onCancelEdit={() => setEditingBranch(null)} onChange={(field, value) => setEditingBranch((current) => current && current.branchId === editingPrimaryBranch.id ? { ...current, values: { ...current.values, [field]: value } } : current)} onSave={async () => { if (!editingBranch || editingBranch.branchId !== editingPrimaryBranch.id) return; await onUpdateBranch(editingPrimaryBranch.id, editingBranch.values); setEditingBranch(null); }} onDelete={() => {}} canManageSettings={canManageSettings} isBusy={branchActionBusy} mutationError={branchActionError} /> : null}
+          {editingPrimaryBranch ? <BranchRowActions branch={editingPrimaryBranch} locations={locations} isEditing={editingBranch?.branchId === editingPrimaryBranch.id} onStartEdit={(currentBranch) => setEditingBranch({ branchId: currentBranch.id, values: { name: currentBranch.name || '', code: currentBranch.code || '', defaultStockLocationId: currentBranch.defaultStockLocationId || undefined, salesStockMode: currentBranch.salesStockMode || 'single_location', allowExternalSalesStock: currentBranch.allowExternalSalesStock || false } })} onCancelEdit={() => setEditingBranch(null)} onChange={(field, value) => setEditingBranch((current) => current && current.branchId === editingPrimaryBranch.id ? { ...current, values: { ...current.values, [field]: value } } : current)} onSave={async () => { if (!editingBranch || editingBranch.branchId !== editingPrimaryBranch.id) return; await onUpdateBranch(editingPrimaryBranch.id, editingBranch.values as any); setEditingBranch(null); }} onDelete={() => {}} canManageSettings={canManageSettings} isBusy={branchActionBusy} mutationError={branchActionError} setupMode={setupMode} /> : null}
+          {setupMode && onSetupAdvance && (
+            <div className="actions" style={{ marginTop: '24px' }}>
+              <Button variant="primary" onClick={onSetupAdvance}>التالي</Button>
+            </div>
+          )}
         </QueryCard>
-        <QueryCard title="المخزن الأساسي" className="settings-reference-card" isLoading={locationsQuery.isLoading} isError={locationsQuery.isError} error={locationsQuery.error} isEmpty={!editingPrimaryLocation} loadingText="جاري تحميل بيانات المخزن الأساسي..." emptyTitle="لم تتم إضافة المخزن الأساسي بعد" emptyHint="أضف مخزنًا أساسيًا واحدًا لاستخدام هذا الإصدار داخل متجر واحد.">
-          {editingPrimaryLocation ? <LocationRowActions location={editingPrimaryLocation} branches={branches} isEditing={editingLocation?.locationId === editingPrimaryLocation.id} onStartEdit={(currentLocation) => setEditingLocation({ locationId: currentLocation.id, values: { name: currentLocation.name || '', code: currentLocation.code || '', branchId: currentLocation.branchId || '', locationType: currentLocation.locationType || 'internal_warehouse' } })} onCancelEdit={() => setEditingLocation(null)} onChange={(field, value) => setEditingLocation((current) => current && current.locationId === editingPrimaryLocation.id ? { ...current, values: { ...current.values, [field]: value } } : current)} onSave={async () => { if (!editingLocation || editingLocation.locationId !== editingPrimaryLocation.id) return; await onUpdateLocation(editingPrimaryLocation.id, editingLocation.values as any); setEditingLocation(null); }} onDelete={() => {}} canManageSettings={canManageSettings} isBusy={locationActionBusy} mutationError={locationActionError} /> : null}
-        </QueryCard>
+        {!setupMode && (
+          <QueryCard title="المخزن الأساسي" className="settings-reference-card" isLoading={locationsQuery.isLoading} isError={locationsQuery.isError} error={locationsQuery.error} isEmpty={!editingPrimaryLocation} loadingText="جاري تحميل بيانات المخزن الأساسي..." emptyTitle="لم تتم إضافة المخزن الأساسي بعد" emptyHint="أضف مخزنًا أساسيًا واحدًا لاستخدام هذا الإصدار داخل متجر واحد.">
+            {editingPrimaryLocation ? <LocationRowActions location={editingPrimaryLocation} branches={branches} isEditing={editingLocation?.locationId === editingPrimaryLocation.id} onStartEdit={(currentLocation) => setEditingLocation({ locationId: currentLocation.id, values: { name: currentLocation.name || '', code: currentLocation.code || '', branchId: currentLocation.branchId || '', locationType: currentLocation.locationType || 'internal_warehouse' } })} onCancelEdit={() => setEditingLocation(null)} onChange={(field, value) => setEditingLocation((current) => current && current.locationId === editingPrimaryLocation.id ? { ...current, values: { ...current.values, [field]: value } } : current)} onSave={async () => { if (!editingLocation || editingLocation.locationId !== editingPrimaryLocation.id) return; await onUpdateLocation(editingPrimaryLocation.id, editingLocation.values as any); setEditingLocation(null); }} onDelete={() => {}} canManageSettings={canManageSettings} isBusy={locationActionBusy} mutationError={locationActionError} /> : null}
+          </QueryCard>
+        )}
       </div>
     );
   }
@@ -121,6 +133,7 @@ export function SettingsReferenceSection({
   return (
     <div className="page-stack">
       <BranchReferenceCard
+        locations={locations}
         branches={branches}
         branchList={branchList}
         filteredCount={filteredBranches.length}
@@ -139,28 +152,36 @@ export function SettingsReferenceSection({
         branchActionError={branchActionError}
         onUpdateBranch={onUpdateBranch}
         onShowAddBranch={() => setShowBranchQuickAdd(true)}
+        setupMode={setupMode}
       />
-      <LocationReferenceCard
-        branches={branches}
-        locations={locations}
-        locationList={locationList}
-        filteredCount={filteredLocations.length}
-        locationSearch={locationSearch}
-        locationFilter={locationFilter}
-        setLocationSearch={setLocationSearch}
-        setLocationFilter={setLocationFilter}
-        resetLocationFilters={resetLocationFilters}
-        copyVisibleLocations={copyVisibleLocations}
-        locationsQuery={locationsQuery}
-        canManageSettings={canManageSettings}
-        editingLocation={editingLocation}
-        setEditingLocation={setEditingLocation}
-        setDeleteConfirm={setDeleteConfirm}
-        locationActionBusy={locationActionBusy}
-        locationActionError={locationActionError}
-        onUpdateLocation={onUpdateLocation}
-        onShowAddLocation={() => setShowLocationQuickAdd(true)}
-      />
+      {setupMode && onSetupAdvance && (
+        <div className="actions" style={{ margin: '24px 0', justifyContent: 'flex-start' }}>
+          <Button variant="primary" onClick={onSetupAdvance}>التالي</Button>
+        </div>
+      )}
+      {!setupMode && (
+        <LocationReferenceCard
+          branches={branches}
+          locations={locations}
+          locationList={locationList}
+          filteredCount={filteredLocations.length}
+          locationSearch={locationSearch}
+          locationFilter={locationFilter}
+          setLocationSearch={setLocationSearch}
+          setLocationFilter={setLocationFilter}
+          resetLocationFilters={resetLocationFilters}
+          copyVisibleLocations={copyVisibleLocations}
+          locationsQuery={locationsQuery}
+          canManageSettings={canManageSettings}
+          editingLocation={editingLocation}
+          setEditingLocation={setEditingLocation}
+          setDeleteConfirm={setDeleteConfirm}
+          locationActionBusy={locationActionBusy}
+          locationActionError={locationActionError}
+          onUpdateLocation={onUpdateLocation}
+          onShowAddLocation={() => setShowLocationQuickAdd(true)}
+        />
+      )}
 
       <DialogShell open={showBranchQuickAdd} onClose={() => setShowBranchQuickAdd(false)} width="min(620px, 100%)" ariaLabel="إضافة فرع جديد">
         <div className="page-stack">

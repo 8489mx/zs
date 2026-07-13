@@ -157,19 +157,21 @@ function repriceCartLine(item: PosItem, product: Product, qty: number) {
   };
 }
 
-export function getAvailableSaleProducts(products: Product[], search: string, allowNegativeStockSales = false, filter = 'all') {
+export function getAvailableSaleProducts(products: Product[], search: string, filter = 'all') {
   const q = search.trim().toLowerCase();
   return products.filter((product) => {
     const type = product.itemType || (product as any).item_type;
-    
+
     if (filter === 'raw_materials') {
       if (type !== 'raw_material') return false;
     } else {
       if (type === 'raw_material') return false;
     }
 
-    const stockLimit = getStockLimit(product);
-    if (!allowNegativeStockSales && stockLimit <= 0 && !product.hasBom) return false;
+    // Always include the product in the catalog regardless of stock level.
+    // Stock-zero products remain visible so the cashier can see them and get a
+    // meaningful "out of stock" message when trying to add them.  The actual
+    // stock enforcement happens inside addPosItem / handleAddProduct.
     if (!q) return true;
     const unitMatches = safeUnits(product).some((unit) => [unit.name, unit.barcode].some((value) => String(value || '').toLowerCase().includes(q)));
     return [product.name, product.barcode].some((value) => String(value || '').toLowerCase().includes(q)) || unitMatches;
@@ -194,9 +196,9 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
   if (stockLimit < minQty) {
     const globalStock = Number((product as any).globalStock || 0);
     if (globalStock >= minQty && stockLimit <= 0) {
-      throw new Error(`الرصيد الإجمالي ${globalStock}، والمتاح في مخزن نقطة البيع 0`);
+      throw new Error('الصنف موجود، لكنه غير متاح في مخزون هذا الفرع.');
     }
-    throw new Error('الصنف غير متاح للبيع حاليًا');
+    throw new Error('الصنف غير متاح للبيع حاليًا.');
   }
   const priceType = options.priceType;
   const lineKey = `${product.id}::${unit.id || unit.name}::${priceType}`;

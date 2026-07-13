@@ -6,7 +6,6 @@ import { posApi } from '@/features/pos/api/pos.api';
 import { writeCheckoutIntent } from '@/features/pos/lib/pos-checkout-integrity';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
-import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
@@ -30,8 +29,6 @@ function storeRecentCustomerIds(ids: string[]) {
 
 export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   'customers' | 'customerId' | 'onCustomerChange' |
-  'branches' | 'branchId' | 'onBranchChange' |
-  'locations' | 'locationId' | 'onLocationChange' |
   'quickCustomerName' | 'quickCustomerPhone' | 'isQuickCustomerPending' |
   'onQuickCustomerSubmit' | 'onQuickCustomerNameChange' | 'onQuickCustomerPhoneChange'
 >) {
@@ -285,26 +282,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
         ) : null}
       </div>
 
-      {!SINGLE_STORE_MODE && (props.branches.length > 1 || props.locations.length > 1) ? (
-        <div className="three-column-grid compact-fields pos-meta-grid pos-meta-grid-compact pos-meta-grid-aux">
-          {props.branches.length > 1 ? (
-            <Field label="الفرع">
-              <select value={props.branchId} onChange={(event) => props.onBranchChange(event.target.value)}>
-                <option value="">اختر الفرع</option>
-                {props.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-              </select>
-            </Field>
-          ) : null}
-          {props.locations.length > 1 ? (
-            <Field label="المخزن">
-              <select value={props.locationId} onChange={(event) => props.onLocationChange(event.target.value)}>
-                <option value="">اختر المخزن</option>
-                {props.locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-              </select>
-            </Field>
-          ) : null}
-        </div>
-      ) : null}
+
     </>
   );
 }
