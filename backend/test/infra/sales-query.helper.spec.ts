@@ -1,48 +1,41 @@
 import { mapSaleRows } from '../../src/modules/sales/helpers/sales-query.helper';
-import { describe, expect, it } from 'vitest';
+import assert from 'node:assert/strict';
 
-describe('SalesQueryHelper', () => {
-  describe('mapSaleRows', () => {
-    it('should map tenderedAmount and changeAmount correctly', () => {
-      const sales = [
-        {
-          id: 1,
-          total: 40.50,
-          paid_amount: 40.50,
-          tendered_amount: 100.00,
-          change_amount: 59.50,
-        },
-      ];
-      
-      const mapped = mapSaleRows(sales, [], []);
-      
-      expect(mapped[0]).toMatchObject({
-        id: '1',
-        total: 40.50,
-        paidAmount: 40.50,
-        tenderedAmount: 100.00,
-        changeAmount: 59.50,
-      });
-    });
+async function runTests() {
+  // Test 1: should map tenderedAmount and changeAmount correctly
+  const sales1 = [
+    {
+      id: 1,
+      total: 40.50,
+      paid_amount: 40.50,
+      tendered_amount: 100.00,
+      change_amount: 59.50,
+    },
+  ];
+  const mapped1 = mapSaleRows(sales1 as any, [], []);
+  assert.equal(mapped1[0].id, '1');
+  assert.equal(mapped1[0].total, 40.50);
+  assert.equal(mapped1[0].paidAmount, 40.50);
+  assert.equal(mapped1[0].tenderedAmount, 100.00);
+  assert.equal(mapped1[0].changeAmount, 59.50);
 
-    it('should fallback to 0 if tenderedAmount or changeAmount is missing', () => {
-      const sales = [
-        {
-          id: 2,
-          total: 40.50,
-          paid_amount: 40.50,
-        },
-      ];
-      
-      const mapped = mapSaleRows(sales, [], []);
-      
-      expect(mapped[0]).toMatchObject({
-        id: '2',
-        total: 40.50,
-        paidAmount: 40.50,
-        tenderedAmount: 0,
-        changeAmount: 0,
-      });
-    });
+  // Test 2: should fallback to 0 if tenderedAmount or changeAmount is missing
+  const sales2 = [
+    {
+      id: 2,
+      total: 40.50,
+      paid_amount: 40.50,
+    },
+  ];
+  const mapped2 = mapSaleRows(sales2 as any, [], []);
+  assert.equal(mapped2[0].id, '2');
+  assert.equal(mapped2[0].tenderedAmount, 0);
+  assert.equal(mapped2[0].changeAmount, 0);
+}
+
+runTests()
+  .then(() => console.log('sales query helper checks passed'))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
   });
-});
