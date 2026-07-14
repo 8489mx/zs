@@ -32,7 +32,7 @@ export function ensureUniqueFlowItems(items: FlowItem[], code: string, message: 
 }
 
 export function ensureNonNegativeStock(afterQty: number, code = 'INSUFFICIENT_STOCK', message = 'Stock cannot go negative'): void {
-  if (roundQty(afterQty) < 0) throw new AppError(message, code, 400);
+  if (roundQty(afterQty) < 0) throw new AppError(message, code, 409);
 }
 
 export function ensureReturnQtyWithinLimit(requestedQty: number, alreadyReturnedQty: number, invoiceQty: number): void {

@@ -51,7 +51,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         // Proceed to handler if reserved, wrapping in AsyncLocalStorage context
         return new Observable<any>((subscriber) => {
           idempotencyStorage.run(
-            { idempotencyKey, operationType },
+            { idempotencyKey, operationType, accountId: reservation.accountId },
             () => {
               next.handle().pipe(
                 catchError((err) => {
