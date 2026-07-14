@@ -39,6 +39,13 @@ function formatReceiptMoney(value: number, settings?: Partial<AppSettings> | nul
   return formatReceiptNumber(Number(value || 0), settings, 2);
 }
 
+export function formatReceiptQuantity(value: number, settings?: Partial<AppSettings> | null) {
+  return new Intl.NumberFormat(getNumberLocale(settings), {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  }).format(Number(value || 0));
+}
+
 function formatReceiptText(value: string | number | null | undefined, settings?: Partial<AppSettings> | null) {
   const text = String(value ?? '—');
   if (settings?.printNumberFormat !== 'english') return text;
@@ -97,7 +104,7 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
       <td class="name-cell">${escapeHtml(item.name || '—')}</td>
       ${compact ? '' : `<td>${escapeHtml(item.unitName || 'قطعة')}</td>`}
-      <td>${formatReceiptNumber(Number(item.qty || 0), settings)}</td>
+      <td>${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
       <td>${formatReceiptMoney(Number(item.price || 0), settings)}</td>
       <td>${formatReceiptMoney(Number(item.total || 0), settings)}</td>
     </tr>
@@ -170,7 +177,7 @@ function renderTotals(options: {
     ...(changeAmount > 0 ? [{ label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) }] : []),
     ...(showItemSummary ? [
       { label: 'عدد البنود', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
-      { label: 'إجمالي القطع', value: formatReceiptNumber(totalPieces, options.settings) },
+      { label: 'إجمالي القطع', value: formatReceiptQuantity(totalPieces, options.settings) },
     ] : []),
   ];
 
