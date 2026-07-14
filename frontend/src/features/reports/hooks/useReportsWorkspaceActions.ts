@@ -25,27 +25,30 @@ export function useReportsWorkspaceActions({
   balancesSearch: string;
   balancesFilter: 'all' | 'high-balance' | 'over-limit';
 }) {
+  const shortDateRange = `${new Date(submittedRange.from).toLocaleDateString('en-GB').replace(/\//g, '-')} إلى ${new Date(submittedRange.to).toLocaleDateString('en-GB').replace(/\//g, '-')}`;
+  const todayDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+
   const exportLowStock = async () => {
     const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter });
-    downloadExcelFile('low-stock-products.xlsx', ['name', 'stock', 'minStock', 'category', 'supplier', 'topLocation', 'locations', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.topLocationName || '', item.locationsLabel || '', item.status]));
+    downloadExcelFile(`الأصناف النواقص ${todayDate}.xlsx`, ['name', 'stock', 'minStock', 'category', 'supplier', 'topLocation', 'locations', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.topLocationName || '', item.locationsLabel || '', item.status]));
   };
 
   const exportCustomerBalances = async () => {
     const rows = await reportsApi.listAllCustomerBalances({ search: balancesSearch, filter: balancesFilter });
-    downloadExcelFile('customer-balances.xlsx', ['name', 'phone', 'balance', 'creditLimit'], rows.map((item) => [item.name, item.phone, item.balance, item.creditLimit]));
+    downloadExcelFile(`أرصدة العملاء ${todayDate}.xlsx`, ['name', 'phone', 'balance', 'creditLimit'], rows.map((item) => [item.name, item.phone, item.balance, item.creditLimit]));
   };
 
   const exportExecutiveSummary = () => {
-    downloadExcelFile('executive-summary.xlsx', ['metric', 'value'], executiveRows.map(([metric, value]: [string, number]) => [metric, value]));
+    downloadExcelFile(`التقرير التنفيذي ${shortDateRange}.xlsx`, ['metric', 'value'], executiveRows.map(([metric, value]: [string, number]) => [metric, value]));
   };
 
   const exportTopProducts = () => {
-    downloadExcelFile('top-products.xlsx', ['product', 'qty', 'revenue'], topProducts.map((item) => [item.name, item.qty, item.revenue]));
+    downloadExcelFile(`أعلى الأصناف ${shortDateRange}.xlsx`, ['product', 'qty', 'revenue'], topProducts.map((item) => [item.name, item.qty, item.revenue]));
   };
 
   const printTopProducts = () => {
     if (!topProducts.length) return;
-    printHtmlDocument('أعلى الأصناف', `
+    printHtmlDocument(`أعلى الأصناف ${shortDateRange}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>الأيام المغطاة</strong><span>${rangeDays} يوم</span></div>
         <div class="meta-box"><strong>صافي البيع</strong><span>${formatCurrency(report?.sales.netSales || 0)}</span></div>
@@ -59,7 +62,7 @@ export function useReportsWorkspaceActions({
 
   const printExecutiveSummary = () => {
     if (!report) return;
-    printHtmlDocument('التقرير التنفيذي', `
+    printHtmlDocument(`التقرير التنفيذي ${shortDateRange}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>الفترة</strong><span>${escapeHtml(submittedRange.from)} → ${escapeHtml(submittedRange.to)}</span></div>
         <div class="meta-box"><strong>الأيام المغطاة</strong><span>${rangeDays} يوم</span></div>
@@ -81,7 +84,7 @@ export function useReportsWorkspaceActions({
     const totalCost = rows.reduce((acc, r) => acc + ((r.stock || 0) * (r.costPrice || 0)), 0);
     const totalRetail = rows.reduce((acc, r) => acc + ((r.stock || 0) * (r.retailPrice || 0)), 0);
 
-    printHtmlDocument('تقرير جرد وقيمة المخزون', `
+    printHtmlDocument(`تقرير جرد وقيمة المخزون ${todayDate}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>إجمالي الأصناف</strong><span>${rows.length}</span></div>
         <div class="meta-box"><strong>إجمالي الكميات</strong><span>${integerFormatter(totalQty)}</span></div>
@@ -132,7 +135,7 @@ export function useReportsWorkspaceActions({
     const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' };
     const dateRangeText = `من ${new Date(submittedRange.from).toLocaleDateString('ar-EG', dateOptions)} الساعة 12:00 ص إلى ${new Date(submittedRange.to).toLocaleDateString('ar-EG', dateOptions)} الساعة 11:59 م`;
 
-    printHtmlDocument(detailed ? 'تقرير حركات وعمليات المخزن (تفصيلي)' : 'تقرير حركات وعمليات المخزن (ملخص)', `
+    printHtmlDocument(detailed ? `تقرير حركات وعمليات المخزن (تفصيلي) ${shortDateRange}` : `تقرير حركات وعمليات المخزن (ملخص) ${shortDateRange}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>إجمالي الحركات</strong><span>${transfers.length}</span></div>
         <div class="meta-box"><strong>الكمية المحولة</strong><span>${integerFormatter(transfers.reduce((sum, t) => sum + (t.items?.reduce((a, i) => a + (i.qty || 0), 0) || 0), 0))}</span></div>
@@ -183,7 +186,7 @@ export function useReportsWorkspaceActions({
   const printCustomerBalances = async () => {
     const rows = await reportsApi.listAllCustomerBalances({ search: balancesSearch, filter: balancesFilter });
     if (!rows.length) return;
-    printHtmlDocument('العملاء الأعلى رصيدًا', `
+    printHtmlDocument(`العملاء الأعلى رصيدًا ${todayDate}`, `
       <div class="meta">عدد العملاء المطابقين: ${rows.length}</div>
       <table>
         <thead><tr><th>العميل</th><th>الهاتف</th><th>الرصيد</th><th>حد الائتمان</th></tr></thead>
