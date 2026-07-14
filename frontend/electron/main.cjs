@@ -2,9 +2,10 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 
+let mainWindow = null;
+
 const createWindow = () => {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     icon: path.join(__dirname, '../public/logo_cropped.png'),
@@ -13,19 +14,22 @@ const createWindow = () => {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    show: false, // Don't show until ready-to-show
+    show: false,
   });
 
   mainWindow.maximize();
   mainWindow.show();
 
-  // In production, load from app.asar.unpacked/dist so updates can replace frontend files
-  // Also load it for local testing if running 'electron .'
+  // Load loading page immediately while backend starts
+  mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+};
+
+const loadApp = () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
   const isDev = process.env.NODE_ENV === 'development';
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    // Prefer the unpacked dist (updateable) over the ASAR-bundled one
     const unpackedDist = path.join(
       __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
       '../dist/index.html'
@@ -42,7 +46,6 @@ app.whenReady().then(async () => {
   console.log(`[ELECTRON] app.getVersion(): ${app.getVersion()}`);
   console.log(`[ELECTRON] package.json version: ${packageVersion}`);
   console.log(`[ELECTRON] process.env.APP_MODE: ${process.env.APP_MODE || 'SELF_CONTAINED'}`);
-  console.log(`[ELECTRON] Default UpdateCheckUrl (if any): ...`);
   console.log('----------------------------------------');
 
   // Show Splash Screen Immediately
@@ -58,6 +61,16 @@ app.whenReady().then(async () => {
   splash.loadFile(path.join(__dirname, 'splash.html'));
   splash.center();
 
+  // Show main window with loading page immediately (user sees progress)
+  createWindow();
+
+  // Close splash shortly after main window is visible
+  setTimeout(() => {
+    if (splash && !splash.isDestroyed()) {
+      splash.close();
+    }
+  }, 800);
+
   // Start the bundled Postgres Server
   const PostgresManager = require('./postgres-manager.cjs');
   const pgManager = new PostgresManager(app.getAppPath(), app.isPackaged);
@@ -66,7 +79,6 @@ app.whenReady().then(async () => {
     await pgManager.setupAndStart();
   } catch (err) {
     console.error('Failed to start Postgres runtime:', err);
-    // Continue anyway or show error dialog (for now just log)
   }
 
   // Start the bundled NestJS backend in offline mode
@@ -106,11 +118,26 @@ app.whenReady().then(async () => {
     }
   }
 
+  // Check if migrations can be skipped (same version = no new migrations)
+  const versionMarkerPath = path.join(dataDir, '.last_migrated_version');
+  let skipMigrations = false;
+  try {
+    if (fsLib.existsSync(versionMarkerPath)) {
+      const lastVersion = fsLib.readFileSync(versionMarkerPath, 'utf8').trim();
+      if (lastVersion === packageVersion) {
+        skipMigrations = true;
+        console.log(`[ELECTRON] Skipping migrations (version ${packageVersion} already migrated)`);
+      }
+    }
+  } catch (err) {
+    console.error('Error reading version marker:', err);
+  }
+
   // Provide environment variables for the backend
   const backendEnv = {
     ...process.env,
     ...pgManager.getEnvironmentVariables(),
-    Z_DATA_DIR: app.isPackaged ? path.join(path.dirname(process.execPath), 'runtime', 'data') : path.join(process.cwd(), 'portable_data'),
+    Z_DATA_DIR: dataDir,
     PORTABLE_MODE: 'false',
     APP_PORT: '3001',
     APP_HOST: '127.0.0.1',
@@ -118,16 +145,15 @@ app.whenReady().then(async () => {
     NODE_ENV: 'production',
     SESSION_SECRET: sessionSecret,
     SESSION_CSRF_SECRET: csrfSecret,
-    // Allow requests from the Electron renderer (file:// origin)
     CORS_ORIGINS: 'http://localhost:3001,http://127.0.0.1:3001,file://',
     ALLOW_SESSION_ID_HEADER: 'true',
-    // Pass the Electron EXE path so the backend can include it in update payloads
     ELECTRON_EXE_PATH: process.execPath,
+    SKIP_MIGRATIONS: skipMigrations ? 'true' : 'false',
   };
 
   const backendProcess = fork(backendPath, [], {
     env: backendEnv,
-    stdio: 'inherit' // pipes backend logs to electron console
+    stdio: 'inherit'
   });
 
   backendProcess.on('error', (err) => {
@@ -159,21 +185,9 @@ app.whenReady().then(async () => {
     }
   });
 
-  // Clear any existing PWA/ServiceWorker caches to ensure updates are instantly applied
-  try {
-    const { session } = require('electron');
-    await session.defaultSession.clearStorageData({
-      storages: ['serviceworkers', 'caches', 'indexdb']
-    });
-    console.log('Cleared previous PWA and ServiceWorker caches successfully.');
-  } catch (err) {
-    console.error('Failed to clear caches:', err);
-  }
-
   // Handle IPC for hardware ID
   ipcMain.handle('get-hardware-id', async () => {
     return new Promise((resolve, reject) => {
-      // First try to get the MachineGuid from Registry (Very reliable on Windows)
       exec('reg query HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', (err1, std1) => {
         if (!err1 && std1 && std1.includes('REG_SZ')) {
           const parts = std1.split('REG_SZ');
@@ -185,7 +199,6 @@ app.whenReady().then(async () => {
           }
         }
         
-        // Fallback to wmic baseboard if reg query fails
         exec('wmic baseboard get serialnumber', (error, stdout, stderr) => {
           if (error) {
             console.error('Error fetching hardware ID:', error);
@@ -203,14 +216,14 @@ app.whenReady().then(async () => {
     });
   });
 
-  // Wait for backend to be ready before opening window
+  // Wait for backend to be ready then load the actual app
   const net = require('net');
   const waitForBackend = () => {
     return new Promise((resolve) => {
       let attempts = 0;
       const ping = () => {
         attempts++;
-        if (attempts > 150) { // Max 30 seconds wait
+        if (attempts > 150) {
           return resolve(); 
         }
         const socket = new net.Socket();
@@ -235,14 +248,18 @@ app.whenReady().then(async () => {
 
   await waitForBackend();
 
-  createWindow();
-
-  // Close the splash screen shortly after main window is visible
-  setTimeout(() => {
-    if (splash && !splash.isDestroyed()) {
-      splash.close();
+  // Write version marker after successful startup (migrations ran or were skipped)
+  try {
+    if (!fsLib.existsSync(dataDir)) {
+      fsLib.mkdirSync(dataDir, { recursive: true });
     }
-  }, 300);
+    fsLib.writeFileSync(versionMarkerPath, packageVersion, 'utf8');
+  } catch (err) {
+    console.error('Error writing version marker:', err);
+  }
+
+  // Load the actual app now that backend is ready
+  loadApp();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -111,13 +111,17 @@ async function bootstrap(): Promise<void> {
 
   const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
   if (process.env.APP_MODE === 'SELF_CONTAINED' || process.env.PORTABLE_MODE === 'true' || isDev) {
-    logger.log('Development or Portable mode detected: running database migrations...');
-    try {
-      const { runMigrationCommand } = await import('./database/migration-runner');
-      await runMigrationCommand('up');
-      logger.log('Database migrations completed.');
-    } catch (error) {
-      logger.error('Failed to run database migrations during bootstrap', error);
+    if (process.env.SKIP_MIGRATIONS === 'true') {
+      logger.log('Skipping migrations (version unchanged, SKIP_MIGRATIONS=true).');
+    } else {
+      logger.log('Development or Portable mode detected: running database migrations...');
+      try {
+        const { runMigrationCommand } = await import('./database/migration-runner');
+        await runMigrationCommand('up');
+        logger.log('Database migrations completed.');
+      } catch (error) {
+        logger.error('Failed to run database migrations during bootstrap', error);
+      }
     }
   }
 

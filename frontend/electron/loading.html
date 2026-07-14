@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>ZSystems POS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .container {
+      text-align: center;
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .logo-text {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 0.95rem;
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+    .progress-container {
+      width: 320px;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+    .status {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      min-height: 1.5em;
+    }
+    .version {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-text">ZSystems POS</div>
+    <div class="subtitle">نظام نقاط البيع والمخازن</div>
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="status" id="status">جاري تجهيز قاعدة البيانات...</div>
+  </div>
+  <div class="version">v1.1.11</div>
+  <script>
+    const bar = document.getElementById('progressBar');
+    const status = document.getElementById('status');
+    const steps = [
+      { pct: 15, text: 'جاري تشغيل قاعدة البيانات...', delay: 800 },
+      { pct: 35, text: 'جاري تحميل النظام...', delay: 2000 },
+      { pct: 55, text: 'جاري تهيئة الخدمات...', delay: 3000 },
+      { pct: 75, text: 'جاري فحص التحديثات...', delay: 5000 },
+      { pct: 90, text: 'جاري فتح الواجهة...', delay: 8000 },
+    ];
+    steps.forEach(s => {
+      setTimeout(() => {
+        bar.style.width = s.pct + '%';
+        status.textContent = s.text;
+      }, s.delay);
+    });
+  </script>
+</body>
+</html>
