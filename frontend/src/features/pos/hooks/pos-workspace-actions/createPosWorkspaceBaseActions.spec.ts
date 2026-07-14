@@ -311,11 +311,11 @@ describe('createPosWorkspaceBaseActions', () => {
       expect(updatedCart[0].qty).toBe(2);
       
       actions.changeLineQtyByDelta('p1::u1::retail', -1);
-      const updatedCart2 = setCart.mock.calls[1][0];
-      
-      // changeLineQtyByDelta uses `Math.max(minQty, nextQty)` where minQty for normal is 1. 
-      // So -1 from 1 would become Math.max(1, 0) = 1.
-      expect(updatedCart2[0].qty).toBe(1);
+      // changeLineQtyByDelta for normal items with qty=1 and delta=-1 results in nextQty <= 0, which calls removeItem.
+      // removeItem calls setCart with a functional updater.
+      const updater = setCart.mock.calls[1][0];
+      const updatedCart2 = typeof updater === 'function' ? updater([updatedCart[0]]) : updater;
+      expect(updatedCart2.length).toBe(0);
     });
   });
 });

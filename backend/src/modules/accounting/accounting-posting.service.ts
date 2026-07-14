@@ -496,6 +496,19 @@ export class AccountingPostingService {
       });
     }
 
+    if (storeCreditUsed > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.customer_receivable_account_id || 0),
+        description: 'استخدام رصيد دائن للعميل (Store Credit)',
+        debit: storeCreditUsed,
+        credit: 0,
+        partnerType: customerPartnerId ? 'customer' : 'none',
+        partnerId: customerPartnerId,
+        branchId: sale.branch_id ? Number(sale.branch_id) : null,
+        locationId: sale.location_id ? Number(sale.location_id) : null,
+      });
+    }
+
     if (discount > 0) {
       this.addLine(lines, {
         accountId: Number(settings.sales_discount_account_id || 0),
