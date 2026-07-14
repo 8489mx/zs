@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
+try {
 function Resolve-RepoRoot {
   return (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 }
@@ -258,17 +259,11 @@ $backendEnvHost = Get-EnvValue -FilePath $backendEnvFile -Name 'DATABASE_HOST'
 $backendEnvIsAuto = Select-String -LiteralPath $backendEnvFile -Pattern $backendEnvAutoMarker -SimpleMatch -Quiet
 
 if ($backendEnvPort -eq '5432') {
-  if ($backendEnvIsAuto) {
-    Set-EnvValue -FilePath $backendEnvFile -Name 'DATABASE_PORT' -Value '5433'
-    if ($backendEnvHost -eq 'localhost') {
-      Set-EnvValue -FilePath $backendEnvFile -Name 'DATABASE_HOST' -Value '127.0.0.1'
-    }
-    Write-Warning "Updated auto-created backend/.env.development to DATABASE_PORT=5433 for isolated dev postgres."
-  } else {
-    Write-Warning "backend/.env.development uses DATABASE_PORT=5432. Dev mode expects 5433."
-    Write-Warning "Please update backend/.env.development to DATABASE_HOST=127.0.0.1 and DATABASE_PORT=5433."
-    throw 'Stop requested: backend/.env.development still points to 5432.'
+  Set-EnvValue -FilePath $backendEnvFile -Name 'DATABASE_PORT' -Value '5433'
+  if ($backendEnvHost -eq 'localhost') {
+    Set-EnvValue -FilePath $backendEnvFile -Name 'DATABASE_HOST' -Value '127.0.0.1'
   }
+  Write-Warning "Auto-fixed backend/.env.development to DATABASE_PORT=5433 and DATABASE_HOST=127.0.0.1 for isolated dev postgres."
 }
 
 $postgresBinDir = Resolve-PostgresBinDir -RepoRoot $repoRoot
@@ -367,3 +362,13 @@ Write-Host '  Backend : http://localhost:3101'
 Write-Host '  PostgreSQL: 127.0.0.1:5433 (data: scripts/dev/.runtime/postgres-data)'
 Write-Host ''
 Write-Host 'Use scripts\dev\Stop-Dev-ZS.bat to stop only this repo dev workflow.'
+
+} catch {
+  Write-Host ""
+  Write-Host "An error occurred during startup!" -ForegroundColor Red
+  Write-Host $_.Exception.Message -ForegroundColor Yellow
+  Write-Host ""
+  Write-Host "Press Enter to exit..."
+  Read-Host | Out-Null
+  exit 1
+}
