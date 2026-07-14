@@ -114,7 +114,9 @@ export function useReportsWorkspaceActions({
       if (!t.date) return false;
       if (t.status === 'cancelled') return false;
       const tDate = new Date(t.date).toISOString().split('T')[0];
-      return tDate >= submittedRange.from && tDate <= submittedRange.to;
+      const fromDate = submittedRange.from.split('T')[0];
+      const toDate = submittedRange.to.split('T')[0];
+      return tDate >= fromDate && tDate <= toDate;
     });
 
     if (!transfers.length) {
