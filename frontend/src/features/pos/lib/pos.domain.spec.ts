@@ -56,7 +56,7 @@ describe('POS stock handling', () => {
 
   it('rejects weighted items that exceed available stock', () => {
     const weightedProduct = { ...product, stock: 1 };
-    expect(() => addPosItem([], weightedProduct, { priceType: 'retail', isWeighted: true, quantity: 1.575 })).toThrow('الصنف غير متاح للبيع حاليًا');
+    expect(() => addPosItem([], weightedProduct, { priceType: 'retail', isWeighted: true, quantity: 1.575 })).toThrowError(/المخزون المتاح|غير متاح/);
   });
 
   it('validates weighted quantity limits accurately down to decimals without rounding up erroneously', () => {

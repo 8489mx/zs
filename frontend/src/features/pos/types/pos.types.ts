@@ -20,4 +20,5 @@ export interface PosItem {
   notes?: string;
   offerName?: string;
   modifiers?: any[];
+  quantityChunks?: number[];
 }

@@ -196,10 +196,11 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     }
   }
 
-  function setQty(lineKey: string, qty: number) {
+  function setQty(lineKey: string, qty: number, options: { quantityChunks?: number[] | null } = {}) {
     try {
       const nextCart = updatePosItemQtyWithOptions(params.cart, lineKey, qty, params.products || [], {
         allowNegativeStockSales: isNegativeStockSalesAllowed(params.settings),
+        quantityChunks: options.quantityChunks,
       });
       params.setSelectedLineKey(lineKey);
       params.setCart(nextCart);
@@ -295,15 +296,47 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.requestBarcodeFocus();
   }
 
-  function changeSelectedQty(delta: number) {
-    const selectedItem = params.cart.find((item) => item.lineKey === params.selectedLineKey);
+  function changeLineQtyByDelta(lineKey: string, delta: number) {
+    const selectedItem = params.cart.find((item) => item.lineKey === lineKey);
     if (!selectedItem) return false;
+
+    if (selectedItem.isWeighted === true && selectedItem.quantityChunks && selectedItem.quantityChunks.length > 0) {
+      const chunks = [...selectedItem.quantityChunks];
+      if (delta > 0) {
+        const lastChunk = chunks[chunks.length - 1] || 0.001;
+        chunks.push(lastChunk);
+        const nextQty = Number(chunks.reduce((sum, chunk) => sum + chunk, 0).toFixed(3));
+        if (!isNegativeStockSalesAllowed(params.settings) && nextQty > selectedItem.stockLimit) {
+          params.setSubmitMessage('الكمية المطلوبة أكبر من المخزون المتاح.');
+          return false;
+        }
+        setQty(lineKey, nextQty, { quantityChunks: chunks });
+        return true;
+      } else if (delta < 0) {
+        chunks.pop();
+        if (chunks.length === 0) {
+          removeItem(lineKey);
+          return true;
+        }
+        const nextQty = Number(chunks.reduce((sum, chunk) => sum + chunk, 0).toFixed(3));
+        setQty(lineKey, nextQty, { quantityChunks: chunks });
+        return true;
+      }
+    }
+
     const minQty = selectedItem.isWeighted === true ? 0.001 : 1;
+    const step = selectedItem.isWeighted === true ? 0.001 : 1;
     const nextQty = selectedItem.isWeighted === true
-      ? Number((Number(selectedItem.qty || 0) + delta).toFixed(3))
-      : Number(selectedItem.qty || 1) + delta;
-    setQty(selectedItem.lineKey, Math.max(minQty, nextQty));
+      ? Number((Number(selectedItem.qty || 0) + (delta > 0 ? step : -step)).toFixed(3))
+      : Number(selectedItem.qty || 1) + (delta > 0 ? step : -step);
+    
+    setQty(lineKey, Math.max(minQty, nextQty));
     return true;
+  }
+
+  function changeSelectedQty(delta: number) {
+    if (!params.selectedLineKey) return false;
+    return changeLineQtyByDelta(params.selectedLineKey, delta);
   }
 
   function editSelectedQty() {
@@ -316,7 +349,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.setSubmitMessage('الكمية يجب أن تكون أكبر من صفر.');
       return false;
     }
-    setQty(selectedItem.lineKey, selectedItem.isWeighted === true ? Number(nextQty.toFixed(3)) : Math.round(nextQty));
+    setQty(selectedItem.lineKey, selectedItem.isWeighted === true ? Number(nextQty.toFixed(3)) : Math.round(nextQty), { quantityChunks: null });
     return true;
   }
 
@@ -351,6 +384,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     removeItem,
     fillPaidAmount,
     setPaymentPreset,
+    changeLineQtyByDelta,
     changeSelectedQty,
     editSelectedQty,
     removeSelectedItem,

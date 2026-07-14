@@ -200,6 +200,9 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     }
     throw new Error('الصنف غير متاح للبيع حاليًا.');
   }
+  if (requestedQty > stockLimit) {
+    throw new Error('الكمية المطلوبة أكبر من المخزون المتاح');
+  }
   const priceType = options.priceType;
   const lineKey = `${product.id}::${unit.id || unit.name}::${priceType}`;
   const existing = cart.find((item) => item.lineKey === lineKey);
@@ -212,6 +215,9 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
           isWeighted: item.isWeighted === true || isWeighted ? true : undefined,
           sourceBarcode: options.sourceBarcode || item.sourceBarcode,
           stockLimit,
+          quantityChunks: (item.isWeighted === true || isWeighted) && options.sourceBarcode 
+            ? [...(item.quantityChunks || [Number(item.qty || 0)]), requestedQty] 
+            : item.quantityChunks,
         }, product, nextQty)
       : item);
   }
@@ -232,6 +238,7 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     priceType,
     isWeighted: isWeighted ? true : undefined,
     sourceBarcode: options.sourceBarcode || undefined,
+    quantityChunks: isWeighted && options.sourceBarcode ? [requestedQty] : undefined,
   };
 
   return [repriceCartLine(newItem, product, requestedQty), ...cart];
@@ -268,20 +275,21 @@ export function updatePosItemQtyWithOptions(
   lineKey: string,
   qty: number,
   products: Product[],
-  options: { allowNegativeStockSales?: boolean } = {},
+  options: { allowNegativeStockSales?: boolean; quantityChunks?: number[] | null } = {},
 ) {
   return cart.map((item) => {
     if (item.lineKey !== lineKey) return item;
     const isWeighted = item.isWeighted === true;
     const normalizedQty = normalizeSaleQuantity(qty, isWeighted);
     const product = products.find((entry) => String(entry.id) === String(item.productId));
+    const resolvedChunks = options.quantityChunks === null ? undefined : (options.quantityChunks || item.quantityChunks);
     if (!product) {
       const nextQty = options.allowNegativeStockSales ? normalizedQty : Math.min(normalizedQty, item.stockLimit);
-      return { ...item, qty: nextQty };
+      return { ...item, qty: nextQty, quantityChunks: resolvedChunks };
     }
     const stockLimit = options.allowNegativeStockSales || !!product.hasBom ? UNBOUNDED_STOCK_LIMIT : item.stockLimit;
     const finalQty = options.allowNegativeStockSales || !!product.hasBom ? normalizedQty : Math.min(normalizedQty, stockLimit);
-    return repriceCartLine(item, product, finalQty);
+    return repriceCartLine({ ...item, quantityChunks: resolvedChunks }, product, finalQty);
   });
 }
 
@@ -320,6 +328,7 @@ export function syncPosCartStock(cart: PosItem[], products: Product[], options: 
       minStock: Number(product.minStock || 0),
       price: getProductPrice(product, item.priceType, nextQty),
       qty: nextQty,
+      quantityChunks: nextQty === Number(item.qty || 0) ? item.quantityChunks : undefined,
     };
 
     if (nextQty !== item.qty) {

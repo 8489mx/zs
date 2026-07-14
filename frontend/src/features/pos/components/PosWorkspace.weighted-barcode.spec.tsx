@@ -86,6 +86,15 @@ describe('PosWorkspace - Weighted Barcodes', () => {
 
   beforeEach(() => {
     queryClient = createTestQueryClient();
+    queryClient.setQueryData(['settings', 'pos'], {
+      weightedBarcodeEnabled: true,
+      weightedBarcodePrefix: '20',
+      weightedBarcodeProductCodeLength: 5,
+      weightedBarcodeWeightDigits: 5,
+      weightedBarcodeWeightDecimals: 3,
+      allowNegativeStockSales: true,
+      currentBranchId: 'b1',
+    });
     vi.clearAllMocks();
   });
 
@@ -133,7 +142,11 @@ describe('PosWorkspace - Weighted Barcodes', () => {
     // Wait for initial load
     await waitFor(() => {
       expect(screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter')).toBeInTheDocument();
+      expect(screen.queryByText('أضف صنفًا واحدًا على الأقل قبل بدء البيع.')).not.toBeInTheDocument();
     });
+    
+    // Give settingsQuery a tiny moment to resolve
+    await new Promise(r => setTimeout(r, 50));
 
     const searchInput = screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter');
     
@@ -201,6 +214,7 @@ describe('PosWorkspace - Weighted Barcodes', () => {
       expect(screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter')).toBeInTheDocument();
       expect(screen.queryByText('أضف صنفًا واحدًا على الأقل قبل بدء البيع.')).not.toBeInTheDocument();
     });
+    await new Promise(r => setTimeout(r, 50));
 
     const searchInput = screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter');
     
@@ -238,6 +252,7 @@ describe('PosWorkspace - Weighted Barcodes', () => {
       expect(screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter')).toBeInTheDocument();
       expect(screen.queryByText('أضف صنفًا واحدًا على الأقل قبل بدء البيع.')).not.toBeInTheDocument();
     });
+    await new Promise(r => setTimeout(r, 50));
 
     const searchInput = screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter');
     

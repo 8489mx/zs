@@ -2,7 +2,7 @@ import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
-export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onRemoveItem, onSelectLine }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onRemoveItem' | 'onSelectLine'>) {
+export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
   const settingsQuery = useSettingsQuery();
   const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
   const allowItemModifiers = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -122,7 +122,11 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                     onFocus={() => onSelectLine(item.lineKey)}
                     onClick={(event) => {
                       event.stopPropagation();
-                      onQtyChange(item.lineKey, Math.min(Number(item.stockLimit || item.qty + 1), Number(item.qty || minQty) + 1));
+                      if (onChangeLineQtyByDelta) {
+                        onChangeLineQtyByDelta(item.lineKey, 1);
+                      } else {
+                        onQtyChange(item.lineKey, Math.min(Number(item.stockLimit || item.qty + 1), Number(item.qty || minQty) + 1));
+                      }
                     }}
                   >
                     +
@@ -146,7 +150,11 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                     onFocus={() => onSelectLine(item.lineKey)}
                     onClick={(event) => {
                       event.stopPropagation();
-                      onQtyChange(item.lineKey, Math.max(minQty, Number(item.qty || minQty) - 1));
+                      if (onChangeLineQtyByDelta) {
+                        onChangeLineQtyByDelta(item.lineKey, -1);
+                      } else {
+                        onQtyChange(item.lineKey, Math.max(minQty, Number(item.qty || minQty) - 1));
+                      }
                     }}
                   >
                     −

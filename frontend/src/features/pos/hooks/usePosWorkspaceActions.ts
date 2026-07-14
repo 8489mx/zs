@@ -39,6 +39,7 @@ interface PosWorkspaceActions {
   setPaymentPreset: (preset: 'cash' | 'card' | 'wallet' | 'instapay' | 'credit') => void;
   selectCartLine: (lineKey: string) => void;
   changeSelectedQty: (delta: number) => boolean;
+  changeLineQtyByDelta: (lineKey: string, delta: number) => boolean;
   editSelectedQty: () => boolean;
   removeSelectedItem: () => boolean;
   selectAdjacentCartLine: (direction: 'next' | 'prev') => boolean;
@@ -125,6 +126,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     setPaymentPreset: base.setPaymentPreset,
     selectCartLine: base.selectCartLine,
     changeSelectedQty: base.changeSelectedQty,
+    changeLineQtyByDelta: base.changeLineQtyByDelta,
     editSelectedQty: base.editSelectedQty,
     removeSelectedItem: () => {
       if (!params.selectedLineKey) return false;

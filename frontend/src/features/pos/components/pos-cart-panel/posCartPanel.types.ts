@@ -72,6 +72,7 @@ export interface PosCartPanelProps {
   onRemoveItem: (lineKey: string) => void;
   onSelectLine: (lineKey: string) => void;
   onFillPaidAmount: () => void;
+  onChangeLineQtyByDelta?: (lineKey: string, delta: number) => void;
   onChangeSelectedQty: (delta: number) => void;
   onEditSelectedQty: () => void;
   onRemoveSelectedItem: () => void;

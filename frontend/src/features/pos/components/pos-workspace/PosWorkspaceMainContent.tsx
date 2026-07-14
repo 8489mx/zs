@@ -156,6 +156,7 @@ export function PosWorkspaceMainContent({
             onSelectLine={pos.selectCartLine}
             onFillPaidAmount={pos.fillPaidAmount}
             onChangeSelectedQty={pos.changeSelectedQty}
+            onChangeLineQtyByDelta={pos.changeLineQtyByDelta}
             onEditSelectedQty={pos.editSelectedQty}
             onRemoveSelectedItem={onRequestSelectedLineDelete}
             onHoldDraft={pos.holdDraft}
