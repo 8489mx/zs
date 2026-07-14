@@ -113,10 +113,10 @@ export function useReportsWorkspaceActions({
     const transfers = allTransfers.filter(t => {
       if (!t.date) return false;
       if (t.status === 'cancelled') return false;
-      const tDate = new Date(t.date).toISOString().split('T')[0];
-      const fromDate = submittedRange.from.split('T')[0];
-      const toDate = submittedRange.to.split('T')[0];
-      return tDate >= fromDate && tDate <= toDate;
+      const tTime = new Date(t.date).getTime();
+      const fromTime = new Date(submittedRange.from).getTime();
+      const toTime = new Date(submittedRange.to).getTime();
+      return tTime >= fromTime && tTime <= toTime;
     });
 
     if (!transfers.length) {
