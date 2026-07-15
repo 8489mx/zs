@@ -1194,7 +1194,7 @@ export class AccountingPostingService {
     }
 
     const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    
+
     if (normalizedLines.length === 0) {
       this.logger.warn(`Purchase ${purchaseId} resulted in empty journal lines (possibly 100% discount with no tax), skipping journal posting.`);
       return { posted: false, journalEntryId: 0 };
@@ -1698,5 +1698,412 @@ export class AccountingPostingService {
     });
 
     return { posted: true, journalEntryId: entryId };
+  }
+
+  async resolveSystemAccountByCode(queryable: DbOrTx, tenantId: string, code: string): Promise<number> {
+    const account = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id', 'is_active', 'account_type'])
+      .where('tenant_id', '=', tenantId)
+      .where('code', '=', code)
+      .executeTakeFirst();
+
+    if (!account) {
+      throw new Error(`Required system account ${code} not found for tenant ${tenantId}. Accounting integration failed.`);
+    }
+    if (!account.is_active) {
+      throw new Error(`System account ${code} is inactive for tenant ${tenantId}.`);
+    }
+    return Number(account.id);
+  }
+
+  async postInventoryAdjustment(queryable: DbOrTx, movementId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    // Check for idempotency via database unique constraint on insert
+    const movement = await queryable
+      .selectFrom('stock_movements')
+      .selectAll()
+      .where('id', '=', movementId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!movement) return { posted: false, journalEntryId: null };
+
+    const delta = Number(movement.after_qty || 0) - Number(movement.before_qty || 0);
+    if (Math.abs(delta) < 0.001) return { posted: false, journalEntryId: null }; // No variance
+
+    const unitCost = Number(movement.unit_cost || 0);
+    const amount = this.toMoney(Math.abs(delta) * unitCost);
+
+    if (amount <= 0) {
+      this.logger.warn(`Zero value accounting effect for movement ${movementId}`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    if (!settings) throw new Error(`Accounting settings missing`);
+    const inventoryAccountId = Number(settings.inventory_account_id || 0);
+    if (!(inventoryAccountId > 0)) {
+      // Fallback code 1140
+      const fallbackId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+      if (!fallbackId) throw new Error('Inventory account not configured and fallback 1140 not found');
+    }
+
+    const accountIdToUse = inventoryAccountId > 0 ? inventoryAccountId : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+
+    const lines: JournalLineDraft[] = [];
+    const branchId = movement.branch_id ? Number(movement.branch_id) : null;
+    const locationId = movement.location_id ? Number(movement.location_id) : null;
+
+    if (delta > 0) {
+      // Gain
+      const gainAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
+      this.addLine(lines, { accountId: accountIdToUse, description: 'تسوية زيادة مخزون', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: gainAccountId, description: 'أرباح تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+    } else {
+      // Loss
+      const lossAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5200');
+      this.addLine(lines, { accountId: lossAccountId, description: 'خسائر تسوية مخزون', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: accountIdToUse, description: 'نقص تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'inventory_adjustment',
+        sourceId: movementId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: movement.created_at ? new Date(movement.created_at) : new Date(),
+        description: `قيد تسوية مخزون - حركة #${movementId}`,
+        branchId,
+        locationId,
+        createdBy: movement.created_by ? Number(movement.created_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+         const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'inventory_adjustment').where('source_id', '=', movementId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+         return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postDamagedStock(queryable: DbOrTx, damageRecordId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const record = await queryable
+      .selectFrom('damaged_stock_records')
+      .selectAll()
+      .where('id', '=', damageRecordId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!record) return { posted: false, journalEntryId: null };
+
+    const qty = Number(record.qty || 0);
+    if (qty <= 0) return { posted: false, journalEntryId: null };
+
+    const unitCost = Number(record.unit_cost || 0);
+    const amount = this.toMoney(qty * unitCost);
+
+    if (amount <= 0) {
+      this.logger.warn(`Zero value accounting effect for damaged stock ${damageRecordId}`);
+      return { posted: false, journalEntryId: null };
+    }
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let inventoryAccountId = Number(settings?.inventory_account_id || 0);
+    if (!(inventoryAccountId > 0)) {
+      inventoryAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+    }
+    const damagedExpenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5300');
+
+    const branchId = record.branch_id ? Number(record.branch_id) : null;
+    const locationId = record.location_id ? Number(record.location_id) : null;
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, { accountId: damagedExpenseAccountId, description: 'مصروف مخزون تالف', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+    this.addLine(lines, { accountId: inventoryAccountId, description: 'نقص مخزون بسبب التلف', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'damaged_stock',
+        sourceId: damageRecordId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: record.created_at ? new Date(record.created_at) : new Date(),
+        description: `قيد بضاعة تالفة - سجل #${damageRecordId}`,
+        branchId,
+        locationId,
+        createdBy: record.created_by ? Number(record.created_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+         const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'damaged_stock').where('source_id', '=', damageRecordId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+         return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postStockCount(queryable: DbOrTx, sessionId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const session = await queryable.selectFrom('stock_count_sessions').selectAll().where('id', '=', sessionId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+    if (!session) return { posted: false, journalEntryId: null };
+
+    const movements = await queryable.selectFrom('stock_movements').selectAll().where('reference_type', '=', 'stock_count_session').where('reference_id', '=', sessionId).where('tenant_id', '=', scope.tenantId).execute();
+
+    const items = await queryable.selectFrom('stock_count_items').selectAll().where('session_id', '=', sessionId).where('tenant_id', '=', scope.tenantId).execute();
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let inventoryAccountId = Number(settings?.inventory_account_id || 0);
+    if (!(inventoryAccountId > 0)) inventoryAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+
+    const gainAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
+    const lossAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5200');
+    const damagedExpenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5300');
+
+    let totalGain = 0;
+    let totalLoss = 0;
+    let totalDamageLoss = 0;
+
+    for (const item of items) {
+       const variance = Number(item.variance_qty || 0);
+       if (variance === 0) continue;
+
+       const mov = movements.find(m => Number(m.product_id) === Number(item.product_id) && m.movement_type !== 'damaged');
+       const damageMov = movements.find(m => Number(m.product_id) === Number(item.product_id) && m.movement_type === 'damaged');
+
+       const unitCost = Number(mov?.unit_cost || 0);
+
+       if (variance > 0) {
+          totalGain += variance * unitCost;
+       } else if (variance < 0) {
+          const absVariance = Math.abs(variance);
+          if (damageMov) {
+             const dQty = Math.abs(Number(damageMov.qty || 0));
+             totalDamageLoss += dQty * unitCost;
+             const remainingLoss = absVariance - dQty;
+             if (remainingLoss > 0) totalLoss += remainingLoss * unitCost;
+          } else {
+             totalLoss += absVariance * unitCost;
+          }
+       }
+    }
+
+    if (totalGain === 0 && totalLoss === 0 && totalDamageLoss === 0) {
+       return { posted: false, journalEntryId: null };
+    }
+
+    const branchId = session.branch_id ? Number(session.branch_id) : null;
+    const locationId = session.location_id ? Number(session.location_id) : null;
+
+    const lines: JournalLineDraft[] = [];
+    if (totalGain > 0) {
+       this.addLine(lines, { accountId: inventoryAccountId, description: 'فائض جرد مخزون', debit: totalGain, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+       this.addLine(lines, { accountId: gainAccountId, description: 'أرباح جرد مخزون', debit: 0, credit: totalGain, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+    if (totalLoss > 0) {
+       this.addLine(lines, { accountId: lossAccountId, description: 'عجز جرد مخزون', debit: totalLoss, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+       this.addLine(lines, { accountId: inventoryAccountId, description: 'نقص مخزون بسبب العجز', debit: 0, credit: totalLoss, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+    if (totalDamageLoss > 0) {
+       this.addLine(lines, { accountId: damagedExpenseAccountId, description: 'عجز جرد (تالف)', debit: totalDamageLoss, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+       this.addLine(lines, { accountId: inventoryAccountId, description: 'نقص مخزون (تالف بالجرد)', debit: 0, credit: totalDamageLoss, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'stock_count',
+        sourceId: sessionId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: session.posted_at ? new Date(session.posted_at) : new Date(),
+        description: `قيد تسوية جرد - جلسة #${sessionId}`,
+        branchId,
+        locationId,
+        createdBy: session.approved_by ? Number(session.approved_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+         const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'stock_count').where('source_id', '=', sessionId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+         return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postService(queryable: DbOrTx, serviceId: number, revision: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const service = await queryable.selectFrom('services').selectAll().where('id', '=', serviceId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+    if (!service) return { posted: false, journalEntryId: null };
+
+    const amount = this.toMoney(service.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let cashAccountId = Number(settings?.cash_account_id || 0);
+    if (!(cashAccountId > 0)) cashAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110');
+
+    let bankAccountId = Number(settings?.bank_account_id || 0);
+    if (!(bankAccountId > 0)) bankAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
+
+    const revenueAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '4200');
+
+    const branchId = service.branch_id ? Number(service.branch_id) : null;
+    const locationId = service.location_id ? Number(service.location_id) : null;
+    const isCard = service.payment_channel === 'card';
+
+    const lines: JournalLineDraft[] = [];
+    if (isCard) {
+      this.addLine(lines, { accountId: bankAccountId, description: `إيراد خدمة بنكي: ${service.name}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+    } else {
+      this.addLine(lines, { accountId: cashAccountId, description: `إيراد خدمة نقدي: ${service.name}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+    this.addLine(lines, { accountId: revenueAccountId, description: `إيراد خدمة: ${service.name}`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+
+    // Use composite source_id for idempotency on revisions
+    const sourceIdComposite = Number(`${serviceId}000${revision}`);
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'service',
+        sourceId: sourceIdComposite,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: service.service_date ? new Date(service.service_date) : new Date(),
+        description: `قيد إيراد خدمة - #${serviceId} Rev ${revision}`,
+        branchId,
+        locationId,
+        createdBy: service.created_by ? Number(service.created_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+         const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'service').where('source_id', '=', sourceIdComposite).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+         return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async reverseService(queryable: DbOrTx, serviceId: number, revision: number, auth: AuthContext): Promise<void> {
+    const scope = requireTenantScope(auth);
+    // Find the original journal entry for this specific revision
+    const sourceIdComposite = Number(`${serviceId}000${revision}`);
+    const original = await queryable.selectFrom('journal_entries').selectAll().where('source_type', '=', 'service').where('source_id', '=', sourceIdComposite).where('tenant_id', '=', scope.tenantId).where('status', '=', 'posted').executeTakeFirst();
+    if (!original) return; // Nothing to reverse
+
+    const originalLines = await queryable.selectFrom('journal_entry_lines').selectAll().where('journal_entry_id', '=', original.id).execute();
+
+    const lines: JournalLineDraft[] = originalLines.map(l => ({
+      accountId: Number(l.account_id),
+      description: `عكس ${l.description}`,
+      debit: Number(l.credit), // Flip
+      credit: Number(l.debit), // Flip
+      partnerType: l.partner_type as any,
+      partnerId: l.partner_id ? Number(l.partner_id) : null,
+      branchId: l.branch_id ? Number(l.branch_id) : null,
+      locationId: l.location_id ? Number(l.location_id) : null,
+    }));
+
+    try {
+      await this.insertPostedJournal(queryable, {
+        sourceType: 'service_reversal',
+        sourceId: sourceIdComposite,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `عكس قيد خدمة - #${serviceId} Rev ${revision}`,
+        branchId: original.branch_id ? Number(original.branch_id) : null,
+        locationId: original.location_id ? Number(original.location_id) : null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+    } catch (e: any) {
+       if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+          // Already reversed
+          return;
+       }
+       throw e;
+    }
+  }
+
+  async postCashierShiftVariance(queryable: DbOrTx, shiftId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const shift = await queryable.selectFrom('cashier_shifts').selectAll().where('id', '=', shiftId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+    if (!shift || shift.status !== 'closed') return { posted: false, journalEntryId: null };
+
+    const expected = Number(shift.expected_cash || 0);
+    const counted = Number(shift.counted_cash || 0);
+    const variance = counted - expected;
+
+    if (Math.abs(variance) < 0.01) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let cashAccountId = Number(settings?.cash_account_id || 0);
+    if (!(cashAccountId > 0)) cashAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110');
+
+    const lines: JournalLineDraft[] = [];
+    const branchId = shift.branch_id ? Number(shift.branch_id) : null;
+    const locationId = shift.location_id ? Number(shift.location_id) : null;
+
+    if (variance < 0) {
+       // Shortage
+       const shortageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7200');
+       const amount = Math.abs(variance);
+       this.addLine(lines, { accountId: shortageAccountId, description: `عجز وردية رقم #${shiftId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+       this.addLine(lines, { accountId: cashAccountId, description: `عجز وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+    } else {
+       // Overage
+       const overageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
+       const amount = variance;
+       this.addLine(lines, { accountId: cashAccountId, description: `زيادة وردية رقم #${shiftId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+       this.addLine(lines, { accountId: overageAccountId, description: `زيادة وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'cashier_shift_variance',
+        sourceId: shiftId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: shift.closed_at ? new Date(shift.closed_at) : new Date(),
+        description: `قيد فروقات وردية - #${shiftId}`,
+        branchId,
+        locationId,
+        createdBy: shift.closed_by ? Number(shift.closed_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+         const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'cashier_shift_variance').where('source_id', '=', shiftId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+         return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
   }
 }

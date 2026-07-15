@@ -51,6 +51,8 @@ export class E2EClient {
     if (cookieHeader) headers.Cookie = cookieHeader;
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
+    }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())) {
       const csrfToken = this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token');
       if (csrfToken) headers['x-csrf-token'] = csrfToken;
     }

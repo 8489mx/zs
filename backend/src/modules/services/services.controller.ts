@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { IdempotencyInterceptor } from '../../core/idempotency/idempotency.interceptor';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -8,6 +9,7 @@ import { ServicesService } from './services.service';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
+@UseInterceptors(IdempotencyInterceptor)
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 

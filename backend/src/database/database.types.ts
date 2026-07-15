@@ -406,6 +406,8 @@ export interface StockMovementTable {
   created_by: number | null;
   branch_id: number | null;
   location_id: number | null;
+  unit_cost: number | null;
+  total_cost: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -481,6 +483,8 @@ export interface DamagedStockRecordTable {
   reason: string;
   note: string;
   created_by: number | null;
+  unit_cost: number | null;
+  total_cost: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -649,6 +653,29 @@ export interface CashierShiftTable {
   id: Generated<number>;
   opened_by: number;
   status: string;
+  expected_cash: number | null;
+  counted_cash: number | null;
+  branch_id: number | null;
+  location_id: number | null;
+  closed_at: Date | null;
+  closed_by: number | null;
+}
+
+export interface ServicesTable {
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  id: Generated<number>;
+  name: string;
+  amount: number;
+  notes: string;
+  service_date: ColumnType<Date, string | undefined, string | undefined>;
+  payment_channel: string;
+  branch_id: number | null;
+  location_id: number | null;
+  revision: number;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface CustomerPaymentTable {
@@ -1381,6 +1408,7 @@ export interface Database {
   supplier_payment_schedules: SupplierPaymentScheduleTable;
   supplier_payment_schedule_logs: SupplierPaymentScheduleLogTable;
   supplier_ledger: SupplierLedgerTable;
+  services: ServicesTable;
   hr_departments: HrDepartmentTable;
   hr_job_titles: HrJobTitleTable;
   hr_positions: HrPositionTable;
@@ -1591,6 +1619,7 @@ export interface Database {
   supplier_payment_schedules: SupplierPaymentScheduleTable;
   supplier_payment_schedule_logs: SupplierPaymentScheduleLogTable;
   supplier_ledger: SupplierLedgerTable;
+  services: ServicesTable;
   hr_departments: HrDepartmentTable;
   hr_job_titles: HrJobTitleTable;
   hr_positions: HrPositionTable;

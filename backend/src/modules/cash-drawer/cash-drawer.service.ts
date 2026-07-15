@@ -7,6 +7,8 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
+import { TransactionHelper } from '../../database/helpers/transaction.helper';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
 
 type ShiftRow = {
   id?: number | string;
@@ -61,7 +63,11 @@ const BLIND_CLOSE_NOTE_PREFIX = 'BLIND_CLOSE::';
 
 @Injectable()
 export class CashDrawerService {
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly tx: TransactionHelper,
+    private readonly accountingPosting: AccountingPostingService,
+  ) {}
 
   private toMoney(value: unknown): number { return Number(Number(value || 0).toFixed(2)); }
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
@@ -285,7 +291,13 @@ export class CashDrawerService {
     const blindCloseMeta: BlindCloseMetadata | null = isBlindCloseCashier ? { blindClose: true, declared: { cash: this.toMoney(countedCash), cardTotal: this.toMoney(payload.cardDeclaredTotal || 0), cardCount: cardOperationCount, walletTotal: this.toMoney(payload.walletDeclaredTotal || 0), walletCount: walletOperationCount, instapayTotal: this.toMoney(payload.instapayDeclaredTotal || 0), instapayCount: instapayOperationCount }, detailTotals: { card: this.toMoney(cardDetails.reduce((sum, row) => sum + row.amount, 0)), wallet: this.toMoney(walletDetails.reduce((sum, row) => sum + row.amount, 0)), instapay: this.toMoney(instapayDetails.reduce((sum, row) => sum + row.amount, 0)) }, details: { card: cardDetails, wallet: walletDetails, instapay: instapayDetails }, note } : null;
     const closeStatus = isBlindCloseCashier ? 'pending_review' : 'closed';
     const closeNoteValue = blindCloseMeta ? this.serializeBlindCloseNote(blindCloseMeta) : note;
-    await sql`update cashier_shifts set status = ${closeStatus}, expected_cash = ${expectedCash}, counted_cash = ${countedCash}, variance = ${variance}, close_note = ${closeNoteValue}, closed_by = ${auth.userId}, closed_at = now() where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(this.db);
+
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`update cashier_shifts set status = ${closeStatus}, expected_cash = ${expectedCash}, counted_cash = ${countedCash}, variance = ${variance}, close_note = ${closeNoteValue}, closed_by = ${auth.userId}, closed_at = now() where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(trx);
+      if (closeStatus === 'closed') {
+        await this.accountingPosting.postCashierShiftVariance(trx, shiftId, auth);
+      }
+    });
     const listing = await this.listCashierShifts({}, auth);
     return { ok: true, cashierShifts: listing.cashierShifts, pagination: listing.pagination, summary: listing.summary };
   }
@@ -307,7 +319,14 @@ export class CashDrawerService {
     } else if (managerNote) {
       closeNoteValue = rawCloseNote ? `${rawCloseNote}\n\nملاحظة مراجعة المدير: ${managerNote}` : `ملاحظة مراجعة المدير: ${managerNote}`;
     }
-    await sql`update cashier_shifts set status = 'closed', close_note = ${closeNoteValue}, closed_by = coalesce(closed_by, ${auth.userId}), closed_at = coalesce(closed_at, now()), updated_at = now() where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(this.db);
+
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const lockedShift = await trx.selectFrom('cashier_shifts').select('status').where('id', '=', shiftId).where('tenant_id', '=', scope.tenantId).forUpdate().executeTakeFirst();
+      if (!lockedShift || lockedShift.status !== 'pending_review') throw new AppError('الوردية ليست في انتظار مراجعة المدير', 'SHIFT_NOT_PENDING_REVIEW', 409);
+
+      await sql`update cashier_shifts set status = 'closed', close_note = ${closeNoteValue}, closed_by = coalesce(closed_by, ${auth.userId}), closed_at = coalesce(closed_at, now()), updated_at = now() where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(trx);
+      await this.accountingPosting.postCashierShiftVariance(trx, shiftId, auth);
+    });
     const listing = await this.listCashierShifts({}, auth);
     return { ok: true, cashierShifts: listing.cashierShifts, pagination: listing.pagination, summary: listing.summary };
   }

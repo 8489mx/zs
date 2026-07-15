@@ -12,6 +12,7 @@ import { Database } from '../../../database/database.types';
 import { InventoryAdjustmentDto } from '../dto/inventory-adjustment.dto';
 import { InventoryCountService } from './inventory-count.service';
 import { InventoryScopeService } from './inventory-scope.service';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 
@@ -24,6 +25,7 @@ export class InventoryAdjustmentService {
     private readonly countService: InventoryCountService,
     private readonly scopeService: InventoryScopeService,
     private readonly idempotency: IdempotencyService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   async createInventoryAdjustment(payload: InventoryAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -87,7 +89,10 @@ export class InventoryAdjustmentService {
         });
       }
 
-      await trx
+      const unitCost = Number(product.cost_price || 0);
+      const totalCost = Math.abs(movementQty) * unitCost;
+
+      const insertedMovement = await trx
         .insertInto('stock_movements')
         .values({
           product_id: payload.productId,
@@ -104,8 +109,17 @@ export class InventoryAdjustmentService {
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
+          unit_cost: unitCost,
+          total_cost: totalCost,
         } as any)
-        .execute();
+        .returning('id')
+        .executeTakeFirst();
+
+      if (!insertedMovement?.id) {
+         throw new AppError('Failed to capture stock movement ID for accounting', 'MOVEMENT_INSERT_FAILED', 500);
+      }
+
+      await this.accountingPosting.postInventoryAdjustment(trx, insertedMovement.id, auth);
       result = { productId: payload.productId, locationId: payload.locationId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter, scopeBefore: stockChange.scopeBefore, scopeAfter: stockChange.scopeAfter, globalBefore: stockChange.globalBefore, globalAfter: stockChange.globalAfter };
 
       await this.audit.logWithExecutor(trx, 'تعديل مخزون', `تم تعديل مخزون الصنف #${payload.productId} من ${result.beforeQty} إلى ${result.afterQty} بسبب ${payload.reason}`, auth);

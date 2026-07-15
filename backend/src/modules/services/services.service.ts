@@ -8,7 +8,10 @@ import { paginateRows } from '../../common/utils/pagination';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { UpsertServiceDto } from './dto/upsert-service.dto';
+import { IdempotencyService } from '../../core/idempotency/idempotency.service';
+import { idempotencyStorage } from '../../core/idempotency/idempotency.context';
 
 type ServicePaymentChannel = 'cash' | 'card';
 
@@ -23,6 +26,8 @@ export class ServicesService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
+    private readonly idempotency: IdempotencyService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   private normalizePaymentChannel(value: unknown): ServicePaymentChannel {
@@ -84,7 +89,7 @@ export class ServicesService {
     `.execute(db);
   }
 
-  async listServices(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+  async listServices(query: Record<string, unknown>, auth: AuthContext, db: Kysely<Database> = this.db): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const result = await sql<{
       id: number;
@@ -107,7 +112,7 @@ export class ServicesService {
       left join users u on u.id = s.created_by
       where s.tenant_id = ${scope.tenantId}
       order by s.id desc
-    `.execute(this.db);
+    `.execute(db);
 
     const search = String(query.search || '').trim().toLowerCase();
     const filter = String(query.filter || 'all').trim().toLowerCase();
@@ -163,6 +168,12 @@ export class ServicesService {
 
   async createService(payload: UpsertServiceDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantScope = requireTenantScope(auth);
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope);
+      if (cached) return cached.response;
+    }
+
     const service = payload.service;
     const normalizedService = {
       name: String(service.name || '').trim(),
@@ -172,7 +183,7 @@ export class ServicesService {
       paymentChannel: this.normalizePaymentChannel(service.paymentChannel),
     };
 
-    await this.tx.runInTransaction(this.db, async (trx) => {
+    const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
       const financeScope = await this.getOpenShiftFinanceScope(trx, auth);
       const inserted = await sql<{ id?: number }>`
         insert into services (name, amount, notes, service_date, payment_channel, branch_id, location_id, created_by, tenant_id, account_id)
@@ -184,22 +195,30 @@ export class ServicesService {
       if (!(serviceId > 0)) throw new AppError('Service could not be saved', 'SERVICE_SAVE_FAILED', 400);
 
       await this.syncServiceTreasuryTransaction(trx, serviceId, normalizedService, auth, financeScope);
+      await this.accountingPosting.postService(trx, serviceId, 1, auth);
+
+      const responsePayload = { ok: true, ...(await this.listServices({}, auth, trx)) };
+      if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+          responsePayload
+        );
+      }
+      return responsePayload;
     });
 
     await this.audit.log('إضافة خدمة', 'تمت إضافة خدمة بواسطة ' + auth.username, auth);
-    return { ok: true, ...(await this.listServices({}, auth)) };
+    return finalResponse;
   }
 
   async updateService(id: number, payload: UpsertServiceDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantScope = requireTenantScope(auth);
-    const existing = await sql<{ id: number; branch_id?: number | string | null; location_id?: number | string | null }>`
-      select id, branch_id, location_id
-      from services
-      where tenant_id = ${tenantScope.tenantId} and id = ${id}
-      limit 1
-    `.execute(this.db);
-    const existingRow = existing.rows?.[0] || null;
-    if (!existingRow) throw new AppError('Service not found', 'SERVICE_NOT_FOUND', 404);
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope);
+      if (cached) return cached.response;
+    }
 
     const service = payload.service;
     const normalizedService = {
@@ -209,33 +228,82 @@ export class ServicesService {
       date: service.date,
       paymentChannel: this.normalizePaymentChannel(service.paymentChannel),
     };
-    const financeScope = { branchId: this.toNullableNumber(existingRow.branch_id), locationId: this.toNullableNumber(existingRow.location_id) };
 
-    await this.tx.runInTransaction(this.db, async (trx) => {
+    const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
+      const existing = await sql<{ id: number; branch_id?: number | string | null; location_id?: number | string | null; revision: number }>`
+        select id, branch_id, location_id, revision
+        from services
+        where tenant_id = ${tenantScope.tenantId} and id = ${id}
+        for update
+      `.execute(trx);
+
+      const existingRow = existing.rows?.[0] || null;
+      if (!existingRow) throw new AppError('Service not found', 'SERVICE_NOT_FOUND', 404);
+
+      const financeScope = { branchId: this.toNullableNumber(existingRow.branch_id), locationId: this.toNullableNumber(existingRow.location_id) };
+
+      await this.accountingPosting.reverseService(trx, id, existingRow.revision, auth);
+
+      const newRevision = existingRow.revision + 1;
+
       await sql`
         update services
-        set name = ${normalizedService.name}, amount = ${normalizedService.amount}, notes = ${normalizedService.notes}, service_date = ${new Date(normalizedService.date)}, payment_channel = ${normalizedService.paymentChannel}
+        set name = ${normalizedService.name}, amount = ${normalizedService.amount}, notes = ${normalizedService.notes}, service_date = ${new Date(normalizedService.date)}, payment_channel = ${normalizedService.paymentChannel}, revision = ${newRevision}
         where tenant_id = ${tenantScope.tenantId} and id = ${id}
       `.execute(trx);
 
       await this.syncServiceTreasuryTransaction(trx, id, normalizedService, auth, financeScope);
+      await this.accountingPosting.postService(trx, id, newRevision, auth);
+
+      const responsePayload = { ok: true, ...(await this.listServices({}, auth, trx)) };
+      if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+          responsePayload
+        );
+      }
+      return responsePayload;
     });
 
     await this.audit.log('تعديل خدمة', 'تم تعديل خدمة بواسطة ' + auth.username, auth);
-    return { ok: true, ...(await this.listServices({}, auth)) };
+    return finalResponse;
   }
 
   async deleteService(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantScope = requireTenantScope(auth);
-    const existing = await sql<{ id: number }>`select id from services where tenant_id = ${tenantScope.tenantId} and id = ${id} limit 1`.execute(this.db);
-    if (!existing.rows.length) throw new AppError('Service not found', 'SERVICE_NOT_FOUND', 404);
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope);
+      if (cached) return cached.response;
+    }
 
-    await this.tx.runInTransaction(this.db, async (trx) => {
+    const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
+      const existing = await sql<{ id: number; revision: number }>`
+        select id, revision
+        from services
+        where tenant_id = ${tenantScope.tenantId} and id = ${id}
+        for update
+      `.execute(trx);
+
+      if (!existing.rows.length) throw new AppError('Service not found', 'SERVICE_NOT_FOUND', 404);
+
+      await this.accountingPosting.reverseService(trx, id, existing.rows[0].revision, auth);
       await sql`delete from treasury_transactions where tenant_id = ${tenantScope.tenantId} and reference_type = 'service' and reference_id = ${id}`.execute(trx);
       await sql`delete from services where tenant_id = ${tenantScope.tenantId} and id = ${id}`.execute(trx);
+
+      const responsePayload = { ok: true, ...(await this.listServices({}, auth, trx)) };
+      if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+          responsePayload
+        );
+      }
+      return responsePayload;
     });
 
     await this.audit.log('حذف خدمة', 'تم حذف خدمة بواسطة ' + auth.username, auth);
-    return { ok: true, ...(await this.listServices({}, auth)) };
+    return finalResponse;
   }
 }
