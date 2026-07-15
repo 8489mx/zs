@@ -19,6 +19,7 @@ const logResult = (id: string, status: string, expected: string, actual: string,
 async function main() { console.log('MAIN EXECUTING');
   admin = new E2EClient(process.env.E2E_BASE_URL || 'http://127.0.0.1:3102');
   const testAdminPassword = process.env.TEST_ADMIN_PASSWORD || 'secret';
+  const TEST_CASHIER_PASSWORD = process.env.TEST_CASHIER_PASSWORD || 'secret';
   await admin.login('zs', testAdminPassword);
 
   pg = new Client({
@@ -405,10 +406,10 @@ async function main() { console.log('MAIN EXECUTING');
         const movId2 = movQuery2.rows[0]?.id;
 
         const journalQuery2 = await pg.query("SELECT * FROM journal_entries WHERE source_type = 'inventory_adjustment' AND source_id = $1", [movId2]);
-      const linesQuery = await pg.query("SELECT a.code as account_code, l.debit, l.credit FROM journal_entry_lines l JOIN accounting_accounts a ON a.id = l.account_id WHERE l.journal_entry_id = $1", [journalQuery.rows[0]?.id]);
+      const linesQuery = await pg.query("SELECT a.code as account_code, l.debit, l.credit FROM journal_entry_lines l JOIN accounting_accounts a ON a.id = l.account_id WHERE l.journal_entry_id = $1", [journalQuery2.rows[0]?.id]);
 
       let pass = true, actual = '';
-      if (journalQuery.rows.length !== 1) { pass = false; actual += `Found ${journalQuery.rows.length} journals. `; }
+      if (journalQuery2.rows.length !== 1) { pass = false; actual += `Found ${journalQuery2.rows.length} journals. `; }
       else {
         let totalDebit = 0, totalCredit = 0;
         let has5200 = false, has1140 = false;
@@ -741,9 +742,9 @@ async function main() { console.log('MAIN EXECUTING');
     console.log('\n--- B.23-25 ACC_SHIFT_BLIND_CLOSE & MANAGER_REVIEW ---');
     try {
       const uname = 'testcashier' + Date.now();
-      await admin.post('/api/users', { username: uname, password: testCashierPassword, role: 'cashier', branchIds: [branchId], defaultBranchId: branchId, isActive: true, permissions: ['cashDrawer', 'pos'] });
+      await admin.post('/api/users', { username: uname, password: TEST_CASHIER_PASSWORD, role: 'cashier', branchIds: [branchId], defaultBranchId: branchId, isActive: true, permissions: ['cashDrawer', 'pos'] });
       const cashierClient = new E2EClient(process.env.E2E_BASE_URL || 'http://127.0.0.1:3102');
-      const cashierToken = await cashierClient.post('/api/auth/login', { username: uname, password: testCashierPassword });
+      const cashierToken = await cashierClient.post('/api/auth/login', { username: uname, password: TEST_CASHIER_PASSWORD });
 
       const openRes = await cashierClient.post('/api/cashier-shifts/open', { openingCash: 100, locationId: locId, note: 'Blind close shift' });
       const shiftId = openRes.cashierShifts?.[0]?.id || openRes.id;
