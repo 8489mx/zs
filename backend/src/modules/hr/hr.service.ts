@@ -965,7 +965,12 @@ export class HrService {
       const loan = result.rows[0];
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
       if (!['paid', 'partially_repaid'].includes(clean(loan.status))) throw new AppError('Loan must be disbursed before repayment', 'HR_LOAN_REPAYMENT_STATUS_INVALID', 400);
-      const amount = Math.min(Number(payload.amount || 0), Number(loan.remaining_amount || 0));
+      const requestedAmount = Number(payload.amount || 0);
+      const remainingBalance = Number(loan.remaining_amount || 0);
+      if (requestedAmount > remainingBalance) {
+        throw new AppError('Repayment amount exceeds remaining loan balance', 'HR_LOAN_REPAYMENT_EXCEEDS_BALANCE', 400);
+      }
+      const amount = requestedAmount;
       const repaymentMethod = clean(payload.repaymentMethod) === 'salary_deduction' ? 'salary_deduction' : 'manual_cash';
       if (!(amount > 0)) throw new AppError('Loan has no remaining balance', 'HR_LOAN_NO_BALANCE', 400);
       const paid = Number(loan.paid_amount || 0) + amount;
@@ -1497,7 +1502,7 @@ export class HrService {
     if (!periodMonth) throw new AppError('Payroll month must use YYYY-MM format', 'HR_PAYROLL_MONTH_INVALID', 400);
     let runId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const existing = await sql<{ id: number }>`SELECT id FROM hr_payroll_runs WHERE period_month = ${periodMonth} AND status <> 'cancelled' ORDER BY id DESC LIMIT 1`.execute(trx);
+      const existing = await sql<{ id: number }>`SELECT id FROM hr_payroll_runs WHERE tenant_id = ${auth.tenantId} AND period_month = ${periodMonth} AND status <> 'cancelled' ORDER BY id DESC LIMIT 1`.execute(trx);
       runId = Number(existing.rows[0]?.id || 0);
       if (!runId) {
         const inserted = await sql<{ id: number }>`
@@ -1578,11 +1583,20 @@ export class HrService {
         }
       }
 
+      // Clean up previous automatic attendance deductions for these employees in this month
+      await sql`
+        DELETE FROM hr_employee_adjustments 
+        WHERE tenant_id = ${auth.tenantId} 
+          AND date = ${adjustmentDate}::date 
+          AND employee_id IN (${sql.join(employeeIds)})
+          AND reason LIKE 'تسوية تلقائية من مراجعة المرتبات%'
+      `.execute(trx);
+
       if (toInsert.length > 0) {
         for (const adj of toInsert) {
           await sql`
-            INSERT INTO hr_employee_adjustments (employee_id, adjustment_type, amount_type, amount, reason, date, status, created_at, updated_at)
-            VALUES (${adj.employee_id}, ${adj.adjustment_type}, ${adj.amount_type}, ${adj.amount}, ${adj.reason}, ${adj.date}::date, ${adj.status}, NOW(), NOW())
+            INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, reason, date, status, created_by, updated_by, created_at, updated_at)
+            VALUES (${auth.tenantId}, ${adj.employee_id}, ${adj.adjustment_type}, ${adj.amount_type}, ${adj.amount}, ${adj.reason}, ${adj.date}::date, ${adj.status}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
           `.execute(trx);
         }
       }
