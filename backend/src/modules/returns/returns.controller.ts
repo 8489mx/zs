@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
+import { IdempotencyInterceptor } from '../../core/idempotency/idempotency.interceptor';
 import { CreateReturnDto } from './dto/create-return.dto';
 import { ReturnsService } from './returns.service';
 
@@ -19,6 +20,7 @@ export class ReturnsController {
 
   @Post('returns')
   @RequirePermissions('returns')
+  @UseInterceptors(IdempotencyInterceptor)
   createReturn(@Body() payload: CreateReturnDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.returnsService.createReturn(payload, req.authContext!);
   }

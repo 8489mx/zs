@@ -15,6 +15,8 @@ import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { CreateReturnDto } from './dto/create-return.dto';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
+import { IdempotencyService } from '../../core/idempotency/idempotency.service';
+import { idempotencyStorage } from '../../core/idempotency/idempotency.context';
 
 type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null };
@@ -26,6 +28,7 @@ export class ReturnsService {
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
     private readonly accountingPosting: AccountingPostingService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
@@ -98,19 +101,35 @@ export class ReturnsService {
   }
 
   async createReturn(payload: CreateReturnDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.scope(auth);
+    const idemCtx = idempotencyStorage.getStore();
+
     const returnIds = await this.tx.runInTransaction(this.db, async (trx) => {
       const normalizedItems = normalizeReturnItems(payload);
       if (payload.type === 'sale') return this.createSaleReturn(trx, payload, normalizedItems, auth);
       return this.createPurchaseReturn(trx, payload, normalizedItems, auth);
     });
+
     const label = payload.type === 'purchase' ? 'purchase return' : 'sale return';
     await this.audit.log('إنشاء مرتجع', 'Created ' + label + ' by ' + auth.username, auth);
-    return { ok: true, createdIds: returnIds, ...(await this.listReturns({}, auth)) };
+
+    const result = { ok: true, createdIds: returnIds, ...(await this.listReturns({}, auth)) };
+
+    // Idempotency: commit the response so future duplicate requests return it
+    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+      await this.idempotency.commitOperation(
+        this.db,
+        { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+        result
+      );
+    }
+
+    return result;
   }
 
   private async createSaleReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext): Promise<number[]> {
     const scope = this.scope(auth);
-    const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).executeTakeFirst();
+    const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!sale) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     const saleItems = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
     const settlementMode = payload.settlementMode === 'store_credit' ? 'store_credit' : 'refund';
@@ -231,7 +250,7 @@ export class ReturnsService {
 
   private async createPurchaseReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext): Promise<number[]> {
     const scope = this.scope(auth);
-    const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).executeTakeFirst();
+    const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!purchase) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     const purchaseItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).execute();
     const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
