@@ -87,7 +87,7 @@ export function buildStockCountPostingMovement(item: StockCountStoredItem, sessi
 }
 
 export function shouldCreateDamageRecordFromCount(item: Pick<StockCountStoredItem, 'reason' | 'variance_qty'>): boolean {
-  return String(item.reason || '').toLowerCase() === 'damage' && Math.abs(Number(item.variance_qty || 0)) > 0;
+  return String(item.reason || '').toLowerCase() === 'damage' && Number(item.variance_qty || 0) < -0.0001;
 }
 
 export function buildDamageRecordFromCount(item: StockCountStoredItem, session: StockCountSessionScope, userId: number) {

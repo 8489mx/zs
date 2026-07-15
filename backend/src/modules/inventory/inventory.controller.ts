@@ -139,7 +139,7 @@ export class InventoryController {
     @Body() payload: PostStockCountSessionDto,
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
-    return this.inventoryService.postStockCountSession(id, payload.managerPin, req.authContext!);
+    return this.inventoryService.postStockCountSession(id, req.authContext!);
   }
 
   @Get('damaged-stock')

@@ -14,6 +14,8 @@ import { CreateStockCountSessionDto } from '../dto/create-stock-count-session.dt
 import { buildDamagedStockSummary, buildStockCountSummary, buildStockMovementSummary, groupStockCountItemsBySession, mapDamagedStockRow, mapStockCountSessionRow, mapStockMovementRow } from '../helpers/inventory-count-listing.helper';
 import { assertInventoryLocationBranchMatch, buildDamagedStockWriteModels, buildDamageRecordFromCount, buildStockCountItemValues, buildStockCountPostingMovement, buildStockCountSessionDocNo, shouldCreateDamageRecordFromCount } from '../helpers/inventory-count-write.helper';
 import { InventoryScopeService } from './inventory-scope.service';
+import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
+import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 
 @Injectable()
 export class InventoryCountService {
@@ -22,6 +24,7 @@ export class InventoryCountService {
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
     private readonly scope: InventoryScopeService,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   private tenantScope(auth: AuthContext) { return requireTenantScope(auth); }
@@ -88,7 +91,16 @@ export class InventoryCountService {
     const tenantScope = this.tenantScope(auth);
     const location = await this.scope.assertLocationScope(payload.locationId, auth, false, 'write');
     assertInventoryLocationBranchMatch(payload.branchId, location.branchId);
-    const sessionId = await this.tx.runInTransaction(this.db, async (trx) => {
+    const productIds = payload.items.map((i) => i.productId);
+    if (new Set(productIds).size !== productIds.length) throw new AppError('Cannot include the same product multiple times in a count session', 'STOCK_COUNT_DUPLICATE_PRODUCT', 400);
+
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope);
+      if (cached) return cached.response;
+    }
+
+    const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
       const result = await trx.insertInto('stock_count_sessions').values({ doc_no: buildStockCountSessionDocNo(), branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
       const id = Number(result.id);
       for (const item of payload.items) {
@@ -99,19 +111,38 @@ export class InventoryCountService {
       }
       return id;
     });
-    await this.audit.log('جلسة جرد مخزون', JSON.stringify({ actorUserId: auth.userId, after: { sessionId, branchId: location.branchId, locationId: location.id, status: 'draft' } }), auth);
-    return { ok: true, sessionId: String(sessionId), stockCountSessions: (await this.listStockCountSessions({}, auth)).stockCountSessions, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords };
+    await this.audit.log('جلسة جرد مخزون', JSON.stringify({ actorUserId: auth.userId, after: { sessionId: finalResponse, branchId: location.branchId, locationId: location.id, status: 'draft' } }), auth);
+    const responsePayload = { ok: true, sessionId: String(finalResponse), stockCountSessions: (await this.listStockCountSessions({}, auth)).stockCountSessions, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords };
+    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+      const idKey = idemCtx.idempotencyKey;
+      const opType = idemCtx.operationType;
+      await this.tx.runInTransaction(this.db, async (trx) => {
+        await this.idempotency.commitOperation(trx, { tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey: idKey, operationType: opType }, responsePayload);
+      });
+    }
+    return responsePayload;
   }
 
   async postStockCountSession(sessionId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantScope = this.tenantScope(auth);
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope);
+      if (cached) return cached.response;
+    }
+
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const session = await trx.selectFrom('stock_count_sessions').selectAll().where('id', '=', sessionId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const session = await trx.selectFrom('stock_count_sessions').selectAll().where('id', '=', sessionId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!session) throw new AppError('Stock count session not found', 'SESSION_NOT_FOUND', 404);
       if ((session.status || 'draft') !== 'draft') throw new AppError('Stock count session already posted', 'SESSION_ALREADY_POSTED', 400);
       const items = await trx.selectFrom('stock_count_items').selectAll().where('session_id', '=', sessionId).where(this.tenantPredicate(auth)).orderBy('id', 'asc').execute();
       if (!items.length) throw new AppError('Stock count session has no items', 'SESSION_EMPTY', 400);
       for (const item of items) {
+        const expectedQty = Number(item.expected_qty || 0);
+        const currentQty = await previewAssignedLocationStockQty(trx, { productId: Number(item.product_id), branchId: session.branch_id, locationId: session.location_id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
+        if (Math.abs(currentQty - expectedQty) >= 0.001) {
+          throw new AppError('Stock count session is stale. Stock was updated after session creation.', 'STOCK_COUNT_STALE', 409);
+        }
         const variance = Number(item.variance_qty || 0);
         if (variance === 0) continue;
         const counted = Number(item.counted_qty || 0);
@@ -122,7 +153,15 @@ export class InventoryCountService {
       await trx.updateTable('stock_count_sessions').set({ status: 'posted', approved_by: auth.userId, posted_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', sessionId).where(this.tenantPredicate(auth)).execute();
     });
     await this.audit.log('اعتماد جلسة جرد', JSON.stringify({ actorUserId: auth.userId, after: { sessionId, status: 'posted' } }), auth);
-    return { ok: true, stockCountSessions: (await this.listStockCountSessions({}, auth)).stockCountSessions, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), stockMovements: (await this.listStockMovements({}, auth)).stockMovements, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords };
+    const responsePayload = { ok: true, stockCountSessions: (await this.listStockCountSessions({}, auth)).stockCountSessions, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), stockMovements: (await this.listStockMovements({}, auth)).stockMovements, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords };
+    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+      const idKey = idemCtx.idempotencyKey;
+      const opType = idemCtx.operationType;
+      await this.tx.runInTransaction(this.db, async (trx) => {
+        await this.idempotency.commitOperation(trx, { tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey: idKey, operationType: opType }, responsePayload);
+      });
+    }
+    return responsePayload;
   }
 
   async listDamagedStock(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -147,6 +186,12 @@ export class InventoryCountService {
 
   async createDamagedStock(payload: CreateDamagedStockDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantScope = this.tenantScope(auth);
+    const idemCtx = idempotencyStorage.getStore();
+    if (idemCtx?.idempotencyKey) {
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope);
+      if (cached) return cached.response;
+    }
+
     const location = await this.scope.assertLocationScope(payload.locationId, auth, false, 'write');
     assertInventoryLocationBranchMatch(payload.branchId, location.branchId);
     if (String(payload.note || '').trim().length < 8) throw new AppError('اكتب سبب التالف بوضوح في 8 أحرف على الأقل', 'DAMAGE_NOTE_REQUIRED', 400);
@@ -160,6 +205,14 @@ export class InventoryCountService {
       await trx.insertInto('damaged_stock_records').values({ ...writeModels.damagedRecord, ...this.tenantFields(auth) }).execute();
     });
     await this.audit.log('تسجيل تالف', JSON.stringify({ actorUserId: auth.userId, productId: payload.productId, qty: payload.qty }), auth);
-    return { ok: true, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords, stockMovements: (await this.listStockMovements({}, auth)).stockMovements };
+    const responsePayload = { ok: true, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords, stockMovements: (await this.listStockMovements({}, auth)).stockMovements };
+    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+      const idKey = idemCtx.idempotencyKey;
+      const opType = idemCtx.operationType;
+      await this.tx.runInTransaction(this.db, async (trx) => {
+        await this.idempotency.commitOperation(trx, { tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey: idKey, operationType: opType }, responsePayload);
+      });
+    }
+    return responsePayload;
   }
 }

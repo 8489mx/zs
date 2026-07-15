@@ -86,7 +86,7 @@ export class InventoryService {
     return this.countService.createStockCountSession(payload, auth);
   }
 
-  postStockCountSession(sessionId: number, _managerPin: string | undefined, auth: AuthContext): Promise<Record<string, unknown>> {
+  postStockCountSession(sessionId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.countService.postStockCountSession(sessionId, auth);
   }
 

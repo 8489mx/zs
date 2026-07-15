@@ -40,7 +40,7 @@ export class InventoryAdjustmentService {
       await this.scopeService.assertLocationScope(payload.locationId, auth, false, 'write');
     }
 
-    await this.tx.runInTransaction(this.db, async (trx) => {
+    const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
       const product = await trx
         .selectFrom('products')
         .selectAll()
@@ -56,6 +56,10 @@ export class InventoryAdjustmentService {
       let afterQty = beforeQty;
       let movementQty = Number(payload.qty || 0);
       let stockChange: { scopeBefore: number; scopeAfter: number; globalBefore: number; globalAfter: number; };
+
+      if (payload.actionType !== 'adjust' && movementQty <= 0) {
+        throw new AppError('Quantity must be strictly positive for add and deduct operations', 'INVALID_QTY', 400);
+      }
 
       if (payload.actionType === 'adjust') {
         afterQty = Number(payload.qty || 0);
@@ -125,6 +129,6 @@ export class InventoryAdjustmentService {
       return responsePayload;
     });
 
-    return result as Record<string, unknown>;
+    return finalResponse;
   }
 }

@@ -37,10 +37,6 @@ export class CreateStockCountSessionDto {
   @IsString()
   note?: string;
 
-  @IsOptional()
-  @IsString()
-  managerPin?: string;
-
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
@@ -48,8 +44,4 @@ export class CreateStockCountSessionDto {
   items!: StockCountItemDto[];
 }
 
-export class PostStockCountSessionDto {
-  @IsOptional()
-  @IsString()
-  managerPin?: string;
-}
+export class PostStockCountSessionDto {}

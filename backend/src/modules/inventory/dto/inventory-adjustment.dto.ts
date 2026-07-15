@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
 
 export class InventoryAdjustmentDto {
   @Type(() => Number)
@@ -9,7 +9,10 @@ export class InventoryAdjustmentDto {
 
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @ValidateIf((o) => o.actionType === 'adjust')
+  @Min(0, { message: 'الحقل الكمية يجب أن يكون أكبر من أو يساوي 0.' })
+  @ValidateIf((o) => o.actionType !== 'adjust')
+  @Min(0.001, { message: 'الحقل الكمية يجب أن يكون أكبر من أو يساوي 0.001.' })
   qty!: number;
 
   @IsIn(['add', 'deduct', 'adjust'])
@@ -21,10 +24,6 @@ export class InventoryAdjustmentDto {
   @IsOptional()
   @IsString()
   note?: string;
-
-  @IsOptional()
-  @IsString()
-  managerPin?: string;
 
   @IsOptional()
   @Type(() => Number)
