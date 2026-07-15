@@ -1812,9 +1812,27 @@ export class HrService {
       throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
     }
 
+    const empCheck = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    if (empCheck.rows.length === 0 || empCheck.rows[0].status !== 'active') {
+      throw new AppError('Employee is not active', 'HR_EMPLOYEE_NOT_ACTIVE', 400);
+    }
+
+    const existingCheck = await sql<{ check_in_at: Date | null }>`SELECT check_in_at FROM hr_attendance_records WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    const hasExisting = existingCheck.rows.length > 0;
+    
+    if (checkInAt && hasExisting && existingCheck.rows[0].check_in_at) {
+      throw new AppError('Already checked in', 'HR_ATTENDANCE_ALREADY_CHECKED_IN', 400);
+    }
+    
+    if (checkOutAt && !checkInAt && (!hasExisting || !existingCheck.rows[0].check_in_at)) {
+      throw new AppError('Cannot check out without check in', 'HR_ATTENDANCE_NO_CHECK_IN', 400);
+    }
+
     await sql`
-      INSERT INTO hr_attendance_records (employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
+      INSERT INTO hr_attendance_records (tenant_id, account_id, employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
       VALUES (
+        ${auth.tenantId},
+        ${auth.accountId},
         ${employeeId},
         ${workDate}::date,
         ${status},
@@ -1827,11 +1845,11 @@ export class HrService {
         NOW(),
         NOW()
       )
-      ON CONFLICT (employee_id, work_date) DO UPDATE
+      ON CONFLICT (tenant_id, employee_id, work_date) DO UPDATE
       SET
         status = EXCLUDED.status,
-        check_in_at = EXCLUDED.check_in_at,
-        check_out_at = EXCLUDED.check_out_at,
+        check_in_at = COALESCE(EXCLUDED.check_in_at, hr_attendance_records.check_in_at),
+        check_out_at = COALESCE(EXCLUDED.check_out_at, hr_attendance_records.check_out_at),
         source = EXCLUDED.source,
         notes = EXCLUDED.notes,
         updated_by = ${auth.userId},
