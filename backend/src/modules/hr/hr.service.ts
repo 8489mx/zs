@@ -875,8 +875,8 @@ export class HrService {
       const plan = this.normalizeRepaymentPlan({ ...payload, employeeId, principalAmount: amount, issueDate, repaymentMode }, amount);
       const loanNo = clean(payload.loanNo) || await this.generateNumber(trx, 'hr_employee_loans', 'LOAN', auth);
       const insert = await sql<{ id: number }>`
-        INSERT INTO hr_employee_loans (employee_id, loan_no, loan_type, principal_amount, paid_amount, remaining_amount, installment_count, installment_amount, repayment_mode, monthly_installment_amount, status, issue_date, first_due_date, salary_due_date, branch_id, location_id, notes, created_by, updated_by)
-        VALUES (${employeeId}, ${loanNo}, ${clean(payload.loanType) || 'advance'}, ${amount}, 0, ${amount}, ${plan.installmentCount}, ${plan.installmentAmount}, ${plan.repaymentMode}, ${plan.monthlyInstallmentAmount}, 'draft', ${issueDate}, ${plan.firstDueDate}, ${plan.salaryDueDate}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+        INSERT INTO hr_employee_loans (tenant_id, account_id, employee_id, loan_no, loan_type, principal_amount, paid_amount, remaining_amount, installment_count, installment_amount, repayment_mode, monthly_installment_amount, status, issue_date, first_due_date, salary_due_date, branch_id, location_id, notes, created_by, updated_by)
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${loanNo}, ${clean(payload.loanType) || 'advance'}, ${amount}, 0, ${amount}, ${plan.installmentCount}, ${plan.installmentAmount}, ${plan.repaymentMode}, ${plan.monthlyInstallmentAmount}, 'draft', ${issueDate}, ${plan.firstDueDate}, ${plan.salaryDueDate}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
         RETURNING id
       `.execute(trx);
       const loanId = Number(insert.rows[0]?.id || 0);
@@ -1078,8 +1078,8 @@ export class HrService {
     };
   }
 
-  private async getPayrollRunStatus(db: Kysely<Database>, runId: number): Promise<string> {
-    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} LIMIT 1`.execute(db);
+  private async getPayrollRunStatus(db: Kysely<Database>, runId: number, tenantId: string): Promise<string> {
+    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} LIMIT 1`.execute(db);
     const status = clean(result.rows[0]?.status);
     if (!status) throw new AppError('Payroll run not found', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
     return status;
@@ -1185,12 +1185,15 @@ export class HrService {
     `.execute(db);
   }
 
-  private async rebuildPayrollRunItems(db: Kysely<Database>, runId: number, runStatus: string): Promise<void> {
-    const runResult = await sql<{ period_month: string }>`SELECT period_month FROM hr_payroll_runs WHERE id = ${runId} LIMIT 1`.execute(db);
-    const periodMonth = normalizePayrollMonth(runResult.rows[0]?.period_month);
+  private async rebuildPayrollRunItems(db: Kysely<Database>, runId: number, itemStatus: 'draft' | 'reviewed' | 'approved'): Promise<void> {
+    const runResult = await sql<any>`SELECT period_month, tenant_id, account_id FROM hr_payroll_runs WHERE id = ${runId} LIMIT 1`.execute(db);
+    const run = runResult.rows[0];
+    if (!run) return;
+    const periodMonth = normalizePayrollMonth(run.period_month || run.periodMonth);
     if (!periodMonth) throw new AppError('Payroll month is invalid', 'HR_PAYROLL_MONTH_INVALID', 400);
+    const tenantId = run.tenant_id || run.tenantId || '';
+    const accountId = run.account_id || run.accountId || '';
     const range = monthRange(periodMonth);
-    const itemStatus = runStatus === 'reviewed' ? 'reviewed' : 'draft';
     await sql`UPDATE hr_employee_adjustments SET status = 'pending', applied_in_run_id = NULL WHERE applied_in_run_id = ${runId}`.execute(db);
     const employees = await sql<Record<string, unknown>>`
       SELECT
@@ -1220,7 +1223,7 @@ export class HrService {
         ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
         LIMIT 1
       ) cp ON TRUE
-      WHERE e.status = 'active'
+      WHERE e.status = 'active' AND e.tenant_id = ${tenantId}
       ORDER BY e.id ASC
     `.execute(db);
 
@@ -1295,11 +1298,11 @@ export class HrService {
         await sql`
           INSERT INTO hr_payroll_run_items (
             run_id, employee_id, contract_id, base_salary, allowance_amount, deduction_amount,
-            loan_deduction_amount, gross_pay, net_pay, status, notes
+            loan_deduction_amount, gross_pay, net_pay, status, notes, tenant_id, account_id
           )
           VALUES (
             ${runId}, ${employeeId}, ${toId(employee.contract_id)}, ${baseSalary}, ${allowanceAmount}, ${deductionAmount},
-            ${loanDeduction.amount}, ${grossPay}, ${netPay}, ${itemStatus}, ${notes}
+            ${loanDeduction.amount}, ${grossPay}, ${netPay}, ${itemStatus}, ${notes}, ${tenantId}, ${accountId}
           )
         `.execute(db);
       }
@@ -1406,7 +1409,7 @@ export class HrService {
         COALESCE(SUM(i.net_pay), 0) AS total_net_pay
       FROM hr_payroll_runs r
       LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.status <> 'excluded'
-      WHERE (${month} = '' OR r.period_month = ${month})
+      WHERE r.tenant_id = ${auth.tenantId} AND (${month} = '' OR r.period_month = ${month})
       GROUP BY r.id
       ORDER BY r.period_month DESC, r.id DESC
     `.execute(this.db);
@@ -1506,8 +1509,8 @@ export class HrService {
       runId = Number(existing.rows[0]?.id || 0);
       if (!runId) {
         const inserted = await sql<{ id: number }>`
-          INSERT INTO hr_payroll_runs (period_month, status, notes, created_by)
-          VALUES (${periodMonth}, 'draft', ${clean(payload.notes)}, ${auth.userId})
+          INSERT INTO hr_payroll_runs (tenant_id, account_id, period_month, status, notes, created_by)
+          VALUES (${auth.tenantId}, ${auth.accountId}, ${periodMonth}, 'draft', ${clean(payload.notes)}, ${auth.userId})
           RETURNING id
         `.execute(trx);
         runId = Number(inserted.rows[0]?.id || 0);
@@ -1520,8 +1523,8 @@ export class HrService {
 
   async recalculatePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id);
-      if (!['draft', 'reviewed'].includes(status)) throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
+      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
+      if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
       await this.rebuildPayrollRunItems(trx, id, status);
     });
     await this.audit.log('Recalculate HR payroll run', `Payroll run #${id} recalculated by ${auth.username}`, auth);
@@ -1530,8 +1533,8 @@ export class HrService {
 
   async applyAttendanceDeductions(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id);
-      if (!['draft', 'reviewed'].includes(status)) throw new AppError('Only draft or reviewed payroll runs can apply attendance deductions', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
+      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
+      if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can apply attendance deductions', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
       
       const runResult = await sql<{ period_month: string }>`SELECT period_month FROM hr_payroll_runs WHERE id = ${id} LIMIT 1`.execute(trx);
       const periodMonth = runResult.rows[0]?.period_month;
@@ -1551,7 +1554,7 @@ export class HrService {
 
       const reviews = await this.calculatePayrollOperationalReview(trx, periodMonth, employeeIds, baseSalaryByEmployeeId);
 
-      const toInsert: { employee_id: number; adjustment_type: string; amount_type: string; amount: number; reason: string; date: string; status: string }[] = [];
+      const toInsert: { employee_id: number; adjustment_type: string; amount_type: string; amount: number; reason: string; date: string; status: string; applied_in_run_id?: number }[] = [];
       const adjustmentDate = `${periodMonth}-28`;
 
       for (const employeeId of employeeIds) {
@@ -1578,7 +1581,8 @@ export class HrService {
             amount: deduction,
             reason: `تسوية تلقائية من مراجعة المرتبات: ${notes.trim()}`,
             date: adjustmentDate,
-            status: 'pending'
+            status: 'pending',
+            applied_in_run_id: id
           });
         }
       }
@@ -1587,16 +1591,14 @@ export class HrService {
       await sql`
         DELETE FROM hr_employee_adjustments 
         WHERE tenant_id = ${auth.tenantId} 
-          AND date = ${adjustmentDate}::date 
-          AND employee_id IN (${sql.join(employeeIds)})
-          AND reason LIKE 'تسوية تلقائية من مراجعة المرتبات%'
+          AND applied_in_run_id = ${id}
       `.execute(trx);
 
       if (toInsert.length > 0) {
         for (const adj of toInsert) {
           await sql`
-            INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, reason, date, status, created_by, updated_by, created_at, updated_at)
-            VALUES (${auth.tenantId}, ${adj.employee_id}, ${adj.adjustment_type}, ${adj.amount_type}, ${adj.amount}, ${adj.reason}, ${adj.date}::date, ${adj.status}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+            INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, reason, date, status, applied_in_run_id, created_by, updated_by, created_at, updated_at)
+            VALUES (${auth.tenantId}, ${adj.employee_id}, ${adj.adjustment_type}, ${adj.amount_type}, ${adj.amount}, ${adj.reason}, ${adj.date}::date, ${adj.status}, ${adj.applied_in_run_id || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
           `.execute(trx);
         }
       }
@@ -1610,7 +1612,7 @@ export class HrService {
 
   async reviewPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id);
+      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
       if (status !== 'draft') throw new AppError('Only draft payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
       await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft'`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id}`.execute(trx);
@@ -1621,7 +1623,7 @@ export class HrService {
 
   async approvePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id);
+      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
       await sql`UPDATE hr_payroll_run_items SET status = 'approved', updated_at = NOW() WHERE run_id = ${id} AND status = 'reviewed'`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_at = NOW() WHERE id = ${id}`.execute(trx);
@@ -1631,7 +1633,7 @@ export class HrService {
   }
 
   async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const status = await this.getPayrollRunStatus(this.db, id);
+    const status = await this.getPayrollRunStatus(this.db, id, auth.tenantId || '');
     if (status === 'approved') throw new AppError('Approved payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
     await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status <> 'approved'`.execute(this.db);
     await this.audit.log('Cancel HR payroll run', `Payroll run #${id} cancelled by ${auth.username}`, auth);
