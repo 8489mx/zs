@@ -59,9 +59,9 @@ async function main() {
     const runId = runRes?.data?.id || runRes?.id || (runRes as any)?.record?.id || Object.values(runRes || {}).find(v => (v as any)?.id)?.id;
     if (!runId) { console.error("Could not find runId in:", runRes); throw new Error("runId missing"); }
     // Recalculate to generate items
-    await admin.post(`/api/hr/payroll-runs/${runId}/recalculate`);
+    await admin.post(`/api/hr/payroll-runs/${runId}/recalculate`, {});
     // Review
-    await admin.post(`/api/hr/payroll-runs/${runId}/review`);
+    await admin.post(`/api/hr/payroll-runs/${runId}/review`, {});
     return runId;
   }
 
@@ -71,7 +71,7 @@ async function main() {
     console.log('\n--- PAY_ACC_1 ---');
     try {
       const runId = await createReviewedPayrollRun();
-      const approveRes = await admin.post(`/api/hr/payroll-runs/${runId}/approve`);
+      const approveRes = await admin.post(`/api/hr/payroll-runs/${runId}/approve`, {});
 
       const journalQuery = await pg.query("SELECT * FROM journal_entries WHERE source_type = 'hr_payroll_accrual' AND source_id = $1", [runId]);
       const linesQuery = await pg.query("SELECT a.code as account_code, l.debit, l.credit FROM journal_entry_lines l JOIN accounting_accounts a ON a.id = l.account_id WHERE l.journal_entry_id = $1", [journalQuery.rows[0]?.id]);
@@ -108,7 +108,7 @@ async function main() {
     console.log('\n--- PAY_ACC_DUP ---');
     try {
       const runId = await createReviewedPayrollRun();
-      await admin.post(`/api/hr/payroll-runs/${runId}/approve`);
+      await admin.post(`/api/hr/payroll-runs/${runId}/approve`, {});
 
       let pass = true;
       let actual = '';
@@ -135,7 +135,7 @@ async function main() {
     console.log('\n--- PAY_CASH_1 ---');
     try {
       const runId = await createReviewedPayrollRun();
-      await admin.post(`/api/hr/payroll-runs/${runId}/approve`);
+      await admin.post(`/api/hr/payroll-runs/${runId}/approve`, {});
 
       const payRes = await admin.post(`/api/hr/payroll-runs/${runId}/pay`, { paymentChannel: 'cash' });
 
@@ -177,7 +177,7 @@ async function main() {
     console.log('\n--- PAY_BANK_1 ---');
     try {
       const runId = await createReviewedPayrollRun();
-      await admin.post(`/api/hr/payroll-runs/${runId}/approve`);
+      await admin.post(`/api/hr/payroll-runs/${runId}/approve`, {});
 
       const payRes = await admin.post(`/api/hr/payroll-runs/${runId}/pay`, { paymentChannel: 'bank' });
 
@@ -216,7 +216,7 @@ async function main() {
     console.log('\n--- PAY_DUP_1 ---');
     try {
       const runId = await createReviewedPayrollRun();
-      await admin.post(`/api/hr/payroll-runs/${runId}/approve`);
+      await admin.post(`/api/hr/payroll-runs/${runId}/approve`, {});
       await admin.post(`/api/hr/payroll-runs/${runId}/pay`, { paymentChannel: 'cash' });
 
       let pass = true;
@@ -265,7 +265,7 @@ async function main() {
       }
 
       // Approve and Pay
-      await admin.post(`/api/hr/payroll-runs/${runId}/approve`);
+      await admin.post(`/api/hr/payroll-runs/${runId}/approve`, {});
       await admin.post(`/api/hr/payroll-runs/${runId}/pay`, { paymentChannel: 'cash' });
 
       // Double pay
@@ -280,7 +280,7 @@ async function main() {
 
       // Cancel paid
       try {
-        await admin.post(`/api/hr/payroll-runs/${runId}/cancel`);
+        await admin.post(`/api/hr/payroll-runs/${runId}/cancel`, {});
         pass = false; actual += `Cancelled paid run. `;
       } catch (e: any) {
         if (!e.message?.includes('HR_PAYROLL_CANCEL_LOCKED')) {
@@ -290,7 +290,7 @@ async function main() {
 
       // Recalculate paid
       try {
-        await admin.post(`/api/hr/payroll-runs/${runId}/recalculate`);
+        await admin.post(`/api/hr/payroll-runs/${runId}/recalculate`, {});
         pass = false; actual += `Recalculated paid run. `;
       } catch (e: any) {
         if (!e.message?.includes('HR_PAYROLL_RECALCULATE_LOCKED')) {

@@ -2238,4 +2238,190 @@ export class AccountingPostingService {
       throw e;
     }
   }
+  async postEmployeeLoanDisbursement(queryable: DbOrTx, loanId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+    const tenantId = scope.tenantId;
+
+    const existing = await queryable
+        .selectFrom('journal_entries')
+        .select(['id', 'status'])
+        .where('source_type', '=', 'hr_employee_loan_disbursement')
+        .where('source_id', '=', loanId)
+        .where('tenant_id', '=', tenantId)
+        .where('status', 'in', ['draft', 'posted'])
+        .orderBy('id', 'desc')
+        .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: existing.id };
+
+    const loanResult = await queryable
+      .selectFrom('hr_employee_loans')
+      .selectAll()
+      .where('id', '=', loanId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (!loanResult) throw new AppError('Loan not found', 'NOT_FOUND', 404);
+    if (loanResult.status !== 'paid') {
+      throw new AppError('Loan must be disbursed to post accounting entry', 'HR_LOAN_NOT_DISBURSED', 400);
+    }
+
+    const amount = this.toMoney(loanResult.principal_amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const cashAcct = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id'])
+      .where('code', '=', '1110')
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (!cashAcct) throw new AppError('Cash account 1110 not found', 'ACCOUNT_NOT_FOUND', 400);
+
+    const advanceAcct = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id'])
+      .where('code', '=', '1160')
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (!advanceAcct) throw new AppError('Employee Advances account 1160 not found', 'ACCOUNT_NOT_FOUND', 400);
+
+    const lines: JournalLineDraft[] = [
+      {
+        accountId: advanceAcct.id,
+        debit: amount,
+        credit: 0,
+        description: 'Employee Loan Disbursement #' + loanResult.id,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: loanResult.branch_id || null,
+        locationId: loanResult.location_id || null,
+      },
+      {
+        accountId: cashAcct.id,
+        debit: 0,
+        credit: amount,
+        description: 'Cash Out - Loan Disbursement #' + loanResult.id,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: loanResult.branch_id || null,
+        locationId: loanResult.location_id || null,
+      },
+    ];
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'hr_employee_loan_disbursement',
+        sourceId: loanResult.id,
+        tenantId,
+        accountId: scope.accountId,
+        entryDate: loanResult.disbursed_at || new Date(),
+        description: 'Employee Loan Disbursement #' + loanResult.id,
+        branchId: loanResult.branch_id || null,
+        locationId: loanResult.location_id || null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_employee_loan_disb_uniq')) {
+          const existingId = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'hr_employee_loan_disbursement').where('source_id', '=', loanId).where('tenant_id', '=', tenantId).executeTakeFirst();
+          return { posted: false, journalEntryId: Number(existingId?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postEmployeeLoanManualRepayment(queryable: DbOrTx, ledgerId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+    const tenantId = scope.tenantId;
+
+    const existing = await queryable
+        .selectFrom('journal_entries')
+        .select(['id', 'status'])
+        .where('source_type', '=', 'hr_employee_loan_repayment')
+        .where('source_id', '=', ledgerId)
+        .where('tenant_id', '=', tenantId)
+        .where('status', 'in', ['draft', 'posted'])
+        .orderBy('id', 'desc')
+        .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: existing.id };
+
+    const ledger = await queryable
+      .selectFrom('hr_employee_ledger')
+      .selectAll()
+      .where('id', '=', ledgerId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (!ledger) throw new AppError('Ledger entry not found', 'NOT_FOUND', 404);
+    if (ledger.entry_type !== 'loan_repayment' || ledger.repayment_method !== 'manual_cash') {
+      throw new AppError('Invalid ledger entry for manual repayment posting', 'HR_LOAN_INVALID_REPAYMENT_LEDGER', 400);
+    }
+
+    const amount = Math.abs(this.toMoney(ledger.amount));
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const cashAcct = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id'])
+      .where('code', '=', '1110')
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (!cashAcct) throw new AppError('Cash account 1110 not found', 'ACCOUNT_NOT_FOUND', 400);
+
+    const advanceAcct = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id'])
+      .where('code', '=', '1160')
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (!advanceAcct) throw new AppError('Employee Advances account 1160 not found', 'ACCOUNT_NOT_FOUND', 400);
+
+    const lines: JournalLineDraft[] = [
+      {
+        accountId: cashAcct.id,
+        debit: amount,
+        credit: 0,
+        description: 'Cash In - Loan Repayment #' + ledger.reference_id,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      },
+      {
+        accountId: advanceAcct.id,
+        debit: 0,
+        credit: amount,
+        description: 'Employee Loan Repayment #' + ledger.reference_id,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      },
+    ];
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'hr_employee_loan_repayment',
+        sourceId: ledger.id,
+        tenantId,
+        accountId: scope.accountId,
+        entryDate: ledger.created_at || new Date(),
+        description: 'Employee Loan Manual Repayment #' + ledger.reference_id,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_employee_loan_repay_uniq')) {
+          const existingId = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'hr_employee_loan_repayment').where('source_id', '=', ledgerId).where('tenant_id', '=', tenantId).executeTakeFirst();
+          return { posted: false, journalEntryId: Number(existingId?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
 }
