@@ -2125,7 +2125,8 @@ export class AccountingPostingService {
       .selectFrom('hr_payroll_run_items')
       .select([
         sql<number>`COALESCE(SUM(net_pay), 0)`.as('net_pay'),
-        sql<number>`COALESCE(SUM(loan_deduction_amount), 0)`.as('loan_deductions')
+        sql<number>`COALESCE(SUM(loan_deduction_amount), 0)`.as('loan_deductions'),
+        sql<number>`COALESCE(SUM(asset_recovery_deduction_amount), 0)`.as('asset_recovery_deductions')
       ])
       .where('run_id', '=', runId)
       .where('tenant_id', '=', scope.tenantId)
@@ -2134,15 +2135,17 @@ export class AccountingPostingService {
 
     const netPay = this.toMoney(totals?.net_pay || 0);
     const loanDeductions = this.toMoney(totals?.loan_deductions || 0);
-    const expenseAmount = this.toMoney(netPay + loanDeductions);
+    const assetRecoveryDeductions = this.toMoney(totals?.asset_recovery_deductions || 0);
+    const expenseAmount = this.toMoney(netPay + loanDeductions + assetRecoveryDeductions);
 
-    if (expenseAmount <= 0 && netPay <= 0 && loanDeductions <= 0) {
+    if (expenseAmount <= 0 && netPay <= 0 && loanDeductions <= 0 && assetRecoveryDeductions <= 0) {
        throw new AppError('Cannot accrue payroll with zero financial value', 'HR_PAYROLL_ZERO_VALUE', 400);
     }
 
     const expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6200'); // Salaries and Wages
     const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
     const advancesAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1160'); // Employee Advances
+    const otherIncomeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100'); // Other Income
 
     const lines: JournalLineDraft[] = [];
 
@@ -2152,6 +2155,9 @@ export class AccountingPostingService {
     }
     if (loanDeductions > 0) {
       this.addLine(lines, { accountId: advancesAccountId, description: `استقطاع سلف موظفين لمسير #${runId}`, debit: 0, credit: loanDeductions, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    }
+    if (assetRecoveryDeductions > 0) {
+      this.addLine(lines, { accountId: otherIncomeAccountId, description: `استرداد عهدة لمسير #${runId}`, debit: 0, credit: assetRecoveryDeductions, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
     }
 
     try {

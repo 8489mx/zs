@@ -1045,6 +1045,7 @@ export class HrService {
       totalAllowanceAmount: Number(row.total_allowance_amount || 0),
       totalDeductionAmount: Number(row.total_deduction_amount || 0),
       totalLoanDeductionAmount: Number(row.total_loan_deduction_amount || 0),
+      totalAssetRecoveryDeductionAmount: Number(row.total_asset_recovery_deduction_amount || 0),
       totalGrossPay: Number(row.total_gross_pay || 0),
       totalNetPay: Number(row.total_net_pay || 0),
     };
@@ -1065,6 +1066,7 @@ export class HrService {
       allowanceAmount: Number(row.allowance_amount || 0),
       deductionAmount: Number(row.deduction_amount || 0),
       loanDeductionAmount: Number(row.loan_deduction_amount || 0),
+      assetRecoveryDeductionAmount: Number(row.asset_recovery_deduction_amount || 0),
       grossPay: Number(row.gross_pay || 0),
       netPay: Number(row.net_pay || 0),
       status: clean(row.status) || 'draft',
@@ -1261,13 +1263,14 @@ export class HrService {
       const loanDeduction = await this.calculateLoanDeduction(db, employeeId, periodMonth);
 
       const empAdjustmentsResult = await sql<Record<string, unknown>>`
-        SELECT id, adjustment_type, amount_type, amount
+        SELECT id, adjustment_type, amount_type, amount, accounting_category
         FROM hr_employee_adjustments
         WHERE employee_id = ${employeeId} AND status = 'pending' AND date <= ${range.to}
       `.execute(db);
 
       let empAdjAllowance = 0;
       let empAdjDeduction = 0;
+      let empAdjAssetRecoveryDeduction = 0;
       const appliedAdjIds: number[] = [];
 
       for (const adj of empAdjustmentsResult.rows) {
@@ -1276,8 +1279,15 @@ export class HrService {
         if (clean(adj.amount_type) === 'days') val = (baseSalary / 30) * val;
         // (If hours, we could divide by 240 or use an hourly rate, but keeping it simple for now)
 
-        if (clean(adj.adjustment_type) === 'allowance') empAdjAllowance += val;
-        else if (clean(adj.adjustment_type) === 'deduction') empAdjDeduction += val;
+        if (clean(adj.adjustment_type) === 'allowance') {
+          empAdjAllowance += val;
+        } else if (clean(adj.adjustment_type) === 'deduction') {
+          if (clean(adj.accounting_category) === 'asset_recovery') {
+            empAdjAssetRecoveryDeduction += val;
+          } else {
+            empAdjDeduction += val;
+          }
+        }
 
         appliedAdjIds.push(Number(adj.id));
       }
@@ -1291,8 +1301,16 @@ export class HrService {
       }
 
       const allowanceAmount = Number((compensationAllowance + adjustments.allowance + empAdjAllowance).toFixed(2));
-      const deductionAmount = Number((compensationDeduction + adjustments.deduction + empAdjDeduction).toFixed(2));
+      const assetRecoveryDeductionAmount = Number(empAdjAssetRecoveryDeduction.toFixed(2));
+      const deductionAmount = Number((compensationDeduction + adjustments.deduction + empAdjDeduction + assetRecoveryDeductionAmount).toFixed(2));
       const grossPay = Number((baseSalary + allowanceAmount).toFixed(2));
+
+      const availablePay = Number((grossPay - (compensationDeduction + adjustments.deduction + empAdjDeduction) - loanDeduction.amount).toFixed(2));
+
+      if (assetRecoveryDeductionAmount > Math.max(0, availablePay)) {
+        throw new AppError('Asset deduction exceeds available pay', 'HR_PAYROLL_ASSET_DEDUCTION_EXCEEDS_AVAILABLE_PAY', 400);
+      }
+
       const rawNetPay = Number((grossPay - deductionAmount - loanDeduction.amount).toFixed(2));
       const netPay = Math.max(0, rawNetPay);
       const generatedNotes = [
@@ -1305,7 +1323,8 @@ export class HrService {
         await sql`
           UPDATE hr_payroll_run_items
           SET contract_id = ${toId(employee.contract_id)}, base_salary = ${baseSalary}, allowance_amount = ${allowanceAmount},
-              deduction_amount = ${deductionAmount}, loan_deduction_amount = ${loanDeduction.amount}, gross_pay = ${grossPay},
+              deduction_amount = ${deductionAmount}, loan_deduction_amount = ${loanDeduction.amount},
+              asset_recovery_deduction_amount = ${assetRecoveryDeductionAmount}, gross_pay = ${grossPay},
               net_pay = ${netPay}, status = ${itemStatus}, notes = ${notes}, updated_at = NOW()
           WHERE id = ${itemId}
         `.execute(db);
@@ -1313,11 +1332,11 @@ export class HrService {
         await sql`
           INSERT INTO hr_payroll_run_items (
             run_id, employee_id, contract_id, base_salary, allowance_amount, deduction_amount,
-            loan_deduction_amount, gross_pay, net_pay, status, notes, tenant_id, account_id
+            loan_deduction_amount, asset_recovery_deduction_amount, gross_pay, net_pay, status, notes, tenant_id, account_id
           )
           VALUES (
             ${runId}, ${employeeId}, ${toId(employee.contract_id)}, ${baseSalary}, ${allowanceAmount}, ${deductionAmount},
-            ${loanDeduction.amount}, ${grossPay}, ${netPay}, ${itemStatus}, ${notes}, ${tenantId}, ${accountId}
+            ${loanDeduction.amount}, ${assetRecoveryDeductionAmount}, ${grossPay}, ${netPay}, ${itemStatus}, ${notes}, ${tenantId}, ${accountId}
           )
         `.execute(db);
       }
@@ -1447,6 +1466,7 @@ export class HrService {
         COALESCE(SUM(i.allowance_amount), 0) AS total_allowance_amount,
         COALESCE(SUM(i.deduction_amount), 0) AS total_deduction_amount,
         COALESCE(SUM(i.loan_deduction_amount), 0) AS total_loan_deduction_amount,
+        COALESCE(SUM(i.asset_recovery_deduction_amount), 0) AS total_asset_recovery_deduction_amount,
         COALESCE(SUM(i.gross_pay), 0) AS total_gross_pay,
         COALESCE(SUM(i.net_pay), 0) AS total_net_pay
       FROM hr_payroll_runs r
@@ -2558,8 +2578,9 @@ export class HrService {
         const empId = Number(current.rows[0].employee_id);
         const reason = `تسوية عهدة ${status === 'lost' ? 'مفقودة' : 'تالفة'}: ${current.rows[0].asset_name}. ${clean(payload.returnNotes) || ''}`.trim();
         await sql`
-          INSERT INTO hr_employee_adjustments (employee_id, adjustment_type, amount_type, amount, reason, date, status, created_at, updated_at)
-          VALUES (${empId}, 'deduction', 'amount', ${payload.deductionAmount}, ${reason}, NOW()::date, 'pending', NOW(), NOW())
+          INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, reason, date, status, source_type, source_id, accounting_category, created_by, updated_by, created_at, updated_at)
+          VALUES (${auth.tenantId}, ${empId}, 'deduction', 'amount', ${payload.deductionAmount}, ${reason}, NOW()::date, 'pending', 'hr_employee_asset', ${String(id)}, 'asset_recovery', ${auth.userId}, ${auth.userId}, NOW(), NOW())
+          ON CONFLICT (tenant_id, source_type, source_id) WHERE accounting_category = 'asset_recovery' AND source_type = 'hr_employee_asset' AND source_id IS NOT NULL DO NOTHING
         `.execute(trx);
       }
     });

@@ -1288,6 +1288,7 @@ export interface HrPayrollRunItemTable {
   allowance_amount: number;
   deduction_amount: number;
   loan_deduction_amount: number;
+  asset_recovery_deduction_amount: number;
   gross_pay: number;
   net_pay: number;
   status: 'draft' | 'reviewed' | 'approved' | 'excluded';
@@ -1551,6 +1552,7 @@ export interface HrPayrollRunItemTable {
   allowance_amount: number;
   deduction_amount: number;
   loan_deduction_amount: number;
+  asset_recovery_deduction_amount: number;
   gross_pay: number;
   net_pay: number;
   status: 'draft' | 'reviewed' | 'approved' | 'excluded';
@@ -1693,6 +1695,9 @@ export interface HrEmployeeAdjustmentTable {
   reason: string | null;
   status: string;
   applied_in_run_id: number | null;
+  source_type: string | null;
+  source_id: string | null;
+  accounting_category: string | null;
   created_by: number;
   updated_by: number;
   created_at: ColumnType<Date, string | undefined, string | undefined>;
