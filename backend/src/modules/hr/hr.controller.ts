@@ -23,6 +23,7 @@ import {
   UpsertEmployeeLoanDto,
   UpsertEmploymentContractDto,
   UpsertHrMasterDataDto,
+  PayPayrollRunDto,
 } from './dto/hr.dto';
 import { HrService } from './hr.service';
 
@@ -236,6 +237,12 @@ export class HrController {
   @RequirePermissions('hrPayrollManage')
   cancelPayrollRun(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.hr.cancelPayrollRun(id, req.authContext!);
+  }
+
+  @Post('payroll-runs/:id/pay')
+  @RequirePermissions('hrPayrollApprove')
+  payPayrollRun(@Param('id', ParseIntPipe) id: number, @Body() payload: PayPayrollRunDto, @Req() req: RequestWithAuth) {
+    return this.hr.payPayrollRun(id, payload, req.authContext!);
   }
 
   @Patch('payroll-run-items/:id')

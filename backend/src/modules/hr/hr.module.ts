@@ -5,9 +5,10 @@ import { DatabaseModule } from '../../database/database.module';
 import { HrController } from './hr.controller';
 import { HrService } from './hr.service';
 import { HrTreasuryAdapter } from './hr-treasury.adapter';
+import { AccountingModule } from '../accounting/accounting.module';
 
 @Module({
-  imports: [DatabaseModule, AuditModule, AuthFoundationModule],
+  imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule],
   controllers: [HrController],
   providers: [HrService, HrTreasuryAdapter],
 })

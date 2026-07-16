@@ -55,4 +55,29 @@ export class HrTreasuryAdapter {
       )
     `.execute(db);
   }
+
+  async recordPayrollPayment(
+    db: Kysely<Database>,
+    payment: { runId: number; amount: number; branchId: number | null; locationId: number | null },
+    auth: AuthContext,
+  ): Promise<void> {
+    const scope = requireTenantScope(auth);
+    await sql`
+      INSERT INTO treasury_transactions (
+        txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id
+      )
+      VALUES (
+        'cash_out',
+        ${-Math.abs(Number(payment.amount || 0))},
+        ${`Payroll payment for run #${payment.runId}`},
+        'hr_payroll_payment',
+        ${payment.runId},
+        ${payment.branchId},
+        ${payment.locationId},
+        ${auth.userId},
+        ${scope.tenantId},
+        ${scope.accountId}
+      )
+    `.execute(db);
+  }
 }

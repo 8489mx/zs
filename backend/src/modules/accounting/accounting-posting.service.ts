@@ -4,6 +4,7 @@ import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
+import { AppError } from '../../common/errors/app-error';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -2102,6 +2103,137 @@ export class AccountingPostingService {
       if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
          const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'cashier_shift_variance').where('source_id', '=', shiftId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
          return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPayrollAccrual(queryable: DbOrTx, runId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const existing = await queryable
+      .selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'hr_payroll_accrual')
+      .where('source_id', '=', runId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const totals = await queryable
+      .selectFrom('hr_payroll_run_items')
+      .select([
+        sql<number>`COALESCE(SUM(net_pay), 0)`.as('net_pay'),
+        sql<number>`COALESCE(SUM(loan_deduction_amount), 0)`.as('loan_deductions')
+      ])
+      .where('run_id', '=', runId)
+      .where('tenant_id', '=', scope.tenantId)
+      .where('status', '!=', 'excluded')
+      .executeTakeFirst();
+
+    const netPay = this.toMoney(totals?.net_pay || 0);
+    const loanDeductions = this.toMoney(totals?.loan_deductions || 0);
+    const expenseAmount = this.toMoney(netPay + loanDeductions);
+
+    if (expenseAmount <= 0 && netPay <= 0 && loanDeductions <= 0) {
+       throw new AppError('Cannot accrue payroll with zero financial value', 'HR_PAYROLL_ZERO_VALUE', 400);
+    }
+
+    const expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6200'); // Salaries and Wages
+    const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
+    const advancesAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1160'); // Employee Advances
+
+    const lines: JournalLineDraft[] = [];
+
+    this.addLine(lines, { accountId: expenseAccountId, description: `استحقاق رواتب مسير #${runId}`, debit: expenseAmount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    if (netPay > 0) {
+      this.addLine(lines, { accountId: payableAccountId, description: `رواتب مستحقة الدفع لمسير #${runId}`, debit: 0, credit: netPay, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    }
+    if (loanDeductions > 0) {
+      this.addLine(lines, { accountId: advancesAccountId, description: `استقطاع سلف موظفين لمسير #${runId}`, debit: 0, credit: loanDeductions, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'hr_payroll_accrual',
+        sourceId: runId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد استحقاق رواتب - مسير #${runId}`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_payroll_round2a_uniq')) {
+         const existingId = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'hr_payroll_accrual').where('source_id', '=', runId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+         return { posted: false, journalEntryId: Number(existingId?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
+  async postPayrollPayment(queryable: DbOrTx, runId: number, paymentChannel: string, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const existing = await queryable
+      .selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'hr_payroll_payment')
+      .where('source_id', '=', runId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const totals = await queryable
+      .selectFrom('hr_payroll_run_items')
+      .select([
+        sql<number>`COALESCE(SUM(net_pay), 0)`.as('net_pay'),
+      ])
+      .where('run_id', '=', runId)
+      .where('tenant_id', '=', scope.tenantId)
+      .where('status', '=', 'approved')
+      .executeTakeFirst();
+
+    const netPay = this.toMoney(totals?.net_pay || 0);
+
+    if (netPay <= 0) {
+       throw new AppError('Cannot pay payroll with zero net pay', 'HR_PAYROLL_PAYMENT_ZERO', 400);
+    }
+
+    const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
+    const paymentAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, paymentChannel === 'cash' ? '1110' : '1120');
+
+    const lines: JournalLineDraft[] = [];
+
+    this.addLine(lines, { accountId: payableAccountId, description: `سداد رواتب مستحقة لمسير #${runId}`, debit: netPay, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    this.addLine(lines, { accountId: paymentAccountId, description: `دفع رواتب مسير #${runId}`, debit: 0, credit: netPay, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'hr_payroll_payment',
+        sourceId: runId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد سداد رواتب - مسير #${runId}`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_payroll_round2a_uniq')) {
+         const existingId = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'hr_payroll_payment').where('source_id', '=', runId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+         return { posted: false, journalEntryId: Number(existingId?.id || 0) };
       }
       throw e;
     }

@@ -1261,14 +1261,19 @@ export interface HrPayrollRunTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   period_month: string;
-  status: 'draft' | 'reviewed' | 'approved' | 'cancelled';
+  status: 'draft' | 'reviewed' | 'approved' | 'paid' | 'cancelled';
   notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   reviewed_by: number | null;
   approved_by: number | null;
+  paid_by: number | null;
+  payment_channel: string | null;
+  payment_reference: string | null;
+  payment_notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   reviewed_at: Date | null;
   approved_at: Date | null;
+  paid_at: Date | null;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
@@ -1518,14 +1523,19 @@ export interface HrPayrollRunTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   period_month: string;
-  status: 'draft' | 'reviewed' | 'approved' | 'cancelled';
+  status: 'draft' | 'reviewed' | 'approved' | 'paid' | 'cancelled';
   notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   reviewed_by: number | null;
   approved_by: number | null;
+  paid_by: number | null;
+  payment_channel: string | null;
+  payment_reference: string | null;
+  payment_notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   reviewed_at: Date | null;
   approved_at: Date | null;
+  paid_at: Date | null;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 

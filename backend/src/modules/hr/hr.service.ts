@@ -29,8 +29,10 @@ import {
   UpsertEmployeeLoanDto,
   UpsertEmploymentContractDto,
   UpsertHrMasterDataDto,
+  PayPayrollRunDto,
 } from './dto/hr.dto';
 import { HrTreasuryAdapter } from './hr-treasury.adapter';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 type MasterConfig = {
@@ -239,6 +241,7 @@ export class HrService {
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
     private readonly treasury: HrTreasuryAdapter,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   private scope(auth: AuthContext) {
@@ -1085,6 +1088,13 @@ export class HrService {
     return status;
   }
 
+  private async getPayrollRunStatusForUpdate(db: Kysely<Database>, runId: number, tenantId: string): Promise<string> {
+    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} FOR UPDATE LIMIT 1`.execute(db);
+    const status = clean(result.rows[0]?.status);
+    if (!status) throw new AppError('Payroll run not found', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
+    return status;
+  }
+
   private async getPayrollItemRun(db: Kysely<Database>, itemId: number): Promise<{ runId: number; runStatus: string; itemStatus: string }> {
     const result = await sql<{ run_id: number; run_status: string; item_status: string }>`
       SELECT i.run_id, r.status AS run_status, i.status AS item_status
@@ -1263,14 +1273,14 @@ export class HrService {
 
         if (clean(adj.adjustment_type) === 'allowance') empAdjAllowance += val;
         else if (clean(adj.adjustment_type) === 'deduction') empAdjDeduction += val;
-        
+
         appliedAdjIds.push(Number(adj.id));
       }
 
       if (appliedAdjIds.length > 0) {
         await sql`
-          UPDATE hr_employee_adjustments 
-          SET status = 'applied', applied_in_run_id = ${runId} 
+          UPDATE hr_employee_adjustments
+          SET status = 'applied', applied_in_run_id = ${runId}
           WHERE id IN (${sql.join(appliedAdjIds)})
         `.execute(db);
       }
@@ -1535,7 +1545,7 @@ export class HrService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can apply attendance deductions', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
-      
+
       const runResult = await sql<{ period_month: string }>`SELECT period_month FROM hr_payroll_runs WHERE id = ${id} LIMIT 1`.execute(trx);
       const periodMonth = runResult.rows[0]?.period_month;
       if (!periodMonth) throw new AppError('Payroll run not found or invalid', 'HR_PAYROLL_RUN_INVALID', 400);
@@ -1560,7 +1570,7 @@ export class HrService {
       for (const employeeId of employeeIds) {
         const review = reviews.get(employeeId);
         if (!review) continue;
-        
+
         let deduction = 0;
         let notes = '';
 
@@ -1589,8 +1599,8 @@ export class HrService {
 
       // Clean up previous automatic attendance deductions for these employees in this month
       await sql`
-        DELETE FROM hr_employee_adjustments 
-        WHERE tenant_id = ${auth.tenantId} 
+        DELETE FROM hr_employee_adjustments
+        WHERE tenant_id = ${auth.tenantId}
           AND applied_in_run_id = ${id}
       `.execute(trx);
 
@@ -1605,7 +1615,7 @@ export class HrService {
 
       await this.rebuildPayrollRunItems(trx, id, status);
     });
-    
+
     await this.audit.log('Apply HR attendance deductions', `Attendance deductions applied to payroll run #${id} by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
   }
@@ -1623,8 +1633,12 @@ export class HrService {
 
   async approvePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
+
+      const { posted } = await this.accountingPosting.postPayrollAccrual(trx, id, auth);
+      if (!posted) throw new AppError('Payroll accrual journal entry could not be created or already exists', 'HR_PAYROLL_ACCRUAL_FAILED', 400);
+
       await sql`UPDATE hr_payroll_run_items SET status = 'approved', updated_at = NOW() WHERE run_id = ${id} AND status = 'reviewed'`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_at = NOW() WHERE id = ${id}`.execute(trx);
     });
@@ -1632,10 +1646,51 @@ export class HrService {
     return this.getPayrollRun(id, auth);
   }
 
+  async payPayrollRun(id: number, payload: PayPayrollRunDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
+      if (status !== 'approved') throw new AppError('Only approved payroll runs can be paid', 'HR_PAYROLL_PAY_LOCKED', 400);
+
+      const { posted } = await this.accountingPosting.postPayrollPayment(trx, id, payload.paymentChannel, auth);
+      if (!posted) throw new AppError('Payroll payment journal entry could not be created or already exists', 'HR_PAYROLL_PAYMENT_FAILED', 400);
+
+      if (payload.paymentChannel === 'cash') {
+        const totals = await trx
+          .selectFrom('hr_payroll_run_items')
+          .select([sql<number>`COALESCE(SUM(net_pay), 0)`.as('net_pay')])
+          .where('run_id', '=', id)
+          .where('tenant_id', '=', auth.tenantId || '')
+          .where('status', '=', 'approved')
+          .executeTakeFirst();
+
+        await this.treasury.recordPayrollPayment(trx, {
+          runId: id,
+          amount: Number(totals?.net_pay || 0),
+          branchId: null,
+          locationId: null,
+        }, auth);
+      }
+
+      await sql`
+        UPDATE hr_payroll_runs
+        SET status = 'paid',
+            paid_by = ${auth.userId},
+            paid_at = NOW(),
+            payment_channel = ${payload.paymentChannel},
+            payment_reference = ${payload.paymentReference || null},
+            payment_notes = ${payload.notes || ''},
+            updated_at = NOW()
+        WHERE id = ${id}
+      `.execute(trx);
+    });
+    await this.audit.log('Pay HR payroll run', `Payroll run #${id} paid by ${auth.username} via ${payload.paymentChannel}`, auth);
+    return this.getPayrollRun(id, auth);
+  }
+
   async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const status = await this.getPayrollRunStatus(this.db, id, auth.tenantId || '');
-    if (status === 'approved') throw new AppError('Approved payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
-    await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status <> 'approved'`.execute(this.db);
+    if (['approved', 'paid'].includes(status)) throw new AppError('Approved or paid payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
+    await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status NOT IN ('approved', 'paid')`.execute(this.db);
     await this.audit.log('Cancel HR payroll run', `Payroll run #${id} cancelled by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
   }
@@ -1835,11 +1890,11 @@ export class HrService {
 
     const existingCheck = await sql<{ check_in_at: Date | null }>`SELECT check_in_at FROM hr_attendance_records WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}`.execute(this.db);
     const hasExisting = existingCheck.rows.length > 0;
-    
+
     if (checkInAt && hasExisting && existingCheck.rows[0].check_in_at) {
       throw new AppError('Already checked in', 'HR_ATTENDANCE_ALREADY_CHECKED_IN', 400);
     }
-    
+
     if (checkOutAt && !checkInAt && (!hasExisting || !existingCheck.rows[0].check_in_at)) {
       throw new AppError('Cannot check out without check in', 'HR_ATTENDANCE_NO_CHECK_IN', 400);
     }

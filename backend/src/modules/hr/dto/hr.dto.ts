@@ -579,3 +579,18 @@ export class CreateEmployeeAdjustmentDto {
   @MaxLength(1000)
   reason?: string;
 }
+
+export class PayPayrollRunDto {
+  @IsIn(['cash', 'bank'])
+  paymentChannel!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  paymentReference?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+}
