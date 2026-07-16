@@ -109,7 +109,8 @@ async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & 
     .selectFrom('products')
     .select(['id', 'name', 'stock_qty'])
     .where('id', '=', params.productId)
-    .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+    .where('tenant_id', '=', scope.tenantId)
+    .where('account_id', '=', scope.accountId)
     .forUpdate()
     .executeTakeFirst();
   if (!product) throw new AppError('Product not found or access denied', 'PRODUCT_NOT_FOUND', 404);
@@ -117,7 +118,8 @@ async function loadLockedState(db: Kysely<Database>, params: TenantStockScope & 
     .selectFrom('product_location_stock')
     .select(['id', 'product_id', 'branch_id', 'location_id', 'qty'])
     .where('product_id', '=', product.id)
-    .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+    .where('tenant_id', '=', scope.tenantId)
+    .where('account_id', '=', scope.accountId)
     .forUpdate()
     .execute();
   return { 
@@ -180,7 +182,8 @@ async function ensureUnassignedBalance(db: Kysely<Database>, state: LockedState)
         .updateTable('product_location_stock')
         .set({ qty: nextQty, updated_at: sql`NOW()` })
         .where('id', '=', existing.id)
-        .where(sql<boolean>`tenant_id = ${state.scope.tenantId}`)
+        .where('tenant_id', '=', state.scope.tenantId)
+        .where('account_id', '=', state.scope.accountId)
         .execute();
       existing.qty = nextQty;
     }
@@ -221,7 +224,8 @@ async function ensureLocationBalance(
         .updateTable('product_location_stock')
         .set({ branch_id: branchId, updated_at: sql`NOW()` })
         .where('id', '=', existing.id)
-        .where(sql<boolean>`tenant_id = ${state.scope.tenantId}`)
+        .where('tenant_id', '=', state.scope.tenantId)
+        .where('account_id', '=', state.scope.accountId)
         .execute();
       existing.branch_id = branchId;
     }
@@ -248,7 +252,8 @@ async function updateBalanceQty(
     .updateTable('product_location_stock')
     .set(payload)
     .where('id', '=', row.id)
-    .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+    .where('tenant_id', '=', scope.tenantId)
+    .where('account_id', '=', scope.accountId)
     .execute();
   row.qty = roundStockQty(nextQty);
 }
@@ -258,7 +263,8 @@ async function updateGlobalQty(db: Kysely<Database>, scope: RequiredTenantStockS
     .updateTable('products')
     .set({ stock_qty: roundStockQty(nextQty), updated_at: sql`NOW()` })
     .where('id', '=', productId)
-    .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+    .where('tenant_id', '=', scope.tenantId)
+    .where('account_id', '=', scope.accountId)
     .execute();
 }
 

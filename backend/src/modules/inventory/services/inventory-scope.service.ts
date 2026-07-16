@@ -109,7 +109,7 @@ export class InventoryScopeService {
     };
   }
   async getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {
-    const tenantId = this.tenantId(auth);
+    const { tenantId, accountId } = requireTenantScope(auth);
     const scope = await this.branchScope(auth);
     let query = this.db
       .selectFrom('product_location_stock as s')
@@ -121,7 +121,8 @@ export class InventoryScopeService {
         eb('l.is_active', '=', true),
         eb('s.qty', '>', 0)
       ]))
-      .where(sql<boolean>`s.tenant_id = ${tenantId}`);
+      .where('s.tenant_id', '=', tenantId)
+      .where('s.account_id', '=', accountId);
 
     if (auth.role === 'storekeeper' && !auth.permissions?.includes('canManageBranchStock')) {
       query = query.where('l.location_type', '!=', 'branch_stock');
@@ -145,7 +146,7 @@ export class InventoryScopeService {
   }
 
   async getLocationCategories(locationId: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const tenantId = this.tenantId(auth);
+    const { tenantId, accountId } = requireTenantScope(auth);
     const rows = await this.db
       .selectFrom('product_categories as c')
       .leftJoin('products as p', 'p.category_id', 'c.id')
@@ -157,7 +158,8 @@ export class InventoryScopeService {
         sql<number>`SUM(CASE WHEN s.qty > 0 THEN 1 ELSE 0 END)`.as('positiveStockProductCount')
       ])
       .where('c.is_active', '=', true)
-      .where(sql<boolean>`c.tenant_id = ${tenantId}`)
+      .where('c.tenant_id', '=', tenantId)
+      .where('c.account_id', '=', accountId)
       .groupBy(['c.id', 'c.name'])
       .orderBy('c.name')
       .execute();
@@ -173,14 +175,15 @@ export class InventoryScopeService {
   }
 
   async getLocationCategoryProducts(locationId: number, categoryId: number | 'all', auth: AuthContext): Promise<Record<string, unknown>> {
-    const tenantId = this.tenantId(auth);
+    const { tenantId, accountId } = requireTenantScope(auth);
     let query = this.db
       .selectFrom('products as p')
       .innerJoin('product_location_stock as s', 's.product_id', 'p.id')
       .select(['p.id', 'p.name', 'p.barcode', 's.qty', 'p.stock_qty'])
       .where('s.location_id', '=', locationId)
       .where('p.is_active', '=', true)
-      .where(sql<boolean>`p.tenant_id = ${tenantId}`);
+      .where('p.tenant_id', '=', tenantId)
+      .where('p.account_id', '=', accountId);
       
     if (categoryId !== 'all') {
       query = query.where('p.category_id', '=', categoryId);
@@ -199,7 +202,7 @@ export class InventoryScopeService {
   }
 
   async getAdvancedOverview(auth: AuthContext): Promise<Record<string, unknown>> {
-    const tenantId = this.tenantId(auth);
+    const { tenantId, accountId } = requireTenantScope(auth);
     
     const locationsRaw = await this.db.selectFrom('stock_locations as l')
       .select(['l.id', 'l.name', 'l.is_active'])
@@ -212,7 +215,8 @@ export class InventoryScopeService {
             .where('s.qty', '>', 0)
         )
       ]))
-      .where(sql<boolean>`l.tenant_id = ${tenantId}`)
+      .where('l.tenant_id', '=', tenantId)
+      .where('l.account_id', '=', accountId)
       .execute();
       
     const locations = locationsRaw.map(l => ({
@@ -222,7 +226,8 @@ export class InventoryScopeService {
       
     const categories = await this.db.selectFrom('product_categories')
       .select(['id', 'name'])
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('tenant_id', '=', tenantId)
+      .where('account_id', '=', accountId)
       .execute();
       
     const stockCounts = await this.db.selectFrom('product_location_stock as pls')
@@ -233,7 +238,8 @@ export class InventoryScopeService {
         sql<number>`count(distinct p.id)`.as('productCount')
       ])
       .where('pls.qty', '>', 0)
-      .where(sql<boolean>`p.tenant_id = ${tenantId}`)
+      .where('p.tenant_id', '=', tenantId)
+      .where('p.account_id', '=', accountId)
       .groupBy(['pls.location_id', 'p.category_id'])
       .execute();
       
@@ -262,19 +268,24 @@ export class InventoryScopeService {
     if (!productIds || productIds.length === 0) return { success: true };
 
     await this.db.transaction().execute(async trx => {
-      const location = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', locationId).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
+      const { tenantId, accountId } = requireTenantScope(auth);
+      const location = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', locationId).where('tenant_id', '=', tenantId).where('account_id', '=', accountId).executeTakeFirst();
       if (!location) throw new AppError('Location not found', 'NOT_FOUND', 404);
 
       // Find global stock
       const productsInfo = await trx.selectFrom('products')
         .select(['id', 'stock_qty'])
         .where('id', 'in', productIds)
+        .where('tenant_id', '=', tenantId)
+        .where('account_id', '=', accountId)
         .execute();
 
       // Find all location stocks for these products
       const allLocStocks = await trx.selectFrom('product_location_stock')
         .select(['product_id', 'location_id', 'qty'])
         .where('product_id', 'in', productIds)
+        .where('tenant_id', '=', tenantId)
+        .where('account_id', '=', accountId)
         .execute();
 
       const locQtyMap = new Map<number, number>();
@@ -298,6 +309,8 @@ export class InventoryScopeService {
                .set({ qty: Number(existingRecord.qty) + unassignedStock })
                .where('product_id', '=', Number(pid))
                .where('location_id', '=', Number(locationId))
+               .where('tenant_id', '=', tenantId)
+               .where('account_id', '=', accountId)
                .execute();
           }
         } else {
@@ -309,6 +322,7 @@ export class InventoryScopeService {
               branch_id: location.branch_id || null,
               qty: unassignedStock,
               tenant_id: tenantId,
+              account_id: accountId,
             } as any)
             .execute();
         }
@@ -322,12 +336,14 @@ export class InventoryScopeService {
     const tenantId = this.tenantId(auth);
     
     await this.db.transaction().execute(async trx => {
+      const { tenantId, accountId } = requireTenantScope(auth);
       // Find the stock
       const stock = await trx.selectFrom('product_location_stock')
         .select('qty')
         .where('location_id', '=', locationId)
         .where('product_id', '=', productId)
-        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('tenant_id', '=', tenantId)
+        .where('account_id', '=', accountId)
         .executeTakeFirst();
       
       if (!stock) throw new AppError('Stock not found in this location', 'NOT_FOUND', 404);
@@ -336,7 +352,8 @@ export class InventoryScopeService {
       await trx.deleteFrom('product_location_stock')
         .where('location_id', '=', locationId)
         .where('product_id', '=', productId)
-        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .where('tenant_id', '=', tenantId)
+        .where('account_id', '=', accountId)
         .execute();
     });
 

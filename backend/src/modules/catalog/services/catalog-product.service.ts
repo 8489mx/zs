@@ -109,9 +109,10 @@ export class CatalogProductService {
 
   private tenantPredicate(actor: AuthContext, alias?: string) {
     const tenantId = this.tenantId(actor);
+    const accountId = this.accountId(actor);
     return alias
-      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}`
-      : sql<boolean>`tenant_id = ${tenantId}`;
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId} AND ${sql.ref(`${alias}.account_id`)} = ${accountId}`
+      : sql<boolean>`tenant_id = ${tenantId} AND account_id = ${accountId}`;
   }
 
   private normalizeDateOnly(value: unknown): string {
@@ -329,8 +330,8 @@ export class CatalogProductService {
           
         const defaultLocId = branch.default_stock_location_id;
         const sortedLocs = allLocs.filter(l => {
-           if (l.id === defaultLocId) return true;
-           if (l.branch_id === requestedBranchId) return true;
+           if (Number(l.id) === Number(defaultLocId)) return true;
+           if (Number(l.branch_id) === Number(requestedBranchId)) return true;
            if (l.location_type === 'internal_warehouse' && l.branch_id === null) return true;
            if (branch.allow_external_sales_stock && l.location_type === 'external_warehouse') return true;
            return false;
@@ -644,7 +645,7 @@ export class CatalogProductService {
       if (row.location_id) activeLocationsByProduct.get(key)!.push(row.location_id);
 
       if (row.location_id == null) unassignedQtyByProduct.set(key, qty);
-      if (eligibleLocationIds.includes(Number(row.location_id || 0))) {
+      if (eligibleLocationIds.some(id => Number(id) === Number(row.location_id || 0))) {
         locationQtyByProduct.set(key, (locationQtyByProduct.get(key) || 0) + qty);
       }
     }
