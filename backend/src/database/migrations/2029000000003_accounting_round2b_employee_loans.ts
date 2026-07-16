@@ -27,8 +27,7 @@ export const migration = {
     ON treasury_transactions(tenant_id, reference_type, reference_id)
     WHERE reference_type = 'hr_employee_loan_repayment'
   `.execute(db);
-}
-
+},
   async down(db: Kysely<any>): Promise<void> {
   await sql`DROP INDEX IF EXISTS idx_journal_entries_employee_loan_disb_uniq`.execute(db);
   await sql`DROP INDEX IF EXISTS idx_journal_entries_employee_loan_repay_uniq`.execute(db);
