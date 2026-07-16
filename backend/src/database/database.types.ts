@@ -1434,6 +1434,7 @@ export interface Database {
   hr_payroll_run_items: HrPayrollRunItemTable;
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;
   hr_hr_settings: HrSettingsTable;
+  hr_payroll_loan_deduction_allocations: HrPayrollLoanDeductionAllocationTable;
   price_change_runs: PriceChangeRunTable;
     price_change_items: PriceChangeItemTable;
   updated_by: number | null;
@@ -1579,6 +1580,21 @@ export interface HrSettingsTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface HrPayrollLoanDeductionAllocationTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  payroll_run_id: number;
+  payroll_run_item_id: number;
+  employee_id: number;
+  loan_id: number;
+  installment_id: number;
+  amount: number;
+  ledger_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface Database {
   _phase1_bootstrap: Phase1BootstrapTable;
   sessions: SessionTable;
@@ -1650,6 +1666,7 @@ export interface Database {
   hr_payroll_run_items: HrPayrollRunItemTable;
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;
   hr_hr_settings: HrSettingsTable;
+  hr_payroll_loan_deduction_allocations: HrPayrollLoanDeductionAllocationTable;
   price_change_runs: PriceChangeRunTable;
   price_change_items: PriceChangeItemTable;
   partner_contacts: PartnerContactTable;

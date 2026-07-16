@@ -1636,10 +1636,109 @@ export class HrService {
     return this.getPayrollRun(id, auth);
   }
 
+  private async settlePayrollLoanDeductions(trx: Kysely<Database>, runId: number, auth: AuthContext): Promise<void> {
+    const items = await trx
+      .selectFrom('hr_payroll_run_items')
+      .select(['id', 'employee_id', 'loan_deduction_amount'])
+      .where('run_id', '=', runId)
+      .where('tenant_id', '=', auth.tenantId || '')
+      .where('status', '=', 'reviewed')
+      .where('loan_deduction_amount', '>', 0)
+      .execute();
+
+    for (const item of items) {
+      let remainingToDeduct = Number(item.loan_deduction_amount);
+      if (remainingToDeduct <= 0) continue;
+
+      const installments = await sql<Record<string, unknown>>`
+        SELECT
+          i.id AS installment_id,
+          i.loan_id,
+          i.amount,
+          i.paid_amount,
+          l.remaining_amount AS loan_remaining
+        FROM hr_employee_loan_installments i
+        JOIN hr_employee_loans l ON l.id = i.loan_id
+        WHERE l.employee_id = ${item.employee_id}
+          AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
+          AND l.status IN ('paid', 'partially_repaid', 'disbursed')
+          AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
+        ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC, l.id ASC
+        FOR UPDATE
+      `.execute(trx);
+
+      for (const row of installments.rows) {
+        if (remainingToDeduct <= 0) break;
+
+        const installmentAmount = Number(row.amount);
+        const installmentPaid = Number(row.paid_amount);
+        const installmentRemaining = installmentAmount - installmentPaid;
+        if (installmentRemaining <= 0) continue;
+
+        const loanRemaining = Number(row.loan_remaining);
+
+        const deductAmount = Math.min(remainingToDeduct, installmentRemaining, loanRemaining);
+        if (deductAmount <= 0) continue;
+
+        remainingToDeduct = Number((remainingToDeduct - deductAmount).toFixed(2));
+        const newInstallmentPaid = Number((installmentPaid + deductAmount).toFixed(2));
+        const newInstallmentStatus = newInstallmentPaid >= installmentAmount ? 'paid' : 'partial';
+
+        const newLoanRemaining = Number((loanRemaining - deductAmount).toFixed(2));
+        const newLoanPaidAmountRaw = await sql<Record<string, unknown>>`
+          SELECT paid_amount FROM hr_employee_loans WHERE id = ${row.loan_id}
+        `.execute(trx);
+        const currentLoanPaid = Number(newLoanPaidAmountRaw.rows[0]?.paid_amount || 0);
+        const newLoanPaid = Number((currentLoanPaid + deductAmount).toFixed(2));
+        const newLoanStatus = newLoanRemaining <= 0 ? 'repaid' : 'partially_repaid';
+
+        await sql`
+          UPDATE hr_employee_loans
+          SET paid_amount = ${newLoanPaid}, remaining_amount = ${newLoanRemaining}, status = ${newLoanStatus}, updated_at = NOW()
+          WHERE id = ${row.loan_id}
+        `.execute(trx);
+
+        await sql`
+          UPDATE hr_employee_loan_installments
+          SET paid_amount = ${newInstallmentPaid}, status = ${newInstallmentStatus}, updated_at = NOW()
+          WHERE id = ${row.installment_id}
+        `.execute(trx);
+
+        const allocRes = await sql<Record<string, unknown>>`
+          INSERT INTO hr_payroll_loan_deduction_allocations (
+            tenant_id, account_id, payroll_run_id, payroll_run_item_id, employee_id, loan_id, installment_id, amount, created_by, created_at
+          ) VALUES (
+            ${auth.tenantId}, ${auth.accountId}, ${runId}, ${item.id}, ${item.employee_id}, ${row.loan_id}, ${row.installment_id}, ${deductAmount}, ${auth.userId}, NOW()
+          ) RETURNING id
+        `.execute(trx);
+        const allocId = allocRes.rows[0]?.id;
+
+        const ledgerRes = await sql<Record<string, unknown>>`
+          INSERT INTO hr_employee_ledger (
+            tenant_id, account_id, employee_id, entry_type, amount, balance_after, note, repayment_method, reference_type, reference_id, created_by, created_at
+          ) VALUES (
+            ${auth.tenantId}, ${auth.accountId}, ${item.employee_id}, 'loan_repayment', ${-deductAmount}, ${newLoanRemaining}, 'Payroll Salary Deduction', 'salary_deduction', 'hr_payroll_loan_deduction', ${allocId}, ${auth.userId}, NOW()
+          ) RETURNING id
+        `.execute(trx);
+        const ledgerId = ledgerRes.rows[0]?.id;
+
+        await sql`
+          UPDATE hr_payroll_loan_deduction_allocations SET ledger_id = ${ledgerId} WHERE id = ${allocId}
+        `.execute(trx);
+      }
+
+      if (remainingToDeduct > 0.01) {
+        throw new AppError('Unable to allocate the full loan deduction amount for employee. Balances do not match.', 'HR_PAYROLL_LOAN_ALLOCATION_MISMATCH', 400);
+      }
+    }
+  }
+
   async approvePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
+
+      await this.settlePayrollLoanDeductions(trx, id, auth);
 
       const { posted } = await this.accountingPosting.postPayrollAccrual(trx, id, auth);
       if (!posted) throw new AppError('Payroll accrual journal entry could not be created or already exists', 'HR_PAYROLL_ACCRUAL_FAILED', 400);
