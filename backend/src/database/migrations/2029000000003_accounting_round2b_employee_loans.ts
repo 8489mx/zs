@@ -1,6 +1,7 @@
 import { Kysely, sql } from 'kysely';
 
-export async function up(db: Kysely<any>): Promise<void> {
+export const migration = {
+  async up(db: Kysely<any>): Promise<void> {
   // Journal entries unique partial indexes
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_journal_entries_employee_loan_disb_uniq
@@ -28,9 +29,11 @@ export async function up(db: Kysely<any>): Promise<void> {
   `.execute(db);
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+  async down(db: Kysely<any>): Promise<void> {
   await sql`DROP INDEX IF EXISTS idx_journal_entries_employee_loan_disb_uniq`.execute(db);
   await sql`DROP INDEX IF EXISTS idx_journal_entries_employee_loan_repay_uniq`.execute(db);
   await sql`DROP INDEX IF EXISTS idx_treasury_transactions_employee_loan_disb_uniq`.execute(db);
   await sql`DROP INDEX IF EXISTS idx_treasury_transactions_employee_loan_repay_uniq`.execute(db);
 }
+
+};
