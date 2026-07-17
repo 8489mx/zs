@@ -5,7 +5,7 @@ import { useFirstRunSetupFlow } from '@/features/settings/hooks/useFirstRunSetup
 export function CompactFirstRunSetupPrompt() {
   const flow = useFirstRunSetupFlow();
 
-  if (!flow.enabled || flow.isComplete) return null;
+  if (!flow.enabled || flow.isLoading || flow.isComplete) return null;
 
   const primaryActionLabel = flow.completedCount > 0 ? 'استكمال الإعداد' : 'ابدأ الإعداد';
 

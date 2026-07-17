@@ -11,7 +11,7 @@ export function SettingsSetupFlowCard({ currentSection }: SettingsSetupFlowCardP
   const navigate = useNavigate();
   const flow = useFirstRunSetupFlow();
 
-  if (!flow.enabled || flow.isComplete) return null;
+  if (!flow.enabled || flow.isLoading || flow.isComplete) return null;
 
   const activeStep = flow.currentStep;
   if (!activeStep) return null;

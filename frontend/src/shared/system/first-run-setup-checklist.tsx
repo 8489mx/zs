@@ -4,7 +4,7 @@ import { useFirstRunSetupFlow } from '@/features/settings/hooks/useFirstRunSetup
 export function FirstRunSetupChecklist() {
   const flow = useFirstRunSetupFlow();
 
-  if (!flow.enabled) return null;
+  if (!flow.enabled || flow.isLoading) return null;
 
   const show = flow.isError || !flow.isComplete;
   if (!show) return null;
