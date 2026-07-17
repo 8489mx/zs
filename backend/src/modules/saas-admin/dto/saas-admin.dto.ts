@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber } from 'class-validator';
 
 export class ListSaasTenantsQueryDto {
   @IsOptional()
@@ -141,6 +141,7 @@ export class CreateSaasPlanDto {
   name!: string;
 
   @Type(() => Number)
+  @IsNumber()
   price!: number;
 
   @IsOptional()
