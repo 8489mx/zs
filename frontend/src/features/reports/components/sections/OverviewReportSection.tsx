@@ -116,22 +116,24 @@ export function OverviewReportSection({
 
         <div className="reports-executive-layout enhanced-executive-layout reports-executive-wide-layout">
           <aside className="reports-executive-insight-card reports-executive-wide-card" aria-label="ملخص بصري للتقرير">
-            <div className="reports-executive-insight-copy">
-              <span className="reports-kicker">نبض الفترة</span>
-              <strong>قراءة سريعة لحركة البيع والشراء والربح</strong>
-            </div>
-            <div className="reports-orb-cluster">
-              <CircularProgress 
-                value={grossMarginPercent} 
-                label="هامش الربح" 
-                size={160} 
-                strokeWidth={14} 
-                color="var(--accent, #8b5cf6)" 
-              />
-              <div className="reports-ring-legend">
-                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-sales" /> صافي البيع</span><strong>{salesShare}%</strong></div>
-                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-purchases" /> صافي الشراء</span><strong>{purchasesShare}%</strong></div>
-                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-profit" /> مجمل الربح</span><strong>{profitShare}%</strong></div>
+            <div className="reports-executive-right-col">
+              <div className="reports-executive-insight-copy">
+                <span className="reports-kicker">نبض الفترة</span>
+                <strong>قراءة سريعة لحركة البيع والشراء والربح</strong>
+              </div>
+              <div className="reports-orb-cluster">
+                <CircularProgress 
+                  value={grossMarginPercent} 
+                  label="هامش الربح" 
+                  size={180} 
+                  strokeWidth={16} 
+                  color="var(--accent, #8b5cf6)" 
+                />
+                <div className="reports-ring-legend">
+                  <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-sales" /> صافي البيع</span><strong>{salesShare}%</strong></div>
+                  <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-purchases" /> صافي الشراء</span><strong>{purchasesShare}%</strong></div>
+                  <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-profit" /> مجمل الربح</span><strong>{profitShare}%</strong></div>
+                </div>
               </div>
             </div>
             <div className="metric-list reports-metric-list reports-executive-list">

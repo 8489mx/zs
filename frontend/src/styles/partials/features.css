@@ -1277,16 +1277,7 @@
   animation: reportCardEnter 0.52s ease both;
 }
 
-.reports-executive-insight-card::before {
-  content: "";
-  position: absolute;
-  width: 170px;
-  height: 170px;
-  inset-inline-start: -72px;
-  top: -76px;
-  border-radius: 8px;
-  background: rgba(23, 12, 92, 0.1);
-}
+
 
 .reports-executive-insight-copy,
 .reports-balance-orb,
@@ -1677,10 +1668,18 @@
   width: 100%;
   max-width: none;
   display: grid;
-  grid-template-columns: minmax(260px, 0.85fr) minmax(300px, 0.75fr) minmax(520px, 1.45fr);
+  grid-template-columns: minmax(320px, 0.85fr) minmax(520px, 1.5fr);
   gap: 22px;
-  align-items: center;
+  align-items: flex-start;
   padding: 22px 24px;
+}
+
+.reports-executive-wide-card .reports-executive-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  text-align: center;
 }
 
 .reports-premium-summary-strip {
@@ -1769,18 +1768,33 @@
 
 .reports-executive-wide-card .reports-ring-legend {
   width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reports-executive-wide-card .reports-ring-legend-row {
+  padding: 8px 12px;
+  background: var(--bg-light, #f8fafc);
+  border-radius: 6px;
 }
 
 .reports-executive-wide-card .reports-executive-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
   align-self: stretch;
-  align-content: center;
+  align-content: flex-start;
+  width: 100%;
 }
 
 .reports-executive-wide-card .reports-executive-list .metric-row {
-  min-height: 54px;
-  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 80px;
+  padding: 16px;
 }
 
 @keyframes reportsOrbDraw {
