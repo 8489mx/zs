@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { PosCartPanelProps } from './posCartPanel.types';
@@ -6,6 +7,18 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   const settingsQuery = useSettingsQuery();
   const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
   const allowItemModifiers = settingsQuery.data?.manufacturingModuleEnabled === true;
+
+  const containerRef = useRef<HTMLElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [cart.length]); // Re-attach if cart toggles between empty/list
 
   if (!cart.length) {
     return (
@@ -24,8 +37,16 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
     );
   }
 
+  let responsiveClass = '';
+  if (containerWidth > 0) {
+    if (containerWidth < 440) responsiveClass = 'pos-cart-w440';
+    else if (containerWidth < 490) responsiveClass = 'pos-cart-w490';
+    else if (containerWidth < 530) responsiveClass = 'pos-cart-w530';
+    else if (containerWidth < 580) responsiveClass = 'pos-cart-w580';
+  }
+
   return (
-    <section className="pos-cart-table" aria-label="عناصر السلة">
+    <section ref={containerRef} className={`pos-cart-table ${responsiveClass}`.trim()} aria-label="عناصر السلة">
       <div className="pos-cart-table-head" aria-hidden="true">
         <div className="pos-cart-col pos-cart-col-index">م</div>
         <div className="pos-cart-col pos-cart-col-product">الصنف</div>

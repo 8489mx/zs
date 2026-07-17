@@ -1758,3 +1758,50 @@
   background: rgba(219, 234, 254, 0.72);
   border-color: rgba(23, 12, 92, 0.42);
 }
+
+.pos-workspace .pos-checkout-card {
+  min-width: 420px;
+}
+
+/* --- Responsive Cart Layout via React ResizeObserver --- */
+.pos-workspace .pos-cart-table.pos-cart-w580 .pos-cart-col-index,
+.pos-workspace .pos-cart-table.pos-cart-w530 .pos-cart-col-index,
+.pos-workspace .pos-cart-table.pos-cart-w490 .pos-cart-col-index,
+.pos-workspace .pos-cart-table.pos-cart-w440 .pos-cart-col-index {
+  display: none !important;
+}
+
+.pos-workspace .pos-cart-table.pos-cart-w530 .pos-cart-product-code,
+.pos-workspace .pos-cart-table.pos-cart-w490 .pos-cart-product-code,
+.pos-workspace .pos-cart-table.pos-cart-w440 .pos-cart-product-code {
+  display: none !important;
+}
+
+.pos-workspace .pos-cart-table.pos-cart-w490 .pos-cart-col-price,
+.pos-workspace .pos-cart-table.pos-cart-w440 .pos-cart-col-price {
+  display: none !important;
+}
+
+.pos-workspace .pos-cart-table.pos-cart-w580 .pos-cart-table-head,
+.pos-workspace .pos-cart-table.pos-cart-w580 .pos-cart-grid-row,
+.pos-workspace .pos-cart-table.pos-cart-w530 .pos-cart-table-head,
+.pos-workspace .pos-cart-table.pos-cart-w530 .pos-cart-grid-row {
+  grid-template-columns: minmax(0, 1fr) 136px 90px 98px 78px !important;
+}
+
+.pos-workspace .pos-cart-table.pos-cart-w490 .pos-cart-table-head,
+.pos-workspace .pos-cart-table.pos-cart-w490 .pos-cart-grid-row,
+.pos-workspace .pos-cart-table.pos-cart-w440 .pos-cart-table-head,
+.pos-workspace .pos-cart-table.pos-cart-w440 .pos-cart-grid-row {
+  grid-template-columns: minmax(0, 1fr) 136px 98px 78px !important;
+}
+
+.pos-workspace .pos-cart-table.pos-cart-w440 .pos-cart-product-name {
+  white-space: normal !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
