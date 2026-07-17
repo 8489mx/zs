@@ -45,7 +45,7 @@ export class E2EClient {
     }
   }
 
-  private async request(method: string, path: string, body?: unknown, customHeaders?: Record<string, string>): Promise<{ response: Response; json: JsonValue | null }> {
+  async request(method: string, path: string, body?: unknown, customHeaders?: Record<string, string>): Promise<{ response: Response; json: JsonValue | null }> {
     const headers: Record<string, string> = { Accept: 'application/json', ...customHeaders };
     const cookieHeader = this.cookieHeader();
     if (cookieHeader) headers.Cookie = cookieHeader;
@@ -73,11 +73,19 @@ export class E2EClient {
   async login(username = DEFAULT_USERNAME, password = DEFAULT_PASSWORD): Promise<JsonValue> {
     assert.ok(username, 'E2E username is required');
     assert.ok(password, 'E2E password is required');
-    const { response, json } = await this.request('POST', '/api/auth/login', { username, password });
-    assert.equal(response.status, 201, `Login failed: ${JSON.stringify(json)}`);
-    assert.ok(this.cookies.get('zs_cloud_session') || this.cookies.get('zs_dev_session') || this.cookies.get('zs_session'), 'session cookie missing after login');
-    assert.ok(this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token'), 'csrf_token cookie missing after login');
-    return json || {};
+    for (let attempts = 0; attempts < 5; attempts++) {
+      const { response, json } = await this.request('POST', '/api/auth/login', { username, password });
+      if (response.status === 429) {
+        console.log("Rate limited (429) during login, waiting 15 seconds...");
+        await new Promise(resolve => setTimeout(resolve, 15000));
+        continue;
+      }
+      assert.equal(response.status, 201, `Login failed: ${JSON.stringify(json)}`);
+      assert.ok(this.cookies.get('zs_cloud_session') || this.cookies.get('zs_dev_session') || this.cookies.get('zs_session'), 'session cookie missing after login');
+      assert.ok(this.cookies.get('zs_cloud_csrf_token') || this.cookies.get('zs_dev_csrf_token') || this.cookies.get('zs_csrf_token'), 'csrf_token cookie missing after login');
+      return json || {};
+    }
+    assert.fail("Login failed after 5 retries due to 429");
   }
 
   async get(path: string, expectedStatus = 200): Promise<JsonValue> {
