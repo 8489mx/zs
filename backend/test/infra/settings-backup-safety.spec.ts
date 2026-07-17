@@ -13,6 +13,8 @@ function actor(overrides: Partial<AuthContext>): AuthContext {
     username: 'admin',
     role: 'admin',
     permissions: [],
+    tenantId: 'default',
+    accountId: 'default',
     ...overrides,
   };
 }
