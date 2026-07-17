@@ -214,7 +214,16 @@ export function usePosWorkspace() {
     ]);
   }
 
+  const isLoading =
+    customersQuery.isLoading ||
+    settingsQuery.isLoading ||
+    branchesQuery.isLoading ||
+    locationsQuery.isLoading ||
+    productsQuery.isLoading ||
+    mutations.openShiftsQuery.isLoading;
+
   return {
+    isLoading,
     search: state.search,
     setSearch: state.setSearch,
     customerId: state.customerId,

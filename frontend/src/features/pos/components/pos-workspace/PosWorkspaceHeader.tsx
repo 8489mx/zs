@@ -10,6 +10,7 @@ import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
 
 function buildDescription(pos: PosWorkspaceState, offlineQueueCount: number) {
+  if (pos.isLoading) return 'جاري تهيئة بيئة نقطة البيع...';
   if (offlineQueueCount > 0) return `يوجد ${offlineQueueCount} فواتير معلقة تنتظر عودة الإنترنت ليتم مزامنتها.`;
   if (!pos.hasOperationalSetup) return 'أكمل تعريف المتجر ونقطة التشغيل أولًا، ثم ارجع لنقطة البيع لإتمام البيع من نفس الشاشة.';
   if (!pos.hasCatalogReady) return 'أضف صنفًا واحدًا على الأقل حتى تظهر تجربة البيع اليومية بشكل كامل.';
@@ -73,7 +74,8 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
 }
 
 function areEqual(prev: PosWorkspaceHeaderProps, next: PosWorkspaceHeaderProps) {
-  return prev.pos.paymentType === next.pos.paymentType
+  return prev.pos.isLoading === next.pos.isLoading
+    && prev.pos.paymentType === next.pos.paymentType
     && prev.pos.paymentChannel === next.pos.paymentChannel
     && prev.pos.ownOpenShift === next.pos.ownOpenShift
     && prev.pos.hasOperationalSetup === next.pos.hasOperationalSetup

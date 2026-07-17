@@ -21,7 +21,7 @@ export function PosWorkspaceQuickShortcuts() {
 export function PosWorkspaceStartupIssues({ pos }: { pos: PosWorkspaceState }) {
   const issues = getStartupIssues(pos);
 
-  if (!issues.length) return null;
+  if (pos.isLoading || !issues.length) return null;
 
   return (
     <Card className="pos-shortcuts-strip-card pos-alert-strip-card" title="راجع هذه النقاط قبل بدء البيع" description="حل النقاط التالية سيجعل الكاشير جاهزًا للاستخدام بدون تعطيل.">
