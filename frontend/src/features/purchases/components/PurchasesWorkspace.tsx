@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
@@ -14,6 +15,14 @@ export function PurchasesWorkspace() {
   const selectedPurchase = controller.selectedPurchase;
   const canEditSelectedPurchase = Boolean(controller.canEditInvoices && selectedPurchase && selectedPurchase.status !== 'cancelled');
 
+  // Auto-scroll to details when selection changes
+  const detailsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selectedPurchase && detailsRef.current) {
+      detailsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedPurchase?.id]);
+
   return (
     <div className="page-stack page-shell purchases-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
@@ -28,12 +37,14 @@ export function PurchasesWorkspace() {
 
         <PurchasesRegisterCard {...controller} selectedPurchase={selectedPurchase} summary={controller.summary || null} />
 
-        <PurchaseDetailCard
-          purchase={selectedPurchase || undefined}
-          onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase) : undefined}
-          onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
-          onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
-        />
+        <div ref={detailsRef}>
+          <PurchaseDetailCard
+            purchase={selectedPurchase || undefined}
+            onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase) : undefined}
+            onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
+            onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
+          />
+        </div>
 
         <TopSuppliersCard
           topSuppliers={controller.topSuppliers}
