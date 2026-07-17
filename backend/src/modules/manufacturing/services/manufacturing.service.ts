@@ -9,6 +9,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
 import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto } from '../dto/manufacturing.dto';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 
 @Injectable()
 export class ManufacturingService {
@@ -16,6 +17,7 @@ export class ManufacturingService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   async createBom(payload: CreateBomDto, auth: AuthContext) {
@@ -261,7 +263,7 @@ export class ManufacturingService {
       for (const line of lines) {
         const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
         const requiredQty = Number((Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
-        const lineTotalCost = Number((Number(line.expected_cost) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
+        const lineTotalCost = Number((requiredQty * Number(line.expected_cost)).toFixed(3));
         totalCost += lineTotalCost;
 
         await trx.insertInto('manufacturing_wo_consumptions').values({
@@ -351,6 +353,8 @@ export class ManufacturingService {
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .execute();
       }
+
+      await this.accountingPosting.postManufacturingWorkOrder(trx, id, auth);
     });
 
     await this.audit.log('إنهاء أمر إنتاج', `تم إنهاء أمر إنتاج #${id}`, auth);

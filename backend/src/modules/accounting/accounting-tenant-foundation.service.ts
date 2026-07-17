@@ -173,6 +173,7 @@ export class AccountingTenantFoundationService {
         sourceSettings.expenses_account_id,
         sourceSettings.sales_tax_account_id,
         sourceSettings.purchase_tax_account_id,
+        sourceSettings.manufacturing_overhead_account_id,
       ].filter((value): value is number => Number(value || 0) > 0);
 
       const sourceAccountsById = new Map<number, string>();
@@ -221,6 +222,7 @@ export class AccountingTenantFoundationService {
           expenses_account_id: mapId(sourceSettings.expenses_account_id),
           sales_tax_account_id: mapId(sourceSettings.sales_tax_account_id),
           purchase_tax_account_id: mapId(sourceSettings.purchase_tax_account_id),
+          manufacturing_overhead_account_id: mapId(sourceSettings.manufacturing_overhead_account_id),
         } as any)
         .onConflict((oc) => oc.columns(['tenant_id', 'id']).doNothing())
         .execute();

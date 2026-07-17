@@ -2430,4 +2430,103 @@ export class AccountingPostingService {
     }
   }
 
+  async postManufacturingWorkOrder(queryable: DbOrTx, workOrderId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    // Idempotency check using 'manufacturing_work_order' source
+    const existing = await queryable.selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'manufacturing_work_order')
+      .where('source_id', '=', workOrderId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: existing.id };
+
+    const wo = await queryable.selectFrom('manufacturing_work_orders as wo')
+      .innerJoin('manufacturing_boms as bom', 'bom.id', 'wo.bom_id')
+      .select([
+        'wo.total_cost',
+        'wo.quantity_to_produce',
+        'bom.overhead_cost',
+        'wo.created_at',
+        'wo.created_by',
+        'wo.destination_location_id'
+      ])
+      .where('wo.id', '=', workOrderId)
+      .where('wo.tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!wo) return { posted: false, journalEntryId: null };
+
+    const fgCost = this.toMoney(Number(wo.total_cost || 0));
+    const bomQuantity = 1; // Assuming BOM is always 1 unit for overhead multiplier in completeWorkOrder logic, actually let's check completeWorkOrder
+    // In completeWorkOrder: const totalOverheadCost = Number((overheadCost * (qtyToProduce / bomQuantity)).toFixed(3));
+    // Let's get bom quantity if needed. Wait, bom quantity might not be selected. I will just query it.
+
+    const bomDetails = await queryable.selectFrom('manufacturing_boms')
+       .select(['quantity'])
+       .where('id', '=', (await queryable.selectFrom('manufacturing_work_orders').select('bom_id').where('id', '=', workOrderId).executeTakeFirst())!.bom_id)
+       .executeTakeFirst();
+
+    const bomQty = Number(bomDetails?.quantity || 1);
+    const overheadCost = this.toMoney(Number(wo.overhead_cost || 0) * (Number(wo.quantity_to_produce || 0) / bomQty));
+    const rmCost = this.toMoney(fgCost - overheadCost);
+
+    if (fgCost <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let inventoryAccountId = Number(settings?.inventory_account_id || 0);
+    if (!(inventoryAccountId > 0)) {
+      inventoryAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1140');
+      if (!inventoryAccountId) throw new AppError('Inventory account not configured and fallback 1140 not found', 'ACCOUNT_NOT_FOUND', 400);
+    }
+
+    let overheadAccountId = Number(settings?.manufacturing_overhead_account_id || 0);
+    if (!(overheadAccountId > 0)) {
+      overheadAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5400');
+      if (!overheadAccountId) throw new AppError('Manufacturing Overhead account 5400 not found', 'ACCOUNT_NOT_FOUND', 400);
+    }
+
+    const lines: JournalLineDraft[] = [];
+    const branchId = null;
+    const locationId = wo.destination_location_id ? Number(wo.destination_location_id) : null;
+
+    // 1. Debit FG (Inventory)
+    this.addLine(lines, { accountId: inventoryAccountId, description: `منتج تام إضافي - أمر #${workOrderId}`, debit: fgCost, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+
+    // 2. Credit RM (Inventory)
+    if (rmCost > 0) {
+      this.addLine(lines, { accountId: inventoryAccountId, description: `خامات مستهلكة - أمر #${workOrderId}`, debit: 0, credit: rmCost, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    // 3. Credit Overhead
+    if (overheadCost > 0) {
+      this.addLine(lines, { accountId: overheadAccountId, description: `مصاريف صناعية محملة - أمر #${workOrderId}`, debit: 0, credit: overheadCost, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'manufacturing_work_order',
+        sourceId: workOrderId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: wo.created_at ? new Date(wo.created_at) : new Date(),
+        description: `قيد أمر تصنيع #${workOrderId}`,
+        branchId,
+        locationId,
+        createdBy: wo.created_by ? Number(wo.created_by) : auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+         const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'manufacturing_work_order').where('source_id', '=', workOrderId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+         return { posted: false, journalEntryId: existing ? existing.id : null };
+      }
+      throw e;
+    }
+  }
+
 }

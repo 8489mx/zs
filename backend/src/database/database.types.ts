@@ -165,6 +165,7 @@ export interface AccountingSettingsTable {
   expenses_account_id: number | null;
   sales_tax_account_id: number | null;
   purchase_tax_account_id: number | null;
+  manufacturing_overhead_account_id: number | null;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 

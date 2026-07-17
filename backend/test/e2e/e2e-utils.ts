@@ -102,6 +102,12 @@ export class E2EClient {
     return json || {};
   }
 
+  async patch(path: string, body: unknown, expectedStatus = 200): Promise<JsonValue> {
+    const { response, json } = await this.request('PATCH', path, body);
+    assert.equal(response.status, expectedStatus, `PATCH ${path} failed: ${JSON.stringify(json)}`);
+    return json || {};
+  }
+
   async del(path: string, expectedStatus = 200): Promise<JsonValue> {
     const { response, json } = await this.request('DELETE', path);
     assert.equal(response.status, expectedStatus, `DELETE ${path} failed: ${JSON.stringify(json)}`);
