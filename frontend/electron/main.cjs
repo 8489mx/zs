@@ -244,7 +244,13 @@ app.whenReady().then(async () => {
       const data = await res.json();
       return { ok: true, data };
     } catch (err) {
-      return { ok: false, error: err.message };
+      let errorMsg = err.message || String(err);
+      if (err.name === 'AbortError' || errorMsg.includes('aborted')) {
+        errorMsg = 'فشل الاتصال: يرجى التأكد من أن البرنامج يعمل على الجهاز الرئيسي، وأنه متصل بنفس الشبكة ولا يمنعه الجدار الناري.';
+      } else if (errorMsg.includes('fetch failed')) {
+        errorMsg = 'تعذر الاتصال بالجهاز الرئيسي. تأكد من صحة الرابط.';
+      }
+      return { ok: false, error: errorMsg };
     }
   });
 
@@ -282,19 +288,42 @@ app.whenReady().then(async () => {
   // Wait for backend to be ready then load the actual app
   const net = require('net');
   const waitForBackend = () => {
-    if (currentConfig.runtimeMode === 'lan_client' || currentConfig.runtimeMode === 'invalid') return Promise.resolve();
+    if (currentConfig.runtimeMode === 'invalid') return Promise.resolve(false);
+    
+    if (currentConfig.runtimeMode === 'lan_client') {
+      return new Promise((resolve) => {
+        const { net: electronNet } = require('electron');
+        let attempts = 0;
+        const pingLan = async () => {
+          attempts++;
+          if (attempts > 15) { // wait up to 15 seconds
+            return resolve(false); 
+          }
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1000);
+            const res = await electronNet.fetch(`${currentConfig.lanServerUrl}/api/runtime/health`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) return resolve(true);
+          } catch (err) {}
+          setTimeout(pingLan, 1000);
+        };
+        pingLan();
+      });
+    }
+
     return new Promise((resolve) => {
       let attempts = 0;
       const ping = () => {
         attempts++;
         if (attempts > 150) {
-          return resolve(); 
+          return resolve(true); 
         }
         const socket = new net.Socket();
         socket.setTimeout(1000);
         socket.on('connect', () => {
           socket.destroy();
-          resolve();
+          resolve(true);
         });
         socket.on('error', () => {
           socket.destroy();
@@ -310,7 +339,7 @@ app.whenReady().then(async () => {
     });
   };
 
-  await waitForBackend();
+  const backendReady = await waitForBackend();
 
   // Write version marker after successful startup (migrations ran or were skipped)
   try {
@@ -325,6 +354,8 @@ app.whenReady().then(async () => {
   // Load the actual app now that backend is ready
   if (currentConfig.runtimeMode === 'invalid') {
     mainWindow.loadFile(path.join(__dirname, 'config-error.html'));
+  } else if (currentConfig.runtimeMode === 'lan_client' && !backendReady) {
+    mainWindow.loadFile(path.join(__dirname, 'server-offline.html'));
   } else {
     loadApp();
   }
