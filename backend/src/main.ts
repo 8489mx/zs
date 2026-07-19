@@ -105,7 +105,13 @@ async function bootstrap(): Promise<void> {
     if (req.url && req.url.startsWith('/api/updates/') && req.method === 'GET') {
       callback(null, { origin: '*', credentials: false });
     } else {
-      callback(null, { origin: corsOrigins, credentials: true });
+      let allowedOrigins: (string | RegExp)[] = [...corsOrigins];
+      const isLanServer = process.env.APP_MODE === 'SELF_CONTAINED' && process.env.ELECTRON_RUNTIME_MODE === 'lan_server';
+      if (isLanServer) {
+        allowedOrigins.push('null');
+      }
+
+      callback(null, { origin: allowedOrigins, credentials: true });
     }
   });
 

@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
+const RuntimeConfig = require('./runtime-config.cjs');
+let runtimeConfigInstance = null;
+let currentConfig = null;
 
 let mainWindow = null;
 
@@ -13,6 +16,7 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
+      additionalArguments: [`--electron-runtime-config=${JSON.stringify(currentConfig)}`]
     },
     show: false,
   });
@@ -39,6 +43,9 @@ const loadApp = () => {
 };
 
 app.whenReady().then(async () => {
+  runtimeConfigInstance = new RuntimeConfig(app.getPath('userData'));
+  currentConfig = runtimeConfigInstance.getConfig();
+
   // Log App Version details for Update Checker & Debugging
   const packageVersion = require('../package.json').version;
   console.log('----------------------------------------');
@@ -75,10 +82,12 @@ app.whenReady().then(async () => {
   const PostgresManager = require('./postgres-manager.cjs');
   const pgManager = new PostgresManager(app.getAppPath(), app.isPackaged);
   
-  try {
-    await pgManager.setupAndStart();
-  } catch (err) {
-    console.error('Failed to start Postgres runtime:', err);
+  if (currentConfig.runtimeMode !== 'lan_client' && currentConfig.runtimeMode !== 'invalid') {
+    try {
+      await pgManager.setupAndStart();
+    } catch (err) {
+      console.error('Failed to start Postgres runtime:', err);
+    }
   }
 
   // Start the bundled NestJS backend in offline mode
@@ -140,7 +149,7 @@ app.whenReady().then(async () => {
     Z_DATA_DIR: dataDir,
     PORTABLE_MODE: 'false',
     APP_PORT: '3001',
-    APP_HOST: '127.0.0.1',
+    APP_HOST: currentConfig.runtimeMode === 'lan_server' ? '0.0.0.0' : '127.0.0.1',
     APP_MODE: 'SELF_CONTAINED',
     NODE_ENV: 'production',
     SESSION_SECRET: sessionSecret,
@@ -149,28 +158,33 @@ app.whenReady().then(async () => {
     ALLOW_SESSION_ID_HEADER: 'true',
     ELECTRON_EXE_PATH: process.execPath,
     SKIP_MIGRATIONS: skipMigrations ? 'true' : 'false',
+    ELECTRON_RUNTIME_MODE: currentConfig.runtimeMode,
   };
 
-  const backendProcess = fork(backendPath, [], {
-    env: backendEnv,
-    stdio: 'inherit'
-  });
-
-  backendProcess.on('error', (err) => {
-    console.error('Backend process error:', err);
-  });
-
-  // When the backend exits cleanly (code 0, no signal), it means it triggered
-  // a self-update. Close Electron so ApplyAndRestart.ps1 can replace the files
-  // and relaunch the EXE.
+  let backendProcess = null;
   let isQuitting = false;
-  backendProcess.on('exit', (code, signal) => {
-    if (code === 0 && !signal && !isQuitting) {
-      console.log('[ELECTRON] Backend exited cleanly — closing Electron for update restart...');
-      isQuitting = true;
-      app.quit();
-    }
-  });
+
+  if (currentConfig.runtimeMode !== 'lan_client' && currentConfig.runtimeMode !== 'invalid') {
+    backendProcess = fork(backendPath, [], {
+      env: backendEnv,
+      stdio: 'inherit'
+    });
+
+    backendProcess.on('error', (err) => {
+      console.error('Backend process error:', err);
+    });
+
+    // When the backend exits cleanly (code 0, no signal), it means it triggered
+    // a self-update. Close Electron so ApplyAndRestart.ps1 can replace the files
+    // and relaunch the EXE.
+    backendProcess.on('exit', (code, signal) => {
+      if (code === 0 && !signal && !isQuitting) {
+        console.log('[ELECTRON] Backend exited cleanly — closing Electron for update restart...');
+        isQuitting = true;
+        app.quit();
+      }
+    });
+  }
 
   // Ensure backend shuts down when Electron closes
   app.on('will-quit', () => {
@@ -182,6 +196,38 @@ app.whenReady().then(async () => {
       pgManager.stopServer();
     } catch (err) {
       console.error('Failed to stop postgres on quit', err);
+    }
+  });
+
+  // Handle IPC for LAN Modes
+  ipcMain.handle('get-runtime-config', () => currentConfig);
+  ipcMain.handle('switch-to-standalone', () => {
+    runtimeConfigInstance.switchToStandalone();
+    app.relaunch();
+    app.exit();
+  });
+  ipcMain.handle('switch-to-lan-server', () => {
+    runtimeConfigInstance.switchToLanServer();
+    app.relaunch();
+    app.exit();
+  });
+  ipcMain.handle('switch-to-lan-client', (e, { serverUrl, port }) => {
+    runtimeConfigInstance.switchToLanClient(serverUrl, port);
+    app.relaunch();
+    app.exit();
+  });
+  ipcMain.handle('test-lan-server', async (e, { serverUrl }) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const fetchApi = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+      const res = await fetchApi(`${serverUrl}/api/runtime/health`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error('Server returned ' + res.status);
+      const data = await res.json();
+      return { ok: true, data };
+    } catch (err) {
+      return { ok: false, error: err.message };
     }
   });
 
@@ -219,6 +265,7 @@ app.whenReady().then(async () => {
   // Wait for backend to be ready then load the actual app
   const net = require('net');
   const waitForBackend = () => {
+    if (currentConfig.runtimeMode === 'lan_client' || currentConfig.runtimeMode === 'invalid') return Promise.resolve();
     return new Promise((resolve) => {
       let attempts = 0;
       const ping = () => {
@@ -259,7 +306,11 @@ app.whenReady().then(async () => {
   }
 
   // Load the actual app now that backend is ready
-  loadApp();
+  if (currentConfig.runtimeMode === 'invalid') {
+    mainWindow.loadFile(path.join(__dirname, 'config-error.html'));
+  } else {
+    loadApp();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -4,6 +4,7 @@ import {
   SettingsCoreSection,
   SettingsReferenceSection,
   SettingsBackupImportSection,
+  SettingsLanModesSection,
 } from '@/features/settings/components/SettingsWorkspaceSections';
 import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import type { BackupConfigQueryState } from '@/features/settings/components/workspace-sections/SettingsBackupImportSection';
@@ -200,4 +201,8 @@ export function renderBackupSection(props: SharedSettingsSectionProps) {
 export function renderUsersSection(props: SharedSettingsSectionProps) {
   if (props.currentUserRole !== 'super_admin') return null;
   return <UserManagementSection branches={props.branches} setupMode={props.setupMode} setupStepKey={props.setupStepKey || null} onSetupAdvance={props.onSetupAdvance} />;
+}
+
+export function renderLanNetworkSection() {
+  return <SettingsLanModesSection />;
 }

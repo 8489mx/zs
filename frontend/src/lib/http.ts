@@ -52,6 +52,10 @@ export function normalizeApiBaseUrl(
   value?: string,
   locationInfo?: { port: string; protocol: string; hostname: string },
 ) {
+  if (typeof window !== 'undefined' && (window as any).electronRuntime?.config?.apiBaseUrl) {
+    return (window as any).electronRuntime.config.apiBaseUrl;
+  }
+
   const normalized = value?.replace(/\/$/, '') || '';
   const runtimeLocation = locationInfo
     ?? (typeof window !== 'undefined'

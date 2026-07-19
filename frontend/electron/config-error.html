@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>إصلاح إعداد التشغيل</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #0f172a;
+      color: white;
+      font-family: Tahoma, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      margin-top: 50px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #f87171;
+    }
+    p {
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: Tahoma, sans-serif;
+    }
+    .btn:hover {
+      background-color: #2563eb;
+    }
+    .btn.outline {
+      background-color: transparent;
+      border: 1px solid #3b82f6;
+      color: #3b82f6;
+    }
+    .btn.outline:hover {
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+    .input-group {
+      margin-top: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: white;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .error {
+      color: #f87171;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>تلف في إعدادات الشبكة</h2>
+    <p>يبدو أن هناك خطأ أو تلف في ملف إعدادات الشبكة المحلية الخاصة بهذا الجهاز. لم يتم تشغيل قاعدة البيانات لمنع حدوث أي تعارض.</p>
+    <p>اختر إحدى الطرق التالية لإصلاح المشكلة:</p>
+
+    <button class="btn" onclick="resetToStandalone()">العودة إلى وضع جهاز مستقل</button>
+
+    <div class="input-group">
+      <label>أو أدخل رابط الجهاز الرئيسي للاتصال به كجهاز ثانوي:</label>
+      <input type="text" id="serverUrl" placeholder="مثال: http://192.168.1.10:3001" dir="ltr" />
+      <div id="errorMsg" class="error"></div>
+      <button class="btn outline" onclick="connectToServer()">اعتماد الرابط وإعادة التشغيل</button>
+    </div>
+  </div>
+
+  <script>
+    function resetToStandalone() {
+      if (confirm('سيتم العودة لوضع الجهاز المستقل. هل أنت متأكد؟')) {
+        window.electronRuntime.switchToStandalone().catch(console.error);
+      }
+    }
+
+    async function connectToServer() {
+      const urlInput = document.getElementById('serverUrl').value.trim();
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.style.display = 'none';
+
+      if (!urlInput || !urlInput.startsWith('http')) {
+        errorMsg.textContent = 'الرابط غير صحيح، يجب أن يبدأ بـ http';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const cleanUrl = urlInput.replace(/\/$/, '');
+      try {
+        const res = await window.electronRuntime.testLanServer({ serverUrl: cleanUrl });
+        if (res.ok && res.data && res.data.runtimeMode === 'lan_server') {
+          await window.electronRuntime.switchToLanClient({ serverUrl: cleanUrl, port: 3001 });
+        } else {
+          errorMsg.textContent = 'الجهاز المستهدف لا يعمل كجهاز رئيسي أو لا يمكن الوصول إليه.';
+          errorMsg.style.display = 'block';
+        }
+      } catch (err) {
+        errorMsg.textContent = 'تعذر الاتصال بالجهاز: ' + err.message;
+        errorMsg.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

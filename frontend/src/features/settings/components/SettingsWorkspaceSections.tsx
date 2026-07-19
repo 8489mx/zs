@@ -11,3 +11,4 @@ export { SettingsReferenceSection } from './workspace-sections/SettingsReference
 export { SettingsBackupImportSection } from './workspace-sections/SettingsBackupImportSection';
 export { SettingsDiagnosticsSection } from './workspace-sections/SettingsDiagnosticsSection';
 export { SettingsReadinessSection } from './workspace-sections/SettingsReadinessSection';
+export { SettingsLanModesSection } from './workspace-sections/SettingsLanModesSection';
