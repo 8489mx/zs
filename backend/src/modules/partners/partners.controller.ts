@@ -49,7 +49,7 @@ export class PartnersController {
   }
 
   @Get('suppliers')
-  @RequirePermissions('suppliers')
+  @AllowAuthenticated()
   listSuppliers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.partnersService.listSuppliers(query, req.authContext!);
   }

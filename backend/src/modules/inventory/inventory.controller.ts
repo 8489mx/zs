@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, AllowAuthenticated } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -18,13 +18,13 @@ export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Get('locations')
-  @RequirePermissions('inventory')
+  @AllowAuthenticated()
   listLocations(@Req() req: RequestWithAuth, @Query('includeInactive') includeInactive?: string): Promise<Record<string, unknown>> {
     return this.inventoryService.listLocations(req.authContext!, includeInactive === 'true');
   }
 
   @Get('location-stocks')
-  @RequirePermissions('inventory')
+  @AllowAuthenticated()
   getAllLocationStocks(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.getAllLocationStocks(req.authContext!);
   }
