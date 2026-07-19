@@ -17,9 +17,11 @@ if (import.meta.env.VITE_ERROR_TRACKING_ENABLED === 'true' && import.meta.env.VI
   });
 }
 
+import { resolveRequestUrl } from '@/lib/http';
+
 const reportGlobalError = (error: any, type: string) => {
   try {
-    fetch('/api/logs/frontend-error', {
+    fetch(resolveRequestUrl('/api/logs/frontend-error'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

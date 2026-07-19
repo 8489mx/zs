@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { resolveRequestUrl } from '@/lib/http';
+import { resolveRequestUrl, http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { FormSection } from '@/shared/components/form-section';
 import { useAuthStore } from '@/stores/auth-store';
@@ -48,14 +48,11 @@ export function SystemUpdatesSection() {
     formData.append('file', localUpdateState.file);
 
     try {
-      const res = await fetch(resolveRequestUrl('/api/local-updates/apply-local-zip'), {
+      await http('/api/local-updates/apply-local-zip', {
         method: 'POST',
         body: formData,
+        timeoutMs: 5 * 60 * 1000,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'فشل تطبيق التحديث');
-      }
       setLocalUpdateState(s => ({ ...s, status: 'success' }));
     } catch (e: any) {
       setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));
@@ -81,15 +78,11 @@ export function SystemUpdatesSection() {
     setLocalUpdateState({ open: true, file: null, status: 'uploading' });
 
     try {
-      const res = await fetch(resolveRequestUrl('/api/local-updates/apply'), {
+      await http('/api/local-updates/apply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ version, patchUrl, changelog }),
+        timeoutMs: 5 * 60 * 1000,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'فشل بدء التحديث');
-      }
       setLocalUpdateState(s => ({ ...s, status: 'success' }));
     } catch (e: any) {
       setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));

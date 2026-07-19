@@ -218,10 +218,10 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('test-lan-server', async (e, { serverUrl }) => {
     try {
+      const { net: electronNet } = require('electron');
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const fetchApi = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-      const res = await fetchApi(`${serverUrl}/api/runtime/health`, { signal: controller.signal });
+      const res = await electronNet.fetch(`${serverUrl}/api/runtime/health`, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error('Server returned ' + res.status);
       const data = await res.json();

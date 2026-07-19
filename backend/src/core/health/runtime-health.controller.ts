@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import * as os from 'os';
 
-@Controller('runtime/health')
+@Controller('api/runtime/health')
 export class RuntimeHealthController {
   @Get()
   getRuntimeHealth() {

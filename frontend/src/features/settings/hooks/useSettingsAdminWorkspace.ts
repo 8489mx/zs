@@ -45,7 +45,11 @@ function withRestoreConfirmation(payload: unknown): Record<string, unknown> {
 
 
 async function fetchBackupBlob() {
-  const response = await fetch(settingsApi.backupDownloadUrl(), { credentials: 'include' });
+  const headers = new Headers();
+  const localSessionId = typeof window !== 'undefined' ? window.sessionStorage.getItem('zs.localSessionId') : null;
+  if (localSessionId) headers.set('x-session-id', localSessionId);
+
+  const response = await fetch(settingsApi.backupDownloadUrl(), { credentials: 'include', headers });
   if (!response.ok) {
     const payload = await response.text();
     throw new Error(payload || 'تعذر تنزيل النسخة الاحتياطية.');
@@ -157,8 +161,13 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     setBackupMessage('');
     setBackupMessageKind('success');
     try {
+      const headers = new Headers();
+      const localSessionId = typeof window !== 'undefined' ? window.sessionStorage.getItem('zs.localSessionId') : null;
+      if (localSessionId) headers.set('x-session-id', localSessionId);
+
       const response = await fetch(settingsApi.supportBundleDownloadUrl(), {
-        credentials: 'include'
+        credentials: 'include',
+        headers
       });
       if (!response.ok) {
         throw new Error('فشل تنزيل حزمة الدعم. تأكد من صلاحياتك وأن الملف متاح.');

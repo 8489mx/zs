@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { resolveRequestUrl } from '@/lib/http';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +24,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     console.error('react_frontend_error', error, errorInfo);
     
     // Silently log to backend
-    fetch('/api/logs/frontend-error', {
+    fetch(resolveRequestUrl('/api/logs/frontend-error'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
