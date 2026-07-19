@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const RuntimeConfig = require('./runtime-config.cjs');
@@ -23,6 +23,23 @@ const createWindow = () => {
 
   mainWindow.maximize();
   mainWindow.show();
+
+  mainWindow.webContents.on('will-prevent-unload', (event) => {
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: 'warning',
+      buttons: ['مغادرة', 'البقاء'],
+      title: 'تأكيد الإغلاق',
+      message: 'توجد بيانات قيد التعديل ولم تُحفظ.',
+      detail: 'هل أنت متأكد من رغبتك في إغلاق البرنامج؟ ستفقد أي فواتير أو تعديلات لم تقم بحفظها.',
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true
+    });
+    
+    if (choice === 0) {
+      event.preventDefault();
+    }
+  });
 
   // Load loading page immediately while backend starts
   mainWindow.loadFile(path.join(__dirname, 'loading.html'));
