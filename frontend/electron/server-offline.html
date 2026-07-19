@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>الجهاز الرئيسي غير متاح</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #0f172a;
+      color: white;
+      font-family: Tahoma, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      margin-top: 50px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #f87171;
+    }
+    p {
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: Tahoma, sans-serif;
+    }
+    .btn:hover {
+      background-color: #2563eb;
+    }
+    .btn.outline {
+      background-color: transparent;
+      border: 1px solid #3b82f6;
+      color: #3b82f6;
+    }
+    .btn.outline:hover {
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+    .input-group {
+      margin-top: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: white;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .error {
+      color: #f87171;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .alert-box {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid #f87171;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>الجهاز الرئيسي غير متاح (السيرفر مغلق)</h2>
+    <div class="alert-box">
+      لا يمكن الوصول إلى السيرفر الرئيسي على الشبكة. يرجى التأكد مما يلي:
+      <ul style="margin-top: 5px; margin-bottom: 5px;">
+        <li>البرنامج مفتوح وقيد التشغيل على الجهاز الرئيسي.</li>
+        <li>لا يوجد جدار حماية (Firewall) يمنع الاتصال.</li>
+        <li>رابط الـ IP الخاص بالجهاز الرئيسي لم يتغير.</li>
+      </ul>
+    </div>
+    
+    <button class="btn" id="retryBtn" onclick="retryConnection()">إعادة المحاولة</button>
+
+    <div class="input-group">
+      <label>أو إذا تغير عنوان الجهاز الرئيسي، أدخل الرابط الجديد هنا:</label>
+      <input type="text" id="serverUrl" placeholder="مثال: http://192.168.1.10:3001" dir="ltr" />
+      <div id="errorMsg" class="error"></div>
+      <button class="btn outline" onclick="connectToServer()">تحديث الرابط وإعادة التشغيل</button>
+    </div>
+
+    <button class="btn outline" style="margin-top: 30px; border-color: #64748b; color: #94a3b8;" onclick="resetToStandalone()">العودة إلى وضع جهاز مستقل</button>
+  </div>
+
+  <script>
+    async function loadCurrentConfig() {
+      try {
+        const config = await window.electronRuntime.getRuntimeConfig();
+        if (config && config.lanServerUrl) {
+          document.getElementById('serverUrl').value = config.lanServerUrl;
+        }
+      } catch (err) {}
+    }
+    loadCurrentConfig();
+
+    function retryConnection() {
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.style.display = 'none';
+      
+      const btn = document.getElementById('retryBtn');
+      const originalBtnText = btn.innerText;
+      btn.innerText = 'جاري التحقق...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        connectToServer().finally(() => {
+          btn.innerText = originalBtnText;
+          btn.disabled = false;
+        });
+      }, 500);
+    }
+
+    function resetToStandalone() {
+      if (confirm('سيتم العودة لوضع الجهاز المستقل وإلغاء الارتباط بالشبكة. هل أنت متأكد؟')) {
+        window.electronRuntime.switchToStandalone().catch(console.error);
+      }
+    }
+
+    async function connectToServer() {
+      const urlInput = document.getElementById('serverUrl').value.trim();
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.style.display = 'none';
+
+      if (!urlInput || !urlInput.startsWith('http')) {
+        errorMsg.textContent = 'الرابط غير صحيح، يجب أن يبدأ بـ http';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const cleanUrl = urlInput.replace(/\/$/, '');
+      try {
+        const res = await window.electronRuntime.testLanServer({ serverUrl: cleanUrl });
+        if (res.ok && res.data && res.data.runtimeMode === 'lan_server') {
+          await window.electronRuntime.switchToLanClient({ serverUrl: cleanUrl, port: 3001 });
+        } else {
+          errorMsg.textContent = 'الجهاز المستهدف لا يعمل كجهاز رئيسي أو لا يمكن الوصول إليه.';
+          errorMsg.style.display = 'block';
+        }
+      } catch (err) {
+        errorMsg.textContent = 'تعذر الاتصال بالجهاز: ' + (err.message || 'خطأ غير معروف');
+        errorMsg.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>
