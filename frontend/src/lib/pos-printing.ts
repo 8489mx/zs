@@ -27,6 +27,7 @@ function openReceiptDocument(
     footerHtml: getPrintOption(options.settings, 'printShowFooter', true) ? escapeHtml(defaultInvoiceFooter(options.settings)) : '',
     pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4',
     extraStyles: getInvoiceStyles(compact),
+    deviceName: options.settings?.posElectronCashierPrinter || undefined,
   });
 }
 

@@ -55,6 +55,16 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     params.setSubmitMessage('تم طباعة شيت المطبخ.');
   }
 
+  function printBothNow() {
+    if (!hasFreshLastSale() || !params.lastSale) return;
+    const sale = params.lastSale;
+    printLastSaleAs('receipt');
+    setTimeout(() => {
+      printKitchenTicket(sale, params.settings);
+    }, 400);
+    params.setSubmitMessage('تمت طباعة الريسيت وشيت المطبخ.');
+  }
+
   function exportPdfNow() {
     if (!hasFreshLastSale() || !params.lastSale) return;
     const sale = params.lastSale;
@@ -73,6 +83,7 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     printReceiptNow,
     printA4Now,
     printKitchenNow,
+    printBothNow,
     exportPdfNow,
     completePostSaleCycle,
     heldDraftSummaries: params.heldDrafts.map((draft, index) => ({

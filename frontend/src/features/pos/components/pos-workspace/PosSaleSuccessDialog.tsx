@@ -16,6 +16,7 @@ interface PosSaleSuccessDialogProps {
   onPrintReceipt: () => void;
   onPrintA4: () => void;
   onPrintKitchen?: () => void;
+  onPrintBoth?: () => void;
 }
 
 function normalizeWhatsappPhone(phone: string) {
@@ -43,6 +44,7 @@ export function PosSaleSuccessDialog({
   onPrintReceipt,
   onPrintA4,
   onPrintKitchen,
+  onPrintBoth,
 }: PosSaleSuccessDialogProps) {
   const [printError, setPrintError] = useState('');
   const [whatsappError, setWhatsappError] = useState('');
@@ -186,7 +188,12 @@ export function PosSaleSuccessDialog({
         <div className="pos-sale-success-actions">
           <Button type="button" onClick={() => safePrint(onPrintReceipt)}>طباعة الريسيت F2</Button>
           {settings?.posKitchenPrinterEnabled && onPrintKitchen && (
-            <Button type="button" onClick={() => safePrint(onPrintKitchen)}>طباعة للمطبخ</Button>
+            <>
+              <Button type="button" onClick={() => safePrint(onPrintKitchen)}>طباعة للمطبخ</Button>
+              {onPrintBoth && (
+                <Button type="button" onClick={() => safePrint(onPrintBoth)}>طباعة الريسيت والمطبخ</Button>
+              )}
+            </>
           )}
           <Button type="button" variant="success" onClick={onNewSale}>بيع جديد F3</Button>
           <Link ref={viewInvoiceLinkRef} to="/sales" className="btn btn-secondary">عرض الفاتورة F4</Link>

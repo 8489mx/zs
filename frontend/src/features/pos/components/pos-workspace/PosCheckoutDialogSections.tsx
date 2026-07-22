@@ -1,4 +1,4 @@
-import type { FormEvent, RefObject } from 'react';
+import { useState, useEffect, type FormEvent, type RefObject } from 'react';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
@@ -165,6 +165,15 @@ export function PosCheckoutPaymentSection({
   const needsCreditCustomer = isCreditSale && !String(pos.customerId || '').trim();
   const transferSelected = !isCreditSale && (pos.paymentChannel === 'wallet' || pos.paymentChannel === 'instapay');
 
+  const [percentStr, setPercentStr] = useState('');
+  const [isPercentFocused, setIsPercentFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isPercentFocused) {
+      setPercentStr(pos.discount > 0 && pos.totals.subTotal > 0 ? ((pos.discount / pos.totals.subTotal) * 100).toFixed(2).replace(/\.00$/, '') : '');
+    }
+  }, [pos.discount, pos.totals.subTotal, isPercentFocused]);
+
   return (
     <section className="pos-checkout-dialog-section pos-checkout-payment-section">
       <div className="pos-checkout-section-head"><h4>الدفع</h4><strong>{paymentLabel(pos.paymentType, pos.paymentChannel)}</strong></div>
@@ -186,7 +195,24 @@ export function PosCheckoutPaymentSection({
         <label className="field"><span>نقدي</span><input ref={cashAmountInputRef} data-autofocus={!customerPickerOpen ? true : undefined} type="number" step="0.01" value={pos.cashAmount} onChange={(event) => pos.setCashAmount(Number(event.target.value || 0))} disabled={isCreditSale || transferSelected} /></label>
         <label className="field"><span>فيزا</span><input type="number" step="0.01" value={pos.cardAmount} onChange={(event) => pos.setCardAmount(Number(event.target.value || 0))} disabled={isCreditSale || transferSelected} /></label>
         {transferSelected ? <label className="field"><span>{pos.paymentChannel === 'instapay' ? 'مدفوع InstaPay' : 'مدفوع محفظة'}</span><input type="number" step="0.01" value={pos.transferAmount} onChange={(event) => pos.setTransferAmount(Number(event.target.value || 0))} disabled={isCreditSale} /></label> : null}
-        <label className="field"><span>الخصم</span><input type="number" step="0.01" value={pos.discount} onChange={(event) => pos.setDiscount(Number(event.target.value || 0))} disabled={isDiscountLocked} /></label>
+        <label className="field"><span>الخصم (مبلغ)</span><input type="number" step="0.01" value={pos.discount === 0 ? '' : pos.discount} onChange={(event) => pos.setDiscount(Number(event.target.value || 0))} disabled={isDiscountLocked} placeholder="0" /></label>
+        <label className="field">
+          <span>الخصم (%)</span>
+          <input
+            type="number"
+            step="0.01"
+            value={isPercentFocused ? percentStr : (pos.discount > 0 && pos.totals.subTotal > 0 ? ((pos.discount / pos.totals.subTotal) * 100).toFixed(2).replace(/\.00$/, '') : '')}
+            onFocus={() => setIsPercentFocused(true)}
+            onBlur={() => setIsPercentFocused(false)}
+            onChange={(event) => {
+              setPercentStr(event.target.value);
+              const p = Number(event.target.value || 0);
+              pos.setDiscount(Number(((p / 100) * pos.totals.subTotal).toFixed(2)));
+            }}
+            disabled={isDiscountLocked || pos.totals.subTotal === 0}
+            placeholder="0"
+          />
+        </label>
         {isDiscountLocked ? (
           <Button type="button" variant={pos.discountApprovalGranted ? 'success' : 'secondary'} onClick={() => {
             if (pos.discountApprovalGranted) return;

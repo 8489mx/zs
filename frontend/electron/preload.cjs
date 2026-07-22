@@ -28,3 +28,8 @@ contextBridge.exposeInMainWorld('electronRuntime', {
   switchToLanClient: (opts) => ipcRenderer.invoke('switch-to-lan-client', opts),
   testLanServer: (opts) => ipcRenderer.invoke('test-lan-server', opts)
 });
+
+contextBridge.exposeInMainWorld('electronPrinter', {
+  getPrinters: () => ipcRenderer.invoke('get-printers'),
+  printHtmlSilent: (opts) => ipcRenderer.invoke('print-html-silent', opts)
+});

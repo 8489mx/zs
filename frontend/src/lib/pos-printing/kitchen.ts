@@ -88,5 +88,6 @@ export function printKitchenTicket(sale: Sale, settings?: Partial<AppSettings> |
     footerHtml: '',
     pageSize: 'receipt',
     extraStyles: getKitchenTicketStyles(),
+    deviceName: settings?.posElectronKitchenPrinter || undefined,
   });
 }

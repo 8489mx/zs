@@ -218,6 +218,52 @@ app.whenReady().then(async () => {
 
   // Handle IPC for LAN Modes
   ipcMain.handle('get-runtime-config', () => currentConfig);
+
+  // Handle IPC for Silent Printing
+  ipcMain.handle('get-printers', async () => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const printers = await mainWindow.webContents.getPrintersAsync();
+        return printers.map(p => ({ name: p.name, displayName: p.displayName, isDefault: p.isDefault }));
+      }
+      return [];
+    } catch (err) {
+      console.error('Failed to get printers', err);
+      return [];
+    }
+  });
+
+  ipcMain.handle('print-html-silent', async (e, { html, deviceName }) => {
+    return new Promise((resolve) => {
+      let printWin = new BrowserWindow({
+        show: false,
+        webPreferences: { nodeIntegration: false, contextIsolation: true }
+      });
+      
+      printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      
+      printWin.webContents.on('did-finish-load', () => {
+        // Use a small timeout to allow layout parsing and image loading (if any data URIs)
+        setTimeout(() => {
+          if (!printWin || printWin.isDestroyed()) {
+             return resolve({ ok: false, error: 'Window destroyed' });
+          }
+          printWin.webContents.print({
+            silent: true,
+            printBackground: true,
+            deviceName: deviceName || undefined,
+            margins: { marginType: 'none' }
+          }, (success, failureReason) => {
+            if (!printWin.isDestroyed()) {
+              printWin.destroy();
+            }
+            if (success) resolve({ ok: true });
+            else resolve({ ok: false, error: failureReason });
+          });
+        }, 200);
+      });
+    });
+  });
   ipcMain.handle('switch-to-standalone', () => {
     runtimeConfigInstance.switchToStandalone();
     app.relaunch();

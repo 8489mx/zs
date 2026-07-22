@@ -191,6 +191,7 @@ export interface PrintDocumentOptions {
   printDelayMs?: number;
   autoClose?: boolean;
   documentDirection?: 'rtl' | 'ltr';
+  deviceName?: string;
 }
 
 export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, options: PrintDocumentOptions = {}) {
@@ -213,6 +214,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
     printDelayMs = 260,
     autoClose = false,
     documentDirection = 'rtl',
+    deviceName,
   } = options;
 
   const branding = resolvePrintSettings();
@@ -220,8 +222,6 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
   const bodyContent = pageSize === 'receipt' ? bodyHtml : stripLeadingDuplicateHeading(bodyHtml, title);
   const effectiveFooter = pageSize === 'receipt' ? sanitizePrintText(footerHtml || branding.invoiceFooter) : sanitizePrintText(footerHtml);
   const printedAt = new Date().toLocaleString('ar-EG');
-  const printWindow = window.open('', '_blank', 'width=1120,height=820');
-  if (!printWindow) throw new Error('المتصفح منع نافذة الطباعة');
 
   const pageRule = pageSize === 'A4'
     ? orientation === 'landscape'
@@ -438,6 +438,15 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
       </div>
     </body>
   </html>`;
+
+  if (deviceName && typeof window !== 'undefined' && (window as any).electronPrinter) {
+    (window as any).electronPrinter.printHtmlSilent({ html, deviceName })
+      .catch((err: any) => console.error('Silent print failed:', err));
+    return;
+  }
+
+  const printWindow = window.open('', '_blank', 'width=1120,height=820');
+  if (!printWindow) throw new Error('المتصفح منع نافذة الطباعة');
 
   printWindow.document.open();
   printWindow.document.write(html);

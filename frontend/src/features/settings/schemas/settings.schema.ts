@@ -34,6 +34,8 @@ export const settingsFormSchema = z.object({
   requireCashierShiftForSales: z.boolean().default(true),
   posKitchenPrinterEnabled: z.boolean().default(false),
   posKitchenPrinterAuto: z.boolean().default(false),
+  posElectronCashierPrinter: z.string().optional(),
+  posElectronKitchenPrinter: z.string().optional(),
   weightedBarcodeEnabled: z.boolean().default(false),
   weightedBarcodePrefix: z.string().regex(/^\d{1,4}$/, 'اكتب بادئة أرقام فقط مثل 21').default('21'),
   weightedBarcodeProductCodeLength: z.coerce.number().int().min(3).max(8).default(5),

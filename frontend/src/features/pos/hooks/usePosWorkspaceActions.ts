@@ -28,6 +28,7 @@ interface PosWorkspaceActions {
   printReceiptNow: () => void;
   printA4Now: () => void;
   printKitchenNow: () => void;
+  printBothNow: () => void;
   exportPdfNow: () => void;
   completePostSaleCycle: (message?: string) => void;
   setQty: (lineKey: string, qty: number) => void;
@@ -146,6 +147,7 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     printReceiptNow: receiptActions.printReceiptNow,
     printA4Now: receiptActions.printA4Now,
     printKitchenNow: receiptActions.printKitchenNow,
+    printBothNow: receiptActions.printBothNow,
     exportPdfNow: receiptActions.exportPdfNow,
     completePostSaleCycle: receiptActions.completePostSaleCycle,
     heldDraftSummaries: receiptActions.heldDraftSummaries,

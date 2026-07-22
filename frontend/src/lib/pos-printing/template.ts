@@ -166,9 +166,20 @@ function renderTotals(options: {
   const showTax = getPrintOption(options.settings, 'printShowTax', true);
   const showItemSummary = getPrintOption(options.settings, 'printShowItemSummary', true);
   const hasDiscount = Math.abs(Number(options.discount || 0)) > 0.0001;
+  
+  let discountLabel = 'الخصم';
+  if (hasDiscount && Number(options.subtotal || 0) > 0) {
+    const rawPercent = (options.discount / options.subtotal) * 100;
+    const cleanPercent = Math.round(rawPercent);
+    const expectedDiscount = (cleanPercent / 100) * options.subtotal;
+    if (cleanPercent > 0 && Math.abs(expectedDiscount - options.discount) <= 0.02) {
+      discountLabel = `الخصم (${formatReceiptText(cleanPercent, options.settings)}%)`;
+    }
+  }
+
   const rows = [
     { label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) },
-    ...(hasDiscount ? [{ label: 'الخصم', value: formatReceiptMoney(Number(options.discount || 0), options.settings) }] : []),
+    ...(hasDiscount ? [{ label: discountLabel, value: formatReceiptMoney(Number(options.discount || 0), options.settings) }] : []),
     ...(showTax ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
     { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },

@@ -100,6 +100,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       allowNegativeStockSales: false,
       allowZeroPurchaseCost: false,
       requireCashierShiftForSales: true,
+      posKitchenPrinterEnabled: false,
+      posKitchenPrinterAuto: false,
+      posElectronCashierPrinter: '',
+      posElectronKitchenPrinter: '',
       weightedBarcodeEnabled: false,
       weightedBarcodePrefix: '21',
       weightedBarcodeProductCodeLength: 5,
@@ -138,6 +142,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const currentBranchId = form.watch('currentBranchId');
 
   const clothingModuleEnabled = form.watch('clothingModuleEnabled');
+  const posKitchenPrinterEnabled = form.watch('posKitchenPrinterEnabled');
   const weightedBarcodeEnabled = form.watch('weightedBarcodeEnabled');
   const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
 
@@ -154,6 +159,17 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const [branchStockSaved, setBranchStockSaved] = useState(false);
   const [branchStockError, setBranchStockError] = useState<string | null>(null);
   const [branchStockDirty, setBranchStockDirty] = useState(false);
+
+  const [systemPrinters, setSystemPrinters] = useState<{name: string, displayName: string}[]>([]);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).electronPrinter) {
+      (window as any).electronPrinter.getPrinters().then((printers: any[]) => {
+        if (printers && Array.isArray(printers)) {
+          setSystemPrinters(printers);
+        }
+      });
+    }
+  }, []);
 
   // Sync branch stock state when selected branch changes
   useEffect(() => {
@@ -723,6 +739,32 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <input type="checkbox" {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
               طباعة شيت المطبخ تلقائياً
             </label>
+            {posKitchenPrinterEnabled && typeof window !== 'undefined' && (window as any).electronPrinter && (
+              <div className="document-prototype-grid compact-grid-2" style={{ gridColumn: '1 / -1', marginTop: 8, padding: '12px', border: '1px solid var(--border)', borderRadius: 8, background: '#f8fafc' }}>
+                <div className="field">
+                  <label>طابعة الكاشير (الريسيت)</label>
+                  <select className="purchase-prototype-field-input" {...form.register('posElectronCashierPrinter')} disabled={disabled}>
+                    <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
+                    {systemPrinters.map(p => (
+                      <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>طابعة المطبخ (KOT)</label>
+                  <select className="purchase-prototype-field-input" {...form.register('posElectronKitchenPrinter')} disabled={disabled}>
+                    <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
+                    {systemPrinters.map(p => (
+                      <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="muted small" style={{ gridColumn: '1 / -1' }}>
+                  <strong>معلومة:</strong> إذا اخترت طابعة هنا، سيتم إرسال الطباعة <b>مباشرة وبدون أي شاشة تأكيد</b>.
+                  ولو اخترت <b>نفس الطابعة</b> للكاشير والمطبخ، سيتم طباعة الإيصالين ورا بعض تلقائياً.
+                </div>
+              </div>
+            )}
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label>وضع إذن الصرف الافتراضي</label>
               <select className="purchase-prototype-field-input" {...form.register('defaultBranchIssueMode')} disabled={disabled}>
