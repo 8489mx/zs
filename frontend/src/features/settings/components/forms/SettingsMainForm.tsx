@@ -240,6 +240,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
       posKitchenPrinterEnabled: settings.posKitchenPrinterEnabled === true,
       posKitchenPrinterAuto: settings.posKitchenPrinterAuto === true,
+      posElectronCashierPrinter: settings.posElectronCashierPrinter || '',
+      posElectronKitchenPrinter: settings.posElectronKitchenPrinter || '',
       weightedBarcodeEnabled: settings.weightedBarcodeEnabled === true,
       weightedBarcodePrefix: String(settings.weightedBarcodePrefix || '21').replace(/\D/g, '') || '21',
       weightedBarcodeProductCodeLength: Math.min(8, Math.max(3, Math.floor(Number(settings.weightedBarcodeProductCodeLength || 5)))),
