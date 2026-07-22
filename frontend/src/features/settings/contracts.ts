@@ -45,6 +45,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     requireCashierShiftForSales: values.requireCashierShiftForSales !== false,
     posKitchenPrinterEnabled: values.posKitchenPrinterEnabled === true,
     posKitchenPrinterAuto: values.posKitchenPrinterAuto === true,
+    posElectronCashierPrinter: cleanText(values.posElectronCashierPrinter),
+    posElectronKitchenPrinter: cleanText(values.posElectronKitchenPrinter),
     weightedBarcodeEnabled: values.weightedBarcodeEnabled === true,
     weightedBarcodePrefix: cleanText(values.weightedBarcodePrefix, '21').replace(/\D/g, '') || '21',
     weightedBarcodeProductCodeLength: Math.min(8, Math.max(3, Math.floor(Number(values.weightedBarcodeProductCodeLength || 5)))),
