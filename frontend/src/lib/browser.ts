@@ -228,7 +228,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
       ? '@page { size: A4 landscape; margin: 9mm; }'
       : '@page { size: A4 portrait; margin: 9mm; }'
     : pageSize === 'receipt'
-      ? '@page { size: 80mm auto; margin: 1.8mm 2mm 2mm; }'
+      ? '@page { margin: 0; }'
       : '@page { size: auto; margin: 9mm; }';
 
   const html = `<!doctype html>
@@ -440,7 +440,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
   </html>`;
 
   if (deviceName && typeof window !== 'undefined' && (window as any).electronPrinter) {
-    (window as any).electronPrinter.printHtmlSilent({ html, deviceName })
+    (window as any).electronPrinter.printHtmlSilent({ html, deviceName, pageSize })
       .catch((err: any) => console.error('Silent print failed:', err));
     return;
   }
