@@ -17,7 +17,7 @@ export function getKitchenTicketStyles() {
     .modifier-line { font-size: 13px; font-weight: normal; margin-top: 2px; padding-right: 12px; color: #333; }
     .note-line { font-size: 13px; font-style: italic; color: #d32f2f; margin-top: 2px; }
     .ticket-footer { text-align: center; font-size: 11px; margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; }
-    body.receipt-mode .print-shell { max-width: 76mm; padding-top: 0; margin: 0 auto; }
+    body.receipt-mode .print-shell { width: 100%; max-width: 100%; padding-top: 0; margin: 0; box-sizing: border-box; }
   `;
 }
 

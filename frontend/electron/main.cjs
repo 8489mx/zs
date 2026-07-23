@@ -261,7 +261,7 @@ app.whenReady().then(async () => {
             printBackground: true,
             deviceName: deviceName || undefined,
             margins: { marginType: 'none' },
-            pageSize: pageSize === 'receipt' ? { width: 79500, height: 297000 } : (pageSize === 'A4' ? 'A4' : undefined)
+            pageSize: pageSize === 'receipt' ? { width: 72000, height: 297000 } : (pageSize === 'A4' ? 'A4' : undefined)
           }, (success, failureReason) => {
             if (!printWin.isDestroyed()) {
               printWin.destroy();
