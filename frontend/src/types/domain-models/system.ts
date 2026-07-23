@@ -138,6 +138,7 @@ export interface AppSettings {
   currentBranchId?: string;
   currentLocationId?: string;
   printShowLogo?: boolean;
+  printShowDocumentType?: boolean;
   printShowPhone?: boolean;
   printShowAddress?: boolean;
   printShowTaxNumber?: boolean;
