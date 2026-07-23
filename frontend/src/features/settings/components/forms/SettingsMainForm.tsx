@@ -110,6 +110,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       weightedBarcodeWeightDigits: 5,
       weightedBarcodeWeightDecimals: 3,
       printShowLogo: true,
+      printShowDocumentType: true,
       printShowPhone: true,
       printShowAddress: true,
       printShowTaxNumber: false,
@@ -134,7 +135,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     },
   });
 
-  const mutation = useSettingsUpdateMutation(settings, onSetupAdvance);
+  const mutation = useSettingsUpdateMutation(settings, setupMode ? onSetupAdvance : undefined);
   const [showBranchQuickAdd, setShowBranchQuickAdd] = useState(false);
   const [branchQuery, setBranchQuery] = useState('');
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
@@ -250,6 +251,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       weightedBarcodeWeightDigits: Math.min(8, Math.max(3, Math.floor(Number(settings.weightedBarcodeWeightDigits || 5)))),
       weightedBarcodeWeightDecimals: Math.min(3, Math.max(0, Math.floor(Number(settings.weightedBarcodeWeightDecimals || 3)))),
       printShowLogo: settings.printShowLogo !== false,
+      printShowDocumentType: settings.printShowDocumentType !== false,
       printShowPhone: settings.printShowPhone !== false,
       printShowAddress: settings.printShowAddress !== false,
       printShowTaxNumber: settings.printShowTaxNumber === true,
@@ -861,6 +863,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         <FormSection title="عناصر الطباعة على الفاتورة">
           <div className="settings-print-options-grid" style={checkboxGridStyle}>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printCompactReceipt')} disabled={disabled} /> وضع إيصال مضغوط لتوفير الورق</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentType')} disabled={disabled} /> إظهار نوع المستند</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLogo')} disabled={disabled} /> إظهار الشعار</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPhone')} disabled={disabled} /> إظهار الهاتف</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowAddress')} disabled={disabled} /> إظهار العنوان</label>

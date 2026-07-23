@@ -165,6 +165,7 @@ function renderTotals(options: {
   const remaining = Math.max(0, Number(options.total || 0) - paidAmount);
   const showTax = getPrintOption(options.settings, 'printShowTax', true);
   const showItemSummary = getPrintOption(options.settings, 'printShowItemSummary', true);
+  const showPaymentDetails = getPrintOption(options.settings, 'printShowPaymentBreakdown', true);
   const hasDiscount = Math.abs(Number(options.discount || 0)) > 0.0001;
   
   let discountLabel = 'الخصم';
@@ -178,14 +179,16 @@ function renderTotals(options: {
   }
 
   const rows = [
-    { label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) },
+    ...(showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : []),
     ...(hasDiscount ? [{ label: discountLabel, value: formatReceiptMoney(Number(options.discount || 0), options.settings) }] : []),
     ...(showTax ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
-    { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
-    ...(remaining > 0 ? [{ label: 'المتبقي', value: formatReceiptMoney(remaining, options.settings) }] : []),
-    ...(tenderedAmount > 0 ? [{ label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) }] : []),
-    ...(changeAmount > 0 ? [{ label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) }] : []),
+    ...(showPaymentDetails ? [
+      { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
+      ...(remaining > 0 ? [{ label: 'المتبقي', value: formatReceiptMoney(remaining, options.settings) }] : []),
+      ...(tenderedAmount > 0 ? [{ label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) }] : []),
+      ...(changeAmount > 0 ? [{ label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) }] : []),
+    ] : []),
     ...(showItemSummary ? [
       { label: 'عدد البنود', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
       { label: 'إجمالي القطع', value: formatReceiptQuantity(totalPieces, options.settings) },
@@ -306,9 +309,10 @@ export function buildReceiptDocument(options: {
   const showBranch = getPrintOption(options.settings, 'printShowBranch', true);
   const showLocation = getPrintOption(options.settings, 'printShowLocation', true);
   const showPaymentMethod = getPrintOption(options.settings, 'printShowPaymentMethod', true);
+  const showDocumentType = getPrintOption(options.settings, 'printShowDocumentType', true);
 
   const metaRows = [
-    { label: 'نوع المستند', value: options.documentLabel || 'فاتورة' },
+    ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || 'فاتورة' }] : []),
     { label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' },
     { label: 'التاريخ', value: options.dateText || '—' },
     ...(showCustomer ? [{ label: 'العميل', value: options.customerName || 'عميل نقدي' }] : []),
