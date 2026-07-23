@@ -14,6 +14,7 @@ interface PosHeldDraftsDialogProps {
   onRecall: (draftId: string) => Promise<void>;
   onDelete: (draftId: string) => Promise<void>;
   onClearAll: () => Promise<void>;
+  settings?: any;
 }
 
 export function PosHeldDraftsDialog({
@@ -25,6 +26,7 @@ export function PosHeldDraftsDialog({
   onRecall,
   onDelete,
   onClearAll,
+  settings,
 }: PosHeldDraftsDialogProps) {
   const [pendingRecallId, setPendingRecallId] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -100,9 +102,9 @@ export function PosHeldDraftsDialog({
 
   return (
     <>
-      <DialogShell open={open} onClose={onClose} width="min(780px, 100%)" zIndex={87} ariaLabel="الفواتير المعلقة">
+      <DialogShell open={open} onClose={onClose} width="min(780px, 100%)" zIndex={87} ariaLabel={settings?.restaurantModuleEnabled ? "الطاولات المفتوحة" : "الفواتير المعلقة"}>
         <main className="document-prototype-column">
-          <FormSection title={`الفواتير المعلقة (${heldDrafts.length})`} className="dialog-card">
+          <FormSection title={settings?.restaurantModuleEnabled ? `الطاولات المفتوحة (${heldDrafts.length})` : `الفواتير المعلقة (${heldDrafts.length})`} className="dialog-card">
             {heldDrafts.length ? (
               <div className="list-stack">
                 {heldDrafts.map((draft) => (
@@ -113,6 +115,11 @@ export function PosHeldDraftsDialog({
                   >
                     <div className="pos-held-draft-dialog-copy">
                       <strong>{draft.label || 'عميل نقدي'}</strong>
+                      {settings?.restaurantModuleEnabled && draft.orderType ? (
+                        <small className="muted">
+                          {draft.orderType === 'dine_in' ? `طاولة: ${draft.tableNumber || 'غير محدد'}` : draft.orderType === 'delivery' ? 'دليفري' : 'تيك أواي'}
+                        </small>
+                      ) : null}
                       <small className="muted">عدد العناصر: {draft.itemsCount}</small>
                       <small className="muted">الإجمالي: {formatCurrency(draft.total)}</small>
                     </div>
@@ -133,7 +140,7 @@ export function PosHeldDraftsDialog({
               </div>
             ) : (
               <div className="panel" style={{ textAlign: 'center', padding: '32px' }}>
-                <p className="muted">لا توجد فواتير معلقة حالياً.</p>
+                <p className="muted">{settings?.restaurantModuleEnabled ? 'لا توجد طاولات مفتوحة حالياً.' : 'لا توجد فواتير معلقة حالياً.'}</p>
               </div>
             )}
             <div className="actions compact-actions" style={{ justifyContent: 'space-between', marginTop: 12 }}>

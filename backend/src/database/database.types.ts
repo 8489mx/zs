@@ -493,6 +493,8 @@ export interface SalesTable {
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
+  table_number: string;
+  order_type: string;
   doc_no: string | null;
   customer_id: number | null;
   customer_name: string | null;
@@ -552,6 +554,8 @@ export interface HeldSaleTable {
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
+  table_number: string;
+  order_type: string;
   customer_id: number | null;
   payment_type: 'cash' | 'credit';
   payment_channel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';

@@ -11,6 +11,8 @@ export interface HeldPosDraftSummary {
   label: string;
   total: number;
   itemsCount: number;
+  tableNumber?: string;
+  orderType?: 'dine_in' | 'takeaway' | 'delivery';
 }
 
 export interface PosCartPanelProps {
@@ -21,6 +23,8 @@ export interface PosCartPanelProps {
   customerId: string;
   branchId: string;
   locationId: string;
+  tableNumber: string;
+  orderType: string;
   paymentType: PaymentType;
   paymentChannel: PaymentChannel;
   paidAmount: number;
@@ -54,7 +58,10 @@ export interface PosCartPanelProps {
   selectedLineKey?: string;
   posMode: PosSaleMode;
   preferredPrintPageSize?: 'a4' | 'receipt';
+  settings?: any;
   onCustomerChange: (value: string) => void;
+  onTableNumberChange: (value: string) => void;
+  onOrderTypeChange: (value: string) => void;
   onQuickCustomerNameChange: (value: string) => void;
   onQuickCustomerPhoneChange: (value: string) => void;
   onQuickCustomerSubmit: (event: FormEvent<HTMLFormElement>) => void;

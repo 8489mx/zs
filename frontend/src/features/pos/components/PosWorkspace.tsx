@@ -358,6 +358,7 @@ export function PosWorkspace() {
         }}
         onDelete={async (draftId) => { await pos.deleteDraft(draftId); }}
         onClearAll={async () => { await pos.clearHeldDrafts(); }}
+        settings={pos.settingsQuery.data}
       />
 
       <PosWorkspaceConfirmDialogs

@@ -292,6 +292,8 @@ export function buildReceiptDocument(options: {
   cashierName?: string;
   branchName?: string;
   locationName?: string;
+  tableNumber?: string | null;
+  orderType?: string | null;
   note?: string;
   items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number }>;
   subtotal: number;
@@ -320,6 +322,8 @@ export function buildReceiptDocument(options: {
     ...(showCashier ? [{ label: 'الكاشير', value: options.cashierName || '—' }] : []),
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
+    ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
+    ...(options.settings?.restaurantModuleEnabled && options.orderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : 'تيك أواي' }] : []),
     ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
   ];
 

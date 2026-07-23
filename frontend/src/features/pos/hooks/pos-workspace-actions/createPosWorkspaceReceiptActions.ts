@@ -92,6 +92,8 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
       total: computeDraftTotal(draft),
       itemsCount: draft.cart.length,
       savedAt: draft.savedAt,
+      tableNumber: draft.tableNumber,
+      orderType: draft.orderType as any,
     })),
   };
 }

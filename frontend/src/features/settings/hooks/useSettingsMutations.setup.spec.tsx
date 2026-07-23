@@ -48,6 +48,8 @@ const baseSettingsMutationValues = {
   currentLocationId: '',
   manufacturingModuleEnabled: false,
   comboModuleEnabled: false,
+  restaurantModuleEnabled: false,
+  posShowCartMeta: false,
   clothingModuleEnabled: false,
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,

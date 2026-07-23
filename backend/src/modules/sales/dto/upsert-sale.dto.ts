@@ -98,6 +98,14 @@ export class UpsertSaleDto {
   @IsString()
   editReason?: string;
 
+  @IsOptional()
+  @IsString()
+  tableNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  orderType?: string;
+
   @Type(() => Number)
   @IsOptional()
   @IsNumber()
@@ -149,4 +157,6 @@ export type NormalizedSalePayload = {
   items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; notes: string; modifiers: any }>;
   payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }>;
   tenderedAmount: number;
+  tableNumber: string | null;
+  orderType: string | null;
 };

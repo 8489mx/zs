@@ -14,6 +14,7 @@ interface PosWorkspaceDockProps {
   onHoldDraft: () => void;
   onOpenHeldDrafts: () => void;
   onSubmit: () => void;
+  settings?: any;
 }
 export function PosWorkspaceDock({
   qtySummaries,
@@ -26,6 +27,7 @@ export function PosWorkspaceDock({
   onHoldDraft,
   onOpenHeldDrafts,
   onSubmit,
+  settings,
 }: PosWorkspaceDockProps) {
   return (
     <section className="pos-workspace-dock" aria-label="شريط الكاشير السريع" style={{ padding: '0', margin: '0' }}>
@@ -56,7 +58,9 @@ export function PosWorkspaceDock({
 
         <div className="pos-workspace-dock-actions pos-workspace-dock-actions-inline" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, padding: '0' }}>
           <Button type="button" variant="secondary" onClick={onHoldDraft} disabled={itemsCount === 0 || isPending}>تعليق F4</Button>
-          <Button type="button" variant="secondary" onClick={onOpenHeldDrafts}>الفواتير المعلقة ({heldDraftsCount})</Button>
+          <Button type="button" variant="secondary" onClick={onOpenHeldDrafts}>
+            {settings?.restaurantModuleEnabled ? `طاولات مفتوحة (${heldDraftsCount})` : `الفواتير المعلقة (${heldDraftsCount})`}
+          </Button>
           <Button
             type="button"
             variant="success"

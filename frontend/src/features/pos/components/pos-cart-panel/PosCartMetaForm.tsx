@@ -30,7 +30,8 @@ function storeRecentCustomerIds(ids: string[]) {
 export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   'customers' | 'customerId' | 'onCustomerChange' |
   'quickCustomerName' | 'quickCustomerPhone' | 'isQuickCustomerPending' |
-  'onQuickCustomerSubmit' | 'onQuickCustomerNameChange' | 'onQuickCustomerPhoneChange'
+  'onQuickCustomerSubmit' | 'onQuickCustomerNameChange' | 'onQuickCustomerPhoneChange' |
+  'tableNumber' | 'onTableNumberChange' | 'orderType' | 'onOrderTypeChange' | 'settings'
 >) {
   const [pickerMode, setPickerMode] = useState<CustomerPickerMode>('closed');
   const [query, setQuery] = useState('');
@@ -217,6 +218,39 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
             إضافة عميل
           </Button>
         </div>
+
+        {props.settings?.restaurantModuleEnabled ? (
+          <div className="pos-customer-inline-bar" style={{ marginTop: '8px' }}>
+             <div className="pos-customer-inline-shell" style={{ display: 'flex', gap: '8px', padding: '8px' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="muted small" style={{ display: 'block', marginBottom: '4px' }}>نوع الطلب</label>
+                  <select 
+                    className="purchase-prototype-field-input" 
+                    value={props.orderType} 
+                    onChange={(e) => props.onOrderTypeChange(e.target.value)}
+                    style={{ padding: '4px', height: 'auto' }}
+                  >
+                    <option value="takeaway">تيك أواي</option>
+                    <option value="dine_in">صالة</option>
+                    <option value="delivery">دليفري</option>
+                  </select>
+                </div>
+                {props.orderType === 'dine_in' && (
+                  <div style={{ flex: 1 }}>
+                    <label className="muted small" style={{ display: 'block', marginBottom: '4px' }}>رقم الطاولة</label>
+                    <input 
+                      type="text" 
+                      placeholder="مثال: 5 أو A12"
+                      value={props.tableNumber}
+                      onChange={(e) => props.onTableNumberChange(e.target.value)}
+                      className="purchase-prototype-field-input" 
+                      style={{ padding: '4px', height: 'auto' }}
+                    />
+                  </div>
+                )}
+             </div>
+          </div>
+        ) : null}
 
         {pickerMode === 'create' ? (
           <form className="pos-customer-inline-create" onSubmit={props.onQuickCustomerSubmit}>

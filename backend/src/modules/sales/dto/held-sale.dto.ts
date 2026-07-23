@@ -95,6 +95,14 @@ export class HeldSaleDto {
   search?: string;
 
   @IsOptional()
+  @IsString()
+  tableNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  orderType?: string;
+
+  @IsOptional()
   @IsIn(['retail', 'wholesale'])
   priceType?: 'retail' | 'wholesale';
 

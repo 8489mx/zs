@@ -112,6 +112,8 @@ export function PosWorkspaceMainContent({
             transferAmount={pos.transferAmount}
             discount={pos.discount}
             note={pos.note}
+            tableNumber={pos.tableNumber}
+            orderType={pos.orderType}
             submitMessage={pos.submitMessage}
             lastSaleDocNo={pos.lastSale?.docNo || pos.lastSale?.id || ''}
             canShowLastSaleActions={pos.canShowLastSaleActions}
@@ -137,7 +139,10 @@ export function PosWorkspaceMainContent({
             selectedLineKey={pos.selectedLineKey}
             posMode={posMode}
             preferredPrintPageSize={pos.settingsQuery.data?.paperSize === 'receipt' ? 'receipt' : 'a4'}
+            settings={pos.settingsQuery.data}
             onCustomerChange={pos.setCustomerId}
+            onTableNumberChange={pos.setTableNumber}
+            onOrderTypeChange={pos.setOrderType}
             onQuickCustomerNameChange={pos.setQuickCustomerName}
             onQuickCustomerPhoneChange={pos.setQuickCustomerPhone}
             onQuickCustomerSubmit={pos.handleQuickCustomerSubmit}
@@ -171,7 +176,7 @@ export function PosWorkspaceMainContent({
             onExportPdfNow={pos.exportPdfNow}
             onExportHeldDrafts={pos.exportHeldDrafts}
             showPaymentSection={false}
-            showMetaSection={false}
+            showMetaSection={pos.settingsQuery.data?.posShowCartMeta === true}
             showHeldDraftsInline={false}
             onSubmit={onRequestCheckout}
           />
@@ -189,7 +194,8 @@ export function PosWorkspaceMainContent({
             onResetDraft={onRequestClearCart}
             onHoldDraft={() => { void pos.holdDraft(); }}
             onOpenHeldDrafts={onOpenHeldDrafts}
-            onSubmit={onRequestCheckout}
+            onSubmit={() => onRequestCheckout()}
+            settings={pos.settingsQuery.data}
           />
         </div>
         </div>

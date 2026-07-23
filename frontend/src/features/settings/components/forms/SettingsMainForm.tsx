@@ -94,6 +94,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       logoData: '',
       currentBranchId: '',
       currentLocationId: '',
+      manufacturingModuleEnabled: false,
+      comboModuleEnabled: false,
+      restaurantModuleEnabled: false,
+      posShowCartMeta: false,
       clothingModuleEnabled: false,
       defaultProductKind: 'standard',
       defaultPosMode: 'scanner',
@@ -254,6 +258,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
       manufacturingModuleEnabled: settings.manufacturingModuleEnabled === true,
       comboModuleEnabled: settings.comboModuleEnabled === true,
+      restaurantModuleEnabled: settings.restaurantModuleEnabled === true,
+      posShowCartMeta: settings.posShowCartMeta === true,
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
       requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
@@ -824,6 +830,14 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('comboModuleEnabled')} disabled={disabled} />
               <span><strong>📦 العروض المجمعة والوجبات</strong><br /><small className="muted">يفعّل العروض المكونة من عدة أصناف (Combos)</small></span>
+            </label>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('restaurantModuleEnabled')} disabled={disabled} />
+              <span><strong>🍽️ موديول المطاعم والكافيهات</strong><br /><small className="muted">يفعّل نظام الطاولات وأنواع الطلبات</small></span>
+            </label>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('posShowCartMeta')} disabled={disabled} />
+              <span><strong>🛒 اختيار الطاولة والعميل بالكاشير</strong><br /><small className="muted">يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع</small></span>
             </label>
             <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('clothingModuleEnabled')} disabled={disabled} />

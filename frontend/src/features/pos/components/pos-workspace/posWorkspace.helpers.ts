@@ -83,6 +83,8 @@ export function printCurrentPosDraft(pos: PosWorkspaceState, customerName: strin
     taxAmount: pos.totals.taxAmount,
     total: pos.totals.total,
     note: pos.note,
+    tableNumber: pos.tableNumber,
+    orderType: pos.orderType,
     pageSize: pos.settingsQuery.data?.paperSize === 'receipt' ? 'receipt' : 'a4',
     settings: pos.settingsQuery.data || null,
   });

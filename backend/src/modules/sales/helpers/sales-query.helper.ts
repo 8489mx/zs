@@ -197,6 +197,8 @@ export function mapHeldSalesRows(
     discount: Number(row.discount || 0),
     note: row.note || '',
     search: row.search || '',
+    tableNumber: row.table_number || '',
+    orderType: row.order_type || 'takeaway',
     priceType: row.price_type || 'retail',
     branchId: row.branch_id ? String(row.branch_id) : '',
     locationId: row.location_id ? String(row.location_id) : '',

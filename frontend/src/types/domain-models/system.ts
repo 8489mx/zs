@@ -155,6 +155,8 @@ export interface AppSettings {
   printNumberFormat?: 'arabic' | 'english' | string;
   manufacturingModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;
+  restaurantModuleEnabled?: boolean;
+  posShowCartMeta?: boolean;
   clothingModuleEnabled?: boolean;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;

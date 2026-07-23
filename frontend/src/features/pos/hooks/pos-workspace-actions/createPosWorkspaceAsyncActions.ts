@@ -285,6 +285,8 @@ export function createPosWorkspaceAsyncActions(
         cardAmount: params.cardAmount,
         transferAmount: params.transferAmount,
         paymentChannel: params.paymentChannel,
+        orderType: params.orderType,
+        tableNumber: params.tableNumber,
         items: sanitizedItems,
       });
       base.resetPosDraft();
@@ -324,6 +326,8 @@ export function createPosWorkspaceAsyncActions(
     params.setNote(draft.note);
     params.setSearch(draft.search);
     params.setPriceType(draft.priceType);
+    params.setOrderType(draft.orderType || 'takeaway');
+    params.setTableNumber(draft.tableNumber || '');
     params.setDiscountApprovalGranted(false);
     params.setDiscountApprovalSecret('');
     await params.deleteHeldDraftMutation.mutateAsync(draftId);

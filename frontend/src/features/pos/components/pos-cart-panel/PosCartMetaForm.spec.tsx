@@ -58,6 +58,10 @@ function renderMetaForm(initialCustomerId = '') {
           onQuickCustomerSubmit={vi.fn()}
           onQuickCustomerNameChange={vi.fn()}
           onQuickCustomerPhoneChange={vi.fn()}
+          tableNumber=""
+          orderType="takeaway"
+          onTableNumberChange={vi.fn()}
+          onOrderTypeChange={vi.fn()}
         />
       </QueryClientProvider>
     );

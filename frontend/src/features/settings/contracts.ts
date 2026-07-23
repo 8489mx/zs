@@ -40,6 +40,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     defaultPosMode,
     manufacturingModuleEnabled: values.manufacturingModuleEnabled === true,
     comboModuleEnabled: values.comboModuleEnabled === true,
+    restaurantModuleEnabled: values.restaurantModuleEnabled === true,
+    posShowCartMeta: values.posShowCartMeta === true,
     allowNegativeStockSales: values.allowNegativeStockSales === true,
     allowSellingBelowStock: values.allowNegativeStockSales === true,
     allowZeroPurchaseCost: values.allowZeroPurchaseCost === true,

@@ -66,6 +66,8 @@ export function buildDraftState(initial?: Partial<PosDraftSnapshot>): PosDraftSn
     priceType: initial?.priceType || 'retail',
     branchId: initial?.branchId || '',
     locationId: initial?.locationId || '',
+    tableNumber: initial?.tableNumber || '',
+    orderType: initial?.orderType || 'takeaway',
   };
 }
 

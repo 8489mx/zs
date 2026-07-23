@@ -44,7 +44,7 @@ interface PosWorkspaceActions {
   editSelectedQty: () => boolean;
   removeSelectedItem: () => boolean;
   selectAdjacentCartLine: (direction: 'next' | 'prev') => boolean;
-  heldDraftSummaries: Array<{ id: string; label: string; total: number; itemsCount: number; savedAt: string }>;
+  heldDraftSummaries: Array<{ id: string; label: string; total: number; itemsCount: number; savedAt: string; tableNumber?: string; orderType?: 'dine_in' | 'takeaway' | 'delivery' }>;
 }
 
 export function createPosWorkspaceActions(params: PosWorkspaceActionParams): PosWorkspaceActions {
@@ -58,6 +58,8 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
       eventType: 'draft_cancel',
       total: Number(computeDraftTotal({
         cart: params.cart,
+        tableNumber: params.tableNumber,
+        orderType: params.orderType,
         customerId: params.customerId,
         discount: params.discount,
         paidAmount: params.paidAmount,
@@ -88,6 +90,8 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
       qty: Number(removed.qty || 0) || undefined,
       total: Number(computeDraftTotal({
         cart: remainingCart,
+        tableNumber: params.tableNumber,
+        orderType: params.orderType,
         customerId: params.customerId,
         discount: params.discount,
         paidAmount: params.paidAmount,

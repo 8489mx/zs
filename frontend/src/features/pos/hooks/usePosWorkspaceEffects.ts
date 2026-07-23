@@ -23,6 +23,8 @@ export function usePosWorkspaceEffects({
   note,
   search,
   priceType,
+  tableNumber,
+  orderType,
 
   products,
   setCart,
@@ -53,6 +55,8 @@ export function usePosWorkspaceEffects({
   note: string;
   search: string;
   priceType: PosPriceType;
+  tableNumber: string;
+  orderType: string;
 
   products: Product[];
   setCart: (value: PosItem[] | ((current: PosItem[]) => PosItem[])) => void;
@@ -69,8 +73,8 @@ export function usePosWorkspaceEffects({
 }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, branchId: '', locationId: '' }));
-  }, [cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType]);
+    persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType, branchId: '', locationId: '' }));
+  }, [cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

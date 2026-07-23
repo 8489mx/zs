@@ -95,6 +95,8 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     source: payload.source === 'pos' ? 'pos' : 'dashboard',
     payments,
     tenderedAmount: Number(payload.tenderedAmount || 0),
+    tableNumber: typeof payload.tableNumber === 'string' ? payload.tableNumber.trim() : null,
+    orderType: typeof payload.orderType === 'string' ? payload.orderType.trim() : null,
     items: payload.items
       .map((item) => ({
         productId: Number(item.productId || 0),

@@ -38,6 +38,10 @@ export interface PosWorkspaceActionParams {
   setPriceType: Dispatch<SetStateAction<PosPriceType>>;
   branchId: string;
   locationId: string;
+  tableNumber: string;
+  setTableNumber: Dispatch<SetStateAction<string>>;
+  orderType: string;
+  setOrderType: Dispatch<SetStateAction<string>>;
   quickAddCode: string;
   setQuickAddCode: Dispatch<SetStateAction<string>>;
   quickCustomerName: string;

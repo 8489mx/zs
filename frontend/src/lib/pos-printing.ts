@@ -43,6 +43,8 @@ export function printPosDraftPreview(options: {
   taxAmount: number;
   total: number;
   note?: string;
+  tableNumber?: string | null;
+  orderType?: string | null;
   pageSize?: PosPrintPageSize;
   settings?: Partial<AppSettings> | null;
 }) {
@@ -57,6 +59,8 @@ export function printPosDraftPreview(options: {
     branchName: options.branchName || 'المتجر الرئيسي',
     locationName: options.locationName || 'المخزن الأساسي',
     note: options.note,
+    tableNumber: options.tableNumber,
+    orderType: options.orderType,
     items: (options.items || []).map((item) => ({
       name: item.name,
       unitName: item.unitName,
@@ -93,6 +97,8 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     branchName: sale.branchName || 'المتجر الرئيسي',
     locationName: sale.locationName || 'المخزن الأساسي',
     note: sale.note || '',
+    tableNumber: (sale as any).table_number || null,
+    orderType: (sale as any).order_type || null,
     items: (sale.items || []).map((item) => ({
       name: item.name,
       unitName: item.unitName,

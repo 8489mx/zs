@@ -161,6 +161,8 @@ export async function migrateSales(ctx: MigrationContext): Promise<EntityCounter
           store_credit_used: 0,
           status: 'posted',
           note: '',
+          table_number: '',
+          order_type: 'takeaway',
           branch_id: row.branch_id ? asNumber(row.branch_id) : null,
           location_id: row.location_id ? asNumber(row.location_id) : null,
           created_by: row.created_by ? (ctx.idMap.users.get(asNumber(row.created_by)) ?? null) : null,
