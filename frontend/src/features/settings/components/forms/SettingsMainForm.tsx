@@ -144,6 +144,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const clothingModuleEnabled = form.watch('clothingModuleEnabled');
   const posKitchenPrinterEnabled = form.watch('posKitchenPrinterEnabled');
   const weightedBarcodeEnabled = form.watch('weightedBarcodeEnabled');
+  const savedCashierPrinter = form.watch('posElectronCashierPrinter');
+  const savedKitchenPrinter = form.watch('posElectronKitchenPrinter');
   const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !mutation.isPending);
 
   const resolvedBranchId = SINGLE_STORE_MODE ? (currentBranchId || settings?.currentBranchId || branches[0]?.id || '') : currentBranchId;
@@ -747,6 +749,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                   <label>طابعة الكاشير (الريسيت)</label>
                   <select className="purchase-prototype-field-input" {...form.register('posElectronCashierPrinter')} disabled={disabled}>
                     <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
+                    {savedCashierPrinter && !systemPrinters.some(p => p.name === savedCashierPrinter) && (
+                      <option value={savedCashierPrinter}>{savedCashierPrinter}</option>
+                    )}
                     {systemPrinters.map(p => (
                       <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
                     ))}
@@ -756,6 +761,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                   <label>طابعة المطبخ (KOT)</label>
                   <select className="purchase-prototype-field-input" {...form.register('posElectronKitchenPrinter')} disabled={disabled}>
                     <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
+                    {savedKitchenPrinter && !systemPrinters.some(p => p.name === savedKitchenPrinter) && (
+                      <option value={savedKitchenPrinter}>{savedKitchenPrinter}</option>
+                    )}
                     {systemPrinters.map(p => (
                       <option key={p.name} value={p.name}>{p.displayName || p.name}</option>
                     ))}

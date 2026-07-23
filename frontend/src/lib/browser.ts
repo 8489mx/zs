@@ -381,7 +381,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         body.receipt-mode { font-size: 11px; }
         body.receipt-mode .print-shell {
           padding: 1px 0 2px;
-          max-width: 80mm;
+          max-width: 74mm;
           margin: 0 auto;
         }
         body.receipt-mode .print-header {
@@ -409,6 +409,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
           html, body { height: auto; }
           html, body { margin: 0 !important; padding: 0 !important; }
           .print-shell { padding: 0; }
+          body.receipt-mode .print-shell { padding: 0 4mm !important; }
           a { color: inherit; text-decoration: none; }
           .section, .meta-box, .summary-box, .totals, .print-header { break-inside: avoid; }
           table { break-inside: auto; }
