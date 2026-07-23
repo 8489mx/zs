@@ -24,7 +24,7 @@ export const authApi = {
     return http<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
   },
   me() {
-    return http<AuthMeResponse>('/api/auth/me');
+    return http<AuthMeResponse>('/api/auth/me', { skipUnauthorizedInterceptor: true });
   },
   changePassword(payload: ChangePasswordPayload) {
     return http<{ ok: boolean; removedOtherSessions: number }>('/api/auth/change-password', {

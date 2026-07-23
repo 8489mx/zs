@@ -24,6 +24,7 @@ let unauthorizedRecoveryDispatched = false;
 
 export interface HttpRequestInit extends RequestInit {
   timeoutMs?: number;
+  skipUnauthorizedInterceptor?: boolean;
 }
 const RAW_API_BASE = import.meta.env?.VITE_API_BASE_URL?.trim();
 const CSRF_COOKIE_NAME = import.meta.env?.VITE_CSRF_COOKIE_NAME?.trim() || 'csrf_token';
@@ -245,7 +246,7 @@ export async function http<T>(path: string, init?: HttpRequestInit): Promise<T> 
     if (!response.ok) {
       if (response.status === 401) {
         clearClientAuthStorage();
-        if (!unauthorizedRecoveryDispatched) {
+        if (!unauthorizedRecoveryDispatched && !init?.skipUnauthorizedInterceptor) {
           unauthorizedRecoveryDispatched = true;
           emitWindowEvent(APP_UNAUTHORIZED_EVENT, {
             path,
