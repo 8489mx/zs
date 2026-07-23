@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
 import { settingsApi } from '@/features/settings/api/settings.api';
@@ -42,6 +43,37 @@ export function SettingsDiagnosticsSection({
   onReconcileSuppliers,
   onReconcileAll
 }: SettingsDiagnosticsSectionProps) {
+  const [isClearingCache, setIsClearingCache] = useState(false);
+
+  const handleClearCache = async () => {
+    // @ts-ignore
+    if (window.electronRuntime?.clearAppCache) {
+      setIsClearingCache(true);
+      try {
+        // @ts-ignore
+        const res = await window.electronRuntime.clearAppCache();
+        if (res.ok) {
+          alert('تم مسح كاش النظام بنجاح. سيتم الآن إعادة تشغيل البرنامج لتحسين الأداء.');
+          // @ts-ignore
+          if (window.electronRuntime.switchToStandalone) {
+             // @ts-ignore
+             window.electronRuntime.switchToStandalone(); // This reloads the app gracefully
+          } else {
+             window.location.reload();
+          }
+        } else {
+          alert('حدث خطأ أثناء مسح الكاش: ' + res.error);
+        }
+      } catch (err) {
+        alert('حدث خطأ أثناء مسح الكاش.');
+      } finally {
+        setIsClearingCache(false);
+      }
+    } else {
+      alert('هذه الميزة متاحة فقط في نسخة سطح المكتب.');
+    }
+  };
+
   return (
     <>
       <div className="two-column-grid settings-diagnostics-grid">
@@ -75,6 +107,7 @@ export function SettingsDiagnosticsSection({
             <Button variant="secondary" onClick={onReconcileSuppliers} disabled={reconcileSuppliersPending || !canManageMaintenance}>مطابقة أرصدة الموردين</Button>
             <Button onClick={onReconcileAll} disabled={reconcileAllPending || !canManageMaintenance}>مطابقة كل الأرصدة</Button>
             <Button variant="primary" onClick={() => window.open(settingsApi.supportBundleDownloadUrl(), '_blank')} disabled={!canManageMaintenance}>تنزيل حزمة الدعم</Button>
+            <Button variant="secondary" onClick={handleClearCache} disabled={isClearingCache || !canManageMaintenance} style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>صيانة وتحسين أداء (مسح الكاش)</Button>
           </div>
         </QueryCard>
       </div>

@@ -53,6 +53,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     weightedBarcodeWeightDigits: Math.min(8, Math.max(3, Math.floor(Number(values.weightedBarcodeWeightDigits || 5)))),
     weightedBarcodeWeightDecimals: Math.min(3, Math.max(0, Math.floor(Number(values.weightedBarcodeWeightDecimals || 3)))),
     printShowLogo: values.printShowLogo !== false,
+    printShowDocumentType: values.printShowDocumentType !== false,
     printShowPhone: values.printShowPhone !== false,
     printShowAddress: values.printShowAddress !== false,
     printShowTaxNumber: values.printShowTaxNumber === true,

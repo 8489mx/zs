@@ -380,9 +380,10 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         }
         body.receipt-mode { font-size: 11px; }
         body.receipt-mode .print-shell {
-          padding: 1px 0 2px;
-          max-width: 74mm;
-          margin: 0 auto;
+          padding: 1px 2mm 2px;
+          width: 100%;
+          max-width: 100%;
+          margin: 0;
         }
         body.receipt-mode .print-header {
           grid-template-columns: 1fr;
@@ -409,7 +410,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
           html, body { height: auto; }
           html, body { margin: 0 !important; padding: 0 !important; }
           .print-shell { padding: 0; }
-          body.receipt-mode .print-shell { padding: 0 4mm !important; }
+          body.receipt-mode .print-shell { padding: 0 1mm !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; box-sizing: border-box !important; }
           a { color: inherit; text-decoration: none; }
           .section, .meta-box, .summary-box, .totals, .print-header { break-inside: avoid; }
           table { break-inside: auto; }

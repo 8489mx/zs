@@ -174,6 +174,20 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     }
   }, []);
 
+  // Re-apply saved printer values after system printers list loads,
+  // because the <select> loses its value if the matching <option> wasn't rendered yet during form.reset()
+  useEffect(() => {
+    if (!systemPrinters.length || !settings) return;
+    const savedCashier = String(settings.posElectronCashierPrinter || '').trim();
+    const savedKitchen = String(settings.posElectronKitchenPrinter || '').trim();
+    if (savedCashier && form.getValues('posElectronCashierPrinter') !== savedCashier) {
+      form.setValue('posElectronCashierPrinter', savedCashier, { shouldDirty: false });
+    }
+    if (savedKitchen && form.getValues('posElectronKitchenPrinter') !== savedKitchen) {
+      form.setValue('posElectronKitchenPrinter', savedKitchen, { shouldDirty: false });
+    }
+  }, [systemPrinters, settings, form]);
+
   // Sync branch stock state when selected branch changes
   useEffect(() => {
     if (!selectedBranch) return;

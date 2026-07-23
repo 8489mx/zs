@@ -275,7 +275,7 @@ export function getInvoiceStyles(compact = false) {
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 800; }
     .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px solid #aaa; border-radius: 8px; text-align: center; line-height: 1.35; }
-    body.receipt-mode .print-shell { max-width: 76mm; padding-top: 0; margin: 0 auto; }
+    body.receipt-mode .print-shell { width: 100%; max-width: 100%; padding-top: 0; margin: 0; box-sizing: border-box; }
     body.receipt-mode .print-header { display: none !important; }
     body.receipt-mode .print-title-wrap { min-width: 0; }
   `;

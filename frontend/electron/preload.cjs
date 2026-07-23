@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 contextBridge.exposeInMainWorld('electronRuntime', {
   config: runtimeConfig,
   getRuntimeConfig: () => ipcRenderer.invoke('get-runtime-config'),
+  clearAppCache: () => ipcRenderer.invoke('clear-app-cache'),
   switchToStandalone: () => ipcRenderer.invoke('switch-to-standalone'),
   switchToLanServer: () => ipcRenderer.invoke('switch-to-lan-server'),
   switchToLanClient: (opts) => ipcRenderer.invoke('switch-to-lan-client', opts),

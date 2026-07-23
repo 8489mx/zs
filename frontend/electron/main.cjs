@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 const RuntimeConfig = require('./runtime-config.cjs');
@@ -71,6 +71,14 @@ app.whenReady().then(async () => {
   console.log(`[ELECTRON] package.json version: ${packageVersion}`);
   console.log(`[ELECTRON] process.env.APP_MODE: ${process.env.APP_MODE || 'SELF_CONTAINED'}`);
   console.log('----------------------------------------');
+
+  // Clear HTTP Cache on startup to prevent bloat and improve startup time over months of use
+  try {
+    await session.defaultSession.clearCache();
+    console.log('[ELECTRON] Cleared Chromium HTTP Cache successfully.');
+  } catch (err) {
+    console.error('[ELECTRON] Failed to clear cache:', err);
+  }
 
   // Show Splash Screen Immediately
   const splash = new BrowserWindow({
@@ -270,6 +278,17 @@ app.whenReady().then(async () => {
     app.relaunch();
     app.exit();
   });
+
+  ipcMain.handle('clear-app-cache', async () => {
+    try {
+      await session.defaultSession.clearCache();
+      return { ok: true };
+    } catch (error) {
+      console.error('Failed to clear app cache:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
   ipcMain.handle('switch-to-lan-server', () => {
     runtimeConfigInstance.switchToLanServer();
     app.relaunch();

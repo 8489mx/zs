@@ -1,6 +1,7 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import pino, { Logger, LoggerOptions } from 'pino';
 import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class LoggerService implements NestLoggerService {
@@ -19,6 +20,19 @@ export class LoggerService implements NestLoggerService {
       baseDir = path.join(baseDir, '..');
     }
     const logFilePath = path.join(baseDir, 'logs', 'system-errors.log');
+    
+    // Clear log file if it exceeds 10MB to prevent startup slowdowns
+    try {
+      if (fs.existsSync(logFilePath)) {
+        const stats = fs.statSync(logFilePath);
+        if (stats.size > 10 * 1024 * 1024) {
+          fs.writeFileSync(logFilePath, '', 'utf8');
+        }
+      }
+    } catch (err) {
+      // Ignore errors silently
+    }
+
     const transport = pino.transport({
       targets: [
         {

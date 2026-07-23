@@ -30,6 +30,26 @@ class PostgresManager {
     if (!fs.existsSync(this.postgresLogsDir)) {
       fs.mkdirSync(this.postgresLogsDir, { recursive: true });
     }
+    this.cleanupOldLogs();
+  }
+
+  cleanupOldLogs() {
+    try {
+      const files = fs.readdirSync(this.postgresLogsDir);
+      const now = Date.now();
+      const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+      for (const file of files) {
+        if (file.endsWith('.log')) {
+          const filePath = path.join(this.postgresLogsDir, file);
+          const stats = fs.statSync(filePath);
+          if (now - stats.mtimeMs > SEVEN_DAYS) {
+            fs.unlinkSync(filePath);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to cleanup old logs:', err);
+    }
   }
 
   isInitialized() {
