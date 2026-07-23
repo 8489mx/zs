@@ -26,6 +26,7 @@ export const settingsFormSchema = z.object({
   currentBranchId: z.string().optional(),
   currentLocationId: z.string().optional(),
   manufacturingModuleEnabled: z.boolean().default(false),
+  comboModuleEnabled: z.boolean().default(false),
   clothingModuleEnabled: z.boolean().default(false),
   defaultProductKind: z.enum(['standard', 'fashion']).default('standard'),
   defaultPosMode: z.enum(['scanner', 'touch']).default('scanner'),

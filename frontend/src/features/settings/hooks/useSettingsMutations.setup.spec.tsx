@@ -47,6 +47,7 @@ const baseSettingsMutationValues = {
   currentBranchId: '',
   currentLocationId: '',
   manufacturingModuleEnabled: false,
+  comboModuleEnabled: false,
   clothingModuleEnabled: false,
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,

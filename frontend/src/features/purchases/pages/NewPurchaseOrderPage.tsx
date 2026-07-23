@@ -1334,7 +1334,9 @@ export function NewPurchaseOrderPage() {
           minStock: 0,
           variantStock: 0,
           categoryId: '',
-          supplierId: ''
+          supplierId: '',
+          isCombo: false,
+          comboComponents: []
         });
 
         const createdObj = payload.products?.find((p: any) => p.name === result.name) || payload.products?.[payload.products?.length - 1] || {};

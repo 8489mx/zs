@@ -39,6 +39,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     defaultProductKind,
     defaultPosMode,
     manufacturingModuleEnabled: values.manufacturingModuleEnabled === true,
+    comboModuleEnabled: values.comboModuleEnabled === true,
     allowNegativeStockSales: values.allowNegativeStockSales === true,
     allowSellingBelowStock: values.allowNegativeStockSales === true,
     allowZeroPurchaseCost: values.allowZeroPurchaseCost === true,

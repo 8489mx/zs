@@ -405,8 +405,22 @@ export class SalesWriteService {
         }
           
         const hasBOM = !!product.bom_id;
+        let finalProductName = product.name;
+
+        if (hasBOM) {
+          const bomLines = await trx.selectFrom('manufacturing_bom_lines as l')
+            .innerJoin('products as p', 'p.id', 'l.component_product_id')
+            .select('p.name')
+            .where('l.bom_id', '=', Number(product.bom_id))
+            .execute();
+          
+          if (bomLines.length > 0) {
+            finalProductName = `${product.name} (${bomLines.map(l => l.name).join(' + ')})`;
+          }
+        }
+
         const preparedItem = buildPreparedSaleItem(
-          { ...product, stock_qty: availableStockQty }, 
+          { ...product, name: finalProductName, stock_qty: availableStockQty }, 
           item, 
           { allowNegativeStockSales: allowNegativeStockSales || hasBOM }
         );
@@ -1004,8 +1018,22 @@ export class SalesWriteService {
           : Number(product.stock_qty || 0);
           
         const hasBOM = !!product.bom_id;
+        let finalProductName = product.name;
+
+        if (hasBOM) {
+          const bomLines = await trx.selectFrom('manufacturing_bom_lines as l')
+            .innerJoin('products as p', 'p.id', 'l.component_product_id')
+            .select('p.name')
+            .where('l.bom_id', '=', Number(product.bom_id))
+            .execute();
+          
+          if (bomLines.length > 0) {
+            finalProductName = `${product.name} (${bomLines.map(l => l.name).join(' + ')})`;
+          }
+        }
+
         const preparedItem = buildPreparedSaleItem(
-          { ...product, stock_qty: availableStockQty }, 
+          { ...product, name: finalProductName, stock_qty: availableStockQty }, 
           item, 
           { allowNegativeStockSales: allowNegativeStockSales || hasBOM }
         );
@@ -1412,8 +1440,30 @@ export class SalesWriteService {
       await this.assertDiscountChangeAllowed(trx, auth, Number(payload.discount || 0), payload.managerPin);
 
       for (const item of items) {
-        const product = await trx.selectFrom('products').select(['id', 'retail_price', 'wholesale_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+        let finalProductName = item.productName;
+        const product = await trx.selectFrom('products as p')
+          .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+          .select(['p.id', 'p.retail_price', 'p.wholesale_price', 'b.id as bom_id'])
+          .where('p.id', '=', item.productId)
+          .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
+          .where('p.is_active', '=', true)
+          .executeTakeFirst();
+        
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+
+        if (product.bom_id) {
+          const bomLines = await trx.selectFrom('manufacturing_bom_lines as l')
+            .innerJoin('products as p', 'p.id', 'l.component_product_id')
+            .select('p.name')
+            .where('l.bom_id', '=', Number(product.bom_id))
+            .execute();
+          
+          if (bomLines.length > 0) {
+            finalProductName = `${item.productName} (${bomLines.map(l => l.name).join(' + ')})`;
+          }
+        }
+        item.productName = finalProductName;
+
         const activeOffers = await this.getCurrentProductOffers(trx, item.productId, scope.tenantId);
         const allowedUnitPrice = calculateAllowedSaleUnitPrice({
           retailPrice: product.retail_price,

@@ -253,6 +253,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       defaultProductKind: clothingEnabled && settings.defaultProductKind === 'fashion' ? 'fashion' : 'standard',
       defaultPosMode: settings.defaultPosMode === 'touch' ? 'touch' : 'scanner',
       manufacturingModuleEnabled: settings.manufacturingModuleEnabled === true,
+      comboModuleEnabled: settings.comboModuleEnabled === true,
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
       requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
@@ -818,7 +819,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           <div className="document-prototype-grid compact-grid-2">
             <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('manufacturingModuleEnabled')} disabled={disabled} />
-              <span><strong>🏭 التصنيع والإنتاج</strong><br /><small className="muted">يضيف خيار "تصنيف الصنف" في الأصناف</small></span>
+              <span><strong>🏭 التصنيع والإنتاج</strong><br /><small className="muted">يضيف خيارات المكونات والتصنيع</small></span>
+            </label>
+            <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('comboModuleEnabled')} disabled={disabled} />
+              <span><strong>📦 العروض المجمعة والوجبات</strong><br /><small className="muted">يفعّل العروض المكونة من عدة أصناف (Combos)</small></span>
             </label>
             <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('clothingModuleEnabled')} disabled={disabled} />

@@ -1242,6 +1242,7 @@ export class CatalogProductService {
       }
     }
 
+    let firstProductId: number | null = null;
     await this.db.transaction().execute(async (trx) => {
       for (const draft of drafts) {
         const initialStockQty = Number(draft.stock || 0);
@@ -1271,6 +1272,7 @@ export class CatalogProductService {
           .returning('id')
           .executeTakeFirstOrThrow();
         const productId = Number(result.id);
+        if (firstProductId === null) firstProductId = productId;
         await this.replaceProductRelations(trx, productId, draft, actor);
         if (initialStockQty > 0) {
           await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: resolvedLocationId, qty: initialStockQty, ...this.tenantFields(actor) }).execute();
@@ -1282,7 +1284,7 @@ export class CatalogProductService {
       ? `تم إضافة مجموعة أصناف ${normalized.name} بعدد ${drafts.length} عناصر فرعية بواسطة ${actor.username}`
       : `تم إضافة الصنف ${normalized.name} بواسطة ${actor.username}`;
     await this.audit.log('إضافة صنف', auditLabel, actor);
-    return { ok: true, products: (await this.listProducts({}, actor)).products };
+    return { ok: true, id: firstProductId, products: (await this.listProducts({}, actor)).products };
   }
 
   async updateProduct(id: number, payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {

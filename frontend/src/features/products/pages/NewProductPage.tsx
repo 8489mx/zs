@@ -1,6 +1,6 @@
 
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +13,7 @@ import { useCreateProductMutation } from '@/features/products/hooks/useCreatePro
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
+import { ComboComponentsEditor } from '@/features/products/components/ComboComponentsEditor';
 import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
@@ -56,7 +57,9 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard', default
     minStock: defaultMinStock,
     categoryId: '',
     supplierId: '',
-    notes: ''
+    notes: '',
+    isCombo: false,
+    comboComponents: []
   };
 }
 
@@ -350,6 +353,7 @@ export function NewProductPage() {
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
+  const comboModuleEnabled = settingsQuery.data?.comboModuleEnabled === true || manufacturingModuleEnabled;
   const defaultItemKind: 'standard' | 'fashion' = clothingModuleEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const defaultGroupedMode = defaultItemKind === 'fashion';
 
@@ -396,6 +400,7 @@ export function NewProductPage() {
   const watchedCategoryId = useWatch({ control: form.control, name: 'categoryId' });
   const watchedSupplierId = useWatch({ control: form.control, name: 'supplierId' });
   const watchedWarehouseId = useWatch({ control: form.control, name: 'warehouseId' });
+  const watchedIsCombo = useWatch({ control: form.control, name: 'isCombo' });
   const watchedCostPrice = form.watch('costPrice');
   const usesVariantBuilder = watchedItemKind === 'fashion' || groupedEntryEnabled;
 
@@ -692,6 +697,40 @@ export function NewProductPage() {
             ) : <div />}
           </div>
         </FormSection>
+
+        {comboModuleEnabled && (
+          <FormSection title="العروض المجمعة والوجبات (Combo/BOM)">
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  {...form.register('isCombo')}
+                  disabled={isFormDisabled}
+                  style={{ width: 18, height: 18 }}
+                />
+                هذا الصنف عبارة عن عرض مجمع / وجبة
+              </label>
+              <p className="muted small" style={{ marginTop: 4 }}>
+                يتيح لك هذا الخيار إضافة مكونات (أصناف فرعية) سيتم خصمها من المخزون عند بيع هذا الصنف.
+              </p>
+            </div>
+            
+            {watchedIsCombo && (
+              <Controller
+                control={form.control}
+                name="comboComponents"
+                render={({ field }) => (
+                  <ComboComponentsEditor
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    products={allProducts}
+                    disabled={isFormDisabled}
+                  />
+                )}
+              />
+            )}
+          </FormSection>
+        )}
 
         <FormSection 
           title="الأسعار"

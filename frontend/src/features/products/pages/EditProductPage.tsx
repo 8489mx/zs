@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,11 +9,13 @@ import { FormSection } from '@/shared/components/form-section';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
-import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useCustomersQuery, useLocationsQuery, useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { ProductCustomerPrice, ProductUnit } from '@/types/domain';
 import { ProductCustomerPricesCard } from '@/features/products/components/workspace-sections/ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
+import { bomsApi } from '@/features/manufacturing/api/boms.api';
+import { ComboComponentsEditor } from '@/features/products/components/ComboComponentsEditor';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
 
@@ -49,12 +51,22 @@ export function EditProductPage() {
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
+  const comboModuleEnabled = settingsQuery.data?.comboModuleEnabled === true || manufacturingModuleEnabled;
 
   const { data: product, isLoading: isProductLoading, isError: isProductError } = useQuery({
     queryKey: ['product', id],
     queryFn: async () => productsApi.get(id as string),
     enabled: Boolean(id)
   });
+
+  const { data: boms } = useQuery({
+    queryKey: ['manufacturing-boms'],
+    queryFn: bomsApi.list,
+    enabled: manufacturingModuleEnabled && Boolean(id)
+  });
+
+  const productsQuery = useProductsQuery();
+  const allProducts = productsQuery.data || [];
 
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(product?.units, product?.barcode || ''));
   const [customerPrices, setCustomerPrices] = useState<ProductCustomerPrice[]>(normalizeCustomerPrices(product));
@@ -79,10 +91,17 @@ export function EditProductPage() {
 
   useEffect(() => {
     if (!product) return;
-    form.reset(toProductFormValues(product));
+    const bom = boms?.find((b: any) => String(b.product_id) === String(product.id));
+    const isCombo = Boolean(bom);
+    const comboComponents = bom?.lines?.map((l: any) => ({
+      productId: l.componentId || l.component_product_id,
+      quantity: Number(l.quantity)
+    })) || [];
+    
+    form.reset({ ...toProductFormValues(product), isCombo, comboComponents });
     setUnits(normalizeProductUnits(product.units, product.barcode || ''));
     setCustomerPrices(normalizeCustomerPrices(product));
-  }, [product, form]);
+  }, [product, boms, form]);
 
   useEffect(() => {
     if (!clothingModuleEnabled && form.getValues('itemKind') !== 'standard') {
@@ -91,9 +110,34 @@ export function EditProductPage() {
   }, [clothingModuleEnabled, form]);
 
   const mutation = useMutation({
-    mutationFn: async (values: ProductFormOutput) => {
+    mutationFn: async (values: ProductFormOutput & { isCombo?: boolean; comboComponents?: any[] }) => {
       if (!product) throw new Error('اختر صنفًا أولًا');
-      return productsApi.update(product.id, buildUpdatePayload({ ...omitStock(values), itemKind: watchedItemKind }, product, units, customerPrices));
+      const res = await productsApi.update(product.id, buildUpdatePayload({ ...omitStock(values as any), itemKind: watchedItemKind }, product, units, customerPrices));
+      
+      if (values.isCombo && values.comboComponents && values.comboComponents.length > 0) {
+        const bomPayload = {
+          productId: Number(product.id),
+          quantity: 1,
+          overheadCost: 0,
+          lines: values.comboComponents.map(comp => ({
+            componentProductId: comp.productId,
+            quantity: comp.quantity,
+            unitName: 'قطعة',
+            expectedCost: 0,
+            unitMultiplier: 1,
+            wastePercentage: 0
+          }))
+        };
+        const bom = boms?.find((b: any) => String(b.product_id) === String(product.id));
+        if (bom) {
+          await bomsApi.update(bom.id, bomPayload);
+        } else {
+          await bomsApi.create(bomPayload);
+        }
+      } else if (!values.isCombo && boms) {
+         // optional: maybe disable bom? We will leave it as is for now or delete it
+      }
+      return res;
     },
     onSuccess: async () => {
       if (!product) return;
@@ -114,9 +158,11 @@ export function EditProductPage() {
     await mutation.mutateAsync({ ...omitStock(values), itemKind: watchedItemKind });
   }
 
-  const isFormDisabled = mutation.isPending || isProductLoading || settingsQuery.isLoading;
+  const isFormDisabled = mutation.isPending || isProductLoading || settingsQuery.isLoading || productsQuery.isLoading;
 
-  const onSubmit = form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }));
+  const watchedIsCombo = useWatch({ control: form.control, name: 'isCombo' });
+
+  const onSubmit = form.handleSubmit((values) => mutation.mutate({ ...omitStock(values as any), itemKind: watchedItemKind, isCombo: (values as any).isCombo, comboComponents: (values as any).comboComponents }));
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -271,6 +317,40 @@ export function EditProductPage() {
             </Field>
           </div>
         </FormSection>
+
+        {comboModuleEnabled && (
+          <FormSection title="العروض المجمعة والوجبات (Combo/BOM)">
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  {...form.register('isCombo')}
+                  disabled={isFormDisabled}
+                  style={{ width: 18, height: 18 }}
+                />
+                هذا الصنف عبارة عن عرض مجمع / وجبة
+              </label>
+              <p className="muted small" style={{ marginTop: 4 }}>
+                يتيح لك هذا الخيار إضافة مكونات (أصناف فرعية) سيتم خصمها من المخزون عند بيع هذا الصنف.
+              </p>
+            </div>
+            
+            {watchedIsCombo && (
+              <Controller
+                control={form.control}
+                name="comboComponents"
+                render={({ field }) => (
+                  <ComboComponentsEditor
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    products={allProducts}
+                    disabled={isFormDisabled}
+                  />
+                )}
+              />
+            )}
+          </FormSection>
+        )}
 
         <FormSection title="الأسعار">
           <div className="document-prototype-grid compact-grid-3">

@@ -33,6 +33,7 @@ export interface AppSettings {
   printCompactReceipt?: boolean;
   printNumberFormat?: 'arabic' | 'english' | string;
   manufacturingModuleEnabled?: boolean;
+  comboModuleEnabled?: boolean;
   clothingModuleEnabled?: boolean;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;

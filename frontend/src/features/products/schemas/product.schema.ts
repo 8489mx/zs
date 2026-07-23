@@ -20,7 +20,12 @@ export const productFormSchema = z.object({
   supplierId: z.string().optional(),
   warehouseId: z.string().optional(),
   binLocation: z.string().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  isCombo: z.boolean().default(false),
+  comboComponents: z.array(z.object({
+    productId: z.number(),
+    quantity: z.number().min(0.0001)
+  })).optional()
 });
 
 export type ProductFormInput = z.input<typeof productFormSchema>;

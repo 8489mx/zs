@@ -109,6 +109,8 @@ export function PurchaseProductQuickCreateModal({
       supplierId: supplierId || undefined,
       warehouseId: warehouseId || undefined,
       notes: notes.trim(),
+      isCombo: false,
+      comboComponents: [],
       units: [{
         id: Date.now().toString(),
         name: unit.trim() || 'قطعة',

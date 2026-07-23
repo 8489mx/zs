@@ -27,7 +27,9 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     supplierId: product.supplierId || '',
     warehouseId: product.defaultLocationId || '',
     binLocation: product.binLocation || '',
-    notes: product.notes || ''
+    notes: product.notes || '',
+    isCombo: false,
+    comboComponents: []
   };
 }
 
@@ -90,7 +92,9 @@ export function buildUpdatePayload(
         price: Number(entry.price || 0)
       }))
       .filter((entry) => entry.customerId > 0 && entry.price >= 0),
-    fashionVariants: []
+    fashionVariants: [],
+    isCombo: false,
+    comboComponents: []
   };
 }
 

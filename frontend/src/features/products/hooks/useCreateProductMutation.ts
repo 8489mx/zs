@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { productsApi } from '@/features/products/api/products.api';
+import { bomsApi } from '@/features/manufacturing/api/boms.api';
+import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import type { ProductUnit } from '@/types/domain';
 import type { ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -92,7 +94,28 @@ export function useCreateProductMutation(onSuccess?: () => void) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (values: ProductFormValues) => productsApi.create(buildProductPayload(values)),
+    mutationFn: async (values: ProductFormValues) => {
+      const result = await productsApi.create(buildProductPayload(values));
+      const productId = extractCreatedEntityId(result);
+
+      if (values.isCombo && values.comboComponents && values.comboComponents.length > 0 && productId) {
+        await bomsApi.create({
+          productId: Number(productId),
+          quantity: 1,
+          overheadCost: 0,
+          lines: values.comboComponents.map(comp => ({
+            componentProductId: comp.productId,
+            quantity: comp.quantity,
+            unitName: 'قطعة',
+            expectedCost: 0,
+            unitMultiplier: 1,
+            wastePercentage: 0
+          }))
+        });
+      }
+
+      return result;
+    },
     onSuccess: async () => {
       await invalidateCatalogDomain(queryClient, { includeProducts: true });
       onSuccess?.();

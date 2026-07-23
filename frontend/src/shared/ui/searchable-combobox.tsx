@@ -4,6 +4,7 @@ import { Field } from '@/shared/ui/field';
 
 export type ComboboxOption = {
   id: string;
+  label?: string;
 };
 
 type SearchableComboboxProps<T extends ComboboxOption> = {
@@ -17,7 +18,7 @@ type SearchableComboboxProps<T extends ComboboxOption> = {
   getMeta?: (option: T) => string | undefined;
   onSelect: (option: T) => void;
   onCreate?: (query: string) => void;
-  createLabel: (query: string) => string;
+  createLabel?: (query: string) => string;
   emptyLabel?: string;
   error?: string;
   inputId?: string;
@@ -34,6 +35,7 @@ type SearchableComboboxProps<T extends ComboboxOption> = {
   idleHelperLabel?: string;
   showIdleHelper?: boolean;
   showDropdownOnEmpty?: boolean;
+  disabled?: boolean;
 };
 
 const containsDigitLikeCharacter = (value: string) => /[0-9٠-٩۰-۹]/.test(value);
@@ -65,7 +67,8 @@ export function SearchableCombobox<T extends ComboboxOption>({
   searchOnSingleDigit = false,
   idleHelperLabel,
   showIdleHelper = true,
-  showDropdownOnEmpty = true
+  showDropdownOnEmpty = true,
+  disabled
 }: SearchableComboboxProps<T>) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -275,7 +278,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
               onMouseEnter={() => setHighlightedIndex(filteredOptions.length)}
               onClick={createOption}
             >
-              {createLabel(value)}
+              {createLabel?.(value)}
             </button>
           ) : null}
         </>
@@ -289,7 +292,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
               onMouseEnter={() => setHighlightedIndex(filteredOptions.length)}
               onClick={createOption}
             >
-              {createLabel(value)}
+              {createLabel?.(value)}
             </button>
           ) : null}
         </div>
@@ -324,6 +327,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
           }}
           onFocus={openDropdown}
           onKeyDown={handleKeyDown}
+          disabled={disabled}
         />
       ) : (
         <Field label={label ?? ''} error={error}>
@@ -343,6 +347,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
             }}
             onFocus={openDropdown}
             onKeyDown={handleKeyDown}
+            disabled={disabled}
           />
         </Field>
       )}
