@@ -163,6 +163,7 @@ export interface AppSettings {
   requireCashierShiftForSales?: boolean;
   posKitchenPrinterEnabled?: boolean;
   posKitchenPrinterAuto?: boolean;
+  posKitchenPrinterMode?: 'detailed' | 'mini';
   posElectronCashierPrinter?: string;
   posElectronKitchenPrinter?: string;
   weightedBarcodeEnabled?: boolean;

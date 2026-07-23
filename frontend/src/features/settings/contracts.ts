@@ -45,6 +45,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     requireCashierShiftForSales: values.requireCashierShiftForSales !== false,
     posKitchenPrinterEnabled: values.posKitchenPrinterEnabled === true,
     posKitchenPrinterAuto: values.posKitchenPrinterAuto === true,
+    posKitchenPrinterMode: values.posKitchenPrinterMode === 'mini' ? 'mini' : 'detailed',
     posElectronCashierPrinter: cleanText(values.posElectronCashierPrinter),
     posElectronKitchenPrinter: cleanText(values.posElectronKitchenPrinter),
     weightedBarcodeEnabled: values.weightedBarcodeEnabled === true,

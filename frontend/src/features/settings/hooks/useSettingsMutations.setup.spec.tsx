@@ -56,6 +56,7 @@ const baseSettingsMutationValues = {
   requireCashierShiftForSales: true,
   posKitchenPrinterEnabled: false,
   posKitchenPrinterAuto: false,
+  posKitchenPrinterMode: 'detailed' as const,
   weightedBarcodeEnabled: false,
   weightedBarcodePrefix: '21',
   weightedBarcodeProductCodeLength: 5,

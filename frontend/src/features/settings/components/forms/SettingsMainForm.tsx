@@ -102,6 +102,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       requireCashierShiftForSales: true,
       posKitchenPrinterEnabled: false,
       posKitchenPrinterAuto: false,
+      posKitchenPrinterMode: 'detailed',
       posElectronCashierPrinter: '',
       posElectronKitchenPrinter: '',
       weightedBarcodeEnabled: false,
@@ -257,6 +258,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
       posKitchenPrinterEnabled: settings.posKitchenPrinterEnabled === true,
       posKitchenPrinterAuto: settings.posKitchenPrinterAuto === true,
+      posKitchenPrinterMode: settings.posKitchenPrinterMode || 'detailed',
       posElectronCashierPrinter: settings.posElectronCashierPrinter || '',
       posElectronKitchenPrinter: settings.posElectronKitchenPrinter || '',
       weightedBarcodeEnabled: settings.weightedBarcodeEnabled === true,
@@ -759,6 +761,13 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <input type="checkbox" {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
               طباعة شيت المطبخ تلقائياً
             </label>
+            <div className="field">
+              <label>نوع شيت المطبخ</label>
+              <select className="purchase-prototype-field-input" {...form.register('posKitchenPrinterMode')} disabled={disabled || !posKitchenPrinterEnabled}>
+                <option value="detailed">إيصال مطبخ مفصل (شامل الأصناف)</option>
+                <option value="mini">إيصال مصغر (رقم الطلب فقط لمناداة العميل)</option>
+              </select>
+            </div>
             {typeof window !== 'undefined' && (window as any).electronPrinter && (
               <div key={`printers-${String(settings?.posElectronCashierPrinter || '')}-${String(settings?.posElectronKitchenPrinter || '')}-${systemPrinters.length}`} className="document-prototype-grid compact-grid-2" style={{ gridColumn: '1 / -1', marginTop: 8, padding: '12px', border: '1px solid var(--border)', borderRadius: 8, background: '#f8fafc' }}>
                 <div className="field">

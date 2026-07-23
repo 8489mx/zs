@@ -34,6 +34,7 @@ export const settingsFormSchema = z.object({
   requireCashierShiftForSales: z.boolean().default(true),
   posKitchenPrinterEnabled: z.boolean().default(false),
   posKitchenPrinterAuto: z.boolean().default(false),
+  posKitchenPrinterMode: z.enum(['detailed', 'mini']).optional().default('detailed'),
   posElectronCashierPrinter: z.string().optional(),
   posElectronKitchenPrinter: z.string().optional(),
   weightedBarcodeEnabled: z.boolean().default(false),
