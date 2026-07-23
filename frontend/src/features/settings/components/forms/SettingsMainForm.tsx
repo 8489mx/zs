@@ -759,8 +759,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <input type="checkbox" {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
               طباعة شيت المطبخ تلقائياً
             </label>
-            {posKitchenPrinterEnabled && typeof window !== 'undefined' && (window as any).electronPrinter && (
-              <div className="document-prototype-grid compact-grid-2" style={{ gridColumn: '1 / -1', marginTop: 8, padding: '12px', border: '1px solid var(--border)', borderRadius: 8, background: '#f8fafc' }}>
+            {typeof window !== 'undefined' && (window as any).electronPrinter && (
+              <div key={`printers-${String(settings?.posElectronCashierPrinter || '')}-${String(settings?.posElectronKitchenPrinter || '')}-${systemPrinters.length}`} className="document-prototype-grid compact-grid-2" style={{ gridColumn: '1 / -1', marginTop: 8, padding: '12px', border: '1px solid var(--border)', borderRadius: 8, background: '#f8fafc' }}>
                 <div className="field">
                   <label>طابعة الكاشير (الريسيت)</label>
                   <select className="purchase-prototype-field-input" {...form.register('posElectronCashierPrinter')} disabled={disabled}>
@@ -775,7 +775,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                 </div>
                 <div className="field">
                   <label>طابعة المطبخ (KOT)</label>
-                  <select className="purchase-prototype-field-input" {...form.register('posElectronKitchenPrinter')} disabled={disabled}>
+                  <select className="purchase-prototype-field-input" {...form.register('posElectronKitchenPrinter')} disabled={disabled || !posKitchenPrinterEnabled}>
                     <option value="">- الطباعة العادية (نافذة المتصفح) -</option>
                     {savedKitchenPrinter && !systemPrinters.some(p => p.name === savedKitchenPrinter) && (
                       <option value={savedKitchenPrinter}>{savedKitchenPrinter}</option>
