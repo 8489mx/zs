@@ -138,6 +138,8 @@ export function usePosWorkspace() {
     locationId: operationalContext.locationId,
     search: state.search,
     lastSale: state.lastSale,
+    orderType: state.orderType,
+    collectionStatus: state.collectionStatus,
   });
 
   const actions = createPosWorkspaceActions({

@@ -32,6 +32,8 @@ interface PosWorkspaceDerivedParams {
   branchId: string;
   locationId: string;
   lastSale: Sale | null;
+  orderType: string;
+  collectionStatus?: string;
 }
 
 function getCanSubmitHint(params: {
@@ -168,9 +170,11 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const hasCreditWithoutCustomer = params.paymentType === 'credit' && !params.customerId;
   const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
   const shouldAssumeFullCashPayment = allowNegativeStockSales && params.paymentType !== 'credit' && Number(params.paidAmount || 0) <= 0.0001;
+  const isDeliveryCOD = params.orderType === 'delivery' && params.collectionStatus === 'cod';
   const hasUnderpaidSale = params.paymentType !== 'credit'
     && Number(params.paidAmount || 0) < Number(totals.total || 0)
-    && !shouldAssumeFullCashPayment;
+    && !shouldAssumeFullCashPayment
+    && !isDeliveryCOD;
   const hasDiscountPermissionViolation = !canApplyDiscount && Math.abs(Number(params.discount || 0)) > 0.0001;
   const hasPricePermissionViolation = !canEditPrice && params.cart.some((item) => {
     const baselinePrice = item.priceType === 'retail' && Number(item.qty || 0) === 1

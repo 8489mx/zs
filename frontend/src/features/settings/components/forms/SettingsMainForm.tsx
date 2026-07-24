@@ -841,10 +841,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <input type="checkbox" {...form.register('posShowCartMeta')} disabled={disabled} />
               <span><strong>🛒 اختيار الطاولة والعميل بالكاشير</strong><br /><small className="muted">يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع</small></span>
             </label>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
-              <span><strong>🚚 طباعة بيانات التوصيل</strong><br /><small className="muted">يظهر المندوب وحالة التحصيل في إيصال الفاتورة</small></span>
-            </label>
+
             <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('clothingModuleEnabled')} disabled={disabled} />
               <span><strong>👗 موديل الملابس والمتغيرات</strong><br /><small className="muted">يفعّل موديلات الملابس والأحجام والألوان</small></span>

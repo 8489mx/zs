@@ -98,9 +98,9 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     branchName: sale.branchName || 'المتجر الرئيسي',
     locationName: sale.locationName || 'المخزن الأساسي',
     note: sale.note || '',
-    tableNumber: (sale as any).table_number || null,
-    orderType: (sale as any).order_type || null,
-    deliveryRepName: (sale as any).delivery_rep_name || null,
+    tableNumber: (sale as any).tableNumber || (sale as any).table_number || null,
+    orderType: (sale as any).orderType || (sale as any).order_type || null,
+    deliveryRepName: (sale as any).deliveryRepName || (sale as any).delivery_rep_name || null,
     items: (sale.items || []).map((item) => ({
       name: item.name,
       unitName: item.unitName,
