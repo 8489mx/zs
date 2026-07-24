@@ -14,6 +14,6 @@ import { SalesWriteService } from './services/sales-write.service';
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule],
   controllers: [SalesController],
   providers: [SalesService, SalesAuthorizationService, SalesFinanceService, SalesQueryService, SalesWriteService],
-  exports: [SalesService],
+  exports: [SalesService, SalesFinanceService],
 })
 export class SalesModule {}
