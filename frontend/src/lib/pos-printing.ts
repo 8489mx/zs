@@ -61,6 +61,7 @@ export function printPosDraftPreview(options: {
     note: options.note,
     tableNumber: options.tableNumber,
     orderType: options.orderType,
+    deliveryRepName: (options as any).deliveryRepName,
     items: (options.items || []).map((item) => ({
       name: item.name,
       unitName: item.unitName,
@@ -99,6 +100,7 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     note: sale.note || '',
     tableNumber: (sale as any).table_number || null,
     orderType: (sale as any).order_type || null,
+    deliveryRepName: (sale as any).delivery_rep_name || null,
     items: (sale.items || []).map((item) => ({
       name: item.name,
       unitName: item.unitName,

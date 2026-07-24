@@ -50,6 +50,7 @@ const baseSettingsMutationValues = {
   comboModuleEnabled: false,
   restaurantModuleEnabled: false,
   posShowCartMeta: false,
+  printDeliveryRepOnReceipt: false,
   clothingModuleEnabled: false,
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,

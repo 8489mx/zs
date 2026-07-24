@@ -142,6 +142,7 @@ export interface AppSettings {
   printShowPhone?: boolean;
   printShowAddress?: boolean;
   printShowTaxNumber?: boolean;
+  printDeliveryRepOnReceipt?: boolean;
   printShowCustomer?: boolean;
   printShowCashier?: boolean;
   printShowBranch?: boolean;

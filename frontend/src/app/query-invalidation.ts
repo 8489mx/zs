@@ -97,6 +97,8 @@ export async function invalidateSalesDomain(
     invalidateInventoryDomain(queryClient, { includeProducts: true, includeDashboard }),
     invalidateTreasuryDomain(queryClient),
     queryClient.invalidateQueries({ queryKey: ['reports-summary'] }),
+    queryClient.invalidateQueries({ queryKey: ['delivery-rep-orders'] }),
+    queryClient.invalidateQueries({ queryKey: ['delivery-rep-summary'] }),
   ]);
 }
 

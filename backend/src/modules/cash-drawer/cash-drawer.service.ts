@@ -153,15 +153,15 @@ export class CashDrawerService {
     if (!(openerId > 0) || !shift.created_at) return empty;
     const result = await sql<any>`
       with shift_sales as (
-        select s.id, s.total, s.payment_type, s.payment_channel from sales s
+        select s.id, s.total, s.payment_type, s.payment_channel, s.collection_status from sales s
         where s.tenant_id = ${scope.tenantId} and s.status = 'posted' and s.created_by = ${openerId} and s.created_at >= ${shift.created_at}
           and (${shift.closed_at || null}::timestamptz is null or s.created_at <= ${shift.closed_at || null})
           and (${shift.branch_id || null}::int is null or s.branch_id is null or s.branch_id = ${Number(shift.branch_id || 0) || null})
           and (${shift.location_id || null}::int is null or s.location_id is null or s.location_id = ${Number(shift.location_id || 0) || null})
       ), payment_rows as (
-        select sp.sale_id, sp.payment_channel, sp.amount from sale_payments sp inner join shift_sales ss on ss.id = sp.sale_id where sp.tenant_id = ${scope.tenantId}
+        select sp.sale_id, sp.payment_channel, sp.amount from sale_payments sp inner join shift_sales ss on ss.id = sp.sale_id where sp.tenant_id = ${scope.tenantId} and coalesce(ss.collection_status, '') != 'cod'
         union all
-        select ss.id as sale_id, case when ss.payment_channel in ('card','wallet','instapay') then ss.payment_channel else 'cash' end as payment_channel, ss.total as amount from shift_sales ss where ss.payment_channel in ('cash','card','wallet','instapay') and not exists (select 1 from sale_payments sp where sp.tenant_id = ${scope.tenantId} and sp.sale_id = ss.id)
+        select ss.id as sale_id, case when ss.payment_channel in ('card','wallet','instapay') then ss.payment_channel else 'cash' end as payment_channel, ss.total as amount from shift_sales ss where ss.payment_channel in ('cash','card','wallet','instapay') and not exists (select 1 from sale_payments sp where sp.tenant_id = ${scope.tenantId} and sp.sale_id = ss.id) and coalesce(ss.collection_status, '') != 'cod'
       )
       select coalesce(sum(case when payment_channel = 'cash' then amount else 0 end), 0) as cash_sales_total,
              coalesce(sum(case when payment_channel = 'card' then amount else 0 end), 0) as card_sales_total,

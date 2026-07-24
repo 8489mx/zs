@@ -1,4 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { deliveryRepsApi } from '@/features/delivery-reps/api/delivery-reps.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -8,6 +10,7 @@ import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/
 import {
   PosCheckoutCustomerSection,
   PosCheckoutPaymentSection,
+  PosCheckoutDeliverySection,
   type PaymentPreset,
 } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
 import { useAuthStore, isAdminUser } from '@/stores/auth-store';
@@ -36,6 +39,8 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
   const { user } = useAuthStore();
   const isAdmin = isAdminUser(user);
   const isDiscountLocked = !pos.canApplyDiscount && !isAdmin;
+
+  const deliveryRepsQuery = useQuery({ queryKey: ['delivery-reps'], queryFn: deliveryRepsApi.list, staleTime: 5 * 60 * 1000 });
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   useEffect(() => { createSalePendingRef.current = Boolean(pos.createSale.isPending); }, [pos.createSale.isPending]);
@@ -197,6 +202,11 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
             onCustomerPickerOpenChange={setCustomerPickerOpen}
             onCustomerQueryChange={setCustomerQuery}
             onQuickCustomerSubmit={(event) => { void handleQuickCustomerSubmit(event); }}
+          />
+
+          <PosCheckoutDeliverySection
+            pos={pos}
+            deliveryReps={deliveryRepsQuery.data || []}
           />
 
           <PosCheckoutPaymentSection

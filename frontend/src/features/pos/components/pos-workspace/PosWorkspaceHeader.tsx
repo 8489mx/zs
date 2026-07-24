@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -8,6 +8,7 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
+import { PosDeliveryRepsManagementDialog } from '@/features/delivery-reps/components/PosDeliveryRepsManagementDialog';
 
 function buildDescription(pos: PosWorkspaceState, offlineQueueCount: number) {
   if (pos.isLoading) return 'جاري تهيئة بيئة نقطة البيع...';
@@ -32,8 +33,10 @@ interface PosWorkspaceHeaderProps {
 
 function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
+  const [showDeliveryReps, setShowDeliveryReps] = useState(false);
 
   return (
+    <>
     <PageHeader
       title="نقطة البيع"
       description={buildDescription(pos, offlineQueue.length)}
@@ -62,6 +65,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
                <span>{(pos.currentBranch as any).salesStockMode === 'all_operational_locations' ? 'كل المخازن' : 'مخزن أساسي'}</span>
              </div>
           )}
+          <Button type="button" variant="secondary" onClick={() => setShowDeliveryReps(true)}>إدارة المناديب</Button>
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
           <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
@@ -70,6 +74,10 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
         </div>
       )}
     />
+    {showDeliveryReps && (
+      <PosDeliveryRepsManagementDialog onClose={() => setShowDeliveryReps(false)} />
+    )}
+    </>
   );
 }
 

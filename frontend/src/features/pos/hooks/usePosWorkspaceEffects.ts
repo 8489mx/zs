@@ -57,6 +57,8 @@ export function usePosWorkspaceEffects({
   priceType: PosPriceType;
   tableNumber: string;
   orderType: string;
+  deliveryRepId?: string;
+  collectionStatus?: string;
 
   products: Product[];
   setCart: (value: PosItem[] | ((current: PosItem[]) => PosItem[])) => void;

@@ -2528,5 +2528,60 @@ export class AccountingPostingService {
       throw e;
     }
   }
+  async postDeliveryRepSettlement(queryable: DbOrTx, saleId: number, amount: number, branchId: number | null, locationId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    if (!(amount > 0)) return { posted: false, journalEntryId: null };
+
+    const existing = await queryable.selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'delivery_rep_settlement')
+      .where('source_id', '=', saleId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: existing.id };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    if (!settings) throw new Error(`Accounting settings missing while posting delivery settlement for sale ${saleId}`);
+
+    const sale = await queryable.selectFrom('sales').select(['customer_id', 'doc_no']).where('id', '=', saleId).executeTakeFirstOrThrow();
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: Number(settings.cash_account_id || 0),
+      description: `تحصيل من مندوب عن فاتورة #${sale.doc_no || saleId}`,
+      debit: amount,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId,
+      locationId,
+    });
+    this.addLine(lines, {
+      accountId: Number(settings.customer_receivable_account_id || 0),
+      description: `تسديد مديونية فاتورة #${sale.doc_no || saleId}`,
+      debit: 0,
+      credit: amount,
+      partnerType: sale.customer_id ? 'customer' : 'none',
+      partnerId: sale.customer_id ? Number(sale.customer_id) : null,
+      branchId,
+      locationId,
+    });
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'delivery_rep_settlement',
+      sourceId: saleId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description: `قيد تسوية مندوب لفاتورة #${sale.doc_no || saleId}`,
+      branchId,
+      locationId,
+      createdBy: auth.userId,
+      postedBy: auth.userId,
+      lines,
+    });
+
+    return { posted: true, journalEntryId: entryId };
+  }
 
 }

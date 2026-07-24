@@ -42,6 +42,10 @@ export interface PosWorkspaceActionParams {
   setTableNumber: Dispatch<SetStateAction<string>>;
   orderType: string;
   setOrderType: Dispatch<SetStateAction<string>>;
+  deliveryRepId: string;
+  setDeliveryRepId: Dispatch<SetStateAction<string>>;
+  collectionStatus: string;
+  setCollectionStatus: Dispatch<SetStateAction<string>>;
   quickAddCode: string;
   setQuickAddCode: Dispatch<SetStateAction<string>>;
   quickCustomerName: string;

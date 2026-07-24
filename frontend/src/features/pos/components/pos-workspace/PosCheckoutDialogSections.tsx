@@ -3,6 +3,7 @@ import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import type { DeliveryRep } from '@/features/delivery-reps/api/delivery-reps.api';
 
 export type PaymentPreset = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit';
 
@@ -248,5 +249,139 @@ export function PosCheckoutPaymentSection({
       {!pos.canApplyDiscount ? <div className="pos-payment-strip-notes"><span className="pos-payment-strip-note">{pos.discountApprovalGranted ? 'تم اعتماد الخصم لهذه الفاتورة فقط.' : 'لا تملك صلاحية تعديل الخصم. استخدم اعتماد المدير لهذه الفاتورة.'}</span></div> : null}
       {pos.hasDiscountPermissionViolation ? <div className="error-box">تم اكتشاف خصم غير مسموح به في هذه الفاتورة.</div> : null}
     </section>
+  );
+}
+
+interface PosCheckoutDeliverySectionProps {
+  pos: PosWorkspaceState;
+  deliveryReps: DeliveryRep[];
+}
+
+export function PosCheckoutDeliverySection({ pos, deliveryReps }: PosCheckoutDeliverySectionProps) {
+  const [repSearchOpen, setRepSearchOpen] = useState(false);
+  const [repSearchQuery, setRepSearchQuery] = useState('');
+
+  const isRestaurant = pos.settingsQuery?.data?.restaurantModuleEnabled === true;
+  const activeReps = deliveryReps.filter((r) => r.is_active);
+  const selectedRep = activeReps.find((r) => String(r.id) === String(pos.deliveryRepId));
+  const filteredReps = activeReps.filter(r => r.name.toLowerCase().includes(repSearchQuery.toLowerCase()) || r.phone?.includes(repSearchQuery));
+
+  return (
+    <>
+      <section className="pos-checkout-dialog-section">
+        <div className="pos-checkout-section-head">
+          <h4>نوع الفاتورة</h4>
+          <strong>{pos.orderType === 'dine_in' ? 'صالة (طاولات)' : pos.orderType === 'delivery' ? 'توصيل (دليفري)' : 'تيك أواي (بيع مباشر)'}</strong>
+        </div>
+        <div className="pos-checkout-payment-methods" style={{ marginBottom: '16px' }}>
+          <Button type="button" variant={pos.orderType === 'takeaway' || !pos.orderType ? 'primary' : 'secondary'} onClick={() => pos.setOrderType('takeaway')}>تيك أواي</Button>
+          <Button type="button" variant={pos.orderType === 'delivery' ? 'primary' : 'secondary'} onClick={() => pos.setOrderType('delivery')}>دليفري (توصيل)</Button>
+          {isRestaurant && (
+            <Button type="button" variant={pos.orderType === 'dine_in' ? 'primary' : 'secondary'} onClick={() => pos.setOrderType('dine_in')}>صالة (طاولات)</Button>
+          )}
+        </div>
+      </section>
+
+      {pos.orderType === 'delivery' && (
+        <section className="pos-checkout-dialog-section" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+          <div className="pos-checkout-section-head">
+            <h4>بيانات التوصيل</h4>
+            <strong>{selectedRep?.name || 'لم يتم اختيار مندوب'}</strong>
+          </div>
+
+          <div className="document-prototype-grid compact-grid-2" style={{ gap: '12px' }}>
+            <div style={{ position: 'relative' }}>
+              <label className="field">
+                <span>المندوب</span>
+                <input
+                  className="purchase-prototype-field-input"
+                  placeholder={selectedRep?.name || "-- ابحث عن مندوب --"}
+                  value={repSearchOpen ? repSearchQuery : (selectedRep?.name || '')}
+                  onFocus={() => { setRepSearchOpen(true); setRepSearchQuery(''); }}
+                  onBlur={() => setTimeout(() => setRepSearchOpen(false), 200)}
+                  onChange={(e) => setRepSearchQuery(e.target.value)}
+                  style={{ padding: '6px 8px', cursor: 'text', width: '100%' }}
+                />
+              </label>
+
+              {repSearchOpen && (
+                <div 
+                  style={{ 
+                    position: 'absolute', top: '100%', left: 0, right: 0, 
+                    background: 'white', border: '1px solid #cbd5e1', 
+                    borderRadius: '4px', zIndex: 10, maxHeight: '200px', 
+                    overflowY: 'auto', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                >
+                  <div 
+                    style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: !pos.deliveryRepId ? '#f8fafc' : 'white' }}
+                    onMouseDown={() => { pos.setDeliveryRepId(''); setRepSearchOpen(false); }}
+                  >
+                    -- بدون مندوب --
+                  </div>
+                  {filteredReps.length === 0 && (
+                    <div style={{ padding: '8px 12px', color: '#64748b' }}>لا يوجد مناديب</div>
+                  )}
+                  {filteredReps.map(rep => (
+                    <div 
+                      key={rep.id}
+                      style={{ 
+                        padding: '8px 12px', cursor: 'pointer', 
+                        borderBottom: '1px solid #f1f5f9',
+                        background: String(rep.id) === String(pos.deliveryRepId) ? '#eff6ff' : 'white',
+                        color: String(rep.id) === String(pos.deliveryRepId) ? '#2563eb' : '#334155'
+                      }}
+                      onMouseDown={(e) => { e.preventDefault(); pos.setDeliveryRepId(String(rep.id)); setRepSearchOpen(false); }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseLeave={(e) => {
+                        if (String(rep.id) !== String(pos.deliveryRepId)) e.currentTarget.style.background = 'white';
+                        else e.currentTarget.style.background = '#eff6ff';
+                      }}
+                    >
+                      {rep.name} {rep.phone ? <span style={{ color: '#94a3b8', fontSize: '12px' }}>({rep.phone})</span> : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="field">
+              <span>حالة التحصيل</span>
+              <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                {(['cod', 'prepaid_by_rep', 'prepaid_online'] as const).map((status) => (
+                  <Button
+                    key={status}
+                    type="button"
+                    variant={pos.collectionStatus === status ? 'primary' : 'secondary'}
+                    onClick={() => {
+                      pos.setCollectionStatus(status);
+                      if (status === 'cod') {
+                        pos.setPaymentChannel('cash');
+                        pos.setCashAmount(0);
+                        pos.setCardAmount(0);
+                        pos.setTransferAmount(0);
+                      } else if (status === 'prepaid_by_rep') {
+                        pos.setPaymentChannel('cash');
+                        pos.setCashAmount(Number(pos.totals.total || 0));
+                        pos.setCardAmount(0);
+                        pos.setTransferAmount(0);
+                      } else if (status === 'prepaid_online') {
+                        pos.setPaymentChannel('wallet');
+                        pos.setTransferAmount(Number(pos.totals.total || 0));
+                        pos.setCashAmount(0);
+                        pos.setCardAmount(0);
+                      }
+                    }}
+                    style={{ flex: 1, fontSize: '13px', padding: '6px 4px' }}
+                  >
+                    {status === 'cod' ? 'تحصيل من العميل' : status === 'prepaid_by_rep' ? 'خالص من المندوب' : 'خالص أونلاين'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+    </>
   );
 }

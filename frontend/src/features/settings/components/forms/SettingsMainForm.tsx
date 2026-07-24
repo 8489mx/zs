@@ -98,6 +98,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       comboModuleEnabled: false,
       restaurantModuleEnabled: false,
       posShowCartMeta: false,
+      printDeliveryRepOnReceipt: false,
       clothingModuleEnabled: false,
       defaultProductKind: 'standard',
       defaultPosMode: 'scanner',
@@ -260,6 +261,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       comboModuleEnabled: settings.comboModuleEnabled === true,
       restaurantModuleEnabled: settings.restaurantModuleEnabled === true,
       posShowCartMeta: settings.posShowCartMeta === true,
+      printDeliveryRepOnReceipt: settings.printDeliveryRepOnReceipt === true,
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
       requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
@@ -840,6 +842,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <span><strong>🛒 اختيار الطاولة والعميل بالكاشير</strong><br /><small className="muted">يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع</small></span>
             </label>
             <label style={checkboxStyle}>
+              <input type="checkbox" {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
+              <span><strong>🚚 طباعة بيانات التوصيل</strong><br /><small className="muted">يظهر المندوب وحالة التحصيل في إيصال الفاتورة</small></span>
+            </label>
+            <label style={checkboxStyle}>
               <input type="checkbox" {...form.register('clothingModuleEnabled')} disabled={disabled} />
               <span><strong>👗 موديل الملابس والمتغيرات</strong><br /><small className="muted">يفعّل موديلات الملابس والأحجام والألوان</small></span>
             </label>
@@ -911,6 +917,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowAddress')} disabled={disabled} /> إظهار العنوان</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTaxNumber')} disabled={disabled} /> إظهار الرقم الضريبي</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCustomer')} disabled={disabled} /> إظهار العميل</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} /> إظهار اسم المندوب</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCashier')} disabled={disabled} /> إظهار الكاشير</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowBranch')} disabled={disabled} /> إظهار الفرع</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLocation')} disabled={disabled} /> إظهار المخزن</label>

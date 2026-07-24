@@ -74,6 +74,8 @@ export function resetPosDraftState(params: PosWorkspaceActionParams) {
   params.setLastAddedLineKey('');
   params.setOrderType('takeaway');
   params.setTableNumber('');
+  params.setDeliveryRepId('');
+  params.setCollectionStatus('cod');
   params.setSubmitMessage('');
   params.setPostSaleSaleKey('');
   clearDraftSnapshot();

@@ -110,6 +110,20 @@ export class UpsertSaleDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
+  deliveryRepId?: number;
+
+  @IsOptional()
+  @IsString()
+  deliveryStatus?: string;
+
+  @IsOptional()
+  @IsIn(['cod', 'prepaid_by_rep', 'prepaid_online'])
+  collectionStatus?: 'cod' | 'prepaid_by_rep' | 'prepaid_online';
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
   branchId?: number;
 
   @Type(() => Number)
@@ -159,4 +173,7 @@ export type NormalizedSalePayload = {
   tenderedAmount: number;
   tableNumber: string | null;
   orderType: string | null;
+  deliveryRepId?: number;
+  deliveryStatus?: string;
+  collectionStatus?: 'cod' | 'prepaid_by_rep' | 'prepaid_online';
 };

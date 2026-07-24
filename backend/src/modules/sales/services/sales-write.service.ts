@@ -485,7 +485,8 @@ export class SalesWriteService {
 
       const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
       const paidAmount = calculatePaidAmount(payments);
-      if (normalized.paymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) {
+      const isCodDelivery = String(normalized.orderType || '').trim() === 'delivery' && String((payload as any).collectionStatus || '').trim() === 'cod';
+      if (normalized.paymentType !== 'credit' && !isCodDelivery && paidAmount + 0.0001 < collectibleTotal) {
         throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
       }
 
@@ -519,6 +520,9 @@ export class SalesWriteService {
           location_id: normalized.locationId,
           table_number: String(normalized.tableNumber || '').trim(),
           order_type: String(normalized.orderType || 'takeaway').trim(),
+          delivery_rep_id: (payload as any).deliveryRepId ? Number((payload as any).deliveryRepId) : null,
+          delivery_status: (payload as any).deliveryRepId ? ((payload as any).deliveryStatus || 'pending') : null,
+          collection_status: (payload as any).deliveryRepId ? ((payload as any).collectionStatus || null) : null,
           created_by: auth.userId,
           cancel_reason: '',
           tenant_id: scope.tenantId,
@@ -729,7 +733,7 @@ export class SalesWriteService {
 
       if (normalized.paymentType === 'credit' && customer && collectibleTotal > 0) {
         await this.finance.createCustomerLedgerEntry(trx, customer.id, collectibleTotal, `فاتورة بيع S-${id}`, id, auth);
-      } else {
+      } else if (!isCodDelivery) {
         for (const payment of payments) {
           if (payment.paymentChannel !== 'cash') continue;
           await this.finance.addTreasuryTransaction(trx, payment.amount, `فاتورة بيع S-${id} - نقدي`, id, auth, normalized.branchId, normalized.locationId);
@@ -1523,6 +1527,8 @@ export class SalesWriteService {
           price_type: payload.priceType === 'wholesale' ? 'wholesale' : 'retail',
           branch_id: payload.branchId ? Number(payload.branchId) : null,
           location_id: payload.locationId ? Number(payload.locationId) : null,
+          delivery_rep_id: (payload as any).deliveryRepId ? Number((payload as any).deliveryRepId) : null,
+          collection_status: (payload as any).deliveryRepId ? ((payload as any).collectionStatus || null) : null,
           created_by: auth.userId,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,

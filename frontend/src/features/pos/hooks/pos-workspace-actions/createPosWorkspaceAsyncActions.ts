@@ -115,7 +115,10 @@ export function createPosWorkspaceAsyncActions(
 
     // Smooth negative-stock cashier flow: when below-stock sales are allowed and no amount was typed,
     // treat a normal cash invoice as fully paid instead of blocking it with an underpaid warning.
+    const isCodDelivery = params.orderType === 'delivery' && params.collectionStatus === 'cod';
+
     const shouldAssumeFullCashPayment = !forceFastCash
+      && !isCodDelivery
       && allowNegativeStockSales
       && params.paymentType !== 'credit'
       && params.paymentChannel === 'cash'
@@ -123,6 +126,7 @@ export function createPosWorkspaceAsyncActions(
       && total > 0;
 
     const shouldAssumeFullCardPayment = !forceFastCash
+      && !isCodDelivery
       && allowNegativeStockSales
       && params.paymentType !== 'credit'
       && params.paymentChannel === 'card'
@@ -130,6 +134,7 @@ export function createPosWorkspaceAsyncActions(
       && total > 0;
 
     const shouldAssumeFullTransferPayment = !forceFastCash
+      && !isCodDelivery
       && allowNegativeStockSales
       && params.paymentType !== 'credit'
       && (params.paymentChannel === 'wallet' || params.paymentChannel === 'instapay')
@@ -173,7 +178,7 @@ export function createPosWorkspaceAsyncActions(
           ? effectiveTransferAmount
           : effectiveCashAmount + effectiveCardAmount
       ).toFixed(2));
-    const isUnderpaid = effectivePaymentType !== 'credit' && effectivePaidAmount < total;
+    const isUnderpaid = effectivePaymentType !== 'credit' && !isCodDelivery && effectivePaidAmount < total;
 
     if (effectivePaymentType === 'credit' && !effectiveCustomerId) {
       params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يجب أن يسجل على حساب العميل.');
@@ -233,6 +238,10 @@ export function createPosWorkspaceAsyncActions(
         managerPin: options.managerPin || params.discountApprovalSecret || undefined,
         branchId: params.branchId || (params.currentBranch?.id != null ? String(params.currentBranch.id) : null),
         locationId: params.locationId || (params.currentLocation?.id != null ? String(params.currentLocation.id) : null),
+        orderType: params.orderType,
+        tableNumber: params.tableNumber,
+        deliveryRepId: params.deliveryRepId,
+        collectionStatus: params.collectionStatus,
       });
       params.setLastSale(createdSale as Sale);
       const createdSaleKey = getSaleKey(createdSale as Sale);
@@ -287,6 +296,8 @@ export function createPosWorkspaceAsyncActions(
         paymentChannel: params.paymentChannel,
         orderType: params.orderType,
         tableNumber: params.tableNumber,
+        deliveryRepId: params.deliveryRepId,
+        collectionStatus: params.collectionStatus,
         items: sanitizedItems,
       });
       base.resetPosDraft();
@@ -328,6 +339,8 @@ export function createPosWorkspaceAsyncActions(
     params.setPriceType(draft.priceType);
     params.setOrderType(draft.orderType || 'takeaway');
     params.setTableNumber(draft.tableNumber || '');
+    params.setDeliveryRepId(draft.deliveryRepId || '');
+    params.setCollectionStatus(draft.collectionStatus || 'cod');
     params.setDiscountApprovalGranted(false);
     params.setDiscountApprovalSecret('');
     await params.deleteHeldDraftMutation.mutateAsync(draftId);

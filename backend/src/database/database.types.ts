@@ -489,6 +489,17 @@ export interface DamagedStockRecordTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface DeliveryRepresentativeTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  name: string;
+  phone: string | null;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface SalesTable {
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
@@ -518,6 +529,11 @@ export interface SalesTable {
   cancelled_at: Date | null;
   cancelled_by: number | null;
   cancel_reason: string;
+  delivery_rep_id: number | null;
+  delivery_status: 'pending' | 'out_for_delivery' | 'delivered' | 'settled' | null;
+  collection_status: 'cod' | 'prepaid_by_rep' | 'prepaid_online' | null;
+  settled_at: Date | null;
+  settled_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -569,6 +585,8 @@ export interface HeldSaleTable {
   branch_id: number | null;
   location_id: number | null;
   created_by: number | null;
+  delivery_rep_id: number | null;
+  collection_status: 'cod' | 'prepaid_by_rep' | 'prepaid_online' | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -1442,7 +1460,8 @@ export interface Database {
   hr_hr_settings: HrSettingsTable;
   hr_payroll_loan_deduction_allocations: HrPayrollLoanDeductionAllocationTable;
   price_change_runs: PriceChangeRunTable;
-    price_change_items: PriceChangeItemTable;
+  price_change_items: PriceChangeItemTable;
+  delivery_representatives: DeliveryRepresentativeTable;
   updated_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;

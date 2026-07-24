@@ -35,6 +35,8 @@ export interface PosDraftSnapshot {
   locationId: string;
   tableNumber: string;
   orderType: string;
+  deliveryRepId?: string;
+  collectionStatus?: string;
 }
 
 export interface HeldPosDraft extends PosDraftSnapshot {
@@ -96,6 +98,8 @@ export function usePosWorkspace() {
     priceType: state.priceType,
     tableNumber: state.tableNumber,
     orderType: state.orderType,
+    deliveryRepId: state.deliveryRepId,
+    collectionStatus: state.collectionStatus,
     products: catalogProducts,
     setCart: state.setCart,
     setSubmitMessage: state.setSubmitMessage,
@@ -171,6 +175,10 @@ export function usePosWorkspace() {
     setTableNumber: state.setTableNumber,
     orderType: state.orderType,
     setOrderType: state.setOrderType,
+    deliveryRepId: state.deliveryRepId,
+    setDeliveryRepId: state.setDeliveryRepId,
+    collectionStatus: state.collectionStatus,
+    setCollectionStatus: state.setCollectionStatus,
     quickAddCode: state.quickAddCode,
     setQuickAddCode: state.setQuickAddCode,
     quickCustomerName: state.quickCustomerName,
@@ -259,6 +267,10 @@ export function usePosWorkspace() {
     setTableNumber: state.setTableNumber,
     orderType: state.orderType,
     setOrderType: state.setOrderType,
+    deliveryRepId: state.deliveryRepId,
+    setDeliveryRepId: state.setDeliveryRepId,
+    collectionStatus: state.collectionStatus,
+    setCollectionStatus: state.setCollectionStatus,
     cart: state.cart,
     setCart: state.setCart,
     selectedLineKey: state.selectedLineKey,

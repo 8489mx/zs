@@ -42,6 +42,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     comboModuleEnabled: values.comboModuleEnabled === true,
     restaurantModuleEnabled: values.restaurantModuleEnabled === true,
     posShowCartMeta: values.posShowCartMeta === true,
+    printDeliveryRepOnReceipt: values.printDeliveryRepOnReceipt === true,
     allowNegativeStockSales: values.allowNegativeStockSales === true,
     allowSellingBelowStock: values.allowNegativeStockSales === true,
     allowZeroPurchaseCost: values.allowZeroPurchaseCost === true,

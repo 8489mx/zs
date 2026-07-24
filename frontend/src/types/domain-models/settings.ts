@@ -36,6 +36,7 @@ export interface AppSettings {
   comboModuleEnabled?: boolean;
   restaurantModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
+  printDeliveryRepOnReceipt?: boolean;
   clothingModuleEnabled?: boolean;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;
