@@ -323,26 +323,26 @@ app.whenReady().then(async () => {
   // Handle IPC for hardware ID
   ipcMain.handle('get-hardware-id', async () => {
     return new Promise((resolve, reject) => {
-      exec('reg query HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', (err1, std1) => {
-        if (!err1 && std1 && std1.includes('REG_SZ')) {
-          const parts = std1.split('REG_SZ');
-          if (parts.length > 1) {
-            const guid = parts[1].trim();
-            if (guid.length > 10) {
-              return resolve(guid.toUpperCase());
-            }
+      exec('wmic csproduct get uuid', (err1, std1) => {
+        let uuid = '';
+        if (!err1 && std1) {
+          const lines = std1.split('\n').map(l => l.trim()).filter(l => l);
+          if (lines.length > 1 && lines[1].length > 10) {
+            uuid = lines[1].toUpperCase();
           }
         }
-        
+
         exec('wmic baseboard get serialnumber', (error, stdout, stderr) => {
-          if (error) {
-            console.error('Error fetching hardware ID:', error);
-            resolve('UNKNOWN-HARDWARE-ID');
-            return;
+          let serial = '';
+          if (!error && stdout) {
+            const lines = stdout.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length > 1 && lines[1].toLowerCase() !== 'default string') {
+              serial = lines[1].toUpperCase();
+            }
           }
-          const lines = stdout.split('\n').map(l => l.trim()).filter(l => l);
-          if (lines.length > 1 && lines[1].toLowerCase() !== 'default string') {
-            resolve(lines[1]);
+          
+          if (uuid || serial) {
+            resolve(`${uuid}-${serial}`);
           } else {
             resolve('UNKNOWN-HARDWARE-ID');
           }
