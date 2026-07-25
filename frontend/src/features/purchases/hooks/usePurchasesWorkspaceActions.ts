@@ -112,7 +112,7 @@ export function usePurchasesWorkspaceActions(params: {
           if (purchase.items && purchase.items.length > 0) {
              const itemsDetails = purchase.items.map(item => `
                <div style="display: inline-flex; align-items: center; background: #fff; padding: 2px 8px; border-radius: 6px; margin: 2px; font-size: 0.9em; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                 ${escapeHtml(item.name || item.productName)} <strong style="color: #0369a1; padding-right: 6px; font-size: 1.05em; font-weight: 800;">(${item.qty})</strong>
+                 ${escapeHtml(item.name || (item as any).productName)} <strong style="color: #0369a1; padding-right: 6px; font-size: 1.05em; font-weight: 800;">(${item.qty})</strong>
                </div>
              `).join('');
              rowHtml += `<tr><td colspan="6" style="padding: 10px 16px; border-bottom: 2px solid #cbd5e1; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
