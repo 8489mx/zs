@@ -1975,8 +1975,10 @@ export class HrService {
           throw new AppError('Attendance check-in/out time is invalid', 'HR_ATTENDANCE_TIME_INVALID', 400);
         }
         await sql`
-          INSERT INTO hr_attendance_records (employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
+          INSERT INTO hr_attendance_records (tenant_id, account_id, employee_id, work_date, status, check_in_at, check_out_at, source, notes, created_by, updated_by, created_at, updated_at)
           VALUES (
+            ${auth.tenantId},
+            ${auth.accountId},
             ${employeeId},
             ${workDate}::date,
             ${status},
@@ -1989,7 +1991,7 @@ export class HrService {
             NOW(),
             NOW()
           )
-          ON CONFLICT (employee_id, work_date) DO UPDATE
+          ON CONFLICT (tenant_id, employee_id, work_date) DO UPDATE
           SET
             status = EXCLUDED.status,
             check_in_at = EXCLUDED.check_in_at,

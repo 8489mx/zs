@@ -25,13 +25,6 @@ function todayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function nowTime() {
-  const date = new Date();
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  return `${hh}:${mm}`;
-}
-
 function normalizeArabicDigits(value: string) {
   return String(value || '')
     .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
@@ -102,6 +95,7 @@ export function HrAttendancePage() {
   const [date, setDate] = useState(todayDate());
   const [search, setSearch] = useState('');
   const [exceptionFilter, setExceptionFilter] = useState<ExceptionFilter>('needs_action');
+  const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'unmarked' | 'recorded'>('all');
   const [draftByEmployeeId, setDraftByEmployeeId] = useState<Record<string, DraftRow>>({});
 
   const attendance = useHrAttendance({ date, search, page: 1, pageSize: 200 });
@@ -109,6 +103,15 @@ export function HrAttendancePage() {
   const rows = useMemo(() => (attendance.data?.rows || []) as HrAttendanceRecord[], [attendance.data?.rows]);
   const allExceptionRows = useMemo(() => (exceptions.data?.rows || []) as HrAttendanceException[], [exceptions.data?.rows]);
   const exceptionRows = useMemo(() => filterExceptions(allExceptionRows, exceptionFilter), [allExceptionRows, exceptionFilter]);
+
+  const filteredAttendanceRows = useMemo(() => {
+    if (attendanceFilter === 'all') return rows;
+    return rows.filter((row) => {
+      const status = String(draftByEmployeeId[String(row.employeeId)]?.status || row.status || '');
+      if (attendanceFilter === 'unmarked') return !status;
+      return !!status;
+    });
+  }, [rows, draftByEmployeeId, attendanceFilter]);
 
   useEffect(() => {
     const next: Record<string, DraftRow> = {};
@@ -151,19 +154,27 @@ export function HrAttendancePage() {
     }));
   };
 
-  const saveDay = async () => {
-    const payloadRows = Object.values(draftByEmployeeId)
-      .filter((row) => row.employeeId && row.status)
-      .map((row) => ({
-        employeeId: Number(normalizeArabicDigits(row.employeeId)),
+  const saveRow = async (employeeId: string, patch?: Partial<DraftRow>) => {
+    const current = draftByEmployeeId[employeeId] || { employeeId, status: '', checkInAt: '', checkOutAt: '', notes: '' };
+    const draft = patch ? { ...current, ...patch } : current;
+    if (!draft.status && (draft.checkInAt || draft.checkOutAt)) draft.status = 'present';
+    
+    if (patch) {
+      setDraftByEmployeeId((prev) => ({ ...prev, [employeeId]: draft }));
+    }
+
+    if (draft.status || draft.checkInAt || draft.checkOutAt) {
+      const payloadRow = {
+        employeeId: Number(normalizeArabicDigits(draft.employeeId)),
         workDate: date,
-        status: row.status,
-        checkInAt: toDateTime(date, row.checkInAt),
-        checkOutAt: toDateTime(date, row.checkOutAt),
-        notes: row.notes || undefined,
+        status: draft.status || 'present',
+        checkInAt: toDateTime(date, draft.checkInAt),
+        checkOutAt: toDateTime(date, draft.checkOutAt),
+        notes: draft.notes || undefined,
         source: 'manual',
-      }));
-    await mutations.saveAttendanceDay.mutateAsync({ workDate: date, rows: payloadRows });
+      };
+      await mutations.saveAttendanceDay.mutateAsync({ workDate: date, rows: [payloadRow] }).catch(console.error);
+    }
   };
 
   const approveException = async (id: string) => {
@@ -182,10 +193,7 @@ export function HrAttendancePage() {
         description="ابدأ بتحديد اليوم، راجع الاستثناءات التي تؤثر على الراتب، ثم احفظ أي تعديل على سجل الحضور."
         actions={(
           <div className="compact-actions">
-            <Button onClick={saveDay} disabled={mutations.saveAttendanceDay.isPending}>
-              {mutations.saveAttendanceDay.isPending ? 'جاري الحفظ...' : 'حفظ اليوم'}
-            </Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>سجل المرتبات</Button>
             <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
         )}
@@ -226,19 +234,6 @@ export function HrAttendancePage() {
         }}
       />
 
-      <FormSection title="اليوم والبحث" description="اختيار التاريخ والبحث يؤثران على السجل والاستثناءات معًا.">
-        <div className="form-grid">
-          <label className="field">
-            <span>التاريخ</span>
-            <input type="date" value={date} onChange={(e) => setDate(normalizeArabicDigits(e.target.value || todayDate()))} />
-          </label>
-          <div className="field field-wide">
-            <span>بحث الموظف</span>
-            <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث باسم الموظف أو الكود" />
-          </div>
-        </div>
-      </FormSection>
-
       <FormSection title="ملخص اليوم" description="اضغط على أرقام الاستثناءات لتصفية قائمة المراجعة بالأسفل.">
         <div className="stats-grid">
           <div className="stat-card"><span>إجمالي الموظفين</span><strong>{summary.total}</strong></div>
@@ -249,6 +244,19 @@ export function HrAttendancePage() {
           <button className="stat-card" type="button" onClick={() => setExceptionFilter('needs_action')} style={{ textAlign: 'right' }}><span>استثناءات تحتاج إجراء</span><strong>{summary.needsAction}</strong></button>
           <button className="stat-card" type="button" onClick={() => setExceptionFilter('overtime')} style={{ textAlign: 'right' }}><span>وقت إضافي محتمل</span><strong>{summary.overtime}</strong></button>
           <button className="stat-card" type="button" onClick={() => setExceptionFilter('deduction')} style={{ textAlign: 'right' }}><span>خصم/نقص محتمل</span><strong>{summary.deduction}</strong></button>
+        </div>
+      </FormSection>
+
+      <FormSection title="اليوم والبحث" description="اختيار التاريخ والبحث يؤثران على السجل والاستثناءات معًا.">
+        <div className="form-grid">
+          <label className="field">
+            <span>التاريخ</span>
+            <input type="date" value={date} onChange={(e) => setDate(normalizeArabicDigits(e.target.value || todayDate()))} />
+          </label>
+          <div className="field field-wide">
+            <span>بحث الموظف</span>
+            <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث باسم الموظف أو الكود" />
+          </div>
         </div>
       </FormSection>
 
@@ -303,17 +311,22 @@ export function HrAttendancePage() {
       </FormSection>
 
       <FormSection title="سجل الحضور اليومي" description="استخدمه للتعديل اليدوي عند نسيان الحضور أو الانصراف، ثم اضغط حفظ اليوم.">
+        <div className="compact-actions" style={{ marginBottom: 12 }}>
+          <Button type="button" variant={attendanceFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('all')}>الكل</Button>
+          <Button type="button" variant={attendanceFilter === 'unmarked' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('unmarked')}>لم يُسجل بعد</Button>
+          <Button type="button" variant={attendanceFilter === 'recorded' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('recorded')}>مُسجل</Button>
+        </div>
         <QueryFeedback
           isLoading={attendance.isLoading}
           isError={attendance.isError}
           error={attendance.error}
-          isEmpty={!rows.length}
+          isEmpty={!filteredAttendanceRows.length}
           loadingText="جاري تحميل سجلات الحضور..."
           errorTitle="تعذر تحميل سجلات الحضور."
-          emptyTitle="لا توجد سجلات حضور لهذا اليوم."
+          emptyTitle="لا توجد سجلات مطابقة للفلتر."
         >
           <DataTable
-            rows={rows}
+            rows={filteredAttendanceRows}
             rowKey={(row) => String(row.employeeId)}
             density="compact"
             columns={[
@@ -381,8 +394,7 @@ export function HrAttendancePage() {
                 className: 'col-fit',
                 cell: (row) => (
                   <div className="compact-actions-vertical">
-                    <Button type="button" variant="secondary" onClick={() => updateDraft(String(row.employeeId), { status: 'present', checkInAt: draftByEmployeeId[String(row.employeeId)]?.checkInAt || nowTime() })}>تسجيل حضور</Button>
-                    <Button type="button" variant="secondary" onClick={() => updateDraft(String(row.employeeId), { status: draftByEmployeeId[String(row.employeeId)]?.status || 'present', checkOutAt: draftByEmployeeId[String(row.employeeId)]?.checkOutAt || nowTime() })}>تسجيل انصراف</Button>
+                    <Button type="button" onClick={() => saveRow(String(row.employeeId))}>حفظ</Button>
                   </div>
                 ),
               },
