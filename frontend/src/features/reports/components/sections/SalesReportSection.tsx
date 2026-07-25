@@ -18,8 +18,9 @@ export function SalesReportSection({
   topProducts,
   exportTopProducts,
   printTopProducts,
+  printSalesRegisterReport,
   formatPercent
-}: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'accountingFinancialSummary' | 'salesDailyAverage' | 'purchaseDailyAverage' | 'returnRatePercent' | 'rangeDays' | 'topProducts' | 'exportTopProducts' | 'printTopProducts' | 'formatPercent'>) {
+}: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'accountingFinancialSummary' | 'salesDailyAverage' | 'purchaseDailyAverage' | 'returnRatePercent' | 'rangeDays' | 'topProducts' | 'exportTopProducts' | 'printTopProducts' | 'printSalesRegisterReport' | 'formatPercent'>) {
   const financial = accountingFinancialSummary?.cards;
   const salesTotal = financial?.grossSales ?? report?.sales.total ?? 0;
   const netSales = financial?.netSales ?? report?.sales.netSales ?? 0;
@@ -34,7 +35,7 @@ export function SalesReportSection({
       <QueryCard
         title="مؤشرات البيع"
         description="تركيز مباشر على أرقام المبيعات ضمن النطاق الحالي مع الاحتفاظ بتفاصيل التشغيل مثل عدد الفواتير وأعلى الأصناف."
-        actions={<span className="nav-pill">المبيعات</span>}
+        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void printSalesRegisterReport(false)} disabled={!report?.sales.count}>طباعة / PDF (ملخص)</Button><Button variant="secondary" onClick={() => void printSalesRegisterReport(true)} disabled={!report?.sales.count}>طباعة / PDF (تفصيلي)</Button><span className="nav-pill">المبيعات</span></div>}
         isLoading={reportQuery.isLoading}
         isError={reportQuery.isError}
         error={reportQuery.error}

@@ -71,6 +71,8 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         exportCustomerBalances={controller.exportCustomerBalances}
         printInventoryValueReport={controller.printInventoryValueReport}
         printInventoryMovementsReport={controller.printInventoryMovementsReport}
+        printSalesRegisterReport={controller.printSalesRegisterReport}
+        printPurchasesRegisterReport={controller.printPurchasesRegisterReport}
         locationId={controller.locationId}
         printCustomerBalances={controller.printCustomerBalances}
         formatPercent={controller.formatPercent}

@@ -86,9 +86,45 @@ export function usePurchasesWorkspaceActions(params: {
         <div class="meta-box"><strong>عدد الفواتير</strong><span>${result.rows.length}</span></div>
         <div class="meta-box"><strong>إجمالي المشتريات</strong><span>${formatCurrency(summary?.totalAmount || 0)}</span></div>
       </div>
-      <table>
-        <thead><tr><th>الفاتورة</th><th>المورد</th><th>الحالة</th><th>الدفع</th><th>الإجمالي</th><th>التاريخ</th></tr></thead>
-        <tbody>${result.rows.map((purchase) => `<tr><td>${escapeHtml(purchase.docNo || purchase.id)}</td><td>${escapeHtml(purchase.supplierName || '')}</td><td>${escapeHtml(purchase.status || '')}</td><td>${escapeHtml(purchase.paymentType || '')}</td><td>${formatCurrency(purchase.total || 0)}</td><td>${escapeHtml(purchase.date || '')}</td></tr>`).join('')}</tbody>
+      <table style="border: 1px solid #e2e8f0; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+            <th style="border: 1px solid #e2e8f0; text-align: right;">الفاتورة</th>
+            <th style="border: 1px solid #e2e8f0; text-align: right;">المورد</th>
+            <th style="border: 1px solid #e2e8f0; text-align: center;">الحالة</th>
+            <th style="border: 1px solid #e2e8f0; text-align: center;">الدفع</th>
+            <th style="border: 1px solid #e2e8f0; text-align: right;">الإجمالي</th>
+            <th style="border: 1px solid #e2e8f0; text-align: right;">التاريخ</th>
+          </tr>
+        </thead>
+        <tbody>${result.rows.map((purchase) => {
+          const statusColor = purchase.status === 'completed' || purchase.status === 'paid' ? '#16a34a' : purchase.status === 'cancelled' || purchase.status === 'refunded' ? '#dc2626' : '#ea580c';
+          
+          let rowHtml = `<tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="border: 1px solid #e2e8f0;"><strong>${escapeHtml(purchase.docNo || purchase.id)}</strong></td>
+            <td style="border: 1px solid #e2e8f0;">${escapeHtml(purchase.supplierName || '—')}</td>
+            <td style="border: 1px solid #e2e8f0; text-align: center; color: ${statusColor}; font-weight: bold;">${escapeHtml(purchase.status || '')}</td>
+            <td style="border: 1px solid #e2e8f0; text-align: center;">${escapeHtml(purchase.paymentType || '')}</td>
+            <td style="border: 1px solid #e2e8f0;"><strong>${formatCurrency(purchase.total || 0)}</strong></td>
+            <td style="border: 1px solid #e2e8f0;">${escapeHtml(purchase.date || '')}</td>
+          </tr>`;
+
+          if (purchase.items && purchase.items.length > 0) {
+             const itemsDetails = purchase.items.map(item => `
+               <div style="display: inline-flex; align-items: center; background: #fff; padding: 2px 8px; border-radius: 6px; margin: 2px; font-size: 0.9em; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                 ${escapeHtml(item.name || item.productName)} <strong style="color: #0369a1; padding-right: 6px; font-size: 1.05em; font-weight: 800;">(${item.qty})</strong>
+               </div>
+             `).join('');
+             rowHtml += `<tr><td colspan="6" style="padding: 10px 16px; border-bottom: 2px solid #cbd5e1; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+               <div style="font-weight: 800; margin-bottom: 6px; font-size: 0.9em; color: #475569; display: flex; align-items: center; gap: 4px;">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                 تفاصيل الفاتورة:
+               </div>
+               <div style="display: flex; flex-wrap: wrap; gap: 4px;">${itemsDetails}</div>
+             </td></tr>`;
+          }
+          return rowHtml;
+        }).join('')}</tbody>
       </table>
     `, { subtitle: 'نتائج سجل المشتريات الحالية', pageSize: 'A4' });
   }

@@ -4,7 +4,8 @@ import { relativePercent } from '@/features/reports/lib/reports-format';
 import { formatCurrency } from '@/lib/format';
 import type { ReportsSectionContentProps } from '@/features/reports/components/reports-section.types';
 
-export function PurchasesReportSection({ report, reportQuery }: Pick<ReportsSectionContentProps, 'report' | 'reportQuery'>) {
+import { Button } from '@/shared/ui/button';
+export function PurchasesReportSection({ report, reportQuery, printPurchasesRegisterReport }: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'printPurchasesRegisterReport'>) {
   const values = [
     report?.purchases.total || 0,
     report?.purchases.netPurchases || 0,
@@ -18,7 +19,7 @@ export function PurchasesReportSection({ report, reportQuery }: Pick<ReportsSect
       <QueryCard
         title="مؤشرات الشراء"
         description="فصل ملخص الشراء في تبويب مستقل يسهّل على الإدارة والمخزن مراجعة الوضع الشرائي بدون ازدحام."
-        actions={<span className="nav-pill">المشتريات</span>}
+        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void printPurchasesRegisterReport(false)} disabled={!report?.purchases.count}>طباعة / PDF (ملخص)</Button><Button variant="secondary" onClick={() => void printPurchasesRegisterReport(true)} disabled={!report?.purchases.count}>طباعة / PDF (تفصيلي)</Button><span className="nav-pill">المشتريات</span></div>}
         isLoading={reportQuery.isLoading}
         isError={reportQuery.isError}
         error={reportQuery.error}
