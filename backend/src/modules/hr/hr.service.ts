@@ -502,7 +502,7 @@ export class HrService {
     if (search) {
       rows = rows.filter((row) => [row.employeeNo, row.displayName, row.username, row.departmentName, row.jobTitleName].some((value) => value.toLowerCase().includes(search)));
     }
-    const paged = paginateRows(rows, query, { defaultSize: 25 });
+    const paged = paginateRows(rows, query, { defaultSize: 25, maxSize: 5000 });
     return { employees: paged.rows, pagination: paged.pagination, summary: { totalItems: rows.length, activeCount: rows.filter((row) => row.status === 'active').length } };
   }
 

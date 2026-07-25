@@ -55,7 +55,7 @@ export async function parseImportFile(file: File): Promise<Record<string, string
     if (!firstSheetName) return [];
     const worksheet = workbook.Sheets[firstSheetName];
     // Convert to array of objects, keeping headers
-    const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' }) as Record<string, unknown>[];
+    const json = XLSX.utils.sheet_to_json(worksheet, { defval: '', raw: false, dateNF: 'yyyy-mm-dd hh:mm:ss' }) as Record<string, unknown>[];
     // Normalize to string values for consistency with CSV parser
     return json.map(row => {
       const stringifiedRow: Record<string, string> = {};

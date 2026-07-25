@@ -378,6 +378,12 @@ export class HrController {
     return this.hr.listContacts(employeeId, req.authContext!);
   }
 
+  @Get('employees/:employeeId/adjustments')
+  @RequirePermissions('hrEmployees')
+  listEmployeeAdjustments(@Param('employeeId', ParseIntPipe) employeeId: number, @Req() req: RequestWithAuth) {
+    return this.hr.listEmployeeAdjustments(employeeId, req.authContext!);
+  }
+
   @Post('employees/:employeeId/contacts')
   @RequirePermissions('hrEmployees')
   createContact(@Param('employeeId', ParseIntPipe) employeeId: number, @Body() payload: UpsertEmployeeContactDto, @Req() req: RequestWithAuth) {
