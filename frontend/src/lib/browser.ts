@@ -247,7 +247,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
           --print-accent: #1d4ed8;
         }
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; background: #fff; color: var(--print-text); }
+        html, body { margin: 0; padding: 0; background: #fff; color: var(--print-text); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body { font-family: Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.45; }
         .print-shell { padding: 12px; max-width: 100%; }
         .print-header { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 7fr); gap: 10px; align-items: stretch; margin-bottom: 12px; }

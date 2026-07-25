@@ -142,8 +142,19 @@ export function useReportsWorkspaceActions({
         <div class="meta-box"><strong>إجمالي الحركات</strong><span>${transfers.length}</span></div>
         <div class="meta-box"><strong>الكمية المحولة</strong><span>${integerFormatter(transfers.reduce((sum, t) => sum + (t.items?.reduce((a, i) => a + (i.qty || 0), 0) || 0), 0))}</span></div>
       </div>
-      <table>
-        <thead><tr><th>رقم المستند</th><th>من</th><th>إلى</th><th>الحالة</th><th>التاريخ</th><th>المُسلّم</th><th>المستلم / السائق</th><th>الكمية الإجمالية</th></tr></thead>
+      <table style="border: 1px solid #e2e8f0; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+            <th style="border: 1px solid #e2e8f0; text-align: right;">رقم المستند</th>
+            <th style="border: 1px solid #e2e8f0; text-align: right;">من</th>
+            <th style="border: 1px solid #e2e8f0; text-align: right;">إلى</th>
+            <th style="border: 1px solid #e2e8f0; text-align: center;">الحالة</th>
+            <th style="border: 1px solid #e2e8f0; text-align: right;">التاريخ</th>
+            <th style="border: 1px solid #e2e8f0; text-align: right;">المُسلّم</th>
+            <th style="border: 1px solid #e2e8f0; text-align: right;">المستلم / السائق</th>
+            <th style="border: 1px solid #e2e8f0; text-align: center;">الكمية الإجمالية</th>
+          </tr>
+        </thead>
         <tbody>${transfers.map((t) => {
           const fromLocation = escapeHtml(t.fromLocationName || t.fromBranchName || '—');
           const toLocation = escapeHtml(t.toLocationName || t.toBranchName || '—');
@@ -151,26 +162,32 @@ export function useReportsWorkspaceActions({
           const receiver = escapeHtml(t.recipientName || '—');
           const totalQty = integerFormatter(t.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0);
           
-          let rowHtml = `<tr>
-            <td><strong>${escapeHtml(t.docNo)}</strong></td>
-            <td>${fromLocation}</td>
-            <td>${toLocation}</td>
-            <td>${t.status === 'received' ? 'مستلم' : t.status === 'sent' ? 'مرسل' : 'ملغي'}</td>
-            <td>${new Date(t.date).toLocaleString('ar-EG')}</td>
-            <td>${dispatcher}</td>
-            <td>${receiver}</td>
-            <td><strong>${totalQty}</strong></td>
+          const statusColor = t.status === 'received' ? '#16a34a' : t.status === 'sent' ? '#ea580c' : '#dc2626';
+          const statusText = t.status === 'received' ? 'مستلم' : t.status === 'sent' ? 'مرسل' : 'ملغي';
+          
+          let rowHtml = `<tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="border: 1px solid #e2e8f0;"><strong>${escapeHtml(t.docNo)}</strong></td>
+            <td style="border: 1px solid #e2e8f0;">${fromLocation}</td>
+            <td style="border: 1px solid #e2e8f0;">${toLocation}</td>
+            <td style="border: 1px solid #e2e8f0; text-align: center; color: ${statusColor}; font-weight: bold;">${statusText}</td>
+            <td style="border: 1px solid #e2e8f0;">${new Date(t.date).toLocaleString('ar-EG')}</td>
+            <td style="border: 1px solid #e2e8f0;">${dispatcher}</td>
+            <td style="border: 1px solid #e2e8f0;">${receiver}</td>
+            <td style="border: 1px solid #e2e8f0; text-align: center; font-weight: bold;">${totalQty}</td>
           </tr>`;
 
           if (detailed && t.items && t.items.length > 0) {
              const itemsDetails = t.items.map(item => `
-               <div style="display: inline-block; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 0.85em; border: 1px solid #e2e8f0;">
-                 ${escapeHtml(item.productName)} <strong style="color: #0284c7; padding-right: 4px;">(${item.qty})</strong>
+               <div style="display: inline-flex; align-items: center; background: #fff; padding: 2px 8px; border-radius: 6px; margin: 2px; font-size: 0.9em; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                 ${escapeHtml(item.productName)} <strong style="color: #0369a1; padding-right: 6px; font-size: 1.05em; font-weight: 800;">(${item.qty})</strong>
                </div>
              `).join('');
-             rowHtml += `<tr><td colspan="8" style="padding: 8px 16px; border-bottom: 2px solid #cbd5e1; background: #f8fafc;">
-               <div style="font-weight: bold; margin-bottom: 4px; font-size: 0.85em; color: #475569;">تفاصيل الأصناف:</div>
-               ${itemsDetails}
+             rowHtml += `<tr><td colspan="8" style="padding: 10px 16px; border-bottom: 2px solid #cbd5e1; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+               <div style="font-weight: 800; margin-bottom: 6px; font-size: 0.9em; color: #475569; display: flex; align-items: center; gap: 4px;">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                 تفاصيل الأصناف:
+               </div>
+               <div style="display: flex; flex-wrap: wrap; gap: 4px;">${itemsDetails}</div>
              </td></tr>`;
           }
           return rowHtml;
