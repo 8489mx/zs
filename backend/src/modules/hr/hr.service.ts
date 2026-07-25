@@ -1219,7 +1219,10 @@ export class HrService {
         c.id AS contract_id,
         c.base_salary,
         cp.allowance_amount,
-        cp.deduction_amount
+        cp.deduction_amount,
+        e.compensation_type,
+        e.hourly_rate,
+        e.expected_daily_hours
       FROM hr_employees e
       LEFT JOIN LATERAL (
         SELECT *
@@ -1257,7 +1260,17 @@ export class HrService {
       if (clean(existingItem?.status) === 'excluded' || clean(existingItem?.status) === 'approved') continue;
       const itemId = Number(existingItem?.id || 0);
       const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId) : { allowance: 0, deduction: 0 };
-      const baseSalary = money(employee.base_salary);
+      const isHourly = clean(employee.compensation_type) === 'hourly';
+      let baseSalary = money(employee.base_salary);
+      
+      if (isHourly) {
+        const expectedHours = Number(employee.expected_daily_hours || 0);
+        const hourlyRate = money(employee.hourly_rate || 0);
+        baseSalary = Number((hourlyRate * expectedHours * 30).toFixed(2)); // Max theoretical base for the month to allow daily rate calc, deductions will handle actuals
+        // Or actually, for hourly we could calculate base based on actual attendance. 
+        // For now, let's just populate the theoretical full-month base salary so the daily rate deduction math works the same way it does for monthly.
+      }
+      
       const compensationAllowance = money(employee.allowance_amount);
       const compensationDeduction = money(employee.deduction_amount);
       const loanDeduction = await this.calculateLoanDeduction(db, employeeId, periodMonth);
