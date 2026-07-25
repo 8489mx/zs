@@ -9,6 +9,7 @@ import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
 import type { HrAttendanceException, HrAttendanceRecord } from '@/types/domain';
 import { useHrAttendance, useHrAttendanceExceptions, useHrMutations } from '@/features/hr/hooks/useHr';
+import { ImportWorkbench } from '@/shared/components/ImportWorkbench';
 
 type DraftRow = {
   employeeId: string;
@@ -191,6 +192,35 @@ export function HrAttendancePage() {
       />
 
 
+      <ImportWorkbench
+        title="استيراد الحضور من إكسيل"
+        description="ارفع شيت الإكسيل الصادر من جهاز البصمة هنا."
+        requiredColumns={['كود الموظف', 'التاريخ']}
+        fieldMappings={[
+          { key: 'employeeNo', label: 'كود الموظف (مطلوب)' },
+          { key: 'workDate', label: 'التاريخ (مطلوب)' },
+          { key: 'checkInAt', label: 'وقت الحضور' },
+          { key: 'checkOutAt', label: 'وقت الانصراف' },
+        ]}
+        isPending={mutations.bulkImportAttendanceRecords.isPending}
+        onDownloadTemplate={() => {
+          const csv = 'كود الموظف,التاريخ,وقت الحضور,وقت الانصراف\n101,2026-07-25,09:00,17:00';
+          const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = 'نموذج_الحضور.csv';
+          link.click();
+        }}
+        onImportRows={async (rows) => {
+          const records = rows.map((row) => ({
+            employeeNo: String(row['كود الموظف'] || row.employeeNo || ''),
+            workDate: String(row['التاريخ'] || row.workDate || ''),
+            checkInAt: row['وقت الحضور'] || row.checkInAt || undefined,
+            checkOutAt: row['وقت الانصراف'] || row.checkOutAt || undefined,
+          })).filter(r => r.employeeNo && r.workDate);
+          return mutations.bulkImportAttendanceRecords.mutateAsync({ records });
+        }}
+      />
 
       <FormSection title="اليوم والبحث" description="اختيار التاريخ والبحث يؤثران على السجل والاستثناءات معًا.">
         <div className="form-grid">

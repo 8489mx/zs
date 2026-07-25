@@ -131,6 +131,7 @@ export function useHrMutations() {
     saveCompensation: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveCompensation(employeeId, payload, id), onSuccess: invalidate }),
     saveAttendanceDay: useMutation({ mutationFn: (payload: unknown) => hrApi.saveAttendanceDay(payload), onSuccess: invalidate }),
     saveAttendanceRecord: useMutation({ mutationFn: (payload: unknown) => hrApi.saveAttendanceRecord(payload), onSuccess: invalidate }),
+    bulkImportAttendanceRecords: useMutation({ mutationFn: (payload: { records: { employeeNo: string; workDate: string; checkInAt?: string; checkOutAt?: string }[] }) => hrApi.bulkImportAttendanceRecords(payload), onSuccess: invalidate }),
     approveAttendanceException: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.approveAttendanceException(id, payload || {}), onSuccess: invalidate }),
     skipAttendanceException: useMutation({ mutationFn: ({ id, payload }: { id: string; payload?: unknown }) => hrApi.skipAttendanceException(id, payload || {}), onSuccess: invalidate }),
     saveLeaveType: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveLeaveType(payload, id), onSuccess: invalidate }),

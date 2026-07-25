@@ -15,6 +15,7 @@ import {
   UpsertEmployeeAssetDto,
   UpsertLeaveTypeDto,
   UpsertAttendanceRecordDto,
+  BulkImportAttendanceDto,
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
@@ -75,6 +76,12 @@ export class HrController {
   @RequirePermissions('hrEmployees')
   saveAttendanceRecord(@Body() payload: UpsertAttendanceRecordDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertAttendanceRecord(payload, req.authContext!);
+  }
+
+  @Post('attendance/bulk-import')
+  @RequirePermissions('hrEmployees')
+  importAttendanceRecords(@Body() payload: BulkImportAttendanceDto, @Req() req: RequestWithAuth) {
+    return this.hr.bulkImportAttendanceRecords(payload, req.authContext!);
   }
 
   @Get('attendance/exceptions')

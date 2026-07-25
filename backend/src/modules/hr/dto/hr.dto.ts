@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, MaxLength, Min, ValidateNested } from 'class-validator';
 
 export class UpsertHrMasterDataDto {
   @IsString()
@@ -593,4 +593,28 @@ export class PayPayrollRunDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+}
+
+
+export class BulkImportAttendanceRecordDto {
+  @IsString()
+  employeeNo!: string;
+
+  @IsDateString()
+  workDate!: string;
+
+  @IsOptional()
+  @IsDateString()
+  checkInAt?: string;
+
+  @IsOptional()
+  @IsDateString()
+  checkOutAt?: string;
+}
+
+export class BulkImportAttendanceDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BulkImportAttendanceRecordDto)
+  records!: BulkImportAttendanceRecordDto[];
 }

@@ -20,6 +20,7 @@ import {
   UpsertEmployeeAssetDto,
   UpsertLeaveTypeDto,
   UpsertAttendanceRecordDto,
+  BulkImportAttendanceDto,
   UpsertPayrollItemDto,
   UpsertCompensationPackageDto,
   UpsertEmployeeContactDto,
@@ -2067,6 +2068,95 @@ export class HrService {
 
     await this.audit.log('Upsert HR attendance record', `Attendance record saved for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
     return this.listAttendance({ date: workDate }, auth);
+  }
+
+  async bulkImportAttendanceRecords(payload: BulkImportAttendanceDto, auth: AuthContext): Promise<{ imported: number; skipped: number; errors: string[] }> {
+    requireTenantScope(auth);
+    if (!payload.records || !payload.records.length) {
+      throw new AppError('No records to import', 'HR_ATTENDANCE_IMPORT_EMPTY', 400);
+    }
+
+    const employeeNos = [...new Set(payload.records.map((r) => r.employeeNo))];
+    if (employeeNos.length === 0) {
+      return { imported: 0, skipped: payload.records.length, errors: ['No valid employee codes'] };
+    }
+
+    const employeesQuery = await this.db
+      .selectFrom('hr_employees')
+      .select(['id', 'employee_no', 'status'])
+      .where('tenant_id', '=', auth.tenantId!)
+      .where('employee_no', 'in', employeeNos)
+      .execute();
+    const empMap = new Map(employeesQuery.map((e) => [e.employee_no, e]));
+
+    let imported = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    await this.db.transaction().execute(async (trx) => {
+      for (const record of payload.records) {
+        const emp = empMap.get(record.employeeNo);
+        if (!emp) {
+          errors.push(`Employee not found for code: ${record.employeeNo}`);
+          skipped++;
+          continue;
+        }
+        if (emp.status !== 'active') {
+          errors.push(`Employee ${record.employeeNo} is inactive`);
+          skipped++;
+          continue;
+        }
+
+        const workDate = normalizeDateOnly(record.workDate);
+        if (!workDate) {
+          errors.push(`Invalid date for employee ${record.employeeNo}`);
+          skipped++;
+          continue;
+        }
+
+        const checkInAt = record.checkInAt ? new Date(record.checkInAt) : null;
+        const checkOutAt = record.checkOutAt ? new Date(record.checkOutAt) : null;
+        if ((checkInAt && Number.isNaN(checkInAt.getTime())) || (checkOutAt && Number.isNaN(checkOutAt.getTime()))) {
+          errors.push(`Invalid time for employee ${record.employeeNo} on ${workDate}`);
+          skipped++;
+          continue;
+        }
+
+        const status = checkInAt ? 'present' : 'absent'; // Basic logic; can be refined
+
+        await sql`
+          INSERT INTO hr_attendance_records (tenant_id, account_id, employee_id, work_date, status, check_in_at, check_out_at, source, created_by, updated_by, created_at, updated_at)
+          VALUES (
+            ${auth.tenantId},
+            ${auth.accountId},
+            ${emp.id},
+            ${workDate}::date,
+            ${status},
+            ${checkInAt ? checkInAt.toISOString() : null},
+            ${checkOutAt ? checkOutAt.toISOString() : null},
+            'import',
+            ${auth.userId},
+            ${auth.userId},
+            NOW(),
+            NOW()
+          )
+          ON CONFLICT (tenant_id, employee_id, work_date) DO UPDATE
+          SET
+            status = EXCLUDED.status,
+            check_in_at = COALESCE(EXCLUDED.check_in_at, hr_attendance_records.check_in_at),
+            check_out_at = COALESCE(EXCLUDED.check_out_at, hr_attendance_records.check_out_at),
+            source = 'import',
+            updated_by = ${auth.userId},
+            updated_at = NOW()
+        `.execute(trx);
+
+        await this.refreshAttendanceExceptionForEmployeeDate(trx, emp.id, workDate);
+        imported++;
+      }
+    });
+
+    await this.audit.log('Bulk import HR attendance', `Imported ${imported} attendance records by ${auth.username}`, auth);
+    return { imported, skipped, errors };
   }
 
   private buildAttendanceException(

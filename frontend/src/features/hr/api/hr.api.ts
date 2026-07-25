@@ -77,6 +77,7 @@ export const hrApi = {
   },
   saveAttendanceDay: (payload: unknown) => http<AttendanceResponse>('/api/hr/attendance', { method: 'POST', body: JSON.stringify(payload) }),
   saveAttendanceRecord: (payload: unknown) => http<AttendanceResponse>('/api/hr/attendance/record', { method: 'POST', body: JSON.stringify(payload) }),
+  bulkImportAttendanceRecords: (payload: { records: { employeeNo: string; workDate: string; checkInAt?: string; checkOutAt?: string }[] }) => http<{ imported: number; skipped: number; errors: string[] }>('/api/hr/attendance/bulk-import', { method: 'POST', body: JSON.stringify(payload) }),
   approveAttendanceException: (id: string, payload: unknown = {}) => http<AttendanceExceptionsResponse>(`/api/hr/attendance/exceptions/${id}/approve`, { method: 'POST', body: JSON.stringify(payload) }),
   skipAttendanceException: (id: string, payload: unknown = {}) => http<AttendanceExceptionsResponse>(`/api/hr/attendance/exceptions/${id}/skip`, { method: 'POST', body: JSON.stringify(payload) }),
   leaveTypes: async (params: HrListParams = {}) => {
