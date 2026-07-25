@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react'; 
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -154,8 +154,7 @@ export function TransferMonitorCard({
                   key: 'actions',
                   header: 'إجراءات',
                   cell: (transfer) => (
-                    <div className="actions compact-actions">
-                      <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onSelectTransfer(String(transfer.id)); }}>التفاصيل</Button>
+                    <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
                       {['sent', 'received'].includes(transfer.status) ? (
                         <>
                           {onReceiveTransfer && transfer.status === 'sent' ? <Button type="button" variant="success" onClick={(event) => { event.stopPropagation(); onReceiveTransfer(transfer); }}>استلام</Button> : null}

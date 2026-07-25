@@ -48,6 +48,7 @@ interface ImportWorkbenchProps {
   onDownloadTemplate: () => void;
   onImportRows: (rows: CsvRow[]) => Promise<unknown>;
   isPending?: boolean;
+  defaultCollapsed?: boolean;
 }
 
 export function ImportWorkbench({
@@ -59,7 +60,9 @@ export function ImportWorkbench({
   onDownloadTemplate,
   onImportRows,
   isPending = false,
+  defaultCollapsed = false,
 }: ImportWorkbenchProps) {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -151,13 +154,25 @@ export function ImportWorkbench({
 
   return (
     <div className="inline-create-panel page-stack">
-      <div>
-        <strong>{title}</strong>
-        {description ? <div className="muted small" style={{ marginTop: 6 }}>{description}</div> : null}
+      <div 
+        onClick={() => setIsCollapsed(!isCollapsed)} 
+        style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
+        <div>
+          <strong>{title}</strong>
+          {description ? <div className="muted small" style={{ marginTop: 6 }}>{description}</div> : null}
+        </div>
+        <div>
+          <button type="button" className="nav-pill" style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            {isCollapsed ? 'فتح' : 'طي'}
+          </button>
+        </div>
       </div>
 
-      <div className="inline-create-grid">
-        <div className="field">
+      {!isCollapsed && (
+        <>
+          <div className="inline-create-grid">
+            <div className="field">
           <span>ملف (Excel/CSV)</span>
           <input
             type="file"
@@ -207,6 +222,8 @@ export function ImportWorkbench({
         <Button type="button" variant="secondary" onClick={() => { setFileName(''); setRows([]); setHeaders([]); setStatus({ kind: '', text: '' }); }}>مسح المعاينة</Button>
         <Button type="button" onClick={() => void handleImport()} disabled={isPending || !rows.length || !!missingRequiredFields.length}>{isPending ? 'جارٍ الاستيراد...' : 'استيراد الآن'}</Button>
       </div>
+        </>
+      )}
     </div>
   );
 }

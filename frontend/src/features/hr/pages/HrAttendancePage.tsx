@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -195,6 +195,7 @@ export function HrAttendancePage() {
       <ImportWorkbench
         title="استيراد الحضور من إكسيل"
         description="ارفع شيت الإكسيل الصادر من جهاز البصمة هنا."
+        defaultCollapsed={true}
         requiredColumns={['كود الموظف', 'التاريخ']}
         fieldMappings={[
           { key: 'employeeNo', label: 'كود الموظف (مطلوب)' },
@@ -212,12 +213,15 @@ export function HrAttendancePage() {
           link.click();
         }}
         onImportRows={async (rows) => {
-          const records = rows.map((row) => ({
-            employeeNo: String(row['كود الموظف'] || row.employeeNo || ''),
-            workDate: String(row['التاريخ'] || row.workDate || ''),
-            checkInAt: row['وقت الحضور'] || row.checkInAt || undefined,
-            checkOutAt: row['وقت الانصراف'] || row.checkOutAt || undefined,
-          })).filter(r => r.employeeNo && r.workDate);
+          const records = rows.map((row) => {
+            const workDate = String(row['التاريخ'] || row.workDate || '');
+            return {
+              employeeNo: String(row['كود الموظف'] || row.employeeNo || ''),
+              workDate,
+              checkInAt: toDateTime(workDate, row['وقت الحضور'] || row.checkInAt || ''),
+              checkOutAt: toDateTime(workDate, row['وقت الانصراف'] || row.checkOutAt || ''),
+            };
+          }).filter(r => r.employeeNo && r.workDate);
           return mutations.bulkImportAttendanceRecords.mutateAsync({ records });
         }}
       />
@@ -269,19 +273,20 @@ export function HrAttendancePage() {
             rowKey={(row) => row.id}
             density="compact"
             columns={[
-              { key: 'workDate', header: 'التاريخ', cell: (row) => row.workDate || '—' },
-              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => row.employeeNo || '—' },
-              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => row.employeeName || '—' },
-              { key: 'exceptionType', header: 'نوع الاستثناء', cell: (row) => exceptionTypeLabel(row.exceptionType) },
-              { key: 'scheduledTime', header: 'المجدول', cell: (row) => row.scheduledTime || '—' },
-              { key: 'actualTime', header: 'الفعلي', cell: (row) => row.actualTime || '—' },
-              { key: 'durationMinutes', header: 'المدة', cell: (row) => `${row.durationMinutes || 0} دقيقة` },
-              { key: 'status', header: 'الحالة', cell: (row) => exceptionStatusLabel(row.status) },
+              { key: 'workDate', header: 'التاريخ', className: 'col-fit', cell: (row) => row.workDate || '—' },
+              { key: 'employeeNo', header: 'كود الموظف', className: 'col-fit', cell: (row) => row.employeeNo || '—' },
+              { key: 'employeeName', header: 'اسم الموظف', className: 'col-main', cell: (row) => row.employeeName || '—' },
+              { key: 'exceptionType', header: 'نوع الاستثناء', className: 'col-fit', cell: (row) => exceptionTypeLabel(row.exceptionType) },
+              { key: 'scheduledTime', header: 'المجدول', className: 'col-fit', cell: (row) => row.scheduledTime || '—' },
+              { key: 'actualTime', header: 'الفعلي', className: 'col-fit', cell: (row) => row.actualTime || '—' },
+              { key: 'durationMinutes', header: 'المدة', className: 'col-fit', cell: (row) => `${row.durationMinutes || 0} دقيقة` },
+              { key: 'status', header: 'الحالة', className: 'col-fit', cell: (row) => exceptionStatusLabel(row.status) },
               {
                 key: 'actions',
                 header: 'الإجراء',
+                className: 'col-fit',
                 cell: (row) => isOvertimeException(row.exceptionType) && row.status === 'pending' ? (
-                  <div className="compact-actions">
+                  <div className="compact-actions-vertical">
                     <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>اعتماد كوقت إضافي</Button>
                     <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
                   </div>
@@ -312,12 +317,13 @@ export function HrAttendancePage() {
             rowKey={(row) => String(row.employeeId)}
             density="compact"
             columns={[
-              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => row.employeeNo || '—' },
-              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => row.employeeName || '—' },
-              { key: 'departmentName', header: 'القسم', cell: (row) => row.departmentName || '—' },
+              { key: 'employeeNo', header: 'كود الموظف', className: 'col-fit', cell: (row) => row.employeeNo || '—' },
+              { key: 'employeeName', header: 'اسم الموظف', className: 'col-main', cell: (row) => row.employeeName || '—' },
+              { key: 'departmentName', header: 'القسم', className: 'col-fit', cell: (row) => row.departmentName || '—' },
               {
                 key: 'checkInAt',
                 header: 'وقت الحضور',
+                className: 'col-fit',
                 cell: (row) => (
                   <input
                     type="time"
@@ -329,6 +335,7 @@ export function HrAttendancePage() {
               {
                 key: 'checkOutAt',
                 header: 'وقت الانصراف',
+                className: 'col-fit',
                 cell: (row) => (
                   <input
                     type="time"
@@ -340,6 +347,7 @@ export function HrAttendancePage() {
               {
                 key: 'status',
                 header: 'الحالة',
+                className: 'col-fit',
                 cell: (row) => (
                   <select
                     value={draftByEmployeeId[String(row.employeeId)]?.status || ''}
@@ -359,6 +367,7 @@ export function HrAttendancePage() {
               {
                 key: 'notes',
                 header: 'ملاحظات',
+                className: 'col-main',
                 cell: (row) => (
                   <input
                     value={draftByEmployeeId[String(row.employeeId)]?.notes || ''}
@@ -369,8 +378,9 @@ export function HrAttendancePage() {
               {
                 key: 'actions',
                 header: 'إجراء',
+                className: 'col-fit',
                 cell: (row) => (
-                  <div className="compact-actions">
+                  <div className="compact-actions-vertical">
                     <Button type="button" variant="secondary" onClick={() => updateDraft(String(row.employeeId), { status: 'present', checkInAt: draftByEmployeeId[String(row.employeeId)]?.checkInAt || nowTime() })}>تسجيل حضور</Button>
                     <Button type="button" variant="secondary" onClick={() => updateDraft(String(row.employeeId), { status: draftByEmployeeId[String(row.employeeId)]?.status || 'present', checkOutAt: draftByEmployeeId[String(row.employeeId)]?.checkOutAt || nowTime() })}>تسجيل انصراف</Button>
                   </div>

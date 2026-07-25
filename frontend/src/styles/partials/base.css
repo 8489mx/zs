@@ -214,8 +214,26 @@ th {
   font-size: 13px;
   background: #fff;
 }
+.table-wrap-compact { font-size: 14px; }
+.table-wrap-compact table { min-width: auto; }
 .table-wrap-compact th,
-.table-wrap-compact td { padding-top: 10px; padding-bottom: 10px; }
+.table-wrap-compact td {
+  padding: 8px 6px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.table-wrap-compact th.col-fit,
+.table-wrap-compact td.col-fit {
+  width: 1%;
+  white-space: nowrap;
+}
+.compact-actions-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: stretch;
+}
 .status-surface {
   display: flex;
   align-items: flex-start;
