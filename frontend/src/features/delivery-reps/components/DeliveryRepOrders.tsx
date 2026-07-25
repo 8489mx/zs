@@ -124,38 +124,38 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
 
       {/* Orders Table */}
       <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-        <table className="table" style={{ width: '100%', margin: 0 }}>
+        <table className="table" style={{ width: '100%', margin: 0, fontSize: '13px' }}>
           <thead style={{ background: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '12px' }}>رقم الطلب</th>
-              <th style={{ padding: '12px' }}>التاريخ</th>
-              <th style={{ padding: '12px' }}>العميل</th>
-              <th style={{ padding: '12px' }}>حالة التحصيل</th>
-              <th style={{ padding: '12px' }}>الإجمالي</th>
-              <th style={{ padding: '12px' }}>مستلم المبلغ</th>
-              <th style={{ padding: '12px', textAlign: 'center' }}>إجراء التسوية</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>رقم الطلب</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>التاريخ</th>
+              <th style={{ padding: '8px 4px' }}>العميل</th>
+              <th style={{ padding: '8px 4px' }}>حالة التحصيل</th>
+              <th style={{ padding: '8px 4px' }}>الإجمالي</th>
+              <th style={{ padding: '8px 4px' }}>مستلم المبلغ</th>
+              <th style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>إجراء التسوية</th>
             </tr>
           </thead>
           <tbody>
-            {ordersQuery.isLoading && <tr><td colSpan={7} style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td></tr>}
-            {ordersQuery.data?.length === 0 && <tr><td colSpan={7} style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>لا يوجد طلبات مطابقة</td></tr>}
+            {ordersQuery.isLoading && <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td></tr>}
+            {ordersQuery.data?.length === 0 && <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>لا يوجد طلبات مطابقة</td></tr>}
             {ordersQuery.data?.map(order => {
               const isSettled = order.deliveryStatus === 'settled';
               return (
                 <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px' }}>{order.docNo}</td>
-                  <td style={{ padding: '12px' }}>{formatDate(order.createdAt)}</td>
-                  <td style={{ padding: '12px' }}>{order.customerName || 'عميل نقدي'}</td>
-                  <td style={{ padding: '12px' }}>
+                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{order.docNo}</td>
+                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{formatDate(order.createdAt)}</td>
+                  <td style={{ padding: '8px 4px' }}>{order.customerName || 'عميل نقدي'}</td>
+                  <td style={{ padding: '8px 4px' }}>
                     {order.collectionStatus === 'cod' ? 'تحصيل من العميل' : 
                      order.collectionStatus === 'prepaid_by_rep' ? 'خالص من المندوب' : 
                      order.collectionStatus === 'prepaid_online' ? 'خالص أونلاين' : '-'}
                   </td>
-                  <td style={{ padding: '12px', fontWeight: 'bold' }}>{formatCurrency(order.total)}</td>
-                  <td style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>
+                  <td style={{ padding: '8px 4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>{formatCurrency(order.total)}</td>
+                  <td style={{ padding: '8px 4px', color: '#64748b', fontSize: '12px' }}>
                     {isSettled ? order.settledByName || 'غير معروف' : '-'}
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
+                  <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     {isSettled ? (
                       <span style={{ color: '#16a34a', fontSize: '13px', fontWeight: 'bold', background: '#dcfce7', padding: '4px 8px', borderRadius: '4px' }}>
                         تم السداد
