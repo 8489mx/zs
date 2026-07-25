@@ -322,31 +322,88 @@ app.whenReady().then(async () => {
 
   // Handle IPC for hardware ID
   ipcMain.handle('get-hardware-id', async () => {
-    return new Promise((resolve, reject) => {
-      exec('wmic csproduct get uuid', (err1, std1) => {
-        let uuid = '';
-        if (!err1 && std1) {
-          const lines = std1.split('\n').map(l => l.trim()).filter(l => l);
-          if (lines.length > 1 && lines[1].length > 10) {
-            uuid = lines[1].toUpperCase();
-          }
-        }
+    return new Promise((resolve) => {
+      const isInvalid = (val) => {
+        if (!val) return true;
+        const lower = val.toLowerCase().trim();
+        return lower === '' || 
+               lower.includes('default string') || 
+               lower.includes('to be filled by o.e.m') || 
+               lower.includes('ffffffff') || 
+               lower === 'none' ||
+               lower === '0000000000000000';
+      };
 
-        exec('wmic baseboard get serialnumber', (error, stdout, stderr) => {
-          let serial = '';
-          if (!error && stdout) {
-            const lines = stdout.split('\n').map(l => l.trim()).filter(l => l);
-            if (lines.length > 1 && lines[1].toLowerCase() !== 'default string') {
-              serial = lines[1].toUpperCase();
+      const finalizeHardwareId = (u, s) => {
+        if (u || s) {
+          resolve(`${u || 'NOUUID'}-${s || 'NOSERIAL'}`);
+        } else {
+          try {
+            const os = require('os');
+            const interfaces = os.networkInterfaces();
+            let mac = '';
+            for (const name of Object.keys(interfaces)) {
+              for (const iface of interfaces[name]) {
+                if (!iface.internal && iface.mac && iface.mac !== '00:00:00:00:00:00') {
+                  mac = iface.mac.toUpperCase().replace(/:/g, '');
+                  break;
+                }
+              }
+              if (mac) break;
             }
-          }
-          
-          if (uuid || serial) {
-            resolve(`${uuid}-${serial}`);
-          } else {
+            const userInfo = os.userInfo();
+            const username = userInfo ? userInfo.username.toUpperCase() : 'USER';
+            
+            if (mac) {
+              resolve(`MAC-${mac}-${username}`);
+            } else {
+              resolve(`HOST-${os.hostname().toUpperCase()}-${username}`);
+            }
+          } catch (e) {
             resolve('UNKNOWN-HARDWARE-ID');
           }
+        }
+      };
+
+      const tryWmic = () => {
+        exec('wmic csproduct get uuid', (err1, std1) => {
+          let uuid = '';
+          if (!err1 && std1) {
+            const lines = std1.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length > 1 && !isInvalid(lines[1])) uuid = lines[1].toUpperCase();
+          }
+          exec('wmic baseboard get serialnumber', (err2, std2) => {
+            let serial = '';
+            if (!err2 && std2) {
+              const lines = std2.split('\n').map(l => l.trim()).filter(l => l);
+              if (lines.length > 1 && !isInvalid(lines[1])) serial = lines[1].toUpperCase();
+            }
+            finalizeHardwareId(uuid, serial);
+          });
         });
+      };
+
+      const psCommand = "powershell.exe -NoProfile -NonInteractive -Command \"$u = (Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; $s = (Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue).SerialNumber; Write-Host \\\"$u|$s\\\"\"";
+      
+      exec(psCommand, (err, stdout) => {
+        let uuid = '';
+        let serial = '';
+        if (!err && stdout) {
+          const parts = stdout.trim().split('|');
+          if (parts.length >= 2) {
+            uuid = parts[0].trim().toUpperCase();
+            serial = parts[1].trim().toUpperCase();
+          }
+        }
+        
+        if (isInvalid(uuid)) uuid = '';
+        if (isInvalid(serial)) serial = '';
+        
+        if (!uuid && !serial) {
+          tryWmic();
+        } else {
+          finalizeHardwareId(uuid, serial);
+        }
       });
     });
   });
