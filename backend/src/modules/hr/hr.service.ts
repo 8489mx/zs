@@ -3648,11 +3648,11 @@ export class HrService {
       await sql`
         INSERT INTO hr_employee_loan_installments (
           tenant_id, account_id, loan_id, installment_no, due_date, 
-          amount, status, created_by, updated_by
+          amount, status
         )
         VALUES (
           ${auth.tenantId}, ${auth.accountId}, ${loanId}, 1, ${dueStr}, 
-          ${amount}, 'pending', ${auth.userId}, ${auth.userId}
+          ${amount}, 'pending'
         )
       `.execute(trx);
 
