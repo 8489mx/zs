@@ -60,6 +60,8 @@ export function EmployeeEditPage() {
       hasIncomeTax: employee.hasIncomeTax === true,
       annualLeaveBalance: String(employee.annualLeaveBalance ?? 21),
       insuranceSalary: employee.insuranceSalary ? String(employee.insuranceSalary) : '',
+      baseSalary: '',
+      payFrequency: String(employee.payFrequency || 'monthly') as 'monthly' | 'weekly' | 'biweekly' | 'daily',
       notes: String(employee.notes || ''),
     });
     setDraftInitialized(true);
@@ -120,6 +122,7 @@ export function EmployeeEditPage() {
           status: draft.status,
           notes: String(draft.notes || '').trim() || undefined,
           compensationType: draft.compensationType,
+          payFrequency: draft.payFrequency,
           hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined,
           expectedDailyHours: draft.compensationType === 'hourly' ? expectedDailyHours : undefined,
           scheduledCheckInTime: draft.scheduledCheckInTime || undefined,
@@ -176,6 +179,7 @@ export function EmployeeEditPage() {
           <FormSection title="الدوام والأجر" description="اختر نظام أجر الموظف وقيمته.">
             <div className="form-grid">
               <label className="field"><span>نوع الأجر</span><select value={draft.compensationType} onChange={(e) => setDraft((current) => ({ ...current, compensationType: e.target.value === 'hourly' ? 'hourly' : 'monthly' }))}><option value="monthly">راتب شهري</option><option value="hourly">أجر بالساعة</option></select></label>
+              <label className="field"><span>دورة القبض</span><select value={draft.payFrequency} onChange={(e) => setDraft((current) => ({ ...current, payFrequency: e.target.value as any }))}><option value="monthly">شهري</option><option value="weekly">أسبوعي</option><option value="biweekly">نصف شهري (كل أسبوعين)</option><option value="daily">يومي</option></select></label>
               {draft.compensationType === 'hourly' ? <><label className="field"><span>أجر الساعة</span><input inputMode="decimal" min="0" value={draft.hourlyRate} onChange={(e) => setDraft((current) => ({ ...current, hourlyRate: e.target.value }))} /></label><label className="field"><span>عدد ساعات العمل اليومية المتوقعة</span><input inputMode="decimal" min="0" value={draft.expectedDailyHours} onChange={(e) => setDraft((current) => ({ ...current, expectedDailyHours: e.target.value }))} /></label></> : null}
               {draft.compensationType === 'hourly' ? <p className="muted field-wide">الأجر اليومي المتوقع: {(Number(normalizeNumberText(draft.hourlyRate) || 0) * Number(normalizeNumberText(draft.expectedDailyHours) || 0)).toFixed(2)} ج.م</p> : null}
             </div>

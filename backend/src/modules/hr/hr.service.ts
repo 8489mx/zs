@@ -549,6 +549,7 @@ export class HrService {
       locationName: clean(row.location_name),
       hireDate: clean(row.hire_date_text),
       compensationType: clean(row.compensation_type) || 'monthly',
+      payFrequency: clean(row.pay_frequency) || 'monthly',
       hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
       expectedDailyHours: row.expected_daily_hours != null ? Number(row.expected_daily_hours) : null,
       scheduledCheckInTime: clean(row.scheduled_check_in_time),
@@ -735,6 +736,7 @@ export class HrService {
     const nationalId = clean(payload.nationalId);
     const hireDate = normalizeDateOnly(payload.hireDate);
     const compensationType: CompensationType = clean(payload.compensationType) === 'hourly' ? 'hourly' : 'monthly';
+    const payFrequency = clean(payload.payFrequency) || 'monthly';
     const overtimePolicy: OvertimePolicy = clean(payload.overtimePolicy) === 'disabled'
       ? 'disabled'
       : clean(payload.overtimePolicy) === 'auto_approved'
@@ -767,6 +769,7 @@ export class HrService {
               status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
               branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
               compensation_type = ${compensationType},
+              pay_frequency = ${payFrequency},
               hourly_rate = ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null},
               expected_daily_hours = ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null},
               scheduled_check_in_time = ${scheduledCheckInTime || null},
@@ -789,8 +792,8 @@ export class HrService {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
           await sql<{ id: number }>`
-            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, created_by, updated_by)
-            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
         });
@@ -1224,6 +1227,9 @@ export class HrService {
     return {
       id: String(row.id),
       periodMonth: clean(row.period_month),
+      startDate: row.start_date_text ? clean(row.start_date_text) : '',
+      endDate: row.end_date_text ? clean(row.end_date_text) : '',
+      payFrequency: clean(row.pay_frequency) || 'monthly',
       status: clean(row.status) || 'draft',
       notes: clean(row.notes),
       createdBy: row.created_by ? String(row.created_by) : '',
@@ -1396,14 +1402,18 @@ export class HrService {
   }
 
   private async rebuildPayrollRunItems(db: Kysely<Database>, runId: number, itemStatus: 'draft' | 'reviewed' | 'approved'): Promise<void> {
-    const runResult = await sql<any>`SELECT period_month, tenant_id, account_id FROM hr_payroll_runs WHERE id = ${runId} LIMIT 1`.execute(db);
+    const runResult = await sql<any>`SELECT period_month, tenant_id, account_id, to_char(start_date, 'YYYY-MM-DD') as start_date_text, to_char(end_date, 'YYYY-MM-DD') as end_date_text, pay_frequency FROM hr_payroll_runs WHERE id = ${runId} LIMIT 1`.execute(db);
     const run = runResult.rows[0];
     if (!run) return;
     const periodMonth = normalizePayrollMonth(run.period_month || run.periodMonth);
     if (!periodMonth) throw new AppError('Payroll month is invalid', 'HR_PAYROLL_MONTH_INVALID', 400);
     const tenantId = run.tenant_id || run.tenantId || '';
     const accountId = run.account_id || run.accountId || '';
-    const range = monthRange(periodMonth);
+    const range = {
+      from: run.start_date_text || monthRange(periodMonth).from,
+      to: run.end_date_text || monthRange(periodMonth).to
+    };
+    const payFreq = clean(run.pay_frequency) || 'monthly';
     await sql`UPDATE hr_employee_adjustments SET status = 'pending', applied_in_run_id = NULL WHERE applied_in_run_id = ${runId}`.execute(db);
     const employees = await sql<Record<string, unknown>>`
       SELECT
@@ -1436,7 +1446,7 @@ export class HrService {
         ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
         LIMIT 1
       ) cp ON TRUE
-      WHERE e.status = 'active' AND e.tenant_id = ${tenantId}
+      WHERE e.status = 'active' AND e.tenant_id = ${tenantId} AND e.pay_frequency = ${payFreq}
       ORDER BY e.id ASC
     `.execute(db);
 
@@ -1449,7 +1459,7 @@ export class HrService {
       }
       baseSalMap.set(Number(e.employee_id), bs);
     }
-    const autoReviews = await this.calculatePayrollOperationalReview(db, periodMonth, empIds, baseSalMap);
+    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap);
 
     for (const employee of employees.rows) {
       const employeeId = Number(employee.employee_id || 0);
@@ -1569,13 +1579,12 @@ export class HrService {
 
   private async calculatePayrollOperationalReview(
     db: Kysely<Database>,
-    periodMonth: string,
+    range: { from: string; to: string },
     employeeIds: number[],
     baseSalaryByEmployeeId: Map<number, number>,
   ): Promise<Map<number, any>> {
     const reviewByEmployeeId = new Map<number, any>();
     if (!employeeIds.length) return reviewByEmployeeId;
-    const range = monthRange(periodMonth);
 
     const empResult = await sql<Record<string, unknown>>`
       SELECT e.id, e.tenant_id, e.user_id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, e.commission_type, e.commission_value, e.commission_target, e.delay_policy, e.has_social_insurance, e.insurance_salary, e.has_income_tax, c.base_salary
@@ -1872,6 +1881,8 @@ export class HrService {
     const result = await sql<Record<string, unknown>>`
       SELECT
         r.*,
+        to_char(r.start_date, 'YYYY-MM-DD') AS start_date_text,
+        to_char(r.end_date, 'YYYY-MM-DD') AS end_date_text,
         to_char(r.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
         to_char(r.reviewed_at, 'YYYY-MM-DD HH24:MI') AS reviewed_at_text,
         to_char(r.approved_at, 'YYYY-MM-DD HH24:MI') AS approved_at_text,
@@ -1899,6 +1910,8 @@ export class HrService {
     const runResult = await sql<Record<string, unknown>>`
       SELECT
         r.*,
+        to_char(r.start_date, 'YYYY-MM-DD') AS start_date_text,
+        to_char(r.end_date, 'YYYY-MM-DD') AS end_date_text,
         to_char(r.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
         to_char(r.reviewed_at, 'YYYY-MM-DD HH24:MI') AS reviewed_at_text,
         to_char(r.approved_at, 'YYYY-MM-DD HH24:MI') AS approved_at_text,
@@ -1942,7 +1955,10 @@ export class HrService {
       if (!(employeeId > 0)) continue;
       baseSalaryByEmployeeId.set(employeeId, Number(row.base_salary || 0));
     }
-    const reviewByEmployeeId = await this.calculatePayrollOperationalReview(this.db, periodMonth, employeeIds, baseSalaryByEmployeeId);
+    const fromDate = String(run.start_date_text || `${periodMonth}-01`);
+    const toDate = String(run.end_date_text || new Date(Number(periodMonth.split('-')[0]), Number(periodMonth.split('-')[1]), 0).toISOString().slice(0, 10));
+    const range = { from: fromDate, to: toDate };
+    const reviewByEmployeeId = await this.calculatePayrollOperationalReview(this.db, range, employeeIds, baseSalaryByEmployeeId);
     const itemIds = itemResult.rows.map((row) => Number(row.id || 0)).filter((itemId) => itemId > 0);
     const adjustmentResult = itemIds.length
       ? await sql<Record<string, unknown>>`
@@ -1981,14 +1997,26 @@ export class HrService {
   async createPayrollRun(payload: CreatePayrollRunDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const periodMonth = normalizePayrollMonth(payload.periodMonth);
     if (!periodMonth) throw new AppError('Payroll month must use YYYY-MM format', 'HR_PAYROLL_MONTH_INVALID', 400);
+    
+    const payFreq = clean(payload.payFrequency) || 'monthly';
+    const sDate = clean(payload.startDate) || `${periodMonth}-01`;
+    // If end_date is not provided, we calculate the last day of the month using sql, but for simplicity we can just rely on the frontend sending valid dates or handle it in the DB.
+    // Let's assume the frontend sends startDate and endDate. If not, default to the month range.
+    
     let runId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const existing = await sql<{ id: number }>`SELECT id FROM hr_payroll_runs WHERE tenant_id = ${auth.tenantId} AND period_month = ${periodMonth} AND status <> 'cancelled' ORDER BY id DESC LIMIT 1`.execute(trx);
+      let existingQuery = sql<{ id: number }>`SELECT id FROM hr_payroll_runs WHERE tenant_id = ${auth.tenantId} AND period_month = ${periodMonth} AND status <> 'cancelled' AND pay_frequency = ${payFreq}`;
+      if (clean(payload.startDate)) {
+         existingQuery = sql<{ id: number }>`SELECT id FROM hr_payroll_runs WHERE tenant_id = ${auth.tenantId} AND period_month = ${periodMonth} AND status <> 'cancelled' AND pay_frequency = ${payFreq} AND start_date = ${sDate}`;
+      }
+      
+      const existing = await sql<{ id: number }>`${existingQuery} ORDER BY id DESC LIMIT 1`.execute(trx);
       runId = Number(existing.rows[0]?.id || 0);
       if (!runId) {
+        const eDate = clean(payload.endDate);
         const inserted = await sql<{ id: number }>`
-          INSERT INTO hr_payroll_runs (tenant_id, account_id, period_month, status, notes, created_by)
-          VALUES (${auth.tenantId}, ${auth.accountId}, ${periodMonth}, 'draft', ${clean(payload.notes)}, ${auth.userId})
+          INSERT INTO hr_payroll_runs (tenant_id, account_id, period_month, start_date, end_date, pay_frequency, status, notes, created_by)
+          VALUES (${auth.tenantId}, ${auth.accountId}, ${periodMonth}, ${sDate}, ${eDate || sql`LAST_DAY(CAST(${sDate} AS DATE))`}, ${payFreq}, 'draft', ${clean(payload.notes)}, ${auth.userId})
           RETURNING id
         `.execute(trx);
         runId = Number(inserted.rows[0]?.id || 0);
@@ -2014,7 +2042,7 @@ export class HrService {
       const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can apply attendance deductions', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
 
-      const runResult = await sql<{ period_month: string }>`SELECT period_month FROM hr_payroll_runs WHERE id = ${id} LIMIT 1`.execute(trx);
+      const runResult = await sql<{ period_month: string, start_date_text: string, end_date_text: string }>`SELECT period_month, to_char(start_date, 'YYYY-MM-DD') AS start_date_text, to_char(end_date, 'YYYY-MM-DD') AS end_date_text FROM hr_payroll_runs WHERE id = ${id} LIMIT 1`.execute(trx);
       const periodMonth = runResult.rows[0]?.period_month;
       if (!periodMonth) throw new AppError('Payroll run not found or invalid', 'HR_PAYROLL_RUN_INVALID', 400);
 
@@ -2030,7 +2058,10 @@ export class HrService {
         baseSalaryByEmployeeId.set(Number(row.employee_id), Number(row.base_salary));
       }
 
-      const reviews = await this.calculatePayrollOperationalReview(trx, periodMonth, employeeIds, baseSalaryByEmployeeId);
+      const fromDate = String(runResult.rows[0]?.start_date_text || `${periodMonth}-01`);
+      const toDate = String(runResult.rows[0]?.end_date_text || new Date(Number(periodMonth.split('-')[0]), Number(periodMonth.split('-')[1]), 0).toISOString().slice(0, 10));
+      const range = { from: fromDate, to: toDate };
+      const reviews = await this.calculatePayrollOperationalReview(trx, range, employeeIds, baseSalaryByEmployeeId);
 
       const toInsert: { employee_id: number; adjustment_type: string; amount_type: string; amount: number; reason: string; date: string; status: string; applied_in_run_id?: number }[] = [];
       const adjustmentDate = `${periodMonth}-28`;
@@ -3583,6 +3614,58 @@ export class HrService {
         },
       },
     };
+  }
+
+  async createQuickCashAdvance(payload: any, auth: AuthContext): Promise<Record<string, unknown>> {
+    const employeeId = Number(payload.employeeId);
+    const amount = Number(payload.amount);
+    if (!employeeId || employeeId <= 0) throw new AppError('Employee ID is required', 'HR_EMPLOYEE_ID_REQUIRED', 400);
+    if (!amount || amount <= 0) throw new AppError('Amount must be positive', 'HR_AMOUNT_INVALID', 400);
+
+    const notes = clean(payload.notes) || 'Quick cash advance from cashier';
+    
+    // We will create a loan entry and mark it as disbursed to track it easily and deduct from next payroll
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      // Create the loan
+      const loanRes = await sql<{ id: number }>`
+        INSERT INTO hr_employee_loans (tenant_id, account_id, employee_id, amount, request_date, status, notes, created_by, updated_by)
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${amount}, CURRENT_DATE, 'disbursed', ${notes}, ${auth.userId}, ${auth.userId})
+        RETURNING id
+      `.execute(trx);
+      const loanId = Number(loanRes.rows[0]?.id || 0);
+      
+      // We assume it's deducted on the next month by default (1 installment)
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      const monthStr = nextMonth.toISOString().slice(0, 7);
+      
+      await sql`
+        INSERT INTO hr_employee_loan_installments (tenant_id, account_id, loan_id, target_month, amount, status, created_by, updated_by)
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${loanId}, ${monthStr}, ${amount}, 'pending', ${auth.userId}, ${auth.userId})
+      `.execute(trx);
+
+      // Deduct cash from Cashier Shift if shift ID is provided, else we deduct from treasury
+      if (payload.shiftId) {
+        // Find shift and add a note/deduction
+        const shiftId = Number(payload.shiftId);
+        // We'll update the expected cash of the shift
+        await sql`
+          UPDATE cashier_shifts 
+          SET expected_cash = COALESCE(expected_cash, 0) - ${amount}
+          WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId}
+        `.execute(trx);
+      } else if (payload.treasuryId) {
+        const treasuryId = Number(payload.treasuryId);
+        // Add a treasury transaction (withdrawal)
+        await sql`
+          INSERT INTO treasury_transactions (tenant_id, account_id, txn_type, amount, note, reference_type, reference_id, created_by)
+          VALUES (${auth.tenantId}, ${auth.accountId}, 'withdrawal', ${amount}, ${notes}, 'hr_loan', ${loanId}, ${auth.userId})
+        `.execute(trx);
+      }
+    });
+
+    await this.audit.log('Create Quick Cash Advance', `Cash advance of ${amount} for employee #${employeeId} by ${auth.username}`, auth);
+    return { success: true };
   }
 }
 

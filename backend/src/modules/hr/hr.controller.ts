@@ -27,6 +27,7 @@ import {
   PayPayrollRunDto,
   UpsertHolidayDto,
   EndOfServiceDto,
+  CreateQuickCashAdvanceDto,
 } from './dto/hr.dto';
 import { HrService } from './hr.service';
 
@@ -198,6 +199,12 @@ export class HrController {
   @RequirePermissions('hrLoans')
   withdrawals(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
     return this.hr.withdrawals(query, req.authContext!);
+  }
+
+  @Post('advances/quick-cash')
+  @RequirePermissions('hrLoans')
+  quickCashAdvance(@Body() payload: CreateQuickCashAdvanceDto, @Req() req: RequestWithAuth) {
+    return this.hr.createQuickCashAdvance(payload, req.authContext!);
   }
 
   @Get('payroll-runs')

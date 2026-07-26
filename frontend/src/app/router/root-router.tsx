@@ -12,6 +12,7 @@ import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import { ActivationPage } from '@/features/activation/pages/ActivationPage';
 import { FirstRunSetupPage } from '@/features/activation/pages/FirstRunSetupPage';
 import { SupplierQuickPaymentDialog } from '@/features/accounts/components/SupplierQuickPaymentDialog';
+import { QuickCashAdvanceModal } from '@/features/hr/components/QuickCashAdvanceModal';
 
 function NoWorkspaceAccess() {
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -82,7 +83,7 @@ function ProtectedLayout() {
     if (postLoginRoute !== '/') return <Navigate to={postLoginRoute} replace />;
   }
 
-  return <AppShell><Outlet /><SupplierQuickPaymentDialog /></AppShell>;
+  return <AppShell><Outlet /><SupplierQuickPaymentDialog /><QuickCashAdvanceModal /></AppShell>;
 }
 
 function LoginRoute() {

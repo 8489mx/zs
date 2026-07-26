@@ -12,6 +12,7 @@ export interface EmployeeDraft {
   contractType: string;
   baseSalary: string;
   compensationType: 'monthly' | 'hourly';
+  payFrequency: 'monthly' | 'weekly' | 'biweekly' | 'daily';
   hourlyRate: string;
   expectedDailyHours: string;
   scheduledCheckInTime: string;
@@ -59,6 +60,7 @@ export const initialDraft: EmployeeDraft = {
   contractType: '',
   baseSalary: '',
   compensationType: 'monthly',
+  payFrequency: 'monthly',
   hourlyRate: '',
   expectedDailyHours: '',
   scheduledCheckInTime: '',

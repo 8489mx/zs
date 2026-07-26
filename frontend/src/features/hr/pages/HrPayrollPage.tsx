@@ -24,11 +24,17 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 
 interface PayrollDraft {
   periodMonth: string;
+  payFrequency: 'monthly' | 'weekly' | 'biweekly' | 'daily';
+  startDate: string;
+  endDate: string;
   notes: string;
 }
 
 const initialDraft: PayrollDraft = {
   periodMonth: '',
+  payFrequency: 'monthly',
+  startDate: '',
+  endDate: '',
   notes: '',
 };
 
@@ -169,7 +175,13 @@ export function HrPayrollPage() {
     const periodMonth = String(draft.periodMonth || '').trim();
     if (!periodMonth) { setFormError('شهر مسير المرتبات مطلوب.'); return; }
     try {
-      await mutations.createPayrollRun.mutateAsync({ periodMonth, notes: String(draft.notes || '').trim() || undefined });
+      await mutations.createPayrollRun.mutateAsync({ 
+        periodMonth, 
+        payFrequency: draft.payFrequency,
+        startDate: draft.startDate || undefined,
+        endDate: draft.endDate || undefined,
+        notes: String(draft.notes || '').trim() || undefined 
+      });
       setDraft(initialDraft);
       setShowCreateRun(false);
     } catch (error) {
@@ -391,7 +403,12 @@ export function HrPayrollPage() {
                 <h2 style={{ marginTop: 0 }}>تجهيز مسير المرتبات</h2>
                 {hasCreatePayrollRun && canManagePayroll ? (
                   <form className="form-grid" onSubmit={(e) => void handleCreateRun(e)}>
-                    <label className="field field-wide"><span>شهر مسير المرتبات *</span><input type="month" value={draft.periodMonth} onChange={(event) => setDraft((current) => ({ ...current, periodMonth: event.target.value }))} required /></label>
+                    <label className="field field-wide"><span>شهر مسير المرتبات (كمرجع) *</span><input type="month" value={draft.periodMonth} onChange={(event) => setDraft((current) => ({ ...current, periodMonth: event.target.value }))} required /></label>
+                    <label className="field"><span>دورة القبض المستهدفة</span><select value={draft.payFrequency} onChange={(event) => setDraft((current) => ({ ...current, payFrequency: event.target.value as any }))}><option value="monthly">شهري</option><option value="weekly">أسبوعي</option><option value="biweekly">نصف شهري (كل أسبوعين)</option><option value="daily">يومي</option></select></label>
+                    <div className="form-grid field-wide" style={{ gap: '12px', display: 'flex' }}>
+                      <label className="field" style={{ flex: 1 }}><span>تاريخ البداية (اختياري)</span><input type="date" value={draft.startDate} onChange={(event) => setDraft((current) => ({ ...current, startDate: event.target.value }))} /></label>
+                      <label className="field" style={{ flex: 1 }}><span>تاريخ النهاية (اختياري)</span><input type="date" value={draft.endDate} onChange={(event) => setDraft((current) => ({ ...current, endDate: event.target.value }))} /></label>
+                    </div>
                     <label className="field field-wide"><span>ملاحظات</span><input value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
                     {formError ? <div className="field-wide error-box">{formError}</div> : null}
                     <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
@@ -416,11 +433,11 @@ export function HrPayrollPage() {
                 pagination={{ page, pageSize, totalItems, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'كشف' }}
                 columns={[
                   { key: 'periodMonth', header: 'الشهر', cell: (row) => text(row.periodMonth) },
+                  { key: 'payFrequency', header: 'الدورة', cell: (row) => row.payFrequency === 'weekly' ? 'أسبوعي' : row.payFrequency === 'biweekly' ? 'نصف شهري' : row.payFrequency === 'daily' ? 'يومي' : 'شهري' },
+                  { key: 'startDate', header: 'من', cell: (row) => row.startDate ? text(row.startDate) : 'أول الشهر' },
+                  { key: 'endDate', header: 'إلى', cell: (row) => row.endDate ? text(row.endDate) : 'آخر الشهر' },
                   { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
                   { key: 'itemCount', header: 'عدد الموظفين', cell: (row) => text(row.itemCount || (row.items?.length ?? 0)) },
-                  { key: 'totalBaseSalary', header: 'إجمالي الأساسي', cell: (row) => canViewSalaryAmounts ? money(row.totalBaseSalary) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                  { key: 'totalDeductionAmount', header: 'إجمالي الخصومات', cell: (row) => canViewSalaryAmounts ? money(row.totalDeductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                  { key: 'totalLoanDeductionAmount', header: 'إجمالي السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.totalLoanDeductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
                   { key: 'totalNetPay', header: 'صافي المرتبات', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : 'لا تملك صلاحية عرض هذه البيانات.' },
                   { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => text(row.createdAt) },
                   { key: 'actions', header: 'إجراء', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>{canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}{canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'review')}>اعتماد</Button> : null}{canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'approve')}>اعتماد نهائي</Button> : null}{canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}</div> },

@@ -1040,6 +1040,7 @@ export interface HrEmployeeTable {
   location_id: number | null;
   hire_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   compensation_type: 'monthly' | 'hourly';
+  pay_frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   hourly_rate: number | null;
   expected_daily_hours: number | null;
   scheduled_check_in_time: string | null;
@@ -1294,6 +1295,9 @@ export interface HrPayrollRunTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   period_month: string;
+  start_date: ColumnType<string | Date, string | Date | undefined, string | Date | undefined>;
+  end_date: ColumnType<string | Date, string | Date | undefined, string | Date | undefined>;
+  pay_frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   status: 'draft' | 'reviewed' | 'approved' | 'paid' | 'cancelled';
   notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;

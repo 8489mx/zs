@@ -44,6 +44,9 @@ export interface HrPayrollRunItem {
 export interface HrPayrollRun {
   id: string;
   periodMonth: string;
+  payFrequency?: string;
+  startDate?: string;
+  endDate?: string;
   status: string;
   notes?: string;
   createdBy?: string;

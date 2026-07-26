@@ -103,6 +103,10 @@ export class UpsertEmployeeDto {
   compensationType?: string;
 
   @IsOptional()
+  @IsIn(['daily', 'weekly', 'biweekly', 'monthly'])
+  payFrequency?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
@@ -393,6 +397,20 @@ export class CreatePayrollRunDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(10)
+  startDate?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  endDate?: string;
+
+  @IsOptional()
+  @IsIn(['daily', 'weekly', 'biweekly', 'monthly'])
+  payFrequency?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(1000)
   notes?: string;
 }
@@ -665,6 +683,32 @@ export class BulkImportAttendanceDto {
   @ValidateNested({ each: true })
   @Type(() => BulkImportAttendanceRecordDto)
   records!: BulkImportAttendanceRecordDto[];
+}
+
+export class CreateQuickCashAdvanceDto {
+  @Type(() => Number)
+  @IsNumber()
+  employeeId!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  treasuryId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  shiftId?: number;
 }
 
 export class UpsertHolidayDto {

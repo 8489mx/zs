@@ -10,8 +10,9 @@ export interface EmployeeEditDraft {
   positionId: string;
   hireDate: string;
   status: 'active' | 'inactive';
-  notes: string;
+  baseSalary: string;
   compensationType: 'monthly' | 'hourly';
+  payFrequency: 'monthly' | 'weekly' | 'biweekly' | 'daily';
   hourlyRate: string;
   expectedDailyHours: string;
   scheduledCheckInTime: string;
@@ -27,6 +28,7 @@ export interface EmployeeEditDraft {
   hasIncomeTax?: boolean;
   annualLeaveBalance?: string;
   insuranceSalary?: string;
+  notes?: string;
 }
 
 export type ShiftPreset = {
@@ -54,8 +56,9 @@ export const initialDraft: EmployeeEditDraft = {
   positionId: '',
   hireDate: '',
   status: 'active',
-  notes: '',
+  baseSalary: '',
   compensationType: 'monthly',
+  payFrequency: 'monthly',
   hourlyRate: '',
   expectedDailyHours: '',
   scheduledCheckInTime: '',
@@ -69,8 +72,9 @@ export const initialDraft: EmployeeEditDraft = {
   delayPolicy: 'inherit',
   hasSocialInsurance: false,
   hasIncomeTax: false,
-  annualLeaveBalance: "21",
+  annualLeaveBalance: '',
   insuranceSalary: '',
+  notes: '',
 };
 
 export function normalizeArabicDigits(value: string) {

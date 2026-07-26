@@ -51,7 +51,8 @@ export function EmployeeProfileTopCards({
       <FormSection title="بيانات الدوام والأجر">
         <div className="form-grid">
           <div className="field"><span>نوع الأجر</span><strong>{normalizeText(employee?.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</strong></div>
-          <div className="field"><span>الراتب الشهري</span><strong>{normalizeText(employee?.compensationType) === 'monthly' ? 'يظڈراجع من بيانات العقد والراتب' : 'غير متاح'}</strong></div>
+          <div className="field"><span>دورة القبض</span><strong>{normalizeText(employee?.payFrequency) === 'weekly' ? 'أسبوعي' : normalizeText(employee?.payFrequency) === 'biweekly' ? 'نصف شهري' : normalizeText(employee?.payFrequency) === 'daily' ? 'يومي' : 'شهري'}</strong></div>
+          <div className="field"><span>الراتب الشهري</span><strong>{normalizeText(employee?.compensationType) === 'monthly' ? 'يُراجع من بيانات العقد والراتب' : 'غير متاح'}</strong></div>
           <div className="field"><span>أجر الساعة</span><strong>{normalizeText(employee?.compensationType) === 'hourly' ? money(Number(employee?.hourlyRate || 0)) : 'غير متاح'}</strong></div>
           <div className="field"><span>عدد ساعات اليوم المتوقعة</span><strong>{employee?.expectedDailyHours != null ? fallbackText(employee.expectedDailyHours) : 'غير محدد'}</strong></div>
           <div className="field"><span>موعد الحضور</span><strong>{fallbackText(employee?.scheduledCheckInTime || 'غير محدد')}</strong></div>

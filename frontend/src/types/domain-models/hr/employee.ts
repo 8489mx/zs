@@ -19,6 +19,7 @@ export interface HrEmployee {
   locationId?: string;
   locationName?: string;
   hireDate?: string;
+  payFrequency?: string;
   compensationType?: 'monthly' | 'hourly' | string;
   hourlyRate?: number | null;
   expectedDailyHours?: number | null;

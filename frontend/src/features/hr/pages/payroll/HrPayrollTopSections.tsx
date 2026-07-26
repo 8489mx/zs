@@ -13,7 +13,7 @@ type Summary = {
 
 type Row = { id: string | number; employeeNo?: string; employeeName?: string; loanDeductionAmount?: number };
 
-type Draft = { periodMonth: string; notes: string };
+type Draft = { periodMonth: string; payFrequency: 'monthly' | 'weekly' | 'biweekly' | 'daily'; startDate: string; endDate: string; notes: string };
 
 export type HrPayrollTopSectionProps = {
   monthFilter: string;
