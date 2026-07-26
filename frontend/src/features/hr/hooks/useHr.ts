@@ -10,6 +10,7 @@ function paramsKey(params: HrListParams) {
     employeeId: params.employeeId || '',
     period: params.period || '',
     month: params.month || '',
+    periodMonth: params.periodMonth || '',
     from: params.from || '',
     to: params.to || '',
     status: params.status || '',

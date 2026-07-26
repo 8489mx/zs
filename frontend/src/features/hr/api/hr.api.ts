@@ -47,6 +47,7 @@ export interface HrListParams {
   employeeId?: string | number;
   period?: string;
   month?: string;
+  periodMonth?: string;
   from?: string;
   to?: string;
   status?: string;
