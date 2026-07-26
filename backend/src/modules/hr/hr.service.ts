@@ -2014,9 +2014,15 @@ export class HrService {
       runId = Number(existing.rows[0]?.id || 0);
       if (!runId) {
         const eDate = clean(payload.endDate);
+        let finalEndDate = eDate;
+        if (!finalEndDate) {
+          const [y, m] = periodMonth.split('-');
+          const lastDay = new Date(Number(y), Number(m), 0).getDate();
+          finalEndDate = `${periodMonth}-${String(lastDay).padStart(2, '0')}`;
+        }
         const inserted = await sql<{ id: number }>`
           INSERT INTO hr_payroll_runs (tenant_id, account_id, period_month, start_date, end_date, pay_frequency, status, notes, created_by)
-          VALUES (${auth.tenantId}, ${auth.accountId}, ${periodMonth}, ${sDate}, ${eDate || sql`LAST_DAY(CAST(${sDate} AS DATE))`}, ${payFreq}, 'draft', ${clean(payload.notes)}, ${auth.userId})
+          VALUES (${auth.tenantId}, ${auth.accountId}, ${periodMonth}, ${sDate}, ${finalEndDate}, ${payFreq}, 'draft', ${clean(payload.notes)}, ${auth.userId})
           RETURNING id
         `.execute(trx);
         runId = Number(inserted.rows[0]?.id || 0);
