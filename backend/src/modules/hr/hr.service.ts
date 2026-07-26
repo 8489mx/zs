@@ -2154,6 +2154,10 @@ export class HrService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
       if (status !== 'draft') throw new AppError('Only draft payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
+      
+      // Auto-recalculate before reviewing to ensure all new loans/deductions are captured
+      await this.rebuildPayrollRunItems(trx, id, 'draft');
+
       await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft'`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id}`.execute(trx);
     });
