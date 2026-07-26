@@ -79,7 +79,9 @@ export function HrLoansPage() {
   const [repaymentDraft, setRepaymentDraft] = useState<RepaymentDraft>({ amount: '', method: 'manual_cash', notes: '' });
   const [repaymentError, setRepaymentError] = useState('');
 
-  const workspace = useHrWorkspace({ search, page, pageSize });
+  const [periodMonth] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
+
+  const workspace = useHrWorkspace({ search, page, pageSize, periodMonth });
   const employees = useMemo(() => workspace.employees.data?.employees || [], [workspace.employees.data?.employees]);
   const loans = useMemo(() => (workspace.loans.data?.loans || []) as HrLoan[], [workspace.loans.data?.loans]);
   const visibleLoans = useMemo(() => loans.filter((row) => matchesQuickFilter(row, quickFilter)), [loans, quickFilter]);
