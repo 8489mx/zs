@@ -106,10 +106,10 @@ export function HrLoansPage() {
       return { principalAmount: 0, installmentCount, installmentAmount: 0, totalInstallments: 0, startMonthLabel: '—', endMonthLabel: '—', firstDueDate: '' };
     }
 
-    const baseInstallment = Number((principalAmount / installmentCount).toFixed(2));
-    const totalBeforeLast = Number((baseInstallment * Math.max(0, installmentCount - 1)).toFixed(2));
-    const lastInstallment = Number((principalAmount - totalBeforeLast).toFixed(2));
-    const totalInstallments = Number((totalBeforeLast + lastInstallment).toFixed(2));
+    const baseInstallment = Math.round(principalAmount / installmentCount);
+    const totalBeforeLast = baseInstallment * Math.max(0, installmentCount - 1);
+    const lastInstallment = principalAmount - totalBeforeLast;
+    const totalInstallments = totalBeforeLast + lastInstallment;
     const deductionMonth = Math.max(1, Math.min(12, Number(normalizeArabicDigits(loanDraft.firstDeductionMonth || '0')) || 1));
     const deductionYear = Math.max(2000, Number(normalizeArabicDigits(loanDraft.firstDeductionYear || '0')) || new Date().getFullYear());
     const firstDueDate = `${deductionYear}-${String(deductionMonth).padStart(2, '0')}-01`;

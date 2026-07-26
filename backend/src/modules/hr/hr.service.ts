@@ -360,7 +360,7 @@ export class HrService {
       };
     }
     const installmentCount = Math.max(1, Math.floor(Number(payload.installmentCount || 1)));
-    const installmentAmount = Math.min(amount, Number((amount / installmentCount).toFixed(2)));
+    const installmentAmount = Math.min(amount, Math.round(amount / installmentCount));
     return {
       repaymentMode,
       installmentCount,
