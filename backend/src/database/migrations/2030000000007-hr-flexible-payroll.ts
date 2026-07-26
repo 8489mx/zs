@@ -1,7 +1,8 @@
 import { Kysely, sql } from 'kysely';
 
-export async function up(db: Kysely<any>): Promise<void> {
-  await db.schema
+export const migration = {
+  up: async (db: Kysely<any>): Promise<void> => {
+    await db.schema
     .alterTable('hr_employees')
     .addColumn('pay_frequency', 'varchar(50)', (col) => col.notNull().defaultTo('monthly'))
     .execute();
@@ -17,13 +18,13 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     UPDATE hr_payroll_runs
     SET start_date = CAST(CONCAT(period_month, '-01') AS DATE),
-        end_date = LAST_DAY(CAST(CONCAT(period_month, '-01') AS DATE))
+        end_date = CAST(CONCAT(period_month, '-01') AS DATE) + INTERVAL '1 month' - INTERVAL '1 day'
     WHERE start_date IS NULL
   `.execute(db);
-}
+  },
 
-export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema
+  down: async (db: Kysely<any>): Promise<void> => {
+    await db.schema
     .alterTable('hr_payroll_runs')
     .dropColumn('end_date')
     .dropColumn('start_date')
@@ -34,4 +35,5 @@ export async function down(db: Kysely<any>): Promise<void> {
     .alterTable('hr_employees')
     .dropColumn('pay_frequency')
     .execute();
-}
+  }
+};
