@@ -1046,6 +1046,16 @@ export interface HrEmployeeTable {
   scheduled_check_out_time: string | null;
   grace_minutes: number;
   overtime_policy: 'review_only' | 'disabled' | 'auto_approved';
+  attendance_policy: 'strict' | 'flexible';
+  commission_type: string;
+  commission_value: number | null;
+  commission_target: number | null;
+  delay_policy: string;
+  has_social_insurance: boolean;
+  insurance_salary: number | null;
+  has_income_tax: boolean;
+  end_of_service_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  end_of_service_reason: string | null;
   notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   updated_by: number | null;
@@ -1341,6 +1351,19 @@ export interface HrSettingsTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface HrHolidayTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  name: string;
+  start_date: ColumnType<Date, string | Date, string | Date>;
+  end_date: ColumnType<Date, string | Date, string | Date>;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 
 export interface SaasPlanTable {
   id: Generated<number>;
@@ -1459,6 +1482,7 @@ export interface Database {
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;
   hr_hr_settings: HrSettingsTable;
   hr_payroll_loan_deduction_allocations: HrPayrollLoanDeductionAllocationTable;
+  hr_holidays: HrHolidayTable;
   price_change_runs: PriceChangeRunTable;
   price_change_items: PriceChangeItemTable;
   delivery_representatives: DeliveryRepresentativeTable;
@@ -1693,6 +1717,7 @@ export interface Database {
   hr_payroll_item_adjustments: HrPayrollItemAdjustmentTable;
   hr_hr_settings: HrSettingsTable;
   hr_payroll_loan_deduction_allocations: HrPayrollLoanDeductionAllocationTable;
+  hr_holidays: HrHolidayTable;
   price_change_runs: PriceChangeRunTable;
   price_change_items: PriceChangeItemTable;
   partner_contacts: PartnerContactTable;

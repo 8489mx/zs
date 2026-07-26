@@ -25,6 +25,8 @@ import {
   UpsertEmploymentContractDto,
   UpsertHrMasterDataDto,
   PayPayrollRunDto,
+  UpsertHolidayDto,
+  EndOfServiceDto,
 } from './dto/hr.dto';
 import { HrService } from './hr.service';
 
@@ -360,6 +362,18 @@ export class HrController {
     return this.hr.getEmployeeProfile(id, req.authContext!);
   }
 
+  
+  @Get('employees/:id/end-of-service/preview')
+  async getEndOfServicePreview(@Param('id', ParseIntPipe) id: number, @Query('endDate') endDate: string, @Req() req: RequestWithAuth) {
+    return this.hr.getEndOfServicePreview(id, endDate, req.authContext!);
+  }
+
+  @Post('employees/:id/end-of-service')
+  @RequirePermissions('hrEmployees')
+  endOfService(@Param('id', ParseIntPipe) id: number, @Body() payload: EndOfServiceDto, @Req() req: RequestWithAuth) {
+    return this.hr.endOfService(id, payload, req.authContext!);
+  }
+
   @Put('employees/:id')
   @RequirePermissions('hrEmployees')
   updateEmployee(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertEmployeeDto, @Req() req: RequestWithAuth) {
@@ -490,6 +504,30 @@ export class HrController {
   @RequirePermissions('hrLoans')
   listLedger(@Param('employeeId', ParseIntPipe) employeeId: number, @Req() req: RequestWithAuth) {
     return this.hr.listLedger(employeeId, req.authContext!);
+  }
+
+  @Get('holidays')
+  @RequirePermissions('hr')
+  listHolidays(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
+    return this.hr.listHolidays(query, req.authContext!);
+  }
+
+  @Post('holidays')
+  @RequirePermissions('hr')
+  createHoliday(@Body() payload: UpsertHolidayDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertHoliday(null, payload, req.authContext!);
+  }
+
+  @Put('holidays/:id')
+  @RequirePermissions('hr')
+  updateHoliday(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertHolidayDto, @Req() req: RequestWithAuth) {
+    return this.hr.upsertHoliday(id, payload, req.authContext!);
+  }
+
+  @Delete('holidays/:id')
+  @RequirePermissions('hr')
+  deleteHoliday(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.deleteHoliday(id, req.authContext!);
   }
 }
 

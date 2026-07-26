@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
@@ -31,6 +31,8 @@ import {
   UpsertEmploymentContractDto,
   UpsertHrMasterDataDto,
   PayPayrollRunDto,
+  UpsertHolidayDto,
+  EndOfServiceDto,
 } from './dto/hr.dto';
 import { HrTreasuryAdapter } from './hr-treasury.adapter';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
@@ -161,7 +163,7 @@ type PayrollOperationalReview = {
   pendingOvertimeMinutes: number;
 };
 type AttendanceExceptionStatus = 'pending' | 'approved' | 'skipped' | 'auto_calculated' | 'needs_review';
-type AttendanceExceptionType = 'early_check_in' | 'late_check_in' | 'early_check_out' | 'late_check_out' | 'missing_check_in' | 'missing_check_out';
+type AttendanceExceptionType = 'early_check_in' | 'late_check_in' | 'early_check_out' | 'late_check_out' | 'missing_check_in' | 'missing_check_out' | 'short_hours' | 'extra_hours' | 'unscheduled_time';
 type CompensationType = 'monthly' | 'hourly';
 type OvertimePolicy = 'review_only' | 'disabled' | 'auto_approved';
 
@@ -218,6 +220,14 @@ export class HrService {
       latenessFirstTimePenalty: 0,
       latenessRepeatPenaltyMultiplier: 1,
       overtimeMultiplier: 1,
+      hrDelayPolicyEnabled: false,
+      hrDelayPolicyFirstTimeDeduction: 0.25,
+      hrDelayPolicySecondTimeDeduction: 0.5,
+      hrDelayPolicyThirdTimeDeduction: 1,
+      hrDelayPolicyFourthTimeDeduction: 1,
+      hrCommissionType: 'none',
+      hrCommissionValue: 0,
+      hrCommissionTarget: 0,
     };
     if (result.rows.length === 0) return defaults;
     try {
@@ -453,6 +463,54 @@ export class HrService {
     return { ok: true, ...(await this.listMasterData(kind, {}, auth)) };
   }
 
+  async listHolidays(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const result = await sql<Record<string, unknown>>`
+      SELECT * FROM hr_holidays
+      WHERE ${this.tenantPredicate(auth)}
+      ORDER BY start_date DESC
+    `.execute(this.db);
+    
+    let rows = result.rows.map((row) => ({
+      id: String(row.id),
+      name: clean(row.name),
+      startDate: row.start_date ? new Date(row.start_date as string).toISOString().split('T')[0] : '',
+      endDate: row.end_date ? new Date(row.end_date as string).toISOString().split('T')[0] : '',
+    }));
+
+    const search = clean(query.search).toLowerCase();
+    if (search) {
+      rows = rows.filter((row) => row.name.toLowerCase().includes(search));
+    }
+
+    const paged = paginateRows(rows, query, { defaultSize: 50 });
+    return { rows: paged.rows, pagination: paged.pagination, summary: { totalItems: rows.length } };
+  }
+
+  async upsertHoliday(id: number | null, payload: any, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    if (id) {
+      await sql`
+        UPDATE hr_holidays
+        SET name = ${clean(payload.name)}, start_date = ${payload.startDate}, end_date = ${payload.endDate},
+            updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND ${this.tenantPredicate(auth)}
+      `.execute(this.db);
+    } else {
+      await sql`
+        INSERT INTO hr_holidays (tenant_id, account_id, name, start_date, end_date, created_by, updated_by)
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${clean(payload.name)}, ${payload.startDate}, ${payload.endDate}, ${auth.userId}, ${auth.userId})
+      `.execute(this.db);
+    }
+    return { ok: true };
+  }
+
+  async deleteHoliday(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    await sql`DELETE FROM hr_holidays WHERE id = ${id} AND ${this.tenantPredicate(auth)}`.execute(this.db);
+    return { ok: true };
+  }
+
   async listEmployees(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const result = await sql<Record<string, unknown>>`
@@ -497,6 +555,16 @@ export class HrService {
       scheduledCheckOutTime: clean(row.scheduled_check_out_time),
       graceMinutes: Number(row.grace_minutes || 0),
       overtimePolicy: clean(row.overtime_policy) || 'review_only',
+      attendancePolicy: clean(row.attendance_policy) || 'strict',
+      commissionType: clean(row.commission_type) || 'inherit',
+      commissionValue: row.commission_value == null ? null : Number(row.commission_value),
+      commissionTarget: row.commission_target == null ? null : Number(row.commission_target),
+      delayPolicy: clean(row.delay_policy) || 'inherit',
+      hasSocialInsurance: row.has_social_insurance === true,
+      insuranceSalary: row.insurance_salary == null ? null : Number(row.insurance_salary),
+      hasIncomeTax: row.has_income_tax === true,
+      annualLeaveBalance: row.annual_leave_balance == null ? 21 : Number(row.annual_leave_balance),
+      usedAnnualLeaves: row.used_annual_leaves == null ? 0 : Number(row.used_annual_leaves),
       notes: clean(row.notes),
     }));
     if (search) {
@@ -543,6 +611,121 @@ export class HrService {
     return response;
   }
 
+  
+  async getEndOfServicePreview(id: number, dateStr: string | undefined, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const employeeRes = await this.getEmployeeProfile(id, auth);
+    const e = employeeRes.employee as any;
+    if (!e || e.status === 'terminated') {
+      throw new AppError('Employee not found or already terminated', 'HR_EMPLOYEE_INVALID', 400);
+    }
+    
+    // Calculate dates
+    const hireDate = new Date(e.hireDate || new Date());
+    const endDate = dateStr ? new Date(dateStr) : new Date();
+    
+    const diffTime = Math.max(0, endDate.getTime() - hireDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const yearsWorked = diffDays / 365.25;
+
+    // Get Base Salary from latest contract
+    const contractsResult = await sql<Record<string, unknown>>`
+      SELECT base_salary FROM hr_employment_contracts 
+      WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} 
+      ORDER BY id DESC LIMIT 1
+    `.execute(this.db);
+    
+    let baseSalary = 0;
+    if (e.compensationType === 'hourly') {
+      baseSalary = Number(e.hourlyRate || 0) * Number(e.expectedDailyHours || 8) * 30;
+    } else {
+      baseSalary = contractsResult.rows[0] ? Number(contractsResult.rows[0].base_salary) : 0;
+    }
+
+    const dailyRate = baseSalary / 30;
+
+    // 1. Severance Pay Calculation (Egyptian Law roughly: 0.5 month for first 5 years, 1 month after)
+    let severancePay = 0;
+    if (yearsWorked <= 5) {
+      severancePay = yearsWorked * 15 * dailyRate;
+    } else {
+      severancePay = (5 * 15 * dailyRate) + ((yearsWorked - 5) * 30 * dailyRate);
+    }
+
+    // 2. Unused Leave Encashment
+    const balance = Number(e.annualLeaveBalance || 21);
+    const used = Number(e.usedAnnualLeaves || 0);
+    
+    // Prorate balance based on months worked this year (assuming starting Jan 1st for simplicity in this MVP)
+    const currentMonth = endDate.getMonth() + 1;
+    const proratedBalance = (balance / 12) * currentMonth;
+    const remainingLeaves = Math.max(0, proratedBalance - used);
+    
+    const leaveEncashment = remainingLeaves * dailyRate;
+
+    // 3. Unpaid Loans Deduction
+    const loansResult = await sql<Record<string, unknown>>`
+      SELECT COALESCE(SUM(remaining_amount), 0) as total_unpaid_loans 
+      FROM hr_employee_loans 
+      WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} AND status IN ('approved', 'disbursed')
+    `.execute(this.db);
+    const unpaidLoans = Number(loansResult.rows[0]?.total_unpaid_loans || 0);
+
+    const finalSettlementAmount = severancePay + leaveEncashment - unpaidLoans;
+
+    return {
+      preview: {
+        hireDate: e.hireDate,
+        endDate: endDate.toISOString().slice(0, 10),
+        yearsWorked: Number(yearsWorked.toFixed(2)),
+        baseSalary: Number(baseSalary.toFixed(2)),
+        dailyRate: Number(dailyRate.toFixed(2)),
+        severancePay: Number(severancePay.toFixed(2)),
+        remainingLeaves: Number(remainingLeaves.toFixed(2)),
+        leaveEncashment: Number(leaveEncashment.toFixed(2)),
+        unpaidLoans: Number(unpaidLoans.toFixed(2)),
+        finalSettlementAmount: Number(finalSettlementAmount.toFixed(2))
+      }
+    };
+  }
+
+  async endOfService(id: number, payload: EndOfServiceDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const [[employee], openAssets, unpaidLoans] = await Promise.all([
+      sql<Record<string, unknown>>`SELECT id FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db).then(r => r.rows),
+      sql<Record<string, unknown>>`SELECT id FROM hr_employee_assets WHERE employee_id = ${id} AND status != 'returned' AND status != 'lost' AND tenant_id = ${auth.tenantId}`.execute(this.db).then(r => r.rows),
+      sql<Record<string, unknown>>`SELECT id FROM hr_employee_loans WHERE employee_id = ${id} AND status IN ('approved', 'disbursed', 'partially_repaid') AND tenant_id = ${auth.tenantId}`.execute(this.db).then(r => r.rows)
+    ]);
+
+    if (!employee) throw new NotFoundException('Employee not found');
+    
+    // Notice: we are just ending service, we are not blocking if there are open assets or loans, 
+    // we let the user decide if they want to proceed.
+    
+    await sql`
+      UPDATE hr_employees
+      SET status = 'terminated',
+          end_of_service_date = ${payload.endOfServiceDate},
+          end_of_service_reason = ${payload.endOfServiceReason || null},
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
+    `.execute(this.db);
+    
+    // End active contract if any
+    await sql`
+      UPDATE hr_employment_contracts
+      SET status = 'ended',
+          end_date = ${payload.endOfServiceDate},
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+      WHERE employee_id = ${id} AND status = 'active' AND tenant_id = ${auth.tenantId}
+    `.execute(this.db);
+
+    await this.audit.log('End of Service', `Ended service for employee #${id} on ${payload.endOfServiceDate}`, auth);
+    
+    return { success: true, openAssets: openAssets.length, unpaidLoans: unpaidLoans.length };
+  }
+
   async upsertEmployee(id: number | null, payload: UpsertEmployeeDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const firstName = clean(payload.firstName);
     const lastName = clean(payload.lastName);
@@ -562,6 +745,7 @@ export class HrService {
     const scheduledCheckInTime = normalizeTimeOnly(payload.scheduledCheckInTime);
     const scheduledCheckOutTime = normalizeTimeOnly(payload.scheduledCheckOutTime);
     const graceMinutes = Math.max(0, Math.floor(Number(payload.graceMinutes || 0)));
+    const attendancePolicy = clean(payload.attendancePolicy) === 'flexible' ? 'flexible' : 'strict';
 
     if (!firstName) throw new AppError('ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (rawEmployeeNo && !employeeNo) {
@@ -589,6 +773,14 @@ export class HrService {
               scheduled_check_out_time = ${scheduledCheckOutTime || null},
               grace_minutes = ${graceMinutes},
               overtime_policy = ${overtimePolicy},
+              attendance_policy = ${attendancePolicy},
+              commission_type = ${clean(payload.commissionType) || 'inherit'},
+              commission_value = ${payload.commissionValue == null ? null : Number(payload.commissionValue)},
+              commission_target = ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)},
+              delay_policy = ${clean(payload.delayPolicy) || 'inherit'},
+              has_social_insurance = ${Boolean(payload.hasSocialInsurance)},
+              insurance_salary = ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)},
+              has_income_tax = ${Boolean(payload.hasIncomeTax)},
               updated_by = ${auth.userId}, updated_at = NOW()
           WHERE id = ${id}
         `.execute(this.db);
@@ -597,8 +789,8 @@ export class HrService {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
           await sql<{ id: number }>`
-            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, created_by, updated_by)
-            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
         });
@@ -1386,7 +1578,7 @@ export class HrService {
     const range = monthRange(periodMonth);
 
     const empResult = await sql<Record<string, unknown>>`
-      SELECT e.id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, c.base_salary
+      SELECT e.id, e.tenant_id, e.user_id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, e.commission_type, e.commission_value, e.commission_target, e.delay_policy, e.has_social_insurance, e.insurance_salary, e.has_income_tax, c.base_salary
       FROM hr_employees e
       LEFT JOIN hr_employment_contracts c ON c.employee_id = e.id AND c.status = 'active'
       WHERE e.id IN (${sql.join(employeeIds)})
@@ -1397,20 +1589,23 @@ export class HrService {
     const attendanceResult = await sql<Record<string, unknown>>`
       SELECT
         employee_id,
-        COALESCE(SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_days
+        to_char(work_date, 'YYYY-MM-DD') AS work_date_text,
+        status
       FROM hr_attendance_records
       WHERE employee_id IN (${sql.join(employeeIds)})
         AND work_date >= ${range.from}::date
         AND work_date <= ${range.to}::date
-      GROUP BY employee_id
     `.execute(db);
 
     const exceptionsResult = await sql<Record<string, unknown>>`
       SELECT
         employee_id,
-        COALESCE(SUM(CASE WHEN exception_type = 'late_check_in' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS late_minutes,
+        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS late_minutes,
         COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS early_leave_minutes,
-        COALESCE(SUM(CASE WHEN exception_type IN ('early_check_in', 'late_check_out') AND status = 'approved' THEN COALESCE(approved_duration_minutes, duration_minutes) ELSE 0 END), 0) AS overtime_minutes
+        COALESCE(SUM(CASE WHEN exception_type IN ('early_check_in', 'late_check_out', 'extra_hours') AND status = 'approved' THEN COALESCE(approved_duration_minutes, duration_minutes) ELSE 0 END), 0) AS overtime_minutes,
+        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS late_incidents_count,
+        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS early_leave_incidents_count,
+        COALESCE(SUM(CASE WHEN status = 'needs_review' THEN 1 ELSE 0 END), 0) AS unresolved_exceptions_count
       FROM hr_attendance_exceptions
       WHERE employee_id IN (${sql.join(employeeIds)})
         AND work_date >= ${range.from}::date
@@ -1432,8 +1627,16 @@ export class HrService {
       GROUP BY lr.employee_id
     `.execute(db);
 
-    const attendanceByEmployee = new Map<number, Record<string, unknown>>();
-    for (const row of attendanceResult.rows) attendanceByEmployee.set(Number(row.employee_id || 0), row);
+    const attendanceByEmployee = new Map<number, { absent_days: number, records: any[] }>();
+    for (const employeeId of employeeIds) {
+      attendanceByEmployee.set(employeeId, { absent_days: 0, records: [] });
+    }
+    for (const row of attendanceResult.rows) {
+      const empId = Number(row.employee_id || 0);
+      if (attendanceByEmployee.has(empId)) {
+        attendanceByEmployee.get(empId)!.records.push(row);
+      }
+    }
 
     const exceptionsByEmployee = new Map<number, Record<string, unknown>>();
     for (const row of exceptionsResult.rows) exceptionsByEmployee.set(Number(row.employee_id || 0), row);
@@ -1441,16 +1644,99 @@ export class HrService {
     const leaveByEmployee = new Map<number, Record<string, unknown>>();
     for (const row of leaveResult.rows) leaveByEmployee.set(Number(row.employee_id || 0), row);
 
+    // Fetch global settings for HR
+    const tenantId = String(empResult.rows[0]?.tenant_id || '');
+    let hrDelayPolicyEnabled = false;
+    let hrDelayPolicyFirstTime = 0;
+    let hrDelayPolicySecondTime = 0;
+    let hrDelayPolicyThirdTime = 0;
+    let hrDelayPolicyFourthTime = 0;
+    let hrCommissionType = 'none';
+    let hrCommissionValue = 0;
+    let hrCommissionTarget = 0;
+    let hrSocialInsuranceEnabled = false;
+    let hrSocialInsuranceEmployeePct = 11;
+    let hrIncomeTaxEnabled = false;
+
+    let hrWeekendDays = ['friday', 'saturday'];
+    
+    if (tenantId) {
+      const globalPolicies = await this.getPayrollPolicies(db, tenantId);
+      hrDelayPolicyEnabled = globalPolicies.hrDelayPolicyEnabled === true;
+      hrDelayPolicyFirstTime = Number(globalPolicies.hrDelayPolicyFirstTimeDeduction || 0);
+      hrDelayPolicySecondTime = Number(globalPolicies.hrDelayPolicySecondTimeDeduction || 0);
+      hrDelayPolicyThirdTime = Number(globalPolicies.hrDelayPolicyThirdTimeDeduction || 0);
+      hrDelayPolicyFourthTime = Number(globalPolicies.hrDelayPolicyFourthTimeDeduction || 0);
+      hrCommissionType = globalPolicies.hrCommissionType || 'none';
+      hrCommissionValue = Number(globalPolicies.hrCommissionValue || 0);
+      hrCommissionTarget = Number(globalPolicies.hrCommissionTarget || 0);
+      hrSocialInsuranceEnabled = globalPolicies.hrSocialInsuranceEnabled === true;
+      hrSocialInsuranceEmployeePct = Number(globalPolicies.hrSocialInsuranceEmployeePct || 11);
+      hrIncomeTaxEnabled = globalPolicies.hrIncomeTaxEnabled === true;
+      hrWeekendDays = (globalPolicies.hrWeekendDays || 'friday,saturday').split(',').map((d: string) => d.trim().toLowerCase());
+    }
+
+    const holidaysRes = await sql<Record<string, unknown>>`
+      SELECT start_date, end_date FROM hr_holidays
+      WHERE tenant_id = ${tenantId}
+        AND start_date <= ${range.to}::date
+        AND end_date >= ${range.from}::date
+    `.execute(db);
+    
+    const isHoliday = (dateStr: string) => {
+      const d = new Date(dateStr);
+      for (const h of holidaysRes.rows) {
+        const s = new Date(String(h.start_date));
+        const e = new Date(String(h.end_date));
+        if (d >= s && d <= e) return true;
+      }
+      return false;
+    };
+
+    // Fetch sales grouped by user_id for the period
+    const userIds = empResult.rows.map(r => Number(r.user_id)).filter(id => !isNaN(id) && id > 0);
+    const salesByUser = new Map<number, number>();
+    if (userIds.length > 0) {
+      const salesResult = await sql<Record<string, unknown>>`
+        SELECT created_by, COALESCE(SUM(total_amount), 0) AS total_sales
+        FROM sales_invoices
+        WHERE tenant_id = ${tenantId}
+          AND created_at >= ${range.from}::date
+          AND created_at <= (${range.to}::date + INTERVAL '1 day')
+          AND status = 'completed'
+          AND created_by IN (${sql.join(userIds)})
+        GROUP BY created_by
+      `.execute(db);
+      for (const row of salesResult.rows) {
+        salesByUser.set(Number(row.created_by), Number(row.total_sales));
+      }
+    }
+
     for (const employeeId of employeeIds) {
-      const attendance = attendanceByEmployee.get(employeeId) || {};
+      const attendance = attendanceByEmployee.get(employeeId) || { absent_days: 0, records: [] };
       const exceptions = exceptionsByEmployee.get(employeeId) || {};
       const leave = leaveByEmployee.get(employeeId) || {};
       const emp = empDetails.get(employeeId) || {};
       
-      const attendanceAbsentDays = Number(attendance.absent_days || 0);
+      let attendanceAbsentDays = 0;
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      for (const rec of attendance.records) {
+        if (rec.status === 'absent') {
+          const dt = new Date(String(rec.work_date_text));
+          const dayName = dayNames[dt.getDay()];
+          if (!hrWeekendDays.includes(dayName) && !isHoliday(String(rec.work_date_text))) {
+            attendanceAbsentDays++;
+          }
+        }
+      }
       const lateMinutes = Number(exceptions.late_minutes || 0);
       const earlyLeaveMinutes = Number(exceptions.early_leave_minutes || 0);
+      const lateIncidents = Number(exceptions.late_incidents_count || 0);
+      const earlyLeaveIncidents = Number(exceptions.early_leave_incidents_count || 0);
+      const totalIncidents = lateIncidents + earlyLeaveIncidents;
+      
       const overtimeMinutes = Number(exceptions.overtime_minutes || 0);
+      const unresolvedExceptionsCount = Number(exceptions.unresolved_exceptions_count || 0);
 
       const approvedLeaveDays = Number(leave.approved_leave_days || 0);
       const unpaidLeaveDays = Number(leave.unpaid_leave_days || 0);
@@ -1463,15 +1749,99 @@ export class HrService {
       const dailyRate = isHourly ? (hourlyRate * expectedHours) : (baseSalary > 0 ? Number((baseSalary / 30).toFixed(2)) : 0);
       const calculatedHourlyRate = isHourly ? hourlyRate : (dailyRate / expectedHours);
 
-      const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + (calculatedHourlyRate * (lateMinutes + earlyLeaveMinutes) / 60)).toFixed(2));
+      // Determine Delay Policy Deduction
+      let delayDeduction = 0;
+      let delayPolicyMode = emp.delay_policy || 'inherit';
+      if (delayPolicyMode === 'inherit') {
+        delayPolicyMode = hrDelayPolicyEnabled ? 'progressive' : 'standard';
+      }
+      
+      if (delayPolicyMode === 'progressive') {
+        // Calculate progressive deduction (in days or hours depending on settings)
+        // Assume global settings are in days (or fractions of days like 0.25)
+        let totalPenaltyDays = 0;
+        for (let i = 1; i <= totalIncidents; i++) {
+          if (i === 1) totalPenaltyDays += hrDelayPolicyFirstTime;
+          else if (i === 2) totalPenaltyDays += hrDelayPolicySecondTime;
+          else if (i === 3) totalPenaltyDays += hrDelayPolicyThirdTime;
+          else totalPenaltyDays += hrDelayPolicyFourthTime;
+        }
+        delayDeduction = Number((dailyRate * totalPenaltyDays).toFixed(2));
+      } else if (delayPolicyMode === 'standard') {
+        // Standard: just exact minutes translated to money
+        delayDeduction = Number(((calculatedHourlyRate * (lateMinutes + earlyLeaveMinutes) / 60)).toFixed(2));
+      } else {
+        // disabled
+        delayDeduction = 0;
+      }
+
+      const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + delayDeduction).toFixed(2));
       const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
       const suggestedOvertimeAllowanceAmount = Number((calculatedHourlyRate * (overtimeMinutes / 60) * 1.5).toFixed(2));
 
+      // Determine Commission Allowance
+      let commissionValue = 0;
+      let cType = emp.commission_type || 'inherit';
+      let cVal = Number(emp.commission_value || 0);
+      let cTarget = Number(emp.commission_target || 0);
+
+      if (cType === 'inherit') {
+        cType = hrCommissionType;
+        cVal = hrCommissionValue;
+        cTarget = hrCommissionTarget;
+      }
+
+      const totalSales = salesByUser.get(Number(emp.user_id)) || 0;
+      if (cType === 'percentage') {
+        commissionValue = Number((totalSales * (cVal / 100)).toFixed(2));
+      } else if (cType === 'target_percentage') {
+        if (totalSales >= cTarget) {
+          commissionValue = Number((totalSales * (cVal / 100)).toFixed(2));
+        }
+      } else if (cType === 'fixed') {
+        commissionValue = cVal;
+      }
+      
+      // Calculate Social Insurance Deduction
+      let suggestedSocialInsuranceDeductionAmount = 0;
+      if (hrSocialInsuranceEnabled && emp.has_social_insurance) {
+        const insSalary = Number(emp.insurance_salary) || baseSalary;
+        suggestedSocialInsuranceDeductionAmount = Number((insSalary * (hrSocialInsuranceEmployeePct / 100)).toFixed(2));
+      }
+
+      // Calculate Income Tax Deduction
+      let suggestedIncomeTaxDeductionAmount = 0;
+      if (hrIncomeTaxEnabled && emp.has_income_tax) {
+        // Simplified standard brackets (monthly):
+        // 1- up to 3333 -> 0%
+        // 2- 3334 to 4583 -> 10%
+        // 3- 4584 to 6250 -> 15%
+        // 4- 6251 to 16666 -> 20%
+        // 5- >16666 -> 22.5%
+        // (Rough monthly approximation for 2024 Egypt, we'll keep it simple for now and can be overridden via settings if needed)
+        const taxableIncome = baseSalary - suggestedSocialInsuranceDeductionAmount + commissionValue + suggestedOvertimeAllowanceAmount;
+        let tax = 0;
+        if (taxableIncome > 3333) {
+          if (taxableIncome <= 4583) {
+            tax = (taxableIncome - 3333) * 0.10;
+          } else if (taxableIncome <= 6250) {
+            tax = (4583 - 3333) * 0.10 + (taxableIncome - 4583) * 0.15;
+          } else if (taxableIncome <= 16666) {
+            tax = (4583 - 3333) * 0.10 + (6250 - 4583) * 0.15 + (taxableIncome - 6250) * 0.20;
+          } else {
+            tax = (4583 - 3333) * 0.10 + (6250 - 4583) * 0.15 + (16666 - 6250) * 0.20 + (taxableIncome - 16666) * 0.225;
+          }
+        }
+        suggestedIncomeTaxDeductionAmount = Number(tax.toFixed(2));
+      }
+      
       let notesStr = `مراجعة: غياب ${attendanceAbsentDays} يوم.`;
-      if (lateMinutes > 0) notesStr += ` تأخير ${Math.floor(lateMinutes/60)}س و${lateMinutes%60}د.`;
-      if (earlyLeaveMinutes > 0) notesStr += ` انصراف مبكر ${Math.floor(earlyLeaveMinutes/60)}س و${earlyLeaveMinutes%60}د.`;
+      if (totalIncidents > 0) notesStr += ` (${totalIncidents}) مرات تأخير/انصراف مبكر باجمالي ${Math.floor((lateMinutes+earlyLeaveMinutes)/60)}س و${(lateMinutes+earlyLeaveMinutes)%60}د. سياسة: ${delayPolicyMode}.`;
       if (unpaidLeaveDays > 0) notesStr += ` إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
       if (overtimeMinutes > 0) notesStr += ` إضافي معتمد ${Math.floor(overtimeMinutes/60)}س و${overtimeMinutes%60}د.`;
+      if (commissionValue > 0) notesStr += ` عمولة مبيعات: ${commissionValue}.`;
+      if (suggestedSocialInsuranceDeductionAmount > 0) notesStr += ` تأمينات: ${suggestedSocialInsuranceDeductionAmount}.`;
+      if (suggestedIncomeTaxDeductionAmount > 0) notesStr += ` ضريبة كسب عمل: ${suggestedIncomeTaxDeductionAmount}.`;
 
       reviewByEmployeeId.set(employeeId, {
         attendanceAbsentDays,
@@ -1482,10 +1852,14 @@ export class HrService {
         unpaidLeaveDays,
         suggestedAttendanceDeductionAmount,
         suggestedLeaveDeductionAmount,
+        suggestedSocialInsuranceDeductionAmount,
+        suggestedIncomeTaxDeductionAmount,
         suggestedOvertimeAllowanceAmount,
+        suggestedCommissionAllowanceAmount: commissionValue,
         payrollReviewNotes: notesStr,
         approvedOvertimeMinutes: overtimeMinutes,
         pendingOvertimeMinutes: 0,
+        unresolvedExceptionsCount,
       });
     }
 
@@ -1597,6 +1971,7 @@ export class HrService {
         suggestedAttendanceDeductionAmount: review?.suggestedAttendanceDeductionAmount ?? 0,
         suggestedLeaveDeductionAmount: review?.suggestedLeaveDeductionAmount ?? 0,
         payrollReviewNotes: review?.payrollReviewNotes || '',
+        unresolvedExceptionsCount: review?.unresolvedExceptionsCount || 0,
         adjustments: adjustmentsByItem.get(String(row.id)) || [],
       };
     });
@@ -1683,6 +2058,31 @@ export class HrService {
             amount_type: 'amount',
             amount: deduction,
             reason: `تسوية تلقائية من مراجعة المرتبات: ${notes.trim()}`,
+            date: adjustmentDate,
+            status: 'pending',
+            applied_in_run_id: id
+          });
+        }
+        if (review.suggestedSocialInsuranceDeductionAmount > 0) {
+          toInsert.push({
+            employee_id: employeeId,
+            adjustment_type: 'deduction',
+            amount_type: 'amount',
+            amount: review.suggestedSocialInsuranceDeductionAmount,
+            reason: `حصة الموظف في التأمينات الاجتماعية`,
+            date: adjustmentDate,
+            status: 'pending',
+            applied_in_run_id: id
+          });
+        }
+        
+        if (review.suggestedIncomeTaxDeductionAmount > 0) {
+          toInsert.push({
+            employee_id: employeeId,
+            adjustment_type: 'deduction',
+            amount_type: 'amount',
+            amount: review.suggestedIncomeTaxDeductionAmount,
+            reason: `ضريبة كسب العمل`,
             date: adjustmentDate,
             status: 'pending',
             applied_in_run_id: id
@@ -2224,8 +2624,9 @@ export class HrService {
     scheduledTime?: string | null,
     actualTime?: string | null,
   ) {
-    if (!(durationMinutes > 0)) return null;
-    const autoCalculated = type === 'late_check_in' || type === 'early_check_out';
+    if (!(durationMinutes > 0) && type !== 'unscheduled_time') return null;
+    const autoCalculated = type === 'late_check_in' || type === 'early_check_out' || type === 'short_hours';
+    const needsReview = type === 'unscheduled_time';
     return {
       employeeId,
       attendanceRecordId,
@@ -2234,7 +2635,7 @@ export class HrService {
       scheduledTime: scheduledTime || null,
       actualTime: actualTime || null,
       durationMinutes: Math.floor(durationMinutes),
-      status: (autoCalculated ? 'auto_calculated' : 'pending') as AttendanceExceptionStatus,
+      status: (autoCalculated ? 'auto_calculated' : (needsReview ? 'needs_review' : 'pending')) as AttendanceExceptionStatus,
       approvedDurationMinutes: autoCalculated ? Math.floor(durationMinutes) : null,
       note: null as string | null,
     };
@@ -2253,7 +2654,10 @@ export class HrService {
         to_char(a.check_out_at AT TIME ZONE ${process.env.BUSINESS_TIMEZONE || 'Africa/Cairo'}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
         e.scheduled_check_in_time,
         e.scheduled_check_out_time,
-        e.grace_minutes
+        e.grace_minutes,
+        e.attendance_policy,
+        e.expected_daily_hours,
+        e.tenant_id
       FROM hr_attendance_records a
       JOIN hr_employees e ON e.id = a.employee_id
       WHERE a.employee_id = ${employeeId}
@@ -2274,36 +2678,108 @@ export class HrService {
     const checkOutAtText = clean(row.check_out_at_text);
     const checkInActualTime = normalizeTimeOnly(checkInAtText.slice(11, 16));
     const checkOutActualTime = normalizeTimeOnly(checkOutAtText.slice(11, 16));
+    const attendancePolicy = clean(row.attendance_policy) || 'strict';
+    const expectedDailyHours = Number(row.expected_daily_hours || 8);
+    const tenantId = String(row.tenant_id || '');
 
-    const entries: Array<ReturnType<HrService['buildAttendanceException']>> = [];
-    if (scheduledCheckIn && checkInActualTime) {
-      const delta = timeToMinutes(checkInActualTime) - timeToMinutes(scheduledCheckIn);
-      if (delta < 0) {
-        entries.push(this.buildAttendanceException('early_check_in', employeeId, attendanceId || null, workDate, Math.abs(delta), scheduledCheckIn, checkInActualTime));
-      } else if (delta > graceMinutes) {
-        entries.push(this.buildAttendanceException('late_check_in', employeeId, attendanceId || null, workDate, delta - graceMinutes, scheduledCheckIn, checkInActualTime));
+    let isHolidayOrWeekend = false;
+    if (tenantId) {
+      const globalPolicies = await this.getPayrollPolicies(db, tenantId);
+      const weekendDaysStr = globalPolicies.hrWeekendDays || 'friday,saturday';
+      const weekendDays = weekendDaysStr.split(',').map((d: string) => d.trim().toLowerCase());
+      
+      const dateObj = new Date(workDate);
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayName = dayNames[dateObj.getDay()];
+      isHolidayOrWeekend = weekendDays.includes(dayName);
+      
+      if (!isHolidayOrWeekend) {
+        const holidayRes = await sql<{ id: number }>`
+          SELECT id FROM hr_holidays 
+          WHERE tenant_id = ${tenantId} 
+            AND start_date <= ${workDate}::date 
+            AND end_date >= ${workDate}::date
+          LIMIT 1
+        `.execute(db);
+        if (holidayRes.rows.length > 0) {
+          isHolidayOrWeekend = true;
+        }
       }
-    } else if (!checkInActualTime && checkOutActualTime) {
-      entries.push(this.buildAttendanceException('missing_check_in', employeeId, attendanceId || null, workDate, 1, scheduledCheckIn, checkOutActualTime));
     }
 
-    if (scheduledCheckOut && checkOutActualTime) {
-      const delta = timeToMinutes(checkOutActualTime) - timeToMinutes(scheduledCheckOut);
-      if (delta < -graceMinutes) {
-        entries.push(this.buildAttendanceException('early_check_out', employeeId, attendanceId || null, workDate, Math.abs(delta) - graceMinutes, scheduledCheckOut, checkOutActualTime));
-      } else if (delta > 0) {
-        let eligibleForOvertime = true;
-        if (scheduledCheckIn && checkInActualTime) {
-          const expectedDuration = timeToMinutes(scheduledCheckOut) - timeToMinutes(scheduledCheckIn);
-          const actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
-          if (actualDuration < expectedDuration) eligibleForOvertime = false;
+    const entries: Array<ReturnType<HrService['buildAttendanceException']>> = [];
+
+    if (isHolidayOrWeekend) {
+      if (!checkInActualTime && !checkOutActualTime) {
+        await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date`.execute(db);
+        return;
+      }
+      let actualDuration = 0;
+      if (checkInActualTime && checkOutActualTime) {
+        actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
+        if (actualDuration < 0) actualDuration = 0;
+      }
+      if (actualDuration > 0) {
+        entries.push(this.buildAttendanceException('extra_hours', employeeId, attendanceId || null, workDate, actualDuration, null, null));
+      } else {
+        entries.push(this.buildAttendanceException(checkInActualTime ? 'missing_check_out' : 'missing_check_in', employeeId, attendanceId || null, workDate, 1, scheduledCheckIn || scheduledCheckOut, checkInActualTime || checkOutActualTime));
+      }
+    } else if (attendancePolicy === 'flexible') {
+      let actualDuration = 0;
+      if (checkInActualTime && checkOutActualTime) {
+        actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
+        if (actualDuration < 0) actualDuration = 0; // Cross midnight edge case, ignored for now
+      } else if (checkInActualTime || checkOutActualTime) {
+        // Missing a punch
+        entries.push(this.buildAttendanceException(checkInActualTime ? 'missing_check_out' : 'missing_check_in', employeeId, attendanceId || null, workDate, 1, scheduledCheckIn || scheduledCheckOut, checkInActualTime || checkOutActualTime));
+      }
+
+      if (checkInActualTime && checkOutActualTime) {
+        const expectedDuration = expectedDailyHours * 60;
+        if (actualDuration < expectedDuration) {
+          entries.push(this.buildAttendanceException('short_hours', employeeId, attendanceId || null, workDate, expectedDuration - actualDuration, null, null));
+        } else if (actualDuration > expectedDuration) {
+          entries.push(this.buildAttendanceException('extra_hours', employeeId, attendanceId || null, workDate, actualDuration - expectedDuration, null, null));
         }
-        if (eligibleForOvertime) {
-          entries.push(this.buildAttendanceException('late_check_out', employeeId, attendanceId || null, workDate, delta, scheduledCheckOut, checkOutActualTime));
+        
+        // Flag unscheduled time if deviation is massive
+        if (scheduledCheckIn && checkInActualTime) {
+           const delta = Math.abs(timeToMinutes(checkInActualTime) - timeToMinutes(scheduledCheckIn));
+           if (delta > 120) { // 2 hours deviation
+             entries.push(this.buildAttendanceException('unscheduled_time', employeeId, attendanceId || null, workDate, delta, scheduledCheckIn, checkInActualTime));
+           }
         }
       }
-    } else if (checkInActualTime && !checkOutActualTime) {
-      entries.push(this.buildAttendanceException('missing_check_out', employeeId, attendanceId || null, workDate, 1, scheduledCheckOut, checkInActualTime));
+    } else {
+      if (scheduledCheckIn && checkInActualTime) {
+        const delta = timeToMinutes(checkInActualTime) - timeToMinutes(scheduledCheckIn);
+        if (delta < 0) {
+          entries.push(this.buildAttendanceException('early_check_in', employeeId, attendanceId || null, workDate, Math.abs(delta), scheduledCheckIn, checkInActualTime));
+        } else if (delta > graceMinutes) {
+          entries.push(this.buildAttendanceException('late_check_in', employeeId, attendanceId || null, workDate, delta - graceMinutes, scheduledCheckIn, checkInActualTime));
+        }
+      } else if (!checkInActualTime && checkOutActualTime) {
+        entries.push(this.buildAttendanceException('missing_check_in', employeeId, attendanceId || null, workDate, 1, scheduledCheckIn, checkOutActualTime));
+      }
+
+      if (scheduledCheckOut && checkOutActualTime) {
+        const delta = timeToMinutes(checkOutActualTime) - timeToMinutes(scheduledCheckOut);
+        if (delta < -graceMinutes) {
+          entries.push(this.buildAttendanceException('early_check_out', employeeId, attendanceId || null, workDate, Math.abs(delta) - graceMinutes, scheduledCheckOut, checkOutActualTime));
+        } else if (delta > 0) {
+          let eligibleForOvertime = true;
+          if (scheduledCheckIn && checkInActualTime) {
+            const expectedDuration = timeToMinutes(scheduledCheckOut) - timeToMinutes(scheduledCheckIn);
+            const actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
+            if (actualDuration < expectedDuration) eligibleForOvertime = false;
+          }
+          if (eligibleForOvertime) {
+            entries.push(this.buildAttendanceException('late_check_out', employeeId, attendanceId || null, workDate, delta, scheduledCheckOut, checkOutActualTime));
+          }
+        }
+      } else if (checkInActualTime && !checkOutActualTime) {
+        entries.push(this.buildAttendanceException('missing_check_out', employeeId, attendanceId || null, workDate, 1, scheduledCheckOut, checkInActualTime));
+      }
     }
 
     await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date`.execute(db);
@@ -2464,7 +2940,7 @@ export class HrService {
       `.execute(this.db);
     } else {
       await sql`
-        INSERT INTO hr_leave_types (name, code, description, is_paid, is_active, created_by, updated_by, created_at, updated_at)
+        INSERT INTO hr_leave_types (name, deducts_from_balance, code, description, is_paid, is_active, created_by, updated_by, created_at, updated_at)
         VALUES (${name}, ${code || null}, ${description || null}, ${isPaid}, ${isActive}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
       `.execute(this.db);
     }

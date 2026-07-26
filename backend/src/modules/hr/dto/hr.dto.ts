@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, MaxLength, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, IsBoolean, MaxLength, Min, ValidateNested } from 'class-validator';
 
 export class UpsertHrMasterDataDto {
   @IsString()
@@ -138,6 +138,50 @@ export class UpsertEmployeeDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  attendancePolicy?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  commissionType?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  commissionValue?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  commissionTarget?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  delayPolicy?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hasSocialInsurance?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  insuranceSalary?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  hasIncomeTax?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  annualLeaveBalance?: number;
 }
 
 export class UpsertEmployeeContactDto {
@@ -435,6 +479,10 @@ export class BulkSaveAttendanceDto {
 }
 
 export class UpsertLeaveTypeDto {
+  @IsOptional()
+  @IsBoolean()
+  deductsFromBalance?: boolean;
+
   @IsString()
   @MaxLength(120)
   name!: string;
@@ -617,4 +665,22 @@ export class BulkImportAttendanceDto {
   @ValidateNested({ each: true })
   @Type(() => BulkImportAttendanceRecordDto)
   records!: BulkImportAttendanceRecordDto[];
+}
+
+export class UpsertHolidayDto {
+  @IsString()
+  @MaxLength(120)
+  name!: string;
+
+  @IsDateString()
+  date!: string;
+}
+
+export class EndOfServiceDto {
+  @IsDateString()
+  endOfServiceDate!: string;
+
+  @IsOptional()
+  @IsString()
+  endOfServiceReason?: string;
 }
