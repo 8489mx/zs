@@ -916,7 +916,7 @@ export class HrService {
   async listLoans(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const employeeId = toId(query.employeeId);
-    const periodMonth = normalizePayrollMonth(query.month);
+    const periodMonth = normalizePayrollMonth(query.month || query.periodMonth);
     const result = await sql<Record<string, unknown>>`
       SELECT
         l.*,
