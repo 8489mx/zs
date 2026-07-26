@@ -2201,3 +2201,9 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
 }
+
+@media (min-width: 1024px) {
+  .audit-page .stats-grid.compact-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}

@@ -14,10 +14,8 @@ import {
   normalizeDigitsOnly,
   normalizeNumberText,
   normalizePhone,
-  shiftPresets,
   toId,
   type EmployeeDraft,
-  type ShiftPreset,
 } from '@/features/hr/pages/employee-create/employee-create.helpers';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
@@ -49,14 +47,10 @@ export function EmployeeCreatePage() {
     if (nationalId && nationalId.length !== 14) warnings.push('الرقم القومي يجب أن يكون 14 رقمًا إذا تم إدخاله.');
     if (!draft.departmentId) warnings.push('القسم غير محدد ويمكن استكماله لاحقًا.');
     if (!draft.jobTitleId) warnings.push('المسمى الوظيفي غير محدد ويمكن استكماله لاحقًا.');
-    if (!draft.scheduledCheckInTime || !draft.scheduledCheckOutTime) warnings.push('مواعيد الدوام غير مكتملة ويمكن استخدام وردية جاهزة.');
     if (salaryText && Number.isNaN(Number(salaryText))) warnings.push('الراتب الأساسي يجب أن يكون رقمًا صحيحًا.');
     return warnings;
   }, [draft]);
 
-  function applyShiftPreset(preset: ShiftPreset) {
-    setDraft((current) => ({ ...current, expectedDailyHours: current.expectedDailyHours || preset.hours, graceMinutes: current.graceMinutes || preset.grace, scheduledCheckInTime: preset.checkIn, scheduledCheckOutTime: preset.checkOut }));
-  }
 
   async function createQuickMaster(kind: MasterKind, name: string) {
     const cleanName = String(name || '').trim();
@@ -131,7 +125,7 @@ export function EmployeeCreatePage() {
       <form onSubmit={(event) => { void handleSubmit(event); }}>
         <FormSection title="البيانات الأساسية" description="أدخل بيانات التعريف الأساسية للموظف.">
           <div className="form-grid">
-            <div className="field"><span>كود الموظف</span><input value={draft.employeeNo} onChange={(e) => setDraft((current) => ({ ...current, employeeNo: e.target.value }))} /></div>
+            <div className="field"><span>كود الموظف</span><input value={draft.employeeNo} onChange={(e) => setDraft((current) => ({ ...current, employeeNo: e.target.value }))} placeholder="يُنشأ تلقائياً إذا تُرك فارغاً" /></div>
             <div className="field"><span>الاسم الأول *</span><input value={draft.firstName} onChange={(e) => setDraft((current) => ({ ...current, firstName: e.target.value }))} required /></div>
             <div className="field"><span>اسم العائلة</span><input value={draft.lastName} onChange={(e) => setDraft((current) => ({ ...current, lastName: e.target.value }))} /></div>
             <div className="field"><span>الموبايل *</span><input value={draft.mobile} onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))} inputMode="tel" required /></div>
@@ -151,72 +145,13 @@ export function EmployeeCreatePage() {
 
         <FormSection title="العقد والراتب" description="اختياري. لو أدخلت نوع التعاقد أو الراتب الأساسي سيتم إنشاء عقد مبدئي للموظف، ويمكن استكمال التفاصيل داخل ملف الموظف لاحقًا."><div className="form-grid"><div className="field"><span>نوع التعاقد</span><input value={draft.contractType} onChange={(e) => setDraft((current) => ({ ...current, contractType: e.target.value }))} placeholder="اختياري" /></div><div className="field"><span>الراتب الأساسي</span><input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" /></div></div></FormSection>
 
-        <FormSection title="بيانات الدوام والأجر" description="اختر وردية جاهزة لتعبئة مواعيد الحضور والانصراف بسرعة، أو عدّل القيم يدويًا حسب الموظف.">
-          <div className="card-soft" style={{ marginBottom: 12, padding: 12 }}><strong style={{ display: 'block', marginBottom: 8 }}>ورديات جاهزة</strong><div className="form-grid">{shiftPresets.map((preset) => <div key={preset.label} className="field" style={{ alignItems: 'flex-start' }}><strong>{preset.label}</strong><span className="muted">{preset.description}</span><Button type="button" variant="secondary" onClick={() => applyShiftPreset(preset)}>استخدام الوردية</Button></div>)}</div></div>
+        <FormSection title="الدوام والأجر" description="اختر نظام أجر الموظف وقيمته.">
           <div className="form-grid">
             <label className="field"><span>نوع الأجر</span><select value={draft.compensationType} onChange={(e) => setDraft((current) => ({ ...current, compensationType: e.target.value === 'hourly' ? 'hourly' : 'monthly' }))}><option value="monthly">راتب شهري</option><option value="hourly">أجر بالساعة</option></select></label>
             {draft.compensationType === 'monthly' ? <label className="field"><span>الراتب الشهري الأساسي</span><input inputMode="decimal" min="0" value={draft.baseSalary} onChange={(e) => setDraft((current) => ({ ...current, baseSalary: e.target.value }))} placeholder="اختياري" /></label> : <><label className="field"><span>أجر الساعة</span><input inputMode="decimal" min="0" value={draft.hourlyRate} onChange={(e) => setDraft((current) => ({ ...current, hourlyRate: e.target.value }))} /></label><label className="field"><span>عدد ساعات العمل اليومية المتوقعة</span><input inputMode="decimal" min="0" value={draft.expectedDailyHours} onChange={(e) => setDraft((current) => ({ ...current, expectedDailyHours: e.target.value }))} /></label></>}
-            <label className="field"><span>موعد الحضور</span><input type="time" value={draft.scheduledCheckInTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckInTime: e.target.value }))} /></label>
-            <label className="field"><span>موعد الانصراف</span><input type="time" value={draft.scheduledCheckOutTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckOutTime: e.target.value }))} /></label>
-            <label className="field"><span>فترة السماح بالدقائق</span><input inputMode="numeric" min="0" value={draft.graceMinutes} onChange={(e) => setDraft((current) => ({ ...current, graceMinutes: e.target.value }))} /></label>
-            <label className="field"><span>سياسة الحضور</span><select value={draft.attendancePolicy} onChange={(e) => setDraft((current) => ({ ...current, attendancePolicy: (e.target.value as 'strict' | 'flexible') || 'strict' }))}><option value="strict">مواعيد صارمة (خصم تلقائي)</option><option value="flexible">مواعيد مرنة (حسب الساعات)</option></select></label>
-            <label className="field"><span>سياسة العمل الإضافي</span><select value={draft.overtimePolicy} onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: (e.target.value as 'review_only' | 'disabled' | 'auto_approved') || 'review_only' }))}><option value="review_only">إضافة للمراجعة فقط (معلق)</option><option value="disabled">غير مفعل</option><option value="auto_approved">مفعل وتلقائي</option></select></label>
           </div>
         </FormSection>
 
-        <FormSection title="العمولات وسياسة التأخير" description="إعدادات العمولة والتأخير الخاصة بالموظف.">
-          <div className="form-grid">
-            <label className="field">
-              <span>سياسة التأخير</span>
-              <select value={draft.delayPolicy} onChange={(e) => setDraft((current) => ({ ...current, delayPolicy: e.target.value }))}>
-                <option value="inherit">نفس السياسة العامة (افتراضي)</option>
-                <option value="standard">خصم الدقائق والساعات فقط</option>
-                <option value="disabled">بدون خصم (معطل)</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>نظام العمولة</span>
-              <select value={draft.commissionType} onChange={(e) => setDraft((current) => ({ ...current, commissionType: e.target.value }))}>
-                <option value="inherit">نفس السياسة العامة (افتراضي)</option>
-                <option value="none">بدون عمولة</option>
-                <option value="percentage">نسبة من المبيعات</option>
-                <option value="target_percentage">نسبة بعد تحقيق التارجت</option>
-                <option value="fixed">مكافأة ثابتة</option>
-              </select>
-            </label>
-            {draft.commissionType !== 'inherit' && draft.commissionType !== 'none' && (
-              <label className="field">
-                <span>قيمة العمولة ({draft.commissionType === 'fixed' ? 'مبلغ' : '%'})</span>
-                <input inputMode="decimal" min="0" value={draft.commissionValue} onChange={(e) => setDraft((current) => ({ ...current, commissionValue: e.target.value }))} />
-              </label>
-            )}
-            {draft.commissionType === 'target_percentage' && (
-              <label className="field">
-                <span>تارجت المبيعات المطلوب</span>
-                <input inputMode="decimal" min="0" value={draft.commissionTarget} onChange={(e) => setDraft((current) => ({ ...current, commissionTarget: e.target.value }))} />
-              </label>
-            )}
-          </div>
-        </FormSection>
-
-        <FormSection title="الضرائب والتأمينات" description="إعدادات الضرائب والتأمينات الخاصة بالموظف.">
-          <div className="form-grid">
-            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <input type="checkbox" checked={draft.hasSocialInsurance} onChange={(e) => setDraft((current) => ({ ...current, hasSocialInsurance: e.target.checked }))} style={{ width: 18, height: 18 }} />
-              <span>تطبيق استقطاع التأمينات الاجتماعية</span>
-            </label>
-            {draft.hasSocialInsurance && (
-              <label className="field">
-                <span>الأجر التأميني (اتركه فارغاً لاستخدام الراتب الأساسي)</span>
-                <input inputMode="decimal" min="0" value={draft.insuranceSalary} onChange={(e) => setDraft((current) => ({ ...current, insuranceSalary: e.target.value }))} />
-              </label>
-            )}
-            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <input type="checkbox" checked={draft.hasIncomeTax} onChange={(e) => setDraft((current) => ({ ...current, hasIncomeTax: e.target.checked }))} style={{ width: 18, height: 18 }} />
-              <span>تطبيق ضريبة كسب العمل</span>
-            </label>
-          </div>
-        </FormSection>
 
         <FormSection title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">{reviewWarnings.length ? <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>{reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}</FormSection>
         <FormSection title="ملاحظات" description="أي ملاحظات إضافية على ملف الموظف."><div className="field field-wide"><span>ملاحظات</span><textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} /></div>{submitError ? <div className="error-box" style={{ marginTop: 12 }}>{submitError}</div> : null}<div className="actions compact-actions" style={{ marginTop: 16 }}><Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')} disabled={isBusy}>إلغاء</Button><Button type="submit" disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ الموظف'}</Button></div></FormSection>
