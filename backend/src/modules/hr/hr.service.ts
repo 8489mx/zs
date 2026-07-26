@@ -1332,7 +1332,7 @@ export class HrService {
         AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
         AND l.status IN ('paid', 'partially_repaid', 'disbursed')
         AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
-        AND COALESCE(i.due_date, l.first_due_date, l.salary_due_date) BETWEEN ${range.from}::date AND ${range.to}::date
+        AND COALESCE(i.due_date, l.first_due_date, l.salary_due_date) <= ${range.to}::date
       ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC
     `.execute(db);
     let total = 0;
