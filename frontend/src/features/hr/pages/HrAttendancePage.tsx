@@ -93,13 +93,14 @@ export function HrAttendancePage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
   const [date, setDate] = useState(todayDate());
+  const [exceptionMonth, setExceptionMonth] = useState(todayDate().slice(0, 7));
   const [search, setSearch] = useState('');
   const [exceptionFilter, setExceptionFilter] = useState<ExceptionFilter>('needs_action');
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'unmarked' | 'recorded'>('all');
   const [draftByEmployeeId, setDraftByEmployeeId] = useState<Record<string, DraftRow>>({});
 
   const attendance = useHrAttendance({ date, search, page: 1, pageSize: 200 });
-  const exceptions = useHrAttendanceExceptions({ date, search, page: 1, pageSize: 200 });
+  const exceptions = useHrAttendanceExceptions({ month: exceptionMonth, search, page: 1, pageSize: 200 });
   const rows = useMemo(() => (attendance.data?.rows || []) as HrAttendanceRecord[], [attendance.data?.rows]);
   const allExceptionRows = useMemo(() => (exceptions.data?.rows || []) as HrAttendanceException[], [exceptions.data?.rows]);
   const exceptionRows = useMemo(() => filterExceptions(allExceptionRows, exceptionFilter), [allExceptionRows, exceptionFilter]);
@@ -247,20 +248,26 @@ export function HrAttendancePage() {
         </div>
       </FormSection>
 
-      <FormSection title="اليوم والبحث" description="اختيار التاريخ والبحث يؤثران على السجل والاستثناءات معًا.">
+      <FormSection title="سجل الحضور اليومي" description="اختر تاريخ اليوم لعرض السجل وتسجيل الحضور والانصراف.">
         <div className="form-grid">
           <label className="field">
             <span>التاريخ</span>
             <input type="date" value={date} onChange={(e) => setDate(normalizeArabicDigits(e.target.value || todayDate()))} />
           </label>
           <div className="field field-wide">
-            <span>بحث الموظف</span>
+            <span>بحث الموظف (لليوم والاستثناءات)</span>
             <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث باسم الموظف أو الكود" />
           </div>
         </div>
       </FormSection>
 
-      <FormSection title="استثناءات تحتاج مراجعة" description="هذه أهم منطقة قبل المرتبات: الحضور المبكر والانصراف المتأخر يمكن اعتمادهما كوقت إضافي، أما التأخير والانصراف المبكر فيظهران للمراجعة.">
+      <FormSection title="استثناءات تحتاج مراجعة" description="يتم عرض الاستثناءات بالشهر. الاستثناءات المعتمدة هنا ستؤثر على المرتب تلقائيًا.">
+        <div className="form-grid" style={{ marginBottom: 12 }}>
+          <label className="field">
+            <span>شهر الاستثناءات</span>
+            <input type="month" value={exceptionMonth} onChange={(e) => setExceptionMonth(normalizeArabicDigits(e.target.value || todayDate().slice(0, 7)))} />
+          </label>
+        </div>
         <div className="compact-actions" style={{ marginBottom: 12 }}>
           <Button type="button" variant={exceptionFilter === 'needs_action' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('needs_action')}>يحتاج إجراء</Button>
           <Button type="button" variant={exceptionFilter === 'overtime' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('overtime')}>وقت إضافي محتمل</Button>

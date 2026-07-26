@@ -16,13 +16,12 @@ import {
   itemNeedsReview,
   money,
   normalize,
-  reviewAttendanceText,
   reviewFlagText,
-  reviewLeavesText,
   statusLabel,
   text,
   type PayrollReviewStatus,
 } from '@/features/hr/pages/payroll/hr-payroll.helpers';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 interface PayrollDraft {
   periodMonth: string;
@@ -54,6 +53,7 @@ export function HrPayrollPage() {
   const [draft, setDraft] = useState<PayrollDraft>(initialDraft);
   const [formError, setFormError] = useState('');
   const [selectedRunId, setSelectedRunId] = useState('');
+  const [selectedReviewItem, setSelectedReviewItem] = useState<HrPayrollRunItem | null>(null);
 
   const workspace = useHrWorkspace({ page, pageSize, month: monthFilter });
   const payrollRunDetails = useHrPayrollRun(selectedRunId || undefined);
@@ -160,21 +160,22 @@ export function HrPayrollPage() {
         <head>
           <title>مفردات مرتب (ملخص) - ${text(row.employeeName)}</title>
           <style>
-            body { font-family: Tahoma, Arial, sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-            .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
-            .header h1 { margin: 0; color: #222; font-size: 24px; }
+            @page { size: A4 portrait; margin: 15mm; }
+            body { font-family: Tahoma, Arial, sans-serif; padding: 0; margin: 0; color: #333; line-height: 1.5; }
+            .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { margin: 0; color: #222; font-size: 22px; }
             .header p { margin: 5px 0 0; color: #666; }
-            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-            .details div { background: #f9f9f9; padding: 15px; border-radius: 8px; }
-            .details strong { display: inline-block; width: 120px; }
-            .section-title { font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 15px; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            .table th, .table td { padding: 12px; text-align: right; border-bottom: 1px solid #eee; }
+            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+            .details div { background: #f9f9f9; padding: 12px; border-radius: 6px; }
+            .details strong { display: inline-block; width: 110px; }
+            .section-title { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 12px; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .table th, .table td { padding: 8px; text-align: right; border-bottom: 1px solid #eee; font-size: 14px; }
             .table th { background: #f5f5f5; font-weight: bold; }
-            .totals { background: #f0f7ff; padding: 20px; border-radius: 8px; font-size: 18px; }
-            .totals .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
-            .totals .total { font-weight: bold; font-size: 22px; color: #0d47a1; margin-top: 15px; padding-top: 15px; border-top: 2px solid #ccc; }
-            .footer { margin-top: 50px; display: flex; justify-content: space-between; padding-top: 20px; border-top: 1px dashed #ccc; }
+            .totals { background: #f0f7ff; padding: 15px; border-radius: 6px; font-size: 15px; }
+            .totals .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+            .totals .total { font-weight: bold; font-size: 18px; color: #0d47a1; margin-top: 10px; padding-top: 10px; border-top: 2px solid #ccc; }
+            .footer { margin-top: 30px; display: flex; justify-content: space-between; padding-top: 15px; border-top: 1px dashed #ccc; }
           </style>
         </head>
         <body>
@@ -227,22 +228,23 @@ export function HrPayrollPage() {
         <head>
           <title>مفردات مرتب (تفصيلي) - ${text(row.employeeName)}</title>
           <style>
-            body { font-family: Tahoma, Arial, sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-            .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
-            .header h1 { margin: 0; color: #222; font-size: 24px; }
+            @page { size: A4 portrait; margin: 15mm; }
+            body { font-family: Tahoma, Arial, sans-serif; padding: 0; margin: 0; color: #333; line-height: 1.5; }
+            .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { margin: 0; color: #222; font-size: 22px; }
             .header p { margin: 5px 0 0; color: #666; }
-            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-            .details div { background: #f9f9f9; padding: 15px; border-radius: 8px; }
-            .details strong { display: inline-block; width: 120px; }
-            .section-title { font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 15px; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            .table th, .table td { padding: 10px; text-align: right; border-bottom: 1px solid #eee; font-size: 14px; }
+            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+            .details div { background: #f9f9f9; padding: 12px; border-radius: 6px; }
+            .details strong { display: inline-block; width: 110px; }
+            .section-title { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 12px; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .table th, .table td { padding: 8px; text-align: right; border-bottom: 1px solid #eee; font-size: 14px; }
             .table th { background: #f5f5f5; font-weight: bold; }
-            .totals { background: #f0f7ff; padding: 20px; border-radius: 8px; font-size: 16px; }
+            .totals { background: #f0f7ff; padding: 15px; border-radius: 6px; font-size: 15px; }
             .totals .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-            .totals .total { font-weight: bold; font-size: 20px; color: #0d47a1; margin-top: 15px; padding-top: 15px; border-top: 2px solid #ccc; }
-            .footer { margin-top: 50px; display: flex; justify-content: space-between; padding-top: 20px; border-top: 1px dashed #ccc; }
-            .notes { background: #fffde7; padding: 15px; border-left: 4px solid #fbc02d; margin-bottom: 20px; font-size: 14px; }
+            .totals .total { font-weight: bold; font-size: 18px; color: #0d47a1; margin-top: 10px; padding-top: 10px; border-top: 2px solid #ccc; }
+            .footer { margin-top: 30px; display: flex; justify-content: space-between; padding-top: 15px; border-top: 1px dashed #ccc; }
+            .notes { background: #fffde7; padding: 12px; border-left: 4px solid #fbc02d; margin-bottom: 15px; font-size: 14px; }
           </style>
         </head>
         <body>
@@ -406,23 +408,76 @@ export function HrPayrollPage() {
                       columns={[
                         { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
                         { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) },
-                        { key: 'compensationType', header: 'نوع الأجر', cell: (row) => normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري' },
-                        { key: 'department', header: 'القسم', cell: (row) => text(employeesMap.get(String(row.employeeId))?.departmentName) },
-                        { key: 'hourlyRate', header: 'أجر الساعة', cell: (row) => normalize(row.compensationType) === 'hourly' ? money(row.hourlyRate || 0) : 'غير متاح' },
-                        { key: 'expectedDailyHours', header: 'ساعات اليوم المتوقعة', cell: (row) => normalize(row.compensationType) === 'hourly' ? String(row.expectedDailyHours || 0) : 'غير متاح' },
-                        { key: 'baseSalary', header: 'الراتب الأساسي', cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                        { key: 'allowanceAmount', header: 'البدلات', cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                        { key: 'deductionAmount', header: 'الخصومات', cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                        { key: 'loanDeductionAmount', header: 'السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                        { key: 'unpaidLeave', header: 'إجازات غير مدفوعة / تنبيهات', cell: (row) => Number(row.unpaidLeaveDays || 0) > 0 ? `غير مدفوعة ${Number(row.unpaidLeaveDays || 0)} يوم` : reviewFlagText(row) },
-                        { key: 'netPay', header: 'صافي الراتب', cell: (row) => canViewSalaryAmounts ? money(row.netPay) : 'لا تملك صلاحية عرض هذه البيانات.' },
+                        { key: 'baseSalary', header: 'الراتب الأساسي', cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
+                        { key: 'allowanceAmount', header: 'البدلات (إضافي وغيره)', cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
+                        { key: 'deductionAmount', header: 'الخصومات (تأخير وغياب)', cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
+                        { key: 'loanDeductionAmount', header: 'السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },
+                        { key: 'netPay', header: 'صافي الراتب', cell: (row) => canViewSalaryAmounts ? money(row.netPay) : '—' },
                         { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                        { key: 'reviewAttendance', header: 'مراجعة الحضور', cell: (row) => reviewAttendanceText(row) },
-                        { key: 'reviewLeaves', header: 'مراجعة الإجازات', cell: (row) => reviewLeavesText(row) },
-                        { key: 'suggestedDeduction', header: 'خصم مقترح', cell: (row) => canViewSalaryAmounts ? money(Number(row.suggestedAttendanceDeductionAmount || 0) + Number(row.suggestedLeaveDeductionAmount || 0)) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                        { key: 'details', header: 'عرض التفاصيل', cell: (row) => <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}><details><summary>مراجعة</summary><div className="muted" style={{ marginTop: 8 }}><div>الراتب الأساسي: {canViewSalaryAmounts ? money(row.baseSalary) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>نوع الأجر: {normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</div><div>أجر الساعة: {normalize(row.compensationType) === 'hourly' ? (canViewSalaryAmounts ? money(row.hourlyRate || 0) : 'لا تملك صلاحية عرض هذه البيانات.') : 'غير متاح'}</div><div>ساعات اليوم المتوقعة: {normalize(row.compensationType) === 'hourly' ? String(row.expectedDailyHours || 0) : 'غير متاح'}</div><div>الخصومات: {canViewSalaryAmounts ? money(row.deductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>السلف/الأقساط: {canViewSalaryAmounts ? money(row.loanDeductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.'}</div><div>الإجازات غير المدفوعة: {Number(row.unpaidLeaveDays || 0)} يوم</div><div>ملاحظات المراجعة: {text(row.payrollReviewNotes)}</div><div>ملاحظات إضافية: {text(row.notes)}</div></div></details>{runIsFinal && <div style={{ display: 'flex', gap: '4px' }}><Button variant="secondary" onClick={() => printPayslipSummary(row)}>طباعة (ملخص)</Button><Button variant="secondary" onClick={() => printPayslipDetailed(row)}>طباعة (تفصيلي)</Button></div>}</div> },
+                        { key: 'details', header: 'التفاصيل', cell: (row) => <Button variant="secondary" onClick={() => setSelectedReviewItem(row)}>تفاصيل</Button> },
                       ]}
                     />
+
+                    {selectedReviewItem && (
+                      <DialogShell open={true} onClose={() => setSelectedReviewItem(null)} width="1000px">
+                        <div style={{ padding: '24px' }}>
+                          <h2 style={{ marginTop: 0 }}>مراجعة وتفاصيل المرتب</h2>
+                          <p className="muted">الموظف: {text(selectedReviewItem.employeeName)} ({text(selectedReviewItem.employeeNo)})</p>
+                          
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px 24px', fontSize: '14px', marginTop: '16px' }}>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                              <strong className="muted">الراتب الأساسي:</strong> <span>{canViewSalaryAmounts ? money(selectedReviewItem.baseSalary) : '—'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                              <strong className="muted">البدلات والإضافي:</strong> <span>{canViewSalaryAmounts ? money(selectedReviewItem.allowanceAmount) : '—'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                              <strong className="muted">الخصومات (تأخير وغياب):</strong> <span>{canViewSalaryAmounts ? money(selectedReviewItem.deductionAmount) : '—'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                              <strong className="muted">السلف والأقساط:</strong> <span>{canViewSalaryAmounts ? money(selectedReviewItem.loanDeductionAmount) : '—'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', gridColumn: '1 / -1', background: 'var(--surface-100)', paddingInline: '12px', borderRadius: '4px' }}>
+                              <strong style={{ fontSize: '15px' }}>صافي الراتب:</strong> <span style={{ fontWeight: 'bold', color: 'var(--green-700)', fontSize: '15px' }}>{canViewSalaryAmounts ? money(selectedReviewItem.netPay) : '—'}</span>
+                            </div>
+                            
+                            <hr style={{ gridColumn: '1 / -1', margin: '8px 0', border: 'none' }} />
+                            
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                              <strong className="muted">نوع الأجر:</strong> <span>{normalize(selectedReviewItem.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                              <strong className="muted">أجر الساعة:</strong> <span>{normalize(selectedReviewItem.compensationType) === 'hourly' ? (canViewSalaryAmounts ? money(selectedReviewItem.hourlyRate || 0) : '—') : 'غير متاح'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                              <strong className="muted">ساعات العمل اليومية:</strong> <span>{normalize(selectedReviewItem.compensationType) === 'hourly' ? String(selectedReviewItem.expectedDailyHours || 0) : 'غير متاح'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                              <strong className="muted">تنبيهات عامة:</strong> <span>{reviewFlagText(selectedReviewItem) || '—'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
+                              <strong className="muted">ملاحظات مراجعة الحضور:</strong> 
+                              <span style={{ color: 'var(--red-600)' }}>{text(selectedReviewItem.payrollReviewNotes) || 'لا توجد ملاحظات'}</span>
+                            </div>
+                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
+                              <strong className="muted">ملاحظات إضافية:</strong> 
+                              <span>{text(selectedReviewItem.notes) || '—'}</span>
+                            </div>
+                          </div>
+
+                          {runIsFinal && (
+                            <div style={{ marginTop: '24px', display: 'flex', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                              <Button variant="secondary" onClick={() => printPayslipSummary(selectedReviewItem)}>طباعة مفردات مرتب (ملخص)</Button>
+                              <Button variant="secondary" onClick={() => printPayslipDetailed(selectedReviewItem)}>طباعة مفردات مرتب (تفصيلي)</Button>
+                            </div>
+                          )}
+
+                          <div style={{ marginTop: '24px', textAlign: 'left' }}>
+                            <Button variant="primary" onClick={() => setSelectedReviewItem(null)}>إغلاق</Button>
+                          </div>
+                        </div>
+                      </DialogShell>
+                    )}
                   </>
                 ) : <p className="muted">لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p>}
               </QueryFeedback>

@@ -1248,6 +1248,17 @@ export class HrService {
       ORDER BY e.id ASC
     `.execute(db);
 
+    const empIds = employees.rows.map(e => Number(e.employee_id)).filter(id => id > 0);
+    const baseSalMap = new Map<number, number>();
+    for (const e of employees.rows) {
+      let bs = Number(e.base_salary || 0);
+      if (e.compensation_type === 'hourly') {
+        bs = Number(e.hourly_rate || 0) * Number(e.expected_daily_hours || 0) * 30;
+      }
+      baseSalMap.set(Number(e.employee_id), bs);
+    }
+    const autoReviews = await this.calculatePayrollOperationalReview(db, periodMonth, empIds, baseSalMap);
+
     for (const employee of employees.rows) {
       const employeeId = Number(employee.employee_id || 0);
       if (!(employeeId > 0)) continue;
@@ -1314,6 +1325,12 @@ export class HrService {
         `.execute(db);
       }
 
+      const review = autoReviews.get(employeeId);
+      if (review) {
+        empAdjDeduction += review.suggestedAttendanceDeductionAmount + review.suggestedLeaveDeductionAmount;
+        empAdjAllowance += review.suggestedOvertimeAllowanceAmount;
+      }
+
       const allowanceAmount = Number((compensationAllowance + adjustments.allowance + empAdjAllowance).toFixed(2));
       const assetRecoveryDeductionAmount = Number(empAdjAssetRecoveryDeduction.toFixed(2));
       const deductionAmount = Number((compensationDeduction + adjustments.deduction + empAdjDeduction + assetRecoveryDeductionAmount).toFixed(2));
@@ -1363,19 +1380,38 @@ export class HrService {
     periodMonth: string,
     employeeIds: number[],
     baseSalaryByEmployeeId: Map<number, number>,
-  ): Promise<Map<number, PayrollOperationalReview>> {
-    const reviewByEmployeeId = new Map<number, PayrollOperationalReview>();
+  ): Promise<Map<number, any>> {
+    const reviewByEmployeeId = new Map<number, any>();
     if (!employeeIds.length) return reviewByEmployeeId;
     const range = monthRange(periodMonth);
+
+    const empResult = await sql<Record<string, unknown>>`
+      SELECT e.id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, c.base_salary
+      FROM hr_employees e
+      LEFT JOIN hr_employment_contracts c ON c.employee_id = e.id AND c.status = 'active'
+      WHERE e.id IN (${sql.join(employeeIds)})
+    `.execute(db);
+    const empDetails = new Map<number, any>();
+    for (const row of empResult.rows) empDetails.set(Number(row.id), row);
 
     const attendanceResult = await sql<Record<string, unknown>>`
       SELECT
         employee_id,
-        COALESCE(SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_days,
-        COALESCE(SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END), 0) AS late_days,
-        COALESCE(SUM(CASE WHEN status = 'half_day' THEN 1 ELSE 0 END), 0) AS half_days,
-        COALESCE(SUM(CASE WHEN status = 'early_leave' THEN 1 ELSE 0 END), 0) AS early_leave_days
+        COALESCE(SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_days
       FROM hr_attendance_records
+      WHERE employee_id IN (${sql.join(employeeIds)})
+        AND work_date >= ${range.from}::date
+        AND work_date <= ${range.to}::date
+      GROUP BY employee_id
+    `.execute(db);
+
+    const exceptionsResult = await sql<Record<string, unknown>>`
+      SELECT
+        employee_id,
+        COALESCE(SUM(CASE WHEN exception_type = 'late_check_in' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS late_minutes,
+        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS early_leave_minutes,
+        COALESCE(SUM(CASE WHEN exception_type IN ('early_check_in', 'late_check_out') AND status = 'approved' THEN COALESCE(approved_duration_minutes, duration_minutes) ELSE 0 END), 0) AS overtime_minutes
+      FROM hr_attendance_exceptions
       WHERE employee_id IN (${sql.join(employeeIds)})
         AND work_date >= ${range.from}::date
         AND work_date <= ${range.to}::date
@@ -1397,40 +1433,58 @@ export class HrService {
     `.execute(db);
 
     const attendanceByEmployee = new Map<number, Record<string, unknown>>();
-    for (const row of attendanceResult.rows) {
-      attendanceByEmployee.set(Number(row.employee_id || 0), row);
-    }
+    for (const row of attendanceResult.rows) attendanceByEmployee.set(Number(row.employee_id || 0), row);
+
+    const exceptionsByEmployee = new Map<number, Record<string, unknown>>();
+    for (const row of exceptionsResult.rows) exceptionsByEmployee.set(Number(row.employee_id || 0), row);
 
     const leaveByEmployee = new Map<number, Record<string, unknown>>();
-    for (const row of leaveResult.rows) {
-      leaveByEmployee.set(Number(row.employee_id || 0), row);
-    }
+    for (const row of leaveResult.rows) leaveByEmployee.set(Number(row.employee_id || 0), row);
 
     for (const employeeId of employeeIds) {
       const attendance = attendanceByEmployee.get(employeeId) || {};
+      const exceptions = exceptionsByEmployee.get(employeeId) || {};
       const leave = leaveByEmployee.get(employeeId) || {};
+      const emp = empDetails.get(employeeId) || {};
+      
       const attendanceAbsentDays = Number(attendance.absent_days || 0);
-      const attendanceLateDays = Number(attendance.late_days || 0);
-      const attendanceHalfDays = Number(attendance.half_days || 0);
-      const attendanceEarlyLeaveDays = Number(attendance.early_leave_days || 0);
+      const lateMinutes = Number(exceptions.late_minutes || 0);
+      const earlyLeaveMinutes = Number(exceptions.early_leave_minutes || 0);
+      const overtimeMinutes = Number(exceptions.overtime_minutes || 0);
+
       const approvedLeaveDays = Number(leave.approved_leave_days || 0);
       const unpaidLeaveDays = Number(leave.unpaid_leave_days || 0);
+      
+      const isHourly = (emp.compensation_type || '') === 'hourly';
+      const hourlyRate = Number(emp.hourly_rate || 0);
+      const expectedHours = Number(emp.expected_daily_hours || 8) || 8;
+      
       const baseSalary = Number(baseSalaryByEmployeeId.get(employeeId) || 0);
-      const dailyRate = baseSalary > 0 ? Number((baseSalary / 30).toFixed(2)) : 0;
-      const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + (dailyRate * 0.5 * attendanceHalfDays)).toFixed(2));
+      const dailyRate = isHourly ? (hourlyRate * expectedHours) : (baseSalary > 0 ? Number((baseSalary / 30).toFixed(2)) : 0);
+      const calculatedHourlyRate = isHourly ? hourlyRate : (dailyRate / expectedHours);
+
+      const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + (calculatedHourlyRate * (lateMinutes + earlyLeaveMinutes) / 60)).toFixed(2));
       const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
-      const payrollReviewNotes = `مراجعة مقترحة: غياب ${attendanceAbsentDays} يوم، إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
+      const suggestedOvertimeAllowanceAmount = Number((calculatedHourlyRate * (overtimeMinutes / 60) * 1.5).toFixed(2));
+
+      let notesStr = `مراجعة: غياب ${attendanceAbsentDays} يوم.`;
+      if (lateMinutes > 0) notesStr += ` تأخير ${Math.floor(lateMinutes/60)}س و${lateMinutes%60}د.`;
+      if (earlyLeaveMinutes > 0) notesStr += ` انصراف مبكر ${Math.floor(earlyLeaveMinutes/60)}س و${earlyLeaveMinutes%60}د.`;
+      if (unpaidLeaveDays > 0) notesStr += ` إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
+      if (overtimeMinutes > 0) notesStr += ` إضافي معتمد ${Math.floor(overtimeMinutes/60)}س و${overtimeMinutes%60}د.`;
+
       reviewByEmployeeId.set(employeeId, {
         attendanceAbsentDays,
-        attendanceLateDays,
-        attendanceHalfDays,
-        attendanceEarlyLeaveDays,
+        attendanceLateDays: Math.floor(lateMinutes / expectedHours / 60),
+        attendanceHalfDays: 0,
+        attendanceEarlyLeaveDays: Math.floor(earlyLeaveMinutes / expectedHours / 60),
         approvedLeaveDays,
         unpaidLeaveDays,
         suggestedAttendanceDeductionAmount,
         suggestedLeaveDeductionAmount,
-        payrollReviewNotes,
-        approvedOvertimeMinutes: 0,
+        suggestedOvertimeAllowanceAmount,
+        payrollReviewNotes: notesStr,
+        approvedOvertimeMinutes: overtimeMinutes,
         pendingOvertimeMinutes: 0,
       });
     }
@@ -2272,8 +2326,15 @@ export class HrService {
   async listAttendanceExceptions(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate);
+    const month = clean(query.month);
     const status = clean(query.status).toLowerCase();
     const search = clean(query.search).toLowerCase();
+
+    let monthCondition = sql`1=1`;
+    if (month) {
+      const range = monthRange(month);
+      monthCondition = sql`ex.work_date >= ${range.from}::date AND ex.work_date <= ${range.to}::date`;
+    }
 
     try {
       const result = await sql<Record<string, unknown>>`
@@ -2297,6 +2358,7 @@ export class HrService {
         FROM hr_attendance_exceptions ex
         JOIN hr_employees e ON e.id = ex.employee_id
         WHERE (${workDate || ''} = '' OR ex.work_date = ${workDate || null}::date)
+          AND ${monthCondition}
         ORDER BY ex.work_date DESC, e.display_name ASC, ex.id DESC
       `.execute(this.db);
 
