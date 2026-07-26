@@ -12,6 +12,7 @@ export interface NavigationItemDefinition {
   to: string;
   end?: boolean;
   platformOnly?: boolean;
+  activePaths?: string[];
 }
 
 export interface FeatureRouteModule {

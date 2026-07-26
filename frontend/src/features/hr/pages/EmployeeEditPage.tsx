@@ -46,14 +46,23 @@ export function EmployeeEditPage() {
       positionId: getEmployeeRef(employee, 'positionId'),
       hireDate: String(employee.hireDate || ''),
       status: String(employee.status || 'active') === 'inactive' ? 'inactive' : 'active',
-      notes: String(employee.notes || ''),
       compensationType: String(employee.compensationType || 'monthly') === 'hourly' ? 'hourly' : 'monthly',
       hourlyRate: employee.hourlyRate == null ? '' : String(employee.hourlyRate),
       expectedDailyHours: employee.expectedDailyHours == null ? '' : String(employee.expectedDailyHours),
       scheduledCheckInTime: String(employee.scheduledCheckInTime || ''),
       scheduledCheckOutTime: String(employee.scheduledCheckOutTime || ''),
-      graceMinutes: employee.graceMinutes == null ? '' : String(employee.graceMinutes),
+      graceMinutes: employee.graceMinutes ? String(employee.graceMinutes) : '',
       overtimePolicy: String(employee.overtimePolicy || 'review_only') as 'review_only' | 'disabled' | 'auto_approved',
+      attendancePolicy: String(employee.attendancePolicy || 'strict') as 'strict' | 'flexible',
+      commissionType: String(employee.commissionType || 'inherit'),
+      commissionValue: employee.commissionValue ? String(employee.commissionValue) : '',
+      commissionTarget: employee.commissionTarget ? String(employee.commissionTarget) : '',
+      delayPolicy: String(employee.delayPolicy || 'inherit'),
+      hasSocialInsurance: employee.hasSocialInsurance === true,
+      hasIncomeTax: employee.hasIncomeTax === true,
+      annualLeaveBalance: String(employee.annualLeaveBalance ?? 21),
+      insuranceSalary: employee.insuranceSalary ? String(employee.insuranceSalary) : '',
+      notes: String(employee.notes || ''),
     });
     setDraftInitialized(true);
   }, [draftInitialized, employee]);
@@ -128,6 +137,14 @@ export function EmployeeEditPage() {
           scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined,
           graceMinutes,
           overtimePolicy: draft.overtimePolicy,
+          attendancePolicy: draft.attendancePolicy,
+          commissionType: draft.commissionType,
+          commissionValue: draft.commissionValue ? Number(draft.commissionValue) : undefined,
+          commissionTarget: draft.commissionTarget ? Number(draft.commissionTarget) : undefined,
+          delayPolicy: draft.delayPolicy,
+          hasSocialInsurance: draft.hasSocialInsurance,
+          hasIncomeTax: draft.hasIncomeTax, annualLeaveBalance: draft.annualLeaveBalance ? Number(draft.annualLeaveBalance) : 21,
+          insuranceSalary: draft.insuranceSalary ? Number(normalizeNumberText(draft.insuranceSalary)) : undefined,
         },
       });
       goToProfile();
@@ -179,12 +196,67 @@ export function EmployeeEditPage() {
               <label className="field"><span>موعد الحضور</span><input type="time" value={draft.scheduledCheckInTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckInTime: e.target.value }))} /></label>
               <label className="field"><span>موعد الانصراف</span><input type="time" value={draft.scheduledCheckOutTime} onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckOutTime: e.target.value }))} /></label>
               <label className="field"><span>فترة السماح بالدقائق</span><input inputMode="numeric" min="0" value={draft.graceMinutes} onChange={(e) => setDraft((current) => ({ ...current, graceMinutes: e.target.value }))} /></label>
-              <label className="field"><span>سياسة الوقت الإضافي</span><select value={draft.overtimePolicy} onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: (e.target.value as 'review_only' | 'disabled' | 'auto_approved') || 'review_only' }))}><option value="review_only">مراجعة واعتماد قبل الاحتساب</option><option value="disabled">غير محتسب</option><option value="auto_approved">محتسب تلقائيًا</option></select></label>
+              <label className="field"><span>سياسة الحضور</span><select value={draft.attendancePolicy} onChange={(e) => setDraft((current) => ({ ...current, attendancePolicy: (e.target.value as 'strict' | 'flexible') || 'strict' }))}><option value="strict">مواعيد صارمة (خصم تلقائي)</option><option value="flexible">مواعيد مرنة (حسب الساعات)</option></select></label>
+              <label className="field"><span>سياسة العمل الإضافي</span><select value={draft.overtimePolicy} onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: (e.target.value as 'review_only' | 'disabled' | 'auto_approved') || 'review_only' }))}><option value="review_only">إضافة للمراجعة فقط (معلق)</option><option value="disabled">غير مفعل</option><option value="auto_approved">مفعل وتلقائي</option></select></label>
               {draft.compensationType === 'hourly' ? <p className="muted field-wide">الأجر اليومي المتوقع: {(Number(normalizeNumberText(draft.hourlyRate) || 0) * Number(normalizeNumberText(draft.expectedDailyHours) || 0)).toFixed(2)} ج.م</p> : null}
             </div>
           </FormSection>
 
-          <FormSection title="مراجعة قبل الحفظ" description="هذه التنبيهات تساعدك تتجنب ملف ناقص. التنبيهات التنظيمية لا تمنع الحفظ.">{reviewWarnings.length ? <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>{reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : <p className="muted">البيانات الأساسية والوظيفية جاهزة للحفظ.</p>}</FormSection>
+          <FormSection title="العمولات وسياسة التأخير" description="إعدادات العمولة والتأخير الخاصة بالموظف.">
+            <div className="form-grid">
+              <label className="field">
+                <span>سياسة التأخير</span>
+                <select value={draft.delayPolicy} onChange={(e) => setDraft((current) => ({ ...current, delayPolicy: e.target.value }))}>
+                  <option value="inherit">نفس السياسة العامة (افتراضي)</option>
+                  <option value="standard">خصم الدقائق والساعات فقط</option>
+                  <option value="disabled">بدون خصم (معطل)</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>نظام العمولة</span>
+                <select value={draft.commissionType} onChange={(e) => setDraft((current) => ({ ...current, commissionType: e.target.value }))}>
+                  <option value="inherit">نفس السياسة العامة (افتراضي)</option>
+                  <option value="none">بدون عمولة</option>
+                  <option value="percentage">نسبة من المبيعات</option>
+                  <option value="target_percentage">نسبة بعد تحقيق التارجت</option>
+                  <option value="fixed">مكافأة ثابتة</option>
+                </select>
+              </label>
+              {draft.commissionType !== 'inherit' && draft.commissionType !== 'none' && (
+                <label className="field">
+                  <span>قيمة العمولة ({draft.commissionType === 'fixed' ? 'مبلغ' : '%'})</span>
+                  <input inputMode="decimal" min="0" value={draft.commissionValue} onChange={(e) => setDraft((current) => ({ ...current, commissionValue: e.target.value }))} />
+                </label>
+              )}
+              {draft.commissionType === 'target_percentage' && (
+                <label className="field">
+                  <span>تارجت المبيعات المطلوب</span>
+                  <input inputMode="decimal" min="0" value={draft.commissionTarget} onChange={(e) => setDraft((current) => ({ ...current, commissionTarget: e.target.value }))} />
+                </label>
+              )}
+            </div>
+          </FormSection>
+
+          <FormSection title="الضرائب والتأمينات" description="إعدادات الضرائب والتأمينات الخاصة بالموظف.">
+            <div className="form-grid">
+              <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <input type="checkbox" checked={draft.hasSocialInsurance} onChange={(e) => setDraft((current) => ({ ...current, hasSocialInsurance: e.target.checked }))} style={{ width: 18, height: 18 }} />
+                <span>تطبيق استقطاع التأمينات الاجتماعية</span>
+              </label>
+              {draft.hasSocialInsurance && (
+                <label className="field">
+                  <span>الأجر التأميني (اتركه فارغاً لاستخدام الراتب الأساسي)</span>
+                  <input inputMode="decimal" min="0" value={draft.insuranceSalary} onChange={(e) => setDraft((current) => ({ ...current, insuranceSalary: e.target.value }))} />
+                </label>
+              )}
+              <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <input type="checkbox" checked={draft.hasIncomeTax} onChange={(e) => setDraft((current) => ({ ...current, hasIncomeTax: e.target.checked }))} style={{ width: 18, height: 18 }} />
+                <span>تطبيق ضريبة كسب العمل</span>
+              </label>
+            </div>
+          </FormSection>
+
+          <FormSection title="مراجعة قبل الحفظ" description="تنبيهات بسيطة لتقليل الملفات الناقصة. التنبيهات التنظيمية لا تمنع الحفظ.">{reviewWarnings.length ? <ul className="muted" style={{ margin: 0, paddingInlineStart: 20 }}>{reviewWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : <p className="muted">البيانات الأساسية جاهزة للحفظ.</p>}</FormSection>
 
           <FormSection title="ملاحظات">
             <div className="field field-wide"><span>ملاحظات</span><textarea rows={4} value={draft.notes} onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))} /></div>

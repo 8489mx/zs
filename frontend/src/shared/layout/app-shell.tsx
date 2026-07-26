@@ -222,6 +222,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {
     const navItem = navigationMap.get(itemKey);
     if (!navItem) return false;
+    if (navItem.activePaths?.includes(location.pathname)) return true;
     if (navItem.end) return location.pathname === navItem.to;
     return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`);
   }))?.key ?? null, [location.pathname, navigationMap, sidebarGroups]);
@@ -329,7 +330,17 @@ export function AppShell({ children }: PropsWithChildren) {
     const tone = iconToneMap[item.key] || iconToneMap.settings;
     const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
     return (
-      <NavLink key={`${keyPrefix}-${item.key}`} to={item.to} end={item.end} data-key={item.key} style={toneStyle} className={({ isActive }) => `sidebar-link ${keyPrefix === 'group' ? 'sidebar-link-sub ' : ''}${isActive ? 'active' : ''}`.trim()}>
+      <NavLink 
+        key={`${keyPrefix}-${item.key}`} 
+        to={item.to} 
+        end={item.end} 
+        data-key={item.key} 
+        style={toneStyle} 
+        className={({ isActive }) => {
+          const isPathActive = item.activePaths?.includes(location.pathname) || isActive;
+          return `sidebar-link ${keyPrefix === 'group' ? 'sidebar-link-sub ' : ''}${isPathActive ? 'active' : ''}`.trim();
+        }}
+      >
         <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
         <span className="sidebar-label">{item.label}</span>
         <span className="sidebar-link-chevron-spacer" aria-hidden="true" />

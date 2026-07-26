@@ -175,6 +175,12 @@ export function HrComingSoonPage() {
         loadingText="جاري تحميل نظرة الموارد البشرية..."
         errorTitle="تعذر تحميل نظرة الموارد البشرية"
       >
+        <div className="compact-actions" style={{ marginBottom: '24px', flexWrap: 'wrap' }}>
+          {navCards.map((card) => (
+            <Button key={card.to} type="button" variant="secondary" onClick={() => navigate(card.to)}>فتح {card.title}</Button>
+          ))}
+        </div>
+
         <FormSection title="ملخص سريع" description="الأرقام المهمة اليوم بدون ازدحام.">
           <div className="stats-grid">
             <div className="stat-card"><span>إجمالي الموظفين</span><strong>{totalEmployees}</strong></div>
@@ -188,17 +194,6 @@ export function HrComingSoonPage() {
           </div>
         </FormSection>
 
-        <FormSection title="اختصارات العمل" description="ادخل مباشرة على المكان الصحيح بدل الرجوع للسايد بار.">
-          <div className="form-grid">
-            {navCards.map((card) => (
-              <div key={card.to} className="field" style={{ alignItems: 'flex-start' }}>
-                <strong>{card.title}</strong>
-                <span className="muted">{card.body}</span>
-                <Button type="button" variant="secondary" onClick={() => navigate(card.to)}>{card.action}</Button>
-              </div>
-            ))}
-          </div>
-        </FormSection>
 
         <FormSection title="يحتاج إجراء" description="أهم العناصر التي تستحق المتابعة الآن.">
           <DataTable

@@ -1,4 +1,4 @@
-﻿export interface EmployeeDraft {
+export interface EmployeeDraft {
   employeeNo: string;
   firstName: string;
   lastName: string;
@@ -18,6 +18,15 @@
   scheduledCheckOutTime: string;
   graceMinutes: string;
   overtimePolicy: 'review_only' | 'disabled' | 'auto_approved';
+  attendancePolicy: 'strict' | 'flexible';
+  commissionType: string;
+  commissionValue: string;
+  commissionTarget: string;
+  delayPolicy: string;
+  hasSocialInsurance?: boolean;
+  hasIncomeTax?: boolean;
+  annualLeaveBalance?: string;
+  insuranceSalary?: string;
   notes: string;
 }
 
@@ -56,6 +65,15 @@ export const initialDraft: EmployeeDraft = {
   scheduledCheckOutTime: '',
   graceMinutes: '',
   overtimePolicy: 'review_only',
+  attendancePolicy: 'strict',
+  commissionType: 'inherit',
+  commissionValue: '',
+  commissionTarget: '',
+  delayPolicy: 'inherit',
+  hasSocialInsurance: false,
+  hasIncomeTax: false,
+  annualLeaveBalance: "21",
+  insuranceSalary: '',
   notes: '',
 };
 

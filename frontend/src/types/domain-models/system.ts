@@ -183,6 +183,14 @@ export interface AppSettings {
   timeFormat?: '12h' | '24h' | string;
   whatsappLinkMode?: 'web' | 'app' | 'wa_me' | string;
   defaultBranchIssueMode?: 'final_issue' | 'transfer_to_branch_stock';
+  hrSalesCommissionType?: 'none' | 'percentage' | 'target_bonus' | string;
+  hrSalesCommissionValue?: number;
+  hrSalesCommissionTarget?: number;
+  hrDelayPolicyEnabled?: boolean;
+  hrDelayPenalty1st?: number;
+  hrDelayPenalty2nd?: number;
+  hrDelayPenalty3rd?: number;
+  hrDelayPenalty4th?: number;
 }
 
 export interface ExpenseRecord {

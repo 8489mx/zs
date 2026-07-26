@@ -1,6 +1,5 @@
-﻿import type { FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import { FormSection } from '@/shared/components/form-section';
-import { Button } from '@/shared/ui/button';
 import { money, reviewStatusOptions, text, type PayrollReviewStatus } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 
 type Summary = {
@@ -53,18 +52,11 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
     summary,
     canViewSalaryAmounts,
     dueLoanInstallmentRows,
-    draft,
-    formError,
-    canManagePayroll,
-    hasCreatePayrollRun,
-    isCreatePending,
     onMonthFilterChange,
     onSearchChange,
     onDepartmentFilterChange,
     onReviewStatusFilterChange,
     onRunStatusFilterChange,
-    onDraftChange,
-    onCreateRun,
   } = props;
 
   return (
@@ -80,7 +72,7 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
         </div>
       </FormSection>
 
-      <div className="stats-grid">
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
         <FormSection title="إجمالي الموظفين"><strong>{summary.totalEmployees || 0}</strong></FormSection>
         <FormSection title="إجمالي الرواتب الأساسية"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalBaseSalary) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
         <FormSection title="إجمالي الخصومات"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalDeductions) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
@@ -89,7 +81,6 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
         <FormSection title="يحتاج مراجعة"><strong>{summary.needsReview}</strong></FormSection>
       </div>
 
-      <FormSection title="تنبيه مراجعة"><p className="muted" style={{ margin: 0 }}>حساب الضرائب والتأمينات يحتاج إعدادات ومراجعة محاسب قبل الاعتماد النهائي.</p></FormSection>
 
       <FormSection title={`أقساط سلف مستحقة هذا الشهر (${monthFilter})`}>
         {!canViewSalaryAmounts ? (
@@ -101,18 +92,7 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
         )}
       </FormSection>
 
-      <FormSection title="تجهيز مسير المرتبات">
-        {hasCreatePayrollRun && canManagePayroll ? (
-          <form className="form-grid" onSubmit={onCreateRun}>
-            <label className="field"><span>شهر مسير المرتبات *</span><input type="month" value={draft.periodMonth} onChange={(event) => onDraftChange((current) => ({ ...current, periodMonth: event.target.value }))} /></label>
-            <label className="field field-wide"><span>ملاحظات</span><input value={draft.notes} onChange={(event) => onDraftChange((current) => ({ ...current, notes: event.target.value }))} /></label>
-            {formError ? <div className="field-wide error-box">{formError}</div> : null}
-            <div className="actions compact-actions field-wide"><Button type="submit" disabled={isCreatePending}>{isCreatePending ? 'جارٍ التجهيز...' : 'تجهيز مسير المرتبات'}</Button></div>
-          </form>
-        ) : (
-          <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
-        )}
-      </FormSection>
+
     </>
   );
 }

@@ -148,15 +148,19 @@ export function HrDocumentsPage() {
 
 
       <FormSection title="اختيار الموظف" description="اختيار الموظف أول خطوة لأن المستندات مرتبطة بملف الموظف مباشرة.">
-        <SearchToolbar
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          searchPlaceholder="بحث باسم الموظف أو الكود"
-          inputAriaLabel="بحث الموظفين"
-        />
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <SearchToolbar
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              searchPlaceholder="بحث باسم الموظف أو الكود"
+              inputAriaLabel="بحث الموظفين"
+            />
+          </div>
+        </div>
         <QueryFeedback
           isLoading={workspace.employees.isLoading}
           isError={workspace.employees.isError}
@@ -242,16 +246,13 @@ export function HrDocumentsPage() {
               <Button type="button" variant="secondary" onClick={resetDocumentFilters}>مسح الفلاتر</Button>
             </div>
 
-            <div className="form-grid" style={{ marginBottom: 12 }}>
-              <label className="field">
-                <span>نوع المستند</span>
-                <select value={documentTypeFilter} onChange={(event) => setDocumentTypeFilter(event.target.value)}>
-                  <option value="all">الكل</option>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+              <select style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} value={documentTypeFilter} onChange={(event) => setDocumentTypeFilter(event.target.value)}>
+                  <option value="all">كل الأنواع</option>
                   {documentTypes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
-              <div className="field">
-                <span>الموظف المختار</span>
+              </select>
+              <div style={{ padding: '8px 12px', background: 'var(--surface-color)', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '14px' }}>
+                <span className="muted" style={{ marginInlineEnd: '8px' }}>الموظف المختار:</span>
                 <strong>{employeeName(selectedEmployee as HrEmployee)}</strong>
               </div>
             </div>
@@ -287,14 +288,7 @@ export function HrDocumentsPage() {
           </QueryFeedback>
         )}
       </FormSection>
-      <FormSection title="تسلسل مراجعة المستندات" description="هذه الصفحة للمتابعة والمراجعة، أما إضافة المستند فتتم من ملف الموظف حتى يبقى كل شيء مربوطًا بالموظف الصحيح.">
-        <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
-          <span><strong>1. اختر الموظف:</strong> <span className="muted">ابحث بالاسم أو الكود ثم اضغط على الصف.</span></span>
-          <span><strong>2. راجع الحالة:</strong> <span className="muted">ابدأ بالمستندات المنتهية أو القريبة من الانتهاء.</span></span>
-          <span><strong>3. أضف أو حدّث:</strong> <span className="muted">افتح ملف الموظف لإضافة مستند أو مراجعة التفاصيل.</span></span>
-          <span><strong>4. راقب النواقص:</strong> <span className="muted">المستند بدون تاريخ انتهاء يظهر كمراجعة حتى تؤكد أنه مقصود.</span></span>
-        </div>
-      </FormSection>
+
       </main>
     </div>
   );

@@ -1,15 +1,15 @@
-﻿import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
+
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrLeaveRequest, HrLeaveType } from '@/types/domain';
 import { useHrLeaveRequests, useHrLeaveTypes, useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
 import { HrLeavesCreateRequestCard } from '@/features/hr/pages/leaves/HrLeavesCreateRequestCard';
-import { HrLeavesOperationalNote, HrLeavesWorkflowCard } from '@/features/hr/pages/leaves/HrLeavesStaticCards';
 import {
   leaveStatusLabel,
   normalizeArabicDigits,
@@ -231,7 +231,7 @@ export function HrLeavesPage() {
       ) : null}
 
       <FormSection title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
-        <div className="stats-grid">
+        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
           <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي الطلبات</span><strong>{summary.total}</strong></button>
           <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>قيد المراجعة</span><strong>{summary.pending}</strong></button>
           <button className="stat-card" type="button" onClick={() => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>معتمدة</span><strong>{summary.approved}</strong></button>
@@ -248,9 +248,8 @@ export function HrLeavesPage() {
           <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }}>كل الطلبات</Button>
           <Button type="button" variant="secondary" onClick={resetFilters}>مسح الفلاتر</Button>
         </div>
-        <div className="form-grid">
-          <div className="field field-wide">
-            <span>بحث الموظف</span>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '250px' }}>
             <SearchToolbar
               search={search}
               onSearchChange={(value) => {
@@ -261,31 +260,25 @@ export function HrLeavesPage() {
               inputAriaLabel="بحث طلبات الإجازات"
             />
           </div>
-          <label className="field">
-            <span>الحالة التفصيلية</span>
-            <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setQuickFilter('all'); setPage(1); }}>
+          <select style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setQuickFilter('all'); setPage(1); }}>
               <option value="">الكل</option>
               <option value="pending">قيد المراجعة</option>
               <option value="approved">معتمدة</option>
               <option value="rejected">مرفوضة</option>
               <option value="cancelled">ملغاة</option>
             </select>
-          </label>
-          <label className="field">
-            <span>نوع الإجازة</span>
-            <select value={leaveTypeFilter} onChange={(event) => { setLeaveTypeFilter(event.target.value); setPage(1); }}>
+          <select style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} value={leaveTypeFilter} onChange={(event) => { setLeaveTypeFilter(event.target.value); setPage(1); }}>
               <option value="all">الكل</option>
               {leaveTypes.map((type) => <option key={type.id} value={String(type.id)}>{text(type.name) || '—'}</option>)}
             </select>
-          </label>
-          <label className="field">
-            <span>من تاريخ</span>
-            <input type="date" value={fromDateFilter} onChange={(event) => { setFromDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
-          </label>
-          <label className="field">
-            <span>إلى تاريخ</span>
-            <input type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
-          </label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span className="muted small">من</span>
+            <input style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} type="date" value={fromDateFilter} onChange={(event) => { setFromDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span className="muted small">إلى</span>
+            <input style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
+          </div>
         </div>
       </FormSection>
 
@@ -363,12 +356,7 @@ export function HrLeavesPage() {
           </div>
         </FormSection>
       ) : null}
-
-      <HrLeavesOperationalNote />
-
-          <HrLeavesWorkflowCard />
       </main>
     </div>
   );
 }
-

@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/lib/errors';
 import type { HrContact, HrContract, HrDocument, HrEmployee, HrEmployeeAsset, HrLedgerEntry, HrLeaveRequest, HrLoan } from '@/types/domain';
 import { useHrEmployeeAssets, useHrLeaveRequests, useHrMutations, useHrProfile, useHrEmployeeAdjustments } from '@/features/hr/hooks/useHr';
 import { ContactsSection, LedgerSection } from '@/features/hr/pages/employee-profile/EmployeeProfileSections';
+import { EndOfServiceModal } from './employee-profile/EndOfServiceModal';
 import { EmployeeAdjustmentsSection } from '@/features/hr/pages/employee-profile/EmployeeAdjustmentsSection';
 import { buildEmployeeProfileDerivedData } from '@/features/hr/pages/employee-profile/employee-profile.derived';
 import {
@@ -52,6 +53,7 @@ export function EmployeeProfilePage() {
   const [documentError, setDocumentError] = useState('');
   const [contractDraft, setContractDraft] = useState({ baseSalary: '', contractType: 'monthly' });
   const [showContractForm, setShowContractForm] = useState(false);
+  const [showEndOfServiceModal, setShowEndOfServiceModal] = useState(false);
 
   const employee = (profile.data?.employee || undefined) as HrEmployee | undefined;
   const contacts = useMemo(() => (profile.data?.contacts || []) as HrContact[], [profile.data?.contacts]);
@@ -123,10 +125,11 @@ export function EmployeeProfilePage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+      {id && employee ? <EndOfServiceModal employeeId={id} employeeName={employeeName(employee)} isOpen={showEndOfServiceModal} onClose={() => setShowEndOfServiceModal(false)} onSuccess={() => void profile.refetch()} /> : null}
       <PageHeader
         title={employeeName(employee)}
         description="مركز تشغيل الموظف: بياناته، الدوام، المستندات، العُهد، الإجازات، السلف، والتنبيهات من مكان واحد."
-        actions={<div className="compact-actions">{id && canManageEmployees ? <Button variant="secondary" onClick={() => navigate(`/hr/employees/${id}/edit`)}>تعديل بيانات الموظف</Button> : null}<Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button></div>}
+        actions={<div className="compact-actions">{id && canManageEmployees ? <Button variant="secondary" onClick={() => navigate(`/hr/employees/${id}/edit`)}>تعديل بيانات الموظف</Button> : null}<Button variant="secondary" onClick={() => navigate(`/hr/employees/${id}/print-contract`)}>طباعة العقد</Button>{employee?.status !== 'terminated' && <Button variant="secondary" className="danger" onClick={() => setShowEndOfServiceModal(true)}>إنهاء خدمة</Button>}<Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button></div>}
       />
 
       <QueryFeedback isLoading={profile.isLoading} isError={profile.isError} error={profile.error} isEmpty={!employee} loadingText="جاري تحميل ملف الموظف..." errorTitle="تعذر تحميل ملف الموظف" emptyTitle="لم يتم العثور على الموظف.">

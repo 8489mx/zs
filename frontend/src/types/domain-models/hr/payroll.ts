@@ -1,4 +1,4 @@
-﻿export interface HrPayrollAdjustment {
+export interface HrPayrollAdjustment {
   id: string;
   payrollItemId: string;
   adjustmentType: 'allowance' | 'deduction' | string;
@@ -35,6 +35,7 @@ export interface HrPayrollRunItem {
   suggestedAttendanceDeductionAmount?: number;
   suggestedLeaveDeductionAmount?: number;
   payrollReviewNotes?: string;
+  unresolvedExceptionsCount?: number;
   createdAt?: string;
   updatedAt?: string;
   adjustments?: HrPayrollAdjustment[];

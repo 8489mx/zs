@@ -98,6 +98,7 @@ export function HrAttendancePage() {
   const [exceptionFilter, setExceptionFilter] = useState<ExceptionFilter>('needs_action');
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'unmarked' | 'recorded'>('all');
   const [draftByEmployeeId, setDraftByEmployeeId] = useState<Record<string, DraftRow>>({});
+  const [importOpen, setImportOpen] = useState(false);
 
   const attendance = useHrAttendance({ date, search, page: 1, pageSize: 200 });
   const exceptions = useHrAttendanceExceptions({ month: exceptionMonth, search, page: 1, pageSize: 200 });
@@ -194,46 +195,50 @@ export function HrAttendancePage() {
         description="ابدأ بتحديد اليوم، راجع الاستثناءات التي تؤثر على الراتب، ثم احفظ أي تعديل على سجل الحضور."
         actions={(
           <div className="compact-actions">
+            <Button variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen(!importOpen)}>استيراد إكسيل</Button>
             <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>سجل المرتبات</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع</Button>
           </div>
         )}
       />
 
-
-      <ImportWorkbench
-        title="استيراد الحضور من إكسيل"
-        description="ارفع شيت الإكسيل الصادر من جهاز البصمة هنا."
-        defaultCollapsed={true}
-        requiredColumns={['كود الموظف', 'التاريخ']}
-        fieldMappings={[
-          { key: 'employeeNo', label: 'كود الموظف (مطلوب)' },
-          { key: 'workDate', label: 'التاريخ (مطلوب)' },
-          { key: 'checkInAt', label: 'وقت الحضور' },
-          { key: 'checkOutAt', label: 'وقت الانصراف' },
-        ]}
-        isPending={mutations.bulkImportAttendanceRecords.isPending}
-        onDownloadTemplate={() => {
-          const csv = 'كود الموظف,التاريخ,وقت الحضور,وقت الانصراف\n101,2026-07-25,09:00,17:00';
-          const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = 'نموذج_الحضور.csv';
-          link.click();
-        }}
-        onImportRows={async (rows) => {
-          const records = rows.map((row) => {
-            const workDate = String(row['التاريخ'] || row.workDate || '');
-            return {
-              employeeNo: String(row['كود الموظف'] || row.employeeNo || ''),
-              workDate,
-              checkInAt: toDateTime(workDate, row['وقت الحضور'] || row.checkInAt || ''),
-              checkOutAt: toDateTime(workDate, row['وقت الانصراف'] || row.checkOutAt || ''),
-            };
-          }).filter(r => r.employeeNo && r.workDate);
-          return mutations.bulkImportAttendanceRecords.mutateAsync({ records });
-        }}
-      />
+      {importOpen && (
+        <FormSection title="استيراد الحضور من إكسيل" description="ارفع شيت الإكسيل الصادر من جهاز البصمة هنا.">
+          <ImportWorkbench
+            title="استيراد الحضور من إكسيل"
+            description="يدعم الأعمدة العربية أو الإنجليزية المكافئة."
+            defaultCollapsed={false}
+            requiredColumns={['كود الموظف', 'التاريخ']}
+            fieldMappings={[
+              { key: 'employeeNo', label: 'كود الموظف (مطلوب)' },
+              { key: 'workDate', label: 'التاريخ (مطلوب)' },
+              { key: 'checkInAt', label: 'وقت الحضور' },
+              { key: 'checkOutAt', label: 'وقت الانصراف' },
+            ]}
+            isPending={mutations.bulkImportAttendanceRecords.isPending}
+            onDownloadTemplate={() => {
+              const csv = 'كود الموظف,التاريخ,وقت الحضور,وقت الانصراف\n101,2026-07-25,09:00,17:00';
+              const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: 'text/csv;charset=utf-8;' });
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              link.download = 'نموذج_الحضور.csv';
+              link.click();
+            }}
+            onImportRows={async (rows) => {
+              const records = rows.map((row) => {
+                const workDate = String(row['التاريخ'] || row.workDate || '');
+                return {
+                  employeeNo: String(row['كود الموظف'] || row.employeeNo || ''),
+                  workDate,
+                  checkInAt: toDateTime(workDate, row['وقت الحضور'] || row.checkInAt || ''),
+                  checkOutAt: toDateTime(workDate, row['وقت الانصراف'] || row.checkOutAt || ''),
+                };
+              }).filter(r => r.employeeNo && r.workDate);
+              return mutations.bulkImportAttendanceRecords.mutateAsync({ records });
+            }}
+          />
+        </FormSection>
+      )}
 
       <FormSection title="ملخص اليوم" description="اضغط على أرقام الاستثناءات لتصفية قائمة المراجعة بالأسفل.">
         <div className="stats-grid">
@@ -268,6 +273,14 @@ export function HrAttendancePage() {
             <input type="month" value={exceptionMonth} onChange={(e) => setExceptionMonth(normalizeArabicDigits(e.target.value || todayDate().slice(0, 7)))} />
           </label>
         </div>
+        {summary.needsAction > 0 && (
+          <div style={{ background: '#fef2f2', border: '1px solid #f87171', color: '#991b1b', padding: '12px 16px', borderRadius: 8, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <strong>تنبيه هام!</strong> يوجد <strong>{summary.needsAction}</strong> استثناء أو أكثر بحاجة لمراجعتك وتدخل منك.
+            </div>
+          </div>
+        )}
         <div className="compact-actions" style={{ marginBottom: 12 }}>
           <Button type="button" variant={exceptionFilter === 'needs_action' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('needs_action')}>يحتاج إجراء</Button>
           <Button type="button" variant={exceptionFilter === 'overtime' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('overtime')}>وقت إضافي محتمل</Button>
@@ -291,11 +304,19 @@ export function HrAttendancePage() {
               { key: 'workDate', header: 'التاريخ', className: 'col-fit', cell: (row) => row.workDate || '—' },
               { key: 'employeeNo', header: 'كود الموظف', className: 'col-fit', cell: (row) => row.employeeNo || '—' },
               { key: 'employeeName', header: 'اسم الموظف', className: 'col-main', cell: (row) => row.employeeName || '—' },
-              { key: 'exceptionType', header: 'نوع الاستثناء', className: 'col-fit', cell: (row) => exceptionTypeLabel(row.exceptionType) },
-              { key: 'scheduledTime', header: 'المجدول', className: 'col-fit', cell: (row) => row.scheduledTime || '—' },
-              { key: 'actualTime', header: 'الفعلي', className: 'col-fit', cell: (row) => row.actualTime || '—' },
-              { key: 'durationMinutes', header: 'المدة', className: 'col-fit', cell: (row) => `${row.durationMinutes || 0} دقيقة` },
-              { key: 'status', header: 'الحالة', className: 'col-fit', cell: (row) => exceptionStatusLabel(row.status) },
+              { key: 'exceptionType', header: 'نوع الاستثناء', className: 'col-fit', cell: (row) => {
+                  const label = exceptionTypeLabel(row.exceptionType);
+                  const isRed = row.status === 'needs_review' || row.status === 'pending' || isOvertimeException(row.exceptionType);
+                  return isRed ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{label}</span> : <span>{label}</span>;
+              } },
+              { key: 'scheduledTime', header: 'المجدول', className: 'col-fit', cell: (row) => row.scheduledTime || '?' },
+              { key: 'actualTime', header: 'الفعلي', className: 'col-fit', cell: (row) => row.actualTime || '?' },
+              { key: 'durationMinutes', header: 'المدة', className: 'col-fit', cell: (row) => `${row.durationMinutes || 0} د` },
+              { key: 'status', header: 'الحالة', className: 'col-fit', cell: (row) => {
+                  const label = exceptionStatusLabel(row.status);
+                  const isRed = row.status === 'needs_review' || row.status === 'pending';
+                  return isRed ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{label}</span> : <span>{label}</span>;
+              } },
               {
                 key: 'actions',
                 header: 'الإجراء',
@@ -409,14 +430,7 @@ export function HrAttendancePage() {
           />
         </QueryFeedback>
       </FormSection>
-      <FormSection title="تسلسل العمل في صفحة الحضور" description="استخدم هذه الصفحة كمسار يومي واضح بدل التنقل بين أكثر من مكان.">
-        <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
-          <span><strong>1. اختر اليوم:</strong> <span className="muted">حدد التاريخ وابحث عن الموظف عند الحاجة.</span></span>
-          <span><strong>2. راجع الاستثناءات:</strong> <span className="muted">اعتمد أو تخطَّى الحضور المبكر والانصراف المتأخر قبل المرتبات.</span></span>
-          <span><strong>3. عدّل السجل:</strong> <span className="muted">سجل حضور أو انصراف يدويًا عند وجود نسيان أو خطأ.</span></span>
-          <span><strong>4. احفظ اليوم:</strong> <span className="muted">الحفظ يعيد حساب الاستثناءات الخاصة بهذا اليوم.</span></span>
-        </div>
-      </FormSection>
+
       </main>
     </div>
   );

@@ -122,6 +122,12 @@ export function normalizeHrEmployeeRow(row: HrEmployee | HrApiDateRecord): HrEmp
     scheduledCheckOutTime: apiPick(source, ['scheduledCheckOutTime', 'scheduled_check_out_time']) || (row as HrEmployee).scheduledCheckOutTime || '',
     graceMinutes: Number(source.grace_minutes ?? source.graceMinutes ?? (row as HrEmployee).graceMinutes ?? 0),
     overtimePolicy: apiPick(source, ['overtimePolicy', 'overtime_policy']) || (row as HrEmployee).overtimePolicy || 'review_only',
+    hasSocialInsurance: Boolean(apiPick(source, ['hasSocialInsurance', 'has_social_insurance']) || false),
+    hasIncomeTax: Boolean(apiPick(source, ['hasIncomeTax', 'has_income_tax']) || false),
+    insuranceSalary: Number(apiPick(source, ['insuranceSalary', 'insurance_salary']) || 0) || undefined,
+    endOfServiceDate: normalizeApiDateOnly(apiPick(source, ['endOfServiceDate', 'end_of_service_date'])) || undefined,
+    endOfServiceReason: apiPick(source, ['endOfServiceReason', 'end_of_service_reason']) || undefined,
+    notes: apiPick(source, ['notes']) || (row as HrEmployee).notes || '',
   };
 }
 

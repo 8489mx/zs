@@ -1,4 +1,4 @@
-﻿import type { HrEmployee, HrPayrollRunItem } from '@/types/domain';
+import type { HrEmployee, HrPayrollRunItem } from '@/types/domain';
 
 export type PayrollReviewStatus = 'all' | 'needs_review' | 'ready' | 'approved' | 'paid';
 
@@ -46,6 +46,7 @@ export function itemNeedsReview(row: HrPayrollRunItem) {
     || Number(row.attendanceEarlyLeaveDays || 0) > 0
     || !Number.isFinite(Number(row.baseSalary || 0))
     || Number(row.baseSalary || 0) <= 0
+    || Number(row.unresolvedExceptionsCount || 0) > 0
   );
 }
 
@@ -87,6 +88,7 @@ export function reviewFlagText(row: HrPayrollRunItem) {
   if (Number(row.loanDeductionAmount || 0) > 0) flags.push('سلف/أقساط');
   if (Number(row.deductionAmount || 0) > 0) flags.push('خصومات');
   if (Number(row.attendanceAbsentDays || 0) > 0 || Number(row.attendanceHalfDays || 0) > 0 || Number(row.attendanceEarlyLeaveDays || 0) > 0) flags.push('استثناء حضور');
+  if (Number(row.unresolvedExceptionsCount || 0) > 0) flags.push('استثناءات معلقة');
   if (Number(row.baseSalary || 0) <= 0) flags.push('راتب أساسي غير مكتمل');
   return flags.length ? flags.join('، ') : 'جاهز';
 }

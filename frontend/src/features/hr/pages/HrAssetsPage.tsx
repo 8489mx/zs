@@ -213,7 +213,15 @@ export function HrAssetsPage() {
 
       <FormSection title={activeTab === 'cash' ? 'قائمة العُهد النقدية' : 'قائمة العُهد العينية'} description={activeTab === 'cash' ? 'سجّل التسوية من نفس القائمة عند انتهاء الصرف.' : 'الفئة الافتراضية تعرض العُهد التي تحتاج مراجعة حتى لا يتم تجاهل التالف أو المفقود.'}>
         <div className="compact-actions" style={{ marginBottom: 12 }}>{statusOptions.filter((option) => activeTab === 'physical' || !['damaged', 'lost'].includes(option.value)).map((option) => <Button key={option.value} type="button" variant={statusFilter === option.value ? 'primary' : 'secondary'} onClick={() => setFilter(option.value)}>{option.label}</Button>)}</div>
-        <div className="form-grid" style={{ marginBottom: 12 }}><div className="field field-wide"><span>بحث الموظف أو العهدة</span><SearchToolbar search={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} searchPlaceholder={activeTab === 'cash' ? 'بحث باسم الموظف أو الغرض أو المبلغ' : 'بحث باسم الموظف أو الكود أو اسم العهدة'} inputAriaLabel="بحث العُهد" /></div><label className="field"><span>القسم</span><select value={departmentFilter} onChange={(event) => { setDepartmentFilter(event.target.value); setPage(1); }}><option value="all">الكل</option>{departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></div>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '250px' }}>
+            <SearchToolbar search={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} searchPlaceholder={activeTab === 'cash' ? 'بحث باسم الموظف أو الغرض أو المبلغ' : 'بحث باسم الموظف أو الكود أو اسم العهدة'} inputAriaLabel="بحث العُهد" />
+          </div>
+          <select style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} value={departmentFilter} onChange={(event) => { setDepartmentFilter(event.target.value); setPage(1); }}>
+            <option value="all">كل الأقسام</option>
+            {departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
 
         <QueryFeedback isLoading={assetsQuery.isLoading} isError={assetsQuery.isError} error={assetsQuery.error} isEmpty={!assets.length} loadingText="جاري تحميل العُهد..." errorTitle="تعذر تحميل بيانات العُهد" emptyTitle={statusFilter === 'needs_review' ? 'لا توجد عُهد تحتاج مراجعة حاليًا.' : 'لا توجد نتائج مطابقة للفلاتر الحالية.'} emptyHint={statusFilter === 'needs_review' ? 'يمكنك عرض كل العُهد أو تسليم عهدة جديدة من أعلى الصفحة.' : 'جرّب تغيير الفلتر أو البحث.'}>
           <DataTable
@@ -260,12 +268,7 @@ export function HrAssetsPage() {
         </QueryFeedback>
       </FormSection>
 
-      <FormSection title="ملاحظة تشغيلية"><p className="muted" style={{ margin: 0 }}>العهدة النقدية هنا لا تُعامل كسلفة موظف ولا تخصم من المرتب تلقائيًا؛ هي مبلغ مؤقت للشغل يتم إقفاله بالتسوية. السلف الشخصية تظل في صفحة السلف والخصومات.</p></FormSection>
-      <FormSection title={activeTab === 'cash' ? 'تسلسل العهدة النقدية' : 'تسلسل العهد العينية'} description={activeTab === 'cash' ? 'العهدة النقدية ليست سلفة شخصية؛ هي مبلغ للشغل يتم تسويته بفواتير أو مرتجع.' : 'استخدم الصفحة بهذا الترتيب حتى لا تضيع العُهد أو تظل مفتوحة بدون مراجعة.'}>
-        <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
-          {activeTab === 'cash' ? <><span><strong>1. تسليم مبلغ:</strong> <span className="muted">اختر الموظف والمبلغ والغرض.</span></span><span><strong>2. صرف على الشغل:</strong> <span className="muted">الموظف يجمع الفواتير أو الإيصالات.</span></span><span><strong>3. تسوية:</strong> <span className="muted">سجّل المصروف والمرتجع وأي فرق.</span></span><span><strong>4. إغلاق أو مراجعة:</strong> <span className="muted">الفرق غير الصفري يظهر ضمن تحتاج مراجعة.</span></span></> : <><span><strong>1. سلّم العهدة:</strong> <span className="muted">اختر الموظف ونوع العهدة والكود.</span></span><span><strong>2. راجع المفتوح:</strong> <span className="muted">العُهد المسلّمة تظهر كمسؤولية.</span></span><span><strong>3. عالج التالف:</strong> <span className="muted">أي تالف أو مفقود يظهر للمراجعة.</span></span><span><strong>4. أغلق:</strong> <span className="muted">سجّل الاسترجاع عند رجوع العهدة.</span></span></>}
-        </div>
-      </FormSection>
+
       </main>
     </div>
   );

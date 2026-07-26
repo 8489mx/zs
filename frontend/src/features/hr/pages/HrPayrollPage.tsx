@@ -10,7 +10,6 @@ import type { HrEmployee, HrPayrollRun, HrPayrollRunItem } from '@/types/domain'
 import { getErrorMessage } from '@/lib/errors';
 import { useHrMutations, useHrPayrollRun, useHrWorkspace } from '@/features/hr/hooks/useHr';
 import { HrPayrollTopSections } from '@/features/hr/pages/payroll/HrPayrollTopSections';
-import { HrPayrollOperationalNote, HrPayrollWorkflowCard } from '@/features/hr/pages/payroll/HrPayrollStaticCards';
 import {
   employeeMatches,
   itemNeedsReview,
@@ -54,6 +53,8 @@ export function HrPayrollPage() {
   const [formError, setFormError] = useState('');
   const [selectedRunId, setSelectedRunId] = useState('');
   const [selectedReviewItem, setSelectedReviewItem] = useState<HrPayrollRunItem | null>(null);
+  const [pendingApprovalAction, setPendingApprovalAction] = useState<{ runId: string; type: 'review' | 'approve' } | null>(null);
+  const [showCreateRun, setShowCreateRun] = useState(false);
 
   const workspace = useHrWorkspace({ page, pageSize, month: monthFilter });
   const payrollRunDetails = useHrPayrollRun(selectedRunId || undefined);
@@ -135,9 +136,32 @@ export function HrPayrollPage() {
       { key: 'items', title: 'وجود موظفين داخل الكشف', status: hasItems ? `${filteredRunItems.length} موظف ظاهر حسب الفلاتر الحالية.` : 'لا توجد بنود موظفين ظاهرة. راجع الفلاتر أو أنشئ المسير.', ok: hasItems, action: 'مسح فلاتر المراجعة', onClick: () => { setSearch(''); setDepartmentFilter('all'); setReviewStatusFilter('all'); } },
       { key: 'review', title: 'مراجعة الحضور والإجازات', status: summary.needsReview > 0 ? `${summary.needsReview} موظف يحتاج مراجعة قبل الاعتماد.` : 'لا توجد تنبيهات مراجعة ظاهرة في الفلتر الحالي.', ok: summary.needsReview === 0, action: summary.needsReview > 0 ? 'عرض المحتاج مراجعة' : 'فتح الحضور', onClick: summary.needsReview > 0 ? () => setReviewStatusFilter('needs_review') : () => navigate('/hr/attendance') },
       { key: 'loans', title: 'أقساط السلف لهذا الشهر', status: dueLoanInstallmentRows.length > 0 ? `${dueLoanInstallmentRows.length} موظف لديهم خصم سلفة/قسط داخل الكشف.` : 'لا توجد أقساط سلف ظاهرة داخل الكشف الحالي.', ok: true, action: 'فتح السلف', onClick: () => navigate('/hr/loans') },
-      { key: 'status', title: 'حالة الاعتماد', status: runIsFinal ? 'الكشف معتمد/مصروف. أي تعديل يحتاج مراجعة إدارية.' : 'الكشف ما زال قابلًا للمراجعة قبل الاعتماد النهائي.', ok: runIsFinal || summary.needsReview === 0, action: 'فتح تفاصيل الكشف', onClick: undefined },
+      { key: 'status', title: 'حالة الكشف', status: runIsFinal ? 'تم الاعتماد/الصرف. لا يمكن تعديل المسير الآن.' : 'يرجى مراجعة المسير قبل اعتماد الرواتب.', ok: runIsFinal || summary.needsReview === 0, action: 'اعتماد نهائي', onClick: (!runIsFinal && selectedRun) ? () => handleRunActionClick(selectedRun.id, 'approve') : undefined },
     ];
   }, [dueLoanInstallmentRows.length, filteredRunItems.length, navigate, runIsFinal, selectedRun, summary.needsReview]);
+
+  function handleRunActionClick(runId: string, actionType: 'review' | 'approve') {
+    if (selectedRunId !== runId) {
+      setSelectedRunId(runId);
+      alert('تم عرض تفاصيل هذا المسير. يرجى مراجعتها بالأسفل وتأكيد عدم وجود استثناءات معلقة ثم حاول مرة أخرى.');
+      return;
+    }
+    const hasExceptions = filteredRunItems.some(item => Number(item.unresolvedExceptionsCount || 0) > 0);
+    if (hasExceptions) {
+      setPendingApprovalAction({ runId, type: actionType });
+    } else {
+      executeRunAction(runId, actionType);
+    }
+  }
+
+  function executeRunAction(runId: string, actionType: 'review' | 'approve') {
+    if (actionType === 'review' && mutations.reviewPayrollRun) {
+      void mutations.reviewPayrollRun.mutateAsync(runId);
+    } else if (actionType === 'approve' && mutations.approvePayrollRun) {
+      void mutations.approvePayrollRun.mutateAsync(runId);
+    }
+    setPendingApprovalAction(null);
+  }
 
   async function handleCreateRun(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -147,6 +171,7 @@ export function HrPayrollPage() {
     try {
       await mutations.createPayrollRun.mutateAsync({ periodMonth, notes: String(draft.notes || '').trim() || undefined });
       setDraft(initialDraft);
+      setShowCreateRun(false);
     } catch (error) {
       setFormError(getErrorMessage(error, 'تعذر تجهيز مسير المرتبات.'));
     }
@@ -321,7 +346,7 @@ export function HrPayrollPage() {
         description="مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة."
         actions={
           <div className="actions compact-actions">
-            {hasCreatePayrollRun && canManagePayroll ? <Button variant="secondary" onClick={() => setDraft((current) => ({ ...current, periodMonth: current.periodMonth || monthFilter }))}>إنشاء مسير الشهر</Button> : null}
+            {hasCreatePayrollRun && canManagePayroll ? <Button variant="secondary" onClick={() => { setDraft((current) => ({ ...current, periodMonth: current.periodMonth || monthFilter })); setShowCreateRun(true); }}>إنشاء مسير الشهر</Button> : null}
             <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>مراجعة الحضور</Button>
             <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
           </div>
@@ -360,17 +385,26 @@ export function HrPayrollPage() {
             onCreateRun={(event) => { void handleCreateRun(event); }}
           />
 
-          <FormSection title="مراجعة قبل الاعتماد" description="قائمة مختصرة تمنع نسيان الحضور أو السلف أو البنود التي تحتاج مراجعة قبل اعتماد المرتبات.">
-            <div className="form-grid">
-              {payrollChecklist.map((item) => (
-                <div key={item.key} className="field" style={{ alignItems: 'flex-start' }}>
-                  <strong>{item.ok ? '✓' : '•'} {item.title}</strong>
-                  <span className="muted">{item.status}</span>
-                  {item.onClick ? <Button type="button" variant="secondary" onClick={item.onClick}>{item.action}</Button> : null}
-                </div>
-              ))}
-            </div>
-          </FormSection>
+          {showCreateRun && (
+            <DialogShell open={true} onClose={() => setShowCreateRun(false)} width="500px">
+              <div style={{ padding: '24px' }}>
+                <h2 style={{ marginTop: 0 }}>تجهيز مسير المرتبات</h2>
+                {hasCreatePayrollRun && canManagePayroll ? (
+                  <form className="form-grid" onSubmit={(e) => void handleCreateRun(e)}>
+                    <label className="field field-wide"><span>شهر مسير المرتبات *</span><input type="month" value={draft.periodMonth} onChange={(event) => setDraft((current) => ({ ...current, periodMonth: event.target.value }))} required /></label>
+                    <label className="field field-wide"><span>ملاحظات</span><input value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
+                    {formError ? <div className="field-wide error-box">{formError}</div> : null}
+                    <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
+                      <Button type="submit" disabled={mutations.createPayrollRun.isPending}>{mutations.createPayrollRun.isPending ? 'جارٍ التجهيز...' : 'تجهيز المسير'}</Button>
+                      <Button type="button" variant="secondary" onClick={() => setShowCreateRun(false)}>إلغاء</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
+                )}
+              </div>
+            </DialogShell>
+          )}
 
           <FormSection title="كشوف المرتبات الشهرية">
             <QueryFeedback isLoading={workspace.payrollRuns.isLoading} isError={workspace.payrollRuns.isError} error={workspace.payrollRuns.error} isEmpty={!filteredRuns.length} loadingText="جارٍ تحميل كشوف المرتبات..." errorTitle="تعذر تحميل كشوف المرتبات" emptyTitle="لا توجد بيانات مرتبات لهذه الفترة.">
@@ -389,10 +423,22 @@ export function HrPayrollPage() {
                   { key: 'totalLoanDeductionAmount', header: 'إجمالي السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.totalLoanDeductionAmount) : 'لا تملك صلاحية عرض هذه البيانات.' },
                   { key: 'totalNetPay', header: 'صافي المرتبات', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : 'لا تملك صلاحية عرض هذه البيانات.' },
                   { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => text(row.createdAt) },
-                  { key: 'actions', header: 'إجراء', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>{canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}{canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.reviewPayrollRun.mutateAsync(String(row.id)); }}>اعتماد</Button> : null}{canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.approvePayrollRun.mutateAsync(String(row.id)); }}>اعتماد نهائي</Button> : null}{canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}</div> },
+                  { key: 'actions', header: 'إجراء', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>{canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}{canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'review')}>اعتماد</Button> : null}{canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'approve')}>اعتماد نهائي</Button> : null}{canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}</div> },
                 ]}
               />
             </QueryFeedback>
+          </FormSection>
+
+          <FormSection title="مراجعة قبل الاعتماد" description="قائمة مختصرة تمنع نسيان الحضور أو السلف.">
+            <div className="form-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+              {payrollChecklist.map((item) => (
+                <div key={item.key} className="field" style={{ alignItems: 'flex-start', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '6px', background: item.ok ? 'var(--surface-50)' : 'var(--surface-color)' }}>
+                  <strong>{item.ok ? '✓' : '•'} {item.title}</strong>
+                  <span className="muted" style={{ fontSize: '13px', margin: '8px 0', flex: 1 }}>{item.status}</span>
+                  {item.onClick ? <Button type="button" variant={item.ok ? 'secondary' : 'primary'} onClick={item.onClick} style={{ width: '100%', fontSize: '13px' }}>{item.action}</Button> : null}
+                </div>
+              ))}
+            </div>
           </FormSection>
 
           <FormSection title="تفاصيل ومراجعة المسير">
@@ -484,11 +530,30 @@ export function HrPayrollPage() {
             )}
           </FormSection>
 
-          <HrPayrollOperationalNote />
+          {pendingApprovalAction && (
+            <DialogShell open={true} onClose={() => setPendingApprovalAction(null)} width="600px">
+              <div style={{ padding: '24px' }}>
+                <h2 style={{ marginTop: 0, color: 'var(--error-color)' }}>تنبيه: استثناءات معلقة</h2>
+                <p>يوجد استثناءات حضور وانصراف معلقة للموظفين التاليين بحاجة للمراجعة. هل أنت متأكد من رغبتك بالاستمرار دون معالجتها؟</p>
+                <div style={{ maxHeight: '200px', overflowY: 'auto', background: 'var(--surface-color)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
+                  <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                    {filteredRunItems.filter(i => Number(i.unresolvedExceptionsCount || 0) > 0).map(i => (
+                      <li key={i.id} style={{ marginBottom: '4px' }}>
+                        {text(i.employeeName)} ({text(i.employeeNo)})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="actions">
+                  <Button variant="secondary" onClick={() => setPendingApprovalAction(null)}>إلغاء الأمر ومراجعة الاستثناءات</Button>
+                  <Button variant="danger" onClick={() => executeRunAction(pendingApprovalAction.runId, pendingApprovalAction.type)}>نعم، تابع الاعتماد</Button>
+                </div>
+              </div>
+            </DialogShell>
+          )}
         </>
       )}
 
-          <HrPayrollWorkflowCard />
       </main>
     </div>
   );

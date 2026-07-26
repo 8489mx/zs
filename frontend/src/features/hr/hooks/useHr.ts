@@ -75,6 +75,15 @@ export function useHrLeaveTypes(params: HrListParams = {}) {
   });
 }
 
+export function useHrHolidays(params: HrListParams = {}) {
+  const key = paramsKey(params);
+  return useQuery({
+    queryKey: ['hr', 'holidays', key],
+    queryFn: () => hrApi.listHolidays(params),
+    placeholderData: (previous) => previous,
+  });
+}
+
 export function useHrLeaveRequests(params: HrListParams = {}) {
   const key = paramsKey(params);
   return useQuery({
@@ -123,6 +132,7 @@ export function useHrMutations() {
   return {
     updatePayrollPolicies: useMutation({ mutationFn: hrApi.updatePayrollPolicies, onSuccess: invalidate }),
     saveEmployee: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveEmployee(payload, id), onSuccess: invalidate }),
+    endOfService: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.endOfService(id, payload), onSuccess: invalidate }),
     saveContact: useMutation({ mutationFn: ({ employeeId, id, payload }: { employeeId: string; id?: string; payload: unknown }) => hrApi.saveContact(employeeId, payload, id), onSuccess: invalidate }),
     deactivateEmployee: useMutation({ mutationFn: (id: string) => hrApi.deactivateEmployee(id), onSuccess: invalidate }),
     saveMasterData: useMutation({ mutationFn: ({ kind, id, payload }: { kind: 'departments' | 'job-titles' | 'positions'; id?: string; payload: unknown }) => hrApi.saveMasterData(kind, payload, id), onSuccess: invalidate }),
@@ -159,6 +169,8 @@ export function useHrMutations() {
     deletePayrollAdjustment: useMutation({ mutationFn: (id: string) => hrApi.deletePayrollAdjustment(id), onSuccess: invalidate }),
     createEmployeeAdjustment: useMutation({ mutationFn: ({ employeeId, payload }: { employeeId: string; payload: unknown }) => hrApi.createEmployeeAdjustment(employeeId, payload), onSuccess: invalidate }),
     deleteEmployeeAdjustment: useMutation({ mutationFn: (id: string) => hrApi.deleteEmployeeAdjustment(id), onSuccess: invalidate }),
+    saveHoliday: useMutation({ mutationFn: ({ id, payload }: { id?: string; payload: unknown }) => hrApi.saveHoliday(payload, id), onSuccess: invalidate }),
+    deleteHoliday: useMutation({ mutationFn: (id: string) => hrApi.deleteHoliday(id), onSuccess: invalidate }),
   };
 }
 

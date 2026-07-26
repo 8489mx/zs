@@ -57,7 +57,16 @@ export function EmployeeProfileTopCards({
           <div className="field"><span>موعد الحضور</span><strong>{fallbackText(employee?.scheduledCheckInTime || 'غير محدد')}</strong></div>
           <div className="field"><span>موعد الانصراف</span><strong>{fallbackText(employee?.scheduledCheckOutTime || 'غير محدد')}</strong></div>
           <div className="field"><span>فترة السماح</span><strong>{employee?.graceMinutes != null ? `${employee.graceMinutes} دقيقة` : 'غير محدد'}</strong></div>
+          <div className="field"><span>سياسة الحضور</span><strong>{normalizeText((employee as any)?.attendancePolicy) === 'flexible' ? 'مواعيد مرنة (حسب الساعات)' : 'مواعيد صارمة (خصم تلقائي)'}</strong></div>
           <div className="field"><span>سياسة الوقت الإضافي</span><strong>{normalizeText(employee?.overtimePolicy) === 'disabled' ? 'غير محتسب' : normalizeText(employee?.overtimePolicy) === 'auto_approved' ? 'محتسب تلقائيًا' : 'مراجعة واعتماد قبل الاحتساب'}</strong></div>
+          <div className="field"><span>سياسة التأخير</span><strong>{normalizeText(employee?.delayPolicy) === 'standard' ? 'خصم الدقائق والساعات فقط' : normalizeText(employee?.delayPolicy) === 'disabled' ? 'بدون خصم (معطل)' : 'نفس السياسة العامة (افتراضي)'}</strong></div>
+          <div className="field"><span>نظام العمولة</span><strong>{normalizeText(employee?.commissionType) === 'none' ? 'بدون عمولة' : normalizeText(employee?.commissionType) === 'percentage' ? 'نسبة من المبيعات' : normalizeText(employee?.commissionType) === 'target_percentage' ? 'نسبة بعد التارجت' : normalizeText(employee?.commissionType) === 'fixed' ? 'مكافأة ثابتة' : 'نفس السياسة العامة (افتراضي)'}</strong></div>
+          {(employee?.commissionType === 'percentage' || employee?.commissionType === 'target_percentage' || employee?.commissionType === 'fixed') && (
+            <div className="field"><span>قيمة العمولة</span><strong>{employee.commissionType === 'fixed' ? money(employee.commissionValue || 0) : `${employee.commissionValue || 0}%`}</strong></div>
+          )}
+          {employee?.commissionType === 'target_percentage' && (
+            <div className="field"><span>تارجت المبيعات المطلوب</span><strong>{money(employee.commissionTarget || 0)}</strong></div>
+          )}
           <div className="field"><span>الأجر اليومي المتوقع</span><strong>{normalizeText(employee?.compensationType) === 'hourly' ? money(Number(employee?.hourlyRate || 0) * Number(employee?.expectedDailyHours || 0)) : 'غير متاح'}</strong></div>
         </div>
       </FormSection>

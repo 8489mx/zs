@@ -14,18 +14,18 @@ type Props = {
 export function HrSettingsHealthSummaryCard({ healthSummary }: Props) {
   return (
     <FormSection title="ملخص صحة الإعدادات">
-      <div className="hr-stats-grid">
-        <div className="hr-stat-box">
-          <div className="hr-stat-value">{healthSummary.departments}</div>
-          <div className="hr-stat-label">إجمالي الأقسام</div>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="stat-card">
+          <span>إجمالي الأقسام</span>
+          <strong>{healthSummary.departments}</strong>
         </div>
-        <div className="hr-stat-box">
-          <div className="hr-stat-value">{healthSummary.jobTitles}</div>
-          <div className="hr-stat-label">المسميات الوظيفية</div>
+        <div className="stat-card">
+          <span>المسميات الوظيفية</span>
+          <strong>{healthSummary.jobTitles}</strong>
         </div>
-        <div className="hr-stat-box">
-          <div className="hr-stat-value">{healthSummary.leaveTypes}</div>
-          <div className="hr-stat-label">أنواع الإجازات</div>
+        <div className="stat-card">
+          <span>أنواع الإجازات</span>
+          <strong>{healthSummary.leaveTypes}</strong>
         </div>
       </div>
     </FormSection>

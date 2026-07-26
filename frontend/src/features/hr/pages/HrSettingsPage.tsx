@@ -15,14 +15,15 @@ import {
   HrSettingsDocumentsSection,
   HrSettingsOperationalNote,
   HrSettingsPayrollSection,
+  HrSettingsHolidaysSection,
 } from '@/features/hr/pages/settings/HrSettingsStaticSections';
 import { normalize, paidLabel, stats, statusLabel, text, toId } from '@/features/hr/pages/settings/hr-settings.helpers';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
-type SettingsSection = 'organization' | 'leaves' | 'documents' | 'attendance' | 'payroll' | 'all';
+type SettingsSection = 'organization' | 'leaves' | 'holidays' | 'documents' | 'attendance' | 'payroll' | 'all';
 
 interface MasterDraft { name: string; code: string; description: string; departmentId: string; jobTitleId: string; }
-interface LeaveTypeDraft { name: string; code: string; description: string; isPaid: 'paid' | 'unpaid'; }
+interface LeaveTypeDraft { name: string; code: string; description: string; isPaid: 'paid' | 'unpaid'; deductsFromBalance?: boolean; }
 
 const initialDraft: MasterDraft = { name: '', code: '', description: '', departmentId: '', jobTitleId: '' };
 const initialLeaveTypeDraft: LeaveTypeDraft = { name: '', code: '', description: '', isPaid: 'paid' };
@@ -30,6 +31,7 @@ const initialLeaveTypeDraft: LeaveTypeDraft = { name: '', code: '', description:
 const SETTINGS_SECTIONS: { key: SettingsSection; label: string }[] = [
   { key: 'organization', label: 'الهيكل الوظيفي' },
   { key: 'leaves', label: 'الإجازات' },
+  { key: 'holidays', label: 'العطلات الرسمية' },
   { key: 'documents', label: 'المستندات' },
   { key: 'attendance', label: 'الحضور' },
   { key: 'payroll', label: 'المرتبات' },
@@ -85,7 +87,7 @@ export function HrSettingsPage() {
     if (!name) { setErrors((current) => ({ ...current, 'leave-types': 'اسم نوع الإجازة مطلوب.' })); return; }
     setErrors((current) => ({ ...current, 'leave-types': '' }));
     try {
-      await mutations.saveLeaveType.mutateAsync({ payload: { name, code: String(leaveTypeDraft.code || '').trim() || undefined, description: String(leaveTypeDraft.description || '').trim() || undefined, isPaid: leaveTypeDraft.isPaid === 'paid', isActive: true } });
+      await mutations.saveLeaveType.mutateAsync({ payload: { name, code: String(leaveTypeDraft.code || '').trim() || undefined, description: String(leaveTypeDraft.description || '').trim() || undefined, isPaid: leaveTypeDraft.isPaid === 'paid', deductsFromBalance: leaveTypeDraft.deductsFromBalance, isActive: true } });
       setLeaveTypeDraft(initialLeaveTypeDraft);
     } catch (error) {
       setErrors((current) => ({ ...current, 'leave-types': getErrorMessage(error, 'تعذر حفظ نوع الإجازة.') }));
@@ -154,6 +156,7 @@ export function HrSettingsPage() {
           </FormSection>
         ) : null}
 
+        {shouldShowSection(activeSection, 'holidays') ? <HrSettingsHolidaysSection /> : null}
         {shouldShowSection(activeSection, 'documents') ? <HrSettingsDocumentsSection navigate={navigate} /> : null}
         {shouldShowSection(activeSection, 'attendance') ? <HrSettingsAttendanceSection navigate={navigate} /> : null}
         {shouldShowSection(activeSection, 'payroll') ? <HrSettingsPayrollSection navigate={navigate} /> : null}

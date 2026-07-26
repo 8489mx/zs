@@ -103,6 +103,8 @@ export const hrApi = {
   markEmployeeAssetDamaged: (id: string, payload: unknown = {}) => http<EmployeeAssetsResponse>(`/api/hr/assets/${id}/damaged`, { method: 'POST', body: JSON.stringify(payload) }),
   cancelEmployeeAsset: (id: string, payload: unknown = {}) => http<EmployeeAssetsResponse>(`/api/hr/assets/${id}/cancel`, { method: 'POST', body: JSON.stringify(payload) }),
   saveEmployee: (payload: unknown, id?: string) => http(`/api/hr/employees${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
+  endOfService: (id: string, payload: unknown) => http<{ success: boolean; openAssets: number; unpaidLoans: number }>(`/api/hr/employees/${id}/end-of-service`, { method: 'POST', body: JSON.stringify(payload) }),
+  getEndOfServicePreview: (id: string, endDate: string) => http<{ preview: any }>(`/api/hr/employees/${id}/end-of-service/preview?endDate=${endDate}`),
   deactivateEmployee: (id: string) => http(`/api/hr/employees/${id}`, { method: 'DELETE' }),
   profile: async (id: string) => {
     const response = await http<ProfileResponse>(`/api/hr/employees/${id}`);
@@ -141,6 +143,12 @@ export const hrApi = {
   deletePayrollAdjustment: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-item-adjustments/${id}`, { method: 'DELETE' }),
   reportsSummary: (params: HrListParams = {}) => http<HrReportsSummaryResponse>(`/api/hr/reports/summary${buildQueryString({ from: params.from, to: params.to, month: params.month })}`),
   importEmployees: (rows: unknown) => http<Record<string, unknown>>('/api/import/employees', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),
+  listHolidays: async (params: HrListParams = {}) => {
+    const response = await http<{ rows: { id: string; name: string; startDate: string; endDate: string }[] }>(`/api/hr/holidays${buildQueryString(params)}`);
+    return response;
+  },
+  saveHoliday: (payload: unknown, id?: string) => http(`/api/hr/holidays${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
+  deleteHoliday: (id: string) => http(`/api/hr/holidays/${id}`, { method: 'DELETE' }),
 };
 
 

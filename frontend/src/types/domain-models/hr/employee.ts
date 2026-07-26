@@ -25,7 +25,19 @@ export interface HrEmployee {
   scheduledCheckInTime?: string;
   scheduledCheckOutTime?: string;
   graceMinutes?: number;
+  attendancePolicy?: 'strict' | 'flexible' | string;
   overtimePolicy?: 'review_only' | 'disabled' | 'auto_approved' | string;
+  commissionType?: string;
+  commissionValue?: number | null;
+  commissionTarget?: number | null;
+  delayPolicy?: string;
+  hasSocialInsurance?: boolean;
+  hasIncomeTax?: boolean;
+  annualLeaveBalance?: string | number;
+  usedAnnualLeaves?: string | number;
+  insuranceSalary?: number;
+  endOfServiceDate?: string;
+  endOfServiceReason?: string;
   notes?: string;
 }
 

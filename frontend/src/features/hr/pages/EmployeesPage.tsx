@@ -182,82 +182,35 @@ export function EmployeesPage() {
         </FormSection>
       ) : null}
 
-      <FormSection title="تشغيل سريع" description="اختصارات مرتبطة بالموظفين دون الرجوع للسايد بار.">
-        <div className="compact-actions" style={{ flexWrap: 'wrap' }}>
-          <Button type="button" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
-          <Button type="button" variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>
-          <Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')}>فتح الإجازات</Button>
-          <Button type="button" variant="secondary" onClick={() => navigate('/hr/loans')}>فتح السلف</Button>
-          <Button type="button" variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
-        </div>
-      </FormSection>
-
-      <FormSection title="نظرة سريعة" description="مؤشرات تساعدك تراجع بيانات الموظفين الظاهرة في القائمة الحالية.">
-        <div className="form-grid">
-          <div className="field">
-            <span>إجمالي النتائج</span>
-            <strong>{totalItems}</strong>
+      <FormSection title="نظرة سريعة" description="مؤشرات استكمال بيانات الموظفين">
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+            <div className="stat-card"><span>إجمالي النتائج</span><strong>{totalItems}</strong></div>
+            <div className="stat-card"><span>نشط (فلتر حالي)</span><strong>{visibleStats.active}</strong></div>
+            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => { setCompletionFilter('missingMobile'); setPage(1); }}><span>ناقص موبايل</span><strong style={{ color: 'var(--color-danger)' }}>{visibleStats.missingMobile}</strong></div>
+            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => { setCompletionFilter('missingNationalId'); setPage(1); }}><span>ناقص رقم قومي</span><strong style={{ color: 'var(--color-danger)' }}>{visibleStats.missingNationalId}</strong></div>
+            <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => { setCompletionFilter('missingOrgData'); setPage(1); }}><span>ناقص بيانات وظيفية</span><strong style={{ color: 'var(--color-danger)' }}>{visibleStats.missingOrgData}</strong></div>
           </div>
-          <button className="field" type="button" onClick={() => setCompletionFilter('')} style={{ textAlign: 'right' }}>
-            <span>نشط في الفلتر الحالي</span>
-            <strong>{visibleStats.active}</strong>
-          </button>
-          <button className="field" type="button" onClick={() => { setCompletionFilter('missingMobile'); setPage(1); }} style={{ textAlign: 'right' }}>
-            <span>ناقص موبايل</span>
-            <strong>{visibleStats.missingMobile}</strong>
-          </button>
-          <button className="field" type="button" onClick={() => { setCompletionFilter('missingNationalId'); setPage(1); }} style={{ textAlign: 'right' }}>
-            <span>ناقص رقم قومي</span>
-            <strong>{visibleStats.missingNationalId}</strong>
-          </button>
-          <button className="field" type="button" onClick={() => { setCompletionFilter('missingOrgData'); setPage(1); }} style={{ textAlign: 'right' }}>
-            <span>ناقص بيانات وظيفية</span>
-            <strong>{visibleStats.missingOrgData}</strong>
-          </button>
-        </div>
       </FormSection>
 
       <FormSection title="قائمة الموظفين" description="اضغط على الصف أو زر فتح الملف لمراجعة بيانات الموظف واستكمال ملفه.">
-        <SearchToolbar
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          searchPlaceholder="بحث بالاسم أو كود الموظف أو الموبايل"
-          inputAriaLabel="بحث الموظفين"
-        />
-
-        <div className="compact-actions" style={{ marginBottom: 12 }}>
-          {STATUS_FILTERS.map((entry) => (
-            <Button
-              key={entry.value || 'all'}
-              type="button"
-              variant={status === entry.value ? 'primary' : 'secondary'}
-              onClick={() => {
-                setStatus(entry.value);
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '300px' }}>
+            <SearchToolbar
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
                 setPage(1);
               }}
-            >
-              {entry.label}
-            </Button>
-          ))}
-        </div>
-
-        <div className="compact-actions" style={{ marginBottom: 12 }}>
-          {COMPLETION_FILTERS.map((entry) => (
-            <Button
-              key={entry.value || 'all-completion'}
-              type="button"
-              variant={completionFilter === entry.value ? 'primary' : 'secondary'}
-              onClick={() => {
-                setCompletionFilter(entry.value);
-                setPage(1);
-              }}
-            >
-              {entry.label}
-            </Button>
-          ))}
+              searchPlaceholder="بحث بالاسم أو كود الموظف أو الموبايل"
+              inputAriaLabel="بحث الموظفين"
+            />
+          </div>
+          <select style={{ width: '180px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+            {STATUS_FILTERS.map((entry) => <option key={entry.value || 'all'} value={entry.value}>{entry.label}</option>)}
+          </select>
+          <select style={{ width: '180px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} value={completionFilter} onChange={(e) => { setCompletionFilter(e.target.value as CompletionFilter); setPage(1); }}>
+            {COMPLETION_FILTERS.map((entry) => <option key={entry.value || 'all-completion'} value={entry.value}>{entry.label}</option>)}
+          </select>
         </div>
 
         <QueryFeedback
