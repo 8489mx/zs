@@ -1,9 +1,10 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { FormSection } from '@/shared/components/form-section';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { DataTable } from '@/shared/ui/data-table';
@@ -75,6 +76,7 @@ export function HrLoansPage() {
   const [loanDraft, setLoanDraft] = useState<LoanDraft>(createInitialLoanDraft);
   const [formError, setFormError] = useState('');
   const [selectedLoanForRepayment, setSelectedLoanForRepayment] = useState<string>('');
+  const [selectedLoanForPlan, setSelectedLoanForPlan] = useState<HrLoan | null>(null);
   const [repaymentDraft, setRepaymentDraft] = useState<RepaymentDraft>({ amount: '', method: 'manual_cash', notes: '' });
   const [repaymentError, setRepaymentError] = useState('');
 
@@ -249,7 +251,7 @@ export function HrLoansPage() {
                     cell: (row) => {
                       const installments = Array.isArray(row.installments) ? row.installments as HrLoanInstallment[] : [];
                       if (!installments.length) return fallbackText(repaymentModeLabel(row.repaymentMode));
-                      return <details><summary>{`عدد الأقساط: ${installments.length}`}</summary><div className="table-wrap" style={{ marginTop: 8 }}><table className="data-table"><thead><tr><th>رقم القسط</th><th>شهر الاستحقاق</th><th>قيمة القسط</th><th>الحالة</th><th>تاريخ الخصم</th></tr></thead><tbody>{installments.map((item) => <tr key={String(item.id)}><td>{item.installmentNumber || '—'}</td><td>{monthLabel(item.dueDate)}</td><td>{canViewSalaryAmounts ? money(item.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td><td>{installmentStatusLabel(item.status)}</td><td>{fallbackText(item.paidAt)}</td></tr>)}</tbody></table></div></details>;
+                      return <Button variant="secondary" onClick={() => setSelectedLoanForPlan(row)}>عرض الأقساط ({installments.length})</Button>;
                     },
                   },
                   {
@@ -268,6 +270,35 @@ export function HrLoansPage() {
 
               {selectedRepaymentLoan ? (
                 <HrLoanRepaymentForm selectedLoanLabel={fallbackText(selectedRepaymentLoan.loanNo || selectedRepaymentLoan.id)} remainingAmountText={canViewSalaryAmounts ? money(selectedRepaymentLoan.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'} repaymentDraft={repaymentDraft} repaymentError={repaymentError} isPending={mutations.repayLoan.isPending} onChange={(patch) => setRepaymentDraft((current) => ({ ...current, ...patch }))} onSubmit={() => { void handleRepay(); }} onCancel={() => { setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' }); setSelectedLoanForRepayment(''); }} />
+              ) : null}
+
+              {selectedLoanForPlan ? (
+                <DialogShell title={`خطة السداد - سلفة رقم ${fallbackText(selectedLoanForPlan.loanNo || selectedLoanForPlan.id)}`} onDismiss={() => setSelectedLoanForPlan(null)} size="lg">
+                  <div className="table-wrap">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>رقم القسط</th>
+                          <th>شهر الاستحقاق</th>
+                          <th>قيمة القسط</th>
+                          <th>الحالة</th>
+                          <th>تاريخ الخصم</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(Array.isArray(selectedLoanForPlan.installments) ? selectedLoanForPlan.installments as HrLoanInstallment[] : []).map((item) => (
+                          <tr key={String(item.id)}>
+                            <td>{item.installmentNumber || '—'}</td>
+                            <td>{monthLabel(item.dueDate)}</td>
+                            <td>{canViewSalaryAmounts ? money(item.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td>
+                            <td>{installmentStatusLabel(item.status)}</td>
+                            <td>{fallbackText(item.paidAt)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </DialogShell>
               ) : null}
             </QueryFeedback>
           </FormSection>
