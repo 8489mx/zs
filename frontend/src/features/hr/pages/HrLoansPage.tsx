@@ -75,7 +75,6 @@ export function HrLoansPage() {
   const [pageSize, setPageSize] = useState(20);
   const [loanDraft, setLoanDraft] = useState<LoanDraft>(createInitialLoanDraft);
   const [formError, setFormError] = useState('');
-  const [selectedLoanForRepayment, setSelectedLoanForRepayment] = useState<string>('');
   const [selectedLoanForPlan, setSelectedLoanForPlan] = useState<HrLoan | null>(null);
   const [repaymentDraft, setRepaymentDraft] = useState<RepaymentDraft>({ amount: '', method: 'manual_cash', notes: '' });
   const [repaymentError, setRepaymentError] = useState('');
@@ -85,11 +84,6 @@ export function HrLoansPage() {
   const loans = useMemo(() => (workspace.loans.data?.loans || []) as HrLoan[], [workspace.loans.data?.loans]);
   const visibleLoans = useMemo(() => loans.filter((row) => matchesQuickFilter(row, quickFilter)), [loans, quickFilter]);
   const totalItems = quickFilter === 'all' ? Number(workspace.loans.data?.summary?.totalItems || loans.length || 0) : visibleLoans.length;
-
-  const selectedRepaymentLoan = useMemo(
-    () => loans.find((row) => String(row.id) === String(selectedLoanForRepayment)),
-    [loans, selectedLoanForRepayment],
-  );
 
   const summary = useMemo(() => {
     const active = loans.filter(isActiveLoan).length;
@@ -170,17 +164,17 @@ export function HrLoansPage() {
 
   async function handleRepay() {
     setRepaymentError('');
-    if (!selectedRepaymentLoan?.id) return;
+    if (!selectedLoanForPlan?.id) return;
     const amount = parsePositiveNumber(repaymentDraft.amount);
-    const remainingAmount = Number(selectedRepaymentLoan.remainingAmount || 0);
+    const remainingAmount = Number(selectedLoanForPlan.remainingAmount || 0);
     if (!(amount > 0)) { setRepaymentError('قيمة السداد مطلوبة.'); return; }
     if (!(remainingAmount > 0)) { setRepaymentError('لا يوجد مبلغ متبقٍ على هذه السلفة.'); return; }
     if (amount > remainingAmount) { setRepaymentError(`قيمة السداد لا يمكن أن تكون أكبر من المتبقي (${money(remainingAmount)}).`); return; }
     const repaymentMethod = String(repaymentDraft.method || 'manual_cash').trim();
     try {
-      await mutations.repayLoan.mutateAsync({ id: String(selectedRepaymentLoan.id), payload: { amount, repaymentMethod: repaymentMethod === 'salary_deduction' ? 'salary_deduction' : 'manual_cash', note: String(repaymentDraft.notes || '').trim() || undefined } });
+      await mutations.repayLoan.mutateAsync({ id: String(selectedLoanForPlan.id), payload: { amount, repaymentMethod: repaymentMethod === 'salary_deduction' ? 'salary_deduction' : 'manual_cash', note: String(repaymentDraft.notes || '').trim() || undefined } });
       setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' });
-      setSelectedLoanForRepayment('');
+      setSelectedLoanForPlan(null);
     } catch (error) {
       setRepaymentError(getErrorMessage(error, 'تعذر تسجيل السداد.'));
     }
@@ -249,9 +243,7 @@ export function HrLoansPage() {
                     key: 'plan',
                     header: 'خطة السداد',
                     cell: (row) => {
-                      const installments = Array.isArray(row.installments) ? row.installments as HrLoanInstallment[] : [];
-                      if (!installments.length) return fallbackText(repaymentModeLabel(row.repaymentMode));
-                      return <Button variant="secondary" onClick={() => setSelectedLoanForPlan(row)}>عرض الأقساط ({installments.length})</Button>;
+                      return <Button variant="secondary" onClick={() => setSelectedLoanForPlan(row)}>التفاصيل والسداد</Button>;
                     },
                   },
                   {
@@ -261,42 +253,63 @@ export function HrLoansPage() {
                       const status = normalize(row.status);
                       const canApprove = canManageLoans && (!status || status === 'pending' || status === 'draft' || status === 'new');
                       const canDisburse = canManageLoans && status === 'approved';
-                      const canRepay = canManageLoans && Number(row.remainingAmount || 0) > 0;
-                      return <div className="actions compact-actions">{canApprove ? <Button variant="secondary" onClick={() => { void mutations.approveLoan.mutateAsync(String(row.id)); }}>اعتماد</Button> : null}{canDisburse ? <Button variant="secondary" onClick={() => { void mutations.disburseLoan.mutateAsync(String(row.id)); }}>صرف</Button> : null}{canRepay ? <Button variant="secondary" onClick={() => setSelectedLoanForRepayment(String(row.id))}>تسجيل سداد</Button> : null}</div>;
+                      return <div className="actions compact-actions">{canApprove ? <Button variant="secondary" onClick={() => { void mutations.approveLoan.mutateAsync(String(row.id)); }}>اعتماد</Button> : null}{canDisburse ? <Button variant="secondary" onClick={() => { void mutations.disburseLoan.mutateAsync(String(row.id)); }}>صرف</Button> : null}</div>;
                     },
                   },
                 ]}
               />
 
-              {selectedRepaymentLoan ? (
-                <HrLoanRepaymentForm selectedLoanLabel={fallbackText(selectedRepaymentLoan.loanNo || selectedRepaymentLoan.id)} remainingAmountText={canViewSalaryAmounts ? money(selectedRepaymentLoan.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'} repaymentDraft={repaymentDraft} repaymentError={repaymentError} isPending={mutations.repayLoan.isPending} onChange={(patch) => setRepaymentDraft((current) => ({ ...current, ...patch }))} onSubmit={() => { void handleRepay(); }} onCancel={() => { setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' }); setSelectedLoanForRepayment(''); }} />
-              ) : null}
-
               {selectedLoanForPlan ? (
-                <DialogShell title={`خطة السداد - سلفة رقم ${fallbackText(selectedLoanForPlan.loanNo || selectedLoanForPlan.id)}`} onDismiss={() => setSelectedLoanForPlan(null)} size="lg">
-                  <div className="table-wrap">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>رقم القسط</th>
-                          <th>شهر الاستحقاق</th>
-                          <th>قيمة القسط</th>
-                          <th>الحالة</th>
-                          <th>تاريخ الخصم</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(Array.isArray(selectedLoanForPlan.installments) ? selectedLoanForPlan.installments as HrLoanInstallment[] : []).map((item) => (
-                          <tr key={String(item.id)}>
-                            <td>{item.installmentNumber || '—'}</td>
-                            <td>{monthLabel(item.dueDate)}</td>
-                            <td>{canViewSalaryAmounts ? money(item.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td>
-                            <td>{installmentStatusLabel(item.status)}</td>
-                            <td>{fallbackText(item.paidAt)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <DialogShell open={true} onClose={() => setSelectedLoanForPlan(null)} width="850px">
+                  <div style={{ padding: '24px' }}>
+                    <h3 style={{ marginBottom: '24px', fontSize: '1.25rem' }}>
+                      السلفة رقم {fallbackText(selectedLoanForPlan.loanNo || selectedLoanForPlan.id)} - {fallbackText(selectedLoanForPlan.employeeName)}
+                    </h3>
+
+                    {/* Section 1: Repayment Form (if applicable) */}
+                    {(canManageLoans && Number(selectedLoanForPlan.remainingAmount || 0) > 0) ? (
+                      <div style={{ marginBottom: '32px', backgroundColor: 'var(--surface-sunken)', padding: '20px', borderRadius: '8px' }}>
+                        <h4 style={{ marginBottom: '8px' }}>تسجيل سداد يدوي</h4>
+                        <HrLoanRepaymentForm selectedLoanLabel={fallbackText(selectedLoanForPlan.loanNo || selectedLoanForPlan.id)} remainingAmountText={canViewSalaryAmounts ? money(selectedLoanForPlan.remainingAmount) : 'لا تملك صلاحية عرض هذه البيانات.'} repaymentDraft={repaymentDraft} repaymentError={repaymentError} isPending={mutations.repayLoan.isPending} onChange={(patch) => setRepaymentDraft((current) => ({ ...current, ...patch }))} onSubmit={() => { void handleRepay(); }} onCancel={() => { setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' }); setSelectedLoanForPlan(null); }} />
+                      </div>
+                    ) : null}
+
+                    {/* Section 2: Installments Table */}
+                    <div style={{ marginBottom: '24px' }}>
+                      <h4 style={{ marginBottom: '16px' }}>جدول الأقساط</h4>
+                      {Array.isArray(selectedLoanForPlan.installments) && selectedLoanForPlan.installments.length ? (
+                        <div className="table-wrap">
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th>رقم القسط</th>
+                                <th>شهر الاستحقاق</th>
+                                <th>قيمة القسط</th>
+                                <th>الحالة</th>
+                                <th>تاريخ الخصم</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(selectedLoanForPlan.installments as HrLoanInstallment[]).map((item) => (
+                                <tr key={String(item.id)}>
+                                  <td>{item.installmentNumber || '—'}</td>
+                                  <td>{monthLabel(item.dueDate)}</td>
+                                  <td>{canViewSalaryAmounts ? money(item.amount) : 'لا تملك صلاحية عرض هذه البيانات.'}</td>
+                                  <td>{installmentStatusLabel(item.status)}</td>
+                                  <td>{fallbackText(item.paidAt)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p style={{ color: 'var(--text-muted)' }}>طريقة السداد لهذه السلفة: {repaymentModeLabel(selectedLoanForPlan.repaymentMode)} (لا توجد خطة أقساط)</p>
+                      )}
+                    </div>
+
+                    <div className="actions" style={{ marginTop: '16px', justifyContent: 'flex-end' }}>
+                      <Button variant="secondary" onClick={() => setSelectedLoanForPlan(null)}>إغلاق</Button>
+                    </div>
                   </div>
                 </DialogShell>
               ) : null}
