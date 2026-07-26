@@ -3626,22 +3626,34 @@ export class HrService {
     
     // We will create a loan entry and mark it as disbursed to track it easily and deduct from next payroll
     await this.tx.runInTransaction(this.db, async (trx) => {
-      // Create the loan
       const loanRes = await sql<{ id: number }>`
-        INSERT INTO hr_employee_loans (tenant_id, account_id, employee_id, amount, request_date, status, notes, created_by, updated_by)
-        VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${amount}, CURRENT_DATE, 'disbursed', ${notes}, ${auth.userId}, ${auth.userId})
+        INSERT INTO hr_employee_loans (
+          tenant_id, account_id, employee_id, principal_amount, remaining_amount, 
+          installment_count, installment_amount, repayment_mode,
+          issue_date, status, notes, created_by, updated_by
+        )
+        VALUES (
+          ${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${amount}, ${amount}, 
+          1, ${amount}, 'deduct_next_salary',
+          CURRENT_DATE, 'paid', ${notes}, ${auth.userId}, ${auth.userId}
+        )
         RETURNING id
       `.execute(trx);
       const loanId = Number(loanRes.rows[0]?.id || 0);
       
-      // We assume it's deducted on the next month by default (1 installment)
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1);
-      const monthStr = nextMonth.toISOString().slice(0, 7);
+      const dueStr = nextMonth.toISOString().slice(0, 7) + '-01';
       
       await sql`
-        INSERT INTO hr_employee_loan_installments (tenant_id, account_id, loan_id, target_month, amount, status, created_by, updated_by)
-        VALUES (${auth.tenantId}, ${auth.accountId}, ${loanId}, ${monthStr}, ${amount}, 'pending', ${auth.userId}, ${auth.userId})
+        INSERT INTO hr_employee_loan_installments (
+          tenant_id, account_id, loan_id, installment_no, due_date, 
+          amount, status, created_by, updated_by
+        )
+        VALUES (
+          ${auth.tenantId}, ${auth.accountId}, ${loanId}, 1, ${dueStr}, 
+          ${amount}, 'pending', ${auth.userId}, ${auth.userId}
+        )
       `.execute(trx);
 
       // Deduct cash from Cashier Shift if shift ID is provided, else we deduct from treasury
