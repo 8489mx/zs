@@ -483,14 +483,12 @@ export function HrPayrollPage() {
                   <td></td>
                 </tr>
               `).join('')}
-            </tbody>
-            <tfoot>
               <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 15px;">
                 <td colspan="3" style="text-align: left; padding: 12px 14px; border: 1px solid #cbd5e1; color: #0f172a;">إجمالي الرواتب المستحقة:</td>
                 <td class="amount" style="padding: 12px 14px; border: 1px solid #cbd5e1; color: #0f172a; font-size: 16px;">${money(summary.totalNet)}</td>
                 <td style="border: 1px solid #cbd5e1; background-color: #f8fafc;"></td>
               </tr>
-            </tfoot>
+            </tbody>
           </table>
           <div class="footer">
             <div class="signature-box">
