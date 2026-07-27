@@ -321,14 +321,66 @@ export function HrAttendancePage() {
                 key: 'actions',
                 header: 'الإجراء',
                 className: 'col-fit',
-                cell: (row) => isOvertimeException(row.exceptionType) && row.status === 'pending' ? (
-                  <div className="compact-actions-vertical">
-                    <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>اعتماد كوقت إضافي</Button>
-                    <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
-                  </div>
-                ) : (
-                  <span className="muted">{exceptionStatusLabel(row.status)}</span>
-                ),
+                cell: (row) => {
+                  if (row.status !== 'pending') return <span className="muted">{exceptionStatusLabel(row.status)}</span>;
+
+                  const isMissingCheckIn = row.exceptionType === 'missing_check_in';
+                  const isMissingCheckOut = row.exceptionType === 'missing_check_out';
+                  const isLateIn = row.exceptionType === 'late_check_in';
+                  const isEarlyOut = row.exceptionType === 'early_check_out';
+                  const isAbsent = row.exceptionType === 'absent';
+
+                  if (isOvertimeException(row.exceptionType)) {
+                    return (
+                      <div className="compact-actions-vertical">
+                        <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>اعتماد كوقت إضافي</Button>
+                        <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
+                      </div>
+                    );
+                  }
+
+                  if (isMissingCheckIn || isMissingCheckOut) {
+                    return (
+                      <div className="compact-actions-vertical">
+                        <Button type="button" variant="secondary" onClick={() => {
+                          const time = window.prompt(`أدخل وقت ${isMissingCheckIn ? 'الحضور' : 'الانصراف'} (مثال: ${isMissingCheckIn ? '09:00' : '17:00'})`);
+                          if (time) {
+                            const payload = {
+                              employeeId: Number(row.employeeId || row.employeeNo),
+                              workDate: row.workDate,
+                              status: 'present',
+                              ...(isMissingCheckIn ? { checkInAt: toDateTime(row.workDate, time) } : { checkOutAt: toDateTime(row.workDate, time) })
+                            };
+                            mutations.saveAttendanceRecord.mutateAsync(payload)
+                              .then(() => mutations.skipAttendanceException.mutateAsync({ id: row.id, payload: {} }))
+                              .catch(console.error);
+                          }
+                        }}>تسجيل {isMissingCheckIn ? 'حضور' : 'انصراف'} يدوي</Button>
+                        <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي / خصم</Button>
+                      </div>
+                    );
+                  }
+
+                  if (isLateIn || isEarlyOut) {
+                    return (
+                      <div className="compact-actions-vertical">
+                        <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>تأكيد الخصم</Button>
+                        <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تجاهل (عذر مقبول)</Button>
+                      </div>
+                    );
+                  }
+
+                  if (isAbsent) {
+                    return (
+                      <div className="compact-actions-vertical">
+                        <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>تأكيد الغياب</Button>
+                        <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
+                      </div>
+                    );
+                  }
+
+                  return <span className="muted">{exceptionStatusLabel(row.status)}</span>;
+                },
               },
             ]}
           />
