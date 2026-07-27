@@ -165,6 +165,7 @@ export function useHrMutations() {
     applyAttendanceDeductions: useMutation({ mutationFn: (id: string) => hrApi.applyAttendanceDeductions(id), onSuccess: invalidate }),
     approvePayrollRun: useMutation({ mutationFn: (id: string) => hrApi.approvePayrollRun(id), onSuccess: invalidate }),
     cancelPayrollRun: useMutation({ mutationFn: (id: string) => hrApi.cancelPayrollRun(id), onSuccess: invalidate }),
+    payPayrollRun: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: { paymentChannel: string } }) => hrApi.payPayrollRun(id, payload), onSuccess: invalidate }),
     updatePayrollRunItem: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.updatePayrollRunItem(id, payload), onSuccess: invalidate }),
     createPayrollAdjustment: useMutation({ mutationFn: ({ id, payload }: { id: string; payload: unknown }) => hrApi.createPayrollAdjustment(id, payload), onSuccess: invalidate }),
     deletePayrollAdjustment: useMutation({ mutationFn: (id: string) => hrApi.deletePayrollAdjustment(id), onSuccess: invalidate }),
@@ -174,4 +175,5 @@ export function useHrMutations() {
     deleteHoliday: useMutation({ mutationFn: (id: string) => hrApi.deleteHoliday(id), onSuccess: invalidate }),
   };
 }
+
 

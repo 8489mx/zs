@@ -2910,6 +2910,7 @@ export class HrService {
   async decideAttendanceException(id: number, status: 'approved' | 'skipped', payload: DecideAttendanceExceptionDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const currentResult = await sql<Record<string, unknown>>`SELECT * FROM hr_attendance_exceptions WHERE id = ${id} LIMIT 1`.execute(this.db);
+    console.log('query result rows:', currentResult.rows);
     const current = currentResult.rows[0];
     if (!current) throw new AppError('Attendance exception not found', 'HR_ATTENDANCE_EXCEPTION_NOT_FOUND', 404);
     const currentStatus = clean(current.status);
@@ -3690,4 +3691,7 @@ export class HrService {
     return { success: true };
   }
 }
+
+
+
 

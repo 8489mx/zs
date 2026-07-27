@@ -61,6 +61,8 @@ export function HrPayrollPage() {
   const [selectedReviewItem, setSelectedReviewItem] = useState<HrPayrollRunItem | null>(null);
   const [pendingApprovalAction, setPendingApprovalAction] = useState<{ runId: string; type: 'review' | 'approve' } | null>(null);
   const [showCreateRun, setShowCreateRun] = useState(false);
+  const [showPayRun, setShowPayRun] = useState(false);
+  const [payChannel, setPayChannel] = useState<'cash' | 'bank'>('cash');
 
   const workspace = useHrWorkspace({ page, pageSize, month: monthFilter });
   const payrollRunDetails = useHrPayrollRun(selectedRunId || undefined);
@@ -72,7 +74,15 @@ export function HrPayrollPage() {
   const totalItems = Number(workspace.payrollRuns.data?.summary?.totalItems || runs.length || 0);
   const selectedRunFromList = useMemo(() => runs.find((row) => String(row.id) === String(selectedRunId)), [runs, selectedRunId]);
   const selectedRun = (payrollRunDetails.data?.run || selectedRunFromList) as HrPayrollRun | undefined;
-  const runItems = useMemo(() => (selectedRun?.items || []) as HrPayrollRunItem[], [selectedRun?.items]);
+  const runItems = useMemo(() => {
+    const items = (selectedRun?.items || []) as HrPayrollRunItem[];
+    return items.filter((item) => {
+      const base = Number(item.baseSalary || 0);
+      const hourly = Number(item.hourlyRate || 0);
+      const net = Number(item.netPay || 0);
+      return base > 0 || hourly > 0 || net > 0;
+    });
+  }, [selectedRun?.items]);
 
   const departmentOptions = useMemo(() => {
     const set = new Map<string, string>();
@@ -142,7 +152,7 @@ export function HrPayrollPage() {
       { key: 'items', title: 'وجود موظفين داخل الكشف', status: hasItems ? `${filteredRunItems.length} موظف ظاهر حسب الفلاتر الحالية.` : 'لا توجد بنود موظفين ظاهرة. راجع الفلاتر أو أنشئ المسير.', ok: hasItems, action: 'مسح فلاتر المراجعة', onClick: () => { setSearch(''); setDepartmentFilter('all'); setReviewStatusFilter('all'); } },
       { key: 'review', title: 'مراجعة الحضور والإجازات', status: summary.needsReview > 0 ? `${summary.needsReview} موظف يحتاج مراجعة قبل الاعتماد.` : 'لا توجد تنبيهات مراجعة ظاهرة في الفلتر الحالي.', ok: summary.needsReview === 0, action: summary.needsReview > 0 ? 'عرض المحتاج مراجعة' : 'فتح الحضور', onClick: summary.needsReview > 0 ? () => setReviewStatusFilter('needs_review') : () => navigate('/hr/attendance') },
       { key: 'loans', title: 'أقساط السلف لهذا الشهر', status: dueLoanInstallmentRows.length > 0 ? `${dueLoanInstallmentRows.length} موظف لديهم خصم سلفة/قسط داخل الكشف.` : 'لا توجد أقساط سلف ظاهرة داخل الكشف الحالي.', ok: true, action: 'فتح السلف', onClick: () => navigate('/hr/loans') },
-      { key: 'status', title: 'حالة الكشف', status: runIsFinal ? 'تم الاعتماد/الصرف. لا يمكن تعديل المسير الآن.' : 'يرجى مراجعة المسير قبل اعتماد الرواتب.', ok: runIsFinal || summary.needsReview === 0, action: 'اعتماد نهائي', onClick: (!runIsFinal && selectedRun) ? () => handleRunActionClick(selectedRun.id, 'approve') : undefined },
+      { key: 'status', title: 'حالة الكشف', status: runIsFinal ? 'تم الاعتماد/الصرف. لا يمكن تعديل المسير الآن.' : 'يرجى مراجعة المسير قبل اعتماد الرواتب.', ok: runIsFinal || summary.needsReview === 0, action: selectedRunStatus === 'approved' ? 'صرف المرتبات' : 'اعتماد نهائي', onClick: selectedRunStatus === 'approved' ? () => setShowPayRun(true) : (!runIsFinal && selectedRun) ? () => handleRunActionClick(selectedRun.id, 'approve') : undefined },
     ];
   }, [dueLoanInstallmentRows.length, filteredRunItems.length, navigate, runIsFinal, selectedRun, summary.needsReview]);
 
@@ -167,6 +177,18 @@ export function HrPayrollPage() {
       void mutations.approvePayrollRun.mutateAsync(runId);
     }
     setPendingApprovalAction(null);
+  }
+
+  async function handlePayRun(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError('');
+    if (!selectedRunId) return;
+    try {
+      await mutations.payPayrollRun.mutateAsync({ id: selectedRunId, payload: { paymentChannel: payChannel } });
+      setShowPayRun(false);
+    } catch (error) {
+      setFormError(getErrorMessage(error, 'تعذر صرف المرتبات.'));
+    }
   }
 
   async function handleCreateRun(event: FormEvent<HTMLFormElement>) {
@@ -350,6 +372,115 @@ export function HrPayrollPage() {
     printWindow.focus();
   };
 
+  const printPayrollSignatureSheet = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>كشف تسليم الرواتب - ${text(selectedRun?.periodMonth)}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+            @page { size: A4 portrait; margin: 15mm; }
+            body { 
+              font-family: 'Tajawal', Tahoma, Arial, sans-serif; 
+              padding: 0; margin: 0; color: #1e293b; line-height: 1.6; 
+              -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            .header { 
+              text-align: center; border-bottom: 2px solid #e2e8f0; 
+              padding-bottom: 20px; margin-bottom: 25px; 
+              display: flex; flex-direction: column; align-items: center; gap: 4px;
+            }
+            .header h1 { margin: 0; color: #0f172a; font-size: 26px; font-weight: 700; }
+            .header p { margin: 0; color: #64748b; font-size: 16px; font-weight: 500; }
+            .table { 
+              width: 100%; border-collapse: collapse; margin-bottom: 25px; 
+              font-size: 14px;
+            }
+            .table thead { display: table-header-group; }
+            .table tr { page-break-inside: avoid; }
+            .table th, .table td { 
+              padding: 12px 14px; text-align: right; 
+              border: 1px solid #cbd5e1; 
+            }
+            .table th { 
+              background-color: #f8fafc; font-weight: 700; 
+              color: #334155; border-bottom: 2px solid #94a3b8; 
+            }
+            .table tbody tr:nth-child(even) { background-color: #fbfcfd; }
+            .totals { 
+              margin-top: 20px; font-weight: 700; font-size: 18px; 
+              text-align: left; padding: 15px 20px; 
+              background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px;
+              color: #0f172a; display: inline-block; float: left;
+            }
+            .footer { 
+              margin-top: 60px; display: flex; justify-content: space-between; 
+              padding-top: 25px; clear: both; page-break-inside: avoid;
+            }
+            .signature-box {
+              text-align: center; width: 30%;
+            }
+            .signature-box .title { font-weight: 700; color: #475569; margin-bottom: 40px; }
+            .signature-box .line { border-bottom: 1px solid #94a3b8; width: 80%; margin: 0 auto; }
+            .amount { font-family: monospace; font-size: 15px; font-weight: 600; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>كشف تسليم الرواتب</h1>
+            <p>خاص بشهر: ${text(selectedRun?.periodMonth)}</p>
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">م</th>
+                <th style="width: 100px;">كود الموظف</th>
+                <th>اسم الموظف</th>
+                <th style="width: 140px;">صافي الراتب المستحق</th>
+                <th style="width: 220px;">التوقيع / ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredRunItems.map((row, index) => `
+                <tr>
+                  <td style="text-align: center; color: #64748b;">${index + 1}</td>
+                  <td style="color: #64748b;">${text(row.employeeNo)}</td>
+                  <td style="font-weight: 500;">${text(row.employeeName)}</td>
+                  <td class="amount">${money(row.netPay)}</td>
+                  <td></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="totals">
+            إجمالي الرواتب: <span class="amount">${money(summary.totalNet)}</span>
+          </div>
+          <div class="footer">
+            <div class="signature-box">
+              <div class="title">إعداد الموارد البشرية</div>
+              <div class="line"></div>
+            </div>
+            <div class="signature-box">
+              <div class="title">اعتماد الإدارة</div>
+              <div class="line"></div>
+            </div>
+            <div class="signature-box">
+              <div class="title">توقيع أمين الخزينة</div>
+              <div class="line"></div>
+            </div>
+          </div>
+          <script>
+            setTimeout(() => { window.print(); window.close(); }, 500);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+  };
+
   return (
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
@@ -423,6 +554,33 @@ export function HrPayrollPage() {
             </DialogShell>
           )}
 
+          {showPayRun && (
+            <DialogShell open={true} onClose={() => setShowPayRun(false)} width="500px">
+              <div style={{ padding: '24px' }}>
+                <h2 style={{ marginTop: 0 }}>صرف المرتبات</h2>
+                {canApprovePayroll && mutations.payPayrollRun ? (
+                  <form className="form-grid" onSubmit={(e) => void handlePayRun(e)}>
+                    <p style={{ marginBottom: '16px' }}>أنت على وشك صرف المرتبات للمسير المعتمد الخاص بشهر {text(selectedRun?.periodMonth)}. سيتم إنشاء قيد يومية محاسبي بالصرف.</p>
+                    <label className="field field-wide">
+                      <span>طريقة الصرف *</span>
+                      <select value={payChannel} onChange={(event) => setPayChannel(event.target.value as 'cash' | 'bank')} required>
+                        <option value="cash">نقداً (من الخزينة)</option>
+                        <option value="bank">تحويل بنكي</option>
+                      </select>
+                    </label>
+                    {formError ? <div className="field-wide error-box">{formError}</div> : null}
+                    <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
+                      <Button type="submit" disabled={mutations.payPayrollRun.isPending}>{mutations.payPayrollRun.isPending ? 'جارٍ الصرف...' : 'تأكيد الصرف'}</Button>
+                      <Button type="button" variant="secondary" onClick={() => setShowPayRun(false)}>إلغاء</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
+                )}
+              </div>
+            </DialogShell>
+          )}
+
           <FormSection title="كشوف المرتبات الشهرية">
             <QueryFeedback isLoading={workspace.payrollRuns.isLoading} isError={workspace.payrollRuns.isError} error={workspace.payrollRuns.error} isEmpty={!filteredRuns.length} loadingText="جارٍ تحميل كشوف المرتبات..." errorTitle="تعذر تحميل كشوف المرتبات" emptyTitle="لا توجد بيانات مرتبات لهذه الفترة.">
               <DataTable
@@ -440,7 +598,7 @@ export function HrPayrollPage() {
                   { key: 'itemCount', header: 'عدد الموظفين', cell: (row) => text(row.itemCount || (row.items?.length ?? 0)) },
                   { key: 'totalNetPay', header: 'صافي المرتبات', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : 'لا تملك صلاحية عرض هذه البيانات.' },
                   { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => text(row.createdAt) },
-                  { key: 'actions', header: 'إجراء', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>{canManagePayroll && mutations.recalculatePayrollRun ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}{canManagePayroll && mutations.reviewPayrollRun ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'review')}>اعتماد</Button> : null}{canApprovePayroll && mutations.approvePayrollRun ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'approve')}>اعتماد نهائي</Button> : null}{canManagePayroll && mutations.cancelPayrollRun ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}</div> },
+                  { key: 'actions', header: 'إجراء', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>{canManagePayroll && mutations.recalculatePayrollRun && normalize(row.status) !== 'approved' && normalize(row.status) !== 'paid' ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}{canManagePayroll && mutations.reviewPayrollRun && normalize(row.status) === 'draft' ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'review')}>اعتماد</Button> : null}{canApprovePayroll && mutations.approvePayrollRun && normalize(row.status) === 'reviewed' ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'approve')}>اعتماد نهائي</Button> : null}{canApprovePayroll && mutations.payPayrollRun && normalize(row.status) === 'approved' ? <Button variant="primary" onClick={() => { setSelectedRunId(String(row.id)); setShowPayRun(true); }}>صرف</Button> : null}{canManagePayroll && mutations.cancelPayrollRun && normalize(row.status) !== 'paid' && normalize(row.status) !== 'cancelled' ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}</div> },
                 ]}
               />
             </QueryFeedback>
@@ -463,7 +621,12 @@ export function HrPayrollPage() {
               <QueryFeedback isLoading={payrollRunDetails.isLoading} isError={payrollRunDetails.isError} error={payrollRunDetails.error} isEmpty={false} loadingText="جارٍ تحميل تفاصيل المسير..." errorTitle="تعذر تحميل تفاصيل المسير">
                 {!selectedRun ? <p className="muted">تفاصيل المسير غير متاحة من الواجهة الحالية.</p> : filteredRunItems.length ? (
                   <>
-                    <p className="muted" style={{ marginTop: 0, marginBottom: 12 }}>الخصومات المقترحة للمراجعة فقط، ولا يتم تطبيقها تلقائيًا إلا بعد اعتماد المسؤول.</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <p className="muted" style={{ margin: 0 }}>الخصومات المقترحة للمراجعة فقط، ولا يتم تطبيقها تلقائيًا إلا بعد اعتماد المسؤول.</p>
+                      {runIsFinal && (
+                        <Button variant="secondary" onClick={() => printPayrollSignatureSheet()}>طباعة كشف تسليم الرواتب</Button>
+                      )}
+                    </div>
                     <DataTable
                       rows={filteredRunItems}
                       rowKey={(row) => String(row.id)}

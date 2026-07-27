@@ -22,3 +22,8 @@ When applying the "Document Prototype" spirit to a page to maintain visual consi
 2. The user makes changes in bulk and will explicitly tell you when they are ready to run builds or push code.
 3. Even if a task seems "complete", DO NOT run these commands. Wait for the user to say "اعمل رن بيلد" or "كوميت وبوش".
 4. Keep this rule strictly in mind and do not assume you should finalize code with a build/commit/push cycle unless the user's prompt explicitly requests it.
+
+## Consultation & Discussion Rules
+1. **Always Consult Before Execution on Workflow/Logic Questions**: If the user asks a question about workflows, next steps, "what should I do next?", or why something is happening (e.g., "why is it showing employees without salaries?"), you MUST act purely as an advisor first.
+2. **Do Not Auto-Execute**: Discuss the proposed solution, explain the reasoning, and wait for the user to explicitly say "���" (execute) or confirm the approach before you modify any files or run commands.
+3. This applies even if the prompt does not contain a literal question mark, as long as the phrasing implies a conceptual question or a request for clarification.

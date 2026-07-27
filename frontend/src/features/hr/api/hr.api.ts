@@ -139,6 +139,7 @@ export const hrApi = {
   applyAttendanceDeductions: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/apply-attendance-deductions`, { method: 'POST' }),
   approvePayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/approve`, { method: 'POST' }),
   cancelPayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/cancel`, { method: 'POST' }),
+  payPayrollRun: (id: string, payload: { paymentChannel: string }) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/pay`, { method: 'POST', body: JSON.stringify(payload) }),
   updatePayrollRunItem: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   createPayrollAdjustment: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}/adjustments`, { method: 'POST', body: JSON.stringify(payload) }),
   deletePayrollAdjustment: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-item-adjustments/${id}`, { method: 'DELETE' }),
@@ -151,5 +152,6 @@ export const hrApi = {
   saveHoliday: (payload: unknown, id?: string) => http(`/api/hr/holidays${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   deleteHoliday: (id: string) => http(`/api/hr/holidays/${id}`, { method: 'DELETE' }),
 };
+
 
 
