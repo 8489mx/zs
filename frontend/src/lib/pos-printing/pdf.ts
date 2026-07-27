@@ -28,6 +28,7 @@ function buildPostedSaleDocument(sale: Sale, settings?: Partial<AppSettings> | n
       qty: Number(item.qty || 0),
       price: Number(item.price || 0),
       total: Number(item.total || 0),
+      modifiers: item.modifiers,
     })),
     subtotal: Number(sale.subTotal || 0),
     discount: Number(sale.discount || 0),
