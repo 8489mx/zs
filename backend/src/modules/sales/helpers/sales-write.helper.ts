@@ -52,7 +52,8 @@ export function buildPreparedSaleItem(
     throw new AppError(`Insufficient stock for ${productName || `#${item.productId}`}`, 'INSUFFICIENT_STOCK', 400);
   }
 
-  const lineTotal = roundCurrency(Number(item.qty || 0) * Number(item.price || 0));
+  const modifiersTotal = (item.modifiers || []).reduce((sum: number, mod: any) => sum + Number(mod.price || 0), 0);
+  const lineTotal = roundCurrency(Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal));
   return {
     productId: Number(product.id || item.productId),
     productName,
