@@ -115,6 +115,13 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           <option value="unsettled">معلق (لم يسدد)</option>
         </select>
 
+        <Button 
+          variant="secondary" 
+          onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus('unsettled'); }}
+          style={{ background: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe' }}
+        >
+          عرض كل الطلبات المعلقة
+        </Button>
         {(filterDateFrom || filterDateTo || filterStatus) && (
           <Button variant="secondary" onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus(''); }}>
             مسح الفلاتر
