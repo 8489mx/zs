@@ -28,7 +28,10 @@ export function paymentLabel(paymentType: PaymentType, paymentChannel: string) {
 }
 
 export function computeDraftTotal(draft: PosDraftSnapshot) {
-  return draft.cart.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.price || 0)), 0) - Number(draft.discount || 0);
+  return draft.cart.reduce((sum, item) => {
+    const modifiersTotal = (item.modifiers || []).reduce((modSum: number, mod: any) => modSum + Number(mod.price || 0), 0);
+    return sum + (Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal));
+  }, 0) - Number(draft.discount || 0);
 }
 
 export function matchProductByCode(products: Product[], rawCode: string) {

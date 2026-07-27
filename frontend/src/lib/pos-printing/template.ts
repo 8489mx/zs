@@ -98,17 +98,24 @@ function renderMetaPanel(rows: Array<{ label: string; value?: string | number | 
   `;
 }
 
-function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number }>, compact = false, settings?: Partial<AppSettings> | null) {
-  const body = (items || []).map((item, index) => `
+function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[] }>, compact = false, settings?: Partial<AppSettings> | null) {
+  const body = (items || []).map((item, index) => {
+    const modifiersHtml = item.modifiers?.length 
+      ? `<div class="item-modifiers" style="font-size: 0.85em; color: #555; margin-top: 2px;">
+          ${item.modifiers.map((mod: any) => `+ ${escapeHtml(mod.name)} ${mod.qty > 1 ? `(x${mod.qty})` : ''}`).join('<br/>')}
+         </div>`
+      : '';
+    return `
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
-      <td class="name-cell">${escapeHtml(item.name || '—')}</td>
+      <td class="name-cell">${escapeHtml(item.name || '—')}${modifiersHtml}</td>
       ${compact ? '' : `<td>${escapeHtml(item.unitName || 'قطعة')}</td>`}
       <td>${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
       <td>${formatReceiptMoney(Number(item.price || 0), settings)}</td>
       <td>${formatReceiptMoney(Number(item.total || 0), settings)}</td>
     </tr>
-  `).join('');
+    `;
+  }).join('');
 
   return `
     <section class="invoice-card invoice-items-card${compact ? ' compact' : ''}">
@@ -296,7 +303,7 @@ export function buildReceiptDocument(options: {
   orderType?: string | null;
   deliveryRepName?: string;
   note?: string;
-  items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number }>;
+  items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[] }>;
   subtotal: number;
   discount: number;
   taxAmount: number;

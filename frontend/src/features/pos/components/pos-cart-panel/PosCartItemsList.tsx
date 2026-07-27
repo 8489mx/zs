@@ -60,7 +60,8 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
         {cart.map((item, index) => {
           const isSelected = selectedLineKey === item.lineKey;
           const isRecent = lastAddedLineKey === item.lineKey;
-          const lineTotal = item.qty * item.price;
+          const modifiersTotal = (item.modifiers || []).reduce((sum, mod) => sum + Number(mod.price || 0), 0);
+          const lineTotal = item.qty * (item.price + modifiersTotal);
           const itemCode = String(item.itemCode || '').trim();
           const isWeightedLine = item.isWeighted === true;
           const minQty = isWeightedLine ? 0.001 : 1;

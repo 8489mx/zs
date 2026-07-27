@@ -125,7 +125,10 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   }, [panelSourceProducts, params.productFilter, recentProductIdSet]);
 
   const totals = useMemo(() => {
-    const subTotal = params.cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    const subTotal = params.cart.reduce((sum, item) => {
+      const modifiersTotal = (item.modifiers || []).reduce((modSum: number, mod: any) => modSum + Number(mod.price || 0), 0);
+      return sum + (item.qty * (item.price + modifiersTotal));
+    }, 0);
     const discountValue = Math.max(0, Number(params.discount || 0));
     const taxRate = Number(params.settings?.taxRate || 0);
     const pricesIncludeTax = String(params.settings?.taxMode || 'exclusive') === 'inclusive';
