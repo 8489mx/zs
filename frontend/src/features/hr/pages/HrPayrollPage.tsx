@@ -1,4 +1,4 @@
-﻿import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -445,12 +445,7 @@ export function HrPayrollPage() {
               color: #334155; border-bottom: 2px solid #94a3b8; 
             }
             .table tbody tr:nth-child(even) { background-color: #fbfcfd; }
-            .totals { 
-              margin-top: 20px; font-weight: 700; font-size: 18px; 
-              text-align: left; padding: 15px 20px; 
-              background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px;
-              color: #0f172a; display: inline-block; float: left;
-            }
+
             .footer { 
               margin-top: 60px; display: flex; justify-content: space-between; 
               padding-top: 25px; clear: both; page-break-inside: avoid;
@@ -489,10 +484,14 @@ export function HrPayrollPage() {
                 </tr>
               `).join('')}
             </tbody>
+            <tfoot>
+              <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 15px;">
+                <td colspan="3" style="text-align: left; padding: 12px 14px; border: 1px solid #cbd5e1; color: #0f172a;">إجمالي الرواتب المستحقة:</td>
+                <td class="amount" style="padding: 12px 14px; border: 1px solid #cbd5e1; color: #0f172a; font-size: 16px;">${money(summary.totalNet)}</td>
+                <td style="border: 1px solid #cbd5e1; background-color: #f8fafc;"></td>
+              </tr>
+            </tfoot>
           </table>
-          <div class="totals">
-            إجمالي الرواتب: <span class="amount">${money(summary.totalNet)}</span>
-          </div>
           <div class="footer">
             <div class="signature-box">
               <div class="title">إعداد الموارد البشرية</div>
@@ -810,5 +809,6 @@ export function HrPayrollPage() {
     </div>
   );
 }
+
 
 
