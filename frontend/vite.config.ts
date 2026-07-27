@@ -39,6 +39,7 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('jspdf')) return 'vendor-jspdf';
           if (id.includes('html2canvas')) return 'vendor-html2canvas';
+          if (id.includes('recharts')) return 'vendor-recharts';
           if (id.includes('/react/') || id.includes('/react-dom/')) return 'vendor-react';
           if (id.includes('react-router')) return 'vendor-router';
           if (id.includes('@tanstack/react-query')) return 'vendor-query';
