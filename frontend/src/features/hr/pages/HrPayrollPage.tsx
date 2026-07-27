@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+﻿import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -219,55 +219,72 @@ export function HrPayrollPage() {
         <head>
           <title>مفردات مرتب (ملخص) - ${text(row.employeeName)}</title>
           <style>
-            @page { size: A4 portrait; margin: 15mm; }
-            body { font-family: Tahoma, Arial, sans-serif; padding: 0; margin: 0; color: #333; line-height: 1.5; }
-            .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-            .header h1 { margin: 0; color: #222; font-size: 22px; }
-            .header p { margin: 5px 0 0; color: #666; }
+            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+            @page { size: A4 portrait; margin: 10mm; }
+            body { 
+              font-family: 'Tajawal', Tahoma, Arial, sans-serif; 
+              padding: 0; margin: 0; color: #1e293b; line-height: 1.5; 
+              -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            .container { max-width: 100%; box-sizing: border-box; }
+            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { margin: 0; color: #0f172a; font-size: 22px; font-weight: 700; }
+            .header p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
             .details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-            .details div { background: #f9f9f9; padding: 12px; border-radius: 6px; }
-            .details strong { display: inline-block; width: 110px; }
-            .section-title { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 12px; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .table th, .table td { padding: 8px; text-align: right; border-bottom: 1px solid #eee; font-size: 14px; }
-            .table th { background: #f5f5f5; font-weight: bold; }
-            .totals { background: #f0f7ff; padding: 15px; border-radius: 6px; font-size: 15px; }
+            .details div { background: #fdfdfd; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+            .details p { margin: 6px 0; font-size: 13px; }
+            .details strong { display: inline-block; width: 110px; color: #475569; }
+            .section-title { font-size: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 10px; color: #0f172a; font-weight: 700; }
+            .totals { background: #fdfdfd; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 14px; }
             .totals .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-            .totals .total { font-weight: bold; font-size: 18px; color: #0d47a1; margin-top: 10px; padding-top: 10px; border-top: 2px solid #ccc; }
-            .footer { margin-top: 30px; display: flex; justify-content: space-between; padding-top: 15px; border-top: 1px dashed #ccc; }
+            .totals .row span { font-weight: 500; }
+            .totals .total { font-weight: 700; font-size: 18px; color: #16a34a; margin-top: 10px; padding-top: 10px; border-top: 2px solid #e2e8f0; }
+            .footer { margin-top: 40px; display: flex; justify-content: space-around; padding-top: 20px; }
+            .signature-box { text-align: center; width: 40%; }
+            .signature-box .title { font-weight: 700; color: #475569; margin-bottom: 30px; }
+            .signature-box .line { border-bottom: 1px dashed #cbd5e1; width: 80%; margin: 0 auto; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>مفردات الراتب (ملخص)</h1>
-            <p>عن شهر: ${text(selectedRun?.periodMonth)}</p>
-          </div>
-          <div class="details">
-            <div>
-              <div class="section-title">بيانات الموظف</div>
-              <p><strong>اسم الموظف:</strong> ${text(row.employeeName)}</p>
-              <p><strong>كود الموظف:</strong> ${text(row.employeeNo)}</p>
-              <p><strong>القسم:</strong> ${text(employeesMap.get(String(row.employeeId))?.departmentName)}</p>
-              <p><strong>نوع الأجر:</strong> ${normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</p>
+          <div class="container">
+            <div class="header">
+              <h1>مفردات الراتب (ملخص)</h1>
+              <p>خاص بشهر: ${text(selectedRun?.periodMonth)}</p>
             </div>
-            <div>
-              <div class="section-title">ملخص الحضور</div>
-              <p><strong>أيام الغياب:</strong> ${Number(row.attendanceAbsentDays || 0)} يوم</p>
-              <p><strong>أيام التأخير:</strong> ${Number(row.attendanceLateDays || 0)} يوم</p>
-              <p><strong>إجازات بدون راتب:</strong> ${Number(row.unpaidLeaveDays || 0)} يوم</p>
+            <div class="details">
+              <div>
+                <div class="section-title">بيانات الموظف الأساسية</div>
+                <p><strong>اسم الموظف:</strong> ${text(row.employeeName)}</p>
+                <p><strong>كود الموظف:</strong> ${text(row.employeeNo)}</p>
+                <p><strong>القسم:</strong> ${text(employeesMap.get(String(row.employeeId))?.departmentName)}</p>
+              </div>
+              <div>
+                <div class="section-title">ملخص الحضور والانصراف</div>
+                <p><strong>أيام الغياب:</strong> ${Number(row.attendanceAbsentDays || 0)} يوم</p>
+                <p><strong>أيام التأخير:</strong> ${Number(row.attendanceLateDays || 0)} يوم</p>
+                <p><strong>إجازات بدون راتب:</strong> ${Number(row.unpaidLeaveDays || 0)} يوم</p>
+              </div>
             </div>
-          </div>
-          <div class="totals">
-            <div class="section-title" style="border:none; margin:0 0 15px;">الاستحقاقات والاستقطاعات</div>
-            <div class="row"><strong>الراتب الأساسي:</strong> <span>${row.baseSalary || 0} ج.م</span></div>
-            <div class="row"><strong>إجمالي البدلات والإضافي:</strong> <span>${row.allowanceAmount || 0} ج.م</span></div>
-            <div class="row"><strong>إجمالي الخصومات (تأخير/غياب):</strong> <span style="color:#d32f2f">-${row.deductionAmount || 0} ج.م</span></div>
-            <div class="row"><strong>أقساط السلف:</strong> <span style="color:#d32f2f">-${row.loanDeductionAmount || 0} ج.م</span></div>
-            <div class="row total"><strong>صافي الراتب المستحق:</strong> <span>${row.netPay || 0} ج.م</span></div>
-          </div>
-          <div class="footer">
-            <div>توقيع الموظف: ___________________</div>
-            <div>توقيع المدير: ___________________</div>
+            
+            <div class="totals">
+              <div class="section-title" style="border:none; margin:0 0 15px;">الحساب النهائي (الاستحقاقات والاستقطاعات)</div>
+              <div class="row"><strong class="muted">الراتب الأساسي:</strong> <span>${money(row.baseSalary)}</span></div>
+              <div class="row"><strong class="muted">إجمالي البدلات والمكافآت:</strong> <span>${money(row.allowanceAmount)}</span></div>
+              <div class="row"><strong class="muted">الخصومات (تأخير وغياب):</strong> <span style="color:#dc2626">-${money(row.deductionAmount)}</span></div>
+              <div class="row"><strong class="muted">أقساط السلف المستحقة:</strong> <span style="color:#dc2626">-${money(row.loanDeductionAmount)}</span></div>
+              <div class="row total"><strong>صافي الراتب المستحق:</strong> <span>${money(row.netPay)}</span></div>
+            </div>
+
+            <div class="footer">
+              <div class="signature-box">
+                <div class="title">توقيع الموظف</div>
+                <div class="line"></div>
+              </div>
+              <div class="signature-box">
+                <div class="title">توقيع المدير</div>
+                <div class="line"></div>
+              </div>
+            </div>
           </div>
           <script>
             setTimeout(() => { window.print(); window.close(); }, 500);
@@ -278,7 +295,6 @@ export function HrPayrollPage() {
     printWindow.document.close();
     printWindow.focus();
   };
-
   const printPayslipDetailed = (row: HrPayrollRunItem) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -287,80 +303,101 @@ export function HrPayrollPage() {
         <head>
           <title>مفردات مرتب (تفصيلي) - ${text(row.employeeName)}</title>
           <style>
-            @page { size: A4 portrait; margin: 15mm; }
-            body { font-family: Tahoma, Arial, sans-serif; padding: 0; margin: 0; color: #333; line-height: 1.5; }
-            .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-            .header h1 { margin: 0; color: #222; font-size: 22px; }
-            .header p { margin: 5px 0 0; color: #666; }
-            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-            .details div { background: #f9f9f9; padding: 12px; border-radius: 6px; }
-            .details strong { display: inline-block; width: 110px; }
-            .section-title { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 12px; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .table th, .table td { padding: 8px; text-align: right; border-bottom: 1px solid #eee; font-size: 14px; }
-            .table th { background: #f5f5f5; font-weight: bold; }
-            .totals { background: #f0f7ff; padding: 15px; border-radius: 6px; font-size: 15px; }
-            .totals .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-            .totals .total { font-weight: bold; font-size: 18px; color: #0d47a1; margin-top: 10px; padding-top: 10px; border-top: 2px solid #ccc; }
-            .footer { margin-top: 30px; display: flex; justify-content: space-between; padding-top: 15px; border-top: 1px dashed #ccc; }
-            .notes { background: #fffde7; padding: 12px; border-left: 4px solid #fbc02d; margin-bottom: 15px; font-size: 14px; }
+            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+            @page { size: A4 portrait; margin: 10mm; }
+            body { 
+              font-family: 'Tajawal', Tahoma, Arial, sans-serif; 
+              padding: 0; margin: 0; color: #1e293b; line-height: 1.5; 
+              -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            .container { max-width: 100%; box-sizing: border-box; }
+            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; }
+            .header h1 { margin: 0; color: #0f172a; font-size: 20px; font-weight: 700; }
+            .header p { margin: 4px 0 0; color: #64748b; font-size: 13px; }
+            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+            .details div { background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; }
+            .details p { margin: 5px 0; font-size: 12px; }
+            .details strong { display: inline-block; width: 100px; color: #475569; }
+            .section-title { font-size: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px; color: #0f172a; font-weight: 700; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+            .table th, .table td { padding: 6px; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 12px; border: 1px solid #e2e8f0; }
+            .table th { background: #f8fafc; font-weight: 700; color: #475569; }
+            .notes { background: #fffbeb; padding: 10px; border-right: 3px solid #f59e0b; border-radius: 4px; margin-bottom: 15px; font-size: 12px; color: #92400e; }
+            .totals { background: #fdfdfd; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px; }
+            .totals .row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+            .totals .row span { font-weight: 500; }
+            .totals .total { font-weight: 700; font-size: 16px; color: #16a34a; margin-top: 8px; padding-top: 8px; border-top: 2px solid #e2e8f0; }
+            .footer { margin-top: 30px; display: flex; justify-content: space-around; padding-top: 15px; }
+            .signature-box { text-align: center; width: 40%; }
+            .signature-box .title { font-weight: 700; color: #475569; margin-bottom: 25px; font-size: 13px; }
+            .signature-box .line { border-bottom: 1px dashed #cbd5e1; width: 80%; margin: 0 auto; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>مفردات الراتب (تفصيلي)</h1>
-            <p>عن شهر: ${text(selectedRun?.periodMonth)}</p>
-          </div>
-          <div class="details">
-            <div>
-              <div class="section-title">بيانات الموظف الأساسية</div>
-              <p><strong>اسم الموظف:</strong> ${text(row.employeeName)}</p>
-              <p><strong>كود الموظف:</strong> ${text(row.employeeNo)}</p>
-              <p><strong>القسم:</strong> ${text(employeesMap.get(String(row.employeeId))?.departmentName)}</p>
+          <div class="container">
+            <div class="header">
+              <h1>مفردات الراتب (تفصيلي)</h1>
+              <p>خاص بشهر: ${text(selectedRun?.periodMonth)}</p>
             </div>
-            <div>
-              <div class="section-title">بيانات التعاقد</div>
-              <p><strong>نوع الأجر:</strong> ${normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</p>
-              <p><strong>الراتب الأساسي:</strong> ${row.baseSalary || 0} ج.م</p>
-              ${normalize(row.compensationType) === 'hourly' ? '<p><strong>سعر الساعة:</strong> ' + (row.hourlyRate || 0) + ' ج.م</p>' : ''}
+            
+            <div class="details">
+              <div>
+                <div class="section-title">بيانات الموظف الأساسية</div>
+                <p><strong>اسم الموظف:</strong> ${text(row.employeeName)}</p>
+                <p><strong>كود الموظف:</strong> ${text(row.employeeNo)}</p>
+                <p><strong>القسم:</strong> ${text(employeesMap.get(String(row.employeeId))?.departmentName)}</p>
+              </div>
+              <div>
+                <div class="section-title">بيانات التعاقد</div>
+                <p><strong>نوع الأجر:</strong> ${normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</p>
+                <p><strong>الراتب الأساسي:</strong> ${money(row.baseSalary)}</p>
+                ${normalize(row.compensationType) === 'hourly' ? '<p><strong>سعر الساعة:</strong> ' + money(row.hourlyRate || 0) + '</p>' : ''}
+              </div>
             </div>
-          </div>
 
-          <div class="section-title">تفاصيل الحضور والانصراف خلال الشهر</div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>أيام الحضور</th>
-                <th>أيام الغياب</th>
-                <th>أيام التأخير</th>
-                <th>انصراف مبكر</th>
-                <th>إجازات بدون راتب</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>غير متاح</td>
-                <td>${Number(row.attendanceAbsentDays || 0)} يوم</td>
-                <td>${Number(row.attendanceLateDays || 0)} يوم</td>
-                <td>${Number(row.attendanceEarlyLeaveDays || 0)} يوم</td>
-                <td>${Number(row.unpaidLeaveDays || 0)} يوم</td>
-              </tr>
-            </tbody>
-          </table>
+            <div class="section-title" style="border: none; margin-bottom: 6px;">تفاصيل الحضور والانصراف خلال الشهر</div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>أيام الحضور</th>
+                  <th>أيام الغياب</th>
+                  <th>أيام التأخير</th>
+                  <th>انصراف مبكر</th>
+                  <th>إجازات بدون راتب</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>غير متاح</td>
+                  <td>${Number(row.attendanceAbsentDays || 0)} يوم</td>
+                  <td>${Number(row.attendanceLateDays || 0)} يوم</td>
+                  <td>${Number(row.attendanceEarlyLeaveDays || 0)} يوم</td>
+                  <td>${Number(row.unpaidLeaveDays || 0)} يوم</td>
+                </tr>
+              </tbody>
+            </table>
 
-          ${row.payrollReviewNotes ? '<div class="notes"><strong>ملاحظات الحضور والإجازات:</strong><br/>' + text(row.payrollReviewNotes) + '</div>' : ''}
+            ${row.payrollReviewNotes ? '<div class="notes"><strong>ملاحظات الحضور والإجازات:</strong><br/>' + text(row.payrollReviewNotes) + '</div>' : ''}
 
-          <div class="totals">
-            <div class="section-title" style="border:none; margin:0 0 15px;">الحساب النهائي (الاستحقاقات والاستقطاعات)</div>
-            <div class="row"><strong>الراتب الأساسي:</strong> <span>${row.baseSalary || 0} ج.م</span></div>
-            <div class="row"><strong>إجمالي البدلات والمكافآت (الإضافي):</strong> <span>${row.allowanceAmount || 0} ج.م</span></div>
-            <div class="row"><strong>إجمالي الاستقطاعات (غياب/تأخير/جزاءات):</strong> <span style="color:#d32f2f">-${row.deductionAmount || 0} ج.م</span></div>
-            <div class="row"><strong>أقساط السلف المستحقة:</strong> <span style="color:#d32f2f">-${row.loanDeductionAmount || 0} ج.م</span></div>
-            <div class="row total"><strong>صافي الراتب المستحق:</strong> <span>${row.netPay || 0} ج.م</span></div>
-          </div>
-          <div class="footer">
-            <div>توقيع الموظف: ___________________</div>
-            <div>توقيع المدير: ___________________</div>
+            <div class="totals">
+              <div class="section-title" style="border:none; margin:0 0 10px;">الحساب النهائي (الاستحقاقات والاستقطاعات)</div>
+              <div class="row"><strong class="muted">الراتب الأساسي:</strong> <span>${money(row.baseSalary)}</span></div>
+              <div class="row"><strong class="muted">إجمالي البدلات والمكافآت (الإضافي):</strong> <span>${money(row.allowanceAmount)}</span></div>
+              <div class="row"><strong class="muted">إجمالي الاستقطاعات (غياب/تأخير/جزاءات):</strong> <span style="color:#dc2626">-${money(row.deductionAmount)}</span></div>
+              <div class="row"><strong class="muted">أقساط السلف المستحقة:</strong> <span style="color:#dc2626">-${money(row.loanDeductionAmount)}</span></div>
+              <div class="row total"><strong>صافي الراتب المستحق:</strong> <span>${money(row.netPay)}</span></div>
+            </div>
+
+            <div class="footer">
+              <div class="signature-box">
+                <div class="title">توقيع الموظف</div>
+                <div class="line"></div>
+              </div>
+              <div class="signature-box">
+                <div class="title">توقيع المدير</div>
+                <div class="line"></div>
+              </div>
+            </div>
           </div>
           <script>
             setTimeout(() => { window.print(); window.close(); }, 500);
@@ -371,7 +408,6 @@ export function HrPayrollPage() {
     printWindow.document.close();
     printWindow.focus();
   };
-
   const printPayrollSignatureSheet = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -645,61 +681,97 @@ export function HrPayrollPage() {
                     />
 
                     {selectedReviewItem && (
-                      <DialogShell open={true} onClose={() => setSelectedReviewItem(null)} width="1000px">
+                      <DialogShell open={true} onClose={() => setSelectedReviewItem(null)} width="500px">
                         <div style={{ padding: '24px' }}>
-                          <h2 style={{ marginTop: 0 }}>مراجعة وتفاصيل المرتب</h2>
-                          <p className="muted">الموظف: {text(selectedReviewItem.employeeName)} ({text(selectedReviewItem.employeeNo)})</p>
-                          
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px 24px', fontSize: '14px', marginTop: '16px' }}>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
-                              <strong className="muted">الراتب الأساسي:</strong> <span>{canViewSalaryAmounts ? money(selectedReviewItem.baseSalary) : '—'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
-                              <strong className="muted">البدلات والإضافي:</strong> <span>{canViewSalaryAmounts ? money(selectedReviewItem.allowanceAmount) : '—'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
-                              <strong className="muted">الخصومات (تأخير وغياب):</strong> <span>{canViewSalaryAmounts ? money(selectedReviewItem.deductionAmount) : '—'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
-                              <strong className="muted">السلف والأقساط:</strong> <span>{canViewSalaryAmounts ? money(selectedReviewItem.loanDeductionAmount) : '—'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', gridColumn: '1 / -1', background: 'var(--surface-100)', paddingInline: '12px', borderRadius: '4px' }}>
-                              <strong style={{ fontSize: '15px' }}>صافي الراتب:</strong> <span style={{ fontWeight: 'bold', color: 'var(--green-700)', fontSize: '15px' }}>{canViewSalaryAmounts ? money(selectedReviewItem.netPay) : '—'}</span>
-                            </div>
-                            
-                            <hr style={{ gridColumn: '1 / -1', margin: '8px 0', border: 'none' }} />
-                            
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
-                              <strong className="muted">نوع الأجر:</strong> <span>{normalize(selectedReviewItem.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
-                              <strong className="muted">أجر الساعة:</strong> <span>{normalize(selectedReviewItem.compensationType) === 'hourly' ? (canViewSalaryAmounts ? money(selectedReviewItem.hourlyRate || 0) : '—') : 'غير متاح'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
-                              <strong className="muted">ساعات العمل اليومية:</strong> <span>{normalize(selectedReviewItem.compensationType) === 'hourly' ? String(selectedReviewItem.expectedDailyHours || 0) : 'غير متاح'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
-                              <strong className="muted">تنبيهات عامة:</strong> <span>{reviewFlagText(selectedReviewItem) || '—'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
-                              <strong className="muted">ملاحظات مراجعة الحضور:</strong> 
-                              <span style={{ color: 'var(--red-600)' }}>{text(selectedReviewItem.payrollReviewNotes) || 'لا توجد ملاحظات'}</span>
-                            </div>
-                            <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
-                              <strong className="muted">ملاحظات إضافية:</strong> 
-                              <span>{text(selectedReviewItem.notes) || '—'}</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                            <h2 style={{ margin: 0, color: 'var(--text-color)', fontSize: '20px' }}>تفاصيل المرتب</h2>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                              <p style={{ margin: 0, fontWeight: 'bold', fontSize: '15px', color: 'var(--text-color)' }}>{text(selectedReviewItem.employeeName)}</p>
+                              <span className="muted" style={{ fontSize: '13px' }}>كود: {text(selectedReviewItem.employeeNo)}</span>
                             </div>
                           </div>
 
-                          {runIsFinal && (
-                            <div style={{ marginTop: '24px', display: 'flex', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                              <Button variant="secondary" onClick={() => printPayslipSummary(selectedReviewItem)}>طباعة مفردات مرتب (ملخص)</Button>
-                              <Button variant="secondary" onClick={() => printPayslipDetailed(selectedReviewItem)}>طباعة مفردات مرتب (تفصيلي)</Button>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px', background: '#f8fafc' }}>
+                              <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', color: 'var(--text-color)' }}>الحساب النهائي</h3>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
+                                  <span className="muted">الراتب الأساسي:</span>
+                                  <span style={{ fontWeight: '500' }}>{canViewSalaryAmounts ? money(selectedReviewItem.baseSalary) : '—'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
+                                  <span className="muted">البدلات والإضافي:</span>
+                                  <span style={{ fontWeight: '500' }}>{canViewSalaryAmounts ? money(selectedReviewItem.allowanceAmount) : '—'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
+                                  <span className="muted">الخصومات (تأخير وغياب):</span>
+                                  <span style={{ fontWeight: '500', color: 'var(--red-600)' }}>{canViewSalaryAmounts ? money(selectedReviewItem.deductionAmount) : '—'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
+                                  <span className="muted">السلف والأقساط:</span>
+                                  <span style={{ fontWeight: '500', color: 'var(--red-600)' }}>{canViewSalaryAmounts ? money(selectedReviewItem.loanDeductionAmount) : '—'}</span>
+                                </div>
+                              </div>
+                              
+                              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>صافي الراتب المستحق:</span>
+                                <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--green-700)' }}>{canViewSalaryAmounts ? money(selectedReviewItem.netPay) : '—'}</span>
+                              </div>
                             </div>
-                          )}
 
-                          <div style={{ marginTop: '24px', textAlign: 'left' }}>
-                            <Button variant="primary" onClick={() => setSelectedReviewItem(null)}>إغلاق</Button>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                              <div>
+                                <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>نوع الأجر</div>
+                                <div style={{ fontWeight: '500', fontSize: '14px' }}>{normalize(selectedReviewItem.compensationType) === 'hourly' ? 'أجر بالساعة/اليوم' : 'راتب شهري'}</div>
+                              </div>
+                              {normalize(selectedReviewItem.compensationType) === 'hourly' && (
+                                <>
+                                  <div>
+                                    <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>أجر الساعة/اليوم</div>
+                                    <div style={{ fontWeight: '500', fontSize: '14px' }}>{canViewSalaryAmounts ? money(selectedReviewItem.hourlyRate || 0) : '—'}</div>
+                                  </div>
+                                  <div>
+                                    <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>ساعات العمل اليومية</div>
+                                    <div style={{ fontWeight: '500', fontSize: '14px' }}>{selectedReviewItem.expectedDailyHours || 0}</div>
+                                  </div>
+                                </>
+                              )}
+                              <div>
+                                <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>تنبيهات عامة</div>
+                                <div style={{ fontWeight: '500', fontSize: '14px', color: reviewFlagText(selectedReviewItem) ? 'var(--orange-600)' : 'inherit' }}>
+                                  {reviewFlagText(selectedReviewItem) || 'لا يوجد'}
+                                </div>
+                              </div>
+                            </div>
+
+                            {(selectedReviewItem.payrollReviewNotes || selectedReviewItem.notes) && (
+                              <div style={{ background: 'var(--yellow-50)', padding: '16px', borderRadius: '8px', borderRight: '4px solid var(--yellow-400)' }}>
+                                {selectedReviewItem.payrollReviewNotes && (
+                                  <div style={{ marginBottom: selectedReviewItem.notes ? '12px' : '0' }}>
+                                    <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--yellow-800)', fontSize: '13px' }}>ملاحظات مراجعة الحضور:</strong>
+                                    <span style={{ color: 'var(--yellow-900)', fontSize: '14px' }}>{text(selectedReviewItem.payrollReviewNotes)}</span>
+                                  </div>
+                                )}
+                                {selectedReviewItem.notes && (
+                                  <div>
+                                    <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--yellow-800)', fontSize: '13px' }}>ملاحظات إضافية:</strong>
+                                    <span style={{ color: 'var(--yellow-900)', fontSize: '14px' }}>{text(selectedReviewItem.notes)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <Button variant="primary" onClick={() => setSelectedReviewItem(null)}>إغلاق</Button>
+                            </div>
+                            {runIsFinal && (
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <Button variant="secondary" onClick={() => printPayslipSummary(selectedReviewItem)}>ملخص (A4)</Button>
+                                <Button variant="secondary" onClick={() => printPayslipDetailed(selectedReviewItem)}>تفصيلي (A4)</Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </DialogShell>
@@ -738,4 +810,5 @@ export function HrPayrollPage() {
     </div>
   );
 }
+
 
