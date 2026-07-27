@@ -102,7 +102,7 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
   const body = (items || []).map((item, index) => {
     const modifiersHtml = item.modifiers?.length 
       ? `<div class="item-modifiers" style="font-size: 0.85em; color: #555; margin-top: 2px;">
-          ${item.modifiers.map((mod: any) => `+ ${escapeHtml(mod.name)} ${mod.qty > 1 ? `(x${mod.qty})` : ''}`).join('<br/>')}
+          ${item.modifiers.map((mod: any) => `<strong style="color: #111;">[إضافة]</strong> ${escapeHtml(mod.name)} ${mod.qty > 1 ? `(x${mod.qty})` : ''}`).join('<br/>')}
          </div>`
       : '';
     return `
