@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, CSSProperties } from 'react';
 
 export type StatsGridItem = {
   key: string;
@@ -6,9 +6,9 @@ export type StatsGridItem = {
   value: ReactNode;
 };
 
-export function StatsGrid({ items, className = 'stats-grid compact-grid' }: { items: readonly StatsGridItem[]; className?: string }) {
+export function StatsGrid({ items, className = 'stats-grid compact-grid', style }: { items: readonly StatsGridItem[]; className?: string; style?: CSSProperties }) {
   return (
-    <div className={className}>
+    <div className={className} style={style}>
       {items.map((item) => (
         <div key={item.key} className="stat-card">
           <span>{item.label}</span>

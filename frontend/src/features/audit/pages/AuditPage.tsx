@@ -134,7 +134,7 @@ export function AuditPage() {
             </select>
           </Field>
         </SearchToolbar>
-        <StatsGrid items={stats} />
+        <StatsGrid items={stats} style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }} />
         <QueryFeedback
           isLoading={query.isLoading || usersQuery.isLoading}
           isError={query.isError || usersQuery.isError}

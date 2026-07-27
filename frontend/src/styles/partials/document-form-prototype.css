@@ -1024,8 +1024,8 @@
   display: grid;
   gap: 0.9rem;
   margin: 0.7rem auto 0;
-  max-width: 1120px;
-  width: min(100%, 1120px);
+  max-width: 1280px;
+  width: min(100%, 1280px);
 }
 
 .purchase-prototype-sticky-stack.is-scrolled .purchase-prototype-workspace-toolbar {
