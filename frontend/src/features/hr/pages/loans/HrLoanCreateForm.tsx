@@ -1,4 +1,6 @@
-﻿import { Button } from '@/shared/ui/button';
+import { useState, useEffect } from 'react';
+import { Button } from '@/shared/ui/button';
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import type { HrEmployee } from '@/types/domain';
 import {
   employeeName,
@@ -39,21 +41,45 @@ export function HrLoanCreateForm({
   onChange,
   onSubmit,
 }: HrLoanCreateFormProps) {
+  const [employeeQuery, setEmployeeQuery] = useState('');
+
+  useEffect(() => {
+    if (loanDraft.employeeId) {
+      const emp = employees.find(e => String(e.id) === String(loanDraft.employeeId));
+      if (emp) {
+        setEmployeeQuery(employeeName(emp));
+      }
+    } else {
+      setEmployeeQuery('');
+    }
+  }, [loanDraft.employeeId, employees]);
+
   if (!canManageLoans) {
     return <p className="muted" style={{ margin: 0 }}>لا تملك صلاحية تنفيذ هذا الإجراء.</p>;
   }
 
   return (
     <form className="form-grid" onSubmit={(event) => { event.preventDefault(); onSubmit(); }}>
-      <label className="field">
-        <span>الموظف *</span>
-        <select value={loanDraft.employeeId} onChange={(event) => onChange({ employeeId: event.target.value })}>
-          <option value="">اختر الموظف</option>
-          {employees.map((row) => (
-            <option key={String(row.id)} value={String(row.id)}>{employeeName(row)}</option>
-          ))}
-        </select>
-      </label>
+      <SearchableCombobox
+        label="الموظف *"
+        placeholder="اختر الموظف..."
+        value={employeeQuery}
+        onChange={(q) => {
+          setEmployeeQuery(q);
+          if (!q) onChange({ employeeId: '' });
+        }}
+        onSelect={(row) => {
+          setEmployeeQuery(employeeName(row));
+          onChange({ employeeId: String(row.id) });
+        }}
+        options={employees}
+        search={(row, q) => {
+          const query = q.toLowerCase();
+          return employeeName(row).toLowerCase().includes(query) || 
+                 String(row.employeeNo || '').toLowerCase().includes(query);
+        }}
+        getLabel={(row) => employeeName(row)}
+      />
       <label className="field">
         <span>نوع السلفة</span>
         <select value={loanDraft.loanType} onChange={(event) => onChange({ loanType: event.target.value })}>
