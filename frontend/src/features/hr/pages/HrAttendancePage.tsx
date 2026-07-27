@@ -10,6 +10,7 @@ import { getErrorMessage } from '@/lib/errors';
 import type { HrAttendanceException, HrAttendanceRecord } from '@/types/domain';
 import { useHrAttendance, useHrAttendanceExceptions, useHrMutations } from '@/features/hr/hooks/useHr';
 import { ImportWorkbench } from '@/shared/components/ImportWorkbench';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 type DraftRow = {
   employeeId: string;
@@ -54,6 +55,8 @@ function exceptionTypeLabel(value: string) {
     case 'late_check_out': return 'انصراف متأخر';
     case 'missing_check_in': return 'حضور غير مسجل';
     case 'missing_check_out': return 'انصراف غير مسجل';
+    case 'extra_hours': return 'ساعات إضافية';
+    case 'absent': return 'غياب';
     default: return value || 'غير محدد';
   }
 }
@@ -70,11 +73,11 @@ function exceptionStatusLabel(value: string) {
 }
 
 function isOvertimeException(type: string) {
-  return type === 'early_check_in' || type === 'late_check_out';
+  return type === 'early_check_in' || type === 'late_check_out' || type === 'extra_hours';
 }
 
 function isDeductionException(type: string) {
-  return type === 'late_check_in' || type === 'early_check_out' || type === 'missing_check_in' || type === 'missing_check_out';
+  return type === 'late_check_in' || type === 'early_check_out' || type === 'missing_check_in' || type === 'missing_check_out' || type === 'absent';
 }
 
 function isActionableException(row: HrAttendanceException) {
@@ -89,6 +92,14 @@ function filterExceptions(rows: HrAttendanceException[], filter: ExceptionFilter
   return rows;
 }
 
+type ManualAttendancePrompt = {
+  rowId: string;
+  employeeId: number;
+  workDate: string;
+  type: 'check_in' | 'check_out';
+  defaultTime: string;
+} | null;
+
 export function HrAttendancePage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
@@ -99,6 +110,8 @@ export function HrAttendancePage() {
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'unmarked' | 'recorded'>('all');
   const [draftByEmployeeId, setDraftByEmployeeId] = useState<Record<string, DraftRow>>({});
   const [importOpen, setImportOpen] = useState(false);
+  const [manualPrompt, setManualPrompt] = useState<ManualAttendancePrompt>(null);
+  const [manualTimeInput, setManualTimeInput] = useState('');
 
   const attendance = useHrAttendance({ date, search, page: 1, pageSize: 200 });
   const exceptions = useHrAttendanceExceptions({ month: exceptionMonth, search, page: 1, pageSize: 200 });
@@ -185,6 +198,22 @@ export function HrAttendancePage() {
 
   const skipException = async (id: string) => {
     await mutations.skipAttendanceException.mutateAsync({ id, payload: {} });
+  };
+
+  const submitManualTime = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualPrompt || !manualTimeInput) return;
+    const { rowId, employeeId, workDate, type } = manualPrompt;
+    const payload = {
+      employeeId,
+      workDate,
+      status: 'present',
+      ...(type === 'check_in' ? { checkInAt: toDateTime(workDate, manualTimeInput) } : { checkOutAt: toDateTime(workDate, manualTimeInput) })
+    };
+    setManualPrompt(null);
+    mutations.saveAttendanceRecord.mutateAsync(payload)
+      .then(() => mutations.skipAttendanceException.mutateAsync({ id: rowId, payload: {} }))
+      .catch(console.error);
   };
 
   return (
@@ -343,18 +372,14 @@ export function HrAttendancePage() {
                     return (
                       <div className="compact-actions-vertical">
                         <Button type="button" variant="secondary" onClick={() => {
-                          const time = window.prompt(`أدخل وقت ${isMissingCheckIn ? 'الحضور' : 'الانصراف'} (مثال: ${isMissingCheckIn ? '09:00' : '17:00'})`);
-                          if (time) {
-                            const payload = {
-                              employeeId: Number(row.employeeId || row.employeeNo),
-                              workDate: row.workDate,
-                              status: 'present',
-                              ...(isMissingCheckIn ? { checkInAt: toDateTime(row.workDate, time) } : { checkOutAt: toDateTime(row.workDate, time) })
-                            };
-                            mutations.saveAttendanceRecord.mutateAsync(payload)
-                              .then(() => mutations.skipAttendanceException.mutateAsync({ id: row.id, payload: {} }))
-                              .catch(console.error);
-                          }
+                          setManualTimeInput(isMissingCheckIn ? '09:00' : '17:00');
+                          setManualPrompt({
+                            rowId: String(row.id),
+                            employeeId: Number(row.employeeId || row.employeeNo),
+                            workDate: String(row.workDate),
+                            type: isMissingCheckIn ? 'check_in' : 'check_out',
+                            defaultTime: isMissingCheckIn ? '09:00' : '17:00'
+                          });
                         }}>تسجيل {isMissingCheckIn ? 'حضور' : 'انصراف'} يدوي</Button>
                         <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي / خصم</Button>
                       </div>
@@ -483,6 +508,31 @@ export function HrAttendancePage() {
         </QueryFeedback>
       </FormSection>
 
+      {manualPrompt && (
+        <DialogShell open={true} onClose={() => setManualPrompt(null)} width="400px">
+          <form className="document-prototype-section" onSubmit={(e) => { void submitManualTime(e); }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '1.25rem' }}>
+              تسجيل {manualPrompt.type === 'check_in' ? 'حضور' : 'انصراف'} يدوي
+            </h3>
+            <div className="form-grid">
+              <label className="field field-wide">
+                <span>أدخل الوقت</span>
+                <input
+                  type="time"
+                  required
+                  autoFocus
+                  value={manualTimeInput}
+                  onChange={(e) => setManualTimeInput(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="actions compact-actions" style={{ marginTop: 24, justifyContent: 'flex-end' }}>
+              <Button type="button" variant="secondary" onClick={() => setManualPrompt(null)}>إلغاء</Button>
+              <Button type="submit" disabled={mutations.saveAttendanceRecord.isPending}>تسجيل</Button>
+            </div>
+          </form>
+        </DialogShell>
+      )}
       </main>
     </div>
   );
