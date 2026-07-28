@@ -37,6 +37,8 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-rep-orders'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-rep-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-rep-settlements'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-rep-kpis'] });
     }
   });
 
@@ -45,6 +47,8 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-rep-orders'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-rep-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-rep-settlements'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-rep-kpis'] });
       setExpectedAmountInput('');
       setFeedbackPopup({ message: 'تمت التسوية بنجاح', type: 'success' });
     },
