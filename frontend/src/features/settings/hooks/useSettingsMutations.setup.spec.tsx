@@ -85,8 +85,8 @@ const baseSettingsMutationValues = {
   uiLanguage: 'ar' as const,
   currency: 'EGP',
   timezone: 'Africa/Cairo',
-  dateFormat: 'yyyy-MM-dd' as const,
-  timeFormat: '24h' as const,
+  dateFormat: 'dd/MM/yyyy' as const,
+  timeFormat: '12h' as const,
   whatsappLinkMode: 'wa_me' as const,
 };
 

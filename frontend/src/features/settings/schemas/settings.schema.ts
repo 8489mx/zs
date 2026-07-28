@@ -15,7 +15,7 @@ export const settingsFormSchema = z.object({
   taxNumber: z.string().optional(),
   taxRate: z.coerce.number().min(0),
   taxMode: z.enum(['exclusive', 'inclusive']),
-  paperSize: z.enum(['a4', 'receipt']),
+  paperSize: z.enum(['a4', 'receipt']).default('receipt'),
   managerPin: z.union([
     z.literal(''),
     z.string().regex(/^\d{4,10}$/, 'الرقم السري يجب أن يكون من 4 إلى 10 أرقام')
@@ -65,8 +65,8 @@ export const settingsFormSchema = z.object({
   uiLanguage: z.enum(['ar', 'en']).default('ar'),
   currency: z.string().trim().min(2).default('EGP'),
   timezone: z.string().trim().min(2).default('Africa/Cairo'),
-  dateFormat: z.enum(['yyyy-MM-dd', 'dd/MM/yyyy']).default('yyyy-MM-dd'),
-  timeFormat: z.enum(['24h', '12h']).default('24h'),
+  dateFormat: z.enum(['yyyy-MM-dd', 'dd/MM/yyyy']).default('dd/MM/yyyy'),
+  timeFormat: z.enum(['24h', '12h']).default('12h'),
   whatsappLinkMode: z.enum(['wa_me', 'web', 'app']).default('wa_me'),
   defaultBranchIssueMode: z.enum(['final_issue', 'transfer_to_branch_stock']).default('final_issue'),
 });

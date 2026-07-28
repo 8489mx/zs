@@ -76,8 +76,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     uiLanguage: values.uiLanguage === 'en' ? 'en' : 'ar',
     currency: cleanText(values.currency, 'EGP').toUpperCase(),
     timezone: cleanText(values.timezone, 'Africa/Cairo'),
-    dateFormat: values.dateFormat === 'dd/MM/yyyy' ? 'dd/MM/yyyy' : 'yyyy-MM-dd',
-    timeFormat: values.timeFormat === '12h' ? '12h' : '24h',
+    dateFormat: values.dateFormat === 'yyyy-MM-dd' ? 'yyyy-MM-dd' : 'dd/MM/yyyy',
+    timeFormat: values.timeFormat === '24h' ? '24h' : '12h',
     whatsappLinkMode: values.whatsappLinkMode === 'web' ? 'web' : values.whatsappLinkMode === 'app' ? 'app' : 'wa_me',
   };
 
