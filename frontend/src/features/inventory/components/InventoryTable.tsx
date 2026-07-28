@@ -4,6 +4,22 @@ import type { Product } from '@/types/domain';
 import { formatCurrency } from '@/lib/format';
 import { resolveProductStatus } from '@/lib/domain/inventory';
 
+function formatUnitName(units?: { name: string; isBaseUnit: boolean }[]) {
+  if (!units?.length) return '';
+  const baseUnit = units.find(u => u.isBaseUnit) || units[0];
+  if (!baseUnit?.name) return '';
+  
+  const map: Record<string, string> = {
+    'كيلوجرام': 'كجم',
+    'جرام': 'جم',
+    'قطعة': 'ق',
+    'لتر': 'لتر',
+    'ملي': 'مل',
+    'متر': 'م'
+  };
+  return map[baseUnit.name] || baseUnit.name;
+}
+
 interface InventoryTableProps {
   rows: Product[];
   includeSensitivePricing?: boolean;
@@ -100,8 +116,8 @@ export function InventoryTable({ rows, includeSensitivePricing = true, selectedP
                 >
                   <td><strong>{product.name}</strong></td>
                   <td>{product.barcode || product.styleCode || '—'}</td>
-                  <td>{product.stock}</td>
-                  <td>{product.minStock}</td>
+                  <td>{product.stock} <span style={{ color: '#9ca3af', fontSize: '0.85em', marginRight: '2px' }}>{formatUnitName(product.units)}</span></td>
+                  <td>{product.minStock} <span style={{ color: '#9ca3af', fontSize: '0.85em', marginRight: '2px' }}>{formatUnitName(product.units)}</span></td>
                   {includeSensitivePricing ? <td>{formatCurrency(product.costPrice)}</td> : null}
                   <td>{renderStatusBadge(status)}</td>
                   <td>
@@ -126,8 +142,8 @@ export function InventoryTable({ rows, includeSensitivePricing = true, selectedP
                     </div>
                   </td>
                   <td>{group.styleCode || '—'}</td>
-                  <td>{totalStock}</td>
-                  <td>{totalMinStock}</td>
+                  <td>{totalStock} <span style={{ color: '#9ca3af', fontSize: '0.85em', marginRight: '2px' }}>{formatUnitName(group.rows[0]?.units)}</span></td>
+                  <td>{totalMinStock} <span style={{ color: '#9ca3af', fontSize: '0.85em', marginRight: '2px' }}>{formatUnitName(group.rows[0]?.units)}</span></td>
                   {includeSensitivePricing ? <td>—</td> : null}
                   <td>{renderStatusBadge(groupStatus)}</td>
                   <td><span className="muted small">اختر الصنف الفرعي من الأسفل</span></td>
@@ -153,8 +169,8 @@ export function InventoryTable({ rows, includeSensitivePricing = true, selectedP
                         </div>
                       </td>
                       <td>{product.barcode || '—'}</td>
-                      <td>{product.stock}</td>
-                      <td>{product.minStock}</td>
+                      <td>{product.stock} <span style={{ color: '#9ca3af', fontSize: '0.85em', marginRight: '2px' }}>{formatUnitName(product.units)}</span></td>
+                      <td>{product.minStock} <span style={{ color: '#9ca3af', fontSize: '0.85em', marginRight: '2px' }}>{formatUnitName(product.units)}</span></td>
                       {includeSensitivePricing ? <td>{formatCurrency(product.costPrice)}</td> : null}
                       <td>{renderStatusBadge(status)}</td>
                       <td>
