@@ -6,7 +6,7 @@ import type { PosCartPanelProps } from './posCartPanel.types';
 export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
   const settingsQuery = useSettingsQuery();
   const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
-  const allowItemModifiers = settingsQuery.data?.manufacturingModuleEnabled === true;
+  const allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;
 
   const containerRef = useRef<HTMLElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);

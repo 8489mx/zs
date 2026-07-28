@@ -1,72 +1,63 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useQuery } from '@tanstack/react-query';
+import { addonsApi } from '@/features/products/api/addons.api';
 import type { PosItem } from '@/features/pos/types/pos.types';
-import type { Product } from '@/types/domain';
 
 interface PosItemModifiersModalProps {
   open: boolean;
   onClose: () => void;
   item: PosItem | null;
-  products: Product[];
   onSave: (modifiers: any[]) => void;
 }
 
-export function PosItemModifiersModal({ open, onClose, item, products, onSave }: PosItemModifiersModalProps) {
+export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemModifiersModalProps) {
   const [modifiers, setModifiers] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [newItemQty, setNewItemQty] = useState(1);
-  const [selectedProductId, setSelectedProductId] = useState<string>('');
+
+  const { data: addons = [], isLoading } = useQuery({
+    queryKey: ['addons'],
+    queryFn: addonsApi.list,
+    enabled: open,
+  });
 
   useEffect(() => {
     if (open && item) {
       setModifiers(item.modifiers ? [...item.modifiers] : []);
-      setSearchQuery('');
-      setNewItemQty(1);
-      setSelectedProductId('');
     }
   }, [open, item]);
 
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase().trim();
-    return products.filter(p => 
-      p.name?.toLowerCase().includes(query) || 
-      p.barcode?.toLowerCase().includes(query)
-    ).slice(0, 10);
-  }, [searchQuery, products]);
-
   if (!open || !item) return null;
 
-  const handleAdd = () => {
-    const product = products.find(p => String(p.id) === selectedProductId);
-    if (!product) return;
-    
-    const name = product.name || '';
-    const existingIndex = modifiers.findIndex(m => String(m.productId) === String(product.id));
+  const activeAddons = addons.filter(a => a.isActive !== false);
+
+  const handleToggleAddon = (addon: any) => {
+    const existingIndex = modifiers.findIndex(m => String(m.productId) === String(addon.id) || String(m.name) === addon.name);
     
     if (existingIndex >= 0) {
       const next = [...modifiers];
-      next[existingIndex].qty += newItemQty;
+      next[existingIndex].qty += 1;
       setModifiers(next);
     } else {
       setModifiers([...modifiers, { 
-        productId: product.id, 
-        name, 
-        qty: newItemQty,
-        price: Number(product.retailPrice || 0),
-        costPrice: Number((product as any).costPrice || 0)
+        productId: addon.id, 
+        name: addon.name, 
+        qty: 1,
+        price: Number(addon.price || 0),
+        costPrice: Number(addon.costPrice || 0)
       }]);
     }
-    
-    setSearchQuery('');
-    setSelectedProductId('');
-    setNewItemQty(1);
   };
 
-  const handleRemove = (index: number) => {
+  const handleDecreaseAddon = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
     const next = [...modifiers];
-    next.splice(index, 1);
-    setModifiers(next);
+    if (next[index].qty > 1) {
+      next[index].qty -= 1;
+      setModifiers(next);
+    } else {
+      next.splice(index, 1);
+      setModifiers(next);
+    }
   };
 
   const handleSave = () => {
@@ -93,12 +84,12 @@ export function PosItemModifiersModal({ open, onClose, item, products, onSave }:
         className="modal-surface" 
         onClick={(e) => e.stopPropagation()}
         style={{ 
-          width: '500px', 
+          width: '650px', 
           maxWidth: '95vw',
-          maxHeight: 'calc(100vh - 32px)',
-          borderRadius: 12,
+          maxHeight: '90vh',
+          borderRadius: 16,
           background: '#ffffff',
-          boxShadow: '0 28px 70px rgba(15, 23, 42, 0.28)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden'
@@ -109,138 +100,137 @@ export function PosItemModifiersModal({ open, onClose, item, products, onSave }:
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between', 
-          padding: '16px 20px',
+          padding: '20px 24px',
           borderBottom: '1px solid #e2e8f0',
-          background: '#f8fafc'
+          background: '#f8fafc',
+          flexShrink: 0
         }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>إضافات: {item.name}</h2>
+          <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#0f172a' }}>إضافات: {item.name}</h2>
           <button 
             type="button" 
             onClick={onClose} 
             aria-label="إغلاق"
             style={{ 
-              background: 'transparent', 
+              background: '#e2e8f0', 
               border: 'none', 
               cursor: 'pointer', 
-              color: '#64748b',
-              padding: '4px',
+              color: '#475569',
+              padding: '6px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: '50%',
-              transition: 'background 0.2s'
+              transition: 'all 0.2s'
             }}
-            onMouseOver={(e) => e.currentTarget.style.background = '#e2e8f0'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+            onMouseOver={(e) => { e.currentTarget.style.background = '#cbd5e1'; e.currentTarget.style.color = '#0f172a'; }}
+            onMouseOut={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#475569'; }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M18 6L6 18M6 6l12 12"></path>
             </svg>
           </button>
         </header>
 
-        <div className="modal-body" style={{ padding: '20px', overflowY: 'visible', flex: 1 }}>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', position: 'relative' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="ابحث عن الإضافة (اسم أو باركود)..." 
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setSelectedProductId('');
-                }}
-                style={{ width: '100%', height: '42px' }}
-              />
-              {filteredProducts.length > 0 && !selectedProductId && (
-                <ul style={{ 
-                  display: 'block', 
-                  position: 'absolute', 
-                  top: 'calc(100% + 4px)', 
-                  left: 0, 
-                  right: 0, 
-                  zIndex: 50, 
-                  maxHeight: '220px', 
-                  overflowY: 'auto', 
-                  background: 'white', 
-                  border: '1px solid #e2e8f0', 
-                  borderRadius: '8px', 
-                  padding: '4px', 
-                  margin: 0, 
-                  listStyle: 'none',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-                }}>
-                  {filteredProducts.map((p, idx) => (
-                    <li 
-                      key={p.id} 
-                      onClick={() => {
-                        setSelectedProductId(String(p.id));
-                        setSearchQuery(p.name || '');
-                      }}
-                      style={{ 
-                        padding: '10px 14px', 
-                        cursor: 'pointer', 
-                        borderRadius: '6px',
-                        background: idx % 2 === 0 ? 'transparent' : '#f8fafc',
-                        borderBottom: idx === filteredProducts.length - 1 ? 'none' : '1px solid #f1f5f9',
-                        fontWeight: 600,
-                        color: '#1e293b'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.background = '#e0e7ff'}
-                      onMouseOut={(e) => e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : '#f8fafc'}
-                    >
-                      {p.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
+        <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+          {isLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>جاري تحميل الإضافات...</div>
+          ) : activeAddons.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+              لا توجد إضافات معرفة في النظام
             </div>
-            <input 
-              type="number" 
-              className="form-input" 
-              value={newItemQty}
-              onChange={(e) => setNewItemQty(Number(e.target.value) || 1)}
-              min={1}
-              style={{ width: '70px', textAlign: 'center', height: '42px', fontWeight: 'bold' }}
-            />
-            <button 
-              type="button" 
-              className="btn btn-primary" 
-              onClick={handleAdd}
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '16px' }}>
+              {activeAddons.map((addon) => {
+                const modIndex = modifiers.findIndex(m => String(m.productId) === String(addon.id) || String(m.name) === addon.name);
+                const isSelected = modIndex >= 0;
+                const qty = isSelected ? modifiers[modIndex].qty : 0;
 
-              disabled={!selectedProductId}
-            >
-              إضافة
-            </button>
-          </div>
+                return (
+                  <div 
+                    key={addon.id}
+                    onClick={() => handleToggleAddon(addon)}
+                    style={{ 
+                      padding: '16px', 
+                      borderRadius: '12px', 
+                      border: isSelected ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                      background: isSelected ? '#eff6ff' : '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      gap: '10px',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      position: 'relative',
+                      userSelect: 'none',
+                      boxShadow: isSelected ? '0 4px 6px -1px rgba(59, 130, 246, 0.1)' : '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                      transform: isSelected ? 'translateY(-2px)' : 'none'
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.borderColor = '#94a3b8';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.transform = 'none';
+                      }
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1.05rem', lineHeight: 1.2 }}>{addon.name}</span>
+                    <span style={{ color: '#475569', fontSize: '0.95rem', fontWeight: 500 }}>{addon.price} ج</span>
+                    
+                    {isSelected && (
+                      <div style={{ 
+                        position: 'absolute', 
+                        top: '-10px', 
+                        right: '-10px', 
+                        background: '#2563eb', 
+                        color: 'white', 
+                        width: '28px', 
+                        height: '28px', 
+                        borderRadius: '50%', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '0.95rem',
+                        boxShadow: '0 2px 4px rgba(37, 99, 235, 0.3)'
+                      }}>
+                        {qty}
+                      </div>
+                    )}
 
-          <div style={{ maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
-            {modifiers.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                لا توجد إضافات مرتبطة بهذا الصنف
-              </div>
-            ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px' }}>
-                {modifiers.map((mod, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f1f5f9', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontWeight: 700, color: '#1e293b' }}>{mod.name}</span>
-                      {mod.qty > 1 && <span style={{ fontSize: '0.85em', color: '#475569', background: '#e2e8f0', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>الكمية: {mod.qty}</span>}
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemove(i)}
-                      style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', padding: '0 8px', lineHeight: 1 }}
-                      title="حذف"
-                    >
-                      &times;
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                    {isSelected && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDecreaseAddon(e, modIndex)}
+                        style={{
+                          marginTop: '6px',
+                          background: '#dbeafe',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '8px',
+                          width: '100%',
+                          padding: '6px',
+                          cursor: 'pointer',
+                          color: '#1e40af',
+                          fontWeight: 'bold',
+                          transition: 'all 0.2s',
+                          fontSize: '0.9rem'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#bfdbfe'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#dbeafe'}
+                      >
+                        إزالة / تقليل
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <footer style={{ padding: '16px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '10px' }}>
@@ -256,3 +246,4 @@ export function PosItemModifiersModal({ open, onClose, item, products, onSave }:
     document.body
   );
 }
+

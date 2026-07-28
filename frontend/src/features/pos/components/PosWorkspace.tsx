@@ -430,7 +430,6 @@ export function PosWorkspace() {
         open={Boolean(modifiersModalLineKey)}
         onClose={() => setModifiersModalLineKey('')}
         item={pos.cart.find((item) => item.lineKey === modifiersModalLineKey) || null}
-        products={pos.productsQuery.data || []}
         onSave={(modifiers) => {
           if (modifiersModalLineKey) {
             pos.setItemModifiers(modifiersModalLineKey, modifiers);

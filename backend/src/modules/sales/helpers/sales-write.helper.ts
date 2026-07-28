@@ -52,8 +52,10 @@ export function buildPreparedSaleItem(
     throw new AppError(`Insufficient stock for ${productName || `#${item.productId}`}`, 'INSUFFICIENT_STOCK', 400);
   }
 
-  const modifiersTotal = (item.modifiers || []).reduce((sum: number, mod: any) => sum + Number(mod.price || 0), 0);
+  const modifiersTotal = (item.modifiers || []).reduce((sum: number, mod: any) => sum + (Number(mod.price || 0) * Number(mod.qty || 1)), 0);
   const lineTotal = roundCurrency(Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal));
+  const modifiersCostTotal = (item.modifiers || []).reduce((sum: number, mod: any) => sum + (Number(mod.costPrice || 0) * Number(mod.qty || 1)), 0);
+
   return {
     productId: Number(product.id || item.productId),
     productName,
@@ -64,7 +66,7 @@ export function buildPreparedSaleItem(
     unitMultiplier: Number(item.unitMultiplier || 1) || 1,
     priceType: item.priceType === 'wholesale' ? 'wholesale' : 'retail',
     // Stored as cost per sold unit on sale_items (not per base piece) so accounting COGS can use qty * cost_price.
-    costPrice: roundCurrency(Number(product.cost_price || 0) * Number(item.unitMultiplier || 1)),
+    costPrice: roundCurrency((Number(product.cost_price || 0) * Number(item.unitMultiplier || 1)) + modifiersCostTotal),
     requiredQty,
     beforeQty,
     afterQty: Number((beforeQty - requiredQty).toFixed(3)),

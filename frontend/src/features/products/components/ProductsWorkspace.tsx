@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef } from 'react';
+import { Suspense, lazy, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
@@ -8,6 +8,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsGrid';
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';
+import { AddonsManagementDialog } from '@/features/products/components/AddonsManagementDialog';
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 
@@ -31,6 +32,7 @@ export function ProductsWorkspace() {
   const { locationsQuery } = useInventoryActionCatalog();
   const locationNames = Object.fromEntries((locationsQuery.data || []).map((l: any) => [l.id, l.name]));
   const hasProducts = controller.metrics.total > 0;
+  const [addonsDialogOpen, setAddonsDialogOpen] = useState(false);
 
   useAppToolbar([{ label: 'المنتجات' }]);
 
@@ -46,6 +48,11 @@ export function ProductsWorkspace() {
               <Button onClick={() => navigate('/products/new')}>
                 {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
               </Button>
+              {settingsQuery.data?.restaurantModuleEnabled === true && (
+                <Button onClick={() => setAddonsDialogOpen(true)}>
+                  إدارة الإضافات
+                </Button>
+              )}
               <Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button>
               <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير Excel</Button>
               <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
@@ -173,6 +180,13 @@ export function ProductsWorkspace() {
             await controller.bulkDeleteMutation.mutateAsync(controller.selectedIds);
           }}
         />
+
+        {addonsDialogOpen && (
+          <AddonsManagementDialog
+            open={addonsDialogOpen}
+            onClose={() => setAddonsDialogOpen(false)}
+          />
+        )}
       </main>
     </div>
   );

@@ -32,6 +32,7 @@ export function mapSaleRows(
       unitMultiplier: Number(item.unit_multiplier || 1),
       cost: Number(item.cost_price || 0),
       priceType: item.price_type || 'retail',
+      modifiers: typeof item.modifiers === 'string' ? JSON.parse(item.modifiers || '[]') : (item.modifiers || []),
     });
   }
 
@@ -185,6 +186,7 @@ export function mapHeldSalesRows(
       unitName: item.unit_name || 'قطعة',
       unitMultiplier: Number(item.unit_multiplier || 1),
       priceType: item.price_type || 'retail',
+      modifiers: typeof item.modifiers === 'string' ? JSON.parse(item.modifiers || '[]') : (item.modifiers || []),
       lineKey: `${item.product_id || ''}::${item.unit_name || 'قطعة'}::${item.price_type || 'retail'}`,
     });
   }

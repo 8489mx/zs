@@ -603,6 +603,7 @@ export interface HeldSaleItemTable {
   unit_name: string;
   unit_multiplier: number;
   price_type: 'retail' | 'wholesale';
+  modifiers: ColumnType<unknown, unknown | undefined, unknown | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -797,8 +798,17 @@ export interface CostCenterTable {
   code: ColumnType<string, string | undefined, string | undefined>;
   name: string;
   is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+}
+
+export interface AddonTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  name: string;
+  price: number;
+  cost_price: number;
+  is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
-  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface ProjectTable {
@@ -1736,6 +1746,7 @@ export interface Database {
   hr_employee_adjustments: HrEmployeeAdjustmentTable;
   offline_releases: OfflineReleaseTable;
   style_code_counters: StyleCodeCounterTable;
+  addons: AddonTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;

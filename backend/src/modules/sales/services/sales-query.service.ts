@@ -86,7 +86,7 @@ export class SalesQueryService {
     const [items, payments] = await Promise.all([
       this.db
         .selectFrom('sale_items')
-        .select(['id', 'sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'line_total', 'unit_name', 'unit_multiplier', 'cost_price', 'price_type'])
+        .select(['id', 'sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'line_total', 'unit_name', 'unit_multiplier', 'cost_price', 'price_type', 'modifiers'])
         .where('sale_id', 'in', saleIds)
         .where(this.tenantPredicate(auth))
         .orderBy('sale_id', 'asc')
@@ -183,7 +183,7 @@ export class SalesQueryService {
     const items = heldSaleIds.length
       ? await this.db
         .selectFrom('held_sale_items')
-        .select(['id', 'held_sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'unit_name', 'unit_multiplier', 'price_type'])
+        .select(['id', 'held_sale_id', 'product_id', 'product_name', 'qty', 'unit_price', 'unit_name', 'unit_multiplier', 'price_type', 'modifiers'])
         .where('held_sale_id', 'in', heldSaleIds)
         .where(this.tenantPredicate(auth))
         .orderBy('held_sale_id', 'asc')
