@@ -25,7 +25,17 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
     return (
       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
         {[...Array(fullStars)].map((_, i) => <span key={`f-${i}`} style={{ color: '#eab308', fontSize: '24px' }}>★</span>)}
-        {hasHalfStar && <span style={{ color: '#eab308', fontSize: '24px' }}>⯨</span>}
+        {hasHalfStar && (
+          <span style={{ 
+            fontSize: '24px', 
+            background: 'linear-gradient(to left, #eab308 50%, #cbd5e1 50%)', 
+            WebkitBackgroundClip: 'text', 
+            WebkitTextFillColor: 'transparent',
+            display: 'inline-block'
+          }}>
+            ★
+          </span>
+        )}
         {[...Array(emptyStars)].map((_, i) => <span key={`e-${i}`} style={{ color: '#cbd5e1', fontSize: '24px' }}>★</span>)}
         <span style={{ marginLeft: '8px', fontWeight: 'bold', fontSize: '18px', color: '#334155' }}>{rating}/5</span>
       </div>
