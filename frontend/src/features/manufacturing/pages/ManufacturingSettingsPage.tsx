@@ -40,16 +40,29 @@ export default function ManufacturingSettingsPage() {
   }, []);
 
   useEffect(() => {
-    // Load from localStorage if backend is not available
-    const savedId = localStorage.getItem('manufacturing.default_production_location');
-    if (savedId && locations.length > 0 && !selectedLocation) {
-      const loc = locations.find(l => l.id === savedId);
-      if (loc) {
-        setSelectedLocation(loc);
-        setLocationQuery(loc.name);
-      }
+    if (locations.length > 0 && !selectedLocation) {
+      http<any>('/api/settings').then(res => {
+        const settings = res?.settings || res || {};
+        const savedId = settings['manufacturing.default_production_location'] || localStorage.getItem('manufacturing.default_production_location');
+        if (savedId) {
+          const loc = locations.find(l => String(l.id) === String(savedId));
+          if (loc) {
+            setSelectedLocation(loc);
+            setLocationQuery(loc.name);
+          }
+        }
+      }).catch(() => {
+        const savedId = localStorage.getItem('manufacturing.default_production_location');
+        if (savedId) {
+          const loc = locations.find(l => String(l.id) === String(savedId));
+          if (loc) {
+            setSelectedLocation(loc);
+            setLocationQuery(loc.name);
+          }
+        }
+      });
     }
-  }, [locations]);
+  }, [locations, selectedLocation]);
 
   const handleSave = async () => {
     setIsSaving(true);
