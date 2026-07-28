@@ -172,19 +172,20 @@ export class DeliveryRepsService {
   async listSettlements(repId: number, actor: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(actor);
     const settlements = await this.db
-      .selectFrom('treasury_transactions as t')
-      .leftJoin('users as u', 'u.id', 't.created_by')
+      .selectFrom('sales as s')
+      .leftJoin('users as u', 'u.id', 's.settled_by')
       .select([
-        't.id',
-        't.amount',
-        't.note',
-        't.created_at as createdAt',
+        's.id',
+        's.doc_no as docNo',
+        's.total as amount',
+        's.created_at as orderDate',
+        's.settled_at as createdAt',
         'u.username as settledByName'
       ])
-      .where('t.tenant_id', '=', tenantId)
-      .where('t.txn_type', '=', 'cash_in')
-      .where('t.note', 'like', `%مندوب #${repId}`)
-      .orderBy('t.created_at', 'desc')
+      .where('s.tenant_id', '=', tenantId)
+      .where('s.delivery_rep_id', '=', repId)
+      .where('s.delivery_status', '=', 'settled')
+      .orderBy('s.settled_at', 'desc')
       .execute();
       
     return { ok: true, settlements };
