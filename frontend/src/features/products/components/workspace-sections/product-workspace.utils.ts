@@ -92,9 +92,7 @@ export function buildUpdatePayload(
         price: Number(entry.price || 0)
       }))
       .filter((entry) => entry.customerId > 0 && entry.price >= 0),
-    fashionVariants: [],
-    isCombo: false,
-    comboComponents: []
+    fashionVariants: []
   };
 }
 

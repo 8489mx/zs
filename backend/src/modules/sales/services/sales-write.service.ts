@@ -130,14 +130,16 @@ export class SalesWriteService {
 
       const bomLines = await trx.selectFrom('manufacturing_bom_lines as l')
         .innerJoin('products as p', 'p.id', 'l.component_product_id')
-        .select(['l.component_product_id', 'l.quantity', 'l.expected_cost', 'l.waste_percentage', 'p.name as component_name'])
+        .select(['l.component_product_id', 'l.quantity', 'l.unit_multiplier', 'l.expected_cost', 'l.waste_percentage', 'p.name as component_name'])
         .where('l.bom_id', '=', item.bomId)
         .execute();
 
       for (const line of bomLines) {
         const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
-        const requiredMaterialQty = Number((Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
-        const lineTotalCost = Number((Number(line.expected_cost) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
+        const lineMultiplier = Number(line.unit_multiplier || 1);
+        const quantityConsumedInSelectedUnit = Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity);
+        const requiredMaterialQty = Number((quantityConsumedInSelectedUnit * lineMultiplier).toFixed(3));
+        const lineTotalCost = Number((Number(line.expected_cost) * quantityConsumedInSelectedUnit).toFixed(3));
 
         // Recursive BOM check
         const componentStock = await previewAssignedLocationStockQty(trx, {
@@ -241,6 +243,8 @@ export class SalesWriteService {
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .execute();
       }
+
+      await this.accountingPosting.postManufacturingWorkOrder(trx, woId, auth);
     }
   }
 

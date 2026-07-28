@@ -249,7 +249,7 @@ export class ManufacturingService {
         .selectFrom('manufacturing_bom_lines as l')
         .innerJoin('products as p', 'p.id', 'l.component_product_id')
         .select([
-          'l.id', 'l.component_product_id', 'l.quantity', 'l.unit_name', 'l.expected_cost', 'l.waste_percentage',
+          'l.id', 'l.component_product_id', 'l.quantity', 'l.unit_name', 'l.unit_multiplier', 'l.expected_cost', 'l.waste_percentage',
           'p.name as component_name'
         ])
         .where('l.bom_id', '=', wo.bom_id)
@@ -262,8 +262,10 @@ export class ManufacturingService {
       // Deduct raw materials
       for (const line of lines) {
         const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
-        const requiredQty = Number((Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity)).toFixed(3));
-        const lineTotalCost = Number((requiredQty * Number(line.expected_cost)).toFixed(3));
+        const lineMultiplier = Number(line.unit_multiplier || 1);
+        const quantityConsumedInSelectedUnit = Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity);
+        const requiredQty = Number((quantityConsumedInSelectedUnit * lineMultiplier).toFixed(3));
+        const lineTotalCost = Number((quantityConsumedInSelectedUnit * Number(line.expected_cost)).toFixed(3));
         totalCost += lineTotalCost;
 
         await trx.insertInto('manufacturing_wo_consumptions').values({

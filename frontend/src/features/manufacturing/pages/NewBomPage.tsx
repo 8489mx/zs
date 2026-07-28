@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { FormSection } from '@/shared/components/form-section';
+import { QuickProductModal } from '@/features/products/components/QuickProductModal';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 import { productsApi } from '@/features/products';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
@@ -37,6 +38,12 @@ export default function NewBomPage() {
     { id: Date.now(), componentId: null, componentName: '', quantity: 1, unitName: 'kg', baseUnit: 'kg', baseCost: 0, expectedCost: 0, wastePercentage: 0, query: '' }
   ]);
   const [isSaving, setIsSaving] = useState(false);
+  const [quickModal, setQuickModal] = useState<{
+    isOpen: boolean;
+    name: string;
+    itemType: 'product' | 'raw_material';
+    lineId?: number;
+  }>({ isOpen: false, name: '', itemType: 'product' });
 
   useEffect(() => {
     productsApi.listAll().then(res => setProducts(res.products || []));
@@ -196,21 +203,8 @@ export default function NewBomPage() {
                       return res.filter(p => p.itemType !== 'raw_material');
                     }}
                   getLabel={(p) => p.name}
-                  onCreate={async (q) => {
-                    if (!confirm(`هل تريد إضافة منتج جديد باسم "${q}"؟`)) return;
-                    try {
-                      setIsSaving(true);
-                      const res = await productsApi.create({ name: q, itemType: 'product' }) as { id: number };
-                      const newProduct = { id: String(res.id), name: q, itemType: 'product' } as Product;
-                      setProducts([...products, newProduct]);
-                      setSelectedProduct(newProduct);
-                      setProductQuery(q);
-                      alert('تمت إضافة المنتج بنجاح. يمكنك تعديل أسعاره من شاشة الأصناف لاحقاً.');
-                    } catch (e) {
-                      alert('حدث خطأ أثناء إضافة المنتج');
-                    } finally {
-                      setIsSaving(false);
-                    }
+                  onCreate={(q) => {
+                    setQuickModal({ isOpen: true, name: q, itemType: 'product' });
                   }}
                   onSelect={(p) => {
                     setSelectedProduct(p);
@@ -270,27 +264,8 @@ export default function NewBomPage() {
                                 return res;
                               }}
                           getLabel={(c) => c.name}
-                          onCreate={async (q) => {
-                            if (!confirm(`هل تريد إضافة مادة خام جديدة باسم "${q}"؟`)) return;
-                            try {
-                              setIsSaving(true);
-                              const res = await productsApi.create({ name: q, itemType: 'raw_material' }) as { id: number };
-                              // Manually construct a component shape matching what backend returns for components
-                              const newComp: ManufacturingComponent = { 
-                                id: String(res.id), 
-                                name: q, 
-                                baseUnit: 'kg', 
-                                costPerBaseUnit: 0,
-                                stock: 0 
-                              };
-                              setComponents([...components, newComp]);
-                              selectComponent(line.id, newComp);
-                              alert('تمت إضافة المادة الخام بنجاح. يمكنك تعديل أسعارها ووحداتها من شاشة الأصناف لاحقاً.');
-                            } catch (e) {
-                              alert('حدث خطأ أثناء إضافة المادة الخام');
-                            } finally {
-                              setIsSaving(false);
-                            }
+                          onCreate={(q) => {
+                            setQuickModal({ isOpen: true, name: q, itemType: 'raw_material', lineId: line.id });
                           }}
                           createLabel={(q) => `إضافة مادة خام جديدة: "${q}"`}
                           
@@ -411,6 +386,30 @@ export default function NewBomPage() {
               </div>
             </div>
         </FormSection>
+
+        <QuickProductModal
+          isOpen={quickModal.isOpen}
+          onClose={() => setQuickModal({ ...quickModal, isOpen: false })}
+          initialName={quickModal.name}
+          itemType={quickModal.itemType}
+          onSuccess={(newProduct) => {
+            if (quickModal.itemType === 'product') {
+              setProducts(prev => [...prev, newProduct]);
+              setSelectedProduct(newProduct);
+              setProductQuery(newProduct.name);
+            } else if (quickModal.itemType === 'raw_material' && quickModal.lineId) {
+              const newComp: ManufacturingComponent = {
+                id: newProduct.id,
+                name: newProduct.name,
+                baseUnit: 'kg', // fallback
+                costPerBaseUnit: 0,
+                stock: 0
+              };
+              setComponents(prev => [...prev, newComp]);
+              selectComponent(quickModal.lineId, newComp);
+            }
+          }}
+        />
     </ManufacturingLayout>
   );
 }
