@@ -4,6 +4,7 @@ import { deliveryRepsApi } from '../api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 
 export function DeliveryRepOrders({ repId }: { repId: number | null }) {
   const queryClient = useQueryClient();
@@ -13,6 +14,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [expectedAmountInput, setExpectedAmountInput] = useState('');
   const [feedbackPopup, setFeedbackPopup] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [orderToSettle, setOrderToSettle] = useState<any | null>(null);
 
   const ordersQuery = useQuery({
     queryKey: ['delivery-rep-orders', repId, filterDateFrom, filterDateTo, filterStatus],
@@ -175,9 +177,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
                       <Button 
                         variant="secondary" 
                         onClick={() => {
-                          if (window.confirm(`هل أنت متأكد من تحصيل مبلغ ${formatCurrency(order.total)} للطلب رقم ${order.docNo} من المندوب؟`)) {
-                            settleOrderMutation.mutate(order.id);
-                          }
+                          setOrderToSettle(order);
                         }}
                         disabled={settleOrderMutation.isPending}
                         style={{ fontSize: '12px', padding: '4px 12px' }}
@@ -207,6 +207,42 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           </div>
         </DialogShell>
       )}
+
+      <ActionConfirmDialog
+        open={Boolean(orderToSettle)}
+        title="تأكيد التحصيل"
+        description={orderToSettle ? (
+          <div>
+            <p>هل أنت متأكد من تحصيل هذا المبلغ وإغلاق العهدة الخاصة بهذا الطلب؟</p>
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', marginTop: '16px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b' }}>رقم الطلب:</span>
+                <strong style={{ color: '#0f172a' }}>{orderToSettle.docNo}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b' }}>تاريخ الطلب:</span>
+                <strong style={{ color: '#0f172a', direction: 'ltr' }}>{formatDate(orderToSettle.createdAt)}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#64748b' }}>اسم العميل:</span>
+                <strong style={{ color: '#0f172a' }}>{orderToSettle.customerName || 'عميل نقدي'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1' }}>
+                <span style={{ color: '#64748b', alignSelf: 'center' }}>المبلغ المطلوب تحصيله:</span>
+                <strong style={{ color: '#dc2626', fontSize: '1.2rem' }}>{formatCurrency(orderToSettle.total)}</strong>
+              </div>
+            </div>
+          </div>
+        ) : ''}
+        confirmLabel="تأكيد السداد"
+        isBusy={settleOrderMutation.isPending}
+        onCancel={() => setOrderToSettle(null)}
+        onConfirm={async () => {
+          if (!orderToSettle) return;
+          await settleOrderMutation.mutateAsync(orderToSettle.id);
+          setOrderToSettle(null);
+        }}
+      />
     </div>
   );
 }

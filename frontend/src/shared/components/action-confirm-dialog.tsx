@@ -100,7 +100,7 @@ export function ActionConfirmDialog({
   return (
     <DialogShell open={open} onClose={isBusy ? () => {} : onCancel} width="min(560px, 100%)" zIndex={60} overlayClassName={overlayClassName} shellClassName={shellClassName}>
       <Card title={title} className="dialog-card">
-        <div className="muted dialog-description">{description}</div>
+        <div className="dialog-description" style={{ fontSize: '1.05rem', color: '#334155', fontWeight: 500, lineHeight: 1.6 }}>{description}</div>
 
         {requiresKeyword ? (
           <div className="field" style={{ marginTop: 16 }}>
