@@ -66,6 +66,11 @@ export const deliveryRepsApi = {
   listSettlements: async (repId: number): Promise<any[]> =>
     unwrapArray<any>(await http<any[] | { settlements: any[] }>(`/api/delivery-reps/${repId}/settlements`), 'settlements'),
 
+  getKPIs: async (repId: number): Promise<{ totalOrders: number; successfulOrders: number; returnedOrders: number; successRate: number; averageDelayHours: number; rating: number }> => {
+    const res = await http<{ kpis: any }>(`/api/delivery-reps/${repId}/kpi`);
+    return res.kpis;
+  },
+
   getSummary: async (repId: number): Promise<DeliveryRepSummary> => {
     const res = await http<{ summary: DeliveryRepSummary }>(`/api/delivery-reps/${repId}/summary`);
     return res.summary;

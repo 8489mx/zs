@@ -60,6 +60,15 @@ export class DeliveryRepsController {
     return this.service.listSettlements(id, req.authContext!);
   }
 
+  @Get(':id/kpi')
+  @RequirePermissions('canManageSales')
+  getKPIs(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.service.getRepKPIs(id, req.authContext!);
+  }
+
   @Post('settle/:saleId')
   @RequirePermissions('canManageSales')
   settleOrder(

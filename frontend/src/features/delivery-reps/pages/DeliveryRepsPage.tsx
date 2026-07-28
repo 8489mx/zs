@@ -4,16 +4,17 @@ import { FormSection } from '@/shared/components/form-section';
 import { DeliveryRepsList } from '../components/DeliveryRepsList';
 import { DeliveryRepOrders } from '../components/DeliveryRepOrders';
 import { DeliveryRepSettlements } from '../components/DeliveryRepSettlements';
+import { DeliveryRepPerformance } from '../components/DeliveryRepPerformance';
 
 export default function DeliveryRepsPage() {
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'orders' | 'settlements'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'settlements' | 'performance'>('performance');
 
   return (
     <main className="document-prototype-column" style={{ maxWidth: '1280px' }}>
       <PageHeader 
         title="إدارة المناديب" 
-        description="إدارة مناديب التوصيل، متابعة طلباتهم وتسوية الحسابات." 
+        description="إدارة مناديب التوصيل، متابعة طلباتهم وتسوية الحسابات وتقييم الأداء." 
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr)', gap: '24px', alignItems: 'start' }}>
@@ -21,7 +22,7 @@ export default function DeliveryRepsPage() {
           <div style={{ overflow: 'hidden', margin: '-16px' }}>
             <DeliveryRepsList 
               selectedRepId={selectedRepId} 
-              onSelectRep={(id) => { setSelectedRepId(id); setActiveTab('orders'); }} 
+              onSelectRep={(id) => { setSelectedRepId(id); setActiveTab('performance'); }} 
             />
           </div>
         </FormSection>
@@ -30,11 +31,26 @@ export default function DeliveryRepsPage() {
           <div style={{ minHeight: '500px' }}>
             {!selectedRepId ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', padding: '40px' }}>
-                اختر مندوب من القائمة لعرض طلباته وتسويتها
+                اختر مندوب من القائمة لعرض تفاصيله وأدائه
               </div>
             ) : (
               <div>
                 <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border)', marginBottom: '16px' }}>
+                  <button
+                    onClick={() => setActiveTab('performance')}
+                    style={{
+                      padding: '8px 16px',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: activeTab === 'performance' ? '2px solid var(--primary)' : '2px solid transparent',
+                      color: activeTab === 'performance' ? 'var(--primary)' : '#64748b',
+                      fontWeight: activeTab === 'performance' ? 'bold' : 'normal',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    لوحة الأداء
+                  </button>
                   <button
                     onClick={() => setActiveTab('orders')}
                     style={{
@@ -63,9 +79,10 @@ export default function DeliveryRepsPage() {
                       fontSize: '14px'
                     }}
                   >
-                    سجل التوريدات السابقة
+                    سجل التوريدات
                   </button>
                 </div>
+                {activeTab === 'performance' && <DeliveryRepPerformance repId={selectedRepId} />}
                 {activeTab === 'orders' && <DeliveryRepOrders repId={selectedRepId} />}
                 {activeTab === 'settlements' && <DeliveryRepSettlements repId={selectedRepId} />}
               </div>

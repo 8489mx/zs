@@ -191,6 +191,68 @@ export class DeliveryRepsService {
     return { ok: true, settlements };
   }
 
+  async getRepKPIs(repId: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const { tenantId } = requireTenantScope(actor);
+    
+    const orders = await this.db
+      .selectFrom('sales')
+      .select(['id', 'delivery_status', 'status', 'created_at as createdAt', 'settled_at as settledAt'])
+      .where('delivery_rep_id', '=', repId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const totalOrders = orders.length;
+    let successfulOrders = 0;
+    let returnedOrders = 0;
+    let totalDelayMs = 0;
+    let delayCount = 0;
+
+    for (const order of orders) {
+      if (order.status === 'returned') {
+        returnedOrders++;
+      } else if (order.delivery_status === 'settled') {
+        successfulOrders++;
+        if (order.createdAt && order.settledAt) {
+          const delay = new Date(order.settledAt).getTime() - new Date(order.createdAt).getTime();
+          if (delay > 0) {
+            totalDelayMs += delay;
+            delayCount++;
+          }
+        }
+      }
+    }
+
+    const averageDelayHours = delayCount > 0 ? (totalDelayMs / delayCount) / (1000 * 60 * 60) : 0;
+    const successRate = totalOrders > 0 ? (successfulOrders / totalOrders) * 100 : 0;
+    
+    // Rating logic (Starts at 5, deducts based on issues)
+    let rating = 5.0;
+    
+    // Deduct 0.5 for every 10% returns
+    const returnRate = totalOrders > 0 ? (returnedOrders / totalOrders) * 100 : 0;
+    rating -= (returnRate / 10) * 0.5;
+    
+    // Deduct for delay: 0.1 for every hour of average delay above 2 hours
+    if (averageDelayHours > 2) {
+      rating -= (averageDelayHours - 2) * 0.1;
+    }
+    
+    // Ensure rating is between 0 and 5
+    rating = Math.max(0, Math.min(5, Number(rating.toFixed(1))));
+
+    return { 
+      ok: true, 
+      kpis: {
+        totalOrders,
+        successfulOrders,
+        returnedOrders,
+        successRate: Number(successRate.toFixed(1)),
+        averageDelayHours: Number(averageDelayHours.toFixed(1)),
+        rating
+      } 
+    };
+  }
+
   async settleOrder(saleId: number, actor: AuthContext): Promise<Record<string, unknown>> {
     const sale = await this.db
       .selectFrom('sales')
