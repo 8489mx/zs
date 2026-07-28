@@ -196,13 +196,28 @@ export default function NewBomPage() {
                       return res.filter(p => p.itemType !== 'raw_material');
                     }}
                   getLabel={(p) => p.name}
-                  
+                  onCreate={async (q) => {
+                    if (!confirm(`هل تريد إضافة منتج جديد باسم "${q}"؟`)) return;
+                    try {
+                      setIsSaving(true);
+                      const res = await productsApi.create({ name: q, itemType: 'product' }) as { id: number };
+                      const newProduct = { id: String(res.id), name: q, itemType: 'product' } as Product;
+                      setProducts([...products, newProduct]);
+                      setSelectedProduct(newProduct);
+                      setProductQuery(q);
+                      alert('تمت إضافة المنتج بنجاح. يمكنك تعديل أسعاره من شاشة الأصناف لاحقاً.');
+                    } catch (e) {
+                      alert('حدث خطأ أثناء إضافة المنتج');
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
                   onSelect={(p) => {
                     setSelectedProduct(p);
                     setProductQuery(p.name);
                   }}
-                  createLabel={(q) => `إضافة منتج "${q}"`}
-                  placeholder="ابحث عن منتج..."
+                  createLabel={(q) => `إضافة منتج جديد: "${q}"`}
+                  placeholder="ابحث عن منتج أو اكتب اسماً جديداً..."
                 />
               </Field>
               <Field label="كمية الإنتاج (الافتراضية)">
@@ -255,10 +270,32 @@ export default function NewBomPage() {
                                 return res;
                               }}
                           getLabel={(c) => c.name}
-                          createLabel={(q) => `إضافة "${q}"`}
+                          onCreate={async (q) => {
+                            if (!confirm(`هل تريد إضافة مادة خام جديدة باسم "${q}"؟`)) return;
+                            try {
+                              setIsSaving(true);
+                              const res = await productsApi.create({ name: q, itemType: 'raw_material' }) as { id: number };
+                              // Manually construct a component shape matching what backend returns for components
+                              const newComp: ManufacturingComponent = { 
+                                id: String(res.id), 
+                                name: q, 
+                                baseUnit: 'kg', 
+                                costPerBaseUnit: 0,
+                                stock: 0 
+                              };
+                              setComponents([...components, newComp]);
+                              selectComponent(line.id, newComp);
+                              alert('تمت إضافة المادة الخام بنجاح. يمكنك تعديل أسعارها ووحداتها من شاشة الأصناف لاحقاً.');
+                            } catch (e) {
+                              alert('حدث خطأ أثناء إضافة المادة الخام');
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          }}
+                          createLabel={(q) => `إضافة مادة خام جديدة: "${q}"`}
                           
                           onSelect={(comp) => selectComponent(line.id, comp)}
-                          placeholder="ابحث عن مكون..."
+                          placeholder="ابحث عن مكون أو اكتب اسماً جديداً..."
                           className="purchase-prototype-inline-combobox"
                           inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
                         />
