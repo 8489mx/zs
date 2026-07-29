@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { useAuthStore } from '@/stores/auth-store';
+import { PageHeader } from '@/shared/components/page-header';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -1932,106 +1933,103 @@ export function NewPurchaseOrderPage() {
           </div>
         </div>
       )}
-      <div className={`purchase-prototype-sticky-stack${isHeaderScrolled ? ' is-scrolled' : ''}`}>
-        <div className="purchase-prototype-document-surface">
-        <div className="document-prototype-topbar">
-            <div className="document-prototype-topbar-right">
-              <button type="button" className="document-prototype-back-link" aria-label={t('back_to_purchases')}>←</button>
-              <h1>{t('new_purchase_order')}</h1>
-              
-              <span className={`document-prototype-status-badge is-${documentStatus}`}>
-                {documentStatus === 'confirmed' ? t('status_confirmed') : t('status_draft')}
-              </span>
-          </div>
-          
-          <div className="document-smart-buttons-box">
-             <button className="document-smart-button">
-               <span className="document-smart-button-value">{formatMoney(total, language)}</span>
-               <span className="document-smart-button-label">الإجمالي</span>
-             </button>
-             <button className="document-smart-button">
-               <span className="document-smart-button-value">{attachments.length || 0}</span>
-               <span className="document-smart-button-label">أوامر مرفقة</span>
-             </button>
-          </div>
-          <div className="document-prototype-topbar-actions">
-            <Button 
-              variant="secondary" 
-              type="button" 
-              className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary" 
-              onClick={handleResetDraft} 
-              style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
-            >
-              <span aria-hidden="true" className="purchase-prototype-save-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                  <path d="M3 6h18"></path>
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                </svg>
-              </span>
-              <span>إلغاء المسودة</span>
-            </Button>
-            <Button 
-              variant="secondary" 
-              type="button" 
-              className={`purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary ${inlineMessage?.text === t('draft_saved') ? 'is-success-state' : ''}`} 
-              onClick={handleSaveDraft} 
-              disabled={documentStatus === 'confirmed'}
-              style={inlineMessage?.text === t('draft_saved') ? { backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', borderColor: 'rgba(34, 197, 94, 0.3)' } : {}}
-            >
-              {inlineMessage?.text === t('draft_saved') ? (
-                <>
-                  <span aria-hidden="true" className="purchase-prototype-save-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </span>
-                  <span>{t('draft_saved')}</span>
-                </>
-              ) : (
-                <>
-                  <span aria-hidden="true" className="purchase-prototype-save-icon">
-                    <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
-                      <path d="M5 3.75h10.4L19 7.35V20.25H5V3.75Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                      <path d="M7.2 3.75v5.1h6.8v-5.1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                      <path d="M8 20.25v-5.4h8v5.4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                  <span>{t('save_as_draft')}</span>
-                </>
-              )}
-            </Button>
-            <Button 
-              type="button" 
-              className={`purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary ${inlineMessage?.text === t('invoice_confirmed') ? 'is-success-state' : ''}`} 
-              onClick={handleConfirmInvoice} 
-              disabled={documentStatus === 'confirmed' || createMutation.isPending || isPolling}
-              style={inlineMessage?.text === t('invoice_confirmed') ? { backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', borderColor: 'rgba(34, 197, 94, 0.3)' } : {}}
-            >
-              {inlineMessage?.text === t('invoice_confirmed') ? (
-                <>
-                  <span aria-hidden="true" className="purchase-prototype-save-icon" style={{ marginLeft: '4px' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </span>
-                  <span>{t('invoice_confirmed')}</span>
-                </>
-              ) : (
-                <span>{t('confirm_invoice')}</span>
-              )}
-            </Button>
-            {inlineMessage && inlineMessage.tone === 'error' ? (
-              <div className={`purchase-prototype-inline-message is-${inlineMessage.tone}`} role="alert" aria-live="polite">
-                {inlineMessage.text}
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <button type="button" className="document-prototype-back-link" onClick={() => navigate('/purchases')} aria-label={t('back_to_purchases')} style={{ marginBottom: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span>&rarr;</span> {t('back_to_purchases') || 'العودة'}
+        </button>
+        <PageHeader 
+          title={t('new_purchase_order') as string} 
+          badge={
+            <span className={`document-prototype-status-badge is-${documentStatus}`}>
+              {documentStatus === 'confirmed' ? t('status_confirmed') : t('status_draft')}
+            </span>
+          } 
+          actions={
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div className="document-smart-buttons-box" style={{ marginRight: '16px' }}>
+                 <button className="document-smart-button">
+                   <span className="document-smart-button-value">{formatMoney(total, language)}</span>
+                   <span className="document-smart-button-label">الإجمالي</span>
+                 </button>
+                 <button className="document-smart-button">
+                   <span className="document-smart-button-value">{attachments.length || 0}</span>
+                   <span className="document-smart-button-label">أوامر مرفقة</span>
+                 </button>
               </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-      </div>
-
-      <main className="document-prototype-column">
+              <Button 
+                variant="secondary" 
+                type="button" 
+                className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary" 
+                onClick={handleResetDraft} 
+                style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+              >
+                <span aria-hidden="true" className="purchase-prototype-save-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                  </svg>
+                </span>
+                <span>إلغاء المسودة</span>
+              </Button>
+              <Button 
+                variant="secondary" 
+                type="button" 
+                className={`purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary ${inlineMessage?.text === t('draft_saved') ? 'is-success-state' : ''}`} 
+                onClick={handleSaveDraft} 
+                disabled={documentStatus === 'confirmed'}
+                style={inlineMessage?.text === t('draft_saved') ? { backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', borderColor: 'rgba(34, 197, 94, 0.3)' } : {}}
+              >
+                {inlineMessage?.text === t('draft_saved') ? (
+                  <>
+                    <span aria-hidden="true" className="purchase-prototype-save-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span>{t('draft_saved')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span aria-hidden="true" className="purchase-prototype-save-icon">
+                      <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+                        <path d="M5 3.75h10.4L19 7.35V20.25H5V3.75Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                        <path d="M7.2 3.75v5.1h6.8v-5.1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                        <path d="M8 20.25v-5.4h8v5.4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <span>{t('save_as_draft')}</span>
+                  </>
+                )}
+              </Button>
+              <Button 
+                type="button" 
+                className={`purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary ${inlineMessage?.text === t('invoice_confirmed') ? 'is-success-state' : ''}`} 
+                onClick={handleConfirmInvoice} 
+                disabled={documentStatus === 'confirmed' || createMutation.isPending || isPolling}
+                style={inlineMessage?.text === t('invoice_confirmed') ? { backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', borderColor: 'rgba(34, 197, 94, 0.3)' } : {}}
+              >
+                {inlineMessage?.text === t('invoice_confirmed') ? (
+                  <>
+                    <span aria-hidden="true" className="purchase-prototype-save-icon" style={{ marginLeft: '4px' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span>{t('invoice_confirmed')}</span>
+                  </>
+                ) : (
+                  <span>{t('confirm_invoice')}</span>
+                )}
+              </Button>
+              {inlineMessage && inlineMessage.tone === 'error' ? (
+                <div className={`purchase-prototype-inline-message is-${inlineMessage.tone}`} role="alert" aria-live="polite">
+                  {inlineMessage.text}
+                </div>
+              ) : null}
+            </div>
+          } 
+        />
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">{t('basic_info')}</h3>
           <div className="document-prototype-grid compact-grid-3">
