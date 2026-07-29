@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -62,32 +62,38 @@ export function NewIssueOrderPage() {
     }
   }, [settingsQuery.data?.defaultBranchIssueMode]);
 
-  const productOptions = products
-    .filter(p => {
-      if (fromLocationId === 'all') {
-        return stocks.some(s => String(s.productId) === String(p.id) && s.qty > 0);
+  const availableProductIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (fromLocationId === 'all') {
+      for (const s of stocks) {
+        if (s.qty > 0) ids.add(String(s.productId));
       }
-      const productStock = stocks.find(s => String(s.productId) === String(p.id) && String(s.locationId) === String(fromLocationId));
-      return productStock && productStock.qty > 0;
-    })
-    .map((p) => ({
-      id: String(p.id),
-      name: p.name,
-      code: p.barcode || '',
-      searchTerms: [p.name, p.barcode || ''].filter(Boolean).join(' ').toLowerCase()
-    }));
+    } else {
+      for (const s of stocks) {
+        if (String(s.locationId) === String(fromLocationId) && s.qty > 0) {
+          ids.add(String(s.productId));
+        }
+      }
+    }
+    return ids;
+  }, [stocks, fromLocationId]);
+
+  const productOptions = useMemo(() => {
+    return products
+      .filter(p => availableProductIds.has(String(p.id)))
+      .map(p => ({
+        id: String(p.id),
+        name: p.name,
+        code: p.barcode || '',
+        searchTerms: [p.name, p.barcode || ''].filter(Boolean).join(' ').toLowerCase()
+      }));
+  }, [products, availableProductIds]);
 
   const fetchProductOptions = async (query: string) => {
     try {
       const results = await inventoryApi.searchProducts(query);
       return results
-        .filter(p => {
-          if (fromLocationId === 'all') {
-            return stocks.some(s => String(s.productId) === String(p.id) && s.qty > 0);
-          }
-          const productStock = stocks.find(s => String(s.productId) === String(p.id) && String(s.locationId) === String(fromLocationId));
-          return productStock && productStock.qty > 0;
-        })
+        .filter(p => availableProductIds.has(String(p.id)))
         .map(p => ({
           id: String(p.id),
           name: p.name,
