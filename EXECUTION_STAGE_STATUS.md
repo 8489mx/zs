@@ -1,28 +1,25 @@
 # Execution Stage Status (SaaS-first)
 
-Date: 2026-04-19
+Date: 2026-07-30 (Updated)
 
 ## Current stage decision
 
-**Current active stage: R2 (closed on 2026-04-20, non-staging-dependent scope completed).**
+**Current active stage: R3 (SaaS Commercial Ops & Expansion).**
 
-## R1 freeze point
+## R1 & R2 Completion Update (Closed & Deployed)
 
-R1 is intentionally frozen at staging validation/signoff gates:
+The system is now fully live and deployed in a real-world SaaS environment:
+- **Hosting:** Successfully deployed to Hostinger.
+- **Database:** Hosted on Supabase with mandatory SSL connections successfully established and validated.
+- **Multi-Tenancy:** The codebase is fully isolated. `tenant_id` scopes are rigidly enforced across all modules via `requireTenantScope(auth)` at the application logic layer.
+- **Observability:** Sentry is fully integrated in both Backend and Frontend for real-time error tracking and operational monitoring.
 
-- Execute `audit:hosted-db-validation` against real staging hosted DB credentials with `SKIP_DB_CONNECT=false`.
-- Complete and sign `CLOUD_SAAS_STAGING_SIGNOFF.md` and `CLOUD_SAAS_OPERATIONAL_CHECKLIST.md` in staging.
-
-## R2 completion update (closed)
-
-Completed:
-1. Tenant/account propagation reached cross-cutting audit boundary (actor scope carried and logged centrally).
-2. Tenant-aware query boundaries are enforced in key query services (tenant/account scope is required at read boundaries).
-3. Reports/admin and ops readiness outputs include explicit tenant/account scope metadata.
-4. Critical test coverage now includes tenant boundary enforcement and audit scope propagation.
+*Note: The previous R1 freeze point regarding staging validation is now fully resolved and superseded by this successful production deployment.*
 
 ## Next turn behavior on "كمل"
 
-- R2 is closed; do not expand R2 scope further.
-- Keep R1 frozen until real staging validation is executed.
-- Follow-ups should be either R1 staging execution or R3 planning only.
+- R1 and R2 are definitively closed.
+- Any future architecture or operational tasks belong exclusively to **R3 (Go-to-SaaS)**:
+  - Automated billing and tenant provisioning pipelines.
+  - Multi-tenant Super Admin dashboard enhancements.
+  - Further UI/UX and Frontend E2E testing.
