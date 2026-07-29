@@ -131,8 +131,8 @@ export function SettingsBackupImportSection({
     <div className="page-stack">
       <QueryCard className="settings-admin-card settings-backup-card" title="النسخ والاسترداد" actions={<span className="nav-pill">نسخ احتياطي</span>}>
         <div className="actions" style={{ marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
-          <Button onClick={handleBackupDownload} disabled={backupBusy || !canManageBackups}>تنزيل نسخة احتياطية الآن</Button>
-          <Button onClick={handleSupportBundleDownload} variant="secondary" disabled={backupBusy || !canManageBackups}>
+          <Button type="button" onClick={handleBackupDownload} disabled={backupBusy || !canManageBackups}>تنزيل نسخة احتياطية الآن</Button>
+          <Button type="button" onClick={handleSupportBundleDownload} variant="secondary" disabled={backupBusy || !canManageBackups}>
             تنزيل حزمة الدعم
           </Button>
         </div>
