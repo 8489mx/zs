@@ -610,7 +610,6 @@ export function NewPurchaseOrderPage() {
   // @ts-expect-error unused variable
   const { theme, updateSessionMeta } = useAuthStore();
   const isDarkMode = theme === 'dark';
-  const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
   const [activeQuickAction, setActiveQuickAction] = useState<'tax' | 'discount' | null>(null);
   const [discountMode, setDiscountMode] = useState<'percent' | 'value'>('value');
   const [customTaxRate, setCustomTaxRate] = useState('14');
