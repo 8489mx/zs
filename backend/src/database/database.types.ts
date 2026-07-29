@@ -291,6 +291,8 @@ export interface ProductTable {
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  tax_code_type: string | null;
+  tax_code: string | null;
 }
 
 export interface StyleCodeCounterTable {
@@ -536,6 +538,9 @@ export interface SalesTable {
   settled_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  eta_uuid: string | null;
+  eta_status: Generated<string>;
+  eta_submission_id: string | null;
 }
 
 export interface SaleItemTable {
@@ -638,6 +643,9 @@ export interface ReturnDocumentTable {
   location_id: number | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
+  eta_uuid: string | null;
+  eta_status: Generated<string>;
+  eta_submission_id: string | null;
 }
 
 export interface ReturnItemTable {
@@ -1644,6 +1652,20 @@ export interface HrSettingsTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface TenantTaxSettingsTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  provider: string;
+  client_id: string | null;
+  client_secret: string | null;
+  tax_id: string | null;
+  environment: string | null;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface HrPayrollLoanDeductionAllocationTable {
   id: Generated<number>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
@@ -1747,6 +1769,7 @@ export interface Database {
   offline_releases: OfflineReleaseTable;
   style_code_counters: StyleCodeCounterTable;
   addons: AddonTable;
+  tenant_tax_settings: TenantTaxSettingsTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;

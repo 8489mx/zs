@@ -300,6 +300,10 @@ export class SessionService {
     const defaultPassword = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD') || 'ChangeMe123!';
     const defaultPasswordCheck = await verifyPassword(defaultPassword, profile.passwordHash, profile.passwordSalt);
     const usingDefaultAdminPassword = profile.role === 'super_admin' && profile.username.toLowerCase() === defaultUsername.toLowerCase() && defaultPasswordCheck.valid;
-    return { user: { id: profile.id, username: profile.username, role: profile.role, permissions: profile.permissions, displayName: profile.displayName, branchIds: profile.branchIds, defaultBranchId: profile.defaultBranchId, tenantId: profile.tenantId, accountId: profile.accountId }, tenant, settings: { storeName: settingsMap.get('storeName') || 'Z Systems', theme: settingsMap.get('theme') || 'light' }, security: { mustChangePassword: profile.mustChangePassword, usingDefaultAdminPassword } };
+    
+    const taxSettings = await this.db.selectFrom('tenant_tax_settings').select(['is_active']).where('tenant_id', '=', tenantId).where('provider', '=', 'ETA_EGYPT').executeTakeFirst();
+    const isEtaActive = taxSettings ? Boolean(taxSettings.is_active) : false;
+
+    return { user: { id: profile.id, username: profile.username, role: profile.role, permissions: profile.permissions, displayName: profile.displayName, branchIds: profile.branchIds, defaultBranchId: profile.defaultBranchId, tenantId: profile.tenantId, accountId: profile.accountId }, tenant, settings: { storeName: settingsMap.get('storeName') || 'Z Systems', theme: settingsMap.get('theme') || 'light', isEtaActive }, security: { mustChangePassword: profile.mustChangePassword, usingDefaultAdminPassword } };
   }
 }

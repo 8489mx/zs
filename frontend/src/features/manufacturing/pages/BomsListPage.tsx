@@ -8,6 +8,8 @@ import { ManufacturingLayout } from '@/features/manufacturing/components/Manufac
 
 import { bomsApi, type BomRecord } from '@/features/manufacturing/api/boms.api';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
 export default function BomsListPage() {
@@ -48,7 +50,7 @@ export default function BomsListPage() {
       setBoms(boms.filter(b => b.id !== id));
     } catch (e) {
       console.error(e);
-      alert('فشل في حذف التركيبة. قد لا تكون هذه الخاصية مدعومة في الخادم حالياً.');
+      systemAlert('فشل في حذف التركيبة. قد لا تكون هذه الخاصية مدعومة في الخادم حالياً.');
     }
   };
 

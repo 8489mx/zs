@@ -25,7 +25,9 @@ export const productFormSchema = z.object({
   comboComponents: z.array(z.object({
     productId: z.number(),
     quantity: z.number().min(0.0001)
-  })).optional()
+  })).optional(),
+  taxCodeType: z.string().optional(),
+  taxCode: z.string().optional()
 });
 
 export type ProductFormInput = z.input<typeof productFormSchema>;

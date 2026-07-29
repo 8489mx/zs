@@ -1,4 +1,4 @@
-export type SettingsSectionKey = 'overview' | 'core' | 'reference' | 'backup' | 'users' | 'offline-releases' | 'system-updates' | 'lan-network';
+export type SettingsSectionKey = 'overview' | 'core' | 'reference' | 'backup' | 'users' | 'offline-releases' | 'system-updates' | 'lan-network' | 'tax-integration';
 
 const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
   { key: 'overview', label: 'ملخص سريع' },
@@ -8,6 +8,7 @@ const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: b
   { key: 'users', label: 'المستخدمون والصلاحيات', adminOnly: true },
   { key: 'system-updates', label: 'الإصدارات والتحديثات', offlineOnly: true },
   { key: 'backup', label: 'النسخ والاستيراد' },
+  { key: 'tax-integration', label: 'الضرائب والفاتورة الإلكترونية', adminOnly: true },
   { key: 'offline-releases', label: 'إصدارات الأوفلاين 🖥️', superAdminOnly: true }
 ];
 

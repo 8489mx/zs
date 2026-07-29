@@ -66,7 +66,9 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): Produc
     minStock: 5,
     categoryId: '',
     supplierId: '',
-    notes: ''
+    notes: '',
+    taxCodeType: 'GS1',
+    taxCode: ''
   };
 }
 
@@ -303,6 +305,17 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
             {clothingModuleEnabled ? <Field label="الخاصية الثانية"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
           </>
         )}
+        
+        <Field label="نوع الكود الضريبي">
+          <select {...form.register('taxCodeType')} disabled={mutation.isPending}>
+            <option value="GS1">GS1 (عالمي)</option>
+            <option value="EGS">EGS (مصري)</option>
+          </select>
+        </Field>
+        
+        <Field label="الكود الضريبي (EGS/GS1)">
+          <input {...form.register('taxCode')} disabled={mutation.isPending} placeholder="مثال: 10003923..." />
+        </Field>
 
         <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
         <Field label="سعر القطاعي"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>

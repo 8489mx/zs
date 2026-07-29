@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { catalogApi } from '@/shared/api/catalog';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 interface AssignProductsModalProps {
   locationId: number;
   locationName?: string;
@@ -81,7 +83,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
     },
     onError: (err: any) => {
       console.error('Assign/Transfer error:', err);
-      alert(err?.message || 'حدث خطأ أثناء الحفظ أو نقل الرصيد');
+      systemAlert(err?.message || 'حدث خطأ أثناء الحفظ أو نقل الرصيد');
     }
   });
 

@@ -12,3 +12,4 @@ export { SettingsBackupImportSection } from './workspace-sections/SettingsBackup
 export { SettingsDiagnosticsSection } from './workspace-sections/SettingsDiagnosticsSection';
 export { SettingsReadinessSection } from './workspace-sections/SettingsReadinessSection';
 export { SettingsLanModesSection } from './workspace-sections/SettingsLanModesSection';
+export { TaxIntegrationSection } from './workspace-sections/TaxIntegrationSection';

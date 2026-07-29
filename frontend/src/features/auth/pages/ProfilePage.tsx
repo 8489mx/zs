@@ -6,6 +6,8 @@ import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 export function ProfilePage() {
   const user = useAuthStore(s => s.user);
   const updateUser = useAuthStore(s => s.updateUser);
@@ -30,9 +32,9 @@ export function ProfilePage() {
       if (res.user) {
         updateUser(res.user);
       }
-      alert('تم تحديث البيانات بنجاح');
+      systemAlert('تم تحديث البيانات بنجاح');
     } catch (err: any) {
-      alert(err.message || 'حدث خطأ أثناء حفظ البيانات');
+      systemAlert(err.message || 'حدث خطأ أثناء حفظ البيانات');
     } finally {
       setIsSavingProfile(false);
     }
@@ -41,7 +43,7 @@ export function ProfilePage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert('كلمة المرور الجديدة غير متطابقة');
+      systemAlert('كلمة المرور الجديدة غير متطابقة');
       return;
     }
     
@@ -51,12 +53,12 @@ export function ProfilePage() {
         method: 'PUT',
         body: JSON.stringify({ oldPassword, newPassword })
       });
-      alert('تم تغيير كلمة المرور بنجاح');
+      systemAlert('تم تغيير كلمة المرور بنجاح');
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      alert(err.message || 'حدث خطأ أثناء تغيير كلمة المرور');
+      systemAlert(err.message || 'حدث خطأ أثناء تغيير كلمة المرور');
     } finally {
       setIsSavingPassword(false);
     }

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { deliveryRepsApi, type DeliveryRep } from '../api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId: number | null, onSelectRep: (id: number) => void }) {
   const queryClient = useQueryClient();
   const [isAdding, setIsAdding] = useState(false);
@@ -26,7 +28,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
     },
     onError: (error: any) => {
       console.error('API Error details:', error.details || error);
-      alert((error.message || 'حدث خطأ أثناء الإضافة') + '\n\n' + JSON.stringify(error.details || {}));
+      systemAlert((error.message || 'حدث خطأ أثناء الإضافة') + '\n\n' + JSON.stringify(error.details || {}));
     }
   });
 
@@ -38,7 +40,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
       setEditingId(null);
     },
     onError: (error: any) => {
-      alert(error.message || 'حدث خطأ أثناء التعديل');
+      systemAlert(error.message || 'حدث خطأ أثناء التعديل');
     }
   });
 
@@ -49,7 +51,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
       queryClient.invalidateQueries({ queryKey: ['delivery-reps'] });
     },
     onError: (error: any) => {
-      alert(error.message || 'حدث خطأ أثناء تغيير الحالة');
+      systemAlert(error.message || 'حدث خطأ أثناء تغيير الحالة');
     }
   });
 

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { catalogApi } from '@/shared/api/catalog';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ProductRow {
   id: string;
@@ -948,7 +950,7 @@ export function InventoryTreePage() {
         // If it's already deleted in the backend but stuck in UI cache, force refetch
         await queryClient.invalidateQueries({ queryKey: ['location-stocks'] });
       } else {
-        alert(e?.message || 'حدث خطأ غير متوقع');
+        systemAlert(e?.message || 'حدث خطأ غير متوقع');
       }
     }
   };

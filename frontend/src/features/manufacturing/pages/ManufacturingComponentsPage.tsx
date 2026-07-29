@@ -7,6 +7,8 @@ import { componentsApi, type ManufacturingComponent } from '@/features/manufactu
 import { MANUFACTURING_UNITS } from '@/features/manufacturing/utils/units';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
 export default function ManufacturingComponentsPage() {
@@ -43,7 +45,7 @@ export default function ManufacturingComponentsPage() {
     if (!editingComponent) {
       const isDuplicate = components.some(c => c.name.trim().toLowerCase() === newName.trim().toLowerCase());
       if (isDuplicate) {
-        return alert(`المكون "${newName}" مسجل مسبقاً! يرجى اختيار اسم آخر أو تعديل المكون الحالي.`);
+        return systemAlert(`المكون "${newName}" مسجل مسبقاً! يرجى اختيار اسم آخر أو تعديل المكون الحالي.`);
       }
     }
     
@@ -72,7 +74,7 @@ export default function ManufacturingComponentsPage() {
       setNewCost('');
       loadComponents();
     } catch (error) {
-      alert('حدث خطأ أثناء الحفظ');
+      systemAlert('حدث خطأ أثناء الحفظ');
     }
   };
 
@@ -92,7 +94,7 @@ export default function ManufacturingComponentsPage() {
       await componentsApi.delete(id);
       loadComponents();
     } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
+      systemAlert('حدث خطأ أثناء الحذف');
     }
   };
 

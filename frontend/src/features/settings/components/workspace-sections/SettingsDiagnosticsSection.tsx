@@ -4,6 +4,8 @@ import { Button } from '@/shared/ui/button';
 import { settingsApi } from '@/features/settings/api/settings.api';
 import { SummaryList, downloadSummaryCsv, printSummaryList } from '@/features/settings/components/SettingsWorkspacePrimitives';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 interface SettingsDiagnosticsSectionProps {
   diagnosticsQuery: { isLoading: boolean; isError: boolean; error?: unknown };
   canManageMaintenance: boolean;
@@ -53,7 +55,7 @@ export function SettingsDiagnosticsSection({
         // @ts-ignore
         const res = await window.electronRuntime.clearAppCache();
         if (res.ok) {
-          alert('تم مسح كاش النظام بنجاح. سيتم الآن إعادة تشغيل البرنامج لتحسين الأداء.');
+          systemAlert('تم مسح كاش النظام بنجاح. سيتم الآن إعادة تشغيل البرنامج لتحسين الأداء.');
           // @ts-ignore
           if (window.electronRuntime.switchToStandalone) {
              // @ts-ignore
@@ -62,15 +64,15 @@ export function SettingsDiagnosticsSection({
              window.location.reload();
           }
         } else {
-          alert('حدث خطأ أثناء مسح الكاش: ' + res.error);
+          systemAlert('حدث خطأ أثناء مسح الكاش: ' + res.error);
         }
       } catch (err) {
-        alert('حدث خطأ أثناء مسح الكاش.');
+        systemAlert('حدث خطأ أثناء مسح الكاش.');
       } finally {
         setIsClearingCache(false);
       }
     } else {
-      alert('هذه الميزة متاحة فقط في نسخة سطح المكتب.');
+      systemAlert('هذه الميزة متاحة فقط في نسخة سطح المكتب.');
     }
   };
 

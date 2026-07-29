@@ -67,6 +67,7 @@ export function useBootstrapAuth() {
             tenant: response.tenant ?? null,
             storeName: response.settings.storeName || DEFAULT_STORE_NAME,
             theme: response.settings.theme || DEFAULT_THEME,
+            isEtaActive: Boolean(response.settings?.isEtaActive),
           });
           setAppGate('ready', status);
           return;

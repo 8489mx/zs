@@ -13,6 +13,8 @@ import { MANUFACTURING_UNITS, calculateConvertedCost, findUnit } from '@/feature
 import { bomsApi } from '@/features/manufacturing/api/boms.api';
 import type { Product } from '@/types/domain';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 type BomLine = {
   id: number;
   componentId: string | null;
@@ -53,8 +55,8 @@ export default function NewBomPage() {
 
 
   const handleSave = async () => {
-    if (!selectedProduct) return alert('الرجاء اختيار المنتج التام');
-    if (lines.some(l => !l.componentId)) return alert('الرجاء اختيار مكونات التصنيع لجميع الأسطر');
+    if (!selectedProduct) return systemAlert('الرجاء اختيار المنتج التام');
+    if (lines.some(l => !l.componentId)) return systemAlert('الرجاء اختيار مكونات التصنيع لجميع الأسطر');
 
     setIsSaving(true);
     try {
@@ -74,11 +76,11 @@ export default function NewBomPage() {
           };
         })
       });
-      alert('تم حفظ التركيبة بنجاح');
+      systemAlert('تم حفظ التركيبة بنجاح');
       navigate('/manufacturing/boms');
     } catch (e) {
       console.error(e);
-      alert('حدث خطأ أثناء حفظ التركيبة');
+      systemAlert('حدث خطأ أثناء حفظ التركيبة');
     } finally {
       setIsSaving(false);
     }

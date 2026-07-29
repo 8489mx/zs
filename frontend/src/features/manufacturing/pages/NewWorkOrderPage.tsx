@@ -22,6 +22,8 @@ type LocationOption = {
 
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 export default function NewWorkOrderPage() {
   const navigate = useNavigate();
   
@@ -62,8 +64,8 @@ export default function NewWorkOrderPage() {
   }, []);
 
   const handleSave = async () => {
-    if (!selectedBom) return alert('الرجاء اختيار التركيبة');
-    if (!selectedSource || !selectedDest) return alert('الرجاء تحديد المخازن');
+    if (!selectedBom) return systemAlert('الرجاء اختيار التركيبة');
+    if (!selectedSource || !selectedDest) return systemAlert('الرجاء تحديد المخازن');
 
     setIsSaving(true);
     try {
@@ -74,11 +76,11 @@ export default function NewWorkOrderPage() {
         destinationLocationId: Number(selectedDest.id),
         note
       });
-      alert('تم إنشاء أمر الإنتاج بنجاح');
+      systemAlert('تم إنشاء أمر الإنتاج بنجاح');
       navigate('/manufacturing/work-orders');
     } catch (e: any) {
       console.error(e);
-      alert(e?.message || 'حدث خطأ أثناء إنشاء أمر الإنتاج');
+      systemAlert(e?.message || 'حدث خطأ أثناء إنشاء أمر الإنتاج');
     } finally {
       setIsSaving(false);
     }

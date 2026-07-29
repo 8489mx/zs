@@ -34,6 +34,7 @@ import { SecurityHeadersMiddleware } from './common/middleware/security-headers.
 import { LoginRateLimitMiddleware } from './common/middleware/login-rate-limit.middleware';
 import { AuthBurstRateLimitMiddleware } from './common/middleware/auth-burst-rate-limit.middleware';
 import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit.service';
+import { TaxIntegrationModule } from './modules/tax-integration/tax-integration.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { InMemoryRateLimitService } from './common/security/in-memory-rate-limit
     ManufacturingModule,
     DeliveryRepsModule,
     AddonsModule,
+    TaxIntegrationModule,
   ],
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })

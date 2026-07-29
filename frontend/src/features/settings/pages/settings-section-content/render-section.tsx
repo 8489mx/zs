@@ -5,6 +5,7 @@ import {
   SettingsReferenceSection,
   SettingsBackupImportSection,
   SettingsLanModesSection,
+  TaxIntegrationSection,
 } from '@/features/settings/components/SettingsWorkspaceSections';
 import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import type { BackupConfigQueryState } from '@/features/settings/components/workspace-sections/SettingsBackupImportSection';
@@ -205,4 +206,8 @@ export function renderUsersSection(props: SharedSettingsSectionProps) {
 
 export function renderLanNetworkSection() {
   return <SettingsLanModesSection />;
+}
+
+export function renderTaxIntegrationSection() {
+  return <TaxIntegrationSection />;
 }

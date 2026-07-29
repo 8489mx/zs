@@ -6,6 +6,7 @@ import {
   renderReferenceSection,
   renderUsersSection,
   renderLanNetworkSection,
+  renderTaxIntegrationSection,
   type SharedSettingsSectionProps,
 } from '@/features/settings/pages/settings-section-content/render-section';
 import { SystemUpdatesSection } from '@/features/settings/components/workspace-sections/SystemUpdatesSection';
@@ -50,5 +51,6 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
   if (section === 'users') return renderUsersSection(props);
   if (section === 'system-updates') return <SystemUpdatesSection />;
   if (section === 'lan-network') return renderLanNetworkSection();
+  if (section === 'tax-integration') return renderTaxIntegrationSection();
   return null;
 }

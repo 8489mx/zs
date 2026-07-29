@@ -11,6 +11,8 @@ import { productsApi } from '@/features/products/api/products.api';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import type { Product } from '@/types/domain';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 const quickProductSchema = z.object({
   name: z.string().min(1, 'اسم الصنف مطلوب'),
   categoryId: z.string().optional(),
@@ -111,7 +113,7 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
       onClose();
     },
     onError: () => {
-      alert('حدث خطأ أثناء حفظ الصنف. تأكد من صحة البيانات.');
+      systemAlert('حدث خطأ أثناء حفظ الصنف. تأكد من صحة البيانات.');
     }
   });
 

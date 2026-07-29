@@ -12,6 +12,17 @@ export function getSalesTableColumns() {
     { key: 'docNo', header: 'الرقم', cell: (sale: Sale) => sale.docNo || '—' },
     { key: 'customer', header: 'العميل', cell: (sale: Sale) => sale.customerName || 'عميل نقدي' },
     { key: 'status', header: 'الحالة', cell: (sale: Sale) => <span className={`status-badge ${sale.status === 'posted' ? 'status-posted' : 'status-draft'}`}>{sale.status || 'draft'}</span> },
+    { 
+      key: 'etaStatus', 
+      header: 'الضرائب', 
+      cell: (sale: any) => {
+        if (!sale.etaStatus || sale.etaStatus === 'none') return <span className="muted small">—</span>;
+        if (sale.etaStatus === 'pending') return <span className="badge badge-warning">معلقة</span>;
+        if (sale.etaStatus === 'submitted') return <span className="badge badge-success">تم الإرسال</span>;
+        if (sale.etaStatus === 'failed') return <span className="badge badge-danger">فشل</span>;
+        return <span className="muted small">{sale.etaStatus}</span>;
+      }
+    },
     { key: 'payment', header: 'الدفع', cell: (sale: Sale) => getSalePaymentLabel(sale) },
     { key: 'total', header: 'الإجمالي', cell: (sale: Sale) => formatCurrency(sale.total) },
     { key: 'date', header: 'التاريخ', cell: (sale: Sale) => formatDate(sale.date) }

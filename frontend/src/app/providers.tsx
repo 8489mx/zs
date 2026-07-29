@@ -2,6 +2,7 @@ import { PropsWithChildren, useEffect } from 'react';
 import { keepPreviousData, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { LocaleProvider } from '@/shared/locale/LocaleProvider';
+import { SystemAlertProvider } from '@/shared/components/system-alert';
 
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -52,7 +53,9 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <LocaleProvider>{children}</LocaleProvider>
+        <SystemAlertProvider>
+          <LocaleProvider>{children}</LocaleProvider>
+        </SystemAlertProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

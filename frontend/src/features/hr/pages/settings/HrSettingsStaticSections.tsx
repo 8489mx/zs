@@ -6,6 +6,8 @@ import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 type NavigateTo = (path: string) => void;
 
 export function HrSettingsDocumentsSection({ navigate }: { navigate: NavigateTo }) {
@@ -262,7 +264,7 @@ export function HrSettingsHolidaysSection() {
     try {
       await mutations.deleteHoliday.mutateAsync(id);
     } catch (e) {
-      alert(getErrorMessage(e, 'تعذر حذف العطلة.'));
+      systemAlert(getErrorMessage(e, 'تعذر حذف العطلة.'));
     }
   }
 

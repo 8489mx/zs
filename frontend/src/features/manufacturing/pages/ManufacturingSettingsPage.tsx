@@ -6,6 +6,8 @@ import { FormSection } from '@/shared/components/form-section';
 import { http } from '@/lib/http';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 type LocationOption = {
   id: string;
   name: string;
@@ -75,7 +77,7 @@ export default function ManufacturingSettingsPage() {
           }
         })
       });
-      alert('تم حفظ الإعدادات بنجاح');
+      systemAlert('تم حفظ الإعدادات بنجاح');
     } catch {
       // Fallback to localStorage if backend is not available
       if (selectedLocation?.id) {
@@ -83,7 +85,7 @@ export default function ManufacturingSettingsPage() {
       } else {
         localStorage.removeItem('manufacturing.default_production_location');
       }
-      alert('تم حفظ الإعدادات بنجاح (محلياً)');
+      systemAlert('تم حفظ الإعدادات بنجاح (محلياً)');
     } finally {
       setIsSaving(false);
     }

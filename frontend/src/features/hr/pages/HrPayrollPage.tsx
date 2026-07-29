@@ -22,6 +22,8 @@ import {
 } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { DialogShell } from '@/shared/components/dialog-shell';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 interface PayrollDraft {
   periodMonth: string;
   payFrequency: 'monthly' | 'weekly' | 'biweekly' | 'daily';
@@ -159,7 +161,7 @@ export function HrPayrollPage() {
   function handleRunActionClick(runId: string, actionType: 'review' | 'approve') {
     if (selectedRunId !== runId) {
       setSelectedRunId(runId);
-      alert('تم عرض تفاصيل هذا المسير. يرجى مراجعتها بالأسفل وتأكيد عدم وجود استثناءات معلقة ثم حاول مرة أخرى.');
+      systemAlert('تم عرض تفاصيل هذا المسير. يرجى مراجعتها بالأسفل وتأكيد عدم وجود استثناءات معلقة ثم حاول مرة أخرى.');
       return;
     }
     const hasExceptions = filteredRunItems.some(item => Number(item.unresolvedExceptionsCount || 0) > 0);

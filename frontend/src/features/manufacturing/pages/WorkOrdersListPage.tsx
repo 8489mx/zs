@@ -10,6 +10,8 @@ import { ManufacturingLayout } from '@/features/manufacturing/components/Manufac
 
 import { workOrdersApi, type WorkOrderRecord } from '@/features/manufacturing/api/work-orders.api';
 
+import { systemAlert } from '@/shared/components/system-alert';
+
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
 const statusLabels: Record<string, string> = {
@@ -139,10 +141,10 @@ export default function WorkOrdersListPage() {
             if (confirm('هل أنت متأكد من إنهاء أمر الإنتاج وسحب المواد من المخزن وإضافة المنتج التام؟')) {
               workOrdersApi.complete(row.id, {})
                 .then(() => {
-                  alert('تم إنهاء أمر الإنتاج بنجاح');
+                  systemAlert('تم إنهاء أمر الإنتاج بنجاح');
                   setWorkOrders(workOrders.map(wo => wo.id === row.id ? { ...wo, status: 'done' } : wo));
                 })
-                .catch((e: any) => alert(e?.message || 'حدث خطأ أثناء إنهاء الأمر'));
+                .catch((e: any) => systemAlert(e?.message || 'حدث خطأ أثناء إنهاء الأمر'));
             }
           }}
         >

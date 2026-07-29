@@ -12,6 +12,8 @@ import { ContactsSection, LedgerSection } from '@/features/hr/pages/employee-pro
 import { EndOfServiceModal } from './employee-profile/EndOfServiceModal';
 import { EmployeeAdjustmentsSection } from '@/features/hr/pages/employee-profile/EmployeeAdjustmentsSection';
 import { buildEmployeeProfileDerivedData } from '@/features/hr/pages/employee-profile/employee-profile.derived';
+import { systemAlert } from '@/shared/components/system-alert';
+
 import {
   employeeName,
   fallbackText,
@@ -115,7 +117,7 @@ export function EmployeeProfilePage() {
       setShowContractForm(false);
       void profile.refetch();
     } catch(err) {
-      alert(getErrorMessage(err, 'تعذر حفظ الراتب'));
+      systemAlert(getErrorMessage(err, 'تعذر حفظ الراتب'));
     }
   }
 

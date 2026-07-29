@@ -60,6 +60,7 @@ const iconToneMap: Record<string, IconTone> = {
   hr: { bg: 'linear-gradient(135deg, #fee2e2, #e0f2fe)', border: '#fca5a5', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.2)' },
   'pricing-center': { bg: 'linear-gradient(135deg, #fef9c3, #fde68a)', border: '#facc15', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.24)' },
   settings: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
+  'tax-dispatcher': { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#334155', glow: 'rgba(71, 85, 105, 0.18)' },
   'saas-admin-tenants': { bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', border: '#fca5a5', fg: '#991b1b', glow: 'rgba(239, 68, 68, 0.2)' },
   'accounting-accounts': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
   'accounting-journal-entries': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
@@ -97,6 +98,7 @@ const iconPathMap: Record<string, string> = {
   hr: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
   audit: 'M5 4h14v16H5V4zM9 8h6M9 12h6M9 16h4',
   settings: 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19 12h2M3 12h2M12 3v2M12 19v2M17 7l1.4-1.4M5.6 18.4 7 17M17 17l1.4 1.4M5.6 5.6 7 7',
+  'tax-dispatcher': 'M12 2l8 4v6c0 5.5-3.6 10.7-8 12-4.4-1.3-8-6.5-8-12V6l8-4zM12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 11c-2.7 0-5 1.8-5 4v1h10v-1c0-2.2-2.3-4-5-4z',
   'saas-admin-tenants': 'M4 5h16v14H4V5zM8 9h8M8 13h8M8 17h5',
   'accounting-accounts': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
   'accounting-journal-entries': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
@@ -135,6 +137,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const storeName = useAuthStore((state) => state.storeName);
+  const isEtaActive = useAuthStore((state) => state.isEtaActive);
   const clearSession = useAuthStore((state) => state.clearSession);
   const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
   const { data: updateInfo } = useOfflineUpdateCheck(deploymentMode);
@@ -164,7 +167,7 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'delivery-reps', 'purchases-new', 'purchases', 'returns', 'purchase-returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'tax-dispatcher', 'delivery-reps', 'purchases-new', 'purchases', 'returns', 'purchase-returns', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'services', 'hr', 'audit', 'saas-admin-tenants', 'inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: t('sidebar.dashboard'),
       'cash-drawer': t('sidebar.cash-drawer'),
@@ -198,19 +201,19 @@ export function AppShell({ children }: PropsWithChildren) {
       'product-categories': 'أقسام الأصناف',
     };
     return navigationItems
-      .filter((item) => user && canAccessNavigationItem(user, item))
+      .filter((item) => user && canAccessNavigationItem(user, item) && (item.key !== 'tax-dispatcher' || isEtaActive))
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
       .sort((a, b) => {
         const aIndex = preferredOrder.indexOf(a.key);
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, t]);
+  }, [user, t, isEtaActive]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
-    { key: 'sales-group', label: t('sidebar.sales-group'), itemKeys: ['sales', 'returns', 'delivery-reps', 'customers', 'reports'] },
+    { key: 'sales-group', label: t('sidebar.sales-group'), itemKeys: ['sales', 'tax-dispatcher', 'returns', 'delivery-reps', 'customers', 'reports'] },
     { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'] },
     { key: 'inventory-group', label: t('sidebar.inventory-group'), itemKeys: ['inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'treasury'] },
     { key: 'manufacturing-group', label: t('sidebar.manufacturing-group'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
