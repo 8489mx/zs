@@ -244,15 +244,20 @@ export function StockCountMonitorCard({
                 {canReviewStock && !selectedSummary?.hasVariance ? <div className="success-box">لا توجد فروقات في هذه الجلسة.</div> : null}
                 <div className="surface-note">{selectedSession.note || 'لا توجد ملاحظات مسجلة على جلسة الجرد.'}</div>
 
-                <div className="detail-table-wrap">
-                  {(selectedSession.items || []).length ? (
-                    canReviewStock ? (
-                      <table><thead><tr><th>الصنف</th><th>المتوقع</th><th>المعدود</th><th>الفرق</th><th>السبب</th></tr></thead><tbody>{(selectedSession.items || []).map((item) => { const variance = Number(item.varianceQty || 0); const hasVariance = Math.abs(variance) > 0; return <tr key={item.id || `${selectedSession.id}-${item.productId}`} style={hasVariance ? { background: 'rgba(245, 158, 11, 0.08)' } : undefined}><td>{item.productName || '—'}</td><td>{item.expectedQty}</td><td>{item.countedQty}</td><td><span className={`delta-chip ${quantityTone(variance)}`}>{variance > 0 ? '+' : ''}{item.varianceQty}</span></td><td>{item.reason || '—'}</td></tr>; })}</tbody></table>
-                    ) : (
-                      <table><thead><tr><th>الصنف</th><th>المعدود</th><th>السبب</th></tr></thead><tbody>{(selectedSession.items || []).map((item) => <tr key={item.id || `${selectedSession.id}-${item.productId}`}><td>{item.productName || '—'}</td><td>{item.countedQty}</td><td>{item.reason || '—'}</td></tr>)}</tbody></table>
-                    )
-                  ) : <EmptyState title="لا توجد بنود مسجلة في هذه الجلسة." />}
-                </div>
+                <details className="detail-table-wrap surface-note" style={{ padding: 0, overflow: 'hidden' }}>
+                  <summary style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: 600, userSelect: 'none' }}>
+                    عرض تفاصيل البنود ({selectedSessionTotals.itemsCount} صنف)
+                  </summary>
+                  <div style={{ padding: '0 16px 16px', maxHeight: '500px', overflowY: 'auto' }}>
+                    {(selectedSession.items || []).length ? (
+                      canReviewStock ? (
+                        <table><thead><tr><th>الصنف</th><th>المتوقع</th><th>المعدود</th><th>الفرق</th><th>السبب</th></tr></thead><tbody>{(selectedSession.items || []).map((item) => { const variance = Number(item.varianceQty || 0); const hasVariance = Math.abs(variance) > 0; return <tr key={item.id || `${selectedSession.id}-${item.productId}`} style={hasVariance ? { background: 'rgba(245, 158, 11, 0.08)' } : undefined}><td>{item.productName || '—'}</td><td>{item.expectedQty}</td><td>{item.countedQty}</td><td><span className={`delta-chip ${quantityTone(variance)}`}>{variance > 0 ? '+' : ''}{item.varianceQty}</span></td><td>{item.reason || '—'}</td></tr>; })}</tbody></table>
+                      ) : (
+                        <table><thead><tr><th>الصنف</th><th>المعدود</th><th>السبب</th></tr></thead><tbody>{(selectedSession.items || []).map((item) => <tr key={item.id || `${selectedSession.id}-${item.productId}`}><td>{item.productName || '—'}</td><td>{item.countedQty}</td><td>{item.reason || '—'}</td></tr>)}</tbody></table>
+                      )
+                    ) : <EmptyState title="لا توجد بنود مسجلة في هذه الجلسة." />}
+                  </div>
+                </details>
 
                 {canReviewStock ? <div className="surface-note">بعد الاعتماد سيتم إنشاء حركات تسوية للمخزون حسب الفروقات.</div> : <div className="surface-note">هذه الجلسة بانتظار مراجعة مستخدم لديه صلاحية اعتماد/تسوية المخزون.</div>}
                 <div className="actions compact-actions">

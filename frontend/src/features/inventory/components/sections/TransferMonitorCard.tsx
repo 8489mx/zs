@@ -188,12 +188,17 @@ export function TransferMonitorCard({
                   <div className="detail-item"><div className="detail-label">تم الإلغاء</div><div className="detail-value">{selectedTransfer.cancelledAt ? formatDate(selectedTransfer.cancelledAt) : 'غير ملغي'}</div></div>
                 </div>
                 <div className="surface-note">{selectedTransfer.note || 'لا توجد ملاحظات على هذا التحويل.'}</div>
-                <div className="detail-table-wrap">
-                  <table>
-                    <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
-                    <tbody>{(selectedTransfer.items || []).map((item) => <tr key={item.id || `${selectedTransfer.id}-${item.productId}`}><td>{item.productName || '—'}</td><td>{item.qty}</td></tr>)}</tbody>
-                  </table>
-                </div>
+                <details className="detail-table-wrap surface-note" style={{ padding: 0, overflow: 'hidden' }}>
+                  <summary style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: 600, userSelect: 'none' }}>
+                    عرض تفاصيل البنود ({selectedTransferTotals.itemsCount} صنف)
+                  </summary>
+                  <div style={{ padding: '0 16px 16px', maxHeight: '500px', overflowY: 'auto' }}>
+                    <table>
+                      <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+                      <tbody>{(selectedTransfer.items || []).map((item) => <tr key={item.id || `${selectedTransfer.id}-${item.productId}`}><td>{item.productName || '—'}</td><td>{item.qty}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                </details>
                 <div className="actions compact-actions">
                   <Button variant="secondary" onClick={onCopyTransferDetails}>نسخ التفاصيل</Button>
                   <Button variant="secondary" onClick={() => onPrintTransfer(selectedTransfer, 'a4')}>طباعة (A4)</Button>
