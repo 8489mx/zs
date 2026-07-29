@@ -18,7 +18,7 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
   if (!kpis) return null;
 
   const renderStars = (rating: number) => {
-    if (kpis.totalOrders === 0) {
+    if (kpis.successfulOrders === 0 && kpis.returnedOrders === 0) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', height: '36px' }}>
           <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#94a3b8', background: '#f1f5f9', padding: '4px 12px', borderRadius: '16px' }}>لم يُقيّم بعد</span>
