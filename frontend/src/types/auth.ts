@@ -33,6 +33,7 @@ export interface AuthMeResponse {
     storeName: string;
     theme: string;
     uiLanguage?: 'ar' | 'en' | string;
+    isEtaActive?: boolean;
   };
   security: {
     mustChangePassword: boolean;
