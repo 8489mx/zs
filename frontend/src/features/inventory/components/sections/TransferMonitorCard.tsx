@@ -64,12 +64,6 @@ export function TransferMonitorCard({
 }: TransferMonitorCardProps) {
   const detailPanelRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (!selectedTransfer) return;
-    window.requestAnimationFrame(() => {
-      detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
-    });
-  }, [selectedTransfer]);
 
   return (
     <FormSection title="تحويلات مخزون قائمة" description="عرض table-first مع لوحة تفاصيل جانبية حتى تستطيع مراجعة البنود والجهات والحالة بسرعة قبل الاستلام أو الإلغاء." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={onExportTransfers} disabled={!visibleTransfers.length}>تصدير Excel</Button><span className="nav-pill">{pendingTransfersCount} قيد الاستلام من {transferTotalItems}</span></div>}>
@@ -102,7 +96,12 @@ export function TransferMonitorCard({
             <DataTable
               rows={visibleTransfers}
               rowKey={(transfer) => String(transfer.id)}
-              onRowClick={(transfer) => onSelectTransfer(String(transfer.id))}
+              onRowClick={(transfer) => {
+                onSelectTransfer(String(transfer.id));
+                window.requestAnimationFrame(() => {
+                  detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+                });
+              }}
               rowClassName={(transfer) => String(selectedTransfer?.id || '') === String(transfer.id) ? 'table-row-selected' : undefined}
               rowTitle={(transfer) => `فتح التحويل ${transfer.docNo || transfer.id}`}
               density="compact"

@@ -85,12 +85,12 @@ export function StockCountMonitorCard({
 }: StockCountMonitorCardProps) {
   const detailPanelRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (!selectedSession) return;
+  const handleSelectSession = (id: string) => {
+    onSelectSession(id);
     window.requestAnimationFrame(() => {
       detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
     });
-  }, [selectedSession]);
+  };
 
   const selectedSummary = useMemo(
     () => (selectedSession ? summarizeSessionVariance(selectedSession) : null),
@@ -168,7 +168,7 @@ export function StockCountMonitorCard({
             <DataTable
               rows={stockCountSessions}
               rowKey={(session) => String(session.id)}
-              onRowClick={(session) => onSelectSession(String(session.id))}
+              onRowClick={(session) => handleSelectSession(String(session.id))}
               rowClassName={(session) => String(selectedSession?.id || '') === String(session.id) ? 'table-row-selected' : undefined}
               rowTitle={(session) => `فتح جلسة الجرد ${session.docNo || session.id}`}
               density="compact"
@@ -207,7 +207,7 @@ export function StockCountMonitorCard({
                     const summary = summarizeSessionVariance(session);
                     return (
                       <div className="actions compact-actions">
-                        <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onSelectSession(String(session.id)); }}>التفاصيل</Button>
+                        <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); handleSelectSession(String(session.id)); }}>التفاصيل</Button>
                         {canReviewStock && session.status === 'draft' && onPostSession ? <SubmitButton type="button" onClick={() => onPostSession(session.id)} disabled={postPending} idleText="اعتماد الجلسة" pendingText="جارٍ الاعتماد..." /> : null}
                         {canReviewStock && session.status === 'posted' ? <span className="muted small">تم اعتماد الجلسة</span> : null}
                         {!canReviewStock ? <span className="muted small">بانتظار مراجعة مخول</span> : null}
