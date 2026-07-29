@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FormSection } from '@/shared/components/form-section';
+import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { Field } from '@/shared/ui/field';
@@ -148,26 +149,19 @@ export function ProductCategoriesPage() {
   };
 
   return (
-    <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
-      <div className="purchase-prototype-sticky-stack">
-        <div className="purchase-prototype-document-surface">
-          <div className="document-prototype-topbar">
-            <div>
-              <h2 className="document-prototype-topbar-title">أقسام المنتجات</h2>
-              <div className="muted small">إدارة وتعديل أسماء أقسام المنتجات التي تمت إضافتها للنظام.</div>
-            </div>
-            <div className="actions compact-actions">
-              <Button onClick={() => {
-                setIsCreatingCategory(true);
-                setNewCategoryName('');
-                setEditError('');
-              }}>إضافة قسم جديد</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <main className="document-prototype-column">
+    <div className="page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader 
+          title="أقسام المنتجات"
+          description="إدارة وتعديل أسماء أقسام المنتجات التي تمت إضافتها للنظام."
+          actions={
+            <Button onClick={() => {
+              setIsCreatingCategory(true);
+              setNewCategoryName('');
+              setEditError('');
+            }}>إضافة قسم جديد</Button>
+          }
+        />
         <FormSection title="الأقسام" description="تصفح جميع الأقسام المتاحة أو ابحث للوصول السريع، وقم بإدارة المنتجات داخلها.">
           <div className="form-grid single-col" style={{ marginBottom: 16 }}>
             <label className="field">
