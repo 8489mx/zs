@@ -15,7 +15,7 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
 
   return (
     <div className="page-stack page-shell reports-workspace reports-animated-shell reports-workspace--compact" dir="rtl">
-      <main className="document-prototype-column" style={{ maxWidth: '1100px', paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
         title="التقارير"
         description="اختر القسم والفترة ثم راجع التقرير مباشرة بدون صفوف تمهيدية إضافية."
