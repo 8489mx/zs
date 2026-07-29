@@ -19,12 +19,13 @@ interface AuthState {
   user: AuthUser | null;
   tenant: AuthTenant | null;
   storeName: string;
+  theme: string;
   language: 'ar' | 'en';
   isEtaActive: boolean;
   initialized: boolean;
   appGate: AppGate;
   activationStatus: ActivationStatusResponse | null;
-  setSession: (payload: { user: AuthUser; tenant?: AuthTenant | null; storeName: string; theme: string; language?: 'ar' | 'en' }) => void;
+  setSession: (payload: { user: AuthUser; tenant?: AuthTenant | null; storeName: string; theme: string; language?: 'ar' | 'en'; isEtaActive?: boolean }) => void;
   updateUser: (patch: Partial<AuthUser>) => void;
   updateSessionMeta: (patch: { storeName?: string; theme?: string; language?: 'ar' | 'en'; tenant?: AuthTenant | null; isEtaActive?: boolean }) => void;
   clearSession: () => void;

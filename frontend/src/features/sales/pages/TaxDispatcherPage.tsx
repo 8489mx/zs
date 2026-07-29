@@ -22,13 +22,7 @@ export function TaxDispatcherPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'invoices' | 'settings'>('invoices');
 
-  const toggleSelection = (id: string) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedIds(next);
-  };
-
+  
   const queryClient = useQueryClient();
 
   const submitMutation = useMutation({
