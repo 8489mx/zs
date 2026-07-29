@@ -388,7 +388,7 @@ export function NewIssueOrderPage() {
   };
 
   return (
-    <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
+    <div className="page-stack page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
       {createdTransfers.length > 0 && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="modal-content" style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
@@ -420,16 +420,13 @@ export function NewIssueOrderPage() {
           </div>
         </div>
       )}
-      <div className="purchase-prototype-sticky-stack">
-        <div className="purchase-prototype-document-surface">
-          <div className="document-prototype-topbar">
-            <div className="document-prototype-topbar-right">
-              <button type="button" className="document-prototype-back-link" aria-label="رجوع" onClick={() => navigate('/inventory')}>&larr;</button>
-              <h1>إذن صرف جديد</h1>
-              <span className="document-prototype-status-badge is-draft">مسودة</span>
-            </div>
-
-            <div className="document-prototype-topbar-actions">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader
+          title="إذن صرف جديد"
+          onBack={() => navigate('/inventory')}
+          badge={<span className="document-prototype-status-badge is-draft">مسودة</span>}
+          actions={
+            <div className="document-prototype-topbar-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
                 variant="secondary"
                 type="button"
@@ -462,11 +459,8 @@ export function NewIssueOrderPage() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-
-      <main className="document-prototype-column">
+          }
+        />
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">المعلومات الأساسية</h3>
           <div className="document-prototype-grid compact-grid-3">

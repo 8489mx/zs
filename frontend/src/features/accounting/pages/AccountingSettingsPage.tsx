@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
+import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -122,14 +123,12 @@ export function AccountingSettingsPage() {
   }, [canPost, showPostConfirm]);
 
   return (
-    <div className="page-shell document-prototype-shell purchase-new-prototype" dir="rtl">
-      <div className="purchase-prototype-sticky-stack">
-        <div className="purchase-prototype-document-surface">
-          <div className="document-prototype-topbar">
-            <div>
-              <h2 className="document-prototype-topbar-title">الحسابات</h2>
-              <div className="muted small">إعدادات الحسابات والأرصدة الافتتاحية</div>
-            </div>
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+        <PageHeader
+          title="الحسابات"
+          description="إعدادات الحسابات والأرصدة الافتتاحية"
+          actions={
             <div className="actions compact-actions">
               <Button type="button" variant={activeSection === 'accounts-map' ? 'primary' : 'secondary'} onClick={() => setActiveSection('accounts-map')}>
                 دليل الربط المحاسبي
@@ -138,10 +137,8 @@ export function AccountingSettingsPage() {
                 الأرصدة الافتتاحية
               </Button>
             </div>
-          </div>
-        </div>
-      </div>
-      <main className="document-prototype-column">
+          }
+        />
 
       {activeSection === 'accounts-map' ? (
         <FormSection title="إعدادات الحسابات" description="تحديد الحسابات الافتراضية المرتبطة بالعمليات المختلفة بالنظام.">
