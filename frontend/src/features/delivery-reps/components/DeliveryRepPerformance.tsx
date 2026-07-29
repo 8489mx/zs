@@ -18,6 +18,14 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
   if (!kpis) return null;
 
   const renderStars = (rating: number) => {
+    if (kpis.totalOrders === 0) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', height: '36px' }}>
+          <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#94a3b8', background: '#f1f5f9', padding: '4px 12px', borderRadius: '16px' }}>لم يُقيّم بعد</span>
+        </div>
+      );
+    }
+
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
