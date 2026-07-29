@@ -4694,14 +4694,14 @@
 /* HIDE GRADIENT BORDER AROUND THE PAGE                      */
 /* ========================================================= */
 
-.app-layout:has(.purchase-new-prototype) .content-wrap {
+/* .app-layout:has(.purchase-new-prototype) .content-wrap {
   background: #f6f8fb !important;
   padding-top: 0 !important;
 }
 
 .app-layout:has(.purchase-new-prototype) .content-wrap > .stack:first-child {
   display: none !important;
-}
+} */
 
 .app-layout:has(.purchase-new-prototype.purchase-prototype-dark) .content-wrap {
   background: #0f172a !important;
