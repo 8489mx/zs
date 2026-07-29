@@ -1934,11 +1934,9 @@ export function NewPurchaseOrderPage() {
         </div>
       )}
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
-        <button type="button" className="document-prototype-back-link" onClick={() => navigate('/purchases')} aria-label={t('back_to_purchases')} style={{ marginBottom: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span>&rarr;</span> {t('back_to_purchases') || 'العودة'}
-        </button>
         <PageHeader 
           title={t('new_purchase_order') as string} 
+          onBack={() => navigate('/purchases')}
           badge={
             <span className={`document-prototype-status-badge is-${documentStatus}`}>
               {documentStatus === 'confirmed' ? t('status_confirmed') : t('status_draft')}
