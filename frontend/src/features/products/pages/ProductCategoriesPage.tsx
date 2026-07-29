@@ -149,7 +149,7 @@ export function ProductCategoriesPage() {
   };
 
   return (
-    <div className="page-shell" dir="rtl">
+    <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
         <PageHeader 
           title="أقسام المنتجات"
