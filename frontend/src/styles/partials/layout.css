@@ -490,7 +490,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   line-height: 1;
 }
 
-.app-layout { --sidebar-width: 270px; display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
+.app-layout { --sidebar-width: 240px; display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
 .sidebar-fixed {
   width: var(--sidebar-width);
   background: #ffffff;
