@@ -1820,28 +1820,7 @@ export function NewPurchaseOrderPage() {
     return () => window.clearTimeout(timer);
   }, [inlineMessage]);
 
-  useEffect(() => {
-    if (typeof document === 'undefined') {
-      return;
-    }
 
-    const scrollContainer = document.querySelector<HTMLElement>('.content-wrap');
-
-    if (!scrollContainer) {
-      return;
-    }
-
-    const updateScrolledState = () => {
-      setIsHeaderScrolled(scrollContainer.scrollTop > 8);
-    };
-
-    updateScrolledState();
-    scrollContainer.addEventListener('scroll', updateScrolledState, { passive: true });
-
-    return () => {
-      scrollContainer.removeEventListener('scroll', updateScrolledState);
-    };
-  }, []);
 
   useEffect(() => {
     if (pendingFocusLineId === null) {
