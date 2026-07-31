@@ -1,10 +1,11 @@
 import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { TaxSettingsService, TaxSettingsDto } from '../../services/tax-settings/tax-settings.service';
 import { SessionAuthGuard } from '../../../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../../../core/auth/guards/permissions.guard';
 import { RequirePermissions } from '../../../../core/auth/decorators/permissions.decorator';
 
 @Controller('api/tax-settings')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
 export class TaxSettingsController {
   constructor(private readonly taxSettingsService: TaxSettingsService) {}
 

@@ -1,11 +1,12 @@
 import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../../../core/auth/guards/permissions.guard';
 import { RequirePermissions } from '../../../../core/auth/decorators/permissions.decorator';
 import { EtaSubmissionService } from '../../services/eta-submission/eta-submission.service';
 import { RequestWithAuth } from '../../../../core/auth/interfaces/request-with-auth.interface';
 
 @Controller('api/tax-integration/eta/invoices')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
 export class EtaInvoicesController {
   constructor(private readonly etaSubmissionService: EtaSubmissionService) {}
 
