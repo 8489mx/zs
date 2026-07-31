@@ -128,6 +128,16 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
     if (watchedItemKind === 'fashion' && !groupedEntryEnabled) setGroupedEntryEnabled(true);
   }, [watchedItemKind, groupedEntryEnabled]);
 
+  useEffect(() => {
+    if (locations.length === 1) {
+      const singleLocId = String(locations[0].id);
+      if (form.getValues('warehouseId') !== singleLocId) {
+        form.setValue('warehouseId', singleLocId, { shouldDirty: true, shouldValidate: true });
+      }
+    }
+  }, [locations, form]);
+
+
   const colorTokens = useMemo(() => splitFashionTokens(watchedFashionColors), [watchedFashionColors]);
   const sizeTokens = useMemo(() => splitFashionTokens(watchedFashionSizes), [watchedFashionSizes]);
   const syncedDefaultFashionRows = useMemo(
@@ -351,14 +361,14 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
         </div>
 
         <div className="field">
-          <label>المخزن الافتراضي</label>
-          <select {...form.register('warehouseId')} disabled={mutation.isPending}>
-            <option value="">بدون مخزن افتراضي</option>
+          <label>المخزن (موقع التخزين)</label>
+          <select {...form.register('warehouseId')} disabled={mutation.isPending || locations.length === 1}>
+            {locations.length !== 1 && <option value="">اختر المخزن...</option>}
             {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
           </select>
           {form.formState.errors.warehouseId && <small className="field-error">{form.formState.errors.warehouseId.message}</small>}
           <small className="muted" style={{ display: 'block', marginTop: 4 }}>
-            * يحدد المخزن الافتراضي للمشتريات المستقبلية فقط. لتغيير مكان الأرصدة الحالية استخدم "نقل داخلي" من صفحة المخزون.
+            * إجباري: يحدد المخزن الذي سيتم إضافة الرصيد الافتتاحي إليه، وسيكون المخزن الافتراضي للعمليات القادمة.
           </small>
         </div>
 

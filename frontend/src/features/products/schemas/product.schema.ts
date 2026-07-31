@@ -18,7 +18,7 @@ export const productFormSchema = z.object({
   minStock: z.coerce.number().min(0),
   categoryId: z.string().optional(),
   supplierId: z.string().optional(),
-  warehouseId: z.string().optional(),
+  warehouseId: z.string({ required_error: 'يرجى اختيار المخزن', invalid_type_error: 'يرجى اختيار المخزن' }).min(1, 'يرجى اختيار المخزن'),
   binLocation: z.string().optional(),
   notes: z.string().optional(),
   isCombo: z.boolean().default(false),

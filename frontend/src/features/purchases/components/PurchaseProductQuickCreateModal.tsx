@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
+import { systemAlert } from '@/shared/components/system-alert';
 
 type SimpleOption = { id: string; name: string };
 
@@ -49,7 +50,8 @@ export function PurchaseProductQuickCreateModal({
     setBarcode(initialBarcode || '');
     setCategoryId('');
     setSupplierId('');
-    setWarehouseId('');
+    const defaultWarehouseId = warehouses?.length === 1 ? String(warehouses[0].id) : '';
+    setWarehouseId(defaultWarehouseId);
     setCostPrice('0');
     setRetailPrice('0');
     setWholesalePrice('0');
@@ -59,7 +61,7 @@ export function PurchaseProductQuickCreateModal({
     setShowUnsavedConfirm(false);
     initialSnapshotRef.current = JSON.stringify({
       name: initialName, barcode: initialBarcode || '',
-      categoryId: '', supplierId: '', warehouseId: '',
+      categoryId: '', supplierId: '', warehouseId: defaultWarehouseId,
       costPrice: '0', retailPrice: '0', wholesalePrice: '0',
       unit: 'قطعة', minStock: '0', notes: ''
     });
@@ -93,6 +95,11 @@ export function PurchaseProductQuickCreateModal({
   const submit = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
+
+    if (!warehouseId) {
+      systemAlert('يرجى اختيار المخزن أولاً لإتمام الإضافة');
+      return;
+    }
 
     const payload = {
       name: trimmedName,
@@ -222,10 +229,10 @@ export function PurchaseProductQuickCreateModal({
             </select>
           </Field>
 
-          {/* المخزن الافتراضي */}
-          <Field label="المخزن الافتراضي المقترح">
-            <select style={selectStyle} value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
-              <option value="">اختر المخزن...</option>
+          {/* المخزن */}
+          <Field label="المخزن (إجباري)">
+            <select style={selectStyle} value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} disabled={warehouses?.length === 1}>
+              {warehouses?.length !== 1 && <option value="">اختر المخزن...</option>}
               {warehouses.map((w) => (
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}

@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
-import { useCategoriesQuery } from '@/shared/hooks/use-catalog-queries';
+import { useCategoriesQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 import { productsApi } from '@/features/products/api/products.api';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import type { Product } from '@/types/domain';
@@ -16,6 +16,7 @@ import { systemAlert } from '@/shared/components/system-alert';
 const quickProductSchema = z.object({
   name: z.string().min(1, 'اسم الصنف مطلوب'),
   categoryId: z.string().optional(),
+  warehouseId: z.string().min(1, 'اختيار المخزن إجباري'),
   unitType: z.enum(['piece', 'kg', 'liter', 'gram', 'meter']),
   costPrice: z.number().min(0, 'التكلفة يجب أن تكون 0 أو أكثر'),
   stock: z.number().min(0, 'المخزون يجب أن يكون 0 أو أكثر').optional(),
@@ -37,12 +38,14 @@ interface QuickProductModalProps {
 export function QuickProductModal({ isOpen, onClose, initialName = '', itemType, onSuccess }: QuickProductModalProps) {
   const queryClient = useQueryClient();
   const { data: categories = [] } = useCategoriesQuery();
+  const { data: locations = [] } = useLocationsQuery();
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<QuickProductInput>({
+  const { register, handleSubmit, formState: { errors }, reset, setValue, getValues } = useForm<QuickProductInput>({
     resolver: zodResolver(quickProductSchema),
     defaultValues: {
       name: initialName,
       categoryId: '',
+      warehouseId: '',
       unitType: itemType === 'product' ? 'piece' : 'kg',
       costPrice: 0,
       stock: 0,
@@ -57,6 +60,7 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
       reset({
         name: initialName,
         categoryId: '',
+        warehouseId: locations.length === 1 ? String(locations[0].id) : '',
         unitType: itemType === 'product' ? 'piece' : 'kg',
         costPrice: 0,
         stock: 0,
@@ -65,7 +69,13 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
         minStock: 0,
       });
     }
-  }, [isOpen, initialName, reset]);
+  }, [isOpen, initialName, reset, locations]);
+
+  useEffect(() => {
+    if (locations.length === 1 && !getValues('warehouseId')) {
+      setValue('warehouseId', String(locations[0].id), { shouldValidate: true });
+    }
+  }, [locations, setValue, getValues]);
 
   const mutation = useMutation({
     mutationFn: async (data: QuickProductInput) => {
@@ -93,6 +103,7 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
       const payload = {
         ...restData,
         categoryId: data.categoryId ? Number(data.categoryId) : undefined,
+        warehouseId: data.warehouseId ? String(data.warehouseId) : undefined,
         itemType,
         units
       };
@@ -140,6 +151,14 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
         </Field>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <Field label="المخزن (موقع التخزين)" error={errors.warehouseId?.message}>
+            <select className="purchase-prototype-input" {...register('warehouseId')} disabled={locations.length === 1}>
+              {locations.length !== 1 && <option value="">اختر المخزن...</option>}
+              {locations.map(loc => (
+                <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="القسم (اختياري)">
             <select className="purchase-prototype-input" {...register('categoryId')}>
               <option value="">بدون قسم</option>
@@ -148,6 +167,9 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
               ))}
             </select>
           </Field>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <Field label="وحدة القياس">
             <select className="purchase-prototype-input" {...register('unitType')}>
               <option value="piece">قطعة</option>

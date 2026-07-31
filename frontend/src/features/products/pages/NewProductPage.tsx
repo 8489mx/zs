@@ -57,6 +57,7 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard', default
     minStock: defaultMinStock,
     categoryId: '',
     supplierId: '',
+    warehouseId: '',
     notes: '',
     isCombo: false,
     comboComponents: []
@@ -463,6 +464,12 @@ export function NewProductPage() {
     setFashionVariantRows((current) => buildFashionVariantDrafts(colorTokens, sizeTokens, current, watchedVariantStock));
   }, [usesVariantBuilder, colorTokens, sizeTokens, watchedVariantStock, form, fashionVariantRows.length, variantBarcodePrefix]);
 
+  useEffect(() => {
+    if (locationOptions.length === 1 && !form.getValues('warehouseId')) {
+      form.setValue('warehouseId', String(locationOptions[0].id), { shouldDirty: true, shouldValidate: true });
+    }
+  }, [locationOptions, form]);
+
   const categoryMutation = useMutation<{ id?: string | number; category?: { id?: string | number }; data?: { id?: string | number } }, Error, string>({
     mutationFn: async (name: string) => {
       if (!name) throw new Error('اكتب اسم القسم');
@@ -684,15 +691,16 @@ export function NewProductPage() {
 
             {!usesVariantBuilder ? (
               <div className="field">
-                <label>المخزن الافتراضي المقترح</label>
+                <label>المخزن (موقع التخزين)</label>
                 <ComboboxSelect
                   value={watchedWarehouseId || ''}
-                  onChange={(v) => form.setValue('warehouseId', v, { shouldDirty: true })}
+                  onChange={(v) => form.setValue('warehouseId', v, { shouldDirty: true, shouldValidate: true })}
                   options={locationOptions}
-                  emptyLabel="اختر المخزن"
+                  emptyLabel={locationOptions.length === 1 ? '' : "اختر المخزن..."}
                   placeholder="ابحث..."
-                  disabled={isFormDisabled}
+                  disabled={isFormDisabled || locationOptions.length === 1}
                 />
+                {form.formState.errors.warehouseId && <small className="field-error">{form.formState.errors.warehouseId.message}</small>}
               </div>
             ) : <div />}
           </div>

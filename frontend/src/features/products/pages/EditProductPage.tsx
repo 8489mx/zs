@@ -109,6 +109,12 @@ export function EditProductPage() {
     }
   }, [clothingModuleEnabled, form]);
 
+  useEffect(() => {
+    if (locations.length === 1 && !form.getValues('warehouseId')) {
+      form.setValue('warehouseId', String(locations[0].id), { shouldDirty: true, shouldValidate: true });
+    }
+  }, [locations, form]);
+
   const mutation = useMutation({
     mutationFn: async (values: ProductFormOutput & { isCombo?: boolean; comboComponents?: any[] }) => {
       if (!product) throw new Error('اختر صنفًا أولًا');
@@ -304,9 +310,9 @@ export function EditProductPage() {
                 {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
               </select>
             </Field>
-            <Field label="المخزن الافتراضي المقترح" error={form.formState.errors.warehouseId?.message}>
-              <select className="purchase-prototype-field-input" {...form.register('warehouseId')} disabled={isFormDisabled}>
-                <option value="">بدون مخزن افتراضي</option>
+            <Field label="المخزن (موقع التخزين)" error={form.formState.errors.warehouseId?.message}>
+              <select className="purchase-prototype-field-input" {...form.register('warehouseId')} disabled={isFormDisabled || locations.length === 1}>
+                {locations.length !== 1 && <option value="">اختر المخزن...</option>}
                 {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
               </select>
             </Field>
