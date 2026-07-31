@@ -66,6 +66,7 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): Produc
     minStock: 5,
     categoryId: '',
     supplierId: '',
+    warehouseId: '',
     notes: '',
     taxCodeType: 'GS1',
     taxCode: ''

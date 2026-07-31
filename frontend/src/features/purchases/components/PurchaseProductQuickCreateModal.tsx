@@ -114,7 +114,7 @@ export function PurchaseProductQuickCreateModal({
       variantStock: 0,
       categoryId: categoryId || undefined,
       supplierId: supplierId || undefined,
-      warehouseId: warehouseId || undefined,
+      warehouseId: warehouseId || '',
       notes: notes.trim(),
       isCombo: false,
       comboComponents: [],

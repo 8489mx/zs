@@ -1335,6 +1335,7 @@ export function NewPurchaseOrderPage() {
           variantStock: 0,
           categoryId: '',
           supplierId: '',
+          warehouseId: '',
           isCombo: false,
           comboComponents: []
         });
