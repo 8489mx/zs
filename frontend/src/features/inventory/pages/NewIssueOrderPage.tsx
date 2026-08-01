@@ -464,7 +464,16 @@ export function NewIssueOrderPage() {
         />
         {errorMsg && (
           <div style={{ padding: '0 24px', marginTop: '16px', marginBottom: '-8px' }}>
-            <div className="purchase-prototype-inline-message is-error" role="alert" aria-live="polite">
+            <div role="alert" aria-live="polite" style={{
+              background: 'rgba(248, 113, 113, 0.08)',
+              border: '1px solid rgba(248, 113, 113, 0.18)',
+              color: '#b91c1c',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              padding: '0.5rem 0.75rem',
+              width: '100%'
+            }}>
               {errorMsg}
             </div>
           </div>
