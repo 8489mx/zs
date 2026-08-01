@@ -459,15 +459,16 @@ export function NewIssueOrderPage() {
               >
                 <span>{isPolling ? 'جارٍ تأكيد العملية...' : isSubmitting ? 'جارٍ الحفظ...' : 'اعتماد إذن الصرف'}</span>
               </Button>
-
-              {errorMsg && (
-                <div className="purchase-prototype-inline-message is-error" role="alert" aria-live="polite">
-                  {errorMsg}
-                </div>
-              )}
             </div>
           }
         />
+        {errorMsg && (
+          <div style={{ padding: '0 24px', marginTop: '16px', marginBottom: '-8px' }}>
+            <div className="purchase-prototype-inline-message is-error" role="alert" aria-live="polite">
+              {errorMsg}
+            </div>
+          </div>
+        )}
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">المعلومات الأساسية</h3>
           <div className="document-prototype-grid compact-grid-3">
