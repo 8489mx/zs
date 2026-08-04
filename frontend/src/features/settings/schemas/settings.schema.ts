@@ -52,6 +52,7 @@ export const settingsFormSchema = z.object({
   printShowAddress: z.boolean().default(true),
   printShowTaxNumber: z.boolean().default(false),
   printShowCustomer: z.boolean().default(true),
+  printShowDeliveryCustomerDetails: z.boolean().default(true),
   printShowCashier: z.boolean().default(true),
   printShowBranch: z.boolean().default(true),
   printShowLocation: z.boolean().default(true),

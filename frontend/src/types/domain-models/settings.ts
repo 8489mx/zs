@@ -22,6 +22,7 @@ export interface AppSettings {
   printShowAddress?: boolean;
   printShowTaxNumber?: boolean;
   printShowCustomer?: boolean;
+  printShowDeliveryCustomerDetails?: boolean;
   printShowCashier?: boolean;
   printShowBranch?: boolean;
   printShowLocation?: boolean;

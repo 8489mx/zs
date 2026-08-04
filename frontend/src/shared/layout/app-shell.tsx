@@ -339,6 +339,12 @@ export function AppShell({ children }: PropsWithChildren) {
         end={item.end} 
         data-key={item.key} 
         style={toneStyle} 
+        onAuxClick={(e) => {
+          if (e.button === 1) e.preventDefault();
+        }}
+        onMouseDown={(e) => {
+          if (e.button === 1) e.preventDefault();
+        }} 
         className={({ isActive }) => {
           const isPathActive = item.activePaths?.includes(location.pathname) || isActive;
           return `sidebar-link ${keyPrefix === 'group' ? 'sidebar-link-sub ' : ''}${isPathActive ? 'active' : ''}`.trim();

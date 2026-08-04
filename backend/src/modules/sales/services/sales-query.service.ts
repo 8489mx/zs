@@ -31,7 +31,7 @@ export class SalesQueryService {
       .leftJoin('users as u', 'u.id', 's.created_by')
       .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
       .select([
-        's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 's.customer_name', 's.payment_type', 's.payment_channel',
+        's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 'c.phone as customer_phone_ref', 'c.address as customer_address_ref', 's.customer_name', 's.customer_phone', 's.customer_address', 's.payment_type', 's.payment_channel',
         's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.tendered_amount', 's.change_amount', 's.store_credit_used',
         's.status', 's.note', 's.table_number', 's.order_type', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
         's.delivery_rep_id', 'dr.name as delivery_rep_name',
@@ -48,6 +48,8 @@ export class SalesQueryService {
       createdById: sale.created_by_id ? String(sale.created_by_id) : '',
       customerId: sale.customer_id ? String(sale.customer_id) : '',
       customerName: sale.customer_name_ref || sale.customer_name || 'عميل نقدي',
+      customerPhone: sale.customer_phone || sale.customer_phone_ref || '',
+      customerAddress: sale.customer_address || sale.customer_address_ref || '',
       paymentType: sale.payment_type || 'cash',
       paymentChannel: sale.payment_channel || 'cash',
       subTotal: Number(sale.subtotal || 0),
@@ -146,7 +148,7 @@ export class SalesQueryService {
       .leftJoin('users as u', 'u.id', 's.created_by')
       .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
       .select([
-        's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 's.customer_name', 's.payment_type', 's.payment_channel',
+        's.id', 's.doc_no', 's.customer_id', 'c.name as customer_name_ref', 'c.phone as customer_phone_ref', 'c.address as customer_address_ref', 's.customer_name', 's.customer_phone', 's.customer_address', 's.payment_type', 's.payment_channel',
         's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.tendered_amount', 's.change_amount', 's.store_credit_used',
         's.status', 's.note', 's.table_number', 's.order_type', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
         's.delivery_rep_id', 'dr.name as delivery_rep_name',

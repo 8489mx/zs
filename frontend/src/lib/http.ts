@@ -34,9 +34,9 @@ export function setLocalSessionFallback(sessionId: string | null | undefined): v
   if (typeof window === 'undefined') return;
   const value = typeof sessionId === 'string' ? sessionId.trim() : '';
   if (value) {
-    window.sessionStorage.setItem(LOCAL_SESSION_STORAGE_KEY, value);
+    window.localStorage.setItem(LOCAL_SESSION_STORAGE_KEY, value);
   } else {
-    window.sessionStorage.removeItem(LOCAL_SESSION_STORAGE_KEY);
+    window.localStorage.removeItem(LOCAL_SESSION_STORAGE_KEY);
   }
 }
 
@@ -46,7 +46,7 @@ export function clearLocalSessionFallback(): void {
 
 function getLocalSessionFallback(): string {
   if (typeof window === 'undefined') return '';
-  return window.sessionStorage.getItem(LOCAL_SESSION_STORAGE_KEY)?.trim() || '';
+  return window.localStorage.getItem(LOCAL_SESSION_STORAGE_KEY)?.trim() || '';
 }
 
 export function normalizeApiBaseUrl(

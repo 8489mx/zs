@@ -511,6 +511,8 @@ export interface SalesTable {
   doc_no: string | null;
   customer_id: number | null;
   customer_name: string | null;
+  customer_phone: string | null;
+  customer_address: string | null;
   payment_type: 'cash' | 'credit';
   payment_channel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
   subtotal: number;

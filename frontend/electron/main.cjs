@@ -24,6 +24,10 @@ const createWindow = () => {
   mainWindow.maximize();
   mainWindow.show();
 
+  mainWindow.webContents.setWindowOpenHandler(() => {
+    return { action: 'deny' };
+  });
+
   mainWindow.webContents.on('will-prevent-unload', (event) => {
     const choice = dialog.showMessageBoxSync(mainWindow, {
       type: 'warning',

@@ -1,4 +1,6 @@
 import { useState, useEffect, type FormEvent, type RefObject } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { customersApi } from '@/features/customers/api/customers.api';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
@@ -7,7 +9,7 @@ import type { DeliveryRep } from '@/features/delivery-reps/api/delivery-reps.api
 
 export type PaymentPreset = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit';
 
-type CustomerOption = { id: string | number; name: string; phone?: string | null };
+type CustomerOption = { id: string | number; name: string; phone?: string | null; address?: string | null };
 
 function getBalancePreview(pos: Pick<PosWorkspaceState, 'paymentType' | 'amountDue' | 'changeAmount'>) {
   if (pos.paymentType === 'credit') {
@@ -19,12 +21,7 @@ function getBalancePreview(pos: Pick<PosWorkspaceState, 'paymentType' | 'amountD
   return { label: 'الباقي', value: Math.abs(Number(pos.changeAmount || 0)), tone: 'primary' as const };
 }
 
-function isTypingTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  return ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable;
-}
-
-interface PosCheckoutCustomerSectionProps {
+export interface PosCheckoutCustomerSectionProps {
   pos: PosWorkspaceState;
   selectedCustomerName: string;
   selectedCustomer: CustomerOption | null;
@@ -41,86 +38,197 @@ export function PosCheckoutCustomerSection({
   selectedCustomerName,
   selectedCustomer,
   filteredCustomers,
-  customerPickerOpen,
   customerQuery,
   onCustomerPickerOpenChange,
   onCustomerQueryChange,
   onQuickCustomerSubmit,
 }: PosCheckoutCustomerSectionProps) {
+  const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
+  const addressesQuery = useQuery({
+    queryKey: ['customerAddresses', pos.customerId],
+    queryFn: () => pos.customerId ? customersApi.addresses(pos.customerId) : Promise.resolve([]),
+    enabled: !!pos.customerId,
+  });
+
+  const addresses = Array.from(new Set([
+    ...(selectedCustomer?.address ? [selectedCustomer.address] : []),
+    ...(addressesQuery.data || [])
+  ])).filter(Boolean);
+
+  const [isAddingCustomer, setIsAddingCustomer] = useState(false);
+
+  const handleSelectCustomer = (id: string, phone: string, address: string) => {
+    pos.setCustomerId(id);
+    pos.setQuickCustomerPhone(phone);
+    pos.setQuickCustomerAddress(address);
+    setIsAddingCustomer(false);
+    onCustomerQueryChange('');
+    onCustomerPickerOpenChange(false);
+  };
+
   return (
     <section className="pos-checkout-dialog-section pos-checkout-customer-section">
-      <div className="pos-checkout-section-head">
-        <h4>بيانات العميل</h4>
-        <strong>{selectedCustomer?.name || selectedCustomerName || 'عميل نقدي'}</strong>
-      </div>
-      <div className="pos-checkout-customer-actions">
-        <Button type="button" variant="secondary" onClick={() => onCustomerPickerOpenChange((current) => !current)}>اختيار عميل</Button>
-        <Button type="button" variant="secondary" onClick={() => { pos.setCustomerId(''); onCustomerPickerOpenChange(false); }}>عميل نقدي</Button>
+      <div className="pos-checkout-section-head" style={{ alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <h4>بيانات العميل</h4>
+          {!pos.customerId && !isAddingCustomer && <strong>البحث أو الإضافة</strong>}
+          {!pos.customerId && isAddingCustomer && <strong>عميل جديد</strong>}
+          {!!pos.customerId && <strong>عميل مسجل</strong>}
+        </div>
+        <div className="pos-checkout-customer-actions" style={{ margin: 0 }}>
+          {!!pos.customerId ? (
+            <Button type="button" variant="secondary" onClick={() => handleSelectCustomer('', '', '')}>تغيير العميل</Button>
+          ) : (
+            !isAddingCustomer && (
+              <Button type="button" variant="secondary" onClick={() => {
+                pos.setQuickCustomerName(customerQuery);
+                setIsAddingCustomer(true);
+              }}>+ إضافة عميل جديد</Button>
+            )
+          )}
+        </div>
       </div>
 
-      {customerPickerOpen ? (
-        <div className="pos-checkout-customer-picker" onKeyDown={(event) => {
-          if (event.key === 'Escape' && !isTypingTarget(event.target)) onCustomerPickerOpenChange(false);
-        }}>
-          <label className="field field-wide">
-            <span>بحث العميل</span>
+      {!pos.customerId ? (
+        isAddingCustomer ? (
+          <form onSubmit={onQuickCustomerSubmit} className="pos-checkout-quick-customer-form" style={{ gridTemplateColumns: 'minmax(140px, 1.5fr) 140px 2fr' }}>
+            <label className="field">
+              <span>اسم العميل الجديد</span>
+              <input
+                autoFocus
+                value={pos.quickCustomerName}
+                onChange={(event) => pos.setQuickCustomerName(event.target.value)}
+                placeholder="اسم العميل"
+                disabled={pos.quickCustomerMutation.isPending}
+              />
+            </label>
+            <label className="field">
+              <span>رقم الهاتف</span>
+              <input
+                value={pos.quickCustomerPhone}
+                onChange={(event) => pos.setQuickCustomerPhone(event.target.value)}
+                placeholder="اختياري"
+                disabled={pos.quickCustomerMutation.isPending}
+              />
+            </label>
+            <label className="field">
+              <span>العنوان</span>
+              <input
+                value={pos.quickCustomerAddress}
+                onChange={(event) => pos.setQuickCustomerAddress(event.target.value)}
+                placeholder="اختياري"
+                disabled={pos.quickCustomerMutation.isPending}
+              />
+            </label>
+            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '8px' }}>
+              <Button type="submit" variant="primary" style={{ flex: 1 }} disabled={pos.quickCustomerMutation.isPending || !pos.quickCustomerName.trim()}>
+                {pos.quickCustomerMutation.isPending ? 'جاري الإضافة...' : 'إضافة وحفظ العميل'}
+              </Button>
+              <Button type="button" variant="secondary" style={{ flex: '0 0 auto' }} onClick={() => setIsAddingCustomer(false)}>
+                إلغاء
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="pos-checkout-customer-picker" style={{ border: 'none', padding: 0 }}>
+            <label className="field field-wide" style={{ margin: 0 }}>
+              <span className="sr-only">بحث عن عميل</span>
+              <input
+                autoFocus
+                value={customerQuery}
+                onChange={(event) => onCustomerQueryChange(event.target.value)}
+                placeholder="ابحث بالاسم أو رقم الهاتف..."
+                style={{ padding: '10px 12px', fontSize: '15px' }}
+              />
+            </label>
+            <div className="pos-checkout-customer-results" style={{ marginTop: '8px', maxHeight: '200px' }}>
+              {filteredCustomers.length ? filteredCustomers.map((customer) => {
+                const isSelected = String(customer.id) === String(pos.customerId);
+                return (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    className={`pos-checkout-customer-result ${isSelected ? 'is-selected' : ''}`.trim()}
+                    onClick={() => handleSelectCustomer(String(customer.id), customer.phone || '', customer.address || '')}
+                  >
+                    <strong>{customer.name}</strong>
+                    <span className="muted small">{customer.phone || 'بدون رقم هاتف'}</span>
+                  </button>
+                );
+              }) : customerQuery.trim() ? (
+                <div className="surface-note">
+                  لا توجد نتائج لـ "{customerQuery}".
+                  <Button type="button" variant="secondary" style={{ marginTop: '12px', display: 'block', width: '100%' }} onClick={() => {
+                    pos.setQuickCustomerName(customerQuery);
+                    setIsAddingCustomer(true);
+                  }}>
+                    إضافة "{customerQuery}" كعميل جديد
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )
+      ) : (
+        <div className="pos-checkout-quick-customer-form" style={{ gridTemplateColumns: 'minmax(140px, 1.5fr) 140px 2fr', alignItems: 'flex-start' }}>
+          <div className="field" style={{ gridColumn: '1 / 2', margin: 0 }}>
+            <span>اسم العميل</span>
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: '38px', paddingInlineStart: '4px' }}>
+              <strong style={{ fontSize: '17px', color: '#170c5c', fontWeight: 900 }}>{selectedCustomer?.name || selectedCustomerName}</strong>
+            </div>
+          </div>
+          <label className="field" style={{ gridColumn: '2 / 3' }}>
+            <span>رقم الهاتف للفاتورة</span>
             <input
-              data-autofocus
-              value={customerQuery}
-              onChange={(event) => onCustomerQueryChange(event.target.value)}
-              placeholder="اكتب اسم العميل أو رقم الهاتف"
+              value={pos.quickCustomerPhone}
+              onChange={(event) => pos.setQuickCustomerPhone(event.target.value)}
+              placeholder="رقم الهاتف"
             />
           </label>
-          <div className="pos-checkout-customer-results">
-            <button
-              type="button"
-              className={`pos-checkout-customer-result ${!pos.customerId ? 'is-selected' : ''}`.trim()}
-              onClick={() => { pos.setCustomerId(''); onCustomerPickerOpenChange(false); }}
-            >
-              <strong>عميل نقدي</strong>
-              <span className="muted small">بدون ربط بعميل محدد</span>
-            </button>
-            {filteredCustomers.length ? filteredCustomers.map((customer) => {
-              const isSelected = String(customer.id) === String(pos.customerId);
-              return (
-                <button
-                  key={customer.id}
-                  type="button"
-                  className={`pos-checkout-customer-result ${isSelected ? 'is-selected' : ''}`.trim()}
-                  onClick={() => { pos.setCustomerId(String(customer.id)); onCustomerPickerOpenChange(false); }}
-                >
-                  <strong>{customer.name}</strong>
-                  <span className="muted small">{customer.phone || 'بدون رقم هاتف'}</span>
-                </button>
-              );
-            }) : <div className="surface-note">لا توجد نتائج مطابقة الآن.</div>}
-          </div>
+          <label className="field" style={{ gridColumn: '3 / 4', position: 'relative' }}>
+            <span>عنوان التوصيل</span>
+            <div style={{ position: 'relative' }}>
+              <input
+                value={pos.quickCustomerAddress}
+                onChange={(event) => pos.setQuickCustomerAddress(event.target.value)}
+                onFocus={() => setAddressDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setAddressDropdownOpen(false), 200)}
+                placeholder="عنوان التوصيل أو المكان"
+                style={{ paddingInlineStart: '32px' }}
+              />
+              <svg 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#64748b', pointerEvents: 'none' }}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            {addressDropdownOpen && addresses.length > 0 && (
+              <div className="pos-checkout-customer-results" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, marginTop: '4px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', background: '#fff', borderRadius: '8px', padding: '8px', border: '1px solid rgba(23,12,92,0.1)' }}>
+                {addresses.map((addr, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className="pos-checkout-customer-result"
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // Prevent blur
+                      pos.setQuickCustomerAddress(addr);
+                      setAddressDropdownOpen(false);
+                    }}
+                  >
+                    <strong>{addr}</strong>
+                  </button>
+                ))}
+              </div>
+            )}
+          </label>
         </div>
-      ) : null}
-
-      <form onSubmit={onQuickCustomerSubmit} className="pos-checkout-quick-customer-form">
-        <label className="field">
-          <span>اسم العميل الجديد</span>
-          <input
-            value={pos.quickCustomerName}
-            onChange={(event) => pos.setQuickCustomerName(event.target.value)}
-            placeholder="اسم العميل"
-            disabled={pos.quickCustomerMutation.isPending}
-          />
-        </label>
-        <label className="field">
-          <span>رقم الهاتف</span>
-          <input
-            value={pos.quickCustomerPhone}
-            onChange={(event) => pos.setQuickCustomerPhone(event.target.value)}
-            placeholder="اختياري"
-            disabled={pos.quickCustomerMutation.isPending}
-          />
-        </label>
-        <Button type="submit" variant="secondary" disabled={pos.quickCustomerMutation.isPending || !pos.quickCustomerName.trim()}>
-          {pos.quickCustomerMutation.isPending ? 'جاري الإضافة...' : 'إضافة عميل'}
-        </Button>
-      </form>
+      )}
     </section>
   );
 }
@@ -252,136 +360,151 @@ export function PosCheckoutPaymentSection({
   );
 }
 
-interface PosCheckoutDeliverySectionProps {
+export function PosCheckoutOrderTypeSection({
+  pos,
+  onDeliverySelected
+}: {
   pos: PosWorkspaceState;
-  deliveryReps: DeliveryRep[];
+  onDeliverySelected?: () => void;
+}) {
+  const isRestaurant = pos.settingsQuery?.data?.restaurantModuleEnabled === true;
+
+  return (
+    <section className="pos-checkout-dialog-section">
+      <div className="pos-checkout-section-head">
+        <h4>نوع الفاتورة</h4>
+        <strong>{pos.orderType === 'dine_in' ? 'صالة (طاولات)' : pos.orderType === 'delivery' ? 'توصيل (دليفري)' : 'تيك أواي (بيع مباشر)'}</strong>
+      </div>
+      <div className="pos-checkout-payment-methods" style={{ marginBottom: '16px' }}>
+        <Button type="button" variant={pos.orderType === 'takeaway' || !pos.orderType ? 'primary' : 'secondary'} onClick={() => pos.setOrderType('takeaway')}>تيك أواي</Button>
+        <Button 
+          type="button" 
+          variant={pos.orderType === 'delivery' ? 'primary' : 'secondary'} 
+          onClick={() => {
+            pos.setOrderType('delivery');
+            if (pos.orderType !== 'delivery') {
+              onDeliverySelected?.();
+            }
+          }}
+        >
+          دليفري (توصيل)
+        </Button>
+        {isRestaurant && (
+          <Button type="button" variant={pos.orderType === 'dine_in' ? 'primary' : 'secondary'} onClick={() => pos.setOrderType('dine_in')}>صالة (طاولات)</Button>
+        )}
+      </div>
+    </section>
+  );
 }
 
-export function PosCheckoutDeliverySection({ pos, deliveryReps }: PosCheckoutDeliverySectionProps) {
+export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWorkspaceState, deliveryReps: DeliveryRep[] }) {
   const [repSearchOpen, setRepSearchOpen] = useState(false);
   const [repSearchQuery, setRepSearchQuery] = useState('');
 
-  const isRestaurant = pos.settingsQuery?.data?.restaurantModuleEnabled === true;
   const activeReps = deliveryReps.filter((r) => r.is_active);
   const selectedRep = activeReps.find((r) => String(r.id) === String(pos.deliveryRepId));
   const filteredReps = activeReps.filter(r => r.name.toLowerCase().includes(repSearchQuery.toLowerCase()) || r.phone?.includes(repSearchQuery));
 
+  if (pos.orderType !== 'delivery') return null;
+
   return (
-    <>
-      <section className="pos-checkout-dialog-section">
-        <div className="pos-checkout-section-head">
-          <h4>نوع الفاتورة</h4>
-          <strong>{pos.orderType === 'dine_in' ? 'صالة (طاولات)' : pos.orderType === 'delivery' ? 'توصيل (دليفري)' : 'تيك أواي (بيع مباشر)'}</strong>
-        </div>
-        <div className="pos-checkout-payment-methods" style={{ marginBottom: '16px' }}>
-          <Button type="button" variant={pos.orderType === 'takeaway' || !pos.orderType ? 'primary' : 'secondary'} onClick={() => pos.setOrderType('takeaway')}>تيك أواي</Button>
-          <Button type="button" variant={pos.orderType === 'delivery' ? 'primary' : 'secondary'} onClick={() => pos.setOrderType('delivery')}>دليفري (توصيل)</Button>
-          {isRestaurant && (
-            <Button type="button" variant={pos.orderType === 'dine_in' ? 'primary' : 'secondary'} onClick={() => pos.setOrderType('dine_in')}>صالة (طاولات)</Button>
-          )}
-        </div>
-      </section>
+    <section className="pos-checkout-dialog-section" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+      <div className="pos-checkout-section-head">
+        <h4>بيانات التوصيل</h4>
+        <strong>{selectedRep?.name || 'لم يتم اختيار مندوب'}</strong>
+      </div>
 
-      {pos.orderType === 'delivery' && (
-        <section className="pos-checkout-dialog-section" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-          <div className="pos-checkout-section-head">
-            <h4>بيانات التوصيل</h4>
-            <strong>{selectedRep?.name || 'لم يتم اختيار مندوب'}</strong>
-          </div>
+      <div className="document-prototype-grid compact-grid-2" style={{ gap: '12px' }}>
+        <div style={{ position: 'relative' }}>
+          <label className="field">
+            <span>المندوب</span>
+            <input
+              className="purchase-prototype-field-input"
+              placeholder={selectedRep?.name || "-- ابحث عن مندوب --"}
+              value={repSearchOpen ? repSearchQuery : (selectedRep?.name || '')}
+              onFocus={() => { setRepSearchOpen(true); setRepSearchQuery(''); }}
+              onBlur={() => setTimeout(() => setRepSearchOpen(false), 200)}
+              onChange={(e) => setRepSearchQuery(e.target.value)}
+              style={{ padding: '6px 8px', cursor: 'text', width: '100%' }}
+            />
+          </label>
 
-          <div className="document-prototype-grid compact-grid-2" style={{ gap: '12px' }}>
-            <div style={{ position: 'relative' }}>
-              <label className="field">
-                <span>المندوب</span>
-                <input
-                  className="purchase-prototype-field-input"
-                  placeholder={selectedRep?.name || "-- ابحث عن مندوب --"}
-                  value={repSearchOpen ? repSearchQuery : (selectedRep?.name || '')}
-                  onFocus={() => { setRepSearchOpen(true); setRepSearchQuery(''); }}
-                  onBlur={() => setTimeout(() => setRepSearchOpen(false), 200)}
-                  onChange={(e) => setRepSearchQuery(e.target.value)}
-                  style={{ padding: '6px 8px', cursor: 'text', width: '100%' }}
-                />
-              </label>
-
-              {repSearchOpen && (
+          {repSearchOpen && (
+            <div 
+              style={{ 
+                position: 'absolute', top: '100%', left: 0, right: 0, 
+                background: 'white', border: '1px solid #cbd5e1', 
+                borderRadius: '4px', zIndex: 10, maxHeight: '200px', 
+                overflowY: 'auto', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+              }}
+            >
+              <div 
+                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: !pos.deliveryRepId ? '#f8fafc' : 'white' }}
+                onMouseDown={() => { pos.setDeliveryRepId(''); setRepSearchOpen(false); }}
+              >
+                -- بدون مندوب --
+              </div>
+              {filteredReps.length === 0 && (
+                <div style={{ padding: '8px 12px', color: '#64748b' }}>لا يوجد مناديب</div>
+              )}
+              {filteredReps.map(rep => (
                 <div 
+                  key={rep.id}
                   style={{ 
-                    position: 'absolute', top: '100%', left: 0, right: 0, 
-                    background: 'white', border: '1px solid #cbd5e1', 
-                    borderRadius: '4px', zIndex: 10, maxHeight: '200px', 
-                    overflowY: 'auto', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    padding: '8px 12px', cursor: 'pointer', 
+                    borderBottom: '1px solid #f1f5f9',
+                    background: String(rep.id) === String(pos.deliveryRepId) ? '#eff6ff' : 'white',
+                    color: String(rep.id) === String(pos.deliveryRepId) ? '#2563eb' : '#334155'
+                  }}
+                  onMouseDown={(e) => { e.preventDefault(); pos.setDeliveryRepId(String(rep.id)); setRepSearchOpen(false); }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                  onMouseLeave={(e) => {
+                    if (String(rep.id) !== String(pos.deliveryRepId)) e.currentTarget.style.background = 'white';
+                    else e.currentTarget.style.background = '#eff6ff';
                   }}
                 >
-                  <div 
-                    style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: !pos.deliveryRepId ? '#f8fafc' : 'white' }}
-                    onMouseDown={() => { pos.setDeliveryRepId(''); setRepSearchOpen(false); }}
-                  >
-                    -- بدون مندوب --
-                  </div>
-                  {filteredReps.length === 0 && (
-                    <div style={{ padding: '8px 12px', color: '#64748b' }}>لا يوجد مناديب</div>
-                  )}
-                  {filteredReps.map(rep => (
-                    <div 
-                      key={rep.id}
-                      style={{ 
-                        padding: '8px 12px', cursor: 'pointer', 
-                        borderBottom: '1px solid #f1f5f9',
-                        background: String(rep.id) === String(pos.deliveryRepId) ? '#eff6ff' : 'white',
-                        color: String(rep.id) === String(pos.deliveryRepId) ? '#2563eb' : '#334155'
-                      }}
-                      onMouseDown={(e) => { e.preventDefault(); pos.setDeliveryRepId(String(rep.id)); setRepSearchOpen(false); }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                      onMouseLeave={(e) => {
-                        if (String(rep.id) !== String(pos.deliveryRepId)) e.currentTarget.style.background = 'white';
-                        else e.currentTarget.style.background = '#eff6ff';
-                      }}
-                    >
-                      {rep.name} {rep.phone ? <span style={{ color: '#94a3b8', fontSize: '12px' }}>({rep.phone})</span> : null}
-                    </div>
-                  ))}
+                  {rep.name} {rep.phone ? <span style={{ color: '#94a3b8', fontSize: '12px' }}>({rep.phone})</span> : null}
                 </div>
-              )}
+              ))}
             </div>
+          )}
+        </div>
 
-            <div className="field">
-              <span>حالة التحصيل</span>
-              <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-                {(['cod', 'prepaid_by_rep', 'prepaid_online'] as const).map((status) => (
-                  <Button
-                    key={status}
-                    type="button"
-                    variant={pos.collectionStatus === status ? 'primary' : 'secondary'}
-                    onClick={() => {
-                      pos.setCollectionStatus(status);
-                      if (status === 'cod') {
-                        pos.setPaymentChannel('cash');
-                        pos.setCashAmount(0);
-                        pos.setCardAmount(0);
-                        pos.setTransferAmount(0);
-                      } else if (status === 'prepaid_by_rep') {
-                        pos.setPaymentChannel('cash');
-                        pos.setCashAmount(Number(pos.totals.total || 0));
-                        pos.setCardAmount(0);
-                        pos.setTransferAmount(0);
-                      } else if (status === 'prepaid_online') {
-                        pos.setPaymentChannel('wallet');
-                        pos.setTransferAmount(Number(pos.totals.total || 0));
-                        pos.setCashAmount(0);
-                        pos.setCardAmount(0);
-                      }
-                    }}
-                    style={{ flex: 1, fontSize: '13px', padding: '6px 4px' }}
-                  >
-                    {status === 'cod' ? 'تحصيل من العميل' : status === 'prepaid_by_rep' ? 'خالص من المندوب' : 'خالص أونلاين'}
-                  </Button>
-                ))}
-              </div>
-            </div>
+        <div className="field">
+          <span>حالة التحصيل</span>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+            {(['cod', 'prepaid_by_rep', 'prepaid_online'] as const).map((status) => (
+              <Button
+                key={status}
+                type="button"
+                variant={pos.collectionStatus === status ? 'primary' : 'secondary'}
+                onClick={() => {
+                  pos.setCollectionStatus(status);
+                  if (status === 'cod') {
+                    pos.setPaymentChannel('cash');
+                    pos.setCashAmount(0);
+                    pos.setCardAmount(0);
+                    pos.setTransferAmount(0);
+                  } else if (status === 'prepaid_by_rep') {
+                    pos.setPaymentChannel('cash');
+                    pos.setCashAmount(Number(pos.totals.total || 0));
+                    pos.setCardAmount(0);
+                    pos.setTransferAmount(0);
+                  } else if (status === 'prepaid_online') {
+                    pos.setPaymentChannel('wallet');
+                    pos.setTransferAmount(Number(pos.totals.total || 0));
+                    pos.setCashAmount(0);
+                    pos.setCardAmount(0);
+                  }
+                }}
+                style={{ flex: 1, fontSize: '13px', padding: '6px 4px' }}
+              >
+                {status === 'cod' ? 'تحصيل من العميل' : status === 'prepaid_by_rep' ? 'خالص من المندوب' : 'خالص أونلاين'}
+              </Button>
+            ))}
           </div>
-        </section>
-      )}
-    </>
+        </div>
+      </div>
+    </section>
   );
 }

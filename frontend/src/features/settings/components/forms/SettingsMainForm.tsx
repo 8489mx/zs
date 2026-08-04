@@ -281,6 +281,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       printShowAddress: settings.printShowAddress !== false,
       printShowTaxNumber: settings.printShowTaxNumber === true,
       printShowCustomer: settings.printShowCustomer !== false,
+      printShowDeliveryCustomerDetails: settings.printShowDeliveryCustomerDetails !== false,
       printShowCashier: settings.printShowCashier !== false,
       printShowBranch: settings.printShowBranch !== false,
       printShowLocation: settings.printShowLocation !== false,
@@ -914,6 +915,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowAddress')} disabled={disabled} /> إظهار العنوان</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTaxNumber')} disabled={disabled} /> إظهار الرقم الضريبي</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCustomer')} disabled={disabled} /> إظهار العميل</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDeliveryCustomerDetails')} disabled={disabled} /> إظهار تفاصيل العميل في الدليفري (العنوان/الهاتف)</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} /> إظهار اسم المندوب</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCashier')} disabled={disabled} /> إظهار الكاشير</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowBranch')} disabled={disabled} /> إظهار الفرع</label>

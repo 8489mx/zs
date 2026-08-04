@@ -117,7 +117,7 @@
 }
 
 .pos-checkout-customer-section {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .pos-checkout-customer-actions {
@@ -307,7 +307,9 @@
   }
 
   .pos-checkout-section-head {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .pos-checkout-section-head > strong {

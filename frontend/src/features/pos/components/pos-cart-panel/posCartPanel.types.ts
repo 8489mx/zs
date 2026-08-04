@@ -38,6 +38,7 @@ export interface PosCartPanelProps {
   canShowLastSaleActions?: boolean;
   quickCustomerName: string;
   quickCustomerPhone: string;
+  quickCustomerAddress: string;
   isQuickCustomerPending: boolean;
   heldDrafts: HeldPosDraftSummary[];
   isError: boolean;
@@ -64,6 +65,7 @@ export interface PosCartPanelProps {
   onOrderTypeChange: (value: string) => void;
   onQuickCustomerNameChange: (value: string) => void;
   onQuickCustomerPhoneChange: (value: string) => void;
+  onQuickCustomerAddressChange: (value: string) => void;
   onQuickCustomerSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onPaymentTypeChange: (value: PaymentType) => void;
   onPaymentPresetChange: (value: 'cash' | 'card' | 'wallet' | 'instapay' | 'credit') => void;

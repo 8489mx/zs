@@ -88,6 +88,7 @@ const baseSettingsMutationValues = {
   dateFormat: 'dd/MM/yyyy' as const,
   timeFormat: '12h' as const,
   whatsappLinkMode: 'wa_me' as const,
+  printShowDeliveryCustomerDetails: true,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {

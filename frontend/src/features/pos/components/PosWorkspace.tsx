@@ -43,6 +43,9 @@ export function PosWorkspace() {
   const catalogsLoading = pos.productsQuery.isLoading || pos.customersQuery.isLoading || pos.branchesQuery.isLoading || pos.locationsQuery.isLoading || pos.settingsQuery.isLoading;
   const catalogsError = pos.productsQuery.error || pos.customersQuery.error || pos.branchesQuery.error || pos.locationsQuery.error || pos.settingsQuery.error;
 
+  const selectedCustomer = useMemo(() => {
+    return (pos.customersQuery.data || []).find((c) => String(c.id) === pos.customerId) || null;
+  }, [pos.customerId, pos.customersQuery.data]);
   const selectedCustomerName = useMemo(() => getSelectedCustomerName(pos), [pos]);
   const lastSaleCustomer = useMemo(() => {
     const customerId = String(pos.lastSale?.customerId || pos.customerId || '');
@@ -68,8 +71,8 @@ export function PosWorkspace() {
   );
 
   const printCurrentDraft = useCallback(() => {
-    printCurrentPosDraft(pos, selectedCustomerName);
-  }, [pos, selectedCustomerName]);
+    printCurrentPosDraft(pos, selectedCustomerName, selectedCustomer?.phone, selectedCustomer?.address);
+  }, [pos, selectedCustomerName, selectedCustomer]);
 
   const focusBarcodeEntry = useCallback(() => {
     const handle = window.requestAnimationFrame(() => {

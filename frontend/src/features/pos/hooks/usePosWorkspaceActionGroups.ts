@@ -14,6 +14,7 @@ export interface PosWorkspaceActionParams {
   setSelectedLineKey: Dispatch<SetStateAction<string>>;
   customerId: string;
   setCustomerId: Dispatch<SetStateAction<string>>;
+  authUserName?: string;
   discount: number;
   setDiscount: Dispatch<SetStateAction<number>>;
   discountApprovalGranted: boolean;
@@ -52,6 +53,8 @@ export interface PosWorkspaceActionParams {
   setQuickCustomerName: Dispatch<SetStateAction<string>>;
   quickCustomerPhone: string;
   setQuickCustomerPhone: Dispatch<SetStateAction<string>>;
+  quickCustomerAddress: string;
+  setQuickCustomerAddress: Dispatch<SetStateAction<string>>;
   scannerMessage: string;
   setScannerMessage: Dispatch<SetStateAction<string>>;
   setSubmitMessage: Dispatch<SetStateAction<string>>;

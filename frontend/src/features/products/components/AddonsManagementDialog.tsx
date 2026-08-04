@@ -32,6 +32,9 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
       setEditingId(null);
       setFormData({ name: '', price: 0, costPrice: 0, isActive: true });
     },
+    onError: (error) => {
+      alert(error instanceof Error ? error.message : 'تعذر حفظ الإضافة');
+    },
   });
 
   const deleteMutation = useMutation({

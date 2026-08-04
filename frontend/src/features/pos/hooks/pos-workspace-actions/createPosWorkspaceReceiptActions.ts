@@ -19,7 +19,8 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
 
   function printLastSaleAs(pageSize: 'receipt' | 'a4') {
     if (!params.lastSale) return false;
-    printPostedSaleReceipt(params.lastSale, { pageSize, settings: params.settings || null });
+    const cashierName = (params.ownOpenShift as any)?.openedByName || params.authUserName || '—';
+    printPostedSaleReceipt(params.lastSale, { pageSize, settings: params.settings || null, cashierName });
     params.requestBarcodeFocus();
     return true;
   }

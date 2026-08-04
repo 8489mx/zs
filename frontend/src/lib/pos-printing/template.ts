@@ -304,6 +304,8 @@ export function buildReceiptDocument(options: {
   documentNumber?: string | number;
   dateText?: string;
   customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
   paymentText?: string;
   cashierName?: string;
   branchName?: string;
@@ -324,6 +326,7 @@ export function buildReceiptDocument(options: {
 }) {
   const compact = isCompactReceipt(options.pageSize, options.settings);
   const showCustomer = getPrintOption(options.settings, 'printShowCustomer', true);
+  const showDeliveryCustomerDetails = getPrintOption(options.settings, 'printShowDeliveryCustomerDetails', true);
   const showCashier = getPrintOption(options.settings, 'printShowCashier', true);
   const showBranch = getPrintOption(options.settings, 'printShowBranch', true);
   const showLocation = getPrintOption(options.settings, 'printShowLocation', true);
@@ -335,6 +338,8 @@ export function buildReceiptDocument(options: {
     { label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' },
     { label: 'التاريخ', value: options.dateText || '—' },
     ...(showCustomer ? [{ label: 'العميل', value: options.customerName || 'عميل نقدي' }] : []),
+    ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
+    ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerAddress ? [{ label: 'عنوان العميل', value: options.customerAddress }] : []),
     ...(showPaymentMethod ? [{ label: 'طريقة الدفع', value: options.paymentText || 'نقدي' }] : []),
     ...(showCashier ? [{ label: 'الكاشير', value: options.cashierName || '—' }] : []),
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),

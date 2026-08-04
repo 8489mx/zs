@@ -46,12 +46,13 @@ export function createPosWorkspaceAsyncActions(
     event.preventDefault();
     const name = params.quickCustomerName.trim();
     const phone = params.quickCustomerPhone.trim();
+    const address = params.quickCustomerAddress.trim();
     if (!name) return;
     try {
       const created = await params.quickCustomerMutation.mutateAsync({
         name,
         phone,
-        address: '',
+        address,
         balance: 0,
         type: 'cash',
         creditLimit: 0,
@@ -66,6 +67,7 @@ export function createPosWorkspaceAsyncActions(
 
       params.setQuickCustomerName('');
       params.setQuickCustomerPhone('');
+      params.setQuickCustomerAddress('');
       if (createdCustomerId) params.setCustomerId(createdCustomerId);
       params.setPostSaleSaleKey('');
       params.setSubmitMessage(createdCustomerId
@@ -159,7 +161,7 @@ export function createPosWorkspaceAsyncActions(
         : (params.paymentChannel === 'wallet' || params.paymentChannel === 'instapay')
           ? params.paymentChannel
           : params.paymentChannel;
-    const effectiveCustomerId = settleAsCash || settleAsCard || settleAsTransfer ? '' : String(params.customerId || '').trim();
+    const effectiveCustomerId = String(params.customerId || '').trim();
     const effectiveCashAmount = effectivePaymentType === 'credit'
       ? 0
       : (effectivePaymentChannel === 'card' ? 0 : (settleAsCash ? total : initialCashAmount));
@@ -218,6 +220,8 @@ export function createPosWorkspaceAsyncActions(
         source: 'pos',
         cart: params.cart,
         customerId: effectiveCustomerId,
+        customerPhone: params.quickCustomerPhone,
+        customerAddress: params.quickCustomerAddress,
         paymentType: effectivePaymentType,
         paymentChannel: effectivePaymentChannel,
         discount: params.totals.discountValue,

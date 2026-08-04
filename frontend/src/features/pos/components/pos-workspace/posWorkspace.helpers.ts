@@ -59,11 +59,13 @@ export function getNextStepLabel(pos: PosWorkspaceState) {
     : pos.canSubmitHint || 'ابدأ بإضافة صنف واحد على الأقل إلى السلة.';
 }
 
-export function printCurrentPosDraft(pos: PosWorkspaceState, customerName: string) {
+export function printCurrentPosDraft(pos: PosWorkspaceState, customerName: string, customerPhone?: string, customerAddress?: string) {
   if (!pos.cart.length) return;
   printPosDraftPreview({
     title: 'معاينة فاتورة الكاشير',
     customerName,
+    customerPhone,
+    customerAddress,
     paymentLabel: pos.paymentType === 'credit'
       ? 'آجل'
       : pos.paymentChannel === 'mixed'

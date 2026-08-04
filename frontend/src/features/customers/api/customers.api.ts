@@ -38,5 +38,6 @@ export const customersApi = {
   update: (id: string, payload: unknown) => http<Customer>(`/api/customers/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   remove: (id: string) => http<{ ok: boolean }>(`/api/customers/${id}`, { method: 'DELETE' }),
   balances: async () => unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>('/api/reports/customer-balances'), 'customers'),
-  ledger: (id: string) => http<CustomerLedger>(`/api/reports/customers/${id}/ledger`)
+  ledger: (id: string) => http<CustomerLedger>(`/api/reports/customers/${id}/ledger`),
+  addresses: (id: string) => http<string[]>(`/api/customers/${id}/addresses`)
 };

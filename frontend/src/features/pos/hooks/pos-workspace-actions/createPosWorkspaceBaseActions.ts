@@ -49,6 +49,13 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     unitId?: string,
     options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string } = {},
   ) {
+    if (params.requiresCashierShift && !params.ownOpenShift) {
+      params.setSubmitMessage('عذراً، يجب فتح وردية كاشير أولاً قبل إضافة أصناف للسلة.');
+      params.setScannerMessage('عذراً، يجب فتح وردية كاشير أولاً قبل إضافة أصناف للسلة.');
+      params.requestBarcodeFocus();
+      return false;
+    }
+
     const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
     const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings) || !!product.hasBom;
     const unit = resolveSaleUnit(product, unitId);

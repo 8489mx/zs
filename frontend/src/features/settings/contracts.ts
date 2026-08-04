@@ -63,6 +63,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     printShowAddress: values.printShowAddress !== false,
     printShowTaxNumber: values.printShowTaxNumber === true,
     printShowCustomer: values.printShowCustomer !== false,
+    printShowDeliveryCustomerDetails: values.printShowDeliveryCustomerDetails !== false,
     printShowCashier: values.printShowCashier !== false,
     printShowBranch: values.printShowBranch !== false,
     printShowLocation: values.printShowLocation !== false,

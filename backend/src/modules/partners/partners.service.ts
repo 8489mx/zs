@@ -159,6 +159,21 @@ export class PartnersService {
     };
   }
 
+  async getCustomerAddresses(id: number, actor: AuthContext): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('sales')
+      .select('customer_address')
+      .where('customer_id', '=', id)
+      .where(this.tenantPredicate(actor))
+      .where('customer_address', 'is not', null)
+      .where('customer_address', '!=', '')
+      .distinct()
+      .limit(10)
+      .execute();
+
+    return rows.map((r) => String(r.customer_address).trim()).filter(Boolean);
+  }
+
   async getCustomerPosSummary(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
     const customer = await this.db
       .selectFrom('customers')
@@ -239,7 +254,7 @@ export class PartnersService {
     await this.audit.log('إضافة عميل', `تم إضافة العميل ${name} بواسطة ${actor.username}`, actor);
 
     const listing = await this.listCustomers({}, actor);
-    return { ok: true, customers: listing.customers };
+    return { ok: true, id: String(inserted.id), customers: listing.customers };
   }
 
   async updateCustomer(id: number, payload: UpsertCustomerDto, actor: AuthContext): Promise<Record<string, unknown>> {

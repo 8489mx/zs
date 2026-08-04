@@ -36,6 +36,7 @@ export function usePosWorkspaceState() {
   const [recentProductIds, setRecentProductIds] = useState<string[]>(persistedState.recentProductIds);
   const [quickCustomerName, setQuickCustomerName] = useState('');
   const [quickCustomerPhone, setQuickCustomerPhone] = useState('');
+  const [quickCustomerAddress, setQuickCustomerAddress] = useState('');
   const [lastSale, setLastSale] = useState<Sale | null>(persistedState.lastSale);
   const [quickAddCode, setQuickAddCode] = useState('');
   const [scannerMessage, setScannerMessage] = useState('');
@@ -89,6 +90,8 @@ export function usePosWorkspaceState() {
     setQuickCustomerName,
     quickCustomerPhone,
     setQuickCustomerPhone,
+    quickCustomerAddress,
+    setQuickCustomerAddress,
     lastSale,
     setLastSale,
     quickAddCode,

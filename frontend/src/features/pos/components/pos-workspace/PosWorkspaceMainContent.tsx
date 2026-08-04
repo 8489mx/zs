@@ -119,6 +119,7 @@ export function PosWorkspaceMainContent({
             canShowLastSaleActions={pos.canShowLastSaleActions}
             quickCustomerName={pos.quickCustomerName}
             quickCustomerPhone={pos.quickCustomerPhone}
+            quickCustomerAddress={pos.quickCustomerAddress}
             isQuickCustomerPending={pos.quickCustomerMutation.isPending}
             heldDrafts={pos.heldDraftSummaries}
             isError={pos.createSale.isError}
@@ -145,6 +146,7 @@ export function PosWorkspaceMainContent({
             onOrderTypeChange={pos.setOrderType}
             onQuickCustomerNameChange={pos.setQuickCustomerName}
             onQuickCustomerPhoneChange={pos.setQuickCustomerPhone}
+            onQuickCustomerAddressChange={pos.setQuickCustomerAddress}
             onQuickCustomerSubmit={pos.handleQuickCustomerSubmit}
             onPaymentTypeChange={pos.setPaymentType}
             onPaymentPresetChange={pos.setPaymentPreset}

@@ -57,6 +57,14 @@ export class UpsertSaleDto {
   customerId?: number;
 
   @IsOptional()
+  @IsString()
+  customerPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  customerAddress?: string;
+
+  @IsOptional()
   @IsIn(['cash', 'credit'])
   paymentType?: 'cash' | 'credit';
 

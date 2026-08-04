@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { formatCurrency } from '@/lib/format';
 import { useCashierShifts } from '@/features/cash-drawer/hooks/useCashierShifts';
@@ -83,6 +83,7 @@ export function useCashDrawerPageController() {
       walletDetails: [],
       instapayDetails: [],
       note: '',
+      managerPin: '',
     },
   });
 
@@ -107,6 +108,7 @@ export function useCashDrawerPageController() {
       walletDetails: [],
       instapayDetails: [],
       note: '',
+      managerPin: '',
     }),
     onReviewSuccess: () => {
       setReviewManagerNote('');
@@ -194,8 +196,12 @@ export function useCashDrawerPageController() {
     setConfirmAction({ kind: 'movement', values });
   });
 
-  const handleCloseSubmit = closeForm.handleSubmit((values) => {
-    setConfirmAction({ kind: 'close-shift', values });
+  const handleCloseSubmit = closeForm.handleSubmit(async (values) => {
+    try {
+      await closeMutation.mutateAsync(values);
+    } catch {
+      // hook exposes error
+    }
   });
 
   const openReviewDialog = (shift: CashierShift) => {

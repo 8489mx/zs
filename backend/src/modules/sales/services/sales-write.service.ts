@@ -506,6 +506,8 @@ export class SalesWriteService {
         .values({
           customer_id: normalized.customerId,
           customer_name: customer?.name || 'عميل نقدي',
+          customer_phone: payload.customerPhone || null,
+          customer_address: payload.customerAddress || null,
           payment_type: normalized.paymentType,
           payment_channel: resolvePostedSalePaymentChannel(normalized.paymentType, payments),
           subtotal: Number(subtotal.toFixed(2)),
@@ -1002,6 +1004,8 @@ export class SalesWriteService {
       await trx.updateTable('sales').set({
         customer_id: normalized.customerId,
         customer_name: customer?.name || 'عميل نقدي',
+        customer_phone: payload.customerPhone || null,
+        customer_address: payload.customerAddress || null,
         payment_type: normalized.paymentType,
         payment_channel: resolvePostedSalePaymentChannel(normalized.paymentType, payments),
         subtotal: Number(subtotal.toFixed(2)),

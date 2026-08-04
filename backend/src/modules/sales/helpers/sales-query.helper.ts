@@ -53,6 +53,8 @@ export function mapSaleRows(
     createdById: sale.created_by_id || sale.createdById ? String(sale.created_by_id || sale.createdById) : '',
     customerId: sale.customer_id || sale.customerId ? String(sale.customer_id || sale.customerId) : '',
     customerName: sale.customer_name_ref || sale.customerName || sale.customer_name || 'عميل نقدي',
+    customerPhone: sale.customer_phone || sale.customerPhone || sale.customer_phone_ref || '',
+    customerAddress: sale.customer_address || sale.customerAddress || sale.customer_address_ref || '',
     paymentType: sale.payment_type || sale.paymentType || 'cash',
     paymentChannel: sale.payment_channel || sale.paymentChannel || 'cash',
     subTotal: Number(sale.subtotal || sale.subTotal || 0),

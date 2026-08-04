@@ -54,6 +54,8 @@ function renderMetaForm(initialCustomerId = '') {
 
           quickCustomerName=""
           quickCustomerPhone=""
+          quickCustomerAddress=""
+          onQuickCustomerAddressChange={vi.fn()}
           isQuickCustomerPending={false}
           onQuickCustomerSubmit={vi.fn()}
           onQuickCustomerNameChange={vi.fn()}

@@ -29,8 +29,8 @@ function storeRecentCustomerIds(ids: string[]) {
 
 export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   'customers' | 'customerId' | 'onCustomerChange' |
-  'quickCustomerName' | 'quickCustomerPhone' | 'isQuickCustomerPending' |
-  'onQuickCustomerSubmit' | 'onQuickCustomerNameChange' | 'onQuickCustomerPhoneChange' |
+  'quickCustomerName' | 'quickCustomerPhone' | 'quickCustomerAddress' | 'isQuickCustomerPending' |
+  'onQuickCustomerSubmit' | 'onQuickCustomerNameChange' | 'onQuickCustomerPhoneChange' | 'onQuickCustomerAddressChange' |
   'tableNumber' | 'onTableNumberChange' | 'orderType' | 'onOrderTypeChange' | 'settings'
 >) {
   const [pickerMode, setPickerMode] = useState<CustomerPickerMode>('closed');
@@ -248,7 +248,18 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                     />
                   </div>
                 )}
-             </div>
+              </div>
+              <div className="input-group">
+                <input
+                  type="text"
+                  placeholder="العنوان..."
+                  className="form-control pos-checkout-input"
+                  value={props.quickCustomerAddress}
+                  onChange={(event) => props.onQuickCustomerAddressChange(event.target.value)}
+                  disabled={props.isQuickCustomerPending}
+                  autoComplete="off"
+                />
+              </div>
           </div>
         ) : null}
 

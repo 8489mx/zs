@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/lib/errors';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import {
   PosCheckoutCustomerSection,
+  PosCheckoutOrderTypeSection,
   PosCheckoutPaymentSection,
   PosCheckoutDeliverySection,
   type PaymentPreset,
@@ -141,7 +142,7 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
   );
   const filteredCustomers = useMemo(() => {
     const query = customerQuery.trim().toLowerCase();
-    if (!query) return customers.slice(0, 40);
+    if (!query) return [];
     return customers.filter((customer) => (
       customer.name.toLowerCase().includes(query) || String(customer.phone || '').toLowerCase().includes(query)
     )).slice(0, 40);
@@ -191,6 +192,11 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
               <div className="pos-checkout-dialog-chip is-total"><span>المطلوب دفعه</span><strong className="is-primary">{formatCurrency(pos.totals.total)}</strong></div>
             </div>
           </section>
+
+          <PosCheckoutOrderTypeSection
+            pos={pos}
+            onDeliverySelected={() => setCustomerPickerOpen(true)}
+          />
 
           <PosCheckoutCustomerSection
             pos={pos}

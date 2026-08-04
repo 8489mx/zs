@@ -302,11 +302,15 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             </>
           )}
 
+          <Field label="كلمة مرور المستخدم الحالي (تأكيد)">
+            <input type="password" placeholder="أدخل كلمة المرور لتأكيد الإغلاق" required {...props.closeForm.register('managerPin')} disabled={props.closeMutation.isPending} />
+          </Field>
+
           <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق وردية نقطة البيع" successText="تم إغلاق وردية نقطة البيع بنجاح." />
           <SubmitButton
             type="submit"
             isPending={props.closeMutation.isPending}
-            disabled={!props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue)}
+            disabled={!props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
             idleText={isBlindCloseMode ? 'إرسال إقرار الإغلاق' : 'إغلاق وردية نقطة البيع'}
             pendingText="جارٍ الإغلاق..."
           />

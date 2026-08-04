@@ -11,6 +11,8 @@ export interface PosPaymentInput {
 export interface CreatePosSaleInput {
   cart: PosItem[];
   customerId: string;
+  customerPhone?: string;
+  customerAddress?: string;
   paymentType: PaymentType;
   paymentChannel: PaymentChannel;
   discount: number;
@@ -119,6 +121,8 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
   const customerId = normalizeCustomerId(input.customerId);
   return {
     customerId: customerId || null,
+    customerPhone: input.customerPhone || undefined,
+    customerAddress: input.customerAddress || undefined,
     paymentType: input.paymentType,
     paymentChannel: input.paymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),

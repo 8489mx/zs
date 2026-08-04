@@ -24,6 +24,8 @@ export interface Sale {
   docNo: string;
   customerId: string;
   customerName: string;
+  customerPhone?: string;
+  customerAddress?: string;
   paymentType: string;
   paymentChannel: string;
   subTotal: number;

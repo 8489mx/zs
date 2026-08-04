@@ -32,6 +32,12 @@ export class PartnersController {
     return this.partnersService.getCustomerPosSummary(id, req.authContext!);
   }
 
+  @Get('customers/:id/addresses')
+  @AllowAuthenticated()
+  getCustomerAddresses(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<string[]> {
+    return this.partnersService.getCustomerAddresses(id, req.authContext!);
+  }
+
   @Put('customers/:id')
   @RequirePermissions('customers')
   updateCustomer(
