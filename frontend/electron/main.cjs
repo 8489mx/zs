@@ -184,11 +184,43 @@ app.whenReady().then(async () => {
   let backendProcess = null;
   let isQuitting = false;
 
+  const backendLogPath = path.join(dataDir, '../logs', 'backend.log');
+  let backendLogStream = null;
+  try {
+    if (!fsLib.existsSync(path.dirname(backendLogPath))) {
+      fsLib.mkdirSync(path.dirname(backendLogPath), { recursive: true });
+    }
+    backendLogStream = fsLib.createWriteStream(backendLogPath, { flags: 'a' });
+    backendLogStream.write(`\n\n--- Backend Starting at ${new Date().toISOString()} ---\n`);
+  } catch (err) {
+    console.error('Could not create backend log stream', err);
+  }
+
+  let lastBackendError = '';
+
   if (currentConfig.runtimeMode !== 'lan_client' && currentConfig.runtimeMode !== 'invalid') {
     backendProcess = fork(backendPath, [], {
       env: backendEnv,
-      stdio: 'inherit'
+      stdio: 'pipe'
     });
+
+    if (backendProcess.stdout) {
+      backendProcess.stdout.on('data', (data) => {
+        const text = data.toString();
+        process.stdout.write(text);
+        if (backendLogStream) backendLogStream.write(text);
+      });
+    }
+
+    if (backendProcess.stderr) {
+      backendProcess.stderr.on('data', (data) => {
+        const text = data.toString();
+        process.stderr.write(text);
+        if (backendLogStream) backendLogStream.write(text);
+        // keep last 500 chars for error dialog
+        lastBackendError = (lastBackendError + text).slice(-500); 
+      });
+    }
 
     backendProcess.on('error', (err) => {
       console.error('Backend process error:', err);
@@ -202,6 +234,18 @@ app.whenReady().then(async () => {
         console.log('[ELECTRON] Backend exited cleanly — closing Electron for update restart...');
         isQuitting = true;
         app.quit();
+      } else if (code !== 0 && !isQuitting) {
+        console.error(`[ELECTRON] Backend crashed with code ${code} and signal ${signal}`);
+        if (backendLogStream) {
+          backendLogStream.write(`\n--- Backend crashed with code ${code} ---\n`);
+        }
+        dialog.showErrorBox(
+          'فشل تشغيل السيرفر الداخلي',
+          'حدث خطأ غير متوقع أدى إلى توقف السيرفر المحلي. النظام سيعمل الآن في وضع الأوفلاين.\n\n' +
+          'السبب المحتمل:\n' +
+          lastBackendError.trim() + '\n\n' +
+          'للمزيد من التفاصيل، راجع ملف backend.log الموجود في مجلد logs.'
+        );
       }
     });
   }
