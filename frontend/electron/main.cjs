@@ -58,6 +58,29 @@ app.whenReady().then(async () => {
   runtimeConfigInstance = new RuntimeConfig(app.getPath('userData'));
   currentConfig = runtimeConfigInstance.getConfig();
 
+  // Find a free port dynamically for the backend (starting from configured port or 3001)
+  if (currentConfig.runtimeMode !== 'lan_client') {
+    const net = require('net');
+    const startPort = currentConfig.port || 3001;
+    const findFreePort = (port) => {
+      return new Promise((resolve) => {
+        const server = net.createServer();
+        server.listen(port, '127.0.0.1', () => {
+          server.once('close', () => resolve(port));
+          server.close();
+        });
+        server.on('error', () => {
+          resolve(findFreePort(port + 1));
+        });
+      });
+    };
+    const freePort = await findFreePort(startPort);
+    if (freePort !== startPort) {
+      console.log(`[ELECTRON] Port ${startPort} is busy. Dynamically assigned port ${freePort} for backend.`);
+      currentConfig.port = freePort;
+    }
+  }
+
   // Log App Version details for Update Checker & Debugging
   const packageVersion = require('../package.json').version;
   console.log('----------------------------------------');
@@ -168,13 +191,13 @@ app.whenReady().then(async () => {
     ...pgManager.getEnvironmentVariables(),
     Z_DATA_DIR: dataDir,
     PORTABLE_MODE: 'false',
-    APP_PORT: '3001',
+    APP_PORT: String(currentConfig.port || 3001),
     APP_HOST: currentConfig.runtimeMode === 'lan_server' ? '0.0.0.0' : '127.0.0.1',
     APP_MODE: 'SELF_CONTAINED',
     NODE_ENV: 'production',
     SESSION_SECRET: sessionSecret,
     SESSION_CSRF_SECRET: csrfSecret,
-    CORS_ORIGINS: 'http://localhost:3001,http://127.0.0.1:3001,file://',
+    CORS_ORIGINS: `http://localhost:${currentConfig.port || 3001},http://127.0.0.1:${currentConfig.port || 3001},file://`,
     ALLOW_SESSION_ID_HEADER: 'true',
     ELECTRON_EXE_PATH: process.execPath,
     SKIP_MIGRATIONS: skipMigrations ? 'true' : 'false',
