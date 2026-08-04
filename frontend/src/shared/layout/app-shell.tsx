@@ -2,6 +2,7 @@ import { CSSProperties, PropsWithChildren, useEffect, useMemo, useState } from '
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { AppCloseGuard } from './AppCloseGuard';
 import { Button } from '@/shared/ui/button';
 import { authApi } from '@/shared/api/auth';
 import { resetAuthenticatedClient } from '@/lib/query-client-session';
@@ -445,10 +446,10 @@ export function AppShell({ children }: PropsWithChildren) {
           <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>
       </div>
+      <AppCloseGuard />
       <PasswordRotationGate />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
       <GlobalSearchModal />
     </div>
   );
 }
-

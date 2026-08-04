@@ -30,20 +30,10 @@ const createWindow = () => {
   });
 
   mainWindow.webContents.on('will-prevent-unload', (event) => {
-    const choice = dialog.showMessageBoxSync(mainWindow, {
-      type: 'warning',
-      buttons: ['مغادرة', 'البقاء'],
-      title: 'تأكيد الإغلاق',
-      message: 'توجد بيانات قيد التعديل ولم تُحفظ.',
-      detail: 'هل أنت متأكد من رغبتك في إغلاق البرنامج؟ ستفقد أي فواتير أو تعديلات لم تقم بحفظها.',
-      defaultId: 1,
-      cancelId: 1,
-      noLink: true
-    });
-    
-    if (choice === 0) {
-      event.preventDefault();
-    }
+    mainWindow.webContents.send('show-custom-close-dialog');
+    // We do NOT call event.preventDefault() here.
+    // By not preventing default, the window will wait for the beforeunload event to be resolved,
+    // effectively keeping it open.
   });
 
   // Load loading page immediately while backend starts
@@ -231,6 +221,9 @@ app.whenReady().then(async () => {
 
   // Handle IPC for LAN Modes
   ipcMain.handle('get-runtime-config', () => currentConfig);
+  ipcMain.on('force-close-app', () => {
+    app.exit(0);
+  });
 
   // Handle IPC for Silent Printing
   ipcMain.handle('get-printers', async () => {

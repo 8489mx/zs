@@ -27,7 +27,12 @@ contextBridge.exposeInMainWorld('electronRuntime', {
   switchToStandalone: () => ipcRenderer.invoke('switch-to-standalone'),
   switchToLanServer: () => ipcRenderer.invoke('switch-to-lan-server'),
   switchToLanClient: (opts) => ipcRenderer.invoke('switch-to-lan-client', opts),
-  testLanServer: (opts) => ipcRenderer.invoke('test-lan-server', opts)
+  testLanServer: (opts) => ipcRenderer.invoke('test-lan-server', opts),
+  forceCloseApp: () => ipcRenderer.send('force-close-app'),
+  onShowCustomCloseDialog: (callback) => {
+    ipcRenderer.on('show-custom-close-dialog', callback);
+    return () => ipcRenderer.removeListener('show-custom-close-dialog', callback);
+  }
 });
 
 contextBridge.exposeInMainWorld('electronPrinter', {
