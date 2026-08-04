@@ -24,8 +24,9 @@ const createWindow = () => {
   mainWindow.maximize();
   mainWindow.show();
 
-  mainWindow.webContents.setWindowOpenHandler(() => {
-    return { action: 'deny' };
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    // Allow window.open for printing and other internal app features
+    return { action: 'allow' };
   });
 
   mainWindow.webContents.on('will-prevent-unload', (event) => {
