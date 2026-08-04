@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/shared/components/ui/alert-dialog';
-import { AlertTriangle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 
 export function AppCloseGuard() {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,28 +29,15 @@ export function AppCloseGuard() {
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-      <AlertDialogContent className="z-[99999] max-w-[420px]">
-        <AlertDialogHeader>
-          <div className="flex items-center gap-3 text-amber-500 mb-2">
-            <AlertTriangle className="h-6 w-6" />
-            <AlertDialogTitle className="text-xl m-0 font-bold">تأكيد الإغلاق</AlertDialogTitle>
-          </div>
-          <AlertDialogDescription className="text-base text-slate-700 leading-relaxed font-medium">
-            توجد بيانات قيد التعديل ولم تُحفظ (مثل فاتورة قيد الإنشاء).
-            <br />
-            هل أنت متأكد من رغبتك في إغلاق البرنامج؟ ستفقد أي تعديلات لم تقم بحفظها.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter className="mt-6 flex-row gap-2 justify-end">
-          <AlertDialogCancel onClick={handleCancelClose} className="mt-0 w-24">
-            البقاء
-          </AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirmClose} className="w-auto px-6 bg-red-600 hover:bg-red-700 text-white">
-            مغادرة وإغلاق البرنامج
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ActionConfirmDialog
+      open={isOpen}
+      title="تأكيد الإغلاق"
+      description="توجد بيانات قيد التعديل ولم تُحفظ (مثل فاتورة قيد الإنشاء). هل أنت متأكد من رغبتك في إغلاق البرنامج؟ ستفقد أي تعديلات لم تقم بحفظها."
+      confirmLabel="مغادرة وإغلاق البرنامج"
+      cancelLabel="البقاء"
+      confirmVariant="danger"
+      onConfirm={handleConfirmClose}
+      onCancel={handleCancelClose}
+    />
   );
 }
