@@ -25,7 +25,6 @@ export function usePosOfflineSync() {
     const pendingSales = queue.filter(item => item.status !== 'syncing');
     
     if (pendingSales.length === 0) return;
-    if (!navigator.onLine) return;
     
     setIsSyncing(true);
     
@@ -61,7 +60,7 @@ export function usePosOfflineSync() {
     window.addEventListener('online', handleOnline);
     
     // Attempt initial sync on load if queue exists
-    if (navigator.onLine && getOfflineSalesQueue().length > 0) {
+    if (getOfflineSalesQueue().length > 0) {
       void syncOfflineSales();
     }
     

@@ -9,11 +9,6 @@ export function usePosSaleMutation() {
 
   return useMutation({
     mutationFn: async (input: CreatePosSaleInput) => {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        const offlineSale = enqueueOfflineSale(input);
-        return { id: offlineSale.id, offline: true, ...input };
-      }
-
       const payload = buildPosSalePayload(input);
       const legacyPayload = buildLegacyPosSalePayload(input);
       const minimalPayload = buildMinimalPosSalePayload(input);

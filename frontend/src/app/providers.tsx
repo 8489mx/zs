@@ -41,10 +41,12 @@ export const queryClient = new QueryClient({
       retry: shouldRetry,
       staleTime: 60_000,
       gcTime: 15 * 60_000,
-      placeholderData: keepPreviousData
+      placeholderData: keepPreviousData,
+      networkMode: 'always'
     },
     mutations: {
-      retry: false
+      retry: false,
+      networkMode: 'always'
     }
   }
 });
