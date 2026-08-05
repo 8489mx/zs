@@ -15,6 +15,11 @@ export class SaasAdminController {
     return this.service.listPlans(req.authContext!);
   }
 
+  @Get('feature-plans')
+  listFeaturePlans(@Req() req: RequestWithAuth) {
+    return this.service.listFeaturePlans(req.authContext!);
+  }
+
   @Post('plans')
   createPlan(@Body() body: CreateSaasPlanDto, @Req() req: RequestWithAuth) {
     return this.service.createPlan(body, req.authContext!);

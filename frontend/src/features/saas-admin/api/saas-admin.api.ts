@@ -111,6 +111,7 @@ export const saasAdminApi = {
   deleteTenant: (id: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/delete`, { method: 'POST', body: JSON.stringify({}) }),
   
   listPlans: () => http<SaasPlan[]>('/api/saas-admin/plans'),
+  listFeaturePlans: () => http<any[]>('/api/saas-admin/feature-plans'),
   createPlan: (payload: Omit<SaasPlan, 'id' | 'is_active'>) => http<{ ok: boolean }>('/api/saas-admin/plans', { method: 'POST', body: JSON.stringify(payload) }),
   getSubscriptions: (id: string) => http<{ subscriptions: any[]; payments: any[] }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/subscriptions`),
   renewTenant: (id: string, payload: { durationMonths: number; planId: number; paymentAmount?: number; paymentMethod?: string; paymentReference?: string }) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/renew`, { method: 'POST', body: JSON.stringify(payload) }),

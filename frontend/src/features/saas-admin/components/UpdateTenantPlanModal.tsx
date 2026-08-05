@@ -33,11 +33,11 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
   const [extraFeatures, setExtraFeatures] = useState<string[]>([]);
   const [error, setError] = useState('');
 
-  const plansQuery = useQuery({
-    queryKey: ['saas-plans'],
-    queryFn: () => saasAdminApi.listPlans(),
+  const featurePlansQuery = useQuery({
+    queryKey: ['saas-feature-plans'],
+    queryFn: () => saasAdminApi.listFeaturePlans(),
   });
-  const plans = plansQuery.data || [];
+  const featurePlans = featurePlansQuery.data || [];
 
   useEffect(() => {
     if (tenant) {
@@ -50,11 +50,11 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
   const updateMutation = useMutation({
     mutationFn: () => saasAdminApi.updateTenantPlan(tenant!.id, { planId: planId || undefined, extraFeatures }),
     onSuccess: async () => {
-      onSuccess('تم تحديث الباقة والميزات بنجاح.');
+      onSuccess('تم تحديث الخطة والميزات بنجاح.');
       await queryClient.invalidateQueries({ queryKey: ['saas-admin-tenants'] });
       onClose();
     },
-    onError: (err) => setError(getFriendlyApiErrorMessage(err, 'حدث خطأ أثناء تحديث الباقة.')),
+    onError: (err) => setError(getFriendlyApiErrorMessage(err, 'حدث خطأ أثناء التحديث.')),
   });
 
   if (!tenant) return null;
@@ -65,7 +65,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     );
   };
 
-  const selectedPlanFeatures = plans.find(p => String(p.id) === planId)?.features || [];
+  const selectedPlanFeatures = featurePlans.find(p => String(p.id) === planId)?.features || [];
 
   return (
     <DialogShell open={true} onClose={onClose} ariaLabel="تحديث الباقة والميزات">
@@ -89,14 +89,10 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           {error && <div className="warning-box">{error}</div>}
           
           <div className="grid-2">
-            <Field label="الباقة الحالية">
+            <Field label="الباقة (الميزات الأساسية)">
               <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
                 <option value="">-- بدون باقة --</option>
-                <option value="plan_basic">الأساسية</option>
-                <option value="plan_pro">الاحترافية</option>
-                <option value="plan_ultimate">المتكاملة</option>
-                {/* Fallback for plans from DB if any */}
-                {plans.filter(p => !['plan_basic', 'plan_pro', 'plan_ultimate'].includes(String(p.id))).map((p) => (
+                {featurePlans.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>

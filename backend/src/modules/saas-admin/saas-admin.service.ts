@@ -359,12 +359,17 @@ export class SaasAdminService {
 
   async listPlans(auth: AuthContext): Promise<Record<string, unknown>[]> {
     this.assertPlatformAccess(auth);
-    const plans = await this.db.selectFrom('saas_plans').selectAll().orderBy('price', 'asc').execute();
-    const planFeatures = await this.db.selectFrom('saas_plan_features').selectAll().execute();
+    return await this.db.selectFrom('saas_plans').selectAll().orderBy('price', 'asc').execute();
+  }
+
+  async listFeaturePlans(auth: AuthContext): Promise<Record<string, unknown>[]> {
+    this.assertPlatformAccess(auth);
+    const plans = await this.db.selectFrom('plans').selectAll().execute();
+    const planFeatures = await this.db.selectFrom('plan_features').selectAll().execute();
     
     return plans.map(p => ({
       ...p,
-      features: planFeatures.filter(f => f.plan_id === p.id).map(f => f.feature_id)
+      features: planFeatures.filter(f => f.plan_id === p.id).map(f => f.feature_code)
     }));
   }
 
