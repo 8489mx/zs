@@ -136,6 +136,7 @@ export async function invalidateTreasuryDomain(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: queryKeys.treasury }),
     queryClient.invalidateQueries({ queryKey: queryKeys.expenses }),
     queryClient.invalidateQueries({ queryKey: queryKeys.cashierShifts }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.cashierShiftsPage('open:pos') }),
   ]);
 }
 

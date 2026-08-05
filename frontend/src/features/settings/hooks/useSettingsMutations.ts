@@ -23,6 +23,7 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.settings }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.posSettings }),
         invalidateAuditLogs(queryClient),
       ]);
       onSuccessCallback?.();
