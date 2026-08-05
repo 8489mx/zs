@@ -6,4 +6,6 @@ export interface AuthContext {
   permissions: string[];
   tenantId?: string;
   accountId?: string;
+  planId?: string;
+  extraFeatures?: string[];
 }

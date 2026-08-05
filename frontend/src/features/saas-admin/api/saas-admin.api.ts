@@ -23,6 +23,8 @@ export type SaasTenantRow = {
   ownerIsActive: boolean;
   ownerUsername: string;
   planName: string | null;
+  planId: string | null;
+  extraFeatures: string[];
   subscriptionStatus: string | null;
   subscriptionEndDate: string | null;
   graceEndDate: string | null;
@@ -93,6 +95,7 @@ export const saasAdminApi = {
   activateTenant: (id: string, payload: { durationMonths?: number; planId?: number; paymentAmount?: number; paymentMethod?: string; paymentReference?: string }) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/activate`, { method: 'POST', body: JSON.stringify(payload) }),
   suspendTenant: (id: string, notes?: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/suspend`, { method: 'POST', body: JSON.stringify({ notes: notes || '' }) }),
   expireTenant: (id: string, notes?: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/expire`, { method: 'POST', body: JSON.stringify({ notes: notes || '' }) }),
+  updateTenantPlan: (id: string, payload: { planId?: string; extraFeatures?: string[] }) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/plan`, { method: 'POST', body: JSON.stringify(payload) }),
   extendTrial: (id: string, days: number) =>
     http<{ ok: boolean; trialEndsAt: string; daysAdded: number }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/extend-trial`, {
       method: 'POST',

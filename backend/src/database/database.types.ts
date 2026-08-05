@@ -64,6 +64,8 @@ export interface TenantTable {
   trial_starts_at: Date;
   trial_ends_at: Date;
   activated_at: Date | null;
+  plan_id: string | null;
+  extra_features: any; // JSONB
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -1684,6 +1686,9 @@ export interface HrPayrollLoanDeductionAllocationTable {
 }
 
 export interface Database {
+  plans: PlanTable;
+  features: FeatureTable;
+  plan_features: PlanFeatureTable;
   _phase1_bootstrap: Phase1BootstrapTable;
   sessions: SessionTable;
   users: UserTable;
@@ -1804,4 +1809,26 @@ export interface OfflineReleaseTable {
   promoted_by: string | null;
   promoted_at: ColumnType<Date, string | undefined, string | undefined> | null;
   created_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface PlanTable {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  price: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface FeatureTable {
+  id: string;
+  code: string;
+  name: string;
+  module: string;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface PlanFeatureTable {
+  plan_id: string;
+  feature_code: string;
 }

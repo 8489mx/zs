@@ -134,7 +134,8 @@ export class SessionService {
     const row = await this.db
       .selectFrom('sessions as s')
       .innerJoin('users as u', 'u.id', 's.user_id')
-      .select(['s.id as session_id', 's.user_id as session_user_id', 's.tenant_id as session_tenant_id', 's.account_id as session_account_id', 's.expires_at', 'u.id as user_id', 'u.username', 'u.role', 'u.permissions_json', 'u.is_active', 'u.locked_until', 'u.tenant_id', 'u.account_id'])
+      .leftJoin('tenants as t', 't.id', 's.tenant_id')
+      .select(['s.id as session_id', 's.user_id as session_user_id', 's.tenant_id as session_tenant_id', 's.account_id as session_account_id', 's.expires_at', 'u.id as user_id', 'u.username', 'u.role', 'u.permissions_json', 'u.is_active', 'u.locked_until', 'u.tenant_id', 'u.account_id', 't.plan_id', 't.extra_features'])
       .where('s.id', '=', sessionId)
       .executeTakeFirst();
     if (!row) return null;
@@ -145,7 +146,7 @@ export class SessionService {
     if (row.locked_until && row.locked_until > new Date()) return null;
     const tenantContext = this.resolveUserTenantContext(row);
     try { await this.assertTenantLoginAllowed(tenantContext.tenantId); } catch { return null; }
-    return { userId: row.user_id, sessionId: row.session_id, username: row.username, role: row.role, permissions: safeJsonArray(row.permissions_json), ...tenantContext };
+    return { userId: row.user_id, sessionId: row.session_id, username: row.username, role: row.role, permissions: safeJsonArray(row.permissions_json), planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
   }
 
   async authenticate(identifier: string, password: string, meta?: { ipAddress?: string; userAgent?: string }): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {

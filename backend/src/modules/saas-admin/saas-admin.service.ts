@@ -105,6 +105,8 @@ export class SaasAdminService {
         't.activated_at',
         't.created_at',
         't.updated_at',
+        't.plan_id',
+        't.extra_features',
         eb.fn.count<number>('u.id').as('users_count'),
         eb.fn.sum<number>(eb.case().when('u.is_active', '=', true).then(1).else(0).end()).as('active_users_count'),
       ])
@@ -122,6 +124,8 @@ export class SaasAdminService {
         't.activated_at',
         't.created_at',
         't.updated_at',
+        't.plan_id',
+        't.extra_features',
       ])
       .orderBy('t.created_at', 'desc');
 
@@ -213,6 +217,8 @@ export class SaasAdminService {
       ownerIsActive: owner ? Boolean(owner.isActive) : false,
       ownerUsername: owner?.username || '',
       planName: sub?.plan_name || null,
+      planId: row.plan_id || null,
+      extraFeatures: Array.isArray(row.extra_features) ? row.extra_features : typeof row.extra_features === 'string' ? JSON.parse(row.extra_features) : [],
       subscriptionStatus: sub?.sub_status || null,
       subscriptionEndDate: sub?.ends_at ? new Date(sub.ends_at).toISOString() : null,
       graceEndDate: sub?.grace_ends_at ? new Date(sub.grace_ends_at).toISOString() : null,
@@ -282,6 +288,8 @@ export class SaasAdminService {
         activeUsersCount: Number(usersSummary?.active_users_count || 0),
         lastLoginAt: owner?.last_login_at ? new Date(owner.last_login_at).toISOString() : null,
         lastSeenAt: lastSeenAt,
+        planId: tenant.plan_id || null,
+        extraFeatures: Array.isArray(tenant.extra_features) ? tenant.extra_features : typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [],
       },
     };
   }
@@ -699,7 +707,27 @@ export class SaasAdminService {
 
     await this.db.deleteFrom('tenants').where('id', '=', tenant.id).execute();
 
-    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) بالكامل من النظام`, auth, { targetTenantId: tenant.id });
+    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) نهائياً من النظام`, auth, { targetTenantId: tenant.id });
+    return { ok: true };
+  }
+
+  async updateTenantPlan(id: string, dto: { planId?: string; extraFeatures?: string[] }, auth: AuthContext) {
+    if (auth.role !== 'super_admin') {
+      throw new ForbiddenException('Only super_admins can update tenant plans');
+    }
+
+    const tenant = await this.db.selectFrom('tenants').select(['id', 'slug']).where('id', '=', id).executeTakeFirst();
+    if (!tenant) throw new NotFoundException('Tenant not found');
+
+    const updateData: any = {};
+    if (dto.planId !== undefined) updateData.plan_id = dto.planId;
+    if (dto.extraFeatures !== undefined) updateData.extra_features = JSON.stringify(dto.extraFeatures);
+
+    if (Object.keys(updateData).length > 0) {
+      await this.db.updateTable('tenants').set(updateData).where('id', '=', id).execute();
+      await this.audit.log('تحديث الباقة', `تم تحديث باقة النسخة ${tenant.slug}`, auth, { targetTenantId: tenant.id });
+    }
+
     return { ok: true };
   }
 }

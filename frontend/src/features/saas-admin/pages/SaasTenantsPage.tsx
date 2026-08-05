@@ -14,6 +14,7 @@ import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 import { ApiError } from '@/lib/http';
 import { isPlatformAdmin } from '@/app/router/access';
 import { saasAdminApi, SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
+import { UpdateTenantPlanModal } from '../components/UpdateTenantPlanModal';
 import { TenantDetailsModal } from '../components/TenantDetailsModal';
 
 type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner' | 'delete';
@@ -58,6 +59,8 @@ export function SaasTenantsPage() {
   const [upgradePlanId, setUpgradePlanId] = useState<number | ''>('');
   const [upgradePaymentAmount, setUpgradePaymentAmount] = useState<number | ''>('');
   const [upgradePaymentMethod, setUpgradePaymentMethod] = useState('cash');
+
+  const [updatePlanTenant, setUpdatePlanTenant] = useState<SaasTenantRow | null>(null);
 
   const [renewTenant, setRenewTenant] = useState<{ id: string } | null>(null);
   const [renewDuration, setRenewDuration] = useState<number>(1);
@@ -371,6 +374,7 @@ export function SaasTenantsPage() {
                   return (
                     <div className="actions compact-actions">
                       <button type="button" className="button button-secondary" onClick={() => setUpgradeTenant({ id: row.id })}>تفعيل / ترقية</button>
+                      <button type="button" className="button button-secondary" onClick={() => setUpdatePlanTenant(row)}>تعديل الباقة والميزات</button>
                       <button type="button" className="button button-secondary" onClick={() => setRenewTenant({ id: row.id })}>تجديد الاشتراك</button>
                       <button type="button" className="button button-secondary" onClick={() => setRecordPaymentTenant({ id: row.id })}>تسجيل دفعة</button>
                       <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'suspend', tenantId: row.id })}>إيقاف</button>
@@ -601,7 +605,15 @@ export function SaasTenantsPage() {
         </div>
       ) : null}
 
-      <TenantDetailsModal tenantId={detailsTenantId} onClose={() => setDetailsTenantId(null)} />
+      {detailsTenantId ? <TenantDetailsModal tenantId={detailsTenantId} onClose={() => setDetailsTenantId(null)} /> : null}
+
+      {updatePlanTenant ? (
+        <UpdateTenantPlanModal 
+          tenant={updatePlanTenant} 
+          onClose={() => setUpdatePlanTenant(null)} 
+          onSuccess={(msg) => { setFeedback(msg); setUpdatePlanTenant(null); }} 
+        />
+      ) : null}
 
     </div>
   );

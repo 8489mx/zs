@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber } from 'class-validator';
 
 export class ListSaasTenantsQueryDto {
   @IsOptional()
@@ -187,3 +187,13 @@ export class RecordPaymentDto {
   date?: string;
 }
 
+export class UpdateTenantPlanDto {
+  @IsOptional()
+  @IsString()
+  planId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  extraFeatures?: string[];
+}

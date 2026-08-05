@@ -30,11 +30,13 @@ import {
   CreateQuickCashAdvanceDto,
 } from './dto/hr.dto';
 import { HrService } from './hr.service';
+import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
 
 
 
 @Controller('api/hr')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('hr')
 export class HrController {
 
   @Get('settings/payroll-policies')

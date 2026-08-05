@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
-import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, RecordPaymentDto } from './dto/saas-admin.dto';
+import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, RecordPaymentDto, UpdateTenantPlanDto } from './dto/saas-admin.dto';
 import { SaasAdminService } from './saas-admin.service';
 
 @Controller('api/saas-admin')
@@ -89,5 +89,10 @@ export class SaasAdminController {
   @Post('tenants/:id/delete')
   deleteTenant(@Param('id') id: string, @Req() req: RequestWithAuth) {
     return this.service.deleteTenant(id, req.authContext!);
+  }
+
+  @Post('tenants/:id/plan')
+  updateTenantPlan(@Param('id') id: string, @Body() body: UpdateTenantPlanDto, @Req() req: RequestWithAuth) {
+    return this.service.updateTenantPlan(id, body, req.authContext!);
   }
 }
