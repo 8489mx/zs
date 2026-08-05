@@ -50,6 +50,7 @@ export type SaasPlan = {
   max_users: number | null;
   max_branches: number | null;
   is_active: boolean;
+  features?: string[];
 };
 
 export type CreateTrialTenantPayload = {

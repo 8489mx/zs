@@ -65,6 +65,8 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     );
   };
 
+  const selectedPlanFeatures = plans.find(p => String(p.id) === planId)?.features || [];
+
   return (
     <DialogShell open={true} onClose={onClose} ariaLabel="تحديث الباقة والميزات">
       <FormSection 
@@ -105,17 +107,21 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
             <h3 className="font-bold mb-3">الميزات الإضافية المستثناة لهذه النسخة:</h3>
             <p className="muted small mb-4">هذه الميزات ستكون مفعلة للنسخة حتى لو لم تكن متوفرة في باقتها الأساسية.</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              {AVAILABLE_FEATURES.map((feat) => (
-                <label key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={extraFeatures.includes(feat.id)} 
-                    onChange={() => toggleFeature(feat.id)}
-                    style={{ width: '16px', height: '16px' }}
-                  />
-                  <span>{feat.name}</span>
-                </label>
-              ))}
+              {AVAILABLE_FEATURES.map((feat) => {
+                const isIncludedInPlan = selectedPlanFeatures.includes(feat.id);
+                return (
+                  <label key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isIncludedInPlan ? 'not-allowed' : 'pointer', opacity: isIncludedInPlan ? 0.6 : 1 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isIncludedInPlan || extraFeatures.includes(feat.id)} 
+                      onChange={() => toggleFeature(feat.id)}
+                      disabled={isIncludedInPlan}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <span>{feat.name} {isIncludedInPlan && <small className="muted">(متوفرة في الباقة)</small>}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>
