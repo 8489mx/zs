@@ -244,10 +244,9 @@ export function getInvoiceStyles(compact = false) {
     .invoice-brand-row { display: flex; align-items: center; justify-content: space-between; gap: ${compact ? '7px' : '10px'}; }
     .invoice-logo,
     .invoice-logo-fallback {
-      width: ${compact ? '64px' : '90px'};
-      height: ${compact ? '34px' : '48px'};
-      border-radius: ${compact ? '5px' : '7px'};
-      border: 1px solid #777;
+      width: ${compact ? '75px' : '110px'};
+      height: ${compact ? '50px' : '75px'};
+      border-radius: 0;
       object-fit: contain;
       flex-shrink: 0;
       background: #fff;

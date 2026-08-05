@@ -92,7 +92,7 @@ export function buildFirstRunSetupFlowState({
 }: BuildFirstRunSetupFlowStateInput): FirstRunSetupFlowState {
   const enabled = user?.role === 'super_admin';
   const saasOrTrial = isSaasOrTrialContext(tenant, deploymentMode);
-  const operationalAdmins = users.filter((candidate) => candidate.isActive !== false && candidate.role === 'admin');
+  const activeUsersCount = users.filter((candidate) => candidate.isActive !== false).length;
   const resolvedStoreName = String(settings?.storeName || tenant?.businessName || sessionStoreName || '').trim();
   const hasNamedStore = saasOrTrial
     ? Boolean(settings?.storeName) || Boolean(tenant?.businessName && tenant?.businessName !== DEFAULT_STORE_NAME)
@@ -167,7 +167,7 @@ export function buildFirstRunSetupFlowState({
         title: 'مستخدم الإدارة اليومي',
         section: 'users',
         to: '/settings/users?setup=1',
-        done: operationalAdmins.length > 0,
+        done: activeUsersCount > 1,
         ctaLabel: 'فتح إدارة المستخدمين',
         nextLabel: 'الانتقال إلى تأمين حساب التثبيت',
       },

@@ -65,7 +65,7 @@ export function useUserManagementController({
   }, [usersQuery.data, managedUsers.length]);
 
   const selectedUsers = useMemo(() => managedUsers.filter((user) => selectedIds.includes(String(user.id || user.username))), [managedUsers, selectedIds]);
-  const operationalAdmins = useMemo(() => managedUsers.filter((user) => user.isActive !== false && user.role === 'admin'), [managedUsers]);
+  const activeAddedUsers = useMemo(() => managedUsers.filter((user) => user.isActive !== false && String(user.id) !== currentUserId), [managedUsers, currentUserId]);
   const activePrivilegedUsers = useMemo(
     () => managedUsers.filter((user) => user.isActive !== false && (user.role === 'admin' || user.role === 'super_admin')),
     [managedUsers],
@@ -159,7 +159,7 @@ export function useUserManagementController({
     setupMode,
     setupStepKey,
     currentUserId,
-    operationalAdminsCount: operationalAdmins.length,
+    operationalAdminsCount: activeAddedUsers.length,
     startNewUser,
   });
 

@@ -298,6 +298,10 @@ export class UsersService {
     const { tenantId } = this.scope(actor);
     await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${id}`.execute(this.db);
     await this.db.deleteFrom('sessions').where('user_id', '=', id).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
+    
+    // Nullify audit logs actor reference to allow deleting users who only have login/audit history
+    await sql`update audit_logs set created_by = null where created_by = ${id}`.execute(this.db);
+
     await this.db.deleteFrom('users').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
     await this.audit.log('حذف مستخدم', `تم حذف المستخدم ${existing.username} بواسطة ${actor.username}`, actor);
 

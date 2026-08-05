@@ -13,6 +13,7 @@ import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
 import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
+import { DeveloperActivationPanel } from '@/shared/system/DeveloperActivationPanel';
 import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
 import {
   POS_SHELL_VISIBILITY_KEY,
@@ -450,6 +451,7 @@ export function AppShell({ children }: PropsWithChildren) {
       <PasswordRotationGate />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
       <GlobalSearchModal />
+      <DeveloperActivationPanel />
     </div>
   );
 }

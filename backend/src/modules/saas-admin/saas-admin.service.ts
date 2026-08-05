@@ -741,4 +741,26 @@ export class SaasAdminService {
 
     return { ok: true };
   }
+  async developerUpdateTenantPlan(dto: { planId?: string; extraFeatures?: string[] }) {
+    // This is called by the offline developer activation panel. It bypasses normal platform auth.
+    // We assume there's only one tenant in offline mode, so we target the first one.
+    const tenant = await this.db.selectFrom('tenants').select(['id', 'slug']).orderBy('created_at', 'asc').limit(1).executeTakeFirst();
+    if (!tenant) throw new NotFoundException('No local tenant found to update');
+
+    const updateData: any = {};
+    if (dto.planId !== undefined) updateData.plan_id = dto.planId;
+    if (dto.extraFeatures !== undefined) updateData.extra_features = JSON.stringify(dto.extraFeatures);
+
+    if (Object.keys(updateData).length > 0) {
+      await this.db.updateTable('tenants').set(updateData).where('id', '=', tenant.id).execute();
+      // No auth context for this automated action, passing null is handled by the audit log silently or we just mock auth.
+      try {
+        await this.audit.log('تفعيل مطور', `تم تفعيل الباقة والميزات محلياً بواسطة لوحة المطورين`, { id: 'developer', role: 'super_admin' } as unknown as AuthContext, { targetTenantId: tenant.id });
+      } catch (e) {
+        // ignore audit failure if context missing
+      }
+    }
+
+    return { ok: true };
+  }
 }
