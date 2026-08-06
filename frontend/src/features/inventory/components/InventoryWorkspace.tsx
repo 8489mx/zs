@@ -256,7 +256,6 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
 
       <InventoryPostSessionDialog
         sessions={inventory.postSessionConfirm ? inventory.stockCountSessions.filter((session) => inventory.postSessionConfirm?.sessionIds.includes(String(session.id))) : []}
-        postingPin={inventory.postingPin}
         isBusy={inventory.postCountMutation.isPending}
         onCancel={() => inventory.setPostSessionConfirm(null)}
         onConfirm={() => void inventory.confirmPostSessionAction()}

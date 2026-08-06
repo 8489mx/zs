@@ -83,8 +83,6 @@ export function PosWorkspaceConfirmDialogs({
         confirmLabel="حذف"
         cancelLabel="إلغاء"
         confirmVariant="danger"
-        confirmationKeyword="حذف الكل"
-        confirmationLabel="اكتب حذف الكل لتأكيد حذف كل الفواتير المعلقة"
         onCancel={onCancelClearHeld}
         onConfirm={onConfirmClearHeld}
       />

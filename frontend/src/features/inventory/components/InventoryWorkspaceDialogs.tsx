@@ -28,9 +28,6 @@ export function InventoryTransferActionDialog({
       description={description}
       confirmLabel={action?.action === 'receive' ? 'تأكيد الاستلام' : 'تأكيد الإلغاء'}
       confirmVariant={action?.action === 'receive' ? 'success' : 'danger'}
-      confirmationKeyword={action?.action === 'receive' ? 'استلام' : ''}
-      confirmationLabel={action?.action === 'receive' ? 'اكتب كلمة استلام للتأكيد' : ''}
-      confirmationHint={action?.action === 'receive' ? 'استخدم هذا التأكيد فقط بعد مراجعة الجهة المستلمة والبنود.' : ''}
       isBusy={isBusy}
       onCancel={onCancel}
       onConfirm={onConfirm}
@@ -40,13 +37,11 @@ export function InventoryTransferActionDialog({
 
 export function InventoryPostSessionDialog({
   sessions,
-  postingPin,
   isBusy,
   onCancel,
   onConfirm
 }: {
   sessions: StockCountSession[];
-  postingPin: string;
   isBusy: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -58,9 +53,6 @@ export function InventoryPostSessionDialog({
       description={sessions.length ? (sessions.length === 1 ? <>سيتم اعتماد الجلسة <strong>{sessions[0].docNo || sessions[0].id}</strong> وتسجيل فروقاتها على المخزون. تأكد من مراجعة البنود وإدخال كود المدير الصحيح.</> : <>سيتم اعتماد <strong>{sessions.length}</strong> جلسات جرد محددة وتسجيل فروقاتها على المخزون. تأكد من مراجعة الجلسات وإدخال كود المدير الصحيح قبل التنفيذ.</>) : ''}
       confirmLabel="اعتماد الجلسة"
       confirmVariant="primary"
-      confirmationKeyword="اعتماد"
-      confirmationLabel="اكتب كلمة اعتماد للتأكيد"
-      confirmationHint={postingPin ? 'تم إدخال كود اعتماد للجلسة الحالية.' : 'أدخل كود الاعتماد من حقل الجلسة قبل تنفيذ العملية.'}
       isBusy={isBusy}
       onCancel={onCancel}
       onConfirm={onConfirm}

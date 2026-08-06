@@ -44,10 +44,10 @@ export function UserBulkActionDialog({
   onConfirm: () => void | Promise<void>;
 }) {
   const actionConfig = action === 'unlock'
-    ? { title: 'فتح قفل المستخدمين المحددين', confirmLabel: 'فتح القفل', confirmVariant: 'secondary' as const, confirmationKeyword: 'UNLOCK', confirmationLabel: 'اكتب UNLOCK لتأكيد فتح القفل', description: 'سيتم تصفير محاولات الدخول الفاشلة وإزالة حالة القفل للحسابات المحددة.' }
+    ? { title: 'فتح قفل المستخدمين المحددين', confirmLabel: 'فتح القفل', confirmVariant: 'secondary' as const, description: 'سيتم تصفير محاولات الدخول الفاشلة وإزالة حالة القفل للحسابات المحددة.' }
     : action === 'require-password-change'
-      ? { title: 'فرض تغيير كلمة المرور', confirmLabel: 'فرض التغيير', confirmVariant: 'primary' as const, confirmationKeyword: 'FORCE', confirmationLabel: 'اكتب FORCE لتأكيد فرض التغيير', description: 'سيتم تعليم الحسابات المحددة بحيث يُطلب منها تغيير كلمة المرور عند الدخول التالي.' }
-      : { title: 'إيقاف المستخدمين المحددين', confirmLabel: 'إيقاف المحدد', confirmVariant: 'danger' as const, confirmationKeyword: 'DISABLE', confirmationLabel: 'اكتب DISABLE لتأكيد إيقاف المحدد', description: 'يمكن إيقاف الكاشير والأدمن العادي. لا يمكن إيقاف السوبر أدمن أو الحساب الحالي أو آخر حساب إداري فعّال.' };
+      ? { title: 'فرض تغيير كلمة المرور', confirmLabel: 'فرض التغيير', confirmVariant: 'primary' as const, description: 'سيتم تعليم الحسابات المحددة بحيث يُطلب منها تغيير كلمة المرور عند الدخول التالي.' }
+      : { title: 'إيقاف المستخدمين المحددين', confirmLabel: 'إيقاف المحدد', confirmVariant: 'danger' as const, description: 'يمكن إيقاف الكاشير والأدمن العادي. لا يمكن إيقاف السوبر أدمن أو الحساب الحالي أو آخر حساب إداري فعّال.' };
 
   return (
     <ActionConfirmDialog
@@ -70,8 +70,6 @@ export function UserBulkActionDialog({
       )}
       confirmLabel={actionConfig.confirmLabel}
       confirmVariant={actionConfig.confirmVariant}
-      confirmationKeyword={actionConfig.confirmationKeyword}
-      confirmationLabel={actionConfig.confirmationLabel}
       isBusy={isBusy}
       onCancel={onCancel}
       onConfirm={onConfirm}

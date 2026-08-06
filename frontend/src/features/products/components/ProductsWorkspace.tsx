@@ -171,8 +171,6 @@ export function ProductsWorkspace() {
           title="تأكيد حذف الأصناف المحددة"
           description={controller.selectedProducts.length ? `سيتم محاولة حذف ${controller.selectedProducts.length} صنفًا دفعة واحدة. أي صنف مرتبط بحركات بيع أو شراء أو مخزون سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : 'لا يوجد أصناف محددة.'}
           confirmLabel="نعم، حذف المحدد"
-          confirmationKeyword="DELETE"
-          confirmationLabel="اكتب DELETE لتأكيد حذف المحدد"
           isBusy={controller.bulkDeleteMutation.isPending}
           onCancel={() => controller.setBulkDeleteOpen(false)}
           onConfirm={async () => {
