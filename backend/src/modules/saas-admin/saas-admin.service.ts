@@ -752,14 +752,21 @@ export class SaasAdminService {
     }));
   }
 
-  async developerUpdateTenantPlan(dto: { planId?: string; extraFeatures?: string[] }) {
+  async developerUpdateTenantPlan(dto: { tenantId?: string; planId?: string; extraFeatures?: string[] }) {
     // This is called by the offline developer activation panel. It bypasses normal platform auth.
-    // We assume there's only one tenant in offline mode, so we target the first one.
-    const tenant = await this.db.selectFrom('tenants').select(['id', 'slug']).orderBy('created_at', 'asc').limit(1).executeTakeFirst();
+    let query = this.db.selectFrom('tenants').select(['id', 'slug']);
+    if (dto.tenantId) {
+      query = query.where('id', '=', dto.tenantId);
+    } else {
+      query = query.orderBy('created_at', 'asc').limit(1);
+    }
+    const tenant = await query.executeTakeFirst();
     if (!tenant) throw new NotFoundException('No local tenant found to update');
 
     const updateData: any = {};
-    if (dto.planId !== undefined) updateData.plan_id = dto.planId;
+    if (dto.planId !== undefined) {
+      updateData.plan_id = dto.planId === '' ? null : parseInt(dto.planId, 10);
+    }
     if (dto.extraFeatures !== undefined) updateData.extra_features = JSON.stringify(dto.extraFeatures);
 
     if (Object.keys(updateData).length > 0) {

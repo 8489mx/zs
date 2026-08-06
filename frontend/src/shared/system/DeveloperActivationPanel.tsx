@@ -67,7 +67,7 @@ export function DeveloperActivationPanel() {
   const updateMutation = useMutation({
     mutationFn: () => http<{ ok: boolean }>('/api/developer/update-plan', { 
       method: 'POST', 
-      body: JSON.stringify({ masterPassword, planId, extraFeatures }) 
+      body: JSON.stringify({ tenantId: tenant?.id, masterPassword, planId, extraFeatures }) 
     }),
     onSuccess: async () => {
       setSuccessMsg('تم تفعيل الباقة والميزات بنجاح!');

@@ -6,6 +6,10 @@ export class DeveloperUpdatePlanDto {
 
   @IsString()
   @IsOptional()
+  tenantId?: string;
+
+  @IsString()
+  @IsOptional()
   planId?: string;
 
   @IsArray()
