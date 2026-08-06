@@ -782,7 +782,7 @@ export class SaasAdminService {
 
     const updateData: any = {};
     if (dto.planId !== undefined) {
-      updateData.plan_id = dto.planId === '' ? null : parseInt(dto.planId, 10);
+      updateData.plan_id = dto.planId === '' ? null : dto.planId;
     }
     if (dto.extraFeatures !== undefined) updateData.extra_features = JSON.stringify(dto.extraFeatures);
 
