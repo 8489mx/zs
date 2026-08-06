@@ -760,7 +760,24 @@ export class SaasAdminService {
     } else {
       query = query.orderBy('created_at', 'asc').limit(1);
     }
-    const tenant = await query.executeTakeFirst();
+    let tenant = await query.executeTakeFirst();
+    
+    // Auto-create default tenant if running locally and missing
+    if (!tenant && dto.tenantId === 'default') {
+      const now = new Date();
+      await this.db.insertInto('tenants').values({
+        id: 'default',
+        slug: 'default',
+        business_name: 'النظام الأساسي',
+        owner_name: 'المسؤول',
+        owner_phone: '0000000000',
+        status: 'active',
+        trial_starts_at: now,
+        trial_ends_at: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+      } as any).execute();
+      tenant = { id: 'default', slug: 'default' };
+    }
+
     if (!tenant) throw new NotFoundException('No local tenant found to update');
 
     const updateData: any = {};
