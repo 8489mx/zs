@@ -15,7 +15,7 @@ export function GlobalSearchModal() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === '/' || e.code === 'Slash')) {
         e.preventDefault();
         setGlobalSearchOpen(!isGlobalSearchOpen);
       }

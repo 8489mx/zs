@@ -37,6 +37,7 @@ export function DeveloperActivationPanel() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.altKey && e.shiftKey && (e.code === 'KeyL' || e.key.toLowerCase() === 'l')) {
         e.preventDefault();
+        e.stopPropagation();
         setOpen(true);
       }
     };
