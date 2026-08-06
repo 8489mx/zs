@@ -6,6 +6,8 @@ import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
+import { useAuthStore } from '@/stores/auth-store';
+
 const AVAILABLE_FEATURES = [
   { id: 'catalog', name: 'المنتجات' },
   { id: 'sales', name: 'المبيعات' },
@@ -23,6 +25,7 @@ const AVAILABLE_FEATURES = [
 
 export function DeveloperActivationPanel() {
   const queryClient = useQueryClient();
+  const tenant = useAuthStore(s => s.tenant);
   const [open, setOpen] = useState(false);
   
   const [masterPassword, setMasterPassword] = useState('');
@@ -30,6 +33,16 @@ export function DeveloperActivationPanel() {
   const [extraFeatures, setExtraFeatures] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    if (open && tenant) {
+      setPlanId(tenant.planId || '');
+      setExtraFeatures(tenant.extraFeatures || []);
+      setError('');
+      setSuccessMsg('');
+      setMasterPassword('');
+    }
+  }, [open, tenant]);
 
   // Listen for Ctrl+Alt+Shift+L
   useEffect(() => {

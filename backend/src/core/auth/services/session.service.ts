@@ -136,6 +136,8 @@ export class SessionService {
       trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
       trialDaysRemaining,
       features: activeFeatures,
+      planId: tenant.plan_id ? String(tenant.plan_id) : null,
+      extraFeatures: extraFeatures,
       createdAt: tenant.created_at || null,
     };
   }
