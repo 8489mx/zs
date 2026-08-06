@@ -741,6 +741,17 @@ export class SaasAdminService {
 
     return { ok: true };
   }
+
+  async developerListFeaturePlans(): Promise<Record<string, unknown>[]> {
+    const plans = await this.db.selectFrom('plans').selectAll().execute();
+    const planFeatures = await this.db.selectFrom('plan_features').selectAll().execute();
+    
+    return plans.map(p => ({
+      ...p,
+      features: planFeatures.filter(f => f.plan_id === p.id).map(f => f.feature_code)
+    }));
+  }
+
   async developerUpdateTenantPlan(dto: { planId?: string; extraFeatures?: string[] }) {
     // This is called by the offline developer activation panel. It bypasses normal platform auth.
     // We assume there's only one tenant in offline mode, so we target the first one.

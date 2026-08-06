@@ -4,7 +4,6 @@ import { http } from '@/lib/http';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
-import { saasAdminApi } from '@/features/saas-admin/api/saas-admin.api';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
 const AVAILABLE_FEATURES = [
@@ -47,7 +46,7 @@ export function DeveloperActivationPanel() {
 
   const featurePlansQuery = useQuery({
     queryKey: ['saas-feature-plans'],
-    queryFn: () => saasAdminApi.listFeaturePlans(),
+    queryFn: () => http<any[]>('/api/developer/feature-plans'),
     enabled: open,
   });
   const featurePlans = featurePlansQuery.data || [];
