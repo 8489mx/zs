@@ -1,9 +1,11 @@
 import type { NavigationItemDefinition } from '@/app/router/types';
 import type { AuthUser } from '@/types/auth';
 
-export type RoutePermissionRequirement = string | string[] | null;
+import { useAuthStore } from '@/stores/auth-store';
 
-const routePermissionMap: Record<string, RoutePermissionRequirement> = {
+type RoutePermissionRequirement = string | string[] | null;
+
+export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   dashboard: 'dashboard',
   '/': 'dashboard',
   products: 'products',
@@ -114,6 +116,39 @@ const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   'product-categories': 'products',
 };
 
+export const routeFeatureMap: Record<string, string> = {
+  catalog: 'catalog',
+  products: 'catalog',
+  'product-categories': 'catalog',
+  sales: 'sales',
+  pos: 'sales',
+  returns: 'sales',
+  'cash-drawer': 'cashDrawer',
+  treasury: 'cashDrawer',
+  purchases: 'purchases',
+  'purchases-new': 'purchases',
+  'purchase-returns': 'purchases',
+  inventory: 'inventory',
+  'inventory-issue-orders': 'inventory',
+  'inventory-warehouses': 'inventory',
+  reports: 'reports',
+  hr: 'hr',
+  manufacturing: 'manufacturing',
+  'manufacturing-components': 'manufacturing',
+  'manufacturing-boms': 'manufacturing',
+  'manufacturing-work-orders': 'manufacturing',
+  'manufacturing-settings': 'manufacturing',
+  accounting: 'accounting',
+  'accounting-accounts': 'accounting',
+  'accounting-journal-entries': 'accounting',
+  'accounting-settings': 'accounting',
+  'accounting-financial-summary': 'accounting',
+  'accounting-receivables-payables': 'accounting',
+  'accounting-cash-movement': 'accounting',
+  'accounting-inventory-value': 'accounting',
+  'delivery-reps': 'deliveryReps',
+};
+
 function normalizeAccessKey(value: string) {
   const trimmed = String(value || '').trim();
   if (!trimmed) return '/';
@@ -177,16 +212,37 @@ export function getRoutePermissionRequirement(target: string) {
   return routePermissionMap[rootSegment] ?? routePermissionMap[`/${rootSegment}`] ?? null;
 }
 
+export function getRouteFeatureRequirement(target: string) {
+  const normalized = normalizeAccessKey(target);
+  const directMatch = routeFeatureMap[normalized] ?? routeFeatureMap[`/${normalized}`];
+  if (directMatch) return directMatch;
+  const [rootSegment] = normalized.split('/').filter(Boolean);
+  if (!rootSegment) return null;
+  return routeFeatureMap[rootSegment] ?? routeFeatureMap[`/${rootSegment}`] ?? null;
+}
+
+export function hasRequiredFeature(target: string): boolean {
+  const requiredFeature = getRouteFeatureRequirement(target);
+  if (!requiredFeature) return true;
+  
+  const tenant = useAuthStore.getState().tenant;
+  if (!tenant) return true;
+  
+  return tenant.features?.includes(requiredFeature) ?? false;
+}
+
 export function canAccessPath(user: AuthUser | null | undefined, target: string) {
   const normalized = normalizeAccessKey(target);
   if (normalized === 'saas-admin' || normalized === 'saas-admin/tenants' || normalized.startsWith('saas-admin/')) {
     return isPlatformAdmin(user);
   }
+  if (!hasRequiredFeature(target)) return false;
   return hasAnyPermission(user, getRoutePermissionRequirement(target));
 }
 
 export function canAccessNavigationItem(user: AuthUser | null | undefined, item: NavigationItemDefinition) {
   if (item.platformOnly) return isPlatformAdmin(user);
+  if (!hasRequiredFeature(item.key || item.to)) return false;
   return hasAnyPermission(user, getRoutePermissionRequirement(item.key || item.to));
 }
 

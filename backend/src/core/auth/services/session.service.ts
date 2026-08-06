@@ -103,12 +103,12 @@ export class SessionService {
     const { tenantId, accountId } = this.scope(auth);
     const tenant = await this.db
       .selectFrom('tenants')
-      .select(['id', 'slug', 'business_name', 'status', 'trial_ends_at', 'created_at'])
+      .select(['id', 'slug', 'business_name', 'status', 'trial_ends_at', 'created_at', 'plan_id', 'extra_features'])
       .where('id', '=', tenantId)
       .executeTakeFirst();
 
     if (!tenant) {
-      return { id: tenantId, accountId, slug: tenantId, businessName: '', status: 'active', isTrial: false, trialEndsAt: null, trialDaysRemaining: null };
+      return { id: tenantId, accountId, slug: tenantId, businessName: '', status: 'active', isTrial: false, trialEndsAt: null, trialDaysRemaining: null, features: [] };
     }
 
     const trialEndsAt = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null;
@@ -116,6 +116,15 @@ export class SessionService {
     const trialDaysRemaining = tenant.status === 'trial' && trialEndsAt
       ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now) / (24 * 60 * 60 * 1000)))
       : null;
+
+    let planFeatures: string[] = [];
+    if (tenant.plan_id) {
+      const pFeatures = await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', tenant.plan_id).execute();
+      planFeatures = pFeatures.map(f => f.feature_code);
+    }
+    
+    const extraFeatures = Array.isArray(tenant.extra_features) ? tenant.extra_features : typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
+    const activeFeatures = Array.from(new Set([...planFeatures, ...extraFeatures]));
 
     return {
       id: tenant.id,
@@ -126,6 +135,7 @@ export class SessionService {
       isTrial: tenant.status === 'trial',
       trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
       trialDaysRemaining,
+      features: activeFeatures,
       createdAt: tenant.created_at || null,
     };
   }

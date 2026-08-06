@@ -24,6 +24,7 @@ export interface AuthTenant {
   trialEndsAt: string | null;
   trialDaysRemaining: number | null;
   createdAt?: string | null;
+  features?: string[];
 }
 
 export interface AuthMeResponse {
