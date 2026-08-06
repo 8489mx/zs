@@ -28,9 +28,9 @@ export function InventoryTransferActionDialog({
       description={description}
       confirmLabel={action?.action === 'receive' ? 'تأكيد الاستلام' : 'تأكيد الإلغاء'}
       confirmVariant={action?.action === 'receive' ? 'success' : 'danger'}
-      confirmationKeyword={action?.action === 'receive' ? 'استلام' : action?.action === 'cancel' ? 'إلغاء' : ''}
-      confirmationLabel={action?.action === 'receive' ? 'اكتب كلمة استلام للتأكيد' : 'اكتب كلمة إلغاء للتأكيد'}
-      confirmationHint={action?.action === 'receive' ? 'استخدم هذا التأكيد فقط بعد مراجعة الجهة المستلمة والبنود.' : 'الإلغاء نهائي لهذا التحويل من شاشة المخزون.'}
+      confirmationKeyword={action?.action === 'receive' ? 'استلام' : ''}
+      confirmationLabel={action?.action === 'receive' ? 'اكتب كلمة استلام للتأكيد' : ''}
+      confirmationHint={action?.action === 'receive' ? 'استخدم هذا التأكيد فقط بعد مراجعة الجهة المستلمة والبنود.' : ''}
       isBusy={isBusy}
       onCancel={onCancel}
       onConfirm={onConfirm}

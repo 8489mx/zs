@@ -209,9 +209,6 @@ export function SalesWorkspace() {
         title={t('sales.d35686')}
         description={cancelDescription}
         confirmLabel={t('sales.5b8465')}
-        confirmationKeyword={t('sales.b9568e')}
-        confirmationLabel={t('sales.99274d')}
-        confirmationHint={t('sales.30eb1d')}
         managerPinRequired
         managerPinHint={t('sales.3bec5f')}
         reasonRequired
