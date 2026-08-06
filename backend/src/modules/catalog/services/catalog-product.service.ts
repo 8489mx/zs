@@ -367,7 +367,7 @@ export class CatalogProductService {
     const requestedLimit = Number(query.limit || 30);
     const safeLimit = Number.isFinite(requestedLimit) ? Math.floor(requestedLimit) : 30;
     const view = String(query.view || '').trim() === 'offers' ? 'offers' : 'all';
-    const maxLimit = view === 'offers' ? 240 : 50;
+    const maxLimit = view === 'offers' ? 240 : 1000;
     return {
       q: String(query.q || '').trim(),
       barcode: String(query.barcode || '').trim(),

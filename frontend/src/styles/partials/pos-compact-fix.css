@@ -1803,6 +1803,12 @@
 
 .pos-products-scroll {
   position: relative;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.pos-products-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 .pos-inline-picker-overlay {

@@ -1,8 +1,9 @@
-/* eslint-disable max-lines */
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { formatCurrency } from '@/lib/format';
+import { sharedProductsApi } from '@/shared/api/products';
 import {
   buildPosProductGroups,
   buildRecentGroupKeys,
@@ -208,8 +209,16 @@ function PosProductsPanelComponent({
   const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
   const [touchVisibleCount, setTouchVisibleCount] = useState(touchModeVisibleStep);
   const groupRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  
+  const { data: categories = [] } = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-  const groupedProducts = useMemo(() => buildPosProductGroups(products, priceType), [priceType, products]);
+  const categoryFilteredProducts = useMemo(() => {
+    if (!selectedCategoryId) return products;
+    return products.filter((p) => String(p.categoryId) === String(selectedCategoryId));
+  }, [products, selectedCategoryId]);
+
+  const groupedProducts = useMemo(() => buildPosProductGroups(categoryFilteredProducts, priceType), [priceType, categoryFilteredProducts]);
   const recentGroupKeys = useMemo(() => buildRecentGroupKeys(recentProducts, groupedProducts), [groupedProducts, recentProducts]);
   const favoriteKeySet = useMemo(() => new Set(favoriteKeys), [favoriteKeys]);
   const scannerSearchQuery = search.trim();
@@ -349,6 +358,7 @@ function PosProductsPanelComponent({
       onSearchChange('');
       onProductFilterChange('all');
       setShelf('all');
+      setSelectedCategoryId(null);
       setSelectedIndex(0);
       return;
     }
@@ -411,7 +421,35 @@ function PosProductsPanelComponent({
           </div>
         </div>
 
-        <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '8px', marginTop: '12px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
+        {categories.length > 0 && (
+          <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '8px', marginTop: '12px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategoryId(null);
+                setSelectedIndex(0);
+              }}
+              style={{ padding: '6px 14px', fontSize: '14px', borderRadius: '8px', border: selectedCategoryId === null ? '1px solid #0f172a' : '1px solid #cbd5e1', background: selectedCategoryId === null ? '#0f172a' : '#ffffff', color: selectedCategoryId === null ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s', fontWeight: '500' }}
+            >
+              كل الأقسام
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  setSelectedCategoryId(cat.id);
+                  setSelectedIndex(0);
+                }}
+                style={{ padding: '6px 14px', fontSize: '14px', borderRadius: '8px', border: selectedCategoryId === String(cat.id) ? '1px solid #0f172a' : '1px solid #cbd5e1', background: selectedCategoryId === String(cat.id) ? '#0f172a' : '#ffffff', color: selectedCategoryId === String(cat.id) ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s', fontWeight: '500' }}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '8px', marginTop: '8px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
           <button
             type="button"
             onClick={() => {
