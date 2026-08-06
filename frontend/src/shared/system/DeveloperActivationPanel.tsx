@@ -35,7 +35,7 @@ export function DeveloperActivationPanel() {
   // Listen for Ctrl+Alt+Shift+L
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.altKey && e.shiftKey && (e.key === 'l' || e.key === 'L')) {
+      if (e.ctrlKey && e.altKey && e.shiftKey && (e.code === 'KeyL' || e.key.toLowerCase() === 'l')) {
         e.preventDefault();
         setOpen(true);
       }
