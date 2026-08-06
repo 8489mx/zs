@@ -5,5 +5,5 @@ export type UserBulkAction = 'unlock' | 'require-password-change' | 'deactivate'
 export type UserMutationAction =
   | { type: 'create'; payload: ManagedUserRecord }
   | { type: 'update'; id: string; payload: ManagedUserRecord }
-  | { type: 'delete'; id: string }
+  | { type: 'delete'; id: string; managerPin?: string }
   | { type: 'unlock'; id: string };

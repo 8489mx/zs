@@ -2,7 +2,7 @@ import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import type { UserBulkAction } from '@/features/settings/hooks/useUserManagementController';
 
-export function UserDeleteDialog({ open, draft, isBusy, onCancel, onConfirm }: { open: boolean; draft: ManagedUserRecord; isBusy: boolean; onCancel: () => void; onConfirm: () => void; }) {
+export function UserDeleteDialog({ open, draft, isBusy, onCancel, onConfirm }: { open: boolean; draft: ManagedUserRecord; isBusy: boolean; onCancel: () => void; onConfirm: (payload: { managerPin: string }) => void; }) {
   return (
     <ActionConfirmDialog
       open={open}
@@ -10,9 +10,8 @@ export function UserDeleteDialog({ open, draft, isBusy, onCancel, onConfirm }: {
       description={(<div className="page-stack" style={{ gap: 8 }}><span>سيتم حذف المستخدم المحدد وإنهاء جلساته النشطة فورًا.</span><strong>{draft.name || draft.username || 'المستخدم المحدد'}</strong></div>)}
       confirmLabel="حذف المستخدم"
       confirmVariant="danger"
-      confirmationKeyword={draft.username || 'حذف'}
-      confirmationLabel="اكتب اسم المستخدم لتأكيد الحذف"
-      confirmationHint="هذا الإجراء لا يمكن التراجع عنه من هذه الشاشة."
+      managerPinRequired
+      managerPinHint="هذه العملية تحتاج كلمة مرور حسابك الحالي."
       isBusy={isBusy}
       onCancel={onCancel}
       onConfirm={onConfirm}

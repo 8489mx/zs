@@ -193,8 +193,8 @@ export const settingsApi = {
   },
   backupSnapshots: async () => unwrapArray<BackupSnapshotRecord>(await http<BackupSnapshotRecord[] | { snapshots: BackupSnapshotRecord[] }>('/api/backup-snapshots'), 'snapshots'),
   createUser: (payload: ManagedUserRecord) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>('/api/users', { method: 'POST', body: JSON.stringify(sanitizeUserPayload(payload)) }),
+  deleteUser: (payload: { userId: string, managerPin?: string }) => http<{ ok: boolean; removedUserId: string; users: ManagedUserRecord[] }>(`/api/users/${payload.userId}`, { method: 'DELETE', body: JSON.stringify({ managerPin: payload.managerPin }) }),
   updateUser: (userId: string, payload: ManagedUserRecord) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify(sanitizeUserPayload(payload)) }),
-  deleteUser: (userId: string) => http<{ ok: boolean; removedUserId: string; users: ManagedUserRecord[] }>(`/api/users/${userId}`, { method: 'DELETE' }),
   unlockUser: (userId: string) => http<{ ok: boolean; user: ManagedUserRecord | null; users: ManagedUserRecord[] }>(`/api/users/${userId}/unlock`, { method: 'POST' }),
   bulkDisableUsers: (userIds: string[]) =>
     http<BulkDisableUsersResponse>('/api/users/bulk-disable', {

@@ -233,11 +233,11 @@ export function useUserManagementController({
     }
   }
 
-  async function deleteSelectedUser() {
+  async function deleteSelectedUser(payload: { managerPin: string }) {
     if (!draft.id) return;
     try {
       setStatusMessage('');
-      await actionMutation.mutateAsync({ type: 'delete', id: String(draft.id) });
+      await actionMutation.mutateAsync({ type: 'delete', id: String(draft.id), managerPin: payload.managerPin });
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'تعذر حذف المستخدم');
     }

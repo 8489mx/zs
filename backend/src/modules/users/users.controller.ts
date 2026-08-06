@@ -60,8 +60,12 @@ export class UsersController {
 
   @Delete(':id')
   @RequirePermissions('canManageUsers')
-  remove(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.usersService.deleteUser(id, req.authContext!);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { managerPin?: string },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.usersService.deleteUser(id, body?.managerPin, req.authContext!);
   }
 
   @Post(':id/unlock')

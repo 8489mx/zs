@@ -44,7 +44,7 @@ export function useUserManagementMutation({
       switch (action.type) {
         case 'create': return settingsApi.createUser(action.payload);
         case 'update': return settingsApi.updateUser(action.id, action.payload);
-        case 'delete': return settingsApi.deleteUser(action.id);
+        case 'delete': return settingsApi.deleteUser({ userId: action.id, managerPin: action.managerPin });
         case 'unlock': return settingsApi.unlockUser(action.id);
       }
     },

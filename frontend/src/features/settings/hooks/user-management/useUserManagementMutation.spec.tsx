@@ -142,7 +142,7 @@ describe('useUserManagementMutation', () => {
       });
     });
 
-    expect(loadUser).toHaveBeenCalled();
+    expect(deleteUserMock).toHaveBeenCalledWith({ userId: 'u1', managerPin: undefined });
     expect(onSetupAdvance).toHaveBeenCalledTimes(1);
   });
 });

@@ -163,7 +163,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         draft={draft}
         isBusy={actionMutation.isPending}
         onCancel={() => setDeleteDialogOpen(false)}
-        onConfirm={() => void deleteSelectedUser()}
+        onConfirm={(payload) => void deleteSelectedUser(payload)}
       />
 
       <DialogShell open={Boolean(detailsUserId)} onClose={() => setDetailsUserId('')} width="min(980px, 100%)" ariaLabel="تفاصيل المستخدم">

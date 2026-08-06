@@ -24,7 +24,18 @@ export class UsersService {
   private scope(actor: AuthContext) { return requireTenantScope(actor); }
   private tenantPredicate(actor: AuthContext, alias?: string) {
     const { tenantId } = this.scope(actor);
-    return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`;
+    return sql<boolean>`${sql.ref(alias ? `${alias}.tenant_id` : 'tenant_id')} = ${tenantId}`;
+  }
+
+  private async assertCurrentUserPassword(password: string, auth: AuthContext): Promise<void> {
+    const providedPassword = String(password || '').trim();
+    if (!providedPassword) throw new AppError('يرجى إدخال كلمة المرور الحالية لتأكيد الإجراء', 'CURRENT_USER_PASSWORD_REQUIRED', 400);
+    const scope = this.scope(auth);
+    const result = await sql<{ id: number, is_active: boolean | number | string, password_hash: string, password_salt: string }>`select id, is_active, password_hash, password_salt from users where id = ${auth.userId} and tenant_id = ${scope.tenantId} limit 1`.execute(this.db);
+    const user = result.rows?.[0] || null;
+    if (!user || user.is_active === false || user.is_active === 0 || user.is_active === 'false') throw new AppError('المستخدم الحالي غير موجود', 'CURRENT_USER_NOT_FOUND', 400);
+    const passwordCheck = await verifyPassword(providedPassword, String(user.password_hash || ''), String(user.password_salt || ''));
+    if (!passwordCheck.valid) throw new AppError('كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى', 'CURRENT_USER_PASSWORD_INVALID', 400);
   }
 
   private async ensureUniqueUsername(username: string, actor: AuthContext, excludeId?: number): Promise<void> {
@@ -286,7 +297,9 @@ export class UsersService {
     };
   }
 
-  async deleteUser(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+  async deleteUser(id: number, managerPin: string | undefined, actor: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertCurrentUserPassword(managerPin || '', actor);
+
     const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) {
       throw new AppError('User not found', 'USER_NOT_FOUND', 404);
