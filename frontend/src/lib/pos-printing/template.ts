@@ -241,13 +241,15 @@ export function getInvoiceStyles(compact = false) {
     }
     .invoice-card.compact { padding: 5px; }
     .invoice-store-card { padding: ${compact ? '6px 5px' : '8px 7px'}; }
-    .invoice-brand-row { display: flex; align-items: center; justify-content: space-between; gap: ${compact ? '7px' : '10px'}; }
+    .invoice-brand-row { display: flex; align-items: stretch; justify-content: space-between; gap: ${compact ? '7px' : '10px'}; }
     .invoice-logo,
     .invoice-logo-fallback {
       width: ${compact ? '75px' : '110px'};
-      height: ${compact ? '50px' : '75px'};
+      height: auto;
+      max-height: 100%;
       border-radius: 0;
       object-fit: contain;
+      object-position: right center;
       flex-shrink: 0;
       background: #fff;
       display: grid;
@@ -256,7 +258,7 @@ export function getInvoiceStyles(compact = false) {
       color: #111;
       overflow: hidden;
     }
-    .invoice-brand-copy { min-width: 0; flex: 1; text-align: center; }
+    .invoice-brand-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
     .invoice-brand-copy h2 { margin: 0; line-height: 1.15; color: #000; font-weight: 900; overflow-wrap: anywhere; }
     .store-inline-details { margin-top: ${compact ? '3px' : '5px'}; color: #111; font-size: ${compact ? '8.8px' : '10.2px'}; line-height: 1.35; display: grid; gap: 1px; justify-items: center; text-align: center; }
     .invoice-meta-panel { display: grid; gap: 0; }
