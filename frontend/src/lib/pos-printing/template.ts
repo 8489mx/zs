@@ -73,7 +73,9 @@ function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = fal
   return `
     <section class="invoice-card invoice-store-card${compact ? ' compact' : ''}">
       <div class="invoice-brand-row">
-        ${logoData ? `<img class="invoice-logo" src="${escapeHtml(logoData)}" alt="شعار المتجر" />` : `<div class="invoice-logo-fallback">${escapeHtml(brandName.slice(0, 1).toUpperCase())}</div>`}
+        <div class="invoice-logo-wrapper">
+          ${logoData ? `<img class="invoice-logo" src="${escapeHtml(logoData)}" alt="شعار المتجر" />` : `<div class="invoice-logo-fallback">${escapeHtml(brandName.slice(0, 1).toUpperCase())}</div>`}
+        </div>
         <div class="invoice-brand-copy">
           <h2 title="${escapeHtml(brandName)}" style="font-size:${getAdaptiveBrandFontSize(brandName, compact)}">${escapeHtml(brandName)}</h2>
           ${details ? `<div class="store-inline-details">${details}</div>` : ''}
@@ -242,16 +244,21 @@ export function getInvoiceStyles(compact = false) {
     .invoice-card.compact { padding: 5px; }
     .invoice-store-card { padding: ${compact ? '6px 5px' : '8px 7px'}; }
     .invoice-brand-row { display: flex; align-items: stretch; justify-content: space-between; gap: ${compact ? '7px' : '10px'}; }
+    .invoice-logo-wrapper {
+      position: relative;
+      width: ${compact ? '75px' : '110px'};
+      flex-shrink: 0;
+    }
     .invoice-logo,
     .invoice-logo-fallback {
-      width: ${compact ? '75px' : '110px'};
-      height: auto;
-      max-height: 100%;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       border-radius: 0;
       object-fit: contain;
       object-position: right center;
-      flex-shrink: 0;
-      background: #fff;
+      background: transparent;
       display: grid;
       place-items: center;
       font-weight: 800;
