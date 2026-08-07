@@ -246,7 +246,7 @@ export function canAccessPath(user: AuthUser | null | undefined, target: string)
 
 export function canAccessNavigationItem(user: AuthUser | null | undefined, item: NavigationItemDefinition) {
   if (item.platformOnly) return isPlatformAdmin(user);
-  if (!hasRequiredFeature(item.key || item.to)) return false;
+  if (!hasRequiredFeature(item.to)) return false;
   return hasAnyPermission(user, getRoutePermissionRequirement(item.key || item.to));
 }
 
