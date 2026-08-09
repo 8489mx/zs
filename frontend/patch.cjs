@@ -8,7 +8,7 @@ code = code.replace(/type ModalType = 'transfer' \| 'assign' \| 'categoryTransfe
 code = code.replace(/const openCategoryTransfer = [^\n]+;/, "$&\n  const openConsolidate = (products: ProductRow[]) => { setModalProducts(products); setActiveModal('consolidate'); };");
 
 // 3. Add onConsolidate to BulkActionBar props
-code = code.replace(/onAssign: \(\) => void;\n  onTransfer: \(\) => void;/, "onAssign: () => void;\n  onTransfer: () => void;\n  onConsolidate: () => void;");
+code = code.replace(/onAssign: \(\) => void;\n {2}onTransfer: \(\) => void;/, "onAssign: () => void;\n  onTransfer: () => void;\n  onConsolidate: () => void;");
 
 // 4. Add onConsolidate button to BulkActionBar
 code = code.replace(/<button onClick=\{onTransfer\}[^>]+>\s*نقل سريع\s*<\/button>/, `$&
@@ -17,7 +17,7 @@ code = code.replace(/<button onClick=\{onTransfer\}[^>]+>\s*نقل سريع\s*<\
       </button>`);
 
 // 5. Add onConsolidate to ProductTreeRow props
-code = code.replace(/onTransfer: \(p: ProductRow\) => void;\n  onAssign: \(p: ProductRow\) => void;/, "onTransfer: (p: ProductRow) => void;\n  onAssign: (p: ProductRow) => void;\n  onConsolidate: (p: ProductRow) => void;");
+code = code.replace(/onTransfer: \(p: ProductRow\) => void;\n {2}onAssign: \(p: ProductRow\) => void;/, "onTransfer: (p: ProductRow) => void;\n  onAssign: (p: ProductRow) => void;\n  onConsolidate: (p: ProductRow) => void;");
 
 // 6. Add onConsolidate button to ProductTreeRow
 code = code.replace(/<button onClick=\{\(\) => onTransfer\(product\)\}[^>]+>\s*نقل ↔\s*<\/button>/, `$&
@@ -26,7 +26,7 @@ code = code.replace(/<button onClick=\{\(\) => onTransfer\(product\)\}[^>]+>\s*�
             </button>`);
 
 // 7. Add onConsolidate to CategorySection props
-code = code.replace(/onTransfer: \(p: ProductRow\) => void;\n  onAssign: \(p: ProductRow\) => void;/, "onTransfer: (p: ProductRow) => void;\n  onAssign: (p: ProductRow) => void;\n  onConsolidate: (p: ProductRow) => void;");
+code = code.replace(/onTransfer: \(p: ProductRow\) => void;\n {2}onAssign: \(p: ProductRow\) => void;/, "onTransfer: (p: ProductRow) => void;\n  onAssign: (p: ProductRow) => void;\n  onConsolidate: (p: ProductRow) => void;");
 
 // 8. Pass onConsolidate from CategorySection to ProductTreeRow
 code = code.replace(/onTransfer=\{onTransfer\}\n\s*onAssign=\{onAssign\}/g, "onTransfer={onTransfer}\n                onAssign={onAssign}\n                onConsolidate={onConsolidate}");

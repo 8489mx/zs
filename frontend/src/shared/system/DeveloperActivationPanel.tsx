@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation,  } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { FormSection } from '@/shared/components/form-section';
@@ -24,7 +24,7 @@ const AVAILABLE_FEATURES = [
 ];
 
 export function DeveloperActivationPanel() {
-  const queryClient = useQueryClient();
+  
   const tenant = useAuthStore(s => s.tenant);
   const [open, setOpen] = useState(false);
   

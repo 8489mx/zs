@@ -364,7 +364,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
   const submit = form.handleSubmit(async (values) => {
     let branchIdToUse = String(values.currentBranchId || '').trim();
-    let locationIdToUse = String(values.currentLocationId || '').trim();
+    const locationIdToUse = String(values.currentLocationId || '').trim();
 
     if (!branchIdToUse && branchQuery.trim()) {
       const existingBranch = branches.find((b) => normalizeText(String(b.name || '')) === normalizeText(branchQuery));

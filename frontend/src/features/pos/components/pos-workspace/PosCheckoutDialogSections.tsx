@@ -76,7 +76,7 @@ export function PosCheckoutCustomerSection({
           {!!pos.customerId && <strong>عميل مسجل</strong>}
         </div>
         <div className="pos-checkout-customer-actions" style={{ margin: 0 }}>
-          {!!pos.customerId ? (
+          {pos.customerId ? (
             <Button type="button" variant="secondary" onClick={() => handleSelectCustomer('', '', '')}>تغيير العميل</Button>
           ) : (
             !isAddingCustomer && (
