@@ -151,6 +151,9 @@ export const routeFeatureMap: Record<string, string> = {
   'accounting-cash-movement': 'accounting',
   'accounting-inventory-value': 'accounting',
   'delivery-reps': 'deliveryReps',
+  'accounts': 'cashDrawer',
+  'inventory-issue-order-new': 'inventory',
+  'tax-dispatcher': 'taxIntegration',
 };
 
 function normalizeAccessKey(value: string) {
