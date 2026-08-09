@@ -1261,6 +1261,7 @@ export class SalesWriteService {
                locationId: alloc.location_id,
                tenantId: scope.tenantId,
                accountId: scope.accountId,
+               allowNegative: true,
              });
 
              await trx

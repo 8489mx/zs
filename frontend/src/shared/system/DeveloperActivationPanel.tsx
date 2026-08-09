@@ -67,15 +67,15 @@ export function DeveloperActivationPanel() {
   const updateMutation = useMutation({
     mutationFn: () => http<{ ok: boolean }>('/api/developer/update-plan', { 
       method: 'POST', 
+      skipUnauthorizedInterceptor: true,
       body: JSON.stringify({ tenantId: tenant?.id, masterPassword, planId, extraFeatures }) 
     }),
     onSuccess: async () => {
       setSuccessMsg('تم تفعيل الباقة والميزات بنجاح!');
       setError('');
       setMasterPassword('');
-      await queryClient.invalidateQueries({ queryKey: ['current-tenant'] });
-      // Close after 2 seconds
-      setTimeout(() => setOpen(false), 2000);
+      // Force reload to fetch fresh tenant data from the backend
+      setTimeout(() => window.location.reload(), 1500);
     },
     onError: (err) => {
       setError(getFriendlyApiErrorMessage(err, 'كلمة المرور غير صحيحة أو حدث خطأ'));
