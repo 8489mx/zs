@@ -202,6 +202,7 @@ app.whenReady().then(async () => {
     ELECTRON_EXE_PATH: process.execPath,
     SKIP_MIGRATIONS: skipMigrations ? 'true' : 'false',
     ELECTRON_RUNTIME_MODE: currentConfig.runtimeMode,
+    DEVELOPER_MASTER_PASSWORD: 'infoadmin',
   };
 
   let backendProcess = null;
