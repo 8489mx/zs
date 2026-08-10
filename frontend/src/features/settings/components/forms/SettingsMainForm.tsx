@@ -774,7 +774,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <div className="field">
               <label>لون الواجهة</label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input className="purchase-prototype-field-input" style={{ height: 42, padding: 4, flexShrink: 0, width: '60px' }} type="color" {...form.register('accentColor')} disabled={disabled} />
+                <input className="purchase-prototype-field-input" style={{ height: 42, padding: 4, flexShrink: 0, width: '60px' }} type="color" value={form.watch('accentColor') || '#170c5c'} onChange={(e) => form.setValue('accentColor', e.target.value, { shouldDirty: true })} disabled={disabled} />
                 <input className="purchase-prototype-field-input" style={{ height: 42, fontFamily: 'monospace', direction: 'ltr' }} type="text" placeholder="#170c5c" {...form.register('accentColor')} disabled={disabled} />
                 <button type="button" className="btn-secondary" style={{ height: 42, whiteSpace: 'nowrap' }} onClick={() => form.setValue('accentColor', '#170c5c', { shouldDirty: true })} disabled={disabled}>اللون الافتراضي</button>
               </div>
