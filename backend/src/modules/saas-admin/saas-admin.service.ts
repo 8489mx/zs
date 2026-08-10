@@ -6,7 +6,7 @@ import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AuditService } from '../../core/audit/audit.service';
-import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, RecordPaymentDto } from './dto/saas-admin.dto';
+import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, RecordPaymentDto, UpdateSaasPlanDto } from './dto/saas-admin.dto';
 import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 
