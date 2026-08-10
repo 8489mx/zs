@@ -167,7 +167,7 @@ export function buildFirstRunSetupFlowState({
         title: 'مستخدم الإدارة اليومي',
         section: 'users',
         to: '/settings/users?setup=1',
-        done: activeUsersCount > 1,
+        done: activeUsersCount > 0,
         ctaLabel: 'فتح إدارة المستخدمين',
         nextLabel: 'الانتقال إلى تأمين حساب التثبيت',
       },
