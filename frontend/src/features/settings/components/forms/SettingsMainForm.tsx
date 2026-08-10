@@ -71,14 +71,14 @@ const premiumCheckboxInputStyle: CSSProperties = {
   flexShrink: 0,
   margin: 0,
   cursor: 'pointer',
-  accentColor: 'var(--primary, #2563eb)',
+  accentColor: 'var(--primary, #170c5c)',
 };
 
 
 const requiredStarStyle: CSSProperties = { color: '#dc2626', fontWeight: 700, marginInlineStart: 2 };
 const comboListStyle: CSSProperties = { border: '1px solid var(--border, #dbe2ea)', borderRadius: 8, background: 'var(--surface, #fff)', marginTop: 6, maxHeight: 180, overflowY: 'auto', padding: 4 };
 const comboRowStyle: CSSProperties = { width: '100%', textAlign: 'right', background: 'transparent', border: 'none', padding: '8px 10px', borderRadius: 8, cursor: 'pointer' };
-const comboCreateStyle: CSSProperties = { ...comboRowStyle, fontWeight: 700, color: 'var(--primary, #2563eb)' };
+const comboCreateStyle: CSSProperties = { ...comboRowStyle, fontWeight: 700, color: 'var(--primary, #170c5c)' };
 
 function normalizeText(value: string) {
   return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -123,7 +123,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       paperSize: 'receipt',
       managerPin: '',
       autoBackup: 'on',
-      accentColor: '#2563eb',
+      accentColor: '#170c5c',
       logoData: '',
       currentBranchId: '',
       currentLocationId: '',
@@ -286,7 +286,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       paperSize: settings.paperSize === 'receipt' ? 'receipt' : 'a4',
       managerPin: '',
       autoBackup: settings.autoBackup === 'off' ? 'off' : 'on',
-      accentColor: settings.accentColor || '#2563eb',
+      accentColor: settings.accentColor || '#170c5c',
       logoData: settings.logoData || '',
       currentBranchId: settings.currentBranchId || '',
       currentLocationId: settings.currentLocationId || '',
@@ -487,9 +487,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
               style={{
-                background: activeTab === tab.id ? 'var(--primary, #2563eb)' : 'transparent',
+                background: activeTab === tab.id ? 'var(--primary, #170c5c)' : 'transparent',
                 color: activeTab === tab.id ? '#fff' : 'var(--text, #1e293b)',
-                border: activeTab === tab.id ? '1px solid var(--primary, #2563eb)' : '1px solid transparent',
+                border: activeTab === tab.id ? '1px solid var(--primary, #170c5c)' : '1px solid transparent',
                 padding: '8px 16px',
                 borderRadius: '8px',
                 fontWeight: activeTab === tab.id ? 700 : 500,

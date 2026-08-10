@@ -16,7 +16,7 @@ const checkboxStyle: React.CSSProperties = {
   width: 18,
   height: 18,
   margin: 0,
-  accentColor: '#2563eb',
+  accentColor: '#170c5c',
 };
 
 export function UserManagementBranchAccess({

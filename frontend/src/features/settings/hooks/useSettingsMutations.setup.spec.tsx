@@ -42,7 +42,7 @@ const baseSettingsMutationValues = {
   paperSize: 'a4' as const,
   managerPin: '',
   autoBackup: 'on' as const,
-  accentColor: '#2563eb',
+  accentColor: '#170c5c',
   logoData: '',
   currentBranchId: '',
   currentLocationId: '',

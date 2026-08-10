@@ -46,7 +46,7 @@ const dashboardOverview = {
 const settings = {
   storeName: 'متجر تجريبي', brandName: 'متجر تجريبي', phone: '01000000000', address: 'القاهرة', lowStockThreshold: 5,
   invoiceFooter: 'شكرًا لتعاملكم معنا', invoiceQR: '', taxNumber: '12345', taxRate: 14, taxMode: 'exclusive',
-  paperSize: 'receipt', managerPin: '1234', hasManagerPin: true, autoBackup: 'off', accentColor: '#2563eb',
+  paperSize: 'receipt', managerPin: '1234', hasManagerPin: true, autoBackup: 'off', accentColor: '#170c5c',
   logoData: '', currentBranchId: 'branch-1', currentLocationId: 'loc-1', theme: 'light'
 };
 const branches = [{ id: 'branch-1', name: 'الفرع الرئيسي', code: 'MAIN', address: 'القاهرة', phone: '01000000000', isActive: true }];

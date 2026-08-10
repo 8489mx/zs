@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const accentColorSchema = z
   .string()
-  .regex(/^#[0-9a-fA-F]{6}$/, 'اكتب لونًا صحيحًا مثل #2563eb');
+  .regex(/^#[0-9a-fA-F]{6}$/, 'اكتب لونًا صحيحًا مثل #170c5c');
 
 export const settingsFormSchema = z.object({
   storeName: z.string().min(2, 'اسم النشاط / المتجر مطلوب'),

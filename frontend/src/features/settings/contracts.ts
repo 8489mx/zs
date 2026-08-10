@@ -31,7 +31,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     paperSize: values.paperSize === 'receipt' ? 'receipt' : 'a4',
     ...(managerPin ? { managerPin } : {}),
     autoBackup: values.autoBackup === 'off' ? 'off' : 'on',
-    accentColor: cleanText(values.accentColor, '#2563eb'),
+    accentColor: cleanText(values.accentColor, '#170c5c'),
     logoData: cleanText(values.logoData),
     currentBranchId: cleanText(values.currentBranchId),
     currentLocationId: cleanText(values.currentLocationId),

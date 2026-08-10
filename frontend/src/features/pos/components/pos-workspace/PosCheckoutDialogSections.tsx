@@ -454,7 +454,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                     padding: '8px 12px', cursor: 'pointer', 
                     borderBottom: '1px solid #f1f5f9',
                     background: String(rep.id) === String(pos.deliveryRepId) ? '#eff6ff' : 'white',
-                    color: String(rep.id) === String(pos.deliveryRepId) ? '#2563eb' : '#334155'
+                    color: String(rep.id) === String(pos.deliveryRepId) ? '#170c5c' : '#334155'
                   }}
                   onMouseDown={(e) => { e.preventDefault(); pos.setDeliveryRepId(String(rep.id)); setRepSearchOpen(false); }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}

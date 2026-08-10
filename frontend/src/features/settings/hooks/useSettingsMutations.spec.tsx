@@ -67,7 +67,7 @@ describe('useSettingsUpdateMutation', () => {
         paperSize: 'a4',
         managerPin: '',
         autoBackup: 'on',
-        accentColor: '#2563eb',
+        accentColor: '#170c5c',
         logoData: '',
         currentBranchId: '',
         currentLocationId: '',

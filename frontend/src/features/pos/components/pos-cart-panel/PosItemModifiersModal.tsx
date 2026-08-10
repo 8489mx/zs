@@ -187,7 +187,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                         position: 'absolute', 
                         top: '-10px', 
                         right: '-10px', 
-                        background: '#2563eb', 
+                        background: '#170c5c', 
                         color: 'white', 
                         width: '28px', 
                         height: '28px', 

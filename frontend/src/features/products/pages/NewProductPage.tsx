@@ -242,7 +242,7 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
           {showCreateOption && (
             <button
               type="button"
-              style={{ width: '100%', textAlign: 'right', background: highlightedIndex === filteredOptions.length + 1 ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: 'var(--primary, #2563eb)', fontWeight: 700 }}
+              style={{ width: '100%', textAlign: 'right', background: highlightedIndex === filteredOptions.length + 1 ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: 'var(--primary, #170c5c)', fontWeight: 700 }}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => { onCreateNew?.(query.trim()); setIsOpen(false); }}
               onMouseEnter={() => setHighlightedIndex(filteredOptions.length + 1)}

@@ -58,7 +58,7 @@ function buildPrintHtml({ title, bodyHtml, subtitle, footerHtml, extraStyles, pa
           --print-muted: #000;
           --print-border: #000;
           --print-surface: #fff;
-          --print-accent: #2563eb;
+          --print-accent: #170c5c;
         }
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; background: #fff; color: var(--print-text); }

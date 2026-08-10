@@ -18,13 +18,13 @@ export function BrandPreview({ form }: { form: ReturnType<typeof useForm<Setting
   const logoData = form.watch('logoData');
   return (
     <div className="brand-preview-card">
-      <div className="brand-preview-mark" style={{ borderColor: accentColor || '#2563eb' }}>
-        {logoData ? <img src={logoData} alt="logo preview" className="brand-preview-image" /> : <span style={{ color: accentColor || '#2563eb' }}>{(brandName || storeName || 'Z').slice(0, 1).toUpperCase()}</span>}
+      <div className="brand-preview-mark" style={{ borderColor: accentColor || '#170c5c' }}>
+        {logoData ? <img src={logoData} alt="logo preview" className="brand-preview-image" /> : <span style={{ color: accentColor || '#170c5c' }}>{(brandName || storeName || 'Z').slice(0, 1).toUpperCase()}</span>}
       </div>
       <div>
         <strong>{brandName || 'Z Systems'}</strong>
         <div className="muted small">{storeName || 'اسم النشاط / المتجر سيظهر هنا'}</div>
-        <div className="brand-color-chip"><span className="brand-color-swatch" style={{ background: accentColor || '#2563eb' }} /> {accentColor || '#2563eb'}</div>
+        <div className="brand-color-chip"><span className="brand-color-swatch" style={{ background: accentColor || '#170c5c' }} /> {accentColor || '#170c5c'}</div>
       </div>
     </div>
   );

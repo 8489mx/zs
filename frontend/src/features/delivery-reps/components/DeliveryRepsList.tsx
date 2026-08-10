@@ -123,7 +123,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
               borderBottom: '1px solid var(--border)',
               background: selectedRepId === rep.id ? 'var(--primary-light, #eff6ff)' : 'transparent',
               fontWeight: selectedRepId === rep.id ? 'bold' : 'normal',
-              color: selectedRepId === rep.id ? 'var(--primary, #2563eb)' : 'inherit',
+              color: selectedRepId === rep.id ? 'var(--primary, #170c5c)' : 'inherit',
               transition: 'background 0.2s',
               display: 'flex',
               flexDirection: 'column',

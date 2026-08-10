@@ -124,7 +124,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                 {onItemModifiersClick && allowItemModifiers && (
                   <button
                     type="button"
-                    style={{ fontSize: '0.75rem', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '2px 6px', marginTop: '4px', cursor: 'pointer', opacity: isSelected ? 1 : 0.6 }}
+                    style={{ fontSize: '0.75rem', color: '#170c5c', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '2px 6px', marginTop: '4px', cursor: 'pointer', opacity: isSelected ? 1 : 0.6 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onItemModifiersClick(item.lineKey);
