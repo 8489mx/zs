@@ -312,6 +312,7 @@ export function getInvoiceStyles(compact = false) {
     .receipt-theme-ultra-compact .invoice-card { padding: 0; background: transparent; }
     .receipt-theme-ultra-compact .print-content { gap: 0; }
     .receipt-theme-ultra-compact .invoice-brand-row { display: block; text-align: center; gap: 0; }
+    .receipt-theme-ultra-compact .invoice-meta-panel { display: block; text-align: center; margin-bottom: 2px; }
     .receipt-theme-ultra-compact .invoice-logo-wrapper { width: 50px; margin: 0 auto 4px auto; }
     .receipt-theme-ultra-compact .invoice-brand-copy h2 { font-size: 14px; }
     .receipt-theme-ultra-compact .store-inline-details { display: inline; font-size: 9px; }
