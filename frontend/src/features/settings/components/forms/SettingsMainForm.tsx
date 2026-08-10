@@ -923,9 +923,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               </select>
             </div>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printCompactReceipt')} disabled={disabled} /> خطوط إيصال مضغوطة</label>
-            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentType')} disabled={disabled} /> إظهار نوع المستند (فاتورة)</label>
-            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentNumber')} disabled={disabled} /> إظهار رقم المستند (S-367)</label>
-            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowOrderType')} disabled={disabled} /> إظهار نوع الطلب (تيك أواي)</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentType')} disabled={disabled} /> إظهار نوع المستند</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentNumber')} disabled={disabled} /> إظهار رقم المستند</label>
+            <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowOrderType')} disabled={disabled} /> إظهار نوع الطلب</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLogo')} disabled={disabled} /> إظهار الشعار</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPhone')} disabled={disabled} /> إظهار الهاتف</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowAddress')} disabled={disabled} /> إظهار العنوان</label>
