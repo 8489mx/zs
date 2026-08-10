@@ -32,6 +32,7 @@ export interface AppSettings {
   printShowPaymentBreakdown?: boolean;
   printShowFooter?: boolean;
   printCompactReceipt?: boolean;
+  posReceiptTheme?: 'boxed' | 'classic' | 'ultra-compact' | string;
   printNumberFormat?: 'arabic' | 'english' | string;
   manufacturingModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;

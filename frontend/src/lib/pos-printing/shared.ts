@@ -26,6 +26,10 @@ export function isCompactReceipt(pageSize?: PosPrintPageSize, settings?: Partial
   return pageSize === 'receipt' && getPrintOption(settings, 'printCompactReceipt', true);
 }
 
+export function getReceiptTheme(pageSize?: PosPrintPageSize, settings?: Partial<AppSettings> | null) {
+  return pageSize === 'receipt' ? (settings?.posReceiptTheme || 'classic') : 'classic';
+}
+
 export function formatDateTime(value?: string, settings?: Partial<AppSettings> | null) {
   const locale = getReceiptNumberLocale(settings);
   if (!value) return new Date().toLocaleString(locale);

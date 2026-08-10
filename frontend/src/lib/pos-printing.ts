@@ -7,6 +7,7 @@ import {
   formatDateTime,
   getPrintOption,
   paymentLabel,
+  getReceiptTheme,
   type PosPrintPageSize,
 } from '@/lib/pos-printing/shared';
 
@@ -23,11 +24,12 @@ function openReceiptDocument(
   options: PrintReceiptOptions,
   subtitle = '',
 ) {
+  const theme = getReceiptTheme(options.pageSize, options.settings);
   printHtmlDocument(title, documentHtml, {
     subtitle,
     footerHtml: getPrintOption(options.settings, 'printShowFooter', true) ? escapeHtml(defaultInvoiceFooter(options.settings)) : '',
     pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4',
-    extraStyles: getInvoiceStyles(compact),
+    extraStyles: getInvoiceStyles(compact, theme),
     deviceName: options.settings?.posElectronCashierPrinter || undefined,
   });
 }

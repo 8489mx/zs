@@ -1,6 +1,6 @@
 import { escapeHtml } from '@/lib/browser';
 import type { AppSettings, Sale } from '@/types/domain';
-import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, type PosPrintPageSize } from '@/lib/pos-printing/shared';
+import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, type PosPrintPageSize } from '@/lib/pos-printing/shared';
 
 function resolveStoreIdentity(settings?: Partial<AppSettings> | null) {
   const brandName = String(settings?.storeName || 'متجر').trim() || 'متجر';
@@ -225,7 +225,7 @@ function renderTotals(options: {
   `;
 }
 
-export function getInvoiceStyles(compact = false) {
+export function getInvoiceStyles(compact = false, theme = 'classic') {
   return `
     .print-shell { padding: ${compact ? '1mm 1.2mm 2.5mm' : '2mm 1.8mm 3mm'}; }
     .print-header { display: none !important; }
@@ -234,8 +234,6 @@ export function getInvoiceStyles(compact = false) {
     .print-meta-chip { padding: ${compact ? '4px 8px' : '6px 10px'}; font-size: ${compact ? '9.5px' : '11px'}; }
     .print-content { gap: ${compact ? '4px' : '7px'}; }
     .invoice-card {
-      border: 1px solid #000;
-      border-radius: ${compact ? '6px' : '8px'};
       background: #fff;
       padding: ${compact ? '5px 5px' : '7px 7px'};
       break-inside: avoid;
@@ -277,7 +275,7 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-card { padding: 0; }
     .invoice-items-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: auto; }
     .invoice-items-table th,
-    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '9.6px' : '11.5px'}; border-inline-start: 1px solid #000; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; }
+    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '9.6px' : '11.5px'}; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; }
     .invoice-items-table th:last-child,
     .invoice-items-table td:last-child { border-inline-start: 0; }
     .invoice-items-table tbody tr:last-child td { border-bottom: 0; }
@@ -289,16 +287,47 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-table.compact th { font-size: 8.7px; }
     .invoice-items-table.compact th:first-child,
     .invoice-items-table.compact td:first-child { text-align: right; }
-    .invoice-totals-card { padding-top: ${compact ? '4px' : '6px'}; padding-bottom: ${compact ? '4px' : '6px'}; }
+    .invoice-totals-card { padding-top: ${compact ? '4px' : '6px'}; padding-bottom: ${compact ? '4px' : '6px'}; border-top: 1px dashed #000; }
     .invoice-totals-card .meta-value { text-align: left; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 600; }
-    .invoice-totals-card .total-line { margin: ${compact ? '2px -2px' : '3px -3px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px dashed #000; border-radius: 8px; background: transparent; }
+    .invoice-totals-card .total-line { margin: ${compact ? '2px -2px' : '3px -3px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; font-size: ${compact ? '14px' : '17px'}; background: transparent; }
     .invoice-totals-card .meta-line.strong .meta-value { font-weight: 900; }
-    .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 900; text-align: center; padding-bottom: 4px; margin-bottom: 2px; border-bottom: 1px solid #000; }
+    .invoice-payment-card { border-top: 1px dashed #000; }
+    .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 900; text-align: center; padding-bottom: 4px; margin-bottom: 2px; }
     .payment-grid { display: grid; gap: 0; }
     .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 800; }
-    .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px dashed #000; border-radius: 8px; text-align: center; line-height: 1.35; }
+    .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border-top: 1px dashed #000; text-align: center; line-height: 1.35; }
+    
+    /* Theme: Boxed */
+    .receipt-theme-boxed .invoice-card { border: 1px solid #000; border-radius: ${compact ? '6px' : '8px'}; margin-bottom: 4px; }
+    .receipt-theme-boxed .invoice-totals-card, .receipt-theme-boxed .invoice-payment-card { border-top: 0; }
+    .receipt-theme-boxed .invoice-totals-card .total-line { border: 1px dashed #000; border-radius: 8px; font-size: inherit; }
+    .receipt-theme-boxed .invoice-items-table th, .receipt-theme-boxed .invoice-items-table td { border-inline-start: 1px solid #000; }
+    .receipt-theme-boxed .invoice-items-table th:last-child, .receipt-theme-boxed .invoice-items-table td:last-child { border-inline-start: 0; }
+    .receipt-theme-boxed .invoice-payment-card .section-title { border-bottom: 1px solid #000; }
+    .receipt-theme-boxed .print-footer { border: 1px dashed #000; border-radius: 8px; }
+    
+    /* Theme: Ultra Compact */
+    .receipt-theme-ultra-compact .invoice-card { padding: 0; background: transparent; }
+    .receipt-theme-ultra-compact .print-content { gap: 0; }
+    .receipt-theme-ultra-compact .invoice-brand-row { display: block; text-align: center; gap: 0; }
+    .receipt-theme-ultra-compact .invoice-logo-wrapper { width: 50px; margin: 0 auto 4px auto; }
+    .receipt-theme-ultra-compact .invoice-brand-copy h2 { font-size: 14px; }
+    .receipt-theme-ultra-compact .store-inline-details { display: inline; font-size: 9px; }
+    .receipt-theme-ultra-compact .store-inline-details span { display: inline; }
+    .receipt-theme-ultra-compact .store-inline-details span::after { content: " - "; }
+    .receipt-theme-ultra-compact .store-inline-details span:last-child::after { content: ""; }
+    .receipt-theme-ultra-compact .meta-line { padding: 1px 0; border-bottom: 1px dotted #000; font-size: 10px; line-height: 1.1; }
+    .receipt-theme-ultra-compact .meta-line.strong { font-size: 12px; }
+    .receipt-theme-ultra-compact .invoice-items-table th, .receipt-theme-ultra-compact .invoice-items-table td { padding: 2px 1px; font-size: 9.5px; border-bottom: 1px dotted #000; }
+    .receipt-theme-ultra-compact .invoice-items-table th { background: transparent; color: #000; border-bottom: 1px solid #000; border-top: 1px dashed #000; }
+    .receipt-theme-ultra-compact .invoice-totals-card { padding: 2px 0; }
+    .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 14px; border-bottom: 1px dashed #000; }
+    .receipt-theme-ultra-compact .payment-chip { padding: 1px 0; font-size: 10px; border-bottom: 1px dotted #000; }
+    .receipt-theme-ultra-compact .print-footer { margin-top: 2px; padding: 2px 0; border: 0; border-top: 1px dashed #000; font-size: 8.5px; }
+    .receipt-theme-ultra-compact .meta-label, .receipt-theme-ultra-compact .meta-value { white-space: normal; overflow: hidden; }
+
     body.receipt-mode .print-shell { width: 100%; max-width: 100%; padding-top: 0; margin: 0; box-sizing: border-box; }
     body.receipt-mode .print-header { display: none !important; }
     body.receipt-mode .print-title-wrap { min-width: 0; }
@@ -358,13 +387,16 @@ export function buildReceiptDocument(options: {
     ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
   ];
 
+  const theme = getReceiptTheme(options.pageSize, options.settings);
   return {
     html: `
-      ${renderStoreHeader(options.settings, compact)}
-      ${renderMetaPanel(metaRows, compact, options.settings)}
-      ${renderItemsTable(options.items, compact, options.settings)}
-      ${renderTotals({ subtotal: options.subtotal, discount: options.discount, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact })}
-      ${renderPaymentBreakdown(options.payments, options.settings, compact)}
+      <div class="receipt-theme-${theme}">
+        ${renderStoreHeader(options.settings, compact)}
+        ${renderMetaPanel(metaRows, compact, options.settings)}
+        ${renderItemsTable(options.items, compact, options.settings)}
+        ${renderTotals({ subtotal: options.subtotal, discount: options.discount, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact })}
+        ${renderPaymentBreakdown(options.payments, options.settings, compact)}
+      </div>
     `,
     compact,
   };

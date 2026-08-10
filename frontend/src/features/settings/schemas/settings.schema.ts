@@ -62,6 +62,7 @@ export const settingsFormSchema = z.object({
   printShowPaymentBreakdown: z.boolean().default(true),
   printShowFooter: z.boolean().default(true),
   printCompactReceipt: z.boolean().default(true),
+  posReceiptTheme: z.string().default('classic'),
   printNumberFormat: z.enum(['arabic', 'english']).default('arabic'),
   uiLanguage: z.enum(['ar', 'en']).default('ar'),
   currency: z.string().trim().min(2).default('EGP'),
