@@ -383,6 +383,7 @@ export class SaasAdminService {
       billing_period_months: body.billingPeriodMonths,
       max_users: body.maxUsers ?? null,
       max_branches: body.maxBranches ?? null,
+      feature_plan_id: body.featurePlanId || null,
       is_active: true,
     }).returningAll().executeTakeFirstOrThrow();
     
@@ -401,6 +402,7 @@ export class SaasAdminService {
     if (body.billingPeriodMonths !== undefined) updateData.billing_period_months = body.billingPeriodMonths;
     if (body.maxUsers !== undefined) updateData.max_users = body.maxUsers ?? null;
     if (body.maxBranches !== undefined) updateData.max_branches = body.maxBranches ?? null;
+    if (body.featurePlanId !== undefined) updateData.feature_plan_id = body.featurePlanId || null;
     if (body.isActive !== undefined) updateData.is_active = body.isActive;
 
     if (Object.keys(updateData).length === 0) {
@@ -528,7 +530,12 @@ export class SaasAdminService {
         } as any).execute();
       }
       
-      await trx.updateTable('tenants').set({ status: 'active', updated_at: now }).where('id', '=', tenant.id).execute();
+      const tenantUpdateData: any = { status: 'active', updated_at: now };
+      if (plan.feature_plan_id) {
+        tenantUpdateData.plan_id = plan.feature_plan_id;
+      }
+      
+      await trx.updateTable('tenants').set(tenantUpdateData).where('id', '=', tenant.id).execute();
     });
     
     await this.audit.log('تجديد اشتراك', `تم تجديد اشتراك النسخة: ${tenant.slug} لمدة ${body.durationMonths} أشهر`, auth, { targetTenantId: tenant.id });
@@ -601,6 +608,10 @@ export class SaasAdminService {
             paid_at: now,
             created_at: now,
           } as any).execute();
+        }
+        
+        if (plan.feature_plan_id) {
+          await trx.updateTable('tenants').set({ plan_id: plan.feature_plan_id }).where('id', '=', tenant.id).execute();
         }
       }
     });

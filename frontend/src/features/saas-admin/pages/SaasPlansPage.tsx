@@ -21,11 +21,17 @@ export function SaasPlansPage() {
     billing_period_months: 12,
     max_users: 0,
     max_branches: 0,
+    feature_plan_id: '',
   });
 
   const plansQuery = useQuery({
     queryKey: ['saas-plans'],
     queryFn: () => saasAdminApi.listPlans(),
+  });
+
+  const featurePlansQuery = useQuery({
+    queryKey: ['saas-feature-plans'],
+    queryFn: () => saasAdminApi.listFeaturePlans(),
   });
 
   const createMutation = useMutation({
@@ -37,12 +43,13 @@ export function SaasPlansPage() {
       billingPeriodMonths: Number(newPlan.billing_period_months),
       maxUsers: newPlan.max_users ? Number(newPlan.max_users) : null,
       maxBranches: newPlan.max_branches ? Number(newPlan.max_branches) : null,
+      featurePlanId: newPlan.feature_plan_id || null,
     }),
     onSuccess: () => {
       setFeedback('تم حفظ الخطة بنجاح');
       queryClient.invalidateQueries({ queryKey: ['saas-plans'] });
       setIsCreateModalOpen(false);
-      setNewPlan({ code: '', name: '', price: 0, currency: 'EGP', billing_period_months: 12, max_users: 0, max_branches: 0 });
+      setNewPlan({ code: '', name: '', price: 0, currency: 'EGP', billing_period_months: 12, max_users: 0, max_branches: 0, feature_plan_id: '' });
     },
     onError: (error: any) => {
       setFeedback(error.message || 'فشل حفظ الخطة');
@@ -79,6 +86,7 @@ export function SaasPlansPage() {
         billingPeriodMonths: Number(editingPlan.billing_period_months),
         maxUsers: editingPlan.max_users ? Number(editingPlan.max_users) : null,
         maxBranches: editingPlan.max_branches ? Number(editingPlan.max_branches) : null,
+        featurePlanId: editingPlan.feature_plan_id || null,
         isActive: editingPlan.is_active,
       }
     });
@@ -247,6 +255,18 @@ export function SaasPlansPage() {
                   </Field>
                 </div>
 
+                <Field label="باقة الميزات المرتبطة (اختياري)">
+                  <select
+                    value={newPlan.feature_plan_id}
+                    onChange={(e) => setNewPlan({ ...newPlan, feature_plan_id: e.target.value })}
+                  >
+                    <option value="">-- بدون ربط (سيتم تحديدها لاحقاً) --</option>
+                    {featurePlansQuery.data?.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                    ))}
+                  </select>
+                </Field>
+
                 <div className="actions">
                   <button type="submit" className="button" disabled={createMutation.isPending}>
                     {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الخطة'}
@@ -331,6 +351,18 @@ export function SaasPlansPage() {
                     />
                   </Field>
                 </div>
+
+                <Field label="باقة الميزات المرتبطة (اختياري)">
+                  <select
+                    value={editingPlan.feature_plan_id || ''}
+                    onChange={(e) => setEditingPlan({ ...editingPlan, feature_plan_id: e.target.value })}
+                  >
+                    <option value="">-- بدون ربط (سيتم تحديدها لاحقاً) --</option>
+                    {featurePlansQuery.data?.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                    ))}
+                  </select>
+                </Field>
 
                 <Field label="حالة الخطة">
                   <label className="row gap-8 align-center">

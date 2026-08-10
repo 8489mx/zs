@@ -1,5 +1,5 @@
-import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber } from 'class-validator';
+import { Type  from 'class-transformer';
+import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber  from 'class-validator';
 
 export class ListSaasTenantsQueryDto {
   @IsOptional()
@@ -9,7 +9,7 @@ export class ListSaasTenantsQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
-}
+
 
 export class CreateTrialTenantDto {
   @IsString()
@@ -57,7 +57,7 @@ export class CreateTrialTenantDto {
   @IsOptional()
   @IsString()
   notes?: string;
-}
+
 
 export class ExtendTrialDto {
   @Type(() => Number)
@@ -65,7 +65,7 @@ export class ExtendTrialDto {
   @Min(1)
   @Max(365)
   days!: number;
-}
+
 
 export class TenantStatusActionDto {
   @IsOptional()
@@ -75,13 +75,13 @@ export class TenantStatusActionDto {
   @IsOptional()
   @IsString()
   notes?: string;
-}
+
 
 export class ResetOwnerPasswordDto {
   @IsOptional()
   @IsString()
   newPassword?: string;
-}
+
 
 export class ActivateTenantDto {
   @IsOptional()
@@ -107,7 +107,7 @@ export class ActivateTenantDto {
   @Min(1)
   @Max(120)
   durationMonths?: number;
-}
+
 
 export class RenewTenantDto {
   @Type(() => Number)
@@ -131,7 +131,7 @@ export class RenewTenantDto {
   @IsOptional()
   @IsString()
   paymentReference?: string;
-}
+
 
 export class CreateSaasPlanDto {
   @IsString()
@@ -163,10 +163,6 @@ export class CreateSaasPlanDto {
   @IsInt()
   maxBranches?: number;
 
-  @IsOptional()
-  @IsString()
-  featurePlanId?: string;
-}
 
 export class RecordPaymentDto {
   @Type(() => Number)
@@ -189,7 +185,7 @@ export class RecordPaymentDto {
   @IsOptional()
   @IsString()
   date?: string;
-}
+
 
 export class UpdateTenantPlanDto {
   @IsOptional()
@@ -198,9 +194,9 @@ export class UpdateTenantPlanDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsString({ each: true )
   extraFeatures?: string[];
-}
+
 export class UpdateSaasPlanDto {
   @IsOptional()
   @IsString()
@@ -242,5 +238,4 @@ export class UpdateSaasPlanDto {
   @IsOptional()
   @IsString()
   featurePlanId?: string;
-}
 

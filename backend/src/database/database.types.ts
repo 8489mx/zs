@@ -1400,6 +1400,7 @@ export interface SaasPlanTable {
   billing_period_months: number;
   max_users: number | null;
   max_branches: number | null;
+  feature_plan_id: string | null;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
