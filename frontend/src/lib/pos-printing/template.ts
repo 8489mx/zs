@@ -103,15 +103,15 @@ function renderMetaPanel(rows: Array<{ label: string; value?: string | number | 
 function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[] }>, compact = false, settings?: Partial<AppSettings> | null) {
   const body = (items || []).map((item, index) => {
     const modifiersHtml = item.modifiers?.length 
-      ? `<div class="item-modifiers" style="font-size: 0.85em; color: #555; margin-top: 2px;">
+      ? `<div class="item-modifiers" style="font-size: 0.85em; color: #000; margin-top: 2px;">
           ${item.modifiers.map((mod: any) => {
             const modPrice = Number(mod.price || 0);
             const modQty = Number(mod.qty || 1);
             const modTotal = modPrice * modQty;
-            return `<div style="padding: 2px 0; color: #444; font-size: 0.9em; margin-right: 8px;">
-              <strong style="color: #111;">[إضافة]</strong> ${escapeHtml(mod.name)}
-              ${modQty > 1 ? ` <span style="color:#777; font-size: 0.9em;">(×${modQty})</span>` : ''}
-              ${modTotal > 0 ? ` <span style="font-weight:600; color:#111;">(+${formatReceiptMoney(modTotal, settings)})</span>` : ''}
+            return `<div style="padding: 2px 0; color: #000; font-size: 0.9em; margin-right: 8px;">
+              <strong style="color: #000;">[إضافة]</strong> ${escapeHtml(mod.name)}
+              ${modQty > 1 ? ` <span style="color:#000; font-size: 0.9em;">(×${modQty})</span>` : ''}
+              ${modTotal > 0 ? ` <span style="font-weight:600; color:#000;">(+${formatReceiptMoney(modTotal, settings)})</span>` : ''}
             </div>`;
           }).join('')}
          </div>`
@@ -234,7 +234,7 @@ export function getInvoiceStyles(compact = false) {
     .print-meta-chip { padding: ${compact ? '4px 8px' : '6px 10px'}; font-size: ${compact ? '9.5px' : '11px'}; }
     .print-content { gap: ${compact ? '4px' : '7px'}; }
     .invoice-card {
-      border: 1px solid #8d8d8d;
+      border: 1px solid #000;
       border-radius: ${compact ? '6px' : '8px'};
       background: #fff;
       padding: ${compact ? '5px 5px' : '7px 7px'};
@@ -262,26 +262,26 @@ export function getInvoiceStyles(compact = false) {
       display: grid;
       place-items: center;
       font-weight: 800;
-      color: #111;
+      color: #000;
       overflow: hidden;
     }
     .invoice-brand-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
     .invoice-brand-copy h2 { margin: 0; line-height: 1.15; color: #000; font-weight: 900; overflow-wrap: anywhere; }
-    .store-inline-details { margin-top: ${compact ? '3px' : '5px'}; color: #111; font-size: ${compact ? '8.8px' : '10.2px'}; line-height: 1.35; display: grid; gap: 1px; justify-items: center; text-align: center; }
+    .store-inline-details { margin-top: ${compact ? '3px' : '5px'}; color: #000; font-size: ${compact ? '8.8px' : '10.2px'}; line-height: 1.35; display: grid; gap: 1px; justify-items: center; text-align: center; }
     .invoice-meta-panel { display: grid; gap: 0; }
-    .meta-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: ${compact ? '2px 0' : '3px 0'}; border-bottom: 1px dotted #aaa; font-size: ${compact ? '10.3px' : '11.8px'}; line-height: 1.3; }
+    .meta-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: ${compact ? '2px 0' : '3px 0'}; border-bottom: 1px dotted #000; font-size: ${compact ? '10.3px' : '11.8px'}; line-height: 1.3; }
     .meta-line:last-child { border-bottom: 0; }
     .meta-line.strong { font-weight: 800; font-size: ${compact ? '12.5px' : '14px'}; }
-    .meta-label { color: #111; white-space: nowrap; font-weight: 700; text-align: right; }
+    .meta-label { color: #000; white-space: nowrap; font-weight: 700; text-align: right; }
     .meta-value { text-align: left; font-weight: 500; color: #000; overflow-wrap: anywhere; }
     .invoice-items-card { padding: 0; }
     .invoice-items-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: auto; }
     .invoice-items-table th,
-    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '9.6px' : '11.5px'}; border-inline-start: 1px solid #9b9b9b; border-bottom: 1px solid #b5b5b5; text-align: center; white-space: nowrap; line-height: 1.2; }
+    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '9.6px' : '11.5px'}; border-inline-start: 1px solid #000; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; }
     .invoice-items-table th:last-child,
     .invoice-items-table td:last-child { border-inline-start: 0; }
     .invoice-items-table tbody tr:last-child td { border-bottom: 0; }
-    .invoice-items-table th { background: #efefef; font-weight: 800; }
+    .invoice-items-table th { background: #000; color: #fff; font-weight: 800; }
     .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; min-width: 72px; overflow-wrap: anywhere; }
     .invoice-items-table td:not(.name-cell) { text-align: left; font-variant-numeric: tabular-nums; }
     .invoice-items-table.compact th,
@@ -291,14 +291,14 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-table.compact td:first-child { text-align: right; }
     .invoice-totals-card { padding-top: ${compact ? '4px' : '6px'}; padding-bottom: ${compact ? '4px' : '6px'}; }
     .invoice-totals-card .meta-value { text-align: left; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 600; }
-    .invoice-totals-card .total-line { margin: ${compact ? '2px -2px' : '3px -3px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px solid #555; border-radius: 8px; background: #f3f3f3; }
+    .invoice-totals-card .total-line { margin: ${compact ? '2px -2px' : '3px -3px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px dashed #000; border-radius: 8px; background: transparent; }
     .invoice-totals-card .meta-line.strong .meta-value { font-weight: 900; }
-    .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 900; text-align: center; padding-bottom: 4px; margin-bottom: 2px; border-bottom: 1px solid #888; }
+    .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 900; text-align: center; padding-bottom: 4px; margin-bottom: 2px; border-bottom: 1px solid #000; }
     .payment-grid { display: grid; gap: 0; }
-    .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #aaa; background: #fff; }
+    .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 800; }
-    .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px solid #aaa; border-radius: 8px; text-align: center; line-height: 1.35; }
+    .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border: 1px dashed #000; border-radius: 8px; text-align: center; line-height: 1.35; }
     body.receipt-mode .print-shell { width: 100%; max-width: 100%; padding-top: 0; margin: 0; box-sizing: border-box; }
     body.receipt-mode .print-header { display: none !important; }
     body.receipt-mode .print-title-wrap { min-width: 0; }

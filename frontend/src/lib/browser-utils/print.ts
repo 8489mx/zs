@@ -54,10 +54,10 @@ function buildPrintHtml({ title, bodyHtml, subtitle, footerHtml, extraStyles, pa
       <title>${escapeHtml(title)}</title>
       <style>
         :root {
-          --print-text: #0f172a;
-          --print-muted: #475569;
-          --print-border: #cbd5e1;
-          --print-surface: #f8fafc;
+          --print-text: #000;
+          --print-muted: #000;
+          --print-border: #000;
+          --print-surface: #fff;
           --print-accent: #2563eb;
         }
         * { box-sizing: border-box; }
