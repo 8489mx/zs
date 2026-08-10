@@ -31,6 +31,9 @@ export interface PosCheckoutCustomerSectionProps {
   onCustomerPickerOpenChange: (value: boolean | ((current: boolean) => boolean)) => void;
   onCustomerQueryChange: (value: string) => void;
   onQuickCustomerSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  needsCustomer?: boolean;
+  isManualOpen?: boolean;
+  onManualOpen?: () => void;
 }
 
 export function PosCheckoutCustomerSection({
@@ -42,6 +45,9 @@ export function PosCheckoutCustomerSection({
   onCustomerPickerOpenChange,
   onCustomerQueryChange,
   onQuickCustomerSubmit,
+  needsCustomer,
+  isManualOpen,
+  onManualOpen,
 }: PosCheckoutCustomerSectionProps) {
   const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
   const addressesQuery = useQuery({
@@ -65,6 +71,18 @@ export function PosCheckoutCustomerSection({
     onCustomerQueryChange('');
     onCustomerPickerOpenChange(false);
   };
+
+  const isHidden = !needsCustomer && !isManualOpen && !pos.customerId;
+
+  if (isHidden) {
+    return (
+      <section className="pos-checkout-dialog-section pos-checkout-customer-section" style={{ paddingTop: '8px' }}>
+        <Button type="button" variant="secondary" onClick={onManualOpen} style={{ width: '100%', borderStyle: 'dashed' }}>
+          + ربط الفاتورة ببيانات عميل (اختياري)
+        </Button>
+      </section>
+    );
+  }
 
   return (
     <section className="pos-checkout-dialog-section pos-checkout-customer-section">

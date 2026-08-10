@@ -27,6 +27,8 @@ interface PosCheckoutDialogProps {
 export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, onConfirmSale }: PosCheckoutDialogProps) {
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
+  const [isManualCustomerOpen, setIsManualCustomerOpen] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [managerApprovalOpen, setManagerApprovalOpen] = useState(false);
   const [managerPinDraft, setManagerPinDraft] = useState('');
   const [managerPinError, setManagerPinError] = useState('');
@@ -173,23 +175,20 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
     <DialogShell open={open} onClose={handleDialogClose} width="min(980px, calc(100vw - 32px))" zIndex={86} ariaLabel="مراجعة وإتمام البيع">
       <Card title="مراجعة وإتمام البيع" className="dialog-card pos-checkout-dialog-card">
         <div className="pos-checkout-dialog">
-          <section className="pos-checkout-dialog-section pos-checkout-summary-section">
-            <div className="pos-checkout-section-head"><h4>ملخص الفاتورة</h4><span className="muted small">راجع الإجمالي قبل تأكيد البيع</span></div>
-            <div className="pos-checkout-dialog-summary pos-checkout-dialog-summary-main">
-              <div className="pos-checkout-dialog-chip"><span>عدد العناصر</span><strong>{itemsCount}</strong></div>
-              <div className="pos-checkout-dialog-chip" style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ marginBottom: '2px' }}>إجمالي الكميات</span>
-                {cartQtySummaries.length ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                    {cartQtySummaries.map((s, i) => (
-                      <strong key={i} style={{ fontSize: cartQtySummaries.length > 1 ? '16px' : '20px', lineHeight: '1' }}>{s}</strong>
-                    ))}
-                  </div>
-                ) : (
-                  <strong style={{ fontSize: '20px', lineHeight: '1' }}>0</strong>
-                )}
+          <section className="pos-checkout-dialog-section pos-checkout-summary-section" style={{ paddingBottom: 0 }}>
+            <div style={{ display: 'flex', gap: '16px', background: 'var(--bg-surface-elevated)', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', alignItems: 'center', justifyContent: 'space-between', fontSize: '15px' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <span className="muted" style={{ fontWeight: 600 }}>العناصر:</span>
+                <strong style={{ fontSize: '1.15em', fontWeight: 800 }}>{itemsCount}</strong>
               </div>
-              <div className="pos-checkout-dialog-chip is-total"><span>المطلوب دفعه</span><strong className="is-primary">{formatCurrency(pos.totals.total)}</strong></div>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <span className="muted" style={{ fontWeight: 600 }}>الكميات:</span>
+                <strong style={{ fontSize: '1.15em', fontWeight: 800 }}>{cartQtySummaries.length ? cartQtySummaries.join(' + ') : '0'}</strong>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '1.15em' }}>
+                <span className="muted" style={{ fontWeight: 700 }}>المطلوب:</span>
+                <strong className="is-primary" style={{ fontSize: '1.3em', fontWeight: 900, letterSpacing: '-0.5px' }}>{formatCurrency(pos.totals.total)}</strong>
+              </div>
             </div>
           </section>
 
@@ -208,6 +207,9 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
             onCustomerPickerOpenChange={setCustomerPickerOpen}
             onCustomerQueryChange={setCustomerQuery}
             onQuickCustomerSubmit={(event) => { void handleQuickCustomerSubmit(event); }}
+            needsCustomer={pos.orderType === 'delivery' || pos.paymentType === 'credit'}
+            isManualOpen={isManualCustomerOpen}
+            onManualOpen={() => setIsManualCustomerOpen(true)}
           />
 
           <PosCheckoutDeliverySection
@@ -233,11 +235,20 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
             onSelectPaymentPreset={(preset) => pos.setPaymentPreset(preset)}
           />
 
-          <section className="pos-checkout-dialog-section">
-            <h4>ملاحظات الفاتورة</h4>
-            <label className="field field-wide">
-              <input value={pos.note} onChange={(event) => pos.setNote(event.target.value)} placeholder="ملاحظات اختيارية" disabled={pos.createSale.isPending} />
-            </label>
+          <section className="pos-checkout-dialog-section" style={{ paddingTop: '8px' }}>
+            {!isNotesOpen && !pos.note ? (
+              <Button type="button" variant="secondary" onClick={() => setIsNotesOpen(true)} style={{ width: '100%' }}>+ إضافة ملاحظة للفاتورة</Button>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0 }}>ملاحظات الفاتورة</h4>
+                  <Button type="button" variant="secondary" onClick={() => { setIsNotesOpen(false); pos.setNote(''); }} style={{ padding: '4px 8px', fontSize: '12px' }}>إلغاء</Button>
+                </div>
+                <label className="field field-wide" style={{ margin: 0 }}>
+                  <input autoFocus={isNotesOpen && !pos.note} value={pos.note} onChange={(event) => pos.setNote(event.target.value)} placeholder="ملاحظات اختيارية" disabled={pos.createSale.isPending} />
+                </label>
+              </>
+            )}
           </section>
 
           <div className="actions compact-actions pos-checkout-dialog-actions">
