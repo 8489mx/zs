@@ -390,6 +390,38 @@ export class SaasAdminService {
     return result;
   }
 
+  async updatePlan(id: number, body: UpdateSaasPlanDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertPlatformAccess(auth);
+
+    const updateData: any = {};
+    if (body.code !== undefined) updateData.code = body.code;
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.price !== undefined) updateData.price = body.price;
+    if (body.currency !== undefined) updateData.currency = body.currency;
+    if (body.billingPeriodMonths !== undefined) updateData.billing_period_months = body.billingPeriodMonths;
+    if (body.maxUsers !== undefined) updateData.max_users = body.maxUsers ?? null;
+    if (body.maxBranches !== undefined) updateData.max_branches = body.maxBranches ?? null;
+    if (body.isActive !== undefined) updateData.is_active = body.isActive;
+
+    if (Object.keys(updateData).length === 0) {
+      return { ok: true };
+    }
+
+    const result = await this.db.updateTable('saas_plans')
+      .set(updateData)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
+    
+    if (!result) {
+      throw new NotFoundException('الخطة غير موجودة');
+    }
+
+    await this.audit.log('تعديل خطة اشتراك', `تم تعديل خطة اشتراك: ${result.name}`, auth);
+    return result;
+  }
+
+
   async getSubscriptions(tenantId: string, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertPlatformAccess(auth);
     const tenant = await this.getTenantForMutation(tenantId);

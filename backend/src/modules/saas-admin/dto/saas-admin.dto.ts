@@ -197,3 +197,41 @@ export class UpdateTenantPlanDto {
   @IsString({ each: true })
   extraFeatures?: string[];
 }
+export class UpdateSaasPlanDto {
+  @IsOptional()
+  @IsString()
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  price?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  billingPeriodMonths?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  maxUsers?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  maxBranches?: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  isActive?: boolean;
+}
