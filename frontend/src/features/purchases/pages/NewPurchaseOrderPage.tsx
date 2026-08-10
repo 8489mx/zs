@@ -1897,10 +1897,10 @@ export function NewPurchaseOrderPage() {
             <div className="flex flex-col gap-2">
               <Button type="button" onClick={() => {
                 import('@/features/purchases/lib/purchases-workspace.helpers').then(({ printPurchaseDocument }) => {
-                  printPurchaseDocument(createdPurchase);
+                  printPurchaseDocument(createdPurchase, rawSettings);
                 });
               }} className="w-full justify-center">
-                طباعة الفاتورة (A4)
+                طباعة الفاتورة ({rawSettings?.paperSize === 'receipt' ? 'ريسيت' : 'A4'})
               </Button>
               <Button type="button" variant="secondary" onClick={handleNewPurchaseOrder} className="w-full justify-center">
                 فاتورة شراء جديدة
