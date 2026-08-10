@@ -16,7 +16,7 @@ interface PrintReceiptOptions {
   cashierName?: string;
 }
 
-function openReceiptDocument(
+export function openReceiptDocument(
   title: string,
   documentHtml: string,
   compact: boolean,

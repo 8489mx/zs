@@ -9,9 +9,11 @@ import { PurchasesRegisterCard } from '@/features/purchases/components/purchases
 import { PurchaseRepricingDialog } from '@/features/purchases/components/PurchaseRepricingDialog';
 import { usePurchasesWorkspaceController } from '@/features/purchases/components/purchases-workspace/usePurchasesWorkspaceController';
 import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function PurchasesWorkspace() {
   const controller = usePurchasesWorkspaceController();
+  const settingsQuery = useSettingsQuery();
   const selectedPurchase = controller.selectedPurchase;
   const canEditSelectedPurchase = Boolean(controller.canEditInvoices && selectedPurchase && selectedPurchase.status !== 'cancelled');
 
@@ -40,7 +42,7 @@ export function PurchasesWorkspace() {
         <div ref={detailsRef}>
           <PurchaseDetailCard
             purchase={selectedPurchase || undefined}
-            onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase) : undefined}
+            onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase, settingsQuery.data) : undefined}
             onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
             onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
           />

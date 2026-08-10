@@ -1,7 +1,9 @@
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
-import type { ServiceRecord } from '@/types/domain';
+import type { ServiceRecord, AppSettings } from '@/types/domain';
 import { SERVICE_PRESETS, type ServiceCatalogItem, type ServicePresetKey } from '@/features/services/lib/services-page.constants';
+import { buildReceiptDocument } from '@/lib/pos-printing/template';
+import { openReceiptDocument } from '@/lib/pos-printing';
 
 const SERVICES_CATALOG_STORAGE_KEY = 'services:catalog:v1';
 
@@ -34,7 +36,33 @@ export function formatServicePaymentChannel(channel?: string) {
   return channel === 'card' ? 'فيزا' : 'نقدي';
 }
 
-export function printServiceReceipt(service: ServiceRecord) {
+export function printServiceReceipt(service: ServiceRecord, settings?: Partial<AppSettings> | null) {
+  if (settings?.paperSize === 'receipt') {
+    const document = buildReceiptDocument({
+      pageSize: 'receipt',
+      settings,
+      documentLabel: 'إيصال خدمة',
+      documentNumber: service.id,
+      dateText: formatDate(service.serviceDate),
+      paymentText: formatServicePaymentChannel(service.paymentChannel),
+      cashierName: service.createdByName || undefined,
+      note: service.notes || undefined,
+      items: [{
+        name: service.name,
+        qty: 1,
+        price: Number(service.amount || 0),
+        total: Number(service.amount || 0),
+      }],
+      subtotal: Number(service.amount || 0),
+      discount: 0,
+      taxAmount: 0,
+      total: Number(service.amount || 0),
+      paidAmount: Number(service.amount || 0),
+    });
+    openReceiptDocument(`إيصال خدمة ${service.name}`, document.html, document.compact, { pageSize: 'receipt', settings });
+    return;
+  }
+
   printHtmlDocument(`إيصال خدمة ${service.name}`, `
     <h1>إيصال خدمة</h1>
     <div class="meta">الخدمة: ${escapeHtml(service.name)} · التاريخ: ${escapeHtml(formatDate(service.serviceDate))}</div>

@@ -19,6 +19,7 @@ import { useServicesPageActions } from '@/features/services/hooks/useServicesPag
 import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
 import { serviceFilterOptions, type PresetServiceDraft, type ServiceCatalogItem, type ServicePresetKey } from '@/features/services/lib/services-page.constants';
 import { buildPresetDrafts, formatServicePaymentChannel, normalizeServiceName, printServiceReceipt, readServicesCatalog, writeServicesCatalog } from '@/features/services/lib/services-page.helpers';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function ServicesPage() {
   const [search, setSearch] = useState('');
@@ -47,6 +48,7 @@ export function ServicesPage() {
   const serviceFormSectionRef = useRef<HTMLDivElement | null>(null);
   const customServiceNameInputRef = useRef<HTMLInputElement | null>(null);
   const query = useServicesPage({ page, pageSize, search, filter: viewFilter });
+  const settingsQuery = useSettingsQuery();
   const deleteMutation = useDeleteServiceMutation(() => {
     setSelectedService(null);
     setServiceToDelete(null);
@@ -236,7 +238,7 @@ export function ServicesPage() {
               { key: 'notes', header: 'ملاحظات', cell: (row) => row.notes || '—' },
               { key: 'user', header: 'المنفذ', cell: (row) => row.createdByName || '—' },
               { key: 'date', header: 'التاريخ', cell: (row) => formatDate(row.serviceDate) },
-              { key: 'actions', header: 'إجراءات', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button type="button" variant="secondary" onClick={() => printServiceReceipt(row)}>طباعة</Button><Button type="button" variant="secondary" onClick={() => setSelectedService(row)}>تعديل</Button><Button type="button" variant="danger" onClick={() => setServiceToDelete(row)}>حذف</Button></div> },
+              { key: 'actions', header: 'إجراءات', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button type="button" variant="secondary" onClick={() => printServiceReceipt(row, settingsQuery.data)}>طباعة</Button><Button type="button" variant="secondary" onClick={() => setSelectedService(row)}>تعديل</Button><Button type="button" variant="danger" onClick={() => setServiceToDelete(row)}>حذف</Button></div> },
             ]}
             pagination={{ page, pageSize, totalItems: insights.totalItems || rows.length, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'خدمة' }}
           />

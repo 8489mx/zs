@@ -22,6 +22,7 @@ import {
 } from '@/features/returns/lib/returns-workspace.helpers';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function ReturnsWorkspace() {
   const location = useLocation();
@@ -48,6 +49,7 @@ export function ReturnsWorkspace() {
   const query = useReturnsPage({ page, pageSize, search, filter: viewFilter, employee: employeeFilter });
   const salesQuery = useQuery({ queryKey: ['sales'], queryFn: catalogApi.listSales });
   const purchasesQuery = useQuery({ queryKey: ['purchases'], queryFn: catalogApi.listPurchases });
+  const settingsQuery = useSettingsQuery();
   const queryClient = useQueryClient();
 
   const invoiceRows = useMemo(() => (
@@ -270,7 +272,7 @@ export function ReturnsWorkspace() {
           setSelectedReturnId(id);
           setTimeout(() => detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
         }}
-        onPrintReturn={printReturnRecord}
+        onPrintReturn={(row) => printReturnRecord(row, settingsQuery.data)}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />
@@ -305,7 +307,7 @@ export function ReturnsWorkspace() {
         <div ref={detailsRef}>
           <ReturnsSelectedReturnCard
             selectedReturn={selectedReturn}
-            onPrint={() => selectedReturn ? printReturnRecord(selectedReturn) : undefined}
+            onPrint={() => selectedReturn ? printReturnRecord(selectedReturn, settingsQuery.data) : undefined}
             onCopy={() => void copySelectedReturn()}
           />
         </div>

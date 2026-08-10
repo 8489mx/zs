@@ -1,7 +1,9 @@
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
-import type { Purchase } from '@/types/domain';
+import type { Purchase, AppSettings } from '@/types/domain';
+import { buildReceiptDocument } from '@/lib/pos-printing/template';
+import { openReceiptDocument } from '@/lib/pos-printing';
 
 export type PurchasesViewFilter = 'all' | 'cash' | 'credit' | 'cancelled';
 
@@ -18,7 +20,36 @@ export function getPurchasesViewFilterLabel(filter: PurchasesViewFilter) {
   }
 }
 
-export function printPurchaseDocument(purchase: Purchase) {
+export function printPurchaseDocument(purchase: Purchase, settings?: Partial<AppSettings> | null) {
+  if (settings?.paperSize === 'receipt') {
+    const document = buildReceiptDocument({
+      pageSize: 'receipt',
+      settings,
+      documentLabel: 'فاتورة شراء',
+      documentNumber: purchase.docNo || purchase.id,
+      dateText: formatDate(purchase.date),
+      customerName: purchase.supplierName || '—',
+      paymentText: purchase.paymentType === 'cash' ? 'نقدي' : 'آجل',
+      branchName: purchase.branchName || undefined,
+      locationName: purchase.locationName || undefined,
+      note: purchase.note || undefined,
+      items: (purchase.items || []).map((item) => ({
+        name: item.name,
+        unitName: item.unitName,
+        qty: Number(item.qty || 0),
+        price: Number(item.cost || 0),
+        total: Number(item.total || 0),
+      })),
+      subtotal: Number(purchase.total || 0),
+      discount: 0,
+      taxAmount: 0,
+      total: Number(purchase.total || 0),
+      paidAmount: Number(purchase.total || 0),
+    });
+    openReceiptDocument(`فاتورة شراء ${purchase.docNo || purchase.id}`, document.html, document.compact, { pageSize: 'receipt', settings });
+    return;
+  }
+
   const itemsRows = (purchase.items || []).map((item) => `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.unitName || '—')}</td><td>${item.qty}</td><td>${formatCurrency(item.cost)}</td><td>${formatCurrency(item.total)}</td></tr>`).join('');
   printHtmlDocument(`فاتورة شراء ${purchase.docNo || purchase.id}`, `
     <div class="meta-grid">
@@ -32,7 +63,7 @@ export function printPurchaseDocument(purchase: Purchase) {
     </table>
     <div class="totals">
       <div><strong>الإجمالي:</strong> ${formatCurrency(purchase.total)}</div>
-      <div><strong>نوع الدفع:</strong> ${escapeHtml(purchase.paymentType || 'cash')}</div>
+      <div><strong>نوع الدفع:</strong> ${escapeHtml(purchase.paymentType === 'cash' ? 'نقدي' : 'آجل')}</div>
       ${SINGLE_STORE_MODE ? `<div><strong>المخزن:</strong> ${escapeHtml(purchase.locationName || 'المخزن الأساسي')}</div>` : `<div><strong>الفرع:</strong> ${escapeHtml(purchase.branchName || '—')}</div><div><strong>الموقع:</strong> ${escapeHtml(purchase.locationName || '—')}</div>`}
       <div><strong>ملاحظات:</strong> ${escapeHtml(purchase.note || '—')}</div>
     </div>

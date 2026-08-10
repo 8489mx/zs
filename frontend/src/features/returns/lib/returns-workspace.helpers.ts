@@ -1,7 +1,9 @@
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { returnsApi } from '@/features/returns/api/returns.api';
-import type { ReturnRecord } from '@/types/domain';
+import type { ReturnRecord, AppSettings } from '@/types/domain';
+import { buildReceiptDocument } from '@/lib/pos-printing/template';
+import { openReceiptDocument } from '@/lib/pos-printing';
 
 export type ReturnFormState = {
   type: 'sale' | 'purchase';
@@ -50,7 +52,33 @@ export function printReturnsRegister(rows: ReturnRecord[], meta?: { totalItems?:
   `);
 }
 
-export function printReturnRecord(row: ReturnRecord) {
+export function printReturnRecord(row: ReturnRecord, settings?: Partial<AppSettings> | null) {
+  if (settings?.paperSize === 'receipt') {
+    const document = buildReceiptDocument({
+      pageSize: 'receipt',
+      settings,
+      documentLabel: 'مستند مرتجع',
+      documentNumber: row.docNo || row.id,
+      dateText: formatDate(getReturnDateValue(row)),
+      orderType: returnTypeLabel(row),
+      customerName: returnTypeLabel(row),
+      note: row.note || undefined,
+      items: [{
+        name: row.productName || '—',
+        qty: Number(row.qty || 0),
+        price: Number(row.total || 0) / Math.max(1, Number(row.qty || 1)),
+        total: Number(row.total || 0),
+      }],
+      subtotal: Number(row.total || 0),
+      discount: 0,
+      taxAmount: 0,
+      total: Number(row.total || 0),
+      paidAmount: Number(row.total || 0),
+    });
+    openReceiptDocument(`مستند مرتجع ${row.docNo || row.id}`, document.html, document.compact, { pageSize: 'receipt', settings });
+    return;
+  }
+
   printHtmlDocument(`مستند مرتجع ${row.docNo || row.id}`, `
     <div class="meta-grid">
       <div class="meta-box"><strong>النوع</strong><span>${escapeHtml(returnTypeLabel(row))}</span></div>

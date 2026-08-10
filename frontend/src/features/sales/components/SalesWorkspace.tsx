@@ -163,7 +163,7 @@ export function SalesWorkspace() {
           onCancelSale={setSaleToCancel}
           onExportCsv={exportSalesCsv}
           onPrintRegister={printSalesRegister}
-          onPrintSale={(sale) => printSaleDocument(sale, printSettings, 'receipt')}
+          onPrintSale={(sale) => printSaleDocument(sale, printSettings, printSettings?.paperSize === 'receipt' ? 'receipt' : 'a4')}
           onPageChange={setPage}
           onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
         />
@@ -177,7 +177,7 @@ export function SalesWorkspace() {
             isLoading={saleDetailQuery.isLoading}
             onExportTopCustomers={exportTopCustomersCsv}
             onPrintTopCustomers={printTopCustomers}
-            onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, 'receipt') : undefined}
+            onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, printSettings?.paperSize === 'receipt' ? 'receipt' : 'a4') : undefined}
             onEditSale={() => {
               if (!selectedSale || selectedSale.status === 'cancelled') return;
               setSaleToEdit(selectedSale);
