@@ -48,6 +48,8 @@ export const settingsFormSchema = z.object({
   weightedBarcodeWeightDecimals: z.coerce.number().int().min(0).max(3).default(3),
   printShowLogo: z.boolean().default(true),
   printShowDocumentType: z.boolean().default(true),
+  printShowDocumentNumber: z.boolean().default(true),
+  printShowOrderType: z.boolean().default(true),
   printShowPhone: z.boolean().default(true),
   printShowAddress: z.boolean().default(true),
   printShowTaxNumber: z.boolean().default(false),

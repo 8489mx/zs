@@ -17,11 +17,14 @@ export interface AppSettings {
   logoData?: string;
   currentBranchId?: string;
   currentLocationId?: string;
+  printShowDocumentType?: boolean;
   printShowLogo?: boolean;
   printShowPhone?: boolean;
   printShowAddress?: boolean;
   printShowTaxNumber?: boolean;
   printShowCustomer?: boolean;
+  printShowDocumentNumber?: boolean;
+  printShowOrderType?: boolean;
   printShowDeliveryCustomerDetails?: boolean;
   printShowCashier?: boolean;
   printShowBranch?: boolean;

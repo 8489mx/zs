@@ -318,12 +318,14 @@ export function getInvoiceStyles(compact = false) {
     .receipt-theme-ultra-compact .store-inline-details span { display: inline; }
     .receipt-theme-ultra-compact .store-inline-details span::after { content: " - "; }
     .receipt-theme-ultra-compact .store-inline-details span:last-child::after { content: ""; }
-    .receipt-theme-ultra-compact .meta-line { padding: 1px 0; border-bottom: 1px dotted #000; font-size: 10px; line-height: 1.1; }
+    .receipt-theme-ultra-compact .meta-line { display: inline; border: none; padding: 0; font-size: 10px; }
+    .receipt-theme-ultra-compact .meta-line::after { content: " | "; margin: 0 3px; font-weight: normal; font-size: 9px; }
+    .receipt-theme-ultra-compact .meta-line:last-child::after { content: ""; margin: 0; }
     .receipt-theme-ultra-compact .meta-line.strong { font-size: 12px; }
     .receipt-theme-ultra-compact .invoice-items-table th, .receipt-theme-ultra-compact .invoice-items-table td { padding: 2px 1px; font-size: 9.5px; border-bottom: 1px dotted #000; }
     .receipt-theme-ultra-compact .invoice-items-table th { background: transparent; color: #000; border-bottom: 1px solid #000; border-top: 1px dashed #000; }
     .receipt-theme-ultra-compact .invoice-totals-card { padding: 2px 0; }
-    .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 14px; border-bottom: 1px dashed #000; }
+    .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 12.5px; border-bottom: 1px dashed #000; }
     .receipt-theme-ultra-compact .payment-chip { padding: 1px 0; font-size: 10px; border-bottom: 1px dotted #000; }
     .receipt-theme-ultra-compact .print-footer { margin-top: 2px; padding: 2px 0; border: 0; border-top: 1px dashed #000; font-size: 8.5px; }
     .receipt-theme-ultra-compact .meta-label, .receipt-theme-ultra-compact .meta-value { white-space: normal; overflow: hidden; }
@@ -369,10 +371,12 @@ export function buildReceiptDocument(options: {
   const showLocation = getPrintOption(options.settings, 'printShowLocation', true);
   const showPaymentMethod = getPrintOption(options.settings, 'printShowPaymentMethod', true);
   const showDocumentType = getPrintOption(options.settings, 'printShowDocumentType', true);
+  const showDocumentNumber = getPrintOption(options.settings, 'printShowDocumentNumber', true);
+  const showOrderType = getPrintOption(options.settings, 'printShowOrderType', true);
 
   const metaRows = [
     ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || 'فاتورة' }] : []),
-    { label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' },
+    ...(showDocumentNumber ? [{ label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' }] : []),
     { label: 'التاريخ', value: options.dateText || '—' },
     ...(showCustomer ? [{ label: 'العميل', value: options.customerName || 'عميل نقدي' }] : []),
     ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
@@ -382,7 +386,7 @@ export function buildReceiptDocument(options: {
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
-    ...(options.settings?.restaurantModuleEnabled && options.orderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : 'تيك أواي' }] : []),
+    ...(options.settings?.restaurantModuleEnabled && options.orderType && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : 'تيك أواي' }] : []),
     ...(options.settings?.printDeliveryRepOnReceipt && options.deliveryRepName ? [{ label: 'المندوب', value: options.deliveryRepName }] : []),
     ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
   ];

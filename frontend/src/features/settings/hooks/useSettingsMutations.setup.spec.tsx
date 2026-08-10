@@ -68,6 +68,8 @@ const baseSettingsMutationValues = {
   weightedBarcodeWeightDecimals: 3,
   printShowLogo: true,
   printShowDocumentType: true,
+  printShowDocumentNumber: true,
+  printShowOrderType: true,
   printShowPhone: true,
   printShowAddress: true,
   printShowTaxNumber: false,
