@@ -24,7 +24,6 @@ function openReceiptDocument(
   options: PrintReceiptOptions,
   subtitle = '',
 ) {
-  const theme = getReceiptTheme(options.pageSize, options.settings);
   printHtmlDocument(title, documentHtml, {
     subtitle,
     footerHtml: getPrintOption(options.settings, 'printShowFooter', true) ? escapeHtml(defaultInvoiceFooter(options.settings)) : '',

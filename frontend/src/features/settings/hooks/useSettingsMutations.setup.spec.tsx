@@ -59,7 +59,6 @@ const baseSettingsMutationValues = {
   allowZeroPurchaseCost: false,
   requireCashierShiftForSales: true,
   posKitchenPrinterEnabled: false,
-  posReceiptTheme: 'classic',
   posKitchenPrinterAuto: false,
   posKitchenPrinterMode: 'detailed' as const,
   weightedBarcodeEnabled: false,
