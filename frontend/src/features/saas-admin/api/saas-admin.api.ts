@@ -112,7 +112,8 @@ export const saasAdminApi = {
   
   listPlans: () => http<SaasPlan[]>('/api/saas-admin/plans'),
   listFeaturePlans: () => http<any[]>('/api/saas-admin/feature-plans'),
-  createPlan: (payload: Omit<SaasPlan, 'id' | 'is_active'>) => http<{ ok: boolean }>('/api/saas-admin/plans', { method: 'POST', body: JSON.stringify(payload) }),
+  createPlan: (payload: { code: string; name: string; price: number; currency?: string; billingPeriodMonths: number; maxUsers?: number | null; maxBranches?: number | null }) => http<{ ok: boolean }>('/api/saas-admin/plans', { method: 'POST', body: JSON.stringify(payload) }),
+  updatePlan: (id: number, payload: { code?: string; name?: string; price?: number; currency?: string; billingPeriodMonths?: number; maxUsers?: number | null; maxBranches?: number | null; isActive?: boolean }) => http<{ ok: boolean }>(`/api/saas-admin/plans/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
   getSubscriptions: (id: string) => http<{ subscriptions: any[]; payments: any[] }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/subscriptions`),
   renewTenant: (id: string, payload: { durationMonths: number; planId: number; paymentAmount?: number; paymentMethod?: string; paymentReference?: string }) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/renew`, { method: 'POST', body: JSON.stringify(payload) }),
   recordPayment: (id: string, payload: RecordPaymentPayload) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/payment`, { method: 'POST', body: JSON.stringify(payload) }),
