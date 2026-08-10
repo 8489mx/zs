@@ -229,6 +229,9 @@ export function getRouteFeatureRequirement(target: string) {
 }
 
 export function hasRequiredFeature(target: string): boolean {
+  const user = useAuthStore.getState().user;
+  if (isPlatformAdmin(user)) return true;
+
   const requiredFeature = getRouteFeatureRequirement(target);
   if (!requiredFeature) return true;
   

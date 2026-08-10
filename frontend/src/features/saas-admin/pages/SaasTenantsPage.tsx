@@ -56,7 +56,7 @@ export function SaasTenantsPage() {
   
   const [upgradeTenant, setUpgradeTenant] = useState<{ id: string } | null>(null);
   const [upgradeDuration, setUpgradeDuration] = useState<number>(1);
-  const [upgradePlanId, setUpgradePlanId] = useState<number | ''>('');
+  const [upgradePlanId, setUpgradePlanId] = useState<string>('');
   const [upgradePaymentAmount, setUpgradePaymentAmount] = useState<number | ''>('');
   const [upgradePaymentMethod, setUpgradePaymentMethod] = useState('cash');
 
@@ -64,7 +64,7 @@ export function SaasTenantsPage() {
 
   const [renewTenant, setRenewTenant] = useState<{ id: string } | null>(null);
   const [renewDuration, setRenewDuration] = useState<number>(1);
-  const [renewPlanId, setRenewPlanId] = useState<number | ''>('');
+  const [renewPlanId, setRenewPlanId] = useState<string>('');
   const [renewPaymentAmount, setRenewPaymentAmount] = useState<number | ''>('');
   const [renewPaymentMethod, setRenewPaymentMethod] = useState('cash');
 
@@ -77,8 +77,8 @@ export function SaasTenantsPage() {
   const [detailsTenantId, setDetailsTenantId] = useState<string | null>(null);
 
   const plansQuery = useQuery({
-    queryKey: ['saas-plans'],
-    queryFn: () => saasAdminApi.listPlans(),
+    queryKey: ['saas-feature-plans'],
+    queryFn: () => saasAdminApi.listFeaturePlans(),
     enabled: canAccess,
   });
   const plans = plansQuery.data || [];
@@ -126,7 +126,7 @@ export function SaasTenantsPage() {
   const invalidateTenants = () => queryClient.invalidateQueries({ queryKey: ['saas-admin-tenants'] });
 
   const tenantActionMutation = useMutation({
-    mutationFn: async (input: { action: TenantActionKey; tenantId: string; durationMonths?: number; planId?: number; paymentAmount?: number; paymentMethod?: string }) => {
+    mutationFn: async (input: { action: TenantActionKey; tenantId: string; durationMonths?: number; planId?: string | number; paymentAmount?: number; paymentMethod?: string }) => {
       if (input.action === 'activate') return saasAdminApi.activateTenant(input.tenantId, {
         durationMonths: input.durationMonths,
         planId: input.planId,
@@ -146,7 +146,7 @@ export function SaasTenantsPage() {
   });
 
   const renewMutation = useMutation({
-    mutationFn: (input: { tenantId: string; durationMonths: number; planId: number; paymentAmount?: number; paymentMethod?: string }) => 
+    mutationFn: (input: { tenantId: string; durationMonths: number; planId: string | number; paymentAmount?: number; paymentMethod?: string }) => 
       saasAdminApi.renewTenant(input.tenantId, input),
     onSuccess: async () => {
       setFeedback('تم تجديد الاشتراك بنجاح.');
@@ -464,10 +464,10 @@ export function SaasTenantsPage() {
             <FormSection title="تفعيل / ترقية النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">
                 <Field label="الخطة">
-                  <select value={upgradePlanId} onChange={(e) => setUpgradePlanId(Number(e.target.value) || '')}>
+                  <select value={upgradePlanId} onChange={(e) => setUpgradePlanId(e.target.value)}>
                     <option value="">-- اختر الخطة --</option>
                     {plans.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.price} {p.currency})</option>
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
                 </Field>
@@ -496,7 +496,7 @@ export function SaasTenantsPage() {
                       action: 'activate', 
                       tenantId: upgradeTenant.id, 
                       durationMonths: upgradeDuration,
-                      planId: upgradePlanId ? Number(upgradePlanId) : undefined,
+                      planId: upgradePlanId || undefined,
                       paymentAmount: upgradePaymentAmount ? Number(upgradePaymentAmount) : undefined,
                       paymentMethod: upgradePaymentMethod,
                     });
@@ -517,10 +517,10 @@ export function SaasTenantsPage() {
             <FormSection title="تجديد اشتراك النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setRenewTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">
                 <Field label="الخطة">
-                  <select value={renewPlanId} onChange={(e) => setRenewPlanId(Number(e.target.value) || '')}>
+                  <select value={renewPlanId} onChange={(e) => setRenewPlanId(e.target.value)}>
                     <option value="">-- اختر الخطة --</option>
                     {plans.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.price} {p.currency})</option>
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
                 </Field>
@@ -547,7 +547,7 @@ export function SaasTenantsPage() {
                     renewMutation.mutate({ 
                       tenantId: renewTenant.id, 
                       durationMonths: renewDuration,
-                      planId: Number(renewPlanId),
+                      planId: renewPlanId || '',
                       paymentAmount: renewPaymentAmount ? Number(renewPaymentAmount) : undefined,
                       paymentMethod: renewPaymentMethod,
                     });
