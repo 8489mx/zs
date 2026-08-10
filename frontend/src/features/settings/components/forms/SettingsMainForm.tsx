@@ -43,6 +43,38 @@ const checkboxInputStyle: CSSProperties = {
   cursor: 'pointer',
 };
 
+const premiumCardStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 16,
+  padding: 16,
+  border: '1px solid var(--border, #dbe2ea)',
+  borderRadius: 12,
+  background: 'var(--surface, #fff)',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+};
+
+const premiumCardTextStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+  textAlign: 'right',
+  flex: 1,
+};
+
+const premiumCheckboxInputStyle: CSSProperties = {
+  width: 24,
+  height: 24,
+  flexShrink: 0,
+  margin: 0,
+  cursor: 'pointer',
+  accentColor: 'var(--primary, #2563eb)',
+};
+
+
 const requiredStarStyle: CSSProperties = { color: '#dc2626', fontWeight: 700, marginInlineStart: 2 };
 const comboListStyle: CSSProperties = { border: '1px solid var(--border, #dbe2ea)', borderRadius: 8, background: 'var(--surface, #fff)', marginTop: 6, maxHeight: 180, overflowY: 'auto', padding: 4 };
 const comboRowStyle: CSSProperties = { width: '100%', textAlign: 'right', background: 'transparent', border: 'none', padding: '8px 10px', borderRadius: 8, cursor: 'pointer' };
@@ -74,6 +106,7 @@ function RequiredField({ label, error, children }: RequiredFieldProps) {
 export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsMainFormProps) {
   const locale = useLocalePreference();
   const setLocaleLanguage = locale.setLanguage;
+  const [activeTab, setActiveTab] = useState<'general' | 'sales_inventory' | 'modules' | 'printing' | 'security'>('general');
   const form = useForm<SettingsFormInput, undefined, SettingsFormOutput>({
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
@@ -440,10 +473,41 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           </div>
         ) : null}
 
-        {/* معاينة الهوية التجارية */}
-        <FormSection title="الهوية التجارية">
-          <BrandPreview form={form} />
-        </FormSection>
+        {/* التابات */}
+        <div className="settings-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border, #dbe2ea)', paddingBottom: '8px', overflowX: 'auto' }}>
+          {[
+            { id: 'general', label: 'عام' },
+            { id: 'sales_inventory', label: 'البيع والمخزون' },
+            { id: 'modules', label: 'موديولات النظام' },
+            { id: 'printing', label: 'الطباعة' },
+            { id: 'security', label: 'الأمان' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                background: activeTab === tab.id ? 'var(--primary, #2563eb)' : 'transparent',
+                color: activeTab === tab.id ? '#fff' : 'var(--text, #1e293b)',
+                border: activeTab === tab.id ? '1px solid var(--primary, #2563eb)' : '1px solid transparent',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontWeight: activeTab === tab.id ? 700 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: activeTab === 'general' ? 'block' : 'none' }}>
+          {/* معاينة الهوية التجارية */}
+          <FormSection title="الهوية التجارية">
+            <BrandPreview form={form} />
+          </FormSection>
 
         {/* ===== اللغة والمنطقة ===== */}
         <FormSection title="اللغة والمنطقة" description={<>اضبط لغة الواجهة والعملة والمنطقة الزمنية المستخدمة في شاشة النظام والتقارير.</>}>
@@ -713,7 +777,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             </div>
           </div>
         </FormSection>
+        </div>
 
+        <div style={{ display: activeTab === 'sales_inventory' ? 'block' : 'none' }}>
         {/* ===== إعدادات البيع والفاتورة ===== */}
         <FormSection title="إعدادات البيع والفاتورة">
           <div className="document-prototype-grid compact-grid-2">
@@ -753,29 +819,29 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         {/* ===== خيارات البيع والمخزون ===== */}
         <FormSection title="خيارات البيع والمخزون">
           <div className="document-prototype-grid compact-grid-2">
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('allowNegativeStockSales')} disabled={disabled} />
-              السماح بالبيع بالسالب (تخطي تحذير المخزون)
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>السماح بالبيع بالسالب (تخطي تحذير المخزون)</div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowNegativeStockSales')} disabled={disabled} />
             </label>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
-              السماح بسعر شراء صفر للمخازن والعطايا
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>السماح بسعر شراء صفر للمخازن والعطايا</div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
             </label>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('requireCashierShiftForSales')} disabled={disabled} />
-              إجبار فتح وردية لعمليات الكاشير
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>إجبار فتح وردية لعمليات الكاشير</div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('requireCashierShiftForSales')} disabled={disabled} />
             </label>
             <div className="field">
               <label>حد التنبيه للمخزون</label>
               <input className="purchase-prototype-field-input" type="number" min="0" {...form.register('lowStockThreshold')} disabled={disabled} />
             </div>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('posKitchenPrinterEnabled')} disabled={disabled} />
-              تفعيل طباعة شيت المطبخ (KOT)
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>تفعيل طباعة شيت المطبخ (KOT)</div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posKitchenPrinterEnabled')} disabled={disabled} />
             </label>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
-              طباعة شيت المطبخ تلقائياً
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>طباعة شيت المطبخ تلقائياً</div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
             </label>
             <div className="field">
               <label>نوع شيت المطبخ</label>
@@ -828,34 +894,54 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             </div>
           </div>
         </FormSection>
+        </div>
 
+        <div style={{ display: activeTab === 'modules' ? 'block' : 'none' }}>
         {/* ===== موديولات النظام ===== */}
         <FormSection title="موديولات النظام" description={<>شغّل الأجزاء اللي محتاجها بس — والباقي هيتخفى تلقائيًا من الشاشات.</>}>
           <div className="document-prototype-grid compact-grid-2">
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('manufacturingModuleEnabled')} disabled={disabled} />
-              <span><strong>🏭 التصنيع والإنتاج</strong><br /><small className="muted">يضيف خيارات المكونات والتصنيع</small></span>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>🏭 التصنيع والإنتاج</strong>
+                <small className="muted">يضيف خيارات المكونات والتصنيع</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('manufacturingModuleEnabled')} disabled={disabled} />
             </label>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('comboModuleEnabled')} disabled={disabled} />
-              <span><strong>📦 العروض المجمعة والوجبات</strong><br /><small className="muted">يفعّل العروض المكونة من عدة أصناف (Combos)</small></span>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>📦 العروض المجمعة والوجبات</strong>
+                <small className="muted">يفعّل العروض المكونة من عدة أصناف (Combos)</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('comboModuleEnabled')} disabled={disabled} />
             </label>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('restaurantModuleEnabled')} disabled={disabled} />
-              <span><strong>🍽️ موديول المطاعم والكافيهات</strong><br /><small className="muted">يفعّل نظام الطاولات وأنواع الطلبات</small></span>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>🍽️ موديول المطاعم والكافيهات</strong>
+                <small className="muted">يفعّل نظام الطاولات وأنواع الطلبات</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('restaurantModuleEnabled')} disabled={disabled} />
             </label>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('posShowCartMeta')} disabled={disabled} />
-              <span><strong>🛒 اختيار الطاولة والعميل بالكاشير</strong><br /><small className="muted">يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع</small></span>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>🛒 اختيار الطاولة والعميل بالكاشير</strong>
+                <small className="muted">يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowCartMeta')} disabled={disabled} />
             </label>
 
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('clothingModuleEnabled')} disabled={disabled} />
-              <span><strong>👗 موديل الملابس والمتغيرات</strong><br /><small className="muted">يفعّل موديلات الملابس والأحجام والألوان</small></span>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>👗 موديل الملابس والمتغيرات</strong>
+                <small className="muted">يفعّل موديلات الملابس والأحجام والألوان</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('clothingModuleEnabled')} disabled={disabled} />
             </label>
-            <label style={checkboxStyle}>
-              <input type="checkbox" {...form.register('weightedBarcodeEnabled')} disabled={disabled} />
-              <span><strong>⚖️ باركود الميزان</strong><br /><small className="muted">باركود مضمّن فيه الوزن أو السعر مباشرةً</small></span>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>⚖️ باركود الميزان</strong>
+                <small className="muted">باركود مضمّن فيه الوزن أو السعر مباشرةً</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('weightedBarcodeEnabled')} disabled={disabled} />
             </label>
           </div>
 
@@ -892,7 +978,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             </div>
           ) : null}
         </FormSection>
+        </div>
 
+        <div style={{ display: activeTab === 'security' ? 'block' : 'none' }}>
         {/* ===== الأمان والنسخ الاحتياطي ===== */}
         <FormSection title="الأمان والنسخ الاحتياطي">
           <div className="document-prototype-grid compact-grid-2">
@@ -910,7 +998,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             </div>
           </div>
         </FormSection>
+        </div>
 
+        <div style={{ display: activeTab === 'printing' ? 'block' : 'none' }}>
         {/* ===== عناصر الطباعة ===== */}
         <FormSection title="عناصر الطباعة على الفاتورة">
           <div className="settings-print-options-grid" style={checkboxGridStyle}>
@@ -943,6 +1033,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowFooter')} disabled={disabled} /> إظهار التذييل</label>
           </div>
         </FormSection>
+        </div>
+
       <div className="actions compact-actions sticky-form-actions settings-save-actions">
         <button type="button" className="btn btn-secondary" onClick={() => form.setValue('logoData', '', { shouldDirty: true })} disabled={mutation.isPending || !form.watch('logoData')}>حذف الشعار</button>
         <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset(); }} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ التغييرات</button>

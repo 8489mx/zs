@@ -193,8 +193,8 @@ describe('app ui coverage', () => {
       />,
     );
     expect(await screen.findByRole('heading', { level: 1, name: 'إعدادات النشاط' })).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: 'بيانات النشاط' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { level: 3, name: 'بيانات النشاط' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'إعدادات النظام' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 3, name: 'إعدادات النظام' })).toBeInTheDocument();
     expect(await screen.findByText('الإعدادات العامة')).toBeInTheDocument();
     expect(await screen.findByText('الفرع الرئيسي')).toBeInTheDocument();
     expect(await screen.findByText('المخزن الأساسي')).toBeInTheDocument();
