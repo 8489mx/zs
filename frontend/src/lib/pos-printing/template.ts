@@ -225,7 +225,7 @@ function renderTotals(options: {
   `;
 }
 
-export function getInvoiceStyles(compact = false, theme = 'classic') {
+export function getInvoiceStyles(compact = false) {
   return `
     .print-shell { padding: ${compact ? '1mm 1.2mm 2.5mm' : '2mm 1.8mm 3mm'}; }
     .print-header { display: none !important; }
