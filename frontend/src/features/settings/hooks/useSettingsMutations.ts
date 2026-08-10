@@ -21,6 +21,9 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
         storeName: typeof updatedSettings?.storeName === 'string' ? updatedSettings.storeName : undefined,
         theme: typeof updatedSettings?.theme === 'string' ? updatedSettings.theme : undefined,
       });
+      queryClient.setQueryData(queryKeys.settings, updatedSettings);
+      queryClient.setQueryData(queryKeys.posSettings, updatedSettings);
+      
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.settings }),
         queryClient.invalidateQueries({ queryKey: queryKeys.posSettings }),
