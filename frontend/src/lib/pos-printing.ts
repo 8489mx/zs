@@ -7,7 +7,6 @@ import {
   formatDateTime,
   getPrintOption,
   paymentLabel,
-  getReceiptTheme,
   type PosPrintPageSize,
 } from '@/lib/pos-printing/shared';
 
