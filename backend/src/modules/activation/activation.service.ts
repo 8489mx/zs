@@ -347,9 +347,23 @@ export class ActivationService {
           .onConflict((oc) => oc.columns(['user_id', 'branch_id'] as never).doNothing())
           .execute();
 
+        await trx
+          .updateTable('branches')
+          .set({ default_stock_location_id: Number(location.id) })
+          .where('id', '=', branch.id)
+          .execute();
+
         await this.setSetting('activation.initializedAt', now.toISOString(), trx);
         await this.setSetting('activation.primaryBranchId', String(branch.id), trx);
         await this.setSetting('activation.primaryLocationId', String(location.id), trx);
+
+        // Seed default application settings
+        await this.setSetting('paperSize', JSON.stringify('receipt'), trx);
+        await this.setSetting('dateFormat', JSON.stringify('dd/MM/yyyy'), trx);
+        await this.setSetting('timeFormat', JSON.stringify('12h'), trx);
+        await this.setSetting('currency', JSON.stringify('EGP'), trx);
+        await this.setSetting('timezone', JSON.stringify('Africa/Cairo'), trx);
+        await this.setSetting('defaultPosMode', JSON.stringify('touch'), trx);
       });
     } catch (error) {
       this.logger.error(
