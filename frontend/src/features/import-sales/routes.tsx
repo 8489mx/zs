@@ -3,9 +3,8 @@ import { lazy } from 'react';
 
 const ShipmentsManager = lazy(() => import('./ShipmentsManager'));
 const SupplierCredit = lazy(() => import('./SupplierCredit'));
-
-const MerchantDebts = () => <div style={{padding: '2rem'}}>ديون التجار والدفعات (جاري العمل عليها)</div>;
-const ProfitPool = () => <div style={{padding: '2rem'}}>مجمع الأرباح المحاسبي (جاري العمل عليها)</div>;
+const MerchantDebts = lazy(() => import('./MerchantDebts'));
+const ProfitPool = lazy(() => import('./ProfitPool'));
 
 export const importSalesRouteModule: FeatureRouteModule = {
   routes: [

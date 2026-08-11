@@ -1,42 +1,39 @@
-import './FrontendStyles.css';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { FormSection } from '@/shared/components/form-section';
+import { Button } from '@/shared/ui/button';
+import { formatCurrency } from '@/lib/format';
 
 export default function SupplierCredit() {
+  const stats = [
+    { key: 'debt_usd', label: 'المديونية المتبقية', value: '$125,000' },
+    { key: 'available', label: 'الرصيد المتاح للتحويل بالدرج', value: formatCurrency(450000) },
+    { key: 'debt_local', label: 'يعادل تقريباً (بسعر الصرف الحالي)', value: formatCurrency(125000 * 49.20) },
+  ] as const;
+
   return (
-    <div className="module-container">
-      <h2 className="section-title">🏦 محفظة سداد المصنع الصيني</h2>
-      
-      <div className="credit-summary">
-        <div className="summary-item">
-          <span>المديونية المتبقية</span>
-          <h3 style={{color: '#f43f5e'}}>$125,000</h3>
-        </div>
-        <div className="summary-item" style={{border: '1px solid rgba(251, 191, 36, 0.3)'}}>
-          <span>الرصيد المتاح للتحويل بالدرج</span>
-          <h3 style={{color: '#fbbf24'}}>450,000 ج.م</h3>
-        </div>
-        <div className="summary-item">
-          <span>يعادل تقريباً (بسعر الصرف الحالي)</span>
-          <h3 style={{color: '#38bdf8'}}>$9,180</h3>
-        </div>
-      </div>
-      
-      <div className="payment-form-card">
-        <h3 style={{marginTop: 0, marginBottom: '1.5rem'}}>تسجيل حوالة بنكية جديدة</h3>
-        <p style={{color: '#94a3b8', marginBottom: '2rem'}}>هذه العملية ستقوم بخصم الرصيد من الدرج وتقليل مديونية الصين بناءً على سعر الصرف الفعلي للبنك.</p>
-        
-        <div className="cards-grid">
-          <div className="form-group">
-            <label>المبلغ المحول (بـ الدولار $)</label>
-            <input type="number" placeholder="مثال: 5000" />
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+        <PageHeader 
+          title="محفظة سداد المصنع الصيني" 
+          description="متابعة ديون الصين وتحويلات الدفعات وتقليل المديونية."
+          actions={
+            <div className="actions compact-actions">
+              <Button variant="primary">كشف حساب المصنع</Button>
+            </div>
+          } 
+        />
+        <StatsGrid items={stats} />
+
+        <FormSection 
+          title="تسجيل حوالة بنكية جديدة" 
+          description="هذه العملية ستقوم بخصم الرصيد من الدرج وتقليل مديونية الصين بناءً على سعر الصرف الفعلي للبنك."
+        >
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--gray-500)' }}>
+            جاري برمجة نموذج إدخال الحوالة البنكية...
           </div>
-          <div className="form-group">
-            <label>سعر الصرف البنكي الفعلي</label>
-            <input type="number" placeholder="مثال: 49.20" />
-          </div>
-        </div>
-        
-        <button className="action-btn success">تأكيد تحويل الأموال وتخفيض المديونية</button>
-      </div>
+        </FormSection>
+      </main>
     </div>
   );
 }

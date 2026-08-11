@@ -1,37 +1,39 @@
-import { useState } from 'react';
-import './FrontendStyles.css';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { FormSection } from '@/shared/components/form-section';
+import { Button } from '@/shared/ui/button';
 
 export default function ShipmentsManager() {
-  const [shipments] = useState([
-    { id: 1, container: 'MSKU-1234567', arrival: '2026-09-01', status: 'في البحر' },
-    { id: 2, container: 'CMAU-9876543', arrival: '2026-08-10', status: 'في الجمارك' },
-    { id: 3, container: 'HLXU-1122334', arrival: '2026-07-20', status: 'تم حساب التكلفة' }
-  ]);
+  const stats = [
+    { key: 'sea', label: 'حاويات في البحر', value: 1 },
+    { key: 'customs', label: 'حاويات في الجمارك', value: 1 },
+    { key: 'arrived', label: 'تم حساب تكلفتها', value: 1 },
+  ] as const;
 
   return (
-    <div className="module-container">
-      <h2 className="section-title">🚢 إدارة الحاويات والشحنات</h2>
-      <div className="cards-grid">
-        {shipments.map(s => (
-          <div key={s.id} className="shipment-card">
-            <div className="shipment-header">
-              <h3>{s.container}</h3>
-              <span className={`status-badge ${s.status === 'في البحر' ? 'blue' : s.status === 'في الجمارك' ? 'yellow' : 'green'}`}>
-                {s.status}
-              </span>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+        <PageHeader 
+          title="إدارة الحاويات والشحنات" 
+          description="متابعة حركة الحاويات من الصين حتى الوصول للمخازن وحساب التكلفة."
+          actions={
+            <div className="actions compact-actions">
+              <Button variant="primary">إضافة حاوية جديدة</Button>
             </div>
-            <p style={{color: '#94a3b8', fontSize: '0.95rem'}}>تاريخ الوصول المتوقع: {s.arrival}</p>
-            
-            {s.status === 'في الجمارك' && (
-               <button className="action-btn primary">إدخال فواتير التخليص وحساب التكلفة</button>
-            )}
-            
-            {s.status === 'تم حساب التكلفة' && (
-               <button className="action-btn secondary">عرض تقرير تكلفة الأصناف</button>
-            )}
+          } 
+        />
+        <StatsGrid items={stats} />
+
+        <FormSection 
+          title="الحاويات النشطة" 
+          description="قائمة بالحاويات التي لم تصل للمخازن بعد."
+          actions={<span className="nav-pill">3 حاويات</span>}
+        >
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--gray-500)' }}>
+            جاري برمجة جدول الحاويات...
           </div>
-        ))}
-      </div>
+        </FormSection>
+      </main>
     </div>
   );
 }
