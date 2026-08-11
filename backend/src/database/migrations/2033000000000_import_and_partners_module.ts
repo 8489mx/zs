@@ -1,11 +1,12 @@
 import { Kysely, sql } from 'kysely';
 
-export async function up(db: Kysely<any>): Promise<void> {
-  // 1. Partners Table
+export const migration = {
+  up: async (db: Kysely<any>): Promise<void> => {
+    // 1. Partners Table
   await db.schema
     .createTable('import_partners')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`uuid_generate_v4()`))
-    .addColumn('tenant_id', 'uuid', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('tenant_id', 'text', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
     .addColumn('name', 'varchar(255)', (col) => col.notNull())
     .addColumn('role', 'varchar(100)')
     .addColumn('profit_share_percentage', 'numeric(5, 2)', (col) => col.notNull())
@@ -15,8 +16,8 @@ export async function up(db: Kysely<any>): Promise<void> {
   // 2. Exchange Rates
   await db.schema
     .createTable('import_exchange_rates')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`uuid_generate_v4()`))
-    .addColumn('tenant_id', 'uuid', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('tenant_id', 'text', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
     .addColumn('date', 'date', (col) => col.notNull().defaultTo(sql`CURRENT_DATE`))
     .addColumn('rate_usd_to_egp', 'numeric(10, 4)', (col) => col.notNull())
     .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`now()`))
@@ -26,8 +27,8 @@ export async function up(db: Kysely<any>): Promise<void> {
   // 3. Shipments
   await db.schema
     .createTable('import_shipments')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`uuid_generate_v4()`))
-    .addColumn('tenant_id', 'uuid', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('tenant_id', 'text', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
     .addColumn('container_number', 'varchar(100)', (col) => col.notNull())
     .addColumn('arrival_date', 'date')
     .addColumn('shipping_cost_usd', 'numeric(12, 2)', (col) => col.defaultTo('0'))
@@ -42,8 +43,8 @@ export async function up(db: Kysely<any>): Promise<void> {
   // 4. Supplier Credit
   await db.schema
     .createTable('import_supplier_credit')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`uuid_generate_v4()`))
-    .addColumn('tenant_id', 'uuid', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('tenant_id', 'text', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
     .addColumn('factory_name', 'varchar(255)', (col) => col.notNull())
     .addColumn('total_debt_usd', 'numeric(15, 2)', (col) => col.defaultTo('0'))
     .addColumn('last_updated', 'timestamptz', (col) => col.defaultTo(sql`now()`))
@@ -53,8 +54,8 @@ export async function up(db: Kysely<any>): Promise<void> {
   // 5. Payment Transactions
   await db.schema
     .createTable('import_payment_transactions')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`uuid_generate_v4()`))
-    .addColumn('tenant_id', 'uuid', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('tenant_id', 'text', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
     .addColumn('factory_name', 'varchar(255)', (col) => col.notNull())
     .addColumn('amount_usd', 'numeric(15, 2)', (col) => col.notNull())
     .addColumn('exchange_rate', 'numeric(10, 4)', (col) => col.notNull())
@@ -68,10 +69,10 @@ export async function up(db: Kysely<any>): Promise<void> {
   // 6. Shipment Items
   await db.schema
     .createTable('import_shipment_items')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`uuid_generate_v4()`))
-    .addColumn('tenant_id', 'uuid', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('tenant_id', 'text', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
     .addColumn('shipment_id', 'uuid', (col) => col.notNull().references('import_shipments.id').onDelete('cascade'))
-    .addColumn('product_id', 'uuid', (col) => col.notNull().references('products.id').onDelete('restrict'))
+    .addColumn('product_id', 'bigint', (col) => col.notNull().references('products.id').onDelete('restrict'))
     .addColumn('quantity', 'integer', (col) => col.notNull())
     .addColumn('factory_unit_price_usd', 'numeric(10, 2)', (col) => col.notNull())
     .addColumn('allocated_overhead_egp', 'numeric(10, 2)', (col) => col.defaultTo('0'))
@@ -82,9 +83,9 @@ export async function up(db: Kysely<any>): Promise<void> {
   // 7. Sales and Profit Table
   await db.schema
     .createTable('import_sales_and_profit')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`uuid_generate_v4()`))
-    .addColumn('tenant_id', 'uuid', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
-    .addColumn('product_id', 'uuid', (col) => col.notNull().references('products.id').onDelete('restrict'))
+    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('tenant_id', 'text', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+    .addColumn('product_id', 'bigint', (col) => col.notNull().references('products.id').onDelete('restrict'))
     .addColumn('shipment_item_id', 'uuid', (col) => col.notNull().references('import_shipment_items.id').onDelete('restrict'))
     .addColumn('quantity_sold', 'integer', (col) => col.notNull())
     .addColumn('unit_sale_price_egp', 'numeric(12, 2)', (col) => col.notNull())
@@ -98,22 +99,23 @@ export async function up(db: Kysely<any>): Promise<void> {
   // 8. Sale Partner Shares
   await db.schema
     .createTable('import_sale_partner_shares')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`uuid_generate_v4()`))
-    .addColumn('tenant_id', 'uuid', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
+    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+    .addColumn('tenant_id', 'text', (col) => col.notNull().references('tenants.id').onDelete('cascade'))
     .addColumn('sale_id', 'uuid', (col) => col.notNull().references('import_sales_and_profit.id').onDelete('cascade'))
     .addColumn('partner_id', 'uuid', (col) => col.notNull().references('import_partners.id').onDelete('restrict'))
     .addColumn('share_amount_egp', 'numeric(12, 2)', (col) => col.notNull())
     .addColumn('created_at', 'timestamptz', (col) => col.defaultTo(sql`now()`))
     .execute();
-}
+  },
 
-export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.dropTable('import_sale_partner_shares').execute();
-  await db.schema.dropTable('import_sales_and_profit').execute();
-  await db.schema.dropTable('import_shipment_items').execute();
-  await db.schema.dropTable('import_payment_transactions').execute();
-  await db.schema.dropTable('import_supplier_credit').execute();
-  await db.schema.dropTable('import_shipments').execute();
-  await db.schema.dropTable('import_exchange_rates').execute();
-  await db.schema.dropTable('import_partners').execute();
-}
+  down: async (db: Kysely<any>): Promise<void> => {
+    await db.schema.dropTable('import_sale_partner_shares').execute();
+    await db.schema.dropTable('import_sales_and_profit').execute();
+    await db.schema.dropTable('import_shipment_items').execute();
+    await db.schema.dropTable('import_payment_transactions').execute();
+    await db.schema.dropTable('import_supplier_credit').execute();
+    await db.schema.dropTable('import_shipments').execute();
+    await db.schema.dropTable('import_exchange_rates').execute();
+    await db.schema.dropTable('import_partners').execute();
+  },
+};

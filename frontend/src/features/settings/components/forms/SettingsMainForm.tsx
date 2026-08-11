@@ -275,7 +275,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     if (!settings) return;
     const clothingEnabled = settings.clothingModuleEnabled === true;
     form.reset({
-      storeName: settings.storeName || '',
+      storeName: settings.storeName || 'Z Systems',
       brandName: settings.brandName || settings.storeName || 'Z Systems',
       phone: settings.phone || '',
       address: settings.address || '',
@@ -477,6 +477,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         ) : null}
 
         {/* التابات */}
+        {!form.formState.isValid && form.formState.isSubmitted && Object.keys(form.formState.errors).length > 0 && (
+          <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', borderRadius: 8, marginBottom: 16 }}>
+            يوجد حقول مطلوبة لم يتم إدخالها بشكل صحيح في تبويبات أخرى (مثل اسم النشاط في تبويب "عام"). يرجى مراجعتها ثم المحاولة مرة أخرى.
+          </div>
+        )}
         <div className="settings-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border, #dbe2ea)', paddingBottom: '8px', overflowX: 'auto' }}>
           {[
             { id: 'general', label: 'عام' },
@@ -776,7 +781,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             </div>
             <div className="field">
               <label>لون الواجهة</label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div
+                style={{
+                  display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input className="purchase-prototype-field-input" style={{ height: 42, padding: 4, flexShrink: 0, width: '60px' }} type="color" value={form.watch('accentColor') || '#170c5c'} onChange={(e) => form.setValue('accentColor', e.target.value, { shouldDirty: true })} disabled={disabled} />
                 <input className="purchase-prototype-field-input" style={{ height: 42, fontFamily: 'monospace', direction: 'ltr' }} type="text" placeholder="#170c5c" {...form.register('accentColor')} disabled={disabled} />
                 <button type="button" className="btn-secondary" style={{ height: 42, whiteSpace: 'nowrap' }} onClick={() => form.setValue('accentColor', '#170c5c', { shouldDirty: true })} disabled={disabled}>اللون الافتراضي</button>
