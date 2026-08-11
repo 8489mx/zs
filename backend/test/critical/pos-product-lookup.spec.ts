@@ -237,7 +237,8 @@ async function run(): Promise<void> {
     const guard = new PermissionsGuard(
       { getAllAndOverride: () => ['sales'] } as any,
       { hasAllPermissions: (granted: string[], required: string[]) => required.every((permission) => granted.includes(permission)) } as any,
-      { hasFeature: () => true } as any
+      { hasFeature: () => true } as any,
+      {} as any
     );
     assert.equal(guard.canActivate({ getHandler: () => null, getClass: () => CatalogController, switchToHttp: () => ({ getRequest: () => ({ authContext: cashier }) }) } as any), true);
     assert.throws(

@@ -157,6 +157,7 @@ async function main() {
   }, 201)) as any;
   const cancelSaleId = cancelSaleRes.sales ? cancelSaleRes.sales[0].id : cancelSaleRes.id || cancelSaleRes.sale?.id;
 
+  const testAdminPassword = process.env.TEST_ADMIN_PASSWORD || 'secret';
   await tenantClient.post(`/api/sales/${cancelSaleId}/cancel`, {
     reason: 'Customer changed mind',
     managerPin: testAdminPassword
