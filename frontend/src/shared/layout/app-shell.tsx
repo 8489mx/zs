@@ -9,6 +9,7 @@ import { resetAuthenticatedClient } from '@/lib/query-client-session';
 import { DEFAULT_STORE_NAME, useAuthStore } from '@/stores/auth-store';
 import { navigationItems } from '@/app/router/registry';
 import { canAccessNavigationItem } from '@/app/router/access';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
@@ -138,6 +139,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  const { data: settings } = useSettingsQuery();
   const storeName = useAuthStore((state) => state.storeName);
   const isEtaActive = useAuthStore((state) => state.isEtaActive);
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -204,14 +206,19 @@ export function AppShell({ children }: PropsWithChildren) {
       'product-categories': 'أقسام الأصناف',
     };
     return navigationItems
-      .filter((item) => user && canAccessNavigationItem(user, item) && (item.key !== 'tax-dispatcher' || isEtaActive))
+      .filter((item) => {
+        if (!user || !canAccessNavigationItem(user, item)) return false;
+        if (item.key === 'tax-dispatcher' && !isEtaActive) return false;
+        if (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true) return false;
+        return true;
+      })
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
       .sort((a, b) => {
         const aIndex = preferredOrder.indexOf(a.key);
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, t, isEtaActive]);
+  }, [user, t, isEtaActive, settings?.importModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
