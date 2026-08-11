@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards, Query, Delete } from '@nestjs/common';
 import { ImportSalesService } from './import-sales.service';
 import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto } from './dto/import-sales.dto';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -12,6 +12,22 @@ export class ImportSalesController {
   @Get('partners')
   async getPartners(@Req() req: RequestWithAuth) {
     return this.importSalesService.getPartners(req.authContext!.tenantId!);
+  }
+
+  @Post('partners')
+  async createPartner(
+    @Req() req: RequestWithAuth,
+    @Body() dto: { name: string; percentage: number }
+  ) {
+    return this.importSalesService.createPartner(req.authContext!.tenantId!, dto.name, dto.percentage);
+  }
+
+  @Delete('partners/:id')
+  async deletePartner(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string
+  ) {
+    return this.importSalesService.deletePartner(req.authContext!.tenantId!, id);
   }
 
   // --- Shipments Endpoints ---
@@ -65,10 +81,15 @@ export class ImportSalesController {
 
   @Get('profit-report')
   async generateProfitReport(
-    @Req() req: RequestWithAuth
+    @Req() req: RequestWithAuth,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string
   ) {
-    const start = new Date(); start.setDate(1);
-    const end = new Date();
-    return this.importSalesService.generatePeriodProfitReport(req.authContext!.tenantId!, start, end);
+    if (!startDate || !endDate) {
+      const end = new Date();
+      const start = new Date(); start.setDate(1);
+      return this.importSalesService.generatePeriodProfitReport(req.authContext!.tenantId!, start, end);
+    }
+    return this.importSalesService.generatePeriodProfitReport(req.authContext!.tenantId!, startDate, endDate);
   }
 }

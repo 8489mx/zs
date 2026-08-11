@@ -120,3 +120,75 @@ export const useAddShipmentItemMutation = (shipmentId: string) => {
     },
   });
 };
+
+export interface ProfitReport {
+  totalRevenue: number;
+  totalCost: number;
+  grossProfit: number;
+  totalExpenses: number;
+  netProfitPool: number;
+  partnerShares: {
+    partnerId: string;
+    name: string;
+    percentage: number;
+    shareAmount: number;
+  }[];
+}
+
+export const useProfitReportQuery = (startDate: string, endDate: string) => {
+  return useQuery({
+    queryKey: ['profit-report', startDate, endDate],
+    queryFn: async () => {
+      const data = await http<{ success: boolean, message: string, data: ProfitReport }>(
+        `/api/import-sales/profit-report?startDate=${startDate}&endDate=${endDate}`
+      );
+      return data.data;
+    },
+    enabled: !!startDate && !!endDate,
+  });
+};
+
+export interface Partner {
+  id: string;
+  name: string;
+  profit_share_percentage: number;
+}
+
+export const usePartnersQuery = () => {
+  return useQuery({
+    queryKey: ['import-partners'],
+    queryFn: async () => {
+      const data = await http<Partner[]>('/api/import-sales/partners');
+      return data;
+    },
+  });
+};
+
+export const useCreatePartnerMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: { name: string; percentage: number }) => {
+      return await http('/api/import-sales/partners', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-partners'] });
+      queryClient.invalidateQueries({ queryKey: ['profit-report'] });
+    },
+  });
+};
+
+export const useDeletePartnerMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return await http(`/api/import-sales/partners/${id}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-partners'] });
+      queryClient.invalidateQueries({ queryKey: ['profit-report'] });
+    },
+  });
+};

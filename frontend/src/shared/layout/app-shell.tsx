@@ -171,7 +171,7 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'tax-dispatcher', 'delivery-reps', 'purchases-new', 'purchases', 'returns', 'purchase-returns', 'import-shipments', 'import-supplier-credit', 'import-merchant-debts', 'import-profit-pool', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'expenses', 'services', 'hr', 'audit', 'saas-admin-tenants', 'saas-admin-plans', 'inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'tax-dispatcher', 'delivery-reps', 'purchases-new', 'purchases', 'returns', 'purchase-returns', 'import-shipments', 'import-supplier-credit', 'import-profit-pool', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'expenses', 'services', 'hr', 'audit', 'saas-admin-tenants', 'saas-admin-plans', 'inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: t('sidebar.dashboard'),
       'cash-drawer': t('sidebar.cash-drawer'),
@@ -225,7 +225,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
     { key: 'sales-group', label: t('sidebar.sales-group'), itemKeys: ['sales', 'tax-dispatcher', 'returns', 'delivery-reps', 'customers', 'reports'] },
     { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'] },
-    { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-merchant-debts', 'import-profit-pool'] },
+    { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'] },
     { key: 'inventory-group', label: t('sidebar.inventory-group'), itemKeys: ['inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories'] },
     { key: 'manufacturing-group', label: t('sidebar.manufacturing-group'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
     { key: 'services-group', label: t('sidebar.services-group'), itemKeys: ['services', 'treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },

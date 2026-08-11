@@ -69,7 +69,16 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): Produc
     warehouseId: '',
     notes: '',
     taxCodeType: 'GS1',
-    taxCode: ''
+    taxCode: '',
+    metadata: {
+      oemNumber: '',
+      carBrand: '',
+      carModel: '',
+      carYearFrom: '',
+      carYearTo: '',
+      origin: '',
+      condition: ''
+    }
   };
 }
 
@@ -88,6 +97,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
   const settingsQuery = useSettingsQuery();
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
+  const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
   const defaultItemKind: 'standard' | 'fashion' = clothingModuleEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const defaultGroupedMode = defaultItemKind === 'fashion';
   const [units, setUnits] = useState<ProductUnit[]>(normalizeProductUnits(undefined, ''));
@@ -374,7 +384,27 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
         </div>
 
         <Field label="مكان التخزين (Bin Location)"><input {...form.register('binLocation')} disabled={mutation.isPending} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" /></Field>
-        <Field label="ملاحظات"><textarea {...form.register('notes')} rows={4} disabled={mutation.isPending} /></Field>
+        
+        {importModuleEnabled ? (
+          <div className="surface-note form-grid" style={{ padding: 12, gridColumn: '1 / -1', background: 'var(--blue-50)', border: '1px solid var(--blue-200)', marginTop: 8 }}>
+            <h4 style={{ gridColumn: '1 / -1', margin: '0 0 12px 0', color: 'var(--blue-900)' }}>بيانات قطعة الغيار (Auto Parts)</h4>
+            <Field label="رقم القطعة (OEM)"><input {...form.register('metadata.oemNumber')} disabled={mutation.isPending} placeholder="مثال: 1J0907530" /></Field>
+            <Field label="الماركة (Brand)"><input {...form.register('metadata.carBrand')} disabled={mutation.isPending} placeholder="مثال: Toyota, Audi" /></Field>
+            <Field label="الموديل (Model)"><input {...form.register('metadata.carModel')} disabled={mutation.isPending} placeholder="مثال: Corolla" /></Field>
+            <Field label="سنة الصنع (من)"><input type="number" {...form.register('metadata.carYearFrom')} disabled={mutation.isPending} placeholder="مثال: 2015" /></Field>
+            <Field label="سنة الصنع (إلى)"><input type="number" {...form.register('metadata.carYearTo')} disabled={mutation.isPending} placeholder="مثال: 2020" /></Field>
+            <Field label="بلد المنشأ"><input {...form.register('metadata.origin')} disabled={mutation.isPending} placeholder="مثال: China, Japan" /></Field>
+            <Field label="الحالة">
+              <select {...form.register('metadata.condition')} disabled={mutation.isPending}>
+                <option value="">غير محدد</option>
+                <option value="new">جديد (New)</option>
+                <option value="used">استيراد/مستعمل (Used)</option>
+              </select>
+            </Field>
+          </div>
+        ) : null}
+
+        <Field label="ملاحظات" className="span-full"><textarea {...form.register('notes')} rows={4} disabled={mutation.isPending} style={{ width: '100%' }} /></Field>
       </div>
 
       {usesVariantBuilder ? (

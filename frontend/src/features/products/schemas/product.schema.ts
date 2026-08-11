@@ -27,7 +27,16 @@ export const productFormSchema = z.object({
     quantity: z.number().min(0.0001)
   })).optional(),
   taxCodeType: z.string().optional(),
-  taxCode: z.string().optional()
+  taxCode: z.string().optional(),
+  metadata: z.object({
+    oemNumber: z.string().optional(),
+    carBrand: z.string().optional(),
+    carModel: z.string().optional(),
+    carYearFrom: z.string().optional(),
+    carYearTo: z.string().optional(),
+    origin: z.string().optional(),
+    condition: z.string().optional(),
+  }).optional()
 });
 
 export type ProductFormInput = z.input<typeof productFormSchema>;

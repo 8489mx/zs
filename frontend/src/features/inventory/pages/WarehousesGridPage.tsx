@@ -1,12 +1,22 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
+import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { formatCurrency } from '@/lib/format';
 
 export function WarehousesGridPage() {
   const navigate = useNavigate();
   const { locationsQuery } = useInventoryActionCatalog();
   const locations = locationsQuery.data || [];
+
+  const { data: overviewData } = useQuery({
+    queryKey: ['inventory', 'advanced-overview'],
+    queryFn: inventoryApi.advancedOverview,
+  });
+
+  const totalValue = overviewData?.totalGlobalValue || 0;
 
   return (
     <main className="document-prototype-column">
@@ -27,6 +37,20 @@ export function WarehousesGridPage() {
           </div>
         )}
       />
+
+      <div style={{ marginBottom: '24px' }}>
+        <div className="surface-card" style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '12px', borderLeft: '4px solid var(--primary-color)' }}>
+          <div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: 'var(--text-secondary)' }}>إجمالي قيمة المخزون (Landed Cost)</h3>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+              {formatCurrency(totalValue)}
+            </div>
+          </div>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--blue-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue-600)' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
+        </div>
+      </div>
 
       <FormSection title="قائمة أماكن المخزون">
         {locationsQuery.isLoading ? (
@@ -87,9 +111,12 @@ export function WarehousesGridPage() {
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{loc.name}</h3>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginBottom: '8px' }}>
                     <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success-color)' }}></span>
                     مخزن نشط
+                  </div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary-color)' }}>
+                    قيمة المخزون: {formatCurrency(overviewData?.locations?.find((l: any) => String(l.id) === String(loc.id))?.totalValue || 0)}
                   </div>
                 </div>
               </div>

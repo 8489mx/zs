@@ -295,6 +295,7 @@ export interface ProductTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
   tax_code_type: string | null;
   tax_code: string | null;
+  metadata: any | null;
 }
 
 export interface StyleCodeCounterTable {

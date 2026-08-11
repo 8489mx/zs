@@ -235,7 +235,8 @@ export class InventoryScopeService {
       .select([
         'pls.location_id',
         'p.category_id',
-        sql<number>`count(distinct p.id)`.as('productCount')
+        sql<number>`count(distinct p.id)`.as('productCount'),
+        sql<number>`sum(pls.qty * p.cost_price)`.as('inventoryValue')
       ])
       .where('pls.qty', '>', 0)
       .where('p.tenant_id', '=', tenantId)
@@ -243,25 +244,35 @@ export class InventoryScopeService {
       .groupBy(['pls.location_id', 'p.category_id'])
       .execute();
       
+    let totalGlobalValue = 0;
+
     const overview = locations.map(loc => {
       const locStocks = stockCounts.filter(s => s.location_id === loc.id);
+      let locationTotalValue = 0;
+      
       const locCategories = locStocks.map(s => {
         const cat = categories.find(c => c.id === s.category_id);
+        const value = Number(s.inventoryValue) || 0;
+        locationTotalValue += value;
         return {
           id: String(s.category_id),
           name: cat ? cat.name : 'بدون قسم',
-          productCount: Number(s.productCount) || 0
+          productCount: Number(s.productCount) || 0,
+          inventoryValue: value
         };
       }).filter(c => c.productCount > 0);
       
+      totalGlobalValue += locationTotalValue;
+
       return {
         id: String(loc.id),
         name: loc.name,
+        totalValue: locationTotalValue,
         categories: locCategories
       };
     });
     
-    return { locations: overview };
+    return { locations: overview, totalGlobalValue };
   }
   async assignProductsToLocation(locationId: number, productIds: number[], auth: AuthContext): Promise<{ success: boolean }> {
     const tenantId = this.tenantId(auth);

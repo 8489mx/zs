@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { Inject } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
 import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto } from './dto/import-sales.dto';
@@ -13,6 +13,26 @@ export class ImportSalesService {
       .selectFrom('import_partners')
       .selectAll()
       .where('tenant_id', '=', tenantId)
+      .execute();
+  }
+
+  async createPartner(tenantId: string, name: string, percentage: number) {
+    return await this.db
+      .insertInto('import_partners')
+      .values({
+        tenant_id: tenantId,
+        name,
+        profit_share_percentage: percentage
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async deletePartner(tenantId: string, id: string) {
+    return await this.db
+      .deleteFrom('import_partners')
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
       .execute();
   }
 
@@ -112,7 +132,34 @@ export class ImportSalesService {
       
     await this.calculateLandedCost(tenantId, shipmentId);
     
+    // If status changed to Arrived, update inventory and cost
+    if (dto.status === 'Arrived') {
+      await this.postShipmentToInventory(tenantId, shipmentId);
+    }
+    
     return await this.getShipmentById(tenantId, shipmentId);
+  }
+
+  private async postShipmentToInventory(tenantId: string, shipmentId: string) {
+    const items = await this.db
+      .selectFrom('import_shipment_items')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('shipment_id', '=', shipmentId)
+      .execute();
+
+    for (const item of items) {
+      // Update product stock and cost_price
+      await this.db
+        .updateTable('products')
+        .set((eb) => ({
+          stock_qty: sql`${eb.ref('stock_qty')} + ${item.quantity}`,
+          cost_price: Number(item.landed_cost_egp)
+        }))
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', Number(item.product_id))
+        .execute();
+    }
   }
 
   async calculateLandedCost(tenantId: string, shipmentId: string) {
@@ -168,15 +215,65 @@ export class ImportSalesService {
     return { success: true, message: 'Landed cost recalculated successfully' };
   }
 
-  async generatePeriodProfitReport(tenantId: string, startDate: Date, endDate: Date) {
+  async generatePeriodProfitReport(tenantId: string, startDate: string | Date, endDate: string | Date) {
+    // 1. Get total revenue and cost from sales
+    const salesData = await this.db
+      .selectFrom('sales')
+      .innerJoin('sale_items', 'sale_items.sale_id', 'sales.id')
+      .select([
+        sql<number>`sum(sale_items.line_total)`.as('total_revenue'),
+        sql<number>`sum(sale_items.qty * sale_items.cost_price)`.as('total_cost')
+      ])
+      .where('sales.tenant_id', '=', tenantId)
+      .where('sales.status', '!=', 'cancelled')
+      .where('sales.created_at', '>=', new Date(startDate))
+      .where('sales.created_at', '<=', new Date(endDate))
+      .executeTakeFirst();
+
+    const totalRevenue = Number(salesData?.total_revenue || 0);
+    const totalCost = Number(salesData?.total_cost || 0);
+    const grossProfit = totalRevenue - totalCost;
+
+    // 2. Get operational expenses
+    const expensesData = await this.db
+      .selectFrom('expenses')
+      .select([sql<number>`sum(amount)`.as('total_expenses')])
+      .where('tenant_id', '=', tenantId)
+      .where('expense_date', '>=', new Date(startDate))
+      .where('expense_date', '<=', new Date(endDate))
+      .executeTakeFirst();
+
+    const totalExpenses = Number(expensesData?.total_expenses || 0);
+    const netProfitPool = grossProfit - totalExpenses;
+
+    // 3. Get partners and distribute
+    const partners = await this.db
+      .selectFrom('import_partners')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const partnerShares = partners.map(p => {
+      const percentage = Number(p.profit_share_percentage) || 0;
+      const shareAmount = (netProfitPool * percentage) / 100;
+      return {
+        partnerId: p.id,
+        name: p.name,
+        percentage,
+        shareAmount
+      };
+    });
+
     return { 
       success: true, 
       message: 'تم تجميع أرباح الشراكة بنجاح', 
       data: {
-        totalRevenue: 0,
-        totalCost: 0,
-        netProfitPool: 0,
-        partnerShares: []
+        totalRevenue,
+        totalCost,
+        grossProfit,
+        totalExpenses,
+        netProfitPool,
+        partnerShares
       } 
     };
   }

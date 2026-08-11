@@ -6,6 +6,7 @@ import { DataTable } from '@/shared/ui/data-table';
 import { useShipmentDetailsQuery, useUpdateShipmentCostsMutation, type ShipmentItem } from './api/shipments.api';
 import { formatCurrency } from '@/lib/format';
 import { useState } from 'react';
+import { AddShipmentItemDialog } from './AddShipmentItemDialog';
 
 export default function ShipmentDetailsPage() {
   const { id } = useParams();
@@ -16,6 +17,8 @@ export default function ShipmentDetailsPage() {
   const [customsCost, setCustomsCost] = useState('');
   const [transportCost, setTransportCost] = useState('');
   const [exchangeRate, setExchangeRate] = useState('');
+  const [status, setStatus] = useState<string>('');
+  const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   
   const updateCostsMutation = useUpdateShipmentCostsMutation(id!);
   
@@ -29,6 +32,7 @@ export default function ShipmentDetailsPage() {
       customsCostEgp: customsCost ? Number(customsCost) : undefined,
       internalTransportCostEgp: transportCost ? Number(transportCost) : undefined,
       exchangeRateAtArrival: exchangeRate ? Number(exchangeRate) : undefined,
+      status: status ? status : undefined,
     });
     setShippingCost('');
     setCustomsCost('');
@@ -67,6 +71,15 @@ export default function ShipmentDetailsPage() {
               <label>سعر صرف الدولار الجمركي/الفعلي</label>
               <input type="number" step="0.01" className="input" placeholder={`الحالي: ${data.exchange_rate_at_arrival}`} value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} />
             </div>
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label>تغيير حالة الحاوية</label>
+              <select className="input" value={status} onChange={e => setStatus(e.target.value)}>
+                <option value="">لا تغيير (الحالية: {data.status})</option>
+                <option value="Pending">في البحر (Pending)</option>
+                <option value="In Customs">في الجمارك (In Customs)</option>
+                <option value="Arrived">تم الوصول (Arrived) - سيتم إضافة الكميات للمخزون</option>
+              </select>
+            </div>
             <div className="actions" style={{ gridColumn: 'span 2' }}>
               <Button type="submit" variant="primary" disabled={updateCostsMutation.isPending}>تحديث التكاليف وإعادة الحساب</Button>
             </div>
@@ -76,7 +89,7 @@ export default function ShipmentDetailsPage() {
         <FormSection 
           title="أصناف الحاوية (محتويات الشحنة)" 
           description="جميع المنتجات التي تم استلامها داخل هذه الحاوية."
-          actions={<Button variant="secondary">إضافة صنف +</Button>}
+          actions={<Button variant="secondary" onClick={() => setIsAddItemOpen(true)}>إضافة صنف +</Button>}
         >
           <DataTable<ShipmentItem>
             rows={data.items}
@@ -91,6 +104,14 @@ export default function ShipmentDetailsPage() {
           />
         </FormSection>
       </main>
+
+      {isAddItemOpen && (
+        <AddShipmentItemDialog 
+          open={isAddItemOpen} 
+          onClose={() => setIsAddItemOpen(false)} 
+          shipmentId={id!} 
+        />
+      )}
     </div>
   );
 }

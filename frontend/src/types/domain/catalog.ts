@@ -49,6 +49,7 @@ export interface Product {
   bomId?: number;
   hasBom?: boolean;
   binLocation?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface Category {
