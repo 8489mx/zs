@@ -207,7 +207,12 @@ export type OpeningBalancesPostResponse = {
 
 export const accountingApi = {
   accounts: () => http<{ accounts: AccountingAccount[] }>('/api/accounting/accounts'),
+  createAccount: (body: Partial<AccountingAccount>) => http<{ ok: boolean; accountId: string }>('/api/accounting/accounts', { method: 'POST', body: JSON.stringify(body) }),
+  updateAccount: (id: string, body: Partial<AccountingAccount>) => http<{ ok: boolean }>(`/api/accounting/accounts/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteAccount: (id: string) => http<{ ok: boolean }>(`/api/accounting/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  generateNextAccountCode: (parentId: number) => http<{ code: string }>(`/api/accounting/accounts/generate-code?parentId=${parentId}`),
   settings: () => http<{ settings: Record<string, unknown> | null }>('/api/accounting/settings'),
+  updateSettings: (body: Record<string, number | null>) => http<{ success: boolean }>('/api/accounting/settings', { method: 'PUT', body: JSON.stringify(body) }),
   journalEntries: (query: Record<string, string | number | undefined>) => {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {

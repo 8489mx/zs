@@ -170,3 +170,81 @@ export class PostOpeningBalancesDto {
   note?: string;
 }
 
+export class CreateAccountDto {
+  @IsString()
+  code!: string;
+
+  @IsString()
+  nameAr!: string;
+
+  @IsOptional()
+  @IsString()
+  nameEn?: string;
+
+  @IsIn(['asset', 'liability', 'equity', 'revenue', 'expense', 'contra_asset', 'contra_revenue'])
+  accountType!: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  parentId?: number;
+
+  @IsIn(['debit', 'credit'])
+  normalBalance!: string;
+
+  @IsOptional()
+  isActive?: boolean;
+}
+
+export class UpdateAccountDto {
+  @IsOptional()
+  @IsString()
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  nameAr?: string;
+
+  @IsOptional()
+  @IsString()
+  nameEn?: string;
+
+  @IsOptional()
+  @IsIn(['asset', 'liability', 'equity', 'revenue', 'expense', 'contra_asset', 'contra_revenue'])
+  accountType?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  parentId?: number;
+
+  @IsOptional()
+  @IsIn(['debit', 'credit'])
+  normalBalance?: string;
+
+  @IsOptional()
+  isActive?: boolean;
+}
+
+export class GenerateCodeQueryDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  parentId!: number;
+}
+
+export class UpdateAccountingSettingsDto {
+  @IsOptional() @IsNumber() cashAccountId?: number;
+  @IsOptional() @IsNumber() bankAccountId?: number;
+  @IsOptional() @IsNumber() customerReceivableAccountId?: number;
+  @IsOptional() @IsNumber() supplierPayableAccountId?: number;
+  @IsOptional() @IsNumber() inventoryAccountId?: number;
+  @IsOptional() @IsNumber() salesRevenueAccountId?: number;
+  @IsOptional() @IsNumber() salesDiscountAccountId?: number;
+  @IsOptional() @IsNumber() cogsAccountId?: number;
+  @IsOptional() @IsNumber() purchaseAccountId?: number;
+  @IsOptional() @IsNumber() expensesAccountId?: number;
+  @IsOptional() @IsNumber() salesTaxAccountId?: number;
+  @IsOptional() @IsNumber() purchaseTaxAccountId?: number;
+}
+

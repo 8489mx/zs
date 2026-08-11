@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { AccountingService } from './accounting.service';
@@ -10,6 +10,10 @@ import {
   OpeningBalancesPreviewQueryDto,
   PostOpeningBalancesDto,
   ReceivablesPayablesQueryDto,
+  CreateAccountDto,
+  UpdateAccountDto,
+  GenerateCodeQueryDto,
+  UpdateAccountingSettingsDto,
 } from './dto/accounting.dto';
 
 @Controller('api/accounting')
@@ -22,9 +26,34 @@ export class AccountingController {
     return this.accountingService.listAccounts(req.authContext!);
   }
 
+  @Post('accounts')
+  createAccount(@Body() dto: CreateAccountDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.createAccount(dto, req.authContext!);
+  }
+
+  @Put('accounts/:id')
+  updateAccount(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateAccountDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.updateAccount(id, dto, req.authContext!);
+  }
+
+  @Delete('accounts/:id')
+  deleteAccount(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.deleteAccount(id, req.authContext!);
+  }
+
+  @Get('accounts/generate-code')
+  generateNextAccountCode(@Query() query: GenerateCodeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.generateNextAccountCode(query.parentId, req.authContext!);
+  }
+
   @Get('settings')
   getSettings(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.getAccountingSettings(req.authContext!);
+  }
+
+  @Put('settings')
+  updateSettings(@Body() dto: UpdateAccountingSettingsDto, @Req() req: RequestWithAuth): Promise<{ success: boolean }> {
+    return this.accountingService.updateAccountingSettings(dto, req.authContext!);
   }
 
   @Get('journal-entries')

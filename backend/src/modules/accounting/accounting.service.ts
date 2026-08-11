@@ -12,6 +12,9 @@ import {
   OpeningBalancesPreviewQueryDto,
   PostOpeningBalancesDto,
   ReceivablesPayablesQueryDto,
+  CreateAccountDto,
+  UpdateAccountDto,
+  UpdateAccountingSettingsDto,
 } from './dto/accounting.dto';
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 
@@ -436,6 +439,38 @@ export class AccountingService {
         updatedAt: settings.updated_at,
       },
     };
+  }
+
+  async updateAccountingSettings(dto: UpdateAccountingSettingsDto, auth: AuthContext): Promise<{ success: boolean }> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
+
+    const updateData: Record<string, any> = {};
+    if (dto.cashAccountId !== undefined) updateData.cash_account_id = dto.cashAccountId || null;
+    if (dto.bankAccountId !== undefined) updateData.bank_account_id = dto.bankAccountId || null;
+    if (dto.customerReceivableAccountId !== undefined) updateData.customer_receivable_account_id = dto.customerReceivableAccountId || null;
+    if (dto.supplierPayableAccountId !== undefined) updateData.supplier_payable_account_id = dto.supplierPayableAccountId || null;
+    if (dto.inventoryAccountId !== undefined) updateData.inventory_account_id = dto.inventoryAccountId || null;
+    if (dto.salesRevenueAccountId !== undefined) updateData.sales_revenue_account_id = dto.salesRevenueAccountId || null;
+    if (dto.salesDiscountAccountId !== undefined) updateData.sales_discount_account_id = dto.salesDiscountAccountId || null;
+    if (dto.cogsAccountId !== undefined) updateData.cogs_account_id = dto.cogsAccountId || null;
+    if (dto.purchaseAccountId !== undefined) updateData.purchase_account_id = dto.purchaseAccountId || null;
+    if (dto.expensesAccountId !== undefined) updateData.expenses_account_id = dto.expensesAccountId || null;
+    if (dto.salesTaxAccountId !== undefined) updateData.sales_tax_account_id = dto.salesTaxAccountId || null;
+    if (dto.purchaseTaxAccountId !== undefined) updateData.purchase_tax_account_id = dto.purchaseTaxAccountId || null;
+    
+    updateData.updated_at = new Date();
+
+    if (Object.keys(updateData).length > 1) { // more than just updated_at
+      await this.db
+        .updateTable('accounting_settings')
+        .set(updateData)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+    }
+
+    return { success: true };
   }
 
   async listJournalEntries(filters: JournalEntriesQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -1306,6 +1341,209 @@ export class AccountingService {
     }
 
     return { ok: true, lines: normalized };
+  }
+
+  async generateNextAccountCode(parentId: number, auth: AuthContext): Promise<{ code: string }> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    
+    const parent = await this.db.selectFrom('accounting_accounts')
+      .select(['code'])
+      .where('id', '=', parentId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+      
+    if (!parent) throw new NotFoundException('Parent account not found');
+    
+    const children = await this.db.selectFrom('accounting_accounts')
+      .select(['code'])
+      .where('parent_id', '=', parentId)
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
+      
+    if (children.length === 0) {
+      const num = parseInt(parent.code, 10);
+      if (!isNaN(num)) {
+        return { code: String(num + 1) };
+      }
+      return { code: parent.code + '01' };
+    }
+    
+    let maxNum = -1;
+    let maxCode = '';
+    for (const child of children) {
+      const num = parseInt(child.code, 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+        maxCode = child.code;
+      }
+    }
+    
+    if (maxNum !== -1) {
+      return { code: String(maxNum + 1) };
+    }
+    
+    return { code: parent.code + '01' };
+  }
+
+  async createAccount(dto: CreateAccountDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    
+    const existing = await this.db.selectFrom('accounting_accounts')
+      .select('id')
+      .where('code', '=', dto.code)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) throw new BadRequestException('Account code already exists');
+    
+    let parentId = dto.parentId || null;
+    let normalBalance = dto.normalBalance;
+    
+    if (parentId) {
+      const parent = await this.db.selectFrom('accounting_accounts')
+        .select(['id', 'normal_balance'])
+        .where('id', '=', parentId)
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      if (!parent) throw new BadRequestException('Parent account not found');
+      normalBalance = parent.normal_balance;
+    }
+    
+    const result = await this.db.insertInto('accounting_accounts')
+      .values({
+        tenant_id: scope.tenantId,
+        code: dto.code,
+        name_ar: dto.nameAr,
+        name_en: dto.nameEn || '',
+        account_type: dto.accountType as any,
+        account_group: '', 
+        parent_id: parentId,
+        normal_balance: normalBalance as any,
+        is_active: dto.isActive ?? true,
+        is_system: false,
+        allow_manual_entries: true,
+        is_control_account: false,
+        is_cash_bank: false,
+        is_receivable: false,
+        is_payable: false,
+        is_inventory: false,
+        is_tax: false,
+        description_ar: '',
+        sort_order: 0,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+      
+    return { ok: true, accountId: String(result.id) };
+  }
+
+  async updateAccount(id: number, dto: UpdateAccountDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    
+    const existing = await this.db.selectFrom('accounting_accounts')
+      .selectAll()
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+      
+    if (!existing) throw new NotFoundException('Account not found');
+    
+    if (dto.code && dto.code !== existing.code) {
+      const codeCheck = await this.db.selectFrom('accounting_accounts')
+        .select('id')
+        .where('code', '=', dto.code)
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      if (codeCheck) throw new BadRequestException('Account code already exists');
+    }
+    
+    const hasTransactions = await this.db.selectFrom('journal_entry_lines')
+      .select('id')
+      .where('account_id', '=', id)
+      .limit(1)
+      .executeTakeFirst();
+      
+    let updateData: any = {};
+    
+    if (existing.is_system) {
+      if (dto.nameAr) updateData.name_ar = dto.nameAr;
+      if (dto.nameEn !== undefined) updateData.name_en = dto.nameEn;
+    } else {
+      if (dto.nameAr) updateData.name_ar = dto.nameAr;
+      if (dto.nameEn !== undefined) updateData.name_en = dto.nameEn;
+      if (dto.isActive !== undefined) updateData.is_active = dto.isActive;
+      
+      if (hasTransactions) {
+        if (dto.code) updateData.code = dto.code;
+      } else {
+        if (dto.code) updateData.code = dto.code;
+        if (dto.accountType) updateData.account_type = dto.accountType;
+        if (dto.normalBalance) updateData.normal_balance = dto.normalBalance;
+        if (dto.parentId !== undefined) {
+          updateData.parent_id = dto.parentId;
+          if (dto.parentId) {
+             const parent = await this.db.selectFrom('accounting_accounts').select('normal_balance').where('id', '=', dto.parentId).executeTakeFirst();
+             if (parent) updateData.normal_balance = parent.normal_balance;
+          }
+        }
+      }
+    }
+    
+    if (Object.keys(updateData).length > 0) {
+      await this.db.updateTable('accounting_accounts')
+        .set({ ...updateData, updated_at: sql`NOW()` })
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+    }
+    
+    return { ok: true };
+  }
+
+  async deleteAccount(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    
+    const existing = await this.db.selectFrom('accounting_accounts')
+      .select(['is_system'])
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+      
+    if (!existing) throw new NotFoundException('Account not found');
+    
+    if (existing.is_system) {
+      throw new BadRequestException('لا يمكن حذف الحسابات النظامية الأساسية.');
+    }
+    
+    const hasTransactions = await this.db.selectFrom('journal_entry_lines')
+      .select('id')
+      .where('account_id', '=', id)
+      .limit(1)
+      .executeTakeFirst();
+      
+    if (hasTransactions) {
+      throw new BadRequestException('لا يمكن حذف حساب تمت عليه قيود محاسبية، يمكنك إيقافه بدلاً من ذلك.');
+    }
+    
+    const hasChildren = await this.db.selectFrom('accounting_accounts')
+      .select('id')
+      .where('parent_id', '=', id)
+      .limit(1)
+      .executeTakeFirst();
+      
+    if (hasChildren) {
+      throw new BadRequestException('لا يمكن حذف حساب يحتوي على حسابات فرعية.');
+    }
+    
+    await this.db.deleteFrom('accounting_accounts')
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
+      
+    return { ok: true };
   }
 
   async listCostCenters(actor: AuthContext): Promise<Record<string, unknown>> {

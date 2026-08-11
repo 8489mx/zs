@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
@@ -42,16 +42,34 @@ function todayIsoDate() {
 }
 
 export function AccountingSettingsPage() {
+  const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<SettingsSection>('accounts-map');
   const [systemStartDate, setSystemStartDate] = useState(todayIsoDate());
   const [cashOpeningInput, setCashOpeningInput] = useState('');
   const [bankOpeningInput, setBankOpeningInput] = useState('');
   const [previewData, setPreviewData] = useState<OpeningBalancesPreviewResponse | null>(null);
   const [showPostConfirm, setShowPostConfirm] = useState(false);
+  
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [settingsForm, setSettingsForm] = useState<Record<string, string>>({});
 
   const query = useQuery({
     queryKey: ['accounting', 'settings'],
     queryFn: () => accountingApi.settings(),
+  });
+
+  const accountsQuery = useQuery({
+    queryKey: ['accounting', 'accounts'],
+    queryFn: () => accountingApi.accounts(),
+    enabled: isEditingSettings,
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: (data: Record<string, number | null>) => accountingApi.updateSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounting', 'settings'] });
+      setIsEditingSettings(false);
+    }
   });
 
   const previewMutation = useMutation({
@@ -141,7 +159,38 @@ export function AccountingSettingsPage() {
         />
 
       {activeSection === 'accounts-map' ? (
-        <FormSection title="إعدادات الحسابات" description="تحديد الحسابات الافتراضية المرتبطة بالعمليات المختلفة بالنظام.">
+        <FormSection 
+          title="إعدادات الحسابات" 
+          description="تحديد الحسابات الافتراضية المرتبطة بالعمليات المختلفة بالنظام."
+          actions={
+            !isEditingSettings ? (
+              <Button type="button" variant="secondary" onClick={() => {
+                const initialForm: Record<string, string> = {};
+                for (const r of rows) {
+                  const s = settings[r.key];
+                  initialForm[r.key] = s?.id ? String(s.id) : '';
+                }
+                setSettingsForm(initialForm);
+                setIsEditingSettings(true);
+              }}>
+                تعديل الإعدادات
+              </Button>
+            ) : (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button type="button" variant="secondary" onClick={() => setIsEditingSettings(false)} disabled={updateSettingsMutation.isPending}>إلغاء</Button>
+                <Button type="button" variant="primary" disabled={updateSettingsMutation.isPending} onClick={() => {
+                  const payload: Record<string, number | null> = {};
+                  for (const [k, v] of Object.entries(settingsForm)) {
+                    payload[k + 'Id'] = v ? Number(v) : null;
+                  }
+                  updateSettingsMutation.mutate(payload);
+                }}>
+                  {updateSettingsMutation.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                </Button>
+              </div>
+            )
+          }
+        >
           <QueryFeedback
             isLoading={query.isLoading}
             isError={query.isError}
@@ -151,18 +200,41 @@ export function AccountingSettingsPage() {
             errorTitle="تعذر تحميل إعدادات الحسابات"
             emptyTitle="لا توجد إعدادات حسابات"
           >
+            {isEditingSettings && accountsQuery.isLoading && (
+              <div className="muted small" style={{ marginBottom: 16 }}>جاري تحميل قائمة الحسابات...</div>
+            )}
+            {updateSettingsMutation.isError && (
+              <div className="alert alert-danger" style={{ marginBottom: 16 }}>تعذر حفظ الإعدادات.</div>
+            )}
             <table className="table-shell">
               <thead>
                 <tr>
-                  <th>الإعداد</th>
+                  <th style={{ width: '40%' }}>الإعداد</th>
                   <th>الحساب</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.key}>
-                    <td>{row.label}</td>
-                    <td>{renderAccountRef(settings[row.key])}</td>
+                    <td><strong>{row.label}</strong></td>
+                    <td>
+                      {isEditingSettings ? (
+                        <select 
+                          className="form-control" 
+                          value={settingsForm[row.key] || ''}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, [row.key]: e.target.value })}
+                          disabled={updateSettingsMutation.isPending}
+                          style={{ minWidth: '300px' }}
+                        >
+                          <option value="">-- لم يتم التحديد --</option>
+                          {accountsQuery.data?.accounts?.map(acc => (
+                            <option key={acc.id} value={acc.id}>{acc.code} - {acc.nameAr}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        renderAccountRef(settings[row.key])
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

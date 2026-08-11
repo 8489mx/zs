@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { FormSection } from '@/shared/components/form-section';
 import { accountingApi, type AccountingAccount } from '@/features/accounting/api/accounting.api';
+import { AccountingAccountForm } from '../components/AccountingAccountForm';
 
 const typeLabel: Record<string, string> = {
   asset: 'أصل',
@@ -52,10 +53,26 @@ function renderFlags(account: AccountingAccount): string[] {
 }
 
 export function AccountingAccountsPage() {
+  const queryClient = useQueryClient();
   const [showInactive, setShowInactive] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [formParentAccount, setFormParentAccount] = useState<AccountingAccount | undefined>();
+  const [formEditAccount, setFormEditAccount] = useState<AccountingAccount | undefined>();
+
   const query = useQuery({
     queryKey: ['accounting', 'accounts'],
     queryFn: () => accountingApi.accounts(),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => accountingApi.deleteAccount(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounting', 'accounts'] });
+    },
+    onError: (err: Error) => {
+      alert(`تعذر الحذف: ${err.message}`);
+    },
   });
 
   const rows = query.data?.accounts || [];
@@ -63,6 +80,26 @@ export function AccountingAccountsPage() {
     if (showInactive) return rows;
     return rows.filter((row) => row.isActive);
   }, [rows, showInactive]);
+
+  const handleAddChild = (parent: AccountingAccount) => {
+    setFormMode('create');
+    setFormParentAccount(parent);
+    setFormEditAccount(undefined);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (account: AccountingAccount) => {
+    setFormMode('edit');
+    setFormParentAccount(undefined);
+    setFormEditAccount(account);
+    setFormOpen(true);
+  };
+
+  const handleDelete = (account: AccountingAccount) => {
+    if (confirm(`هل أنت متأكد من حذف الحساب "${account.nameAr}"؟`)) {
+      deleteMutation.mutate(account.id);
+    }
+  };
 
   return (
     <div className="page-stack page-shell" dir="rtl">
@@ -72,15 +109,29 @@ export function AccountingAccountsPage() {
         <FormSection 
           title="شجرة الحسابات" 
           actions={
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem', color: '#64748b' }}>
-              <input
-                type="checkbox"
-                checked={showInactive}
-                onChange={(event) => setShowInactive(event.target.checked)}
-                style={{ width: 16, height: 16 }}
-              />
-              <span>عرض الحسابات غير النشطة</span>
-            </label>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem', color: '#64748b' }}>
+                <input
+                  type="checkbox"
+                  checked={showInactive}
+                  onChange={(event) => setShowInactive(event.target.checked)}
+                  style={{ width: 16, height: 16 }}
+                />
+                <span>عرض الحسابات غير النشطة</span>
+              </label>
+              <button 
+                type="button" 
+                className="btn btn-sm btn-primary"
+                onClick={() => {
+                  setFormMode('create');
+                  setFormParentAccount(undefined);
+                  setFormEditAccount(undefined);
+                  setFormOpen(true);
+                }}
+              >
+                إضافة حساب رئيسي
+              </button>
+            </div>
           }
         >
         <QueryFeedback
@@ -168,11 +219,52 @@ export function AccountingAccountsPage() {
                 sortable: true,
                 sortValue: (row) => (row.isActive ? 1 : 0),
               },
+              {
+                id: 'actions',
+                header: '',
+                render: (row) => (
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-sm btn-secondary" 
+                      onClick={() => handleAddChild(row)}
+                    >
+                      تفريع
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-sm btn-secondary" 
+                      onClick={() => handleEdit(row)}
+                    >
+                      تعديل
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-sm btn-danger" 
+                      onClick={() => handleDelete(row)}
+                      disabled={row.isSystem}
+                    >
+                      حذف
+                    </button>
+                  </div>
+                ),
+                sortable: false,
+              },
             ]}
           />
         </QueryFeedback>
         </FormSection>
       </main>
+      
+      {formOpen && (
+        <AccountingAccountForm
+          open={formOpen}
+          onClose={() => setFormOpen(false)}
+          mode={formMode}
+          parentAccount={formParentAccount}
+          editAccount={formEditAccount}
+        />
+      )}
     </div>
   );
 }
