@@ -118,9 +118,13 @@ export function DeveloperActivationPanel() {
           <div className="grid-1">
             <Field label="كلمة مرور المطور (Master Password)">
               <input 
-                type="password" 
+                type="text" 
+                className="secure-password-field"
                 name="developer_master_password_no_save"
                 autoComplete="new-password"
+                autoCorrect="off" 
+                autoCapitalize="off" 
+                spellCheck={false}
                 data-lpignore="true"
                 value={masterPassword} 
                 onChange={(e) => setMasterPassword(e.target.value)} 

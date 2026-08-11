@@ -7,6 +7,8 @@ import { componentsApi, type ManufacturingComponent } from '@/features/manufactu
 import { MANUFACTURING_UNITS } from '@/features/manufacturing/utils/units';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { systemAlert } from '@/shared/components/system-alert';
 
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
@@ -155,12 +157,21 @@ export default function ManufacturingComponentsPage() {
               {editingComponent ? 'تعديل مكون: ' + editingComponent.name : 'إضافة مكون جديد'}
             </h3>
             <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'end' }}>
-              <Field label="اسم المكون *">
-                <input list="components-list" required className="purchase-prototype-field-input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="مثال: سكر، دقيق..." />
-                <datalist id="components-list">
-                  {components.map(c => <option key={c.id} value={c.name} />)}
-                </datalist>
-              </Field>
+              <SearchableCombobox
+                label="اسم المكون *"
+                inputClassName="purchase-prototype-field-input"
+                placeholder="مثال: سكر، دقيق..."
+                value={newName}
+                onChange={setNewName}
+                options={components.map(c => ({ id: c.name, label: c.name }))}
+                search={(option, query) => normalizeArabicSearchKey(option.label).includes(normalizeArabicSearchKey(query))}
+                getLabel={(option) => option.label}
+                onSelect={(option) => setNewName(option.label)}
+                onCreate={setNewName}
+                createLabel={(query) => `استخدام "${query}"`}
+                emptyLabel="اكتب اسماً جديداً"
+                showDropdownOnEmpty={true}
+              />
               <Field label="الكود">
                 <input className="purchase-prototype-field-input" value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="اختياري" />
               </Field>

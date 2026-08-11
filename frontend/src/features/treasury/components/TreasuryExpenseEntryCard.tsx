@@ -1,9 +1,12 @@
+import { useState, useEffect } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
+import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import type { Location } from '@/types/domain';
 import type { ExpenseFormState } from '@/features/treasury/lib/treasury-page.helpers';
 
@@ -25,8 +28,6 @@ const EXPENSE_PRESETS = [
   'مصروف بنكي',
 ];
 
-const CUSTOM_EXPENSE_VALUE = '__custom__';
-
 export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches, warehouses, locations, availableLocations, expenseValidationErrors, expenseMutation, onReset }: {
   expenseForm: ExpenseFormState;
   setExpenseForm: React.Dispatch<React.SetStateAction<ExpenseFormState>>;
@@ -39,37 +40,50 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
   onReset: () => void;
 }) {
   const warehouseList = warehouses || locations || [];
-  const selectedExpensePreset = EXPENSE_PRESETS.includes(expenseForm.title) ? expenseForm.title : (expenseForm.title ? CUSTOM_EXPENSE_VALUE : '');
+  const [customPresets, setCustomPresets] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('zsystems_custom_expense_presets');
+      if (stored) {
+        setCustomPresets(JSON.parse(stored));
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }, []);
+
+  const handleSave = () => {
+    const currentTitle = expenseForm.title.trim();
+    if (currentTitle && !EXPENSE_PRESETS.includes(currentTitle) && !customPresets.includes(currentTitle)) {
+      const nextPresets = [...customPresets, currentTitle];
+      setCustomPresets(nextPresets);
+      localStorage.setItem('zsystems_custom_expense_presets', JSON.stringify(nextPresets));
+    }
+    expenseMutation.mutate(expenseForm);
+  };
+
+  const allPresets = [...EXPENSE_PRESETS, ...customPresets];
+
+  const presetOptions = allPresets.map(preset => ({ id: preset, label: preset }));
 
   return (
     <FormSection title="تسجيل مصروف" actions={<span className="nav-pill">مصروف</span>}>
       <div className="form-grid">
-        <Field label="نوع المصروف">
-          <select
-            value={selectedExpensePreset}
-            onChange={(e) => {
-              const nextValue = e.target.value;
-              setExpenseForm((current) => ({
-                ...current,
-                title: nextValue === CUSTOM_EXPENSE_VALUE ? '' : nextValue,
-              }));
-            }}
-          >
-            <option value="">اختر نوع المصروف</option>
-            {EXPENSE_PRESETS.map((preset) => (
-              <option key={preset} value={preset}>{preset}</option>
-            ))}
-            <option value={CUSTOM_EXPENSE_VALUE}>أخرى</option>
-          </select>
-        </Field>
-
-        <Field label="اسم المصروف">
-          <input
-            value={expenseForm.title}
-            onChange={(e) => setExpenseForm((current) => ({ ...current, title: e.target.value }))}
-            placeholder="مثال: إيجار النشاط أو مصروف خاص"
-          />
-        </Field>
+        <SearchableCombobox
+          label="نوع / اسم المصروف"
+          placeholder="اختر من القائمة أو اكتب مصروف جديد..."
+          value={expenseForm.title}
+          onChange={(val) => setExpenseForm(current => ({ ...current, title: val }))}
+          options={presetOptions}
+          search={(option, query) => normalizeArabicSearchKey(option.label).includes(normalizeArabicSearchKey(query))}
+          getLabel={(option) => option.label}
+          onSelect={(option) => setExpenseForm(current => ({ ...current, title: option.label }))}
+          onCreate={(query) => setExpenseForm(current => ({ ...current, title: query }))}
+          createLabel={(query) => `إضافة وتسجيل "${query}"`}
+          emptyLabel="لا يوجد مصروف بهذا الاسم"
+          showDropdownOnEmpty={true}
+        />
 
         <Field label="المبلغ">
           <input
@@ -158,7 +172,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
           <Button type="button" variant="secondary" onClick={onReset}>تفريغ</Button>
           <SubmitButton
             type="button"
-            onClick={() => expenseMutation.mutate(expenseForm)}
+            onClick={handleSave}
             isPending={expenseMutation.isPending}
             disabled={expenseValidationErrors.length > 0}
             idleText="حفظ المصروف"

@@ -4,6 +4,7 @@ import { PermissionService } from '../../../core/auth/services/permission.servic
 import { REQUIRED_PERMISSIONS_KEY } from '../../../core/auth/decorators/permissions.decorator';
 import { REQUIRED_FEATURE_KEY } from '../../../core/auth/decorators/feature.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
+import { ConfigService } from '@nestjs/config';
 import { PlanFeatureService } from '../services/plan-feature.service';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class PermissionsGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly permissionService: PermissionService,
     private readonly planFeatureService: PlanFeatureService,
+    private readonly configService: ConfigService,
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -40,15 +42,25 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
     const auth = request.authContext;
 
-    if (auth?.role === 'super_admin') {
+    const isPlatformAdmin = 
+      auth?.role === 'super_admin' && 
+      this.configService.get<string>('APP_MODE') === 'CLOUD_SAAS' && 
+      auth?.tenantId === this.configService.get<string>('PLATFORM_TENANT_ID');
+
+    // Platform Admins (SaaS Owners) skip everything
+    if (isPlatformAdmin) {
       return true;
     }
 
     const granted = auth?.permissions ?? [];
+    
+    // For everyone else (including offline super_admins), check basic permissions first.
+    // Note: Offline super_admin will pass this check because they possess SUPER_ADMIN_PERMISSIONS in their DB profile.
     if (!this.permissionService.hasAllPermissions(granted, required)) {
       throw new ForbiddenException('Missing required permissions');
     }
 
+    // Now STRICTLY check feature gates for everyone except Platform Admin
     if (requiredFeature && auth) {
       if (!this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, requiredFeature)) {
         throw new ForbiddenException('هذه الميزة غير متاحة في باقتك الحالية. يرجى الترقية.');

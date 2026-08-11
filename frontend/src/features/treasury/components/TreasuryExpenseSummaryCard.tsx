@@ -1,29 +1,18 @@
 import { FormSection } from '@/shared/components/form-section';
-import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import type { ExpenseRecord } from '@/types/domain';
 
-export function TreasuryExpenseSummaryCard({ expenseSummary, expenses, canPrintSummary, onExportExpenses, onPrintExpenses, onPrintSummary, isExportingExpenses }: {
+export function TreasuryExpenseSummaryCard({ expenseSummary, expenses }: {
   expenseSummary: { totalItems: number; totalAmount: number };
   expenses: ExpenseRecord[];
-  canPrintSummary: boolean;
-  onExportExpenses: () => void;
-  onPrintExpenses: () => void;
-  onPrintSummary: () => void;
-  isExportingExpenses: boolean;
 }) {
   return (
     <FormSection title="ملخص المصروفات" actions={<span className="nav-pill">المصروفات</span>}>
-      <div className="metric-list">
-        <div className="metric-row"><span>عدد المصروفات المطابقة</span><strong>{expenseSummary.totalItems}</strong></div>
-        <div className="metric-row"><span>إجمالي المصروفات</span><strong>{formatCurrency(expenseSummary.totalAmount)}</strong></div>
-        <div className="metric-row"><span>آخر مصروف ظاهر</span><strong>{expenses[0]?.title || '—'}</strong></div>
-        <div className="metric-row"><span>آخر منفذ ظاهر</span><strong>{expenses[0]?.createdBy || '—'}</strong></div>
-      </div>
-      <div className="actions section-actions">
-        <Button variant="secondary" onClick={onExportExpenses} disabled={!expenseSummary.totalItems || isExportingExpenses}>تصدير المصروفات</Button>
-        <Button variant="secondary" onClick={onPrintExpenses} disabled={!expenseSummary.totalItems || isExportingExpenses}>طباعة النتائج</Button>
-        <Button onClick={onPrintSummary} disabled={!canPrintSummary}>طباعة الملخص</Button>
+      <div className="stats-grid compact-grid" style={{ marginTop: '0.5rem' }}>
+        <div className="stat-card"><span>العدد</span><strong>{expenseSummary.totalItems}</strong></div>
+        <div className="stat-card"><span>الإجمالي</span><strong>{formatCurrency(expenseSummary.totalAmount)}</strong></div>
+        <div className="stat-card"><span>آخر مصروف</span><strong>{expenses[0]?.title || '—'}</strong></div>
+        <div className="stat-card"><span>المنفذ الأخير</span><strong>{expenses[0]?.createdBy || '—'}</strong></div>
       </div>
     </FormSection>
   );

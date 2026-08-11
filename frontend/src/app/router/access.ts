@@ -57,6 +57,8 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/audit': 'audit',
   treasury: 'treasury',
   '/treasury': 'treasury',
+  expenses: 'treasury',
+  '/expenses': 'treasury',
   services: 'services',
   '/services': 'services',
   hr: 'hr',
@@ -128,6 +130,9 @@ export const routeFeatureMap: Record<string, string> = {
   'pricing-center': 'sales',
   'cash-drawer': 'cashDrawer',
   treasury: 'cashDrawer',
+  '/treasury': 'cashDrawer',
+  expenses: 'cashDrawer',
+  '/expenses': 'cashDrawer',
   purchases: 'purchases',
   'purchases-new': 'purchases',
   'purchase-returns': 'purchases',
@@ -189,7 +194,7 @@ export function isPlatformAdmin(user: AuthUser | null | undefined) {
   const accountId = String(user?.accountId || '').trim();
   const hasExplicitTenant = tenantId.length > 0;
   
-  const isPlatformTenant = tenantId === 'default' || tenantId === configuredPlatformTenantId;
+  const isPlatformTenant = tenantId === configuredPlatformTenantId;
   const canUseAccountFallback = !hasExplicitTenant && accountId === 'default';
 
   return Boolean(
