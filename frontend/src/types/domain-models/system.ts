@@ -159,6 +159,7 @@ export interface AppSettings {
   posReceiptTheme?: 'boxed' | 'classic' | 'ultra-compact' | string;
   printNumberFormat?: 'arabic' | 'english' | string;
   manufacturingModuleEnabled?: boolean;
+  importModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;
   restaurantModuleEnabled?: boolean;
   posShowCartMeta?: boolean;

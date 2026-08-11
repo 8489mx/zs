@@ -26,6 +26,7 @@ export const settingsFormSchema = z.object({
   currentBranchId: z.string().optional(),
   currentLocationId: z.string().optional(),
   manufacturingModuleEnabled: z.boolean().default(false),
+  importModuleEnabled: z.boolean().default(false),
   comboModuleEnabled: z.boolean().default(false),
   restaurantModuleEnabled: z.boolean().default(false),
   posShowCartMeta: z.boolean().default(false),

@@ -923,6 +923,13 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             </label>
             <label style={premiumCardStyle}>
               <div style={premiumCardTextStyle}>
+                <strong>🚢 موديول الاستيراد والشراكة</strong>
+                <small className="muted">يفعّل إدارة الحاويات، ديون الصين، وتوزيع الأرباح</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('importModuleEnabled')} disabled={disabled} />
+            </label>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
                 <strong>🍽️ موديول المطاعم والكافيهات</strong>
                 <small className="muted">يفعّل نظام الطاولات وأنواع الطلبات</small>
               </div>

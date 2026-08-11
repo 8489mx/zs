@@ -47,6 +47,7 @@ const baseSettingsMutationValues = {
   currentBranchId: '',
   currentLocationId: '',
   manufacturingModuleEnabled: false,
+  importModuleEnabled: false,
   comboModuleEnabled: false,
   restaurantModuleEnabled: false,
   posShowCartMeta: false,
