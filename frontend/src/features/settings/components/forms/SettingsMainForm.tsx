@@ -15,6 +15,7 @@ import { BranchForm } from '@/features/settings/components/forms/BranchForm';
 
 import { BrandPreview, readFileAsDataUrl, type SettingsMainFormProps } from '@/features/settings/components/forms/settings-forms.shared';
 import { useLocalePreference } from '@/shared/locale/LocaleProvider';
+import { hasRequiredFeature } from '@/app/router/access';
 
 const checkboxGridStyle: CSSProperties = {
   display: 'grid',
@@ -904,13 +905,15 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         {/* ===== موديولات النظام ===== */}
         <FormSection title="موديولات النظام" description={<>شغّل الأجزاء اللي محتاجها بس — والباقي هيتخفى تلقائيًا من الشاشات.</>}>
           <div className="document-prototype-grid compact-grid-2">
-            <label style={premiumCardStyle}>
-              <div style={premiumCardTextStyle}>
-                <strong>🏭 التصنيع والإنتاج</strong>
-                <small className="muted">يضيف خيارات المكونات والتصنيع</small>
-              </div>
-              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('manufacturingModuleEnabled')} disabled={disabled} />
-            </label>
+            {hasRequiredFeature('manufacturing') && (
+              <label style={premiumCardStyle}>
+                <div style={premiumCardTextStyle}>
+                  <strong>🏭 التصنيع والإنتاج</strong>
+                  <small className="muted">يضيف خيارات المكونات والتصنيع</small>
+                </div>
+                <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('manufacturingModuleEnabled')} disabled={disabled} />
+              </label>
+            )}
             <label style={premiumCardStyle}>
               <div style={premiumCardTextStyle}>
                 <strong>📦 العروض المجمعة والوجبات</strong>

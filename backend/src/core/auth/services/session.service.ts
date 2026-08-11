@@ -124,7 +124,9 @@ export class SessionService {
     }
     
     const extraFeatures = Array.isArray(tenant.extra_features) ? tenant.extra_features : typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
-    const activeFeatures = Array.from(new Set([...planFeatures, ...extraFeatures]));
+    const extraAdd = extraFeatures.filter((f: string) => !f.startsWith('-'));
+    const extraRemove = extraFeatures.filter((f: string) => f.startsWith('-')).map((f: string) => f.substring(1));
+    const activeFeatures = Array.from(new Set([...planFeatures, ...extraAdd])).filter(f => !extraRemove.includes(f));
 
     return {
       id: tenant.id,

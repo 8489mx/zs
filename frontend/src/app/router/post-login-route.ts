@@ -6,8 +6,8 @@ const SETUP_ENTRY_ROUTE = '/settings/core?setup=1';
 
 const ROUTE_PREFERENCES: Record<AuthUser['role'], string[]> = {
   cashier: ['/pos', '/cash-drawer', '/sales', '/customers', '/'],
-  admin: ['/', '/sales', '/inventory', '/accounts', '/treasury', '/purchases', '/reports/overview', '/customers', '/suppliers', '/products', '/returns', '/cash-drawer', '/services', '/settings'],
-  super_admin: ['/', '/settings', '/sales', '/inventory', '/reports/overview', '/accounts', '/treasury', '/purchases', '/products', '/returns', '/cash-drawer', '/customers', '/suppliers', '/services'],
+  admin: ['/', '/pos', '/sales', '/inventory', '/accounts', '/treasury', '/purchases', '/reports/overview', '/customers', '/suppliers', '/products', '/returns', '/cash-drawer', '/services', '/settings'],
+  super_admin: ['/', '/pos', '/settings', '/sales', '/inventory', '/reports/overview', '/accounts', '/treasury', '/purchases', '/products', '/returns', '/cash-drawer', '/customers', '/suppliers', '/services'],
 };
 
 function normalizeValue(value: unknown) {
