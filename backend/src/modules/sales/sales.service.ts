@@ -29,8 +29,8 @@ export class SalesService {
     return this.write.authorizeDiscountOverride(secret, auth);
   }
 
-  async cancelSale(saleId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.write.cancelSale(saleId, reason, auth);
+  async cancelSale(saleId: number, reason: string, managerPin: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.write.cancelSale(saleId, reason, managerPin, auth);
   }
 
   async updateSale(saleId: number, payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {

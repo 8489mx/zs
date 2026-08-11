@@ -101,9 +101,8 @@ export class CashDrawerService {
   }
 
   private async assertManagerPin(pin: string, auth: AuthContext): Promise<void> {
-    if (auth.role === 'admin' || auth.role === 'super_admin') return;
     const expected = await this.getManagerPin(auth);
-    if (String(pin || '').trim() !== expected) throw new AppError('رمز اعتماد المدير غير صحيح', 'MANAGER_PIN_INVALID', 400);
+    if (!pin || String(pin).trim() !== expected) throw new AppError('رمز الاعتماد غير صحيح', 'MANAGER_PIN_INVALID', 400);
   }
   private shouldRequireManagerApprovalForCashOut(auth: AuthContext): boolean { return !['admin', 'super_admin', 'manager'].includes(String(auth.role || '').trim()); }
   private canReviewPendingShift(auth: AuthContext): boolean { return ['admin', 'super_admin', 'manager'].includes(String(auth.role || '').trim()); }

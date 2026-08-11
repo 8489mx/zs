@@ -1226,8 +1226,10 @@ export class SalesWriteService {
     return { ok: true, sale: sale.sale };
   }
 
-  async cancelSale(saleId: number, reason: string, auth: AuthContext): Promise<Record<string, unknown>> {
+  async cancelSale(saleId: number, reason: string, managerPin: string, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    if (!managerPin) throw new AppError('رمز اعتماد المدير مطلوب لإلغاء الفاتورة.', 'MANAGER_AUTH_REQUIRED', 400);
+    await this.authz.authorizeDiscountOverride(managerPin, auth, this.db);
     await this.tx.runInTransaction(this.db, async (trx) => {
       const sale = await trx.selectFrom('sales').selectAll().where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
       if (!sale) throw new AppError('Sale not found', 'SALE_NOT_FOUND', 404);

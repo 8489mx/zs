@@ -49,10 +49,10 @@ export class SalesController {
   @RequirePermissions('canEditInvoices')
   cancelSale(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { reason?: string },
+    @Body() body: { reason?: string; managerPin?: string },
     @Req() req: RequestWithAuth,
-  ): Promise<Record<string, unknown>> {
-    return this.salesService.cancelSale(id, String(body?.reason || ''), req.authContext!);
+  ) {
+    return this.salesService.cancelSale(id, String(body?.reason || ''), String(body?.managerPin || ''), req.authContext!);
   }
 
   @Put('sales/:id')

@@ -158,7 +158,8 @@ async function main() {
   const cancelSaleId = cancelSaleRes.sales ? cancelSaleRes.sales[0].id : cancelSaleRes.id || cancelSaleRes.sale?.id;
 
   await tenantClient.post(`/api/sales/${cancelSaleId}/cancel`, {
-    reason: 'Customer changed mind'
+    reason: 'Customer changed mind',
+    managerPin: testAdminPassword
   });
 
   // Step 9: Check stocks, stock movements, stock transfers, sale line stock allocations.
