@@ -39,6 +39,28 @@ export class ImportSalesController {
     return this.importSalesService.deletePartner(req.authContext!.tenantId!, id);
   }
 
+  @Get('partners/:id/ledger')
+  async getPartnerLedger(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string
+  ) {
+    return this.importSalesService.getPartnerLedger(req.authContext!.tenantId!, id);
+  }
+
+  @Post('partners/:id/capital-transaction')
+  async recordCapitalTransaction(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string,
+    @Body() dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string }
+  ) {
+    return this.importSalesService.recordCapitalTransaction(
+      req.authContext!.tenantId!,
+      req.authContext!.userId!,
+      id,
+      dto
+    );
+  }
+
   @Post('partners/:id/payout')
   async recordPartnerPayout(
     @Req() req: RequestWithAuth,

@@ -445,6 +445,53 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
         
+      // 4. Insert into partner ledger
+      await trx.insertInto('import_partner_ledger').values({
+        tenant_id: tenantId,
+        partner_id: partnerId,
+        type: 'PROFIT_PAYOUT',
+        amount: amount,
+        transaction_date: new Date(),
+        note: `صرف أرباح الشريك: ${partner.name}`,
+        created_by: userId
+      }).execute();
+        
+      return { success: true };
+    });
+  }
+
+  async getPartnerLedger(tenantId: string, partnerId: string) {
+    return await this.db
+      .selectFrom('import_partner_ledger')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('partner_id', '=', partnerId)
+      .orderBy('transaction_date', 'desc')
+      .orderBy('created_at', 'desc')
+      .execute();
+  }
+
+  async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string, note?: string }) {
+    return await this.db.transaction().execute(async (trx) => {
+      await trx.insertInto('import_partner_ledger').values({
+        tenant_id: tenantId,
+        partner_id: partnerId,
+        type: dto.type,
+        amount: dto.amount,
+        transaction_date: dto.date,
+        note: dto.note || '',
+        created_by: userId
+      }).execute();
+
+      const sign = dto.type === 'DEPOSIT' ? '+' : '-';
+      await trx.updateTable('import_partners')
+        .set((eb) => ({
+          capital_amount: sql`${eb.ref('capital_amount')} ${sql.raw(sign)} ${dto.amount}`
+        }))
+        .where('id', '=', partnerId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
       return { success: true };
     });
   }

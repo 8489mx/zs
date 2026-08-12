@@ -221,6 +221,44 @@ export const useUpdatePartnerMutation = () => {
   });
 };
 
+export interface PartnerLedgerEntry {
+  id: string;
+  tenant_id: string;
+  partner_id: string;
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'PROFIT_PAYOUT';
+  amount: number;
+  transaction_date: string;
+  note: string;
+  created_at: string;
+}
+
+export const usePartnerLedgerQuery = (partnerId: string) => {
+  return useQuery({
+    queryKey: ['partner-ledger', partnerId],
+    queryFn: async () => {
+      return await http<PartnerLedgerEntry[]>(`/api/import-sales/partners/${partnerId}/ledger`);
+    },
+    enabled: !!partnerId
+  });
+};
+
+export const useRecordCapitalTransactionMutation = (partnerId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string }) => {
+      return await http(`/api/import-sales/partners/${partnerId}/capital-transaction`, {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-partners'] });
+      queryClient.invalidateQueries({ queryKey: ['partner-ledger', partnerId] });
+      queryClient.invalidateQueries({ queryKey: ['profit-report'] });
+    },
+  });
+};
+
 export const useDeletePartnerMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
