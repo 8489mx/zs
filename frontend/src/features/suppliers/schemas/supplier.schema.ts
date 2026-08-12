@@ -5,7 +5,8 @@ export const supplierFormSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   balance: z.coerce.number().min(0),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional()
 });
 
 export type SupplierFormInput = z.input<typeof supplierFormSchema>;

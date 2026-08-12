@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, MaxLength, Min, IsObject } from 'class-validator';
 
 export class UpsertCustomerDto {
   @IsString()
@@ -44,4 +44,8 @@ export class UpsertCustomerDto {
   @IsString()
   @MaxLength(100)
   taxNumber?: string;
+
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
 }

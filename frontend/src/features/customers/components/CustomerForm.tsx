@@ -9,10 +9,14 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { useMutationFeedbackReset } from '@/shared/hooks/use-mutation-feedback-reset';
 import { useCreateCustomerMutation } from '@/features/customers/hooks/useCreateCustomerMutation';
 import { customerFormSchema, type CustomerFormInput, type CustomerFormOutput } from '@/features/customers/schemas/customer.schema';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
-const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, type: 'cash' as const, creditLimit: 0 };
+const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, type: 'cash' as const, creditLimit: 0, metadata: { currency: 'EGP' } };
 
 export function CustomerForm() {
+  const settingsQuery = useSettingsQuery();
+  const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
+
   const form = useForm<CustomerFormInput, undefined, CustomerFormOutput>({
     resolver: zodResolver(customerFormSchema),
     defaultValues: DEFAULT_VALUES
@@ -52,6 +56,20 @@ export function CustomerForm() {
       </Field>
       <Field label="رصيد افتتاحي"><input type="number" step="0.01" {...form.register('balance')} disabled={mutation.isPending} /></Field>
       <Field label="حد الائتمان"><input type="number" step="0.01" {...form.register('creditLimit')} disabled={mutation.isPending} /></Field>
+      
+      {importModuleEnabled && (
+        <fieldset className="p-4 border rounded bg-slate-50 dark:bg-slate-800/50 space-y-4">
+          <legend className="px-2 font-semibold text-primary">إعدادات الاستيراد</legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="عملة الحساب">
+              <select {...form.register('metadata.currency')} disabled={mutation.isPending}>
+                <option value="EGP">جنيه مصري</option>
+                <option value="USD">دولار أمريكي</option>
+              </select>
+            </Field>
+          </div>
+        </fieldset>
+      )}
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ العميل" successText="تم حفظ العميل بنجاح." />
       <div className="actions sticky-form-actions">
         <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ النموذج</FormResetButton>

@@ -10,8 +10,11 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { useUpdateCustomerMutation } from '@/features/customers/hooks/useCustomerActions';
 import { customerFormSchema, type CustomerFormInput, type CustomerFormOutput } from '@/features/customers/schemas/customer.schema';
 import type { Customer } from '@/types/domain';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer; onSaved?: () => void }) {
+  const settingsQuery = useSettingsQuery();
+  const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
   const form = useForm<CustomerFormInput, undefined, CustomerFormOutput>({
     resolver: zodResolver(customerFormSchema),
     defaultValues: { name: '', phone: '', address: '', balance: 0, type: 'cash', creditLimit: 0 }
@@ -27,7 +30,8 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
       address: customer.address || '',
       balance: Number(customer.balance || 0),
       type: customer.type === 'vip' ? 'vip' : 'cash',
-      creditLimit: Number(customer.creditLimit || 0)
+      creditLimit: Number(customer.creditLimit || 0),
+      metadata: customer.metadata || { currency: 'EGP' }
     });
   }, [customer, form]);
 
@@ -49,6 +53,20 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
       </Field>
       <Field label="الرصيد الافتتاحي"><input type="number" step="0.01" {...form.register('balance')} disabled={mutation.isPending} /></Field>
       <Field label="حد الائتمان"><input type="number" step="0.01" {...form.register('creditLimit')} disabled={mutation.isPending} /></Field>
+      
+      {importModuleEnabled && (
+        <fieldset className="p-4 border rounded bg-slate-50 dark:bg-slate-800/50 space-y-4">
+          <legend className="px-2 font-semibold text-primary">إعدادات الاستيراد</legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="عملة الحساب">
+              <select {...form.register('metadata.currency')} disabled={mutation.isPending}>
+                <option value="EGP">جنيه مصري</option>
+                <option value="USD">دولار أمريكي</option>
+              </select>
+            </Field>
+          </div>
+        </fieldset>
+      )}
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر تحديث العميل" successText="تم تحديث العميل بنجاح." />
       <div className="actions sticky-form-actions">
         <Button type="button" variant="secondary" onClick={() => form.reset()} disabled={mutation.isPending}>إعادة القيم</Button>

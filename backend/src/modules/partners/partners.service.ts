@@ -244,6 +244,7 @@ export class PartnersService {
         store_credit_balance: Number(payload.storeCreditBalance || 0),
         company_name: String(payload.companyName || '').trim(),
         tax_number: String(payload.taxNumber || '').trim(),
+        metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
         is_active: true,
         ...this.tenantFields(actor),
       } as any)
@@ -292,6 +293,7 @@ export class PartnersService {
         credit_limit: Number(payload.creditLimit || 0),
         company_name: String(payload.companyName || '').trim(),
         tax_number: String(payload.taxNumber || '').trim(),
+        metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
         updated_at: sql`NOW()`,
       })
       .where('id', '=', id)
@@ -400,6 +402,7 @@ export class PartnersService {
         address: String(payload.address || '').trim(),
         balance: 0,
         notes: String(payload.notes || '').trim(),
+        metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
         is_active: true,
         ...this.tenantFields(actor),
       } as any)
@@ -440,6 +443,7 @@ export class PartnersService {
         phone: String(payload.phone || '').trim(),
         address: String(payload.address || '').trim(),
         notes: String(payload.notes || '').trim(),
+        metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
         updated_at: sql`NOW()`,
       })
       .where('id', '=', id)

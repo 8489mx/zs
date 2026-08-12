@@ -33,6 +33,7 @@ export function mapCustomerRow(row: CustomerRow): Record<string, unknown> {
     storeCreditBalance: Number(row.store_credit_balance || 0),
     companyName: row.company_name || '',
     taxNumber: row.tax_number || '',
+    metadata: row.metadata || {},
   };
 }
 
@@ -44,6 +45,7 @@ export function mapSupplierRow(row: SupplierRow): Record<string, unknown> {
     address: row.address || '',
     balance: Number(row.balance || 0),
     notes: row.notes || '',
+    metadata: row.metadata || {},
   };
 }
 

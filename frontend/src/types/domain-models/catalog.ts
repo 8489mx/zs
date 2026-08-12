@@ -69,6 +69,7 @@ export interface Supplier {
   address: string;
   balance: number;
   notes: string;
+  metadata?: any;
 }
 
 export interface Customer {
@@ -80,4 +81,5 @@ export interface Customer {
   type: string;
   creditLimit: number;
   storeCreditBalance: number;
+  metadata?: any;
 }

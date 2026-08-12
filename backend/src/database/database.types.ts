@@ -247,6 +247,7 @@ export interface SupplierTable {
   balance: number;
   notes: ColumnType<string, string | undefined, string | undefined>;
   is_active: boolean;
+  metadata: any | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -265,6 +266,7 @@ export interface CustomerTable {
   company_name: string;
   tax_number: string;
   is_active: boolean;
+  metadata: any | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
