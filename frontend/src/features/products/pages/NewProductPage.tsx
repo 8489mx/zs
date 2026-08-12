@@ -354,6 +354,7 @@ export function NewProductPage() {
 
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
+  const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
   const comboModuleEnabled = settingsQuery.data?.comboModuleEnabled === true || manufacturingModuleEnabled;
   const defaultItemKind: 'standard' | 'fashion' = clothingModuleEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const defaultGroupedMode = defaultItemKind === 'fashion';
@@ -806,6 +807,29 @@ export function NewProductPage() {
             </Field>
           </div>
         </FormSection>
+
+        {importModuleEnabled ? (
+          <FormSection title="بيانات قطعة الغيار (Auto Parts)">
+            <div className="document-prototype-grid compact-grid-2">
+              <Field label="رقم القطعة (OEM)"><input className="purchase-prototype-field-input" {...form.register('metadata.oemNumber')} disabled={isFormDisabled} placeholder="مثال: 1J0907530" /></Field>
+              <Field label="الماركة (Brand)"><input className="purchase-prototype-field-input" {...form.register('metadata.carBrand')} disabled={isFormDisabled} placeholder="مثال: Toyota, Audi" /></Field>
+              <Field label="الموديل (Model)"><input className="purchase-prototype-field-input" {...form.register('metadata.carModel')} disabled={isFormDisabled} placeholder="مثال: Corolla" /></Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <Field label="سنة الصنع (من)"><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearFrom')} disabled={isFormDisabled} placeholder="2015" /></Field>
+                <Field label="سنة الصنع (إلى)"><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearTo')} disabled={isFormDisabled} placeholder="2020" /></Field>
+              </div>
+              <Field label="بلد المنشأ"><input className="purchase-prototype-field-input" {...form.register('metadata.origin')} disabled={isFormDisabled} placeholder="مثال: China, Japan" /></Field>
+              <Field label="الحالة">
+                <select className="purchase-prototype-field-input" {...form.register('metadata.condition')} disabled={isFormDisabled}>
+                  <option value="">غير محدد</option>
+                  <option value="new">جديد (New)</option>
+                  <option value="used">استيراد/مستعمل (Used)</option>
+                </select>
+              </Field>
+              <Field label="مكان التخزين (Bin Location)"><input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" /></Field>
+            </div>
+          </FormSection>
+        ) : null}
 
         <FormSection title="ملاحظات">
           <Field label="ملاحظات"><textarea className="purchase-prototype-field-input" {...form.register('notes')} rows={4} disabled={isFormDisabled} /></Field>

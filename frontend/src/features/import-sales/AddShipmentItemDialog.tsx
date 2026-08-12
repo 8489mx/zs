@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { useAddShipmentItemMutation } from './api/shipments.api';
 import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 
 const schema = z.object({
@@ -41,12 +42,24 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
         <h2 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: 'bold' }}>إضافة صنف للحاوية</h2>
         <form onSubmit={form.handleSubmit(onSubmit)} className="form-grid" dir="rtl">
         <Field label="الصنف" error={form.formState.errors.productId?.message}>
-          <select {...form.register('productId')} disabled={mutation.isPending}>
-            <option value="">اختر صنف...</option>
-            {products?.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ flex: 1 }}>
+              <SearchableCombobox
+                value={form.watch('productId')}
+                onChange={(val) => form.setValue('productId', val, { shouldValidate: true })}
+                options={(products || []).map(p => ({ id: p.id, label: p.name }))}
+                search={(option, query) => (option.label || '').toLowerCase().includes(query.toLowerCase())}
+                getLabel={(option) => option.label || ''}
+                onSelect={() => {}}
+                placeholder="ابحث عن صنف..."
+                emptyLabel="بدون صنف"
+                disabled={mutation.isPending}
+              />
+            </div>
+            <Button type="button" variant="secondary" onClick={() => window.open('#/products/new', '_blank')} disabled={mutation.isPending}>
+              إضافة +
+            </Button>
+          </div>
         </Field>
         
         <Field label="الكمية" error={form.formState.errors.quantity?.message}>
