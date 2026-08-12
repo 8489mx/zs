@@ -175,6 +175,8 @@ export interface Partner {
   id: string;
   name: string;
   profit_share_percentage: number;
+  capital_amount: number;
+  withdrawn_profit?: number;
 }
 
 export const usePartnersQuery = () => {
@@ -190,9 +192,25 @@ export const usePartnersQuery = () => {
 export const useCreatePartnerMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (dto: { name: string; percentage: number }) => {
+    mutationFn: async (dto: { name: string; percentage: number; capitalAmount?: number }) => {
       return await http('/api/import-sales/partners', {
         method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-partners'] });
+      queryClient.invalidateQueries({ queryKey: ['profit-report'] });
+    },
+  });
+};
+
+export const useUpdatePartnerMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...dto }: { id: string; name?: string; percentage?: number; capitalAmount?: number }) => {
+      return await http(`/api/import-sales/partners/${id}`, {
+        method: 'PATCH',
         body: JSON.stringify(dto),
       });
     },

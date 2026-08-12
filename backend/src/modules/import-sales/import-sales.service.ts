@@ -16,24 +16,49 @@ export class ImportSalesService {
       .execute();
   }
 
-  async createPartner(tenantId: string, name: string, percentage: number) {
+  async createPartner(tenantId: string, name: string, percentage: number, capitalAmount: number = 0) {
     return await this.db
       .insertInto('import_partners')
       .values({
         tenant_id: tenantId,
         name,
-        profit_share_percentage: percentage
+        profit_share_percentage: percentage,
+        capital_amount: capitalAmount
       })
       .returningAll()
       .executeTakeFirstOrThrow();
   }
 
-  async deletePartner(tenantId: string, id: string) {
+  async updatePartner(tenantId: string, id: string, name?: string, percentage?: number, capitalAmount?: number) {
+    let updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (percentage !== undefined) updateData.profit_share_percentage = percentage;
+    if (capitalAmount !== undefined) updateData.capital_amount = capitalAmount;
+
+    if (Object.keys(updateData).length === 0) return null;
+
     return await this.db
-      .deleteFrom('import_partners')
+      .updateTable('import_partners')
+      .set(updateData)
       .where('tenant_id', '=', tenantId)
       .where('id', '=', id)
-      .execute();
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async deletePartner(tenantId: string, id: string) {
+    try {
+      return await this.db
+        .deleteFrom('import_partners')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id)
+        .execute();
+    } catch (error: any) {
+      if (error.code === '23503') { // PostgreSQL foreign_key_violation
+        throw new import('@nestjs/common').BadRequestException('لا يمكن حذف الشريك لوجود عمليات مالية أو أرباح مسجلة باسمه.');
+      }
+      throw error;
+    }
   }
 
   async listShipments(tenantId: string) {

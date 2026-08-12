@@ -17,9 +17,18 @@ export class ImportSalesController {
   @Post('partners')
   async createPartner(
     @Req() req: RequestWithAuth,
-    @Body() dto: { name: string; percentage: number }
+    @Body() dto: { name: string; percentage: number; capitalAmount?: number }
   ) {
-    return this.importSalesService.createPartner(req.authContext!.tenantId!, dto.name, dto.percentage);
+    return this.importSalesService.createPartner(req.authContext!.tenantId!, dto.name, dto.percentage, dto.capitalAmount);
+  }
+
+  @Patch('partners/:id')
+  async updatePartner(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string,
+    @Body() dto: { name?: string; percentage?: number; capitalAmount?: number }
+  ) {
+    return this.importSalesService.updatePartner(req.authContext!.tenantId!, id, dto.name, dto.percentage, dto.capitalAmount);
   }
 
   @Delete('partners/:id')
