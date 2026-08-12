@@ -14,17 +14,23 @@ export class PlanFeatureService implements OnModuleInit {
   }
 
   async refreshCache() {
-    const rows = await this.db.selectFrom('plan_features').select(['plan_id', 'feature_code']).execute();
-    const newCache = new Map<string, Set<string>>();
-    
-    for (const row of rows) {
-      if (!newCache.has(row.plan_id)) {
-        newCache.set(row.plan_id, new Set());
+    try {
+      const rows = await this.db.selectFrom('plan_features').select(['plan_id', 'feature_code']).execute();
+      const newCache = new Map<string, Set<string>>();
+      
+      for (const row of rows) {
+        if (!newCache.has(row.plan_id)) {
+          newCache.set(row.plan_id, new Set());
+        }
+        newCache.get(row.plan_id)!.add(row.feature_code);
       }
-      newCache.get(row.plan_id)!.add(row.feature_code);
+      
+      this.planFeatures = newCache;
+    } catch (error: any) {
+      // Table might not exist yet if migrations haven't run
+      this.planFeatures = new Map<string, Set<string>>();
+      console.warn(`[PlanFeatureService] Could not refresh cache (possibly missing table): ${error.message}`);
     }
-    
-    this.planFeatures = newCache;
   }
 
   hasFeature(planId: string | undefined, extraFeatures: string[] | undefined, requiredFeature: string): boolean {
