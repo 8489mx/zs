@@ -90,7 +90,7 @@ function buildProductPayload(values: ProductFormValues) {
   };
 }
 
-export function useCreateProductMutation(onSuccess?: () => void) {
+export function useCreateProductMutation(onSuccess?: (productId: string, name: string) => void) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -116,9 +116,14 @@ export function useCreateProductMutation(onSuccess?: () => void) {
 
       return result;
     },
-    onSuccess: async () => {
+    onSuccess: async (result, variables) => {
       await invalidateCatalogDomain(queryClient, { includeProducts: true });
-      onSuccess?.();
+      const productId = extractCreatedEntityId(result);
+      if (productId) {
+        onSuccess?.(productId, variables.name);
+      } else {
+        onSuccess?.('', variables.name);
+      }
     }
   });
 }

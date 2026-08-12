@@ -45,7 +45,15 @@ export default function ShipmentDetailsPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
         <PageHeader 
           title={`حاوية رقم: ${data.container_number}`} 
-          description={`تاريخ الوصول المتوقع: ${data.arrival_date || 'غير محدد'} | الحالة: ${data.status}`}
+          description={
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+              <span>تاريخ الوصول المتوقع: <strong>{data.arrival_date || 'غير محدد'}</strong></span>
+              <span>الحالة: <strong>{data.status}</strong></span>
+              <span>المصنع: <strong>{data.supplier_name || 'غير محدد'}</strong></span>
+              <span>بوليصة الشحن (B/L): <strong>{data.bill_of_lading || 'غير محدد'}</strong></span>
+              <span>تاريخ الشحن: <strong>{data.shipping_date || 'غير محدد'}</strong></span>
+            </div>
+          }
           actions={
             <div className="actions compact-actions">
               <Button variant="secondary" onClick={() => navigate('/import-sales/shipments')}>عودة للقائمة</Button>

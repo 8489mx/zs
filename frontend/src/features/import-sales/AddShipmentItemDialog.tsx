@@ -5,8 +5,11 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { useAddShipmentItemMutation } from './api/shipments.api';
-import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useProductsQuery, useCategoriesQuery, useSuppliersQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { useState } from 'react';
+import { ProductForm } from '@/features/products/components/ProductForm';
 
 const schema = z.object({
   productId: z.string().min(1, 'يجب اختيار صنف'),
@@ -18,6 +21,10 @@ type FormData = z.infer<typeof schema>;
 
 export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boolean, onClose: () => void, shipmentId: string }) {
   const { data: products } = useProductsQuery();
+  const { data: categories = [] } = useCategoriesQuery();
+  const { data: suppliers = [] } = useSuppliersQuery();
+  const { data: locations = [] } = useLocationsQuery();
+  
   const mutation = useAddShipmentItemMutation(shipmentId);
   
   const form = useForm<FormData>({
@@ -32,39 +39,89 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
   const onSubmit = async (data: FormData) => {
     await mutation.mutateAsync(data);
     form.reset();
+    setSearchTerm('');
     onClose();
   };
 
-  return (
-    <DialogShell open={open} onClose={onClose} width="400px">
-      <div style={{ padding: '24px' }}>
-        <h2 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: 'bold' }}>إضافة صنف للحاوية</h2>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="form-grid" dir="rtl">
-        <Field label="الصنف" error={form.formState.errors.productId?.message}>
-          <select {...form.register('productId')} disabled={mutation.isPending} style={{ width: '100%', padding: '8px 12px', border: '1px solid #dbe2ea', borderRadius: '6px' }}>
-            <option value="">اختر صنف...</option>
-            {products?.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </Field>
-        
-        <Field label="الكمية" error={form.formState.errors.quantity?.message}>
-          <input type="number" {...form.register('quantity')} disabled={mutation.isPending} style={{ width: '100%', padding: '8px 12px', border: '1px solid #dbe2ea', borderRadius: '6px' }} />
-        </Field>
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isQuickProductOpen, setIsQuickProductOpen] = useState(false);
+  const [quickProductName, setQuickProductName] = useState('');
 
-        <Field label="سعر الشراء للمنتج (بالدولار)" error={form.formState.errors.factoryUnitPriceUsd?.message}>
-          <input type="number" step="0.01" {...form.register('factoryUnitPriceUsd')} disabled={mutation.isPending} style={{ width: '100%', padding: '8px 12px', border: '1px solid #dbe2ea', borderRadius: '6px' }} />
+  return (
+    <>
+    <DialogShell open={open} onClose={onClose} width="700px">
+      <div style={{ padding: '32px' }}>
+        <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ background: 'var(--primary-100)', color: 'var(--primary-700)', padding: '6px 10px', borderRadius: '8px' }}>+</span>
+          إضافة صنف للحاوية
+        </h2>
+        <form onSubmit={form.handleSubmit(onSubmit)} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ width: '100%' }}>
+          <Field label="الصنف (بحث بالاسم أو الكود / OEM)" error={form.formState.errors.productId?.message}>
+          <SearchableCombobox
+            placeholder="ابحث عن صنف..."
+            value={searchTerm}
+            onChange={setSearchTerm}
+            options={products || []}
+            search={(p, q) => 
+              (p.name || '').toLowerCase().includes(q.toLowerCase()) || 
+              (p.barcode || '').toLowerCase().includes(q.toLowerCase()) ||
+              (p.styleCode || '').toLowerCase().includes(q.toLowerCase())
+            }
+            getLabel={(p) => p.name}
+            getMeta={(p) => p.barcode ? `OEM/كود: ${p.barcode}` : p.styleCode ? `Code: ${p.styleCode}` : ''}
+            onSelect={(p) => {
+              form.setValue('productId', p.id, { shouldValidate: true });
+              setSearchTerm(p.name);
+            }}
+            onCreate={(query) => {
+              setQuickProductName(query);
+              setIsQuickProductOpen(true);
+            }}
+            createLabel={(query) => `+ تسجيل صنف جديد "${query}"`}
+            disabled={mutation.isPending}
+          />
         </Field>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <Field label="الكمية الواردة" error={form.formState.errors.quantity?.message}>
+            <input type="number" {...form.register('quantity')} disabled={mutation.isPending} style={{ width: '100%', padding: '12px 16px', border: '1px solid #dbe2ea', borderRadius: '8px', fontSize: '15px', outline: 'none', transition: 'border 0.2s', background: 'var(--surface-color)' }} />
+          </Field>
+
+          <Field label="سعر الشراء الفعلي (بالدولار $)" error={form.formState.errors.factoryUnitPriceUsd?.message}>
+            <input type="number" step="0.01" {...form.register('factoryUnitPriceUsd')} disabled={mutation.isPending} style={{ width: '100%', padding: '12px 16px', border: '1px solid #dbe2ea', borderRadius: '8px', fontSize: '15px', outline: 'none', transition: 'border 0.2s', background: 'var(--surface-color)' }} />
+          </Field>
+        </div>
 
         <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} />
         
-        <div className="actions" style={{ gridColumn: 'span 2', marginTop: '16px' }}>
+        <div className="actions" style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
           <Button type="button" variant="secondary" onClick={onClose} disabled={mutation.isPending}>إلغاء</Button>
           <Button type="submit" variant="primary" disabled={mutation.isPending}>إضافة</Button>
         </div>
       </form>
       </div>
     </DialogShell>
+
+    {isQuickProductOpen && (
+      <DialogShell open={isQuickProductOpen} onClose={() => setIsQuickProductOpen(false)} width="1000px">
+        <div style={{ padding: '32px', maxHeight: '85vh', overflowY: 'auto' }}>
+          <h2 style={{ marginBottom: '24px', fontSize: '22px', fontWeight: 'bold' }}>إضافة صنف شامل (مع بيانات الاستيراد)</h2>
+          <ProductForm
+            categories={categories}
+            suppliers={suppliers}
+            locations={locations}
+            initialName={quickProductName}
+            onSuccess={(productId, name) => {
+              form.setValue('productId', productId, { shouldValidate: true });
+              setSearchTerm(name);
+              setIsQuickProductOpen(false);
+            }}
+          />
+        </div>
+      </DialogShell>
+    )}
+    </>
   );
 }

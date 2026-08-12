@@ -50,13 +50,35 @@ export default function ShipmentsManager() {
               onRowClick={(row) => navigate(`/import-sales/shipments/${row.id}`)}
               columns={[
                 { key: 'container_number', header: 'رقم الحاوية', cell: (row) => <strong>{row.container_number}</strong> },
+                { key: 'supplier_name', header: 'المصنع / المورد', cell: (row) => row.supplier_name || 'غير محدد' },
                 { key: 'status', header: 'الحالة', cell: (row) => {
                   const colors: Record<string, string> = {
-                    'Pending': 'orange',
-                    'In Customs': 'blue',
-                    'Arrived': 'green'
+                    'Pending': 'var(--primary-light)',
+                    'In Customs': 'var(--warning-light)',
+                    'Arrived': 'var(--success-light)'
                   };
-                  return <span style={{ color: colors[row.status] || 'black' }}>{row.status === 'Pending' ? 'في البحر' : row.status === 'In Customs' ? 'في الجمارك' : 'تم الوصول'}</span>
+                  const textColors: Record<string, string> = {
+                    'Pending': 'var(--primary-dark)',
+                    'In Customs': 'var(--warning-dark)',
+                    'Arrived': 'var(--success-dark)'
+                  };
+                  const labels: Record<string, string> = {
+                    'Pending': 'في البحر',
+                    'In Customs': 'في الجمارك',
+                    'Arrived': 'تم الوصول'
+                  };
+                  return (
+                    <span style={{ 
+                      backgroundColor: colors[row.status] || 'var(--gray-200)', 
+                      color: textColors[row.status] || 'var(--gray-800)',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.85rem',
+                      fontWeight: 600
+                    }}>
+                      {labels[row.status] || row.status}
+                    </span>
+                  );
                 }},
                 { key: 'arrival_date', header: 'تاريخ الوصول', cell: (row) => row.arrival_date || '-' },
                 { key: 'shipping_cost_usd', header: 'تكلفة الشحن', cell: (row) => `$${Number(row.shipping_cost_usd).toFixed(2)}` },

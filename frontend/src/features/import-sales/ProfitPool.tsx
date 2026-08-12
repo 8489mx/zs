@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
-import { useProfitReportQuery } from './api/shipments.api';
+import { useProfitReportQuery, usePartnerPayoutMutation } from './api/shipments.api';
 import { formatCurrency } from '@/lib/format';
 import { ManagePartnersDialog } from './ManagePartnersDialog';
 
@@ -12,6 +12,18 @@ export default function ProfitPool() {
   const [isManagePartnersOpen, setIsManagePartnersOpen] = useState(false);
 
   const { data, isLoading, refetch } = useProfitReportQuery(startDate, endDate);
+  const payoutMutation = usePartnerPayoutMutation();
+
+  const handlePayout = (partnerId: string, name: string, maxAmount: number) => {
+    const amountStr = window.prompt(`إدخال قيمة الدفعة المنصرفة للشريك: ${name}\nالرصيد المتاح: ${formatCurrency(maxAmount)}`);
+    if (!amountStr) return;
+    const amount = Number(amountStr);
+    if (isNaN(amount) || amount <= 0) return alert('قيمة غير صالحة');
+    
+    payoutMutation.mutate({ partnerId, amount }, {
+      onSuccess: () => alert('تم تسجيل الدفعة بنجاح')
+    });
+  };
 
   return (
     <div className="page-stack page-shell import-sales-page" dir="rtl">
@@ -74,22 +86,40 @@ export default function ProfitPool() {
                   <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--gray-200)' }}>
                     <th style={{ padding: '1rem', textAlign: 'right' }}>اسم الشريك</th>
                     <th style={{ padding: '1rem', textAlign: 'right' }}>نسبة الشراكة (%)</th>
-                    <th style={{ padding: '1rem', textAlign: 'right' }}>قيمة الربح المستحقة</th>
+                    <th style={{ padding: '1rem', textAlign: 'right' }}>إجمالي الربح المستحق</th>
+                    <th style={{ padding: '1rem', textAlign: 'right' }}>ما تم سحبه مسبقاً</th>
+                    <th style={{ padding: '1rem', textAlign: 'right' }}>الرصيد المتبقي (الحالي)</th>
+                    <th style={{ padding: '1rem', textAlign: 'right' }}>إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.partnerShares.map(partner => (
+                  {data.partnerShares.map((partner: any) => (
                     <tr key={partner.partnerId} style={{ borderBottom: '1px solid var(--gray-200)' }}>
                       <td style={{ padding: '1rem' }}><strong>{partner.name}</strong></td>
                       <td style={{ padding: '1rem' }}>{partner.percentage}%</td>
                       <td style={{ padding: '1rem', color: 'var(--green-700)', fontWeight: 'bold' }}>
                         {formatCurrency(partner.shareAmount)}
                       </td>
+                      <td style={{ padding: '1rem', color: 'var(--gray-600)' }}>
+                        {formatCurrency(partner.withdrawnProfit)}
+                      </td>
+                      <td style={{ padding: '1rem', color: 'var(--primary-700)', fontWeight: 'bold' }}>
+                        {formatCurrency(partner.currentBalance)}
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        <Button 
+                          variant="secondary" 
+                          onClick={() => handlePayout(partner.partnerId, partner.name, partner.currentBalance)}
+                          disabled={payoutMutation.isPending}
+                        >
+                          تسجيل دفعة
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                   {data.partnerShares.length === 0 && (
                     <tr>
-                      <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--gray-500)' }}>
+                      <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--gray-500)' }}>
                         لا يوجد شركاء مسجلين في النظام.
                       </td>
                     </tr>

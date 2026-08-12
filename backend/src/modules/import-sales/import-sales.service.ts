@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { Inject } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
-import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto } from './dto/import-sales.dto';
+import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto } from './dto/import-sales.dto';
 
 @Injectable()
 export class ImportSalesService {
@@ -256,11 +256,14 @@ export class ImportSalesService {
     const partnerShares = partners.map(p => {
       const percentage = Number(p.profit_share_percentage) || 0;
       const shareAmount = (netProfitPool * percentage) / 100;
+      const withdrawn = Number(p.withdrawn_profit) || 0;
       return {
         partnerId: p.id,
         name: p.name,
         percentage,
-        shareAmount
+        shareAmount,
+        withdrawnProfit: withdrawn,
+        currentBalance: shareAmount - withdrawn
       };
     });
 
@@ -277,4 +280,148 @@ export class ImportSalesService {
       } 
     };
   }
+
+  async listForeignTransfers(tenantId: string) {
+    return await this.db
+      .selectFrom('supplier_payments')
+      .innerJoin('suppliers', 'suppliers.id', 'supplier_payments.supplier_id')
+      .select([
+        'supplier_payments.id',
+        'supplier_payments.amount',
+        'supplier_payments.payment_date',
+        'supplier_payments.note',
+        'suppliers.name as supplier_name'
+      ])
+      .where('supplier_payments.tenant_id', '=', tenantId)
+      .where('supplier_payments.doc_no', '=', 'FOREIGN_TRANSFER')
+      .orderBy('supplier_payments.payment_date', 'desc')
+      .limit(50)
+      .execute();
+  }
+
+  async recordForeignTransfer(tenantId: string, userId: number, dto: RecordForeignTransferDto) {
+    const { supplierId, amountEgp, amountForeign, notes } = dto;
+    const sId = Number(supplierId);
+
+    return await this.db.transaction().execute(async (trx) => {
+      const supplier = await trx
+        .selectFrom('suppliers')
+        .select(['id', 'name', 'account_id', 'balance'])
+        .where('id', '=', sId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirstOrThrow();
+
+      // 1. Create Treasury Expense (amountEgp)
+      const expenseInsert = await trx.insertInto('expenses').values({
+        tenant_id: tenantId,
+        account_id: supplier.account_id,
+        title: `حوالة خارجية إلى ${supplier.name}`,
+        amount: amountEgp,
+        note: notes || '',
+        expense_date: new Date(),
+        created_by: userId
+      }).returning('id').executeTakeFirstOrThrow();
+      
+      const expenseId = expenseInsert.id;
+
+      await trx.insertInto('treasury_transactions').values({
+        tenant_id: tenantId,
+        account_id: supplier.account_id,
+        txn_type: 'expense',
+        amount: -amountEgp,
+        note: `تدبير عملة: حوالة خارجية إلى ${supplier.name}`,
+        reference_type: 'expense',
+        reference_id: expenseId,
+        created_by: userId
+      }).execute();
+
+      // 2. Create Supplier Payment (amountForeign)
+      const paymentInsert = await trx.insertInto('supplier_payments').values({
+        tenant_id: tenantId,
+        account_id: supplier.account_id,
+        supplier_id: supplier.id,
+        amount: amountForeign,
+        note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''}`,
+        created_by: userId
+      }).returning('id').executeTakeFirstOrThrow();
+      
+      const paymentId = paymentInsert.id;
+
+      await trx.updateTable('supplier_payments')
+        .set({ doc_no: `FT-${paymentId}` })
+        .where('id', '=', paymentId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      // 3. Update Supplier Ledger
+      const newBalance = Number(supplier.balance || 0) - amountForeign;
+      await trx.insertInto('supplier_ledger').values({
+        tenant_id: tenantId,
+        account_id: supplier.account_id,
+        supplier_id: supplier.id,
+        entry_type: 'supplier_payment',
+        amount: -amountForeign,
+        balance_after: newBalance,
+        note: `حوالة خارجية: ${notes || ''}`,
+        reference_type: 'supplier_payment',
+        reference_id: paymentId,
+        created_by: userId
+      }).execute();
+
+      // 4. Update Supplier Balance
+      await trx.updateTable('suppliers')
+        .set({ balance: newBalance })
+        .where('id', '=', supplier.id)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      return { success: true, paymentId, expenseId, newBalance };
+    });
+  }
+
+  async recordPartnerPayout(tenantId: string, userId: number, partnerId: string, amount: number) {
+    return await this.db.transaction().execute(async (trx) => {
+      // 1. Get partner
+      const partner = await trx
+        .selectFrom('import_partners')
+        .selectAll()
+        .where('id', '=', partnerId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirstOrThrow();
+
+      // 2. Insert into treasury
+      await trx.insertInto('expenses').values({
+        tenant_id: tenantId,
+        account_id: 'default',
+        title: `صرف أرباح الشريك: ${partner.name}`,
+        amount: amount,
+        note: 'تسوية أرباح شريك',
+        expense_date: new Date(),
+        created_by: userId
+      }).execute();
+
+      await trx.insertInto('treasury_transactions').values({
+        tenant_id: tenantId,
+        type: 'OUT',
+        amount: amount,
+        category: 'expense',
+        reference_id: partnerId,
+        reference_type: 'partner_payout',
+        notes: `صرف أرباح الشريك: ${partner.name}`,
+        created_by: userId
+      }).execute();
+
+      // 3. Update partner withdrawn profit
+      await trx.updateTable('import_partners')
+        .set((eb) => ({
+          withdrawn_profit: sql`${eb.ref('withdrawn_profit')} + ${amount}`
+        }))
+        .where('id', '=', partnerId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+        
+      return { success: true };
+    });
+  }
 }
+

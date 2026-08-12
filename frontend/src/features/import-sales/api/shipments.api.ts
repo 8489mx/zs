@@ -12,6 +12,10 @@ export interface Shipment {
   exchange_rate_at_arrival: string;
   status: 'Pending' | 'In Customs' | 'Arrived';
   created_at: string;
+  supplier_id?: string;
+  bill_of_lading?: string;
+  shipping_date?: string;
+  supplier_name?: string;
 }
 
 export interface ShipmentItem {
@@ -32,6 +36,9 @@ export interface ShipmentDetails extends Shipment {
 export interface CreateShipmentDto {
   containerNumber: string;
   arrivalDate?: string;
+  supplierId?: string;
+  billOfLading?: string;
+  shippingDate?: string;
 }
 
 export interface UpdateShipmentCostsDto {
@@ -46,6 +53,13 @@ export interface AddShipmentItemDto {
   productId: string;
   quantity: number;
   factoryUnitPriceUsd: number;
+}
+
+export interface RecordForeignTransferDto {
+  supplierId: string;
+  amountEgp: number;
+  amountForeign: number;
+  notes?: string;
 }
 
 export const useShipmentsQuery = () => {
@@ -66,6 +80,15 @@ export const useShipmentDetailsQuery = (id: string) => {
       return data;
     },
     enabled: !!id,
+  });
+};
+
+export const useForeignTransfersQuery = () => {
+  return useQuery({
+    queryKey: ['foreign-transfers'],
+    queryFn: async () => {
+      return await http<any[]>('/api/import-sales/foreign-transfers');
+    },
   });
 };
 
@@ -189,6 +212,42 @@ export const useDeletePartnerMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import-partners'] });
       queryClient.invalidateQueries({ queryKey: ['profit-report'] });
+    },
+  });
+};
+
+export const useRecordForeignTransferMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (dto: RecordForeignTransferDto) => {
+      return await http<{ success: boolean }>('/api/import-sales/foreign-transfer', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['foreign-transfers'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['treasury'] });
+    },
+  });
+};
+
+export const usePartnerPayoutMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ partnerId, amount }: { partnerId: string, amount: number }) => {
+      return await http<{ success: boolean }>(`/api/import-sales/partners/${partnerId}/payout`, {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-partners'] });
+      queryClient.invalidateQueries({ queryKey: ['import-profit-report'] });
+      queryClient.invalidateQueries({ queryKey: ['treasury'] });
     },
   });
 };

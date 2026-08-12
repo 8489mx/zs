@@ -26,6 +26,8 @@ interface ProductFormProps {
   locations: Location[];
   onCategoryCreated?: (categoryId: string) => void;
   onSupplierCreated?: (supplierId: string) => void;
+  onSuccess?: (productId: string, name: string) => void;
+  initialName?: string;
 }
 
 const normalizeLookupText = (value: unknown) => String(value ?? '').trim().toLocaleLowerCase();
@@ -93,7 +95,7 @@ async function generateNextStyleCode() {
   return result.styleCode;
 }
 
-export function ProductForm({ categories, suppliers, locations, onCategoryCreated, onSupplierCreated }: ProductFormProps) {
+export function ProductForm({ categories, suppliers, locations, onCategoryCreated, onSupplierCreated, onSuccess, initialName }: ProductFormProps) {
   const settingsQuery = useSettingsQuery();
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -110,12 +112,18 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
   const [isGeneratingStyleCode, setIsGeneratingStyleCode] = useState(false);
   const form = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: getDefaultValues(defaultItemKind)
+    defaultValues: {
+      ...getDefaultValues(defaultItemKind),
+      name: initialName || ''
+    }
   });
 
   const queryClient = useQueryClient();
-  const mutation = useCreateProductMutation(() => {
-    form.reset(getDefaultValues(defaultItemKind));
+  const mutation = useCreateProductMutation((productId, name) => {
+    form.reset({
+      ...getDefaultValues(defaultItemKind),
+      name: initialName || ''
+    });
     setUnits(normalizeProductUnits(undefined, ''));
     setFashionVariantRows([]);
     setVariantBarcodePrefix('');
@@ -123,6 +131,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
     setInlineCategoryName('');
     setInlineSupplierName('');
     setInlineSupplierPhone('');
+    onSuccess?.(productId, name);
   });
 
   useWatch({ control: form.control });

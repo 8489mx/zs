@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { useCreateShipmentMutation } from './api/shipments.api';
+import { useQuery } from '@tanstack/react-query';
+import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
 
 interface NewShipmentDialogProps {
   open: boolean;
@@ -11,7 +13,15 @@ interface NewShipmentDialogProps {
 export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
   const [containerNumber, setContainerNumber] = useState('');
   const [arrivalDate, setArrivalDate] = useState('');
+  const [supplierId, setSupplierId] = useState('');
+  const [billOfLading, setBillOfLading] = useState('');
+  const [shippingDate, setShippingDate] = useState('');
   const createMutation = useCreateShipmentMutation();
+
+  const { data: suppliersData } = useQuery({
+    queryKey: ['suppliers', 'all'],
+    queryFn: () => suppliersApi.listAll(),
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +30,16 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
     await createMutation.mutateAsync({
       containerNumber,
       arrivalDate: arrivalDate || undefined,
+      supplierId: supplierId || undefined,
+      billOfLading: billOfLading || undefined,
+      shippingDate: shippingDate || undefined,
     });
     
     setContainerNumber('');
     setArrivalDate('');
+    setSupplierId('');
+    setBillOfLading('');
+    setShippingDate('');
     onClose();
   };
 
@@ -45,7 +61,41 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
               placeholder="مثال: MSCU1234567"
             />
           </div>
-          
+          <div className="form-group">
+            <label>المصنع / المورد</label>
+            <select 
+              className="input"
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
+            >
+              <option value="">-- إختيار المورد --</option>
+              {suppliersData?.suppliers?.map(sup => (
+                <option key={sup.id} value={sup.id}>{sup.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>رقم بوليصة الشحن (B/L)</label>
+            <input 
+              type="text" 
+              className="input" 
+              value={billOfLading}
+              onChange={(e) => setBillOfLading(e.target.value)}
+              placeholder="مثال: BL-12345"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>تاريخ الشحن (مغادرة الميناء)</label>
+            <input 
+              type="date" 
+              className="input" 
+              value={shippingDate}
+              onChange={(e) => setShippingDate(e.target.value)}
+            />
+          </div>
+
           <div className="form-group">
             <label>تاريخ الوصول المتوقع</label>
             <input 

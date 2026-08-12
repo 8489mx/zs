@@ -8,6 +8,18 @@ export class CreateShipmentDto {
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   arrivalDate?: string;
+
+  @IsString()
+  @IsOptional()
+  supplierId?: string;
+
+  @IsString()
+  @IsOptional()
+  billOfLading?: string;
+
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  shippingDate?: string;
 }
 
 export class UpdateShipmentCostsDto {
@@ -53,4 +65,23 @@ export class AddShipmentItemDto {
   @IsNumber()
   @Min(0)
   factoryUnitPriceUsd!: number;
+}
+
+export class RecordForeignTransferDto {
+  @IsString()
+  supplierId!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amountEgp!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amountForeign!: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }

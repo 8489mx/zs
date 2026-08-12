@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards, Query, Delete } from '@nestjs/common';
 import { ImportSalesService } from './import-sales.service';
-import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto } from './dto/import-sales.dto';
+import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto } from './dto/import-sales.dto';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 
@@ -28,6 +28,20 @@ export class ImportSalesController {
     @Param('id') id: string
   ) {
     return this.importSalesService.deletePartner(req.authContext!.tenantId!, id);
+  }
+
+  @Post('partners/:id/payout')
+  async recordPartnerPayout(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string,
+    @Body() dto: { amount: number }
+  ) {
+    return this.importSalesService.recordPartnerPayout(
+      req.authContext!.tenantId!,
+      req.authContext!.userId!,
+      id,
+      dto.amount
+    );
   }
 
   // --- Shipments Endpoints ---
@@ -91,5 +105,22 @@ export class ImportSalesController {
       return this.importSalesService.generatePeriodProfitReport(req.authContext!.tenantId!, start, end);
     }
     return this.importSalesService.generatePeriodProfitReport(req.authContext!.tenantId!, startDate, endDate);
+  }
+
+  @Get('foreign-transfers')
+  async listForeignTransfers(@Req() req: RequestWithAuth) {
+    return this.importSalesService.listForeignTransfers(req.authContext!.tenantId!);
+  }
+
+  @Post('foreign-transfer')
+  async recordForeignTransfer(
+    @Req() req: RequestWithAuth,
+    @Body() dto: RecordForeignTransferDto
+  ) {
+    return this.importSalesService.recordForeignTransfer(
+      req.authContext!.tenantId!,
+      req.authContext!.userId,
+      dto
+    );
   }
 }

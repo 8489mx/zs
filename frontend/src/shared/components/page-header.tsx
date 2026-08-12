@@ -4,7 +4,7 @@ import { HrSectionNav } from '@/features/hr/components/HrSectionNav';
 
 interface PageHeaderProps {
   title: string;
-  description?: string;
+  description?: ReactNode;
   badge?: ReactNode;
   actions?: ReactNode;
   className?: string;
