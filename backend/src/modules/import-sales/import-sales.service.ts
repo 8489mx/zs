@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { Inject } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -55,7 +55,7 @@ export class ImportSalesService {
         .execute();
     } catch (error: any) {
       if (error.code === '23503') { // PostgreSQL foreign_key_violation
-        throw new import('@nestjs/common').BadRequestException('لا يمكن حذف الشريك لوجود عمليات مالية أو أرباح مسجلة باسمه.');
+        throw new BadRequestException('لا يمكن حذف الشريك لوجود عمليات مالية أو أرباح مسجلة باسمه.');
       }
       throw error;
     }
