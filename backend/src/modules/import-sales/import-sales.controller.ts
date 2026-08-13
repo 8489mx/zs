@@ -17,7 +17,7 @@ export class ImportSalesController {
   @Post('partners')
   async createPartner(
     @Req() req: RequestWithAuth,
-    @Body() dto: { name: string; percentage: number; capitalAmount?: number; accountId?: number }
+    @Body() dto: { name: string; percentage: number; capitalAmount?: number; accountId?: string }
   ) {
     return this.importSalesService.createPartner(req.authContext!.tenantId!, req.authContext!.userId!, dto.name, dto.percentage, dto.capitalAmount, dto.accountId);
   }
@@ -51,7 +51,7 @@ export class ImportSalesController {
   async recordCapitalTransaction(
     @Req() req: RequestWithAuth,
     @Param('id') id: string,
-    @Body() dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string; accountId?: number }
+    @Body() dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string; accountId?: string }
   ) {
     return this.importSalesService.recordCapitalTransaction(
       req.authContext!.tenantId!,

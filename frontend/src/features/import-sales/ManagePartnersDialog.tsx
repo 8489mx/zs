@@ -46,7 +46,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
     if (capNum > 0 && !accountId) {
       return alert('الرجاء اختيار الخزينة لإيداع رأس المال الافتتاحي');
     }
-    await createMutation.mutateAsync({ name, percentage: percNum, capitalAmount: capNum, accountId: accountId ? Number(accountId) : undefined } as any);
+    await createMutation.mutateAsync({ name, percentage: percNum, capitalAmount: capNum, accountId: accountId || undefined } as any);
     setName('');
     setPercentage('');
     setCapitalAmount('');
@@ -56,6 +56,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
   const handleDelete = async (id: string) => {
     if (confirm('هل أنت متأكد من حذف هذا الشريك؟ (لا يمكن التراجع، وسيؤثر على الحسابات السابقة إذا لم تكن مقفلة)')) {
       await deleteMutation.mutateAsync(id);
+      setLocalPartners(prev => prev.filter(p => p.id !== id));
     }
   };
   

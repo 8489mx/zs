@@ -40,7 +40,7 @@ export function CapitalTransactionDialog({
       amount: Number(amount),
       date,
       note,
-      accountId: accountId ? Number(accountId) : undefined
+      accountId: accountId || undefined
     });
     setAmount('');
     setNote('');

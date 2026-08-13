@@ -238,7 +238,7 @@ export const usePartnersQuery = () => {
 export const useCreatePartnerMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (dto: { name: string; percentage: number; capitalAmount?: number; accountId?: number }) => {
+    mutationFn: async (dto: { name: string; percentage: number; capitalAmount?: number; accountId?: string }) => {
       return await http('/api/import-sales/partners', {
         method: 'POST',
         body: JSON.stringify(dto),
@@ -291,7 +291,7 @@ export const usePartnerLedgerQuery = (partnerId: string) => {
 export const useRecordCapitalTransactionMutation = (partnerId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string; accountId?: number }) => {
+    mutationFn: async (dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string; accountId?: string }) => {
       return await http(`/api/import-sales/partners/${partnerId}/capital-transaction`, {
         method: 'POST',
         body: JSON.stringify(dto),

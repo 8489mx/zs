@@ -16,7 +16,7 @@ export class ImportSalesService {
       .execute();
   }
 
-  async createPartner(tenantId: string, userId: number, name: string, percentage: number, capitalAmount: number = 0, accountId?: number) {
+  async createPartner(tenantId: string, userId: number, name: string, percentage: number, capitalAmount: number = 0, accountId?: string) {
     const partner = await this.db
       .insertInto('import_partners')
       .values({
@@ -504,12 +504,10 @@ export class ImportSalesService {
 
       await trx.insertInto('treasury_transactions').values({
         tenant_id: tenantId,
-        type: 'OUT',
-        amount: amount,
-        category: 'expense',
-        reference_id: partnerId,
+        txn_type: 'expense',
+        amount: -amount,
+        note: `صرف أرباح الشريك: ${partner.name}`,
         reference_type: 'partner_payout',
-        notes: `صرف أرباح الشريك: ${partner.name}`,
         created_by: userId
       }).execute();
 
@@ -548,7 +546,7 @@ export class ImportSalesService {
       .execute();
   }
 
-  async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string, note?: string, accountId?: number }) {
+  async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string, note?: string, accountId?: string }) {
     return await this.db.transaction().execute(async (trx) => {
       await trx.insertInto('import_partner_ledger').values({
         tenant_id: tenantId,
@@ -576,7 +574,6 @@ export class ImportSalesService {
           amount: dto.type === 'DEPOSIT' ? dto.amount : -dto.amount,
           note: (dto.type === 'DEPOSIT' ? 'إيداع رأس مال شريك: ' : 'سحب رأس مال شريك: ') + dto.note,
           reference_type: 'partner_capital',
-          reference_id: partnerId,
           created_by: userId,
           account_id: dto.accountId
         }).execute();
