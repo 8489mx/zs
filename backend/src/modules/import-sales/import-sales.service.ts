@@ -16,17 +16,35 @@ export class ImportSalesService {
       .execute();
   }
 
-  async createPartner(tenantId: string, name: string, percentage: number, capitalAmount: number = 0) {
-    return await this.db
+  async createPartner(tenantId: string, userId: number, name: string, percentage: number, capitalAmount: number = 0, accountId?: number) {
+    const partner = await this.db
       .insertInto('import_partners')
       .values({
         tenant_id: tenantId,
         name,
         profit_share_percentage: percentage,
-        capital_amount: capitalAmount
+        capital_amount: 0 // Will be added via transaction if > 0
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    if (capitalAmount > 0) {
+      await this.recordCapitalTransaction(tenantId, userId, partner.id, {
+        type: 'DEPOSIT',
+        amount: capitalAmount,
+        date: new Date().toISOString().split('T')[0],
+        note: 'رأس مال افتتاحي',
+        accountId
+      });
+      // Fetch updated partner
+      return await this.db
+        .selectFrom('import_partners')
+        .selectAll()
+        .where('id', '=', partner.id)
+        .executeTakeFirstOrThrow();
+    }
+
+    return partner;
   }
 
   async updatePartner(tenantId: string, id: string, name?: string, percentage?: number, capitalAmount?: number) {

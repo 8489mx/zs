@@ -17,9 +17,9 @@ export class ImportSalesController {
   @Post('partners')
   async createPartner(
     @Req() req: RequestWithAuth,
-    @Body() dto: { name: string; percentage: number; capitalAmount?: number }
+    @Body() dto: { name: string; percentage: number; capitalAmount?: number; accountId?: number }
   ) {
-    return this.importSalesService.createPartner(req.authContext!.tenantId!, dto.name, dto.percentage, dto.capitalAmount);
+    return this.importSalesService.createPartner(req.authContext!.tenantId!, req.authContext!.userId!, dto.name, dto.percentage, dto.capitalAmount, dto.accountId);
   }
 
   @Patch('partners/:id')

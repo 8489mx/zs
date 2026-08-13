@@ -5,6 +5,8 @@ import { Field } from '@/shared/ui/field';
 import { usePartnersQuery, useCreatePartnerMutation, useDeletePartnerMutation, useUpdatePartnerMutation, Partner } from './api/shipments.api';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { CapitalTransactionDialog, PartnerLedgerDialog } from './PartnerLedgerComponents';
+import { useQuery } from '@tanstack/react-query';
+import { http } from '@/lib/http';
 
 export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose: () => void }) {
   const { data: partners, isLoading } = usePartnersQuery();
@@ -14,6 +16,14 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
   
   const [name, setName] = useState('');
   const [percentage, setPercentage] = useState('');
+  const [capitalAmount, setCapitalAmount] = useState('');
+  const [accountId, setAccountId] = useState('');
+
+  const { data: accountsData } = useQuery({
+    queryKey: ['accounts-list'],
+    queryFn: () => http<any[]>('/api/accounting/accounts').catch(() => []),
+  });
+  const treasuryAccounts = (accountsData || []).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
 
   // Modals state
   const [txPartner, setTxPartner] = useState<{ partner: Partner, type: 'DEPOSIT' | 'WITHDRAWAL' } | null>(null);
@@ -32,10 +42,15 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
     e.preventDefault();
     if (!name) return;
     const percNum = Number(percentage) || 0;
-    // We create partner with 0 capital first, then they can use [+] to add capital
-    await createMutation.mutateAsync({ name, percentage: percNum, capitalAmount: 0 });
+    const capNum = Number(capitalAmount) || 0;
+    if (capNum > 0 && !accountId) {
+      return alert('الرجاء اختيار الخزينة لإيداع رأس المال الافتتاحي');
+    }
+    await createMutation.mutateAsync({ name, percentage: percNum, capitalAmount: capNum, accountId: accountId ? Number(accountId) : undefined } as any);
     setName('');
     setPercentage('');
+    setCapitalAmount('');
+    setAccountId('');
   };
 
   const handleDelete = async (id: string) => {
@@ -84,12 +99,23 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
           {/* Add Partner Section */}
           <div style={{ background: 'var(--gray-50)', padding: '24px', borderRadius: '12px', border: '1px solid var(--gray-200)', marginBottom: '32px' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--gray-700)' }}>إضافة شريك جديد</h3>
-            <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '16px', alignItems: 'end' }}>
+            <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '16px', alignItems: 'end' }}>
               <Field label="اسم الشريك">
                 <input type="text" value={name} onChange={e => setName(e.target.value)} required className="input" placeholder="مثال: أحمد" />
               </Field>
               <Field label="النسبة المئوية (اختياري)">
                 <input type="number" step="0.01" min="0" max="100" value={percentage} onChange={e => setPercentage(e.target.value)} className="input" placeholder="%" />
+              </Field>
+              <Field label="رأس المال الافتتاحي">
+                <input type="number" step="0.01" min="0" value={capitalAmount} onChange={e => setCapitalAmount(e.target.value)} className="input" placeholder="المبلغ" />
+              </Field>
+              <Field label="الخزينة/البنك (للإيداع)">
+                <select className="input" value={accountId} onChange={e => setAccountId(e.target.value)} required={Number(capitalAmount) > 0}>
+                  <option value="">-- اختر --</option>
+                  {treasuryAccounts?.map((a: any) => (
+                    <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>
+                  ))}
+                </select>
               </Field>
               <Button type="submit" variant="primary" disabled={createMutation.isPending} style={{ height: '42px' }}>إضافة شريك</Button>
             </form>

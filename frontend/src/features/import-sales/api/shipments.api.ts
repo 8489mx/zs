@@ -236,7 +236,7 @@ export const usePartnersQuery = () => {
 export const useCreatePartnerMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (dto: { name: string; percentage: number; capitalAmount?: number }) => {
+    mutationFn: async (dto: { name: string; percentage: number; capitalAmount?: number; accountId?: number }) => {
       return await http('/api/import-sales/partners', {
         method: 'POST',
         body: JSON.stringify(dto),
