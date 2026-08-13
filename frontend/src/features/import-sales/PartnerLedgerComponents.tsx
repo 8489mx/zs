@@ -20,6 +20,7 @@ export function CapitalTransactionDialog({
 }) {
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [note, setNote] = useState('');
   const [accountId, setAccountId] = useState('');
   
   const mutation = useRecordCapitalTransactionMutation(partner?.id || '');

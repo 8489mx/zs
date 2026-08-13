@@ -18,6 +18,8 @@ export interface Shipment {
   shipped_date?: string;
   eta_date?: string;
   clearance_date?: string;
+  supplier_name?: string;
+  bill_of_lading?: string;
 }
 
 export interface ShipmentItem {

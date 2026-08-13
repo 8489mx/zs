@@ -235,8 +235,8 @@ export default function ShipmentDetailsPage() {
           description="جميع المنتجات التي تم استلامها داخل هذه الحاوية. يمكنك تعديل الكمية المستلمة فعلياً وهامش الربح."
           actions={
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Button variant="outline" onClick={handleApplyPrices} disabled={applyPricesMutation.isPending}>
-                تطبيق أسعار البيع في الكتالوج
+              <Button variant="secondary" onClick={handleApplyPrices} disabled={applyPricesMutation.isPending}>
+                تطبيق واعتماد الأسعار
               </Button>
               <Button variant="secondary" onClick={() => setIsAddItemOpen(true)}>إضافة صنف +</Button>
             </div>

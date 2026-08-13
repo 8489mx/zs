@@ -156,8 +156,8 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                             {Number(p.capital_amount || 0).toLocaleString()}
                           </span>
                           <div style={{ display: 'flex', gap: '4px' }}>
-                            <Button variant="outline" className="btn-sm" onClick={() => setTxPartner({ partner: p, type: 'DEPOSIT' })} title="إيداع رأس مال">+</Button>
-                            <Button variant="outline" className="btn-sm" onClick={() => setTxPartner({ partner: p, type: 'WITHDRAWAL' })} title="سحب رأس مال">-</Button>
+                            <Button variant="secondary" className="btn-sm" onClick={() => setTxPartner({ partner: p, type: 'DEPOSIT' })} title="إيداع رأس مال">+</Button>
+                            <Button variant="secondary" className="btn-sm" onClick={() => setTxPartner({ partner: p, type: 'WITHDRAWAL' })} title="سحب رأس مال">-</Button>
                           </div>
                         </div>
                       </td>
