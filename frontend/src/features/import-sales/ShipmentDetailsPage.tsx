@@ -100,9 +100,9 @@ export default function ShipmentDetailsPage() {
   // Fetch accounts for treasury dropdown (assuming generic endpoint, fallback to basic input if fails)
   const { data: accountsData } = useQuery({
     queryKey: ['accounts-list'],
-    queryFn: () => http<any[]>('/api/accounting/accounts').catch(() => []),
+    queryFn: () => http<any>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
   });
-  const treasuryAccounts = (accountsData || []).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
+  const treasuryAccounts = (accountsData?.accounts || (Array.isArray(accountsData) ? accountsData : [])).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
 
   if (isLoading) return <div style={{ padding: '2rem' }}>جاري التحميل...</div>;
   if (!data) return <div style={{ padding: '2rem' }}>الحاوية غير موجودة</div>;
