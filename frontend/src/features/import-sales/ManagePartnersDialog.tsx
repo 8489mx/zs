@@ -190,18 +190,33 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                       </td>
                     </tr>
                   )}
-                  {localPartners.length > 0 && (
-                    <tr style={{ background: 'var(--primary-50)', fontWeight: 'bold', color: 'var(--primary-900)' }}>
-                      <td style={{ padding: '16px' }}>الإجمالي</td>
-                      <td style={{ padding: '16px' }}>
-                        {localPartners.reduce((sum, p) => sum + (Number(p.capital_amount) || 0), 0).toLocaleString()}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'right' }}>
-                        {localPartners.reduce((sum, p) => sum + (Number(p.profit_share_percentage) || 0), 0).toFixed(2)}%
-                      </td>
-                      <td></td>
-                    </tr>
-                  )}
+                  {localPartners.length > 0 && (() => {
+                    const totalCapital = localPartners.reduce((sum, p) => sum + (Number(p.capital_amount) || 0), 0);
+                    const totalPercentage = localPartners.reduce((sum, p) => sum + (Number(p.profit_share_percentage) || 0), 0);
+                    const isPercentageValid = Math.abs(totalPercentage - 100) < 0.01;
+
+                    return (
+                      <>
+                        <tr style={{ background: 'var(--primary-50)', fontWeight: 'bold', color: 'var(--primary-900)' }}>
+                          <td style={{ padding: '16px' }}>الإجمالي</td>
+                          <td style={{ padding: '16px' }}>
+                            {totalCapital.toLocaleString()}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'right', color: isPercentageValid ? 'var(--primary-900)' : 'var(--red-600)' }}>
+                            {totalPercentage.toFixed(2)}%
+                          </td>
+                          <td></td>
+                        </tr>
+                        {!isPercentageValid && (
+                          <tr>
+                            <td colSpan={4} style={{ padding: '8px 16px', background: 'var(--red-50)', color: 'var(--red-700)', fontSize: '13px', textAlign: 'center' }}>
+                              ⚠️ تنبيه: إجمالي نسب الأرباح لا يساوي 100%. يرجى الضغط على زر "إعادة حساب النسب" أو تعديلها يدوياً حتى لا تفقد جزء من الأرباح.
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>
