@@ -12,19 +12,19 @@ export class DeliveryRepsController {
   constructor(private readonly service: DeliveryRepsService) {}
 
   @Get()
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   list(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.service.list(req.authContext!);
   }
 
   @Post()
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   create(@Body() payload: UpsertDeliveryRepDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.service.create(payload, req.authContext!);
   }
 
   @Put(':id')
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpsertDeliveryRepDto,
@@ -34,13 +34,13 @@ export class DeliveryRepsController {
   }
 
   @Delete(':id')
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   remove(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.service.remove(id, req.authContext!);
   }
 
   @Get(':id/orders')
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   listOrders(
     @Param('id', ParseIntPipe) id: number,
     @Query('dateFrom') dateFrom: string,
@@ -52,7 +52,7 @@ export class DeliveryRepsController {
   }
 
   @Get(':id/settlements')
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   listSettlements(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithAuth,
@@ -61,7 +61,7 @@ export class DeliveryRepsController {
   }
 
   @Get(':id/kpi')
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   getKPIs(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithAuth,
@@ -70,7 +70,7 @@ export class DeliveryRepsController {
   }
 
   @Post('settle/:saleId')
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   settleOrder(
     @Param('saleId', ParseIntPipe) saleId: number,
     @Req() req: RequestWithAuth,
@@ -79,7 +79,7 @@ export class DeliveryRepsController {
   }
 
   @Post(':id/settle-all')
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   settleAllOrders(
     @Param('id', ParseIntPipe) id: number,
     @Body('expectedAmount') expectedAmount: number,
@@ -89,7 +89,7 @@ export class DeliveryRepsController {
   }
 
   @Get(':id/summary')
-  @RequirePermissions('canManageSales')
+  @RequirePermissions('deliveryReps')
   getRepSummary(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithAuth,

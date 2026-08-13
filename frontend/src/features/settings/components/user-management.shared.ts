@@ -2,10 +2,10 @@ import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','canManageBranchStock','cashDrawer'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','canManageBranchStock','cashDrawer','deliveryReps'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageBranchStock','canManageSettings'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageBranchStock','canManageSettings','deliveryReps'
 ];
 export const DEFAULT_CASHIER_PERMS = ['sales', 'cashDrawer', 'customers', 'returns', 'products', 'canPrint'];
 
@@ -49,6 +49,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   hrSalaryView: 'عرض بيانات الراتب',
   hrSalaryManage: 'إدارة بيانات الراتب',
   canDelete: 'الحذف',
+  deliveryReps: 'إدارة المناديب',
 };
 
 export function getPermissionLabel(permission: string) {
@@ -56,7 +57,7 @@ export function getPermissionLabel(permission: string) {
 }
 
 export const USER_PERMISSION_GROUPS = [
-  { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'accounting', 'reports', 'pricingCenterView'] },
+  { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'accounting', 'reports', 'pricingCenterView', 'deliveryReps'] },
   { title: 'الموارد البشرية', items: ['hr', 'hrEmployees', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove'] },
   { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory', 'canManageBranchStock', 'pricingCenterManage'] },
   { title: 'إدارة النظام', items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups'] },
