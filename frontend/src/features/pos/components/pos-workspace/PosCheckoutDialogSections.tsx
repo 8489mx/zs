@@ -340,6 +340,7 @@ export function PosCheckoutPaymentSection({
             placeholder="0"
           />
         </label>
+        <label className="field"><span>رسوم التوصيل</span><input type="number" step="0.01" value={pos.deliveryFee === 0 ? '' : pos.deliveryFee} onChange={(event) => pos.setDeliveryFee(Number(event.target.value || 0))} placeholder="0" /></label>
         {isDiscountLocked ? (
           <Button type="button" variant={pos.discountApprovalGranted ? 'success' : 'secondary'} onClick={() => {
             if (pos.discountApprovalGranted) return;

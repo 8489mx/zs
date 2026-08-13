@@ -385,59 +385,6 @@ function PosProductsPanelComponent({
 
         <div className="pos-toolbar-shell pos-toolbar-shell-compact">
           <div className="pos-products-toolbar-stack" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            
-            {/* Advanced Auto Parts Search Filters */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              <select 
-                className="input" 
-                style={{ borderRadius: '8px', padding: '6px 10px', fontSize: '13px' }}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const newSearch = val ? `${val} ` : '';
-                  onSearchChange(newSearch);
-                  setTimeout(() => focusSearchInput(searchInputRef), 100);
-                }}
-              >
-                <option value="">ماركة السيارة (الكل)</option>
-                <option value="تويوتا">تويوتا</option>
-                <option value="هيونداي">هيونداي</option>
-                <option value="كيا">كيا</option>
-                <option value="نيسان">نيسان</option>
-                <option value="شيفروليه">شيفروليه</option>
-                <option value="هوندا">هوندا</option>
-                <option value="ميتسوبيشي">ميتسوبيشي</option>
-              </select>
-              
-              <input 
-                type="text" 
-                className="input"
-                placeholder="موديل (مثال: كورولا)"
-                style={{ borderRadius: '8px', padding: '6px 10px', fontSize: '13px' }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const val = e.currentTarget.value;
-                    if (val) onSearchChange(`${search} ${val}`.trim());
-                    e.currentTarget.value = '';
-                    focusSearchInput(searchInputRef);
-                  }
-                }}
-              />
-              
-              <input 
-                type="text" 
-                className="input"
-                placeholder="سنة الصنع (مثال: 2020)"
-                style={{ borderRadius: '8px', padding: '6px 10px', fontSize: '13px' }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const val = e.currentTarget.value;
-                    if (val) onSearchChange(`${search} ${val}`.trim());
-                    e.currentTarget.value = '';
-                    focusSearchInput(searchInputRef);
-                  }
-                }}
-              />
-            </div>
 
             <div className="pos-products-unified-search-field">
               <div className="field" style={{ margin: 0 }}>
