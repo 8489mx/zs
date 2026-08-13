@@ -4,6 +4,8 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { usePartnerLedgerQuery, useRecordCapitalTransactionMutation, Partner } from './api/shipments.api';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { useQuery } from '@tanstack/react-query';
+import { http } from '@/lib/http';
 
 export function CapitalTransactionDialog({ 
   partner, 
@@ -18,9 +20,16 @@ export function CapitalTransactionDialog({
 }) {
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [note, setNote] = useState('');
+  const [accountId, setAccountId] = useState('');
   
   const mutation = useRecordCapitalTransactionMutation(partner?.id || '');
+
+  // Fetch accounts for treasury dropdown (assuming generic endpoint, fallback to basic input if fails)
+  const { data: accountsData } = useQuery({
+    queryKey: ['accounts-list'],
+    queryFn: () => http<any[]>('/api/accounting/accounts').catch(() => []),
+  });
+  const treasuryAccounts = (accountsData || []).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +38,12 @@ export function CapitalTransactionDialog({
       type,
       amount: Number(amount),
       date,
-      note
+      note,
+      accountId: accountId ? Number(accountId) : undefined
     });
     setAmount('');
     setNote('');
+    setAccountId('');
     onClose();
   };
 
@@ -49,12 +60,20 @@ export function CapitalTransactionDialog({
           <Field label="تاريخ الحركة">
             <input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} required />
           </Field>
+          <Field label={type === 'DEPOSIT' ? "إيداع في خزينة/بنك" : "سحب من خزينة/بنك"}>
+            <select className="input" value={accountId} onChange={e => setAccountId(e.target.value)} required>
+              <option value="">-- اختر الخزينة أو البنك --</option>
+              {treasuryAccounts?.map((a: any) => (
+                <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="ملاحظات (اختياري)">
             <textarea className="input" rows={2} value={note} onChange={e => setNote(e.target.value)} />
           </Field>
           <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
             <Button type="submit" variant={type === 'DEPOSIT' ? 'primary' : 'danger'} disabled={mutation.isPending}>
-              حفظ الحركة
+              حفظ الحركة وإيداع الخزنة
             </Button>
             <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
           </div>

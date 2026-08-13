@@ -530,7 +530,7 @@ export class ImportSalesService {
       .execute();
   }
 
-  async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string, note?: string }) {
+  async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string, note?: string, accountId?: number }) {
     return await this.db.transaction().execute(async (trx) => {
       await trx.insertInto('import_partner_ledger').values({
         tenant_id: tenantId,
@@ -550,6 +550,19 @@ export class ImportSalesService {
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
         .execute();
+
+      if (dto.accountId) {
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId,
+          txn_type: dto.type === 'DEPOSIT' ? 'revenue' : 'expense',
+          amount: dto.type === 'DEPOSIT' ? dto.amount : -dto.amount,
+          note: (dto.type === 'DEPOSIT' ? 'إيداع رأس مال شريك: ' : 'سحب رأس مال شريك: ') + dto.note,
+          reference_type: 'partner_capital',
+          reference_id: partnerId,
+          created_by: userId,
+          account_id: dto.accountId
+        }).execute();
+      }
 
       return { success: true };
     });
