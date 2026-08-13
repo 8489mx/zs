@@ -116,31 +116,20 @@ class PostgresManager {
 
   async waitForReady(retries = 50) {
     console.log('Waiting for PostgreSQL to accept connections...');
-    const net = require('net');
+    const psqlExe = path.join(this.postgresBinDir, 'psql.exe');
     
     for (let i = 0; i < retries; i++) {
-      const ready = await new Promise((resolve) => {
-        const socket = new net.Socket();
-        socket.setTimeout(500);
-        socket.on('connect', () => {
-          socket.destroy();
-          resolve(true);
+      try {
+        execSync(`"${psqlExe}" -h 127.0.0.1 -p ${this.dbPort} -U ${this.dbUser} -d postgres -tAc "SELECT 1;"`, { 
+          env: { ...process.env, PGPASSWORD: this.dbPass },
+          stdio: 'ignore'
         });
-        socket.on('error', () => {
-          socket.destroy();
-          resolve(false);
-        });
-        socket.on('timeout', () => {
-          socket.destroy();
-          resolve(false);
-        });
-        socket.connect(parseInt(this.dbPort, 10), '127.0.0.1');
-      });
-      if (ready) {
         console.log('PostgreSQL is ready.');
         return true;
+      } catch (err) {
+        // Not ready yet.
       }
-      await new Promise(res => setTimeout(res, 100));
+      await new Promise(res => setTimeout(res, 200));
     }
     throw new Error('PostgreSQL did not become ready in time.');
   }

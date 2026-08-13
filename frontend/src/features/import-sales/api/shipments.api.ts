@@ -20,6 +20,7 @@ export interface Shipment {
   clearance_date?: string;
   supplier_name?: string;
   bill_of_lading?: string;
+  pricing_exchange_rate?: string;
 }
 
 export interface ShipmentItem {
@@ -32,7 +33,9 @@ export interface ShipmentItem {
   created_at: string;
   product_name: string;
   received_quantity?: string;
-  target_margin_percent?: string;
+  target_retail_margin?: string;
+  target_wholesale_margin?: string;
+  shortage_handling_method?: 'capitalize' | 'expense';
 }
 
 export interface ShipmentDetails extends Shipment {
@@ -49,16 +52,17 @@ export interface CreateShipmentDto {
 
 export interface UpdateShipmentCostsDto {
   shippingCostUsd?: number;
-  shippingAccountId?: number;
+  shippingAccountId?: string;
   customsCostEgp?: number;
-  customsAccountId?: number;
+  customsAccountId?: string;
   internalTransportCostEgp?: number;
-  transportAccountId?: number;
+  transportAccountId?: string;
   exchangeRateAtArrival?: number;
   status?: string;
   shippedDate?: string;
   etaDate?: string;
   clearanceDate?: string;
+  pricingExchangeRate?: number;
 }
 
 export interface AddShipmentItemDto {
@@ -160,7 +164,7 @@ export const useUpdateShipmentItemMutation = (shipmentId: string) => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ itemId, dto }: { itemId: string, dto: { receivedQuantity?: number, targetMarginPercent?: number } }) => {
+    mutationFn: async ({ itemId, dto }: { itemId: string, dto: { receivedQuantity?: number, targetRetailMargin?: number, targetWholesaleMargin?: number, shortageHandlingMethod?: 'capitalize' | 'expense' } }) => {
       const data = await http(`/api/import-sales/shipment-items/${itemId}`, {
         method: 'PATCH',
         body: JSON.stringify(dto),

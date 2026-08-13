@@ -66,11 +66,12 @@ export class ImportSalesService {
 
   async deletePartner(tenantId: string, id: string) {
     try {
-      return await this.db
+      await this.db
         .deleteFrom('import_partners')
         .where('tenant_id', '=', tenantId)
         .where('id', '=', id)
         .execute();
+      return { success: true };
     } catch (error: any) {
       if (error.code === '23503') { // PostgreSQL foreign_key_violation
         throw new BadRequestException('لا يمكن حذف الشريك لوجود عمليات مالية أو أرباح مسجلة باسمه.');
@@ -103,6 +104,9 @@ export class ImportSalesService {
         tenant_id: tenantId,
         container_number: dto.containerNumber,
         arrival_date: dto.arrivalDate,
+        shipped_date: dto.shippingDate,
+        supplier_id: dto.supplierId,
+        bill_of_lading: dto.billOfLading,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -129,11 +133,16 @@ export class ImportSalesService {
         'import_shipment_items.factory_unit_price_usd',
         'import_shipment_items.allocated_overhead_egp',
         'import_shipment_items.landed_cost_egp',
+        'import_shipment_items.received_quantity',
+        'import_shipment_items.target_retail_margin',
+        'import_shipment_items.target_wholesale_margin',
+        'import_shipment_items.shortage_handling_method',
         'import_shipment_items.created_at',
         'products.name as product_name',
       ])
       .where('import_shipment_items.tenant_id', '=', tenantId)
       .where('import_shipment_items.shipment_id', '=', id)
+      .orderBy('import_shipment_items.created_at', 'asc')
       .execute();
 
     return { ...shipment, items };
@@ -162,6 +171,7 @@ export class ImportSalesService {
     if (dto.customsCostEgp !== undefined) updatePayload.customs_cost_egp = dto.customsCostEgp;
     if (dto.internalTransportCostEgp !== undefined) updatePayload.internal_transport_cost_egp = dto.internalTransportCostEgp;
     if (dto.exchangeRateAtArrival !== undefined) updatePayload.exchange_rate_at_arrival = dto.exchangeRateAtArrival;
+    if (dto.pricingExchangeRate !== undefined) updatePayload.pricing_exchange_rate = dto.pricingExchangeRate;
     if (dto.status !== undefined) updatePayload.status = dto.status;
     if (dto.shippedDate !== undefined) updatePayload.shipped_date = dto.shippedDate;
     if (dto.etaDate !== undefined) updatePayload.eta_date = dto.etaDate;
@@ -173,7 +183,7 @@ export class ImportSalesService {
       // Helper to handle expenses
       const handleExpense = async (
         costAmount: number | undefined, 
-        accountId: number | undefined, 
+        accountId: string | undefined, 
         existingExpenseId: number | null, 
         title: string
       ): Promise<number | null> => {
@@ -261,6 +271,23 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .where('id', '=', Number(item.product_id))
         .execute();
+        
+      const qty = Number(item.quantity);
+      if (item.shortage_handling_method === 'expense' && finalQty < qty) {
+        const missingQty = qty - finalQty;
+        const lossAmount = missingQty * Number(item.landed_cost_egp);
+        
+        await this.db
+          .insertInto('expenses')
+          .values({
+            tenant_id: tenantId,
+            title: `خسائر نواقص حاوية (تسوية عجز) - صنف ${item.product_id}`,
+            amount: lossAmount,
+            expense_date: new Date(),
+            note: `نقص عدد ${missingQty} قطعة من البوليصة. تم معالجتها كخسارة.`
+          })
+          .execute();
+      }
     }
   }
 
@@ -300,10 +327,20 @@ export class ImportSalesService {
       
       const ratio = totalUsdValue > 0 ? (itemTotalUsd / totalUsdValue) : (1 / items.length);
       const itemOverheadEgp = totalOverheadEgp * ratio;
-      const unitOverheadEgp = qty > 0 ? itemOverheadEgp / qty : 0;
       
       const unitBaseEgp = unitUsd * rate;
-      const unitLandedEgp = unitBaseEgp + unitOverheadEgp;
+      const totalItemCostEgp = (qty * unitBaseEgp) + itemOverheadEgp;
+      
+      // Handle shortage
+      const handlingMethod = item.shortage_handling_method || 'capitalize';
+      const receivedQty = item.received_quantity !== null && item.received_quantity !== undefined 
+        ? Number(item.received_quantity) 
+        : qty;
+        
+      const effectiveQty = handlingMethod === 'capitalize' && receivedQty > 0 ? receivedQty : qty;
+
+      const unitLandedEgp = effectiveQty > 0 ? totalItemCostEgp / effectiveQty : 0;
+      const unitOverheadEgp = effectiveQty > 0 ? itemOverheadEgp / effectiveQty : 0;
 
       await this.db.updateTable('import_shipment_items')
         .set({
@@ -583,16 +620,35 @@ export class ImportSalesService {
     });
   }
 
-  async updateShipmentItem(tenantId: string, itemId: string, dto: { receivedQuantity?: number, targetMarginPercent?: number }) {
-    return await this.db
-      .updateTable('import_shipment_items')
-      .set({
-        received_quantity: dto.receivedQuantity !== undefined ? dto.receivedQuantity : undefined,
-        target_margin_percent: dto.targetMarginPercent !== undefined ? dto.targetMarginPercent : undefined
-      })
-      .where('id', '=', itemId)
-      .where('tenant_id', '=', tenantId)
-      .execute();
+  async updateShipmentItem(tenantId: string, itemId: string, dto: { receivedQuantity?: number, targetRetailMargin?: number, targetWholesaleMargin?: number, shortageHandlingMethod?: 'capitalize' | 'expense' }) {
+    const setPayload: any = {};
+    if (dto.receivedQuantity !== undefined) setPayload.received_quantity = dto.receivedQuantity;
+    if (dto.targetRetailMargin !== undefined) setPayload.target_retail_margin = dto.targetRetailMargin;
+    if (dto.targetWholesaleMargin !== undefined) setPayload.target_wholesale_margin = dto.targetWholesaleMargin;
+    if (dto.shortageHandlingMethod !== undefined) setPayload.shortage_handling_method = dto.shortageHandlingMethod;
+
+    if (Object.keys(setPayload).length > 0) {
+      await this.db
+        .updateTable('import_shipment_items')
+        .set(setPayload)
+        .where('id', '=', itemId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+        
+      if (dto.receivedQuantity !== undefined || dto.shortageHandlingMethod !== undefined) {
+        const item = await this.db.selectFrom('import_shipment_items')
+          .select('shipment_id')
+          .where('id', '=', itemId)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+          
+        if (item) {
+          await this.calculateLandedCost(tenantId, item.shipment_id);
+        }
+      }
+    }
+    
+    return { success: true };
   }
 
   async applySuggestedPrices(tenantId: string, shipmentId: string) {
@@ -604,15 +660,40 @@ export class ImportSalesService {
         .where('shipment_id', '=', shipmentId)
         .execute();
 
+      const shipment = await trx
+        .selectFrom('import_shipments')
+        .select(['exchange_rate_at_arrival', 'pricing_exchange_rate'])
+        .where('id', '=', shipmentId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+        
+      const arrivalRate = Number(shipment?.exchange_rate_at_arrival) || 1;
+      const pricingRate = Number(shipment?.pricing_exchange_rate) || arrivalRate;
+        
       let updatedCount = 0;
       for (const item of items) {
-        if (item.target_margin_percent !== null && Number(item.target_margin_percent) > 0) {
-          const margin = Number(item.target_margin_percent) / 100;
-          const cost = Number(item.landed_cost_egp || 0);
-          const suggestedPrice = cost * (1 + margin);
+        const cost = Number(item.landed_cost_egp || 0);
+        
+        // If pricing rate is different, adjust the base cost for pricing
+        const unitUsd = Number(item.factory_unit_price_usd || 0);
+        const pricingCostEgp = cost + (unitUsd * (pricingRate - arrivalRate));
 
-          await trx.updateTable('products')
-            .set({ selling_price: suggestedPrice })
+        let updateData: any = {};
+
+        if (item.target_retail_margin !== null && Number(item.target_retail_margin) > 0) {
+          const rMargin = Number(item.target_retail_margin) / 100;
+          updateData.retail_price = pricingCostEgp * (1 + rMargin);
+        }
+        
+        if (item.target_wholesale_margin !== null && Number(item.target_wholesale_margin) > 0) {
+          const wMargin = Number(item.target_wholesale_margin) / 100;
+          updateData.wholesale_price = pricingCostEgp * (1 + wMargin);
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await trx
+            .updateTable('products')
+            .set(updateData)
             .where('id', '=', Number(item.product_id))
             .where('tenant_id', '=', tenantId)
             .execute();

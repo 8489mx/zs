@@ -136,6 +136,7 @@ async function bootstrap(): Promise<void> {
         }
       } catch (error) {
         logger.error('Failed to run database migrations during bootstrap', error);
+        process.exit(1);
       }
     }
   }

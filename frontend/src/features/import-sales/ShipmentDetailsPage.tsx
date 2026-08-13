@@ -12,23 +12,35 @@ import {
 import { formatCurrency } from '@/lib/format';
 import { useState, useEffect } from 'react';
 import { AddShipmentItemDialog } from './AddShipmentItemDialog';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 
-function ItemRowInputs({ item, shipmentId }: { item: ShipmentItem, shipmentId: string }) {
+function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate }: { item: ShipmentItem, shipmentId: string, arrivalRate: number, pricingRate: number }) {
   const updateMutation = useUpdateShipmentItemMutation(shipmentId);
   const [receivedQty, setReceivedQty] = useState(item.received_quantity || '');
-  const [margin, setMargin] = useState(item.target_margin_percent || '');
+  const [retailMargin, setRetailMargin] = useState(item.target_retail_margin || '');
+  const [wholesaleMargin, setWholesaleMargin] = useState(item.target_wholesale_margin || '');
 
-  const handleBlur = (field: 'receivedQuantity' | 'targetMarginPercent', value: string) => {
+  useEffect(() => {
+    setReceivedQty(item.received_quantity || '');
+    setRetailMargin(item.target_retail_margin || '');
+    setWholesaleMargin(item.target_wholesale_margin || '');
+  }, [item.received_quantity, item.target_retail_margin, item.target_wholesale_margin]);
+
+  const handleBlur = (field: 'receivedQuantity' | 'targetRetailMargin' | 'targetWholesaleMargin' | 'shortageHandlingMethod', value: string) => {
     updateMutation.mutate({ 
       itemId: item.id, 
-      dto: { [field]: value ? Number(value) : undefined } 
+      dto: { [field]: field === 'shortageHandlingMethod' ? value : (value ? Number(value) : undefined) } 
     });
   };
 
-  const suggestedPrice = (Number(item.landed_cost_egp) || 0) * (1 + (Number(margin) || 0) / 100);
-
+  const unitUsd = Number(item.factory_unit_price_usd) || 0;
+  const landedCost = Number(item.landed_cost_egp) || 0;
+  const pricingCostEgp = landedCost + (unitUsd * (pricingRate - arrivalRate));
+  
+  const suggestedWholesale = pricingCostEgp * (1 + (Number(wholesaleMargin) || 0) / 100);
+  const suggestedRetail = pricingCostEgp * (1 + (Number(retailMargin) || 0) / 100);
+  
   return (
     <div style={{ display: 'contents' }}>
       <td style={{ padding: '0.5rem' }}>
@@ -41,21 +53,51 @@ function ItemRowInputs({ item, shipmentId }: { item: ShipmentItem, shipmentId: s
           onChange={e => setReceivedQty(e.target.value)}
           onBlur={e => handleBlur('receivedQuantity', e.target.value)}
         />
+        {Number(receivedQty) > 0 && Number(receivedQty) < item.quantity && (
+          <div style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+            <label style={{ display: 'block', color: 'var(--slate-500)', marginBottom: '0.2rem' }}>معالجة النواقص:</label>
+            <select 
+              className="input" 
+              style={{ width: '100%', padding: '0.2rem', fontSize: '0.85rem' }}
+              value={item.shortage_handling_method || 'capitalize'}
+              onChange={e => handleBlur('shortageHandlingMethod', e.target.value)}
+            >
+              <option value="capitalize">تحميل على الباقي (رسملة)</option>
+              <option value="expense">تسجيل كخسارة</option>
+            </select>
+          </div>
+        )}
       </td>
       <td style={{ padding: '0.5rem' }}>
         <input 
           type="number" 
           className="input" 
           style={{ width: '80px', padding: '0.2rem' }}
-          value={margin}
+          value={wholesaleMargin}
           placeholder="%"
-          onChange={e => setMargin(e.target.value)}
-          onBlur={e => handleBlur('targetMarginPercent', e.target.value)}
+          onChange={e => setWholesaleMargin(e.target.value)}
+          onBlur={e => handleBlur('targetWholesaleMargin', e.target.value)}
         />
       </td>
       <td style={{ padding: '0.5rem' }}>
-        <strong style={{ color: 'var(--green-700)' }}>
-          {formatCurrency(suggestedPrice)}
+        <input 
+          type="number" 
+          className="input" 
+          style={{ width: '80px', padding: '0.2rem' }}
+          value={retailMargin}
+          placeholder="%"
+          onChange={e => setRetailMargin(e.target.value)}
+          onBlur={e => handleBlur('targetRetailMargin', e.target.value)}
+        />
+      </td>
+      <td style={{ padding: '0.5rem' }}>
+        <strong style={{ color: 'var(--green-700)', display: 'block' }}>
+          {formatCurrency(suggestedWholesale)}
+        </strong>
+      </td>
+      <td style={{ padding: '0.5rem' }}>
+        <strong style={{ color: 'var(--green-700)', display: 'block' }}>
+          {formatCurrency(suggestedRetail)}
         </strong>
       </td>
     </div>
@@ -65,6 +107,7 @@ function ItemRowInputs({ item, shipmentId }: { item: ShipmentItem, shipmentId: s
 export default function ShipmentDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data, isLoading } = useShipmentDetailsQuery(id!);
   
   const [shippingCost, setShippingCost] = useState('');
@@ -77,6 +120,7 @@ export default function ShipmentDetailsPage() {
   const [transportAcc, setTransportAcc] = useState('');
 
   const [exchangeRate, setExchangeRate] = useState('');
+  const [pricingExchangeRate, setPricingExchangeRate] = useState('');
   const [status, setStatus] = useState<string>('');
   
   // Dates
@@ -86,13 +130,18 @@ export default function ShipmentDetailsPage() {
 
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   
+  const [globalRetailMargin, setGlobalRetailMargin] = useState('');
+  const [globalWholesaleMargin, setGlobalWholesaleMargin] = useState('');
+  
   const updateCostsMutation = useUpdateShipmentCostsMutation(id!);
   const applyPricesMutation = useApplyPricesMutation(id!);
+  const updateItemMutation = useUpdateShipmentItemMutation(id!);
 
   useEffect(() => {
     if (data) {
       setShippedDate(data.shipped_date ? data.shipped_date.split('T')[0] : '');
-      setEtaDate(data.eta_date ? data.eta_date.split('T')[0] : '');
+      const eta = data.eta_date || data.arrival_date;
+      setEtaDate(eta ? eta.split('T')[0] : '');
       setClearanceDate(data.clearance_date ? data.clearance_date.split('T')[0] : '');
     }
   }, [data]);
@@ -111,12 +160,13 @@ export default function ShipmentDetailsPage() {
     e.preventDefault();
     await updateCostsMutation.mutateAsync({
       shippingCostUsd: shippingCost ? Number(shippingCost) : undefined,
-      shippingAccountId: shippingAcc ? Number(shippingAcc) : undefined,
+      shippingAccountId: shippingAcc || undefined,
       customsCostEgp: customsCost ? Number(customsCost) : undefined,
-      customsAccountId: customsAcc ? Number(customsAcc) : undefined,
+      customsAccountId: customsAcc || undefined,
       internalTransportCostEgp: transportCost ? Number(transportCost) : undefined,
-      transportAccountId: transportAcc ? Number(transportAcc) : undefined,
+      transportAccountId: transportAcc || undefined,
       exchangeRateAtArrival: exchangeRate ? Number(exchangeRate) : undefined,
+      pricingExchangeRate: pricingExchangeRate ? Number(pricingExchangeRate) : undefined,
       status: status ? status : undefined,
       shippedDate: shippedDate || undefined,
       etaDate: etaDate || undefined,
@@ -126,9 +176,30 @@ export default function ShipmentDetailsPage() {
     setCustomsCost('');
     setTransportCost('');
     setExchangeRate('');
+    setPricingExchangeRate('');
     setShippingAcc('');
     setCustomsAcc('');
     setTransportAcc('');
+  };
+
+  const handleApplyGlobalMargins = async () => {
+    if (!globalRetailMargin && !globalWholesaleMargin) return;
+    
+    // We update each item individually
+    const promises = data.items.map((item: any) => 
+      updateItemMutation.mutateAsync({
+        itemId: item.id,
+        dto: {
+          targetRetailMargin: globalRetailMargin ? Number(globalRetailMargin) : undefined,
+          targetWholesaleMargin: globalWholesaleMargin ? Number(globalWholesaleMargin) : undefined,
+        }
+      })
+    );
+    await Promise.all(promises);
+    await queryClient.invalidateQueries({ queryKey: ['import-shipments', id] });
+    setTimeout(() => {
+      alert('تم تطبيق الهوامش على جميع الأصناف بنجاح (تحتاج إلى تطبيق واعتماد الأسعار للمخزن لتفعيلها)');
+    }, 100);
   };
 
   const handleApplyPrices = async () => {
@@ -175,7 +246,12 @@ export default function ShipmentDetailsPage() {
             </div>
             <div className="form-group">
               <label>سعر صرف الدولار الجمركي/الفعلي</label>
-              <input type="number" step="0.01" className="input" placeholder={`الحالي: ${data.exchange_rate_at_arrival}`} value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} />
+              <input type="number" step="0.01" className="input" placeholder={`الحالي: ${data.exchange_rate_at_arrival || ''}`} value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} />
+            </div>
+            
+            <div className="form-group">
+              <label>سعر دولار التسعير</label>
+              <input type="number" step="0.01" className="input" placeholder={`الحالي: ${data.pricing_exchange_rate || data.exchange_rate_at_arrival || ''}`} value={pricingExchangeRate} onChange={e => setPricingExchangeRate(e.target.value)} />
             </div>
 
             <hr style={{ gridColumn: 'span 2' }} />
@@ -236,12 +312,24 @@ export default function ShipmentDetailsPage() {
           actions={
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <Button variant="secondary" onClick={handleApplyPrices} disabled={applyPricesMutation.isPending}>
-                تطبيق واعتماد الأسعار
+                تطبيق واعتماد الأسعار للمخزن
               </Button>
               <Button variant="secondary" onClick={() => setIsAddItemOpen(true)}>إضافة صنف +</Button>
             </div>
           }
         >
+          <div style={{ padding: '1rem', background: 'var(--slate-50)', borderBottom: '1px solid var(--slate-200)', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>هامش الجملة الموحد %</label>
+              <input type="number" className="input" value={globalWholesaleMargin} onChange={e => setGlobalWholesaleMargin(e.target.value)} />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>هامش القطاعي الموحد %</label>
+              <input type="number" className="input" value={globalRetailMargin} onChange={e => setGlobalRetailMargin(e.target.value)} />
+            </div>
+            <Button variant="secondary" onClick={handleApplyGlobalMargins}>تطبيق على كل الأصناف</Button>
+          </div>
+
           <div className="table-responsive" style={{ overflowX: 'auto' }}>
             <table className="table" style={{ width: '100%', textAlign: 'right', borderCollapse: 'collapse' }}>
               <thead>
@@ -251,8 +339,10 @@ export default function ShipmentDetailsPage() {
                   <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>سعر الشراء ($)</th>
                   <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>التكلفة النهائية (Landed)</th>
                   <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>الكمية المستلمة (النواقص)</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>هامش الربح المستهدف %</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>سعر البيع المقترح</th>
+                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>هامش الجملة %</th>
+                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>هامش القطاعي %</th>
+                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>سعر الجملة المقترح</th>
+                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>سعر القطاعي المقترح</th>
                 </tr>
               </thead>
               <tbody>
@@ -266,7 +356,12 @@ export default function ShipmentDetailsPage() {
                         {formatCurrency(Number(item.landed_cost_egp))}
                       </strong>
                     </td>
-                    <ItemRowInputs item={item} shipmentId={id!} />
+                    <ItemRowInputs 
+                      item={item} 
+                      shipmentId={id!} 
+                      arrivalRate={Number(data.exchange_rate_at_arrival) || 1} 
+                      pricingRate={Number(data.pricing_exchange_rate) || Number(data.exchange_rate_at_arrival) || 1} 
+                    />
                   </tr>
                 ))}
                 {data.items.length === 0 && (

@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards, Query, Delete } from '@nestjs/common';
 import { ImportSalesService } from './import-sales.service';
-import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto } from './dto/import-sales.dto';
+import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto, UpdateShipmentItemDto } from './dto/import-sales.dto';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 
@@ -159,7 +159,7 @@ export class ImportSalesController {
   async updateShipmentItem(
     @Req() req: RequestWithAuth,
     @Param('itemId') itemId: string,
-    @Body() dto: { receivedQuantity?: number, targetMarginPercent?: number }
+    @Body() dto: UpdateShipmentItemDto
   ) {
     return this.importSalesService.updateShipmentItem(req.authContext!.tenantId!, itemId, dto);
   }

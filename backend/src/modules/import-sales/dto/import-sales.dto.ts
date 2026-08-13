@@ -25,6 +25,12 @@ export class CreateShipmentDto {
   @Type(() => Number)
   @IsNumber()
   exchangeRateAtArrival?: number;
+  
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  pricingExchangeRate?: number;
+
 }
 
 export class UpdateShipmentCostsDto {
@@ -35,9 +41,8 @@ export class UpdateShipmentCostsDto {
   shippingCostUsd?: number;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  shippingAccountId?: number;
+  @IsString()
+  shippingAccountId?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -46,9 +51,8 @@ export class UpdateShipmentCostsDto {
   customsCostEgp?: number;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  customsAccountId?: number;
+  @IsString()
+  customsAccountId?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -57,15 +61,19 @@ export class UpdateShipmentCostsDto {
   internalTransportCostEgp?: number;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  transportAccountId?: number;
+  @IsString()
+  transportAccountId?: string;
 
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
   exchangeRateAtArrival?: number;
+  
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  pricingExchangeRate?: number;
 
   @IsOptional()
   @IsIn(['Pending', 'In Customs', 'Arrived'])
@@ -108,7 +116,16 @@ export class UpdateShipmentItemDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  targetMarginPercent?: number;
+  targetRetailMargin?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  targetWholesaleMargin?: number;
+
+  @IsOptional()
+  @IsIn(['capitalize', 'expense'])
+  shortageHandlingMethod?: 'capitalize' | 'expense';
 }
 
 export class RecordForeignTransferDto {
