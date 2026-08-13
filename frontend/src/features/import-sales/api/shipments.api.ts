@@ -291,7 +291,7 @@ export const usePartnerLedgerQuery = (partnerId: string) => {
 export const useRecordCapitalTransactionMutation = (partnerId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string }) => {
+    mutationFn: async (dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string; accountId?: number }) => {
       return await http(`/api/import-sales/partners/${partnerId}/capital-transaction`, {
         method: 'POST',
         body: JSON.stringify(dto),
