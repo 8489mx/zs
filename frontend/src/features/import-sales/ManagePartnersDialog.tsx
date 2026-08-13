@@ -21,9 +21,9 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
 
   const { data: accountsData } = useQuery({
     queryKey: ['accounts-list'],
-    queryFn: () => http<any[]>('/api/accounting/accounts').catch(() => []),
+    queryFn: () => http<{ accounts: any[] }>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
   });
-  const treasuryAccounts = (accountsData || []).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
+  const treasuryAccounts = (accountsData?.accounts || []).filter((a: any) => a.accountGroup === 'current_assets' || a.flags?.isCashBank);
 
   // Modals state
   const [txPartner, setTxPartner] = useState<{ partner: Partner, type: 'DEPOSIT' | 'WITHDRAWAL' } | null>(null);

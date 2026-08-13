@@ -27,9 +27,9 @@ export function CapitalTransactionDialog({
   // Fetch accounts for treasury dropdown (assuming generic endpoint, fallback to basic input if fails)
   const { data: accountsData } = useQuery({
     queryKey: ['accounts-list'],
-    queryFn: () => http<any[]>('/api/accounting/accounts').catch(() => []),
+    queryFn: () => http<{ accounts: any[] }>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
   });
-  const treasuryAccounts = (accountsData || []).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
+  const treasuryAccounts = (accountsData?.accounts || []).filter((a: any) => a.accountGroup === 'current_assets' || a.flags?.isCashBank);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
