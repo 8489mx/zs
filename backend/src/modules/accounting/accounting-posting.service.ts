@@ -428,6 +428,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
+        'delivery_fee',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -449,11 +450,12 @@ export class AccountingPostingService {
     const subtotal = this.toMoney(sale.subtotal);
     const discount = this.toMoney(sale.discount);
     const taxAmount = this.toMoney(sale.tax_amount);
+    const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
     const paidAmount = this.toMoney(sale.paid_amount);
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
     const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed));
     const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - paidAmount));
-    const revenueCredit = this.toMoney(subtotal);
+    const revenueCredit = this.toMoney(subtotal + deliveryFee);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
@@ -625,6 +627,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
+        'delivery_fee',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -646,11 +649,12 @@ export class AccountingPostingService {
     const subtotal = this.toMoney(sale.subtotal);
     const discount = this.toMoney(sale.discount);
     const taxAmount = this.toMoney(sale.tax_amount);
+    const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
     const paidAmount = this.toMoney(sale.paid_amount);
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
     const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed));
     const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - paidAmount));
-    const revenueCredit = this.toMoney(subtotal);
+    const revenueCredit = this.toMoney(subtotal + deliveryFee);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
