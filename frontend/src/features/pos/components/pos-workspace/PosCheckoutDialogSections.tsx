@@ -304,24 +304,10 @@ export function PosCheckoutPaymentSection({
   return (
     <section className="pos-checkout-dialog-section pos-checkout-payment-section">
       <div className="pos-checkout-section-head"><h4>الدفع</h4><strong>{paymentLabel(pos.paymentType, pos.paymentChannel)}</strong></div>
-      <div className="pos-checkout-payment-methods" aria-label="طريقة الدفع">
-        <Button type="button" variant={isPaymentActive('cash') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('cash')}>نقدي</Button>
-        <Button type="button" variant={isPaymentActive('card') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('card')}>فيزا</Button>
-        <Button type="button" variant={isPaymentActive('credit') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('credit')}>آجل</Button>
-        <Button type="button" variant={transferSelected ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset(pos.paymentChannel === 'instapay' ? 'instapay' : 'wallet')}>تحويلات</Button>
-      </div>
 
-      {transferSelected ? (
-        <div className="pos-checkout-transfer-methods" aria-label="نوع التحويل">
-          <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')}>محفظة إلكترونية</Button>
-          <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')}>InstaPay</Button>
-        </div>
-      ) : null}
-
-      <div className="pos-checkout-payment-inputs">
-        <label className="field"><span>نقدي</span><input ref={cashAmountInputRef} data-autofocus={!customerPickerOpen ? true : undefined} type="number" step="0.01" value={pos.cashAmount} onChange={(event) => pos.setCashAmount(Number(event.target.value || 0))} disabled={isCreditSale || transferSelected} /></label>
-        <label className="field"><span>فيزا</span><input type="number" step="0.01" value={pos.cardAmount} onChange={(event) => pos.setCardAmount(Number(event.target.value || 0))} disabled={isCreditSale || transferSelected} /></label>
-        {transferSelected ? <label className="field"><span>{pos.paymentChannel === 'instapay' ? 'مدفوع InstaPay' : 'مدفوع محفظة'}</span><input type="number" step="0.01" value={pos.transferAmount} onChange={(event) => pos.setTransferAmount(Number(event.target.value || 0))} disabled={isCreditSale} /></label> : null}
+      {/* Row 1: Adjustments (delivery fee + discount) — fill these first */}
+      <div className="pos-checkout-payment-inputs" style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px dashed var(--border-color)' }}>
+        <label className="field"><span>رسوم التوصيل</span><input type="number" step="0.01" value={pos.deliveryFee === 0 ? '' : pos.deliveryFee} onChange={(event) => pos.setDeliveryFee(Number(event.target.value || 0))} placeholder="0" /></label>
         <label className="field"><span>الخصم (مبلغ)</span><input type="number" step="0.01" value={pos.discount === 0 ? '' : pos.discount} onChange={(event) => pos.setDiscount(Number(event.target.value || 0))} disabled={isDiscountLocked} placeholder="0" /></label>
         <label className="field">
           <span>الخصم (%)</span>
@@ -340,7 +326,6 @@ export function PosCheckoutPaymentSection({
             placeholder="0"
           />
         </label>
-        <label className="field"><span>رسوم التوصيل</span><input type="number" step="0.01" value={pos.deliveryFee === 0 ? '' : pos.deliveryFee} onChange={(event) => pos.setDeliveryFee(Number(event.target.value || 0))} placeholder="0" /></label>
         {isDiscountLocked ? (
           <Button type="button" variant={pos.discountApprovalGranted ? 'success' : 'secondary'} onClick={() => {
             if (pos.discountApprovalGranted) return;
@@ -351,8 +336,31 @@ export function PosCheckoutPaymentSection({
             {pos.discountAuthorizationMutation.isPending ? 'جاري التحقق...' : (pos.discountApprovalGranted ? 'الخصم معتمد' : 'اعتماد المدير')}
           </Button>
         ) : null}
+      </div>
+
+      {/* Row 2: Payment amounts + كامل button */}
+      <div className="pos-checkout-payment-inputs" style={{ marginBottom: '8px' }}>
+        <label className="field"><span>نقدي</span><input ref={cashAmountInputRef} data-autofocus={!customerPickerOpen ? true : undefined} type="number" step="0.01" value={pos.cashAmount} onChange={(event) => pos.setCashAmount(Number(event.target.value || 0))} disabled={isCreditSale || transferSelected} /></label>
+        <label className="field"><span>فيزا</span><input type="number" step="0.01" value={pos.cardAmount} onChange={(event) => pos.setCardAmount(Number(event.target.value || 0))} disabled={isCreditSale || transferSelected} /></label>
+        {transferSelected ? <label className="field"><span>{pos.paymentChannel === 'instapay' ? 'مدفوع InstaPay' : 'مدفوع محفظة'}</span><input type="number" step="0.01" value={pos.transferAmount} onChange={(event) => pos.setTransferAmount(Number(event.target.value || 0))} disabled={isCreditSale} /></label> : null}
         {!isCreditSale ? <Button type="button" variant="secondary" onClick={pos.fillPaidAmount}>كامل</Button> : null}
       </div>
+
+      {/* Row 3: Payment method buttons */}
+      <div className="pos-checkout-payment-methods" aria-label="طريقة الدفع">
+        <Button type="button" variant={isPaymentActive('cash') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('cash')}>نقدي</Button>
+        <Button type="button" variant={isPaymentActive('card') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('card')}>فيزا</Button>
+        <Button type="button" variant={isPaymentActive('credit') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('credit')}>آجل</Button>
+        <Button type="button" variant={transferSelected ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset(pos.paymentChannel === 'instapay' ? 'instapay' : 'wallet')}>تحويلات</Button>
+      </div>
+
+      {transferSelected ? (
+        <div className="pos-checkout-transfer-methods" aria-label="نوع التحويل">
+          <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')}>محفظة إلكترونية</Button>
+          <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')}>InstaPay</Button>
+        </div>
+      ) : null}
+
 
       {managerApprovalOpen && isDiscountLocked && !pos.discountApprovalGranted ? (
         <div className="pos-checkout-manager-approval" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onInlineManagerApproval(); } }}>
