@@ -12,10 +12,12 @@ export interface Shipment {
   exchange_rate_at_arrival: string;
   status: 'Pending' | 'In Customs' | 'Arrived';
   created_at: string;
-  supplier_id?: string;
-  bill_of_lading?: string;
-  shipping_date?: string;
-  supplier_name?: string;
+  shipping_expense_id?: number;
+  customs_expense_id?: number;
+  transport_expense_id?: number;
+  shipped_date?: string;
+  eta_date?: string;
+  clearance_date?: string;
 }
 
 export interface ShipmentItem {
@@ -27,6 +29,8 @@ export interface ShipmentItem {
   landed_cost_egp: string;
   created_at: string;
   product_name: string;
+  received_quantity?: string;
+  target_margin_percent?: string;
 }
 
 export interface ShipmentDetails extends Shipment {
@@ -43,10 +47,16 @@ export interface CreateShipmentDto {
 
 export interface UpdateShipmentCostsDto {
   shippingCostUsd?: number;
+  shippingAccountId?: number;
   customsCostEgp?: number;
+  customsAccountId?: number;
   internalTransportCostEgp?: number;
+  transportAccountId?: number;
   exchangeRateAtArrival?: number;
   status?: string;
+  shippedDate?: string;
+  etaDate?: string;
+  clearanceDate?: string;
 }
 
 export interface AddShipmentItemDto {
@@ -140,6 +150,40 @@ export const useAddShipmentItemMutation = (shipmentId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+    },
+  });
+};
+
+export const useUpdateShipmentItemMutation = (shipmentId: string) => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ itemId, dto }: { itemId: string, dto: { receivedQuantity?: number, targetMarginPercent?: number } }) => {
+      const data = await http(`/api/import-sales/shipment-items/${itemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(dto),
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+    },
+  });
+};
+
+export const useApplyPricesMutation = (shipmentId: string) => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async () => {
+      const data = await http<{success: boolean, updatedCount: number}>(`/api/import-sales/shipments/${shipmentId}/apply-prices`, {
+        method: 'POST',
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
   });
 };

@@ -1,25 +1,30 @@
+import { IsString, IsNumber, IsOptional, Min, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsNumber, Min, IsIn, Matches, IsArray, ValidateNested } from 'class-validator';
 
 export class CreateShipmentDto {
   @IsString()
   containerNumber!: string;
 
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
-  arrivalDate?: string;
-
   @IsString()
-  @IsOptional()
   supplierId?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  arrivalDate?: string;
+
+  @IsOptional()
+  @IsString()
   billOfLading?: string;
 
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsString()
   shippingDate?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  exchangeRateAtArrival?: number;
 }
 
 export class UpdateShipmentCostsDto {
@@ -32,8 +37,18 @@ export class UpdateShipmentCostsDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  shippingAccountId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   @Min(0)
   customsCostEgp?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  customsAccountId?: number;
 
   @IsOptional()
   @Type(() => Number)
@@ -44,12 +59,29 @@ export class UpdateShipmentCostsDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  transportAccountId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   @Min(0)
   exchangeRateAtArrival?: number;
 
   @IsOptional()
   @IsIn(['Pending', 'In Customs', 'Arrived'])
   status?: string;
+
+  @IsOptional()
+  @IsString()
+  shippedDate?: string;
+
+  @IsOptional()
+  @IsString()
+  etaDate?: string;
+
+  @IsOptional()
+  @IsString()
+  clearanceDate?: string;
 }
 
 export class AddShipmentItemDto {
@@ -67,21 +99,33 @@ export class AddShipmentItemDto {
   factoryUnitPriceUsd!: number;
 }
 
+export class UpdateShipmentItemDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  receivedQuantity?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  targetMarginPercent?: number;
+}
+
 export class RecordForeignTransferDto {
   @IsString()
   supplierId!: string;
 
   @Type(() => Number)
   @IsNumber()
-  @Min(0.01)
+  @Min(1)
   amountEgp!: number;
 
   @Type(() => Number)
   @IsNumber()
-  @Min(0.01)
+  @Min(1)
   amountForeign!: number;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   notes?: string;
 }

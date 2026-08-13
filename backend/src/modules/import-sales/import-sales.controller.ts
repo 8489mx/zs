@@ -104,7 +104,7 @@ export class ImportSalesController {
     @Param('id') shipmentId: string,
     @Body() dto: UpdateShipmentCostsDto
   ) {
-    return this.importSalesService.updateShipmentCosts(req.authContext!.tenantId!, shipmentId, dto);
+    return this.importSalesService.updateShipmentCosts(req.authContext!.tenantId!, req.authContext!.userId!, shipmentId, dto);
   }
 
   @Post('shipments/:id/items')
@@ -150,8 +150,25 @@ export class ImportSalesController {
   ) {
     return this.importSalesService.recordForeignTransfer(
       req.authContext!.tenantId!,
-      req.authContext!.userId,
+      req.authContext!.userId!,
       dto
     );
+  }
+
+  @Patch('shipment-items/:itemId')
+  async updateShipmentItem(
+    @Req() req: RequestWithAuth,
+    @Param('itemId') itemId: string,
+    @Body() dto: { receivedQuantity?: number, targetMarginPercent?: number }
+  ) {
+    return this.importSalesService.updateShipmentItem(req.authContext!.tenantId!, itemId, dto);
+  }
+
+  @Post('shipments/:id/apply-prices')
+  async applySuggestedPrices(
+    @Req() req: RequestWithAuth,
+    @Param('id') shipmentId: string
+  ) {
+    return this.importSalesService.applySuggestedPrices(req.authContext!.tenantId!, shipmentId);
   }
 }
