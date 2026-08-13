@@ -59,6 +59,7 @@ export function mapSaleRows(
     paymentChannel: sale.payment_channel || sale.paymentChannel || 'cash',
     subTotal: Number(sale.subtotal || sale.subTotal || 0),
     discount: Number(sale.discount || 0),
+    deliveryFee: Number(sale.delivery_fee || sale.deliveryFee || 0),
     taxRate: Number(sale.tax_rate || sale.taxRate || 0),
     taxAmount: Number(sale.tax_amount || sale.taxAmount || 0),
     pricesIncludeTax: Boolean(sale.prices_include_tax ?? sale.pricesIncludeTax),
