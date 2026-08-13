@@ -79,19 +79,30 @@ export function printReturnRecord(row: ReturnRecord, settings?: Partial<AppSetti
     return;
   }
 
-  printHtmlDocument(`مستند مرتجع ${row.docNo || row.id}`, `
-    <div class="meta-grid">
-      <div class="meta-box"><strong>النوع</strong><span>${escapeHtml(returnTypeLabel(row))}</span></div>
-      <div class="meta-box"><strong>رقم المستند</strong><span>${escapeHtml(row.docNo || row.id)}</span></div>
-      <div class="meta-box"><strong>التاريخ</strong><span>${escapeHtml(formatDate(getReturnDateValue(row)))}</span></div>
-      <div class="meta-box"><strong>الإجمالي</strong><span>${formatCurrency(Number(row.total || 0))}</span></div>
-    </div>
-    <table>
-      <thead><tr><th>الصنف</th><th>الكمية</th><th>القيمة</th><th>ملاحظات</th></tr></thead>
-      <tbody><tr><td>${escapeHtml(row.productName || '—')}</td><td>${escapeHtml(String(row.qty || 0))}</td><td>${formatCurrency(Number(row.total || 0))}</td><td>${escapeHtml(row.note || '—')}</td></tr></tbody>
-    </table>
-  `, { subtitle: 'نسخة مخصصة لطباعة المرتجع ومراجعة سبب التنفيذ' });
+  const document = buildReceiptDocument({
+    pageSize: 'a4',
+    settings,
+    documentLabel: 'مستند مرتجع',
+    documentNumber: row.docNo || row.id,
+    dateText: formatDate(getReturnDateValue(row)),
+    orderType: returnTypeLabel(row),
+    customerName: returnTypeLabel(row),
+    note: row.note || undefined,
+    items: [{ 
+      name: row.productName || '—', 
+      qty: Number(row.qty || 0), 
+      price: Number(row.total || 0) / Math.max(1, Number(row.qty || 1)),
+      total: Number(row.total || 0),
+    }],
+    subtotal: Number(row.total || 0),
+    discount: 0,
+    taxAmount: 0,
+    total: Number(row.total || 0),
+    paidAmount: Number(row.total || 0),
+  });
+  openReceiptDocument(`مستند مرتجع ${row.docNo || row.id}`, document.html, document.compact, { pageSize: 'a4', settings });
 }
+
 
 export async function exportReturnsCsv(params: { search: string; filter: 'all' | 'sales' | 'purchase' | 'today' }) {
   const payload = await returnsApi.listAll(params);
