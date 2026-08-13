@@ -82,6 +82,12 @@ export class HeldSaleDto {
   @Min(0)
   discount?: number;
 
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  deliveryFee?: number;
+
   @IsOptional()
   @IsString()
   note?: string;

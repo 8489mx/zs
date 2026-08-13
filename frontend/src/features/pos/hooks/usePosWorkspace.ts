@@ -22,6 +22,7 @@ export interface PosDraftSnapshot {
   cart: PosItem[];
   customerId: string;
   discount: number;
+  deliveryFee: number;
   paidAmount: number;
   cashAmount: number;
   cardAmount: number;
@@ -129,6 +130,7 @@ export function usePosWorkspace() {
     productFilter: state.productFilter,
     cart: state.cart,
     discount: state.discount,
+    deliveryFee: state.deliveryFee,
     discountApprovalGranted: state.discountApprovalGranted,
     paidAmount,
     paymentType: state.paymentType,
@@ -151,6 +153,8 @@ export function usePosWorkspace() {
     setCustomerId: state.setCustomerId,
     discount: state.discount,
     setDiscount: state.setDiscount,
+    deliveryFee: state.deliveryFee,
+    setDeliveryFee: state.setDeliveryFee,
     discountApprovalGranted: state.discountApprovalGranted,
     setDiscountApprovalGranted: state.setDiscountApprovalGranted,
     discountApprovalSecret: state.discountApprovalSecret,
@@ -250,6 +254,8 @@ export function usePosWorkspace() {
     setCustomerId: state.setCustomerId,
     discount: state.discount,
     setDiscount: state.setDiscount,
+    deliveryFee: state.deliveryFee,
+    setDeliveryFee: state.setDeliveryFee,
     discountApprovalGranted: state.discountApprovalGranted,
     setDiscountApprovalGranted: state.setDiscountApprovalGranted,
     discountApprovalSecret: state.discountApprovalSecret,

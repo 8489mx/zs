@@ -167,6 +167,7 @@ function renderPaymentBreakdown(payments?: Sale['payments'], settings?: Partial<
 function renderTotals(options: {
   subtotal: number;
   discount: number;
+  deliveryFee?: number;
   taxAmount: number;
   total: number;
   paidAmount?: number;
@@ -185,6 +186,7 @@ function renderTotals(options: {
   const showItemSummary = getPrintOption(options.settings, 'printShowItemSummary', true);
   const showPaymentDetails = getPrintOption(options.settings, 'printShowPaymentBreakdown', true);
   const hasDiscount = Math.abs(Number(options.discount || 0)) > 0.0001;
+  const hasDeliveryFee = Math.abs(Number(options.deliveryFee || 0)) > 0.0001;
   
   let discountLabel = 'الخصم';
   if (hasDiscount && Number(options.subtotal || 0) > 0) {
@@ -199,6 +201,7 @@ function renderTotals(options: {
   const rows = [
     ...(showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : []),
     ...(hasDiscount ? [{ label: discountLabel, value: formatReceiptMoney(Number(options.discount || 0), options.settings) }] : []),
+    ...(hasDeliveryFee ? [{ label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) }] : []),
     ...(showTax ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
     ...(showPaymentDetails ? [
@@ -357,6 +360,7 @@ export function buildReceiptDocument(options: {
   items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[] }>;
   subtotal: number;
   discount: number;
+  deliveryFee?: number;
   taxAmount: number;
   total: number;
   paidAmount?: number;
@@ -399,7 +403,7 @@ export function buildReceiptDocument(options: {
         ${renderStoreHeader(options.settings, compact)}
         ${renderMetaPanel(metaRows, compact, options.settings)}
         ${renderItemsTable(options.items, compact, options.settings)}
-        ${renderTotals({ subtotal: options.subtotal, discount: options.discount, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact })}
+        ${renderTotals({ subtotal: options.subtotal, discount: options.discount, deliveryFee: options.deliveryFee, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact })}
         ${renderPaymentBreakdown(options.payments, options.settings, compact)}
       </div>
     `,

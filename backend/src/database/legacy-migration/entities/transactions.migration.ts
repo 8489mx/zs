@@ -151,6 +151,7 @@ export async function migrateSales(ctx: MigrationContext): Promise<EntityCounter
           payment_channel: normalizePaymentChannel(row.payment_type),
           subtotal: asNumber(row.subtotal),
           discount: asNumber(row.discount),
+          delivery_fee: 0,
           tax_rate: 0,
           tax_amount: 0,
           prices_include_tax: false,

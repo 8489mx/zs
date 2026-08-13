@@ -524,6 +524,7 @@ export interface SalesTable {
   discount: number;
   tax_rate: number;
   tax_amount: number;
+  delivery_fee: number;
   prices_include_tax: boolean;
   total: number;
   paid_amount: number;
@@ -591,6 +592,7 @@ export interface HeldSaleTable {
   cash_amount: number;
   card_amount: number;
   discount: number;
+  delivery_fee: number;
   note: string;
   search: string;
   price_type: 'retail' | 'wholesale';

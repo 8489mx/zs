@@ -85,6 +85,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     paymentType,
     paymentChannel,
     discount: Number(payload.discount || 0),
+    deliveryFee: Number(payload.deliveryFee || 0),
     taxRate: Number(payload.taxRate || 0),
     pricesIncludeTax: Boolean(payload.pricesIncludeTax),
     storeCreditUsed: Number(payload.storeCreditUsed || 0),

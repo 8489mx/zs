@@ -16,6 +16,7 @@ export interface CreatePosSaleInput {
   paymentType: PaymentType;
   paymentChannel: PaymentChannel;
   discount: number;
+  deliveryFee: number;
   note: string;
   paidAmount: number;
   tenderedAmount: number;
@@ -126,6 +127,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     paymentType: input.paymentType,
     paymentChannel: input.paymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
+    deliveryFee: normalizeMoney(Number(input.deliveryFee || 0)),
     note: String(input.note || '').trim(),
     payments: normalizePaymentsCapped(input.payments || [], input.expectedTotal),
     tenderedAmount: Number(input.tenderedAmount || 0),
@@ -168,6 +170,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     paymentType: input.paymentType,
     paymentChannel: simplePaymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
+    deliveryFee: normalizeMoney(Number(input.deliveryFee || 0)),
     note: String(input.note || '').trim(),
     tenderedAmount: Number(input.tenderedAmount || 0),
     taxRate: normalizeMoney(Number(input.taxRate || 0)),

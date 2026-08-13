@@ -32,6 +32,7 @@ export interface PosCartPanelProps {
   cardAmount: number;
   transferAmount: number;
   discount: number;
+  deliveryFee: number;
   note: string;
   submitMessage: string;
   lastSaleDocNo?: string;
@@ -43,7 +44,7 @@ export interface PosCartPanelProps {
   heldDrafts: HeldPosDraftSummary[];
   isError: boolean;
   isPending: boolean;
-  totals: { subTotal: number; taxAmount: number; total: number };
+  totals: { subTotal: number; discountValue: number; deliveryFee: number; taxAmount: number; total: number };
   changeAmount: number;
   amountDue: number;
   hasOpenShift: boolean;
@@ -73,6 +74,7 @@ export interface PosCartPanelProps {
   onCardAmountChange: (value: number) => void;
   onTransferAmountChange: (value: number) => void;
   onDiscountChange: (value: number) => void;
+  onDeliveryFeeChange: (value: number) => void;
   onRequestDiscountAuthorization: () => void;
   onNoteChange: (value: string) => void;
   onQtyChange: (lineKey: string, qty: number) => void;

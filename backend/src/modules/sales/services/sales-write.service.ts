@@ -445,7 +445,7 @@ export class SalesWriteService {
 
       await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, normalized.managerPin);
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
-      const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax);
+      const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
 
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
@@ -512,6 +512,7 @@ export class SalesWriteService {
           payment_channel: resolvePostedSalePaymentChannel(normalized.paymentType, payments),
           subtotal: Number(subtotal.toFixed(2)),
           discount: normalized.discount,
+          delivery_fee: normalized.deliveryFee,
           tax_rate: normalized.taxRate,
           tax_amount: taxAmount,
           prices_include_tax: normalized.pricesIncludeTax,
@@ -985,7 +986,7 @@ export class SalesWriteService {
 
       await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, managerPin);
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
-      const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax);
+      const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
       if (normalized.paymentType === 'credit' && customer) {
@@ -1010,6 +1011,7 @@ export class SalesWriteService {
         payment_channel: resolvePostedSalePaymentChannel(normalized.paymentType, payments),
         subtotal: Number(subtotal.toFixed(2)),
         discount: normalized.discount,
+        delivery_fee: normalized.deliveryFee,
         tax_rate: normalized.taxRate,
         tax_amount: taxAmount,
         prices_include_tax: normalized.pricesIncludeTax,
@@ -1450,6 +1452,7 @@ export class SalesWriteService {
           cash_amount: cashAmount,
           card_amount: cardAmount,
           discount: Number(payload.discount || 0),
+          delivery_fee: Number(payload.deliveryFee || 0),
           note: String(payload.note || '').trim(),
           search: String(payload.search || '').trim(),
           table_number: String(payload.tableNumber || '').trim(),

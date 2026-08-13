@@ -24,6 +24,7 @@ interface PosWorkspaceDerivedParams {
   productFilter: PosProductFilter;
   cart: PosItem[];
   discount: number;
+  deliveryFee: number;
   discountApprovalGranted?: boolean;
   paidAmount: number;
   paymentType: PaymentType;
@@ -130,20 +131,24 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
       return sum + (item.qty * (item.price + modifiersTotal));
     }, 0);
     const discountValue = Math.max(0, Number(params.discount || 0));
+    const deliveryFee = Math.max(0, Number(params.deliveryFee || 0));
     const taxRate = Number(params.settings?.taxRate || 0);
     const pricesIncludeTax = String(params.settings?.taxMode || 'exclusive') === 'inclusive';
     let taxAmount = 0;
     let total = Math.max(0, subTotal - discountValue);
     if (taxRate > 0) {
       if (pricesIncludeTax) {
+        total = Number((total + deliveryFee).toFixed(2));
         taxAmount = Number((total - (total / (1 + taxRate / 100))).toFixed(2));
       } else {
         taxAmount = Number((total * (taxRate / 100)).toFixed(2));
-        total = Number((total + taxAmount).toFixed(2));
+        total = Number((total + taxAmount + deliveryFee).toFixed(2));
       }
+    } else {
+      total = Number((total + deliveryFee).toFixed(2));
     }
-    return { subTotal, discountValue, taxRate, taxAmount, total, pricesIncludeTax };
-  }, [params.cart, params.discount, params.settings]);
+    return { subTotal, discountValue, deliveryFee, taxRate, taxAmount, total, pricesIncludeTax };
+  }, [params.cart, params.discount, params.deliveryFee, params.settings]);
 
   const changeAmount = useMemo(() => Math.max(0, Number(params.paidAmount || 0) - totals.total), [params.paidAmount, totals.total]);
   const amountDue = useMemo(() => Math.max(0, Number(totals.total || 0) - Number(params.paidAmount || 0)), [params.paidAmount, totals.total]);

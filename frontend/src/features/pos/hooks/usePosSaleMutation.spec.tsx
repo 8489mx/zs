@@ -53,6 +53,7 @@ function createSaleInput(): CreatePosSaleInput {
     paymentType: 'cash',
     paymentChannel: 'cash',
     discount: 0,
+    deliveryFee: 0,
     note: '',
     paidAmount: 50,
     tenderedAmount: 50,

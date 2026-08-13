@@ -17,6 +17,8 @@ export interface PosWorkspaceActionParams {
   authUserName?: string;
   discount: number;
   setDiscount: Dispatch<SetStateAction<number>>;
+  deliveryFee: number;
+  setDeliveryFee: Dispatch<SetStateAction<number>>;
   discountApprovalGranted: boolean;
   setDiscountApprovalGranted: Dispatch<SetStateAction<boolean>>;
   discountApprovalSecret: string;
@@ -71,7 +73,7 @@ export interface PosWorkspaceActionParams {
   currentBranch: { id: string | number } | null;
   currentLocation: { id: string | number } | null;
   settings?: Partial<AppSettings> | null;
-  totals: { discountValue: number; taxRate: number; pricesIncludeTax: boolean; total: number };
+  totals: { discountValue: number; deliveryFee: number; taxRate: number; pricesIncludeTax: boolean; total: number };
   paidAmount: number;
   hasOperationalSetup: boolean;
   hasCatalogReady: boolean;

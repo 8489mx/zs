@@ -225,6 +225,7 @@ export function createPosWorkspaceAsyncActions(
         paymentType: effectivePaymentType,
         paymentChannel: effectivePaymentChannel,
         discount: params.totals.discountValue,
+        deliveryFee: params.totals.deliveryFee,
         note: params.note,
         paidAmount: effectivePaidAmount,
         tenderedAmount: effectiveCashAmount,
@@ -289,6 +290,7 @@ export function createPosWorkspaceAsyncActions(
         customerId: params.customerId || null,
         paymentType: params.paymentType,
         discount: params.discount,
+        deliveryFee: params.deliveryFee,
         note: params.note,
         search: params.search,
         priceType: params.priceType,
@@ -326,6 +328,7 @@ export function createPosWorkspaceAsyncActions(
     params.setCart(restoredCart);
     params.setCustomerId(draft.customerId);
     params.setDiscount(Number(draft.discount || 0));
+    params.setDeliveryFee(Number((draft as any).deliveryFee || 0));
     params.setCashAmount(Number(draft.cashAmount || 0));
     params.setCardAmount(Number(draft.cardAmount || 0));
     params.setTransferAmount(

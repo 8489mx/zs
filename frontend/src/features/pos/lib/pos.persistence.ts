@@ -55,6 +55,7 @@ export function buildDraftState(initial?: Partial<PosDraftSnapshot>): PosDraftSn
     cart: initial?.cart || [],
     customerId: initial?.customerId || '',
     discount: Number(initial?.discount || 0),
+    deliveryFee: Number(initial?.deliveryFee || 0),
     paidAmount: Number(initial?.paidAmount || 0),
     cashAmount: Number(initial?.cashAmount || 0),
     cardAmount: Number(initial?.cardAmount || 0),

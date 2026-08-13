@@ -82,6 +82,12 @@ export class UpsertSaleDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  deliveryFee?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   taxRate?: number;
 
   @IsOptional()
@@ -168,6 +174,7 @@ export type NormalizedSalePayload = {
   paymentType: 'cash' | 'credit';
   paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit';
   discount: number;
+  deliveryFee: number;
   taxRate: number;
   pricesIncludeTax: boolean;
   storeCreditUsed: number;

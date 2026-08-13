@@ -35,10 +35,10 @@ function getBalanceState(props: Pick<PosCartPanelProps, 'paymentType' | 'amountD
 }
 
 export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
-  'paymentType' | 'paymentChannel' | 'cashAmount' | 'cardAmount' | 'transferAmount' | 'discount' | 'amountDue' | 'changeAmount' |
+  'paymentType' | 'paymentChannel' | 'cashAmount' | 'cardAmount' | 'transferAmount' | 'discount' | 'deliveryFee' | 'amountDue' | 'changeAmount' |
   'customerId' |
   'canApplyDiscount' | 'discountApprovalGranted' | 'isDiscountAuthorizationPending' | 'hasDiscountPermissionViolation' |
-  'onPaymentPresetChange' | 'onCashAmountChange' | 'onCardAmountChange' | 'onTransferAmountChange' | 'onDiscountChange' | 'onFillPaidAmount' | 'onRequestDiscountAuthorization'
+  'onPaymentPresetChange' | 'onCashAmountChange' | 'onCardAmountChange' | 'onTransferAmountChange' | 'onDiscountChange' | 'onDeliveryFeeChange' | 'onFillPaidAmount' | 'onRequestDiscountAuthorization'
 >) {
   const balance = getBalanceState(props);
   const isCreditSale = props.paymentType === 'credit';
@@ -142,6 +142,18 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
                 {props.isDiscountAuthorizationPending ? 'جاري التحقق...' : (props.discountApprovalGranted ? 'معتمد' : 'اعتماد المدير')}
               </Button>
             ) : null}
+          </div>
+        </label>
+
+        <label className="pos-strip-field pos-strip-field-inline pos-strip-field-input pos-strip-field-discount">
+          <span>التوصيل</span>
+          <div className="pos-strip-input-shell">
+            <input
+              type="number"
+              step="0.01"
+              value={props.deliveryFee}
+              onChange={(event) => props.onDeliveryFeeChange(Number(event.target.value || 0))}
+            />
           </div>
         </label>
 

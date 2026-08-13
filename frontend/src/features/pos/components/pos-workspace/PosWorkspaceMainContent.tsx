@@ -111,6 +111,7 @@ export function PosWorkspaceMainContent({
             cardAmount={pos.cardAmount}
             transferAmount={pos.transferAmount}
             discount={pos.discount}
+            deliveryFee={pos.deliveryFee}
             note={pos.note}
             tableNumber={pos.tableNumber}
             orderType={pos.orderType}
@@ -154,6 +155,7 @@ export function PosWorkspaceMainContent({
             onCardAmountChange={pos.setCardAmount}
             onTransferAmountChange={pos.setTransferAmount}
             onDiscountChange={pos.setDiscount}
+            onDeliveryFeeChange={pos.setDeliveryFee}
             onRequestDiscountAuthorization={onRequestDiscountAuthorization}
             onNoteChange={pos.setNote}
             onQtyChange={pos.setQty}

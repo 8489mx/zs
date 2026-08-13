@@ -43,6 +43,7 @@ export function printPosDraftPreview(options: {
   items: PosItem[];
   subtotal: number;
   discount: number;
+  deliveryFee?: number;
   taxAmount: number;
   total: number;
   note?: string;
@@ -77,6 +78,7 @@ export function printPosDraftPreview(options: {
     })),
     subtotal: Number(options.subtotal || 0),
     discount: Number(options.discount || 0),
+    deliveryFee: Number(options.deliveryFee || 0),
     taxAmount: Number(options.taxAmount || 0),
     total: Number(options.total || 0),
     paidAmount: Number(options.total || 0),
@@ -120,6 +122,7 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     })),
     subtotal: Number(sale.subTotal || (sale as any).expectedTotal || 0),
     discount: Number(sale.discount || 0),
+    deliveryFee: Number((sale as any).deliveryFee || (sale as any).delivery_fee || 0),
     taxAmount: Number(sale.taxAmount || 0),
     total: Number(sale.total || 0),
     paidAmount: Number(sale.paidAmount || 0),

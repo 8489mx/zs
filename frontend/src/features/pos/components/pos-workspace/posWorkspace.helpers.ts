@@ -82,6 +82,7 @@ export function printCurrentPosDraft(pos: PosWorkspaceState, customerName: strin
     items: pos.cart,
     subtotal: pos.totals.subTotal,
     discount: pos.totals.discountValue,
+    deliveryFee: pos.totals.deliveryFee,
     taxAmount: pos.totals.taxAmount,
     total: pos.totals.total,
     note: pos.note,
