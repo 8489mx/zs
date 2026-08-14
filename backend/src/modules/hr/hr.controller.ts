@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
@@ -354,7 +354,7 @@ export class HrController {
   }
 
   @Get('employees')
-  @RequirePermissions('hrEmployees')
+  @RequireAnyPermission('hrEmployees', 'hrAttendance')
   listEmployees(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
     return this.hr.listEmployees(query, req.authContext!);
   }
