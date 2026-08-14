@@ -66,43 +66,43 @@ export class HrController {
   }
 
   @Get('attendance')
-  @RequirePermissions('hrEmployees')
+  @RequirePermissions('hrAttendance')
   listAttendance(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
     return this.hr.listAttendance(query, req.authContext!);
   }
 
   @Post('attendance')
-  @RequirePermissions('hrEmployees')
+  @RequirePermissions('hrAttendance')
   saveAttendanceDay(@Body() payload: BulkSaveAttendanceDto, @Req() req: RequestWithAuth) {
     return this.hr.bulkSaveAttendance(payload, req.authContext!);
   }
 
   @Post('attendance/record')
-  @RequirePermissions('hrEmployees')
+  @RequirePermissions('hrAttendance')
   saveAttendanceRecord(@Body() payload: UpsertAttendanceRecordDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertAttendanceRecord(payload, req.authContext!);
   }
 
   @Post('attendance/bulk-import')
-  @RequirePermissions('hrEmployees')
+  @RequirePermissions('hrAttendance')
   importAttendanceRecords(@Body() payload: BulkImportAttendanceDto, @Req() req: RequestWithAuth) {
     return this.hr.bulkImportAttendanceRecords(payload, req.authContext!);
   }
 
   @Get('attendance/exceptions')
-  @RequirePermissions('hrEmployees')
+  @RequirePermissions('hrAttendance')
   listAttendanceExceptions(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
     return this.hr.listAttendanceExceptions(query, req.authContext!);
   }
 
   @Post('attendance/exceptions/:id/approve')
-  @RequirePermissions('hrEmployees')
+  @RequirePermissions('hrAttendance')
   approveAttendanceException(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideAttendanceExceptionDto, @Req() req: RequestWithAuth) {
     return this.hr.decideAttendanceException(id, 'approved', payload, req.authContext!);
   }
 
   @Post('attendance/exceptions/:id/skip')
-  @RequirePermissions('hrEmployees')
+  @RequirePermissions('hrAttendance')
   skipAttendanceException(@Param('id', ParseIntPipe) id: number, @Body() payload: DecideAttendanceExceptionDto, @Req() req: RequestWithAuth) {
     return this.hr.decideAttendanceException(id, 'skipped', payload, req.authContext!);
   }
