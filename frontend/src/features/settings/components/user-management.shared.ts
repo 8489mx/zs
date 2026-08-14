@@ -7,7 +7,7 @@ export const DEFAULT_ADMIN_PERMS = [
 export const DEFAULT_OPERATOR_PERMS = [
   'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','hr','hrEmployees','hrAttendance','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageBranchStock','canManageSettings','deliveryReps'
 ];
-export const DEFAULT_CASHIER_PERMS = ['sales', 'cashDrawer', 'customers', 'returns', 'hr', 'hrAttendance', 'deliveryReps', 'canPrint'];
+export const DEFAULT_CASHIER_PERMS = ['sales', 'cashDrawer', 'customers', 'returns', 'hr', 'hrAttendance', 'deliveryReps', 'accounts', 'canPrint'];
 
 export const PERMISSION_LABELS: Record<string, string> = {
   dashboard: 'الشاشة الرئيسية',
