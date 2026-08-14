@@ -65,6 +65,7 @@ export function HrComingSoonPage() {
   const navigate = useNavigate();
   const today = todayDate();
   const month = today.slice(0, 7);
+  const canViewEmployees = useHasAnyPermission(['hrEmployees']);
   const canViewLoans = useHasAnyPermission('hrLoans');
   const canViewPayroll = useHasAnyPermission(['hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']);
 
@@ -72,8 +73,8 @@ export function HrComingSoonPage() {
   const reports = useHrReportsSummary({ from: monthStartDate(today), to: today, month });
   const attendance = useHrAttendance({ date: today, page: 1, pageSize: 300 });
   const attendanceExceptions = useHrAttendanceExceptions({ date: today, page: 1, pageSize: 200 });
-  const leaves = useHrLeaveRequests({ page: 1, pageSize: 200, status: 'pending' });
-  const assets = useHrEmployeeAssets({ page: 1, pageSize: 300 });
+  const leaves = useHrLeaveRequests({ page: 1, pageSize: 200, status: 'pending', enabled: canViewEmployees });
+  const assets = useHrEmployeeAssets({ page: 1, pageSize: 300, enabled: canViewEmployees });
 
   const employees = useMemo(() => (workspace.employees.data?.employees || []) as HrEmployee[], [workspace.employees.data?.employees]);
   const loans = useMemo(() => (workspace.loans.data?.loans || []) as HrLoan[], [workspace.loans.data?.loans]);
@@ -140,18 +141,18 @@ export function HrComingSoonPage() {
     return items.slice(0, 10);
   }, [assetRows, exceptionRows, incompleteEmployees, pendingLeaves]);
 
-  const loading = workspace.employees.isLoading || attendance.isLoading;
-  const isError = workspace.employees.isError || attendance.isError;
-  const error = workspace.employees.error || attendance.error;
+  const loading = (canViewEmployees && workspace.employees.isLoading) || attendance.isLoading;
+  const isError = (canViewEmployees && workspace.employees.isError) || attendance.isError;
+  const error = (canViewEmployees ? workspace.employees.error : null) || attendance.error;
 
   const navCards = [
-    { title: 'الموظفون', body: 'إضافة وتعديل ملفات الموظفين واستكمال البيانات.', to: '/hr/employees', action: 'فتح الموظفين' },
-    { title: 'الحضور والانصراف', body: 'تسجيل اليوم ومراجعة التأخير والأوفر تايم.', to: '/hr/attendance', action: 'فتح الحضور' },
-    { title: 'الإجازات', body: 'مراجعة طلبات الإجازة وأنواع الإجازات.', to: '/hr/leaves', action: 'فتح الإجازات' },
-    { title: 'السلف والخصومات', body: 'إدارة السلف وأقساط السداد الشهرية.', to: '/hr/loans', action: 'فتح السلف' },
-    { title: 'المرتبات', body: 'مراجعة المرتبات والخصومات قبل الاعتماد.', to: '/hr/payroll', action: 'فتح المرتبات' },
-    { title: 'الإعدادات', body: 'الأقسام والمسميات وأنواع الإجازات الأساسية.', to: '/hr/settings', action: 'فتح الإعدادات' },
-  ];
+    canViewEmployees ? { title: 'الموظفون', body: 'إضافة وتعديل ملفات الموظفين واستكمال البيانات.', to: '/hr/employees', action: 'فتح الموظفين' } : null,
+    useHasAnyPermission('hrAttendance') ? { title: 'الحضور والانصراف', body: 'تسجيل اليوم ومراجعة التأخير والأوفر تايم.', to: '/hr/attendance', action: 'فتح الحضور' } : null,
+    useHasAnyPermission('hrLeaves') ? { title: 'الإجازات', body: 'مراجعة طلبات الإجازة وأنواع الإجازات.', to: '/hr/leaves', action: 'فتح الإجازات' } : null,
+    canViewLoans ? { title: 'السلف والخصومات', body: 'إدارة السلف وأقساط السداد الشهرية.', to: '/hr/loans', action: 'فتح السلف' } : null,
+    canViewPayroll ? { title: 'المرتبات', body: 'مراجعة المرتبات والخصومات قبل الاعتماد.', to: '/hr/payroll', action: 'فتح المرتبات' } : null,
+    useHasAnyPermission(['hrSettings', 'hr']) ? { title: 'الإعدادات', body: 'الأقسام والمسميات وأنواع الإجازات الأساسية.', to: '/hr/settings', action: 'فتح الإعدادات' } : null,
+  ].filter(Boolean) as Array<{ title: string; body: string; to: string; action: string }>;
 
   return (
     <div className="page-stack page-shell" dir="rtl">
@@ -161,8 +162,8 @@ export function HrComingSoonPage() {
         description="نظرة تشغيلية مختصرة: ابدأ من العناصر التي تحتاج إجراء، أو انتقل مباشرة للقسم المطلوب."
         actions={(
           <div className="compact-actions">
-            <Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>
+            {canViewEmployees && <Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>}
+            {useHasAnyPermission('hrAttendance') && <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>}
           </div>
         )}
       />

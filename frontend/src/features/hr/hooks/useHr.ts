@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { hrApi, type HrListParams } from '@/features/hr/api/hr.api';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 
 function paramsKey(params: HrListParams) {
   return JSON.stringify({
@@ -19,15 +20,19 @@ function paramsKey(params: HrListParams) {
 
 export function useHrWorkspace(params: HrListParams) {
   const key = paramsKey(params);
+  const canViewEmployees = useHasAnyPermission(['hrEmployees']);
+  const canViewLoans = useHasAnyPermission(['hrLoans']);
+  const canViewPayroll = useHasAnyPermission(['hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']);
+
   return {
     summary: useQuery({ queryKey: queryKeys.hrSummary, queryFn: hrApi.summary }),
-    employees: useQuery({ queryKey: queryKeys.hrEmployees(key), queryFn: () => hrApi.employees(params), placeholderData: (previous) => previous }),
+    employees: useQuery({ queryKey: queryKeys.hrEmployees(key), queryFn: () => hrApi.employees(params), placeholderData: (previous) => previous, enabled: canViewEmployees }),
     departments: useQuery({ queryKey: queryKeys.hrMasterData('departments'), queryFn: () => hrApi.masterData('departments') }),
     jobTitles: useQuery({ queryKey: queryKeys.hrMasterData('job-titles'), queryFn: () => hrApi.masterData('job-titles') }),
     positions: useQuery({ queryKey: queryKeys.hrMasterData('positions'), queryFn: () => hrApi.masterData('positions') }),
-    loans: useQuery({ queryKey: queryKeys.hrLoans(key), queryFn: () => hrApi.loans(params), placeholderData: (previous) => previous }),
-    withdrawals: useQuery({ queryKey: queryKeys.hrWithdrawals(key), queryFn: () => hrApi.withdrawals(params), enabled: Boolean(params.employeeId), placeholderData: (previous) => previous }),
-    payrollRuns: useQuery({ queryKey: queryKeys.hrPayrollRuns(key), queryFn: () => hrApi.payrollRuns(params), placeholderData: (previous) => previous }),
+    loans: useQuery({ queryKey: queryKeys.hrLoans(key), queryFn: () => hrApi.loans(params), placeholderData: (previous) => previous, enabled: canViewLoans }),
+    withdrawals: useQuery({ queryKey: queryKeys.hrWithdrawals(key), queryFn: () => hrApi.withdrawals(params), enabled: Boolean(params.employeeId) && canViewLoans, placeholderData: (previous) => previous }),
+    payrollRuns: useQuery({ queryKey: queryKeys.hrPayrollRuns(key), queryFn: () => hrApi.payrollRuns(params), placeholderData: (previous) => previous, enabled: canViewPayroll }),
   };
 }
 
@@ -85,21 +90,23 @@ export function useHrHolidays(params: HrListParams = {}) {
   });
 }
 
-export function useHrLeaveRequests(params: HrListParams = {}) {
+export function useHrLeaveRequests(params: HrListParams & { enabled?: boolean } = {}) {
   const key = paramsKey(params);
   return useQuery({
     queryKey: ['hr', 'leave-requests', key],
     queryFn: () => hrApi.leaveRequests(params),
     placeholderData: (previous) => previous,
+    enabled: params.enabled,
   });
 }
 
-export function useHrEmployeeAssets(params: HrListParams = {}) {
+export function useHrEmployeeAssets(params: HrListParams & { enabled?: boolean } = {}) {
   const key = paramsKey(params);
   return useQuery({
     queryKey: ['hr', 'employee-assets', key],
     queryFn: () => hrApi.employeeAssets(params),
     placeholderData: (previous) => previous,
+    enabled: params.enabled,
   });
 }
 
