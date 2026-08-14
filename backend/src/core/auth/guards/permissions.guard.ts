@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PermissionService } from '../../../core/auth/services/permission.service';
-import { REQUIRED_PERMISSIONS_KEY } from '../../../core/auth/decorators/permissions.decorator';
+import { REQUIRED_PERMISSIONS_KEY, REQUIRED_ANY_PERMISSIONS_KEY } from '../../../core/auth/decorators/permissions.decorator';
 import { REQUIRED_FEATURE_KEY } from '../../../core/auth/decorators/feature.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { ConfigService } from '@nestjs/config';
@@ -26,16 +26,20 @@ export class PermissionsGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    const requiredAny = this.reflector.getAllAndOverride<string[]>(REQUIRED_ANY_PERMISSIONS_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     const allowAuth = this.reflector.getAllAndOverride<boolean>('allow_authenticated', [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    if (!required && !allowAuth) {
-      throw new Error(`Endpoint ${context.getClass().name}.${context.getHandler().name} is protected by PermissionsGuard but lacks @RequirePermissions or @AllowAuthenticated marker.`);
+    if (!required && !requiredAny && !allowAuth) {
+      throw new Error(`Endpoint ${context.getClass().name}.${context.getHandler().name} is protected by PermissionsGuard but lacks @RequirePermissions, @RequireAnyPermission, or @AllowAuthenticated marker.`);
     }
 
-    if (!required || required.length === 0) {
+    if ((!required || required.length === 0) && (!requiredAny || requiredAny.length === 0)) {
       return true;
     }
 
@@ -56,8 +60,12 @@ export class PermissionsGuard implements CanActivate {
     
     // For everyone else (including offline super_admins), check basic permissions first.
     // Note: Offline super_admin will pass this check because they possess SUPER_ADMIN_PERMISSIONS in their DB profile.
-    if (!this.permissionService.hasAllPermissions(granted, required)) {
+    if (required && required.length > 0 && !this.permissionService.hasAllPermissions(granted, required)) {
       throw new ForbiddenException('Missing required permissions');
+    }
+
+    if (requiredAny && requiredAny.length > 0 && !this.permissionService.hasAnyPermission(granted, requiredAny)) {
+      throw new ForbiddenException('Missing required any permissions');
     }
 
     // Now STRICTLY check feature gates for everyone except Platform Admin

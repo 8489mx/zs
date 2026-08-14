@@ -50,6 +50,26 @@ async function main() {
             perms.push('hr');
             changed = true;
          }
+         if (!perms.includes('deliveryReps')) {
+            perms.push('deliveryReps');
+            changed = true;
+         }
+         if (!perms.includes('accounts')) {
+            perms.push('accounts');
+            changed = true;
+         }
+         if (!perms.includes('purchases')) {
+            perms.push('purchases');
+            changed = true;
+         }
+         if (!perms.includes('suppliers')) {
+            perms.push('suppliers');
+            changed = true;
+         }
+         if (!perms.includes('products')) {
+            perms.push('products');
+            changed = true;
+         }
       }
       
       if (changed) {

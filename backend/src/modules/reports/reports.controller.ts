@@ -1,5 +1,5 @@
 import { Controller, Get, Param, ParseIntPipe, Query, Req, UseGuards } from '@nestjs/common';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
@@ -30,25 +30,25 @@ export class ReportsController {
   }
 
   @Get('reports/customer-balances')
-  @RequirePermissions('reports')
+  @RequireAnyPermission('reports', 'accounts')
   customerBalances(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.reportsService.customerBalances(query, req.authContext!);
   }
 
   @Get('reports/supplier-balances')
-  @RequirePermissions('reports')
+  @RequireAnyPermission('reports', 'accounts')
   supplierBalances(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.reportsService.supplierBalances(query, req.authContext!);
   }
 
   @Get('reports/customers/:id/ledger')
-  @RequirePermissions('reports')
+  @RequireAnyPermission('reports', 'accounts')
   customerLedger(@Param('id', ParseIntPipe) id: number, @Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.reportsService.customerLedger(id, query, req.authContext!);
   }
 
   @Get('reports/suppliers/:id/ledger')
-  @RequirePermissions('reports')
+  @RequireAnyPermission('reports', 'accounts')
   supplierLedger(@Param('id', ParseIntPipe) id: number, @Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.reportsService.supplierLedger(id, query, req.authContext!);
   }
