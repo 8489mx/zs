@@ -28,7 +28,11 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
     },
     onError: (error: any) => {
       console.error('API Error details:', error.details || error);
-      systemAlert((error.message || 'حدث خطأ أثناء الإضافة') + '\n\n' + JSON.stringify(error.details || {}));
+      if (error?.status === 403 || error?.details?.statusCode === 403) {
+        systemAlert('ليس لديك صلاحية. تواصل مع مدير النظام لتفعيل هذه الخاصية.');
+      } else {
+        systemAlert(error.message || 'حدث خطأ أثناء الإضافة');
+      }
     }
   });
 
@@ -40,7 +44,11 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
       setEditingId(null);
     },
     onError: (error: any) => {
-      systemAlert(error.message || 'حدث خطأ أثناء التعديل');
+      if (error?.status === 403 || error?.details?.statusCode === 403) {
+        systemAlert('ليس لديك صلاحية. تواصل مع مدير النظام لتفعيل هذه الخاصية.');
+      } else {
+        systemAlert(error.message || 'حدث خطأ أثناء التعديل');
+      }
     }
   });
 
@@ -51,7 +59,11 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
       queryClient.invalidateQueries({ queryKey: ['delivery-reps'] });
     },
     onError: (error: any) => {
-      systemAlert(error.message || 'حدث خطأ أثناء تغيير الحالة');
+      if (error?.status === 403 || error?.details?.statusCode === 403) {
+        systemAlert('ليس لديك صلاحية. تواصل مع مدير النظام لتفعيل هذه الخاصية.');
+      } else {
+        systemAlert(error.message || 'حدث خطأ أثناء تغيير الحالة');
+      }
     }
   });
 
