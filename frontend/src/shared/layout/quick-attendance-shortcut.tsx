@@ -33,13 +33,7 @@ function formatTimeText(value?: string) {
   return `${match[1]}:${match[2]}`;
 }
 
-function isTypingTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName.toLowerCase();
-  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
-  if (target.isContentEditable || target.closest('[contenteditable="true"]')) return true;
-  return false;
-}
+
 
 export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProps) {
   const mutations = useHrMutations();
@@ -50,7 +44,6 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) return;
       if (!event.ctrlKey || !event.altKey || event.shiftKey || event.metaKey) return;
       if (event.code !== 'KeyH' && event.key.toLowerCase() !== 'h') return;
       event.preventDefault();
