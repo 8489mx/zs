@@ -16,28 +16,60 @@ export type ReturnListRow = {
   date: unknown;
   createdBy?: string;
   createdByName?: string;
+  items?: Array<{ productId: string; productName: string; qty: number; total: number; }>;
 };
 
 export function mapReturnRows(rows: Array<Record<string, unknown>>): ReturnListRow[] {
-  return rows.map((row) => ({
-    id: String(row.return_document_id),
-    rowId: String(row.id),
-    docNo: String(row.doc_no || 'RET-' + String(row.return_document_id)),
-    returnType: (row.return_type === 'purchase' ? 'purchase' : 'sale'),
-    type: (row.return_type === 'purchase' ? 'purchase' : 'sale'),
-    invoiceId: row.invoice_id ? String(row.invoice_id) : '',
-    productId: row.product_id ? String(row.product_id) : '',
-    productName: String(row.product_name || ''),
-    qty: Number(row.qty || 0),
-    total: Number(row.line_total || 0),
-    note: String(row.note || ''),
-    settlementMode: String(row.settlement_mode || 'refund'),
-    refundMethod: String(row.refund_method || ''),
-    createdAt: row.created_at,
-    date: row.created_at,
-    createdBy: row.created_by ? String(row.created_by) : '',
-    createdByName: String(row.created_by_name || ''),
-  }));
+  const docMap = new Map<string, ReturnListRow>();
+  
+  for (const row of rows) {
+    const docId = String(row.return_document_id);
+    if (!docMap.has(docId)) {
+      docMap.set(docId, {
+        id: docId,
+        rowId: docId,
+        docNo: String(row.doc_no || 'RET-' + docId),
+        returnType: (row.return_type === 'purchase' ? 'purchase' : 'sale'),
+        type: (row.return_type === 'purchase' ? 'purchase' : 'sale'),
+        invoiceId: row.invoice_id ? String(row.invoice_id) : '',
+        productId: '',
+        productName: '',
+        qty: 0,
+        total: 0,
+        note: String(row.note || ''),
+        settlementMode: String(row.settlement_mode || 'refund'),
+        refundMethod: String(row.refund_method || ''),
+        createdAt: row.created_at,
+        date: row.created_at,
+        createdBy: row.created_by ? String(row.created_by) : '',
+        createdByName: String(row.created_by_name || ''),
+        items: []
+      });
+    }
+    const doc = docMap.get(docId)!;
+    const itemQty = Number(row.qty || 0);
+    const itemTotal = Number(row.line_total || 0);
+    doc.qty += itemQty;
+    doc.total += itemTotal;
+    doc.items!.push({
+      productId: row.product_id ? String(row.product_id) : '',
+      productName: String(row.product_name || ''),
+      qty: itemQty,
+      total: itemTotal,
+    });
+  }
+
+  const result = Array.from(docMap.values());
+  for (const doc of result) {
+    if (doc.items!.length === 1) {
+      doc.productName = doc.items![0].productName;
+      doc.productId = doc.items![0].productId;
+    } else {
+      doc.productName = `${doc.items!.length} أصناف`;
+    }
+  }
+
+  return result;
 }
 
 export function filterReturnRows(rows: ReturnListRow[], query: Record<string, unknown>, today: string): ReturnListRow[] {
