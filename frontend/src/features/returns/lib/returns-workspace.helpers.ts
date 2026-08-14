@@ -63,7 +63,12 @@ export function printReturnRecord(row: ReturnRecord, settings?: Partial<AppSetti
       orderType: returnTypeLabel(row),
       customerName: returnTypeLabel(row),
       note: row.note || undefined,
-      items: [{
+      items: row.items && row.items.length > 0 ? row.items.map(item => ({
+        name: item.productName || '—',
+        qty: Number(item.qty || 0),
+        price: Number(item.total || 0) / Math.max(1, Number(item.qty || 1)),
+        total: Number(item.total || 0)
+      })) : [{
         name: row.productName || '—',
         qty: Number(row.qty || 0),
         price: Number(row.total || 0) / Math.max(1, Number(row.qty || 1)),
@@ -88,7 +93,12 @@ export function printReturnRecord(row: ReturnRecord, settings?: Partial<AppSetti
     orderType: returnTypeLabel(row),
     customerName: returnTypeLabel(row),
     note: row.note || undefined,
-    items: [{ 
+    items: row.items && row.items.length > 0 ? row.items.map(item => ({
+      name: item.productName || '—',
+      qty: Number(item.qty || 0),
+      price: Number(item.total || 0) / Math.max(1, Number(item.qty || 1)),
+      total: Number(item.total || 0)
+    })) : [{ 
       name: row.productName || '—', 
       qty: Number(row.qty || 0), 
       price: Number(row.total || 0) / Math.max(1, Number(row.qty || 1)),

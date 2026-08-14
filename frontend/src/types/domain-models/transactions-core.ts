@@ -101,4 +101,5 @@ export interface ReturnRecord {
   refundMethod?: string;
   createdBy?: string;
   createdByName?: string;
+  items?: { productId: string; productName: string; qty: number; total: number; }[];
 }
