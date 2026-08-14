@@ -71,8 +71,8 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/hr/employees/:id': 'hrEmployees',
   'hr/employees/:id/edit': 'hrEmployees',
   '/hr/employees/:id/edit': 'hrEmployees',
-  'hr/attendance': 'hrEmployees',
-  '/hr/attendance': 'hrEmployees',
+  'hr/attendance': 'hrAttendance',
+  '/hr/attendance': 'hrAttendance',
   'hr/leaves': 'hrEmployees',
   '/hr/leaves': 'hrEmployees',
   'hr/assets': 'hrEmployees',
@@ -215,7 +215,7 @@ export function getRoutePermissionRequirement(target: string) {
   if (directMatch) return directMatch;
   if (normalized.startsWith('hr/')) {
     if (normalized.startsWith('hr/employees')) return routePermissionMap['hr/employees'] ?? 'hrEmployees';
-    if (normalized.startsWith('hr/attendance')) return routePermissionMap['hr/attendance'] ?? 'hrEmployees';
+    if (normalized.startsWith('hr/attendance')) return routePermissionMap['hr/attendance'] ?? 'hrAttendance';
     if (normalized.startsWith('hr/leaves')) return routePermissionMap['hr/leaves'] ?? 'hrEmployees';
     if (normalized.startsWith('hr/assets')) return routePermissionMap['hr/assets'] ?? 'hrEmployees';
     if (normalized.startsWith('hr/documents')) return routePermissionMap['hr/documents'] ?? 'hrEmployees';
