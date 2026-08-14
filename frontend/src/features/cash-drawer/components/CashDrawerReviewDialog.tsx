@@ -92,12 +92,25 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               </div>
 
               <div className={`cash-drawer-review-banner cash-drawer-review-diff-${reviewMatched ? 'ok' : 'negative'}`}>
-                <div>{reviewMatched ? 'الإقرار مطابق لأرقام النظام.' : 'يوجد فرق في الإغلاق، راجع البنود قبل الاعتماد.'}</div>
+                <div>{reviewMatched ? 'الوردية تبدو متطابقة.' : 'يوجد فرق في الإغلاق، راجع البنود قبل الاعتماد.'}</div>
                 <div className="cash-drawer-review-banner-meta">
                   <span><strong>إجمالي فرق المبلغ:</strong> {differenceLabel(comparison.amountDiffTotal)}</span>
                   <span><strong>إجمالي فرق عدد العمليات:</strong> {formatSignedCount(comparison.opsDiffTotal)}</span>
                 </div>
               </div>
+
+              {(shift.cashSalesTotal !== undefined || shift.cashDrawerMovementTotal !== undefined) && (
+                <div className="cash-drawer-movements-summary" style={{ padding: '1rem', background: 'var(--gray-0)', borderRadius: 'var(--radius-2)', border: '1px solid var(--gray-2)' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>حركة النقدي المتوقع بالدرج</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', fontSize: '0.9rem' }}>
+                    <div><strong>رصيد البداية:</strong> <br/>{formatMoney(shift.openingCash)} ج.م</div>
+                    <div><strong>مبيعات نقداً:</strong> <br/>{formatMoney(shift.cashSalesTotal || 0)} ج.م</div>
+                    <div><strong>مرتجعات نقداً:</strong> <br/>{formatMoney(shift.saleReturnCashRefundTotal || 0)} ج.م</div>
+                    <div><strong>مصروفات ومدفوعات (خروج):</strong> <br/><span style={{ color: 'var(--red-9)' }}>{formatMoney(shift.cashDrawerMovementTotal || 0)} ج.م</span></div>
+                    <div><strong>الرصيد المتوقع:</strong> <br/><strong>{formatMoney(shift.expectedCash)} ج.م</strong></div>
+                  </div>
+                </div>
+              )}
 
               <div className="cash-drawer-review-block">
                 <h4>مقارنة النظام مع إقرار الكاشير</h4>
