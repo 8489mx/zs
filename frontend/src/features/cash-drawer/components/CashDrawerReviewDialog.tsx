@@ -106,7 +106,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                     <div><strong>رصيد البداية:</strong> <br/>{formatMoney(shift.openingCash)} ج.م</div>
                     <div><strong>مبيعات نقداً:</strong> <br/>{formatMoney(shift.cashSalesTotal || 0)} ج.م</div>
                     <div><strong>مرتجعات نقداً:</strong> <br/>{formatMoney(shift.saleReturnCashRefundTotal || 0)} ج.م</div>
-                    <div><strong>مصروفات ومدفوعات (خروج):</strong> <br/><span style={{ color: 'var(--red-9)' }}>{formatMoney(shift.cashDrawerMovementTotal || 0)} ج.م</span></div>
+                    <div><strong>عمليات الخزينة (مقبوضات/مدفوعات):</strong> <br/><span style={{ color: (shift.cashDrawerMovementTotal || 0) < 0 ? 'var(--red-9)' : (shift.cashDrawerMovementTotal || 0) > 0 ? 'var(--green-9)' : 'inherit', direction: 'ltr', display: 'inline-block' }}>{formatMoney(shift.cashDrawerMovementTotal || 0)} ج.م</span></div>
                     <div><strong>الرصيد المتوقع:</strong> <br/><strong>{formatMoney(shift.expectedCash)} ج.م</strong></div>
                   </div>
                 </div>
