@@ -170,20 +170,8 @@ app.whenReady().then(async () => {
     }
   }
 
-  // Check if migrations can be skipped (same version = no new migrations)
+  // Always run migrations on startup to handle manual data folder replacements
   const versionMarkerPath = path.join(dataDir, '.last_migrated_version');
-  let skipMigrations = false;
-  try {
-    if (fsLib.existsSync(versionMarkerPath)) {
-      const lastVersion = fsLib.readFileSync(versionMarkerPath, 'utf8').trim();
-      if (lastVersion === packageVersion) {
-        skipMigrations = true;
-        console.log(`[ELECTRON] Skipping migrations (version ${packageVersion} already migrated)`);
-      }
-    }
-  } catch (err) {
-    console.error('Error reading version marker:', err);
-  }
 
   // Provide environment variables for the backend
   const backendEnv = {
@@ -200,7 +188,7 @@ app.whenReady().then(async () => {
     CORS_ORIGINS: `http://localhost:${currentConfig.port || 3001},http://127.0.0.1:${currentConfig.port || 3001},file://`,
     ALLOW_SESSION_ID_HEADER: 'true',
     ELECTRON_EXE_PATH: process.execPath,
-    SKIP_MIGRATIONS: skipMigrations ? 'true' : 'false',
+    SKIP_MIGRATIONS: 'false',
     ELECTRON_RUNTIME_MODE: currentConfig.runtimeMode,
     DEVELOPER_MASTER_PASSWORD: 'infoadmin',
   };
