@@ -19,7 +19,7 @@ const quickProductSchema = z.object({
   warehouseId: z.string().optional().or(z.literal('')),
   unitType: z.enum(['piece', 'kg', 'liter', 'gram', 'meter']),
   costPrice: z.number().min(0, 'التكلفة يجب أن تكون 0 أو أكثر'),
-  stock: z.number().min(0, 'المخزون يجب أن يكون 0 أو أكثر').optional(),
+  stock: z.number().optional(),
   retailPrice: z.number().min(0, 'سعر البيع يجب أن تكون 0 أو أكثر'),
   wholesalePrice: z.number().min(0, 'سعر الجملة يجب أن يكون 0 أو أكثر'),
   minStock: z.number().min(0, 'الحد الأدنى يجب أن يكون 0 أو أكثر'),
