@@ -10,7 +10,7 @@ export const productFormSchema = z.object({
   size: z.string().optional(),
   fashionColors: z.string().optional(),
   fashionSizes: z.string().optional(),
-  variantStock: z.coerce.number().min(0).default(0),
+  variantStock: z.coerce.number().default(0),
   costPrice: z.coerce.number().min(0),
   retailPrice: z.coerce.number().min(0),
   wholesalePrice: z.coerce.number().min(0),
