@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get, Param, ParseIntPipe, Patch, Put, Delete, U
 import { ManufacturingService } from '../services/manufacturing.service';
 import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto } from '../dto/manufacturing.dto';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
-import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../../core/auth/decorators/permissions.decorator';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 
@@ -12,19 +12,19 @@ export class ManufacturingController {
   constructor(private readonly manufacturingService: ManufacturingService) {}
 
   @Post('boms')
-  @RequirePermissions('inventory:write')
+  @RequireAnyPermission('inventory', 'products')
   createBom(@Body() dto: CreateBomDto, @Req() req: RequestWithAuth) {
     return this.manufacturingService.createBom(dto, req.authContext!);
   }
 
   @Get('boms')
-  @RequirePermissions('inventory:read')
+  @RequireAnyPermission('inventory', 'products')
   getBoms(@Req() req: RequestWithAuth) {
     return this.manufacturingService.getBoms(req.authContext!);
   }
 
   @Patch('boms/:id')
-  @RequirePermissions('inventory:write')
+  @RequireAnyPermission('inventory', 'products')
   updateBom(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateBomDto,
@@ -34,7 +34,7 @@ export class ManufacturingController {
   }
 
   @Put('boms/:id')
-  @RequirePermissions('inventory:write')
+  @RequireAnyPermission('inventory', 'products')
   updateBomPut(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateBomDto,
@@ -44,7 +44,7 @@ export class ManufacturingController {
   }
 
   @Delete('boms/:id')
-  @RequirePermissions('inventory:write')
+  @RequireAnyPermission('inventory', 'products')
   deleteBom(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithAuth

@@ -61,10 +61,12 @@ export class PermissionsGuard implements CanActivate {
     // For everyone else (including offline super_admins), check basic permissions first.
     // Note: Offline super_admin will pass this check because they possess SUPER_ADMIN_PERMISSIONS in their DB profile.
     if (required && required.length > 0 && !this.permissionService.hasAllPermissions(granted, required)) {
+      console.error(`[PermissionsGuard] Missing required permissions! URL: ${request.url}, User: ${auth?.username}, Granted: ${granted.join(',')}, Required: ${required.join(',')}`);
       throw new ForbiddenException('Missing required permissions');
     }
 
     if (requiredAny && requiredAny.length > 0 && !this.permissionService.hasAnyPermission(granted, requiredAny)) {
+      console.error(`[PermissionsGuard] Missing required any permissions! URL: ${request.url}, User: ${auth?.username}, Granted: ${granted.join(',')}, RequiredAny: ${requiredAny.join(',')}`);
       throw new ForbiddenException('Missing required any permissions');
     }
 
