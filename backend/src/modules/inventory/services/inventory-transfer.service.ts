@@ -322,62 +322,83 @@ export class InventoryTransferService {
     if (payload.fromLocationId === payload.toLocationId) throw new AppError('Source and destination locations must be different', 'INVALID_TRANSFER', 400);
     ensureUniqueFlowItems(payload.items || [], 'TRANSFER_DUPLICATE_PRODUCT', 'Transfer must not contain duplicate product rows');
     const scope = this.tenantScope(auth);
-    const from = payload.fromLocationId === -1
+    const isUnassignedLink = payload.fromLocationId === -1;
+    const from = isUnassignedLink
       ? { id: null, branchId: null, name: 'رصيد غير مربوط' }
       : await this.scope.assertLocationScope(payload.fromLocationId, auth, true, 'write');
     const to = await this.scope.assertLocationScope(payload.toLocationId, auth, false, 'write');
 
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
-      // 1. Create stock_transfer record
-      const transferRecord = await trx.insertInto('stock_transfers').values({
-        status: 'received',
-        from_branch_id: from.branchId,
-        to_branch_id: to.branchId,
-        from_location_id: from.id as number,
-        to_location_id: to.id as number,
-        doc_no: 'TMP',
-        note: payload.note || `نقل داخلي سريع`,
-        created_by: auth.userId,
-        received_by: auth.userId,
-        received_at: sql`NOW()`,
-        ...this.tenantFields(auth)
-      }).returning('id').executeTakeFirstOrThrow();
-      
-      const transferId = Number(transferRecord.id);
-      await trx.updateTable('stock_transfers').set({ doc_no: `TR-${transferId}`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      let transferId: number | null = null;
+
+      if (!isUnassignedLink) {
+        // 1. Create stock_transfer record only for real location-to-location transfers
+        const transferRecord = await trx.insertInto('stock_transfers').values({
+          status: 'received',
+          from_branch_id: from.branchId,
+          to_branch_id: to.branchId,
+          from_location_id: from.id as number,
+          to_location_id: to.id as number,
+          doc_no: 'TMP',
+          note: payload.note || `نقل داخلي سريع`,
+          created_by: auth.userId,
+          received_by: auth.userId,
+          received_at: sql`NOW()`,
+          ...this.tenantFields(auth)
+        }).returning('id').executeTakeFirstOrThrow();
+        
+        transferId = Number(transferRecord.id);
+        await trx.updateTable('stock_transfers').set({ doc_no: `TR-${transferId}`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      }
 
       for (const item of payload.items) {
         const product = await trx.selectFrom('products').select(['id', 'name']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const qty = Number(item.qty || 0);
 
-        await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: item.productId, product_name: product.name || '', qty, ...this.tenantFields(auth) }).execute();
+        if (transferId != null) {
+          await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: item.productId, product_name: product.name || '', qty, ...this.tenantFields(auth) }).execute();
 
-        // Deduct from source
-        const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
-        const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `الرصيد غير كافٍ للصنف ${product.name}` });
-        await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_send', qty: -qty, before_qty: fromChange.scopeBefore, after_qty: fromChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل داخلي إلى ${to.name}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
+          // Deduct from source
+          const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
+          const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `الرصيد غير كافٍ للصنف ${product.name}` });
+          await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_send', qty: -qty, before_qty: fromChange.scopeBefore, after_qty: fromChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل داخلي إلى ${to.name}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
+        }
 
-        // Add to destination
-        const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: to.branchId, locationId: to.id };
-        const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
-        await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_receive', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل داخلي من ${from.name}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: to.branchId, location_id: to.id, ...this.tenantFields(auth) }).execute();
+        // Add to destination location
+        const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: to.branchId, locationId: to.id, skipGlobalUpdate: isUnassignedLink };
+        const toChange = await applyStockDelta(trx, { ...toScope, delta: isUnassignedLink ? 0 : qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
+        await trx.insertInto('stock_movements').values({
+          product_id: item.productId,
+          movement_type: isUnassignedLink ? 'stock_assign' : 'transfer_receive',
+          qty: qty,
+          before_qty: toChange.scopeBefore,
+          after_qty: toChange.scopeAfter,
+          reason: isUnassignedLink ? 'unassigned_stock_link' : 'internal_transfer',
+          note: payload.note || (isUnassignedLink ? `ربط الرصيد العائم بمخزن ${to.name}` : `نقل داخلي من ${from.name}`),
+          reference_type: isUnassignedLink ? 'location_assign' : 'transfer',
+          reference_id: transferId ?? to.id,
+          created_by: auth.userId,
+          branch_id: to.branchId,
+          location_id: to.id,
+          ...this.tenantFields(auth)
+        }).execute();
       }
 
-      const responsePayload = { ok: true, transferId: String(transferId) };
+      const responsePayload = { ok: true, transferId: transferId ? String(transferId) : 'assigned' };
       const idemCtx = idempotencyStorage.getStore();
       if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
         await this.idempotency.commitOperation(
           trx,
           { tenantId: scope.tenantId, accountId: idemCtx.accountId || scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
           responsePayload,
-          String(transferId)
+          transferId ? String(transferId) : 'assigned'
         );
       }
       return responsePayload;
     });
 
-    await this.audit.log('نقل داخلي لأصناف', `تم نقل أصناف داخلياً من ${from.name} إلى ${to.name}`, auth);
+    await this.audit.log(isUnassignedLink ? 'ربط رصيد عائم بمخزن' : 'نقل داخلي لأصناف', isUnassignedLink ? `تم ربط رصيد الأصناف غير المربوط بمخزن ${to.name}` : `تم نقل أصناف داخلياً من ${from.name} إلى ${to.name}`, auth);
     return result;
   }
 

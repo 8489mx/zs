@@ -50,6 +50,138 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> { retu
 function normalizeRowForInsert(row: Record<string, unknown>, scope: { tenantId: string; accountId: string }, tableName?: string): Record<string, unknown> { const normalized: Record<string, unknown> = {}; for (const [key, value] of Object.entries(row)) normalized[key] = key.endsWith('_json') && typeof value !== 'string' && value != null ? JSON.stringify(value) : value; normalized.tenant_id = scope.tenantId; if (tableName !== 'journal_entry_lines') normalized.account_id = scope.accountId; return normalized; }
 const sortSelfReferencing = (rows: any[], parentCol: string) => { const sorted = []; const inserted = new Set(); const pending = [...rows]; let iterations = 0; while (pending.length > 0 && iterations < 1000) { for (let i = pending.length - 1; i >= 0; i--) { const row = pending[i]; if (row[parentCol] == null || inserted.has(String(row[parentCol]))) { sorted.push(row); if (row.id != null) inserted.add(String(row.id)); pending.splice(i, 1); } } iterations++; } sorted.push(...pending); return sorted; };
 
+function remapPolymorphicReferences(
+  tableName: string,
+  row: Record<string, unknown>,
+  idMap: Map<string, Map<string, string>>
+): void {
+  if (tableName === 'customer_ledger') {
+    const refType = String(row.reference_type || '').toLowerCase();
+    const refId = row.reference_id != null ? String(row.reference_id) : null;
+    if (refId) {
+      if ((refType === 'sale' || refType === 'invoice') && idMap.has('sales')) {
+        const newId = idMap.get('sales')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if ((refType === 'payment' || refType === 'customer_payment') && idMap.has('customer_payments')) {
+        const newId = idMap.get('customer_payments')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType === 'return' && idMap.has('return_documents')) {
+        const newId = idMap.get('return_documents')!.get(refId);
+        if (newId) row.reference_id = newId;
+      }
+    }
+  }
+
+  if (tableName === 'supplier_ledger') {
+    const refType = String(row.reference_type || '').toLowerCase();
+    const refId = row.reference_id != null ? String(row.reference_id) : null;
+    if (refId) {
+      if ((refType === 'purchase' || refType === 'bill') && idMap.has('purchases')) {
+        const newId = idMap.get('purchases')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if ((refType === 'payment' || refType === 'supplier_payment') && idMap.has('supplier_payments')) {
+        const newId = idMap.get('supplier_payments')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType === 'return' && idMap.has('return_documents')) {
+        const newId = idMap.get('return_documents')!.get(refId);
+        if (newId) row.reference_id = newId;
+      }
+    }
+  }
+
+  if (tableName === 'treasury_transactions') {
+    const refType = String(row.reference_type || '').toLowerCase();
+    const refId = row.reference_id != null ? String(row.reference_id) : null;
+    if (refId) {
+      if (refType === 'sale' && idMap.has('sales')) {
+        const newId = idMap.get('sales')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType === 'purchase' && idMap.has('purchases')) {
+        const newId = idMap.get('purchases')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType === 'expense' && idMap.has('expenses')) {
+        const newId = idMap.get('expenses')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType === 'customer_payment' && idMap.has('customer_payments')) {
+        const newId = idMap.get('customer_payments')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType === 'supplier_payment' && idMap.has('supplier_payments')) {
+        const newId = idMap.get('supplier_payments')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType === 'return' && idMap.has('return_documents')) {
+        const newId = idMap.get('return_documents')!.get(refId);
+        if (newId) row.reference_id = newId;
+      }
+    }
+  }
+
+  if (tableName === 'stock_movements') {
+    const refType = String(row.reference_type || row.movement_type || '').toLowerCase();
+    const refId = row.reference_id != null ? String(row.reference_id) : null;
+    if (refId) {
+      if (refType.includes('sale') && idMap.has('sales')) {
+        const newId = idMap.get('sales')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType.includes('purchase') && idMap.has('purchases')) {
+        const newId = idMap.get('purchases')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType.includes('transfer') && idMap.has('stock_transfers')) {
+        const newId = idMap.get('stock_transfers')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType.includes('count') && idMap.has('stock_count_sessions')) {
+        const newId = idMap.get('stock_count_sessions')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType.includes('damaged') && idMap.has('damaged_stock_records')) {
+        const newId = idMap.get('damaged_stock_records')!.get(refId);
+        if (newId) row.reference_id = newId;
+      } else if (refType.includes('return') && idMap.has('return_documents')) {
+        const newId = idMap.get('return_documents')!.get(refId);
+        if (newId) row.reference_id = newId;
+      }
+    }
+  }
+
+  if (tableName === 'journal_entries') {
+    const srcType = String(row.source_type || '').toLowerCase();
+    const srcId = row.source_id != null ? String(row.source_id) : null;
+    if (srcId) {
+      if (srcType === 'sale' && idMap.has('sales')) {
+        const newId = idMap.get('sales')!.get(srcId);
+        if (newId) row.source_id = newId;
+      } else if (srcType === 'purchase' && idMap.has('purchases')) {
+        const newId = idMap.get('purchases')!.get(srcId);
+        if (newId) row.source_id = newId;
+      } else if (srcType === 'expense' && idMap.has('expenses')) {
+        const newId = idMap.get('expenses')!.get(srcId);
+        if (newId) row.source_id = newId;
+      } else if (srcType === 'customer_payment' && idMap.has('customer_payments')) {
+        const newId = idMap.get('customer_payments')!.get(srcId);
+        if (newId) row.source_id = newId;
+      } else if (srcType === 'supplier_payment' && idMap.has('supplier_payments')) {
+        const newId = idMap.get('supplier_payments')!.get(srcId);
+        if (newId) row.source_id = newId;
+      } else if (srcType === 'return' && idMap.has('return_documents')) {
+        const newId = idMap.get('return_documents')!.get(srcId);
+        if (newId) row.source_id = newId;
+      }
+    }
+  }
+
+  if (tableName === 'journal_entry_lines') {
+    const partnerType = String(row.partner_type || '').toLowerCase();
+    const partnerId = row.partner_id != null ? String(row.partner_id) : null;
+    if (partnerId) {
+      if (partnerType === 'customer' && idMap.has('customers')) {
+        const newId = idMap.get('customers')!.get(partnerId);
+        if (newId) row.partner_id = newId;
+      } else if (partnerType === 'supplier' && idMap.has('suppliers')) {
+        const newId = idMap.get('suppliers')!.get(partnerId);
+        if (newId) row.partner_id = newId;
+      }
+    }
+  }
+}
+
 @Injectable()
 export class SettingsBackupService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
@@ -112,10 +244,8 @@ export class SettingsBackupService {
       let zip;
       try {
         zip = new AdmZip(buffer);
-        // Sometimes AdmZip doesn't throw on invalid buffer but returns empty entries
         if (zip.getEntries().length === 0) throw new Error('Not a zip');
       } catch (e) {
-        // Fallback to JSON
         return this.parseAndVerifyPayload(JSON.parse(buffer.toString('utf8')));
       }
 
@@ -138,8 +268,6 @@ export class SettingsBackupService {
       
       rawEnvelope = JSON.parse(dbContent);
     } else {
-      // Legacy JSON backup
-      // Check if it's a string, maybe it was uploaded as raw string or parsed
       const payloadStr = typeof fileOrPayload === 'string' ? fileOrPayload : JSON.stringify(fileOrPayload);
       try {
         rawEnvelope = typeof fileOrPayload === 'string' ? JSON.parse(payloadStr) : fileOrPayload;
@@ -168,52 +296,200 @@ export class SettingsBackupService {
   private async getTableColumns(trx: Kysely<Database>, table: string): Promise<Map<string, { data_type: string, column_default: string | null, identity_generation: string | null }>> { const result = await sql<{ column_name: string, data_type: string, column_default: string | null, identity_generation: string | null }>`select column_name, data_type, column_default, identity_generation from information_schema.columns where table_schema = 'public' and table_name = ${table}`.execute(trx); return new Map(result.rows.map(r => [r.column_name, r])); }
   private async getAlwaysIdentityColumns(trx: Kysely<Database>, table: string): Promise<Set<string>> { const result = await sql<{ column_name: string }>`select column_name from information_schema.columns where table_schema = 'public' and table_name = ${table} and identity_generation = 'ALWAYS'`.execute(trx).catch(() => ({ rows: [] })); return new Set(result.rows.map(r => r.column_name)); }
 
-  async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> { if (!dryRun) { this.assertCanRestoreBackup(actor); this.assertRestoreConfirmation(payload); } else { this.assertAdmin(actor); } const scope = this.scope(actor); const { envelope, manifest } = await this.parseAndVerifyPayload(payload); const verification = await this.verifyBackup(payload); if (dryRun) return { ok: true, dryRun: true, summary: verification.summary, manifest, scope }; 
+  async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> {
+    if (!dryRun) {
+      this.assertCanRestoreBackup(actor);
+      this.assertRestoreConfirmation(payload);
+    } else {
+      this.assertAdmin(actor);
+    }
+    const scope = this.scope(actor);
+    const { envelope, manifest } = await this.parseAndVerifyPayload(payload);
+    const verification = await this.verifyBackup(payload);
+    if (dryRun) return { ok: true, dryRun: true, summary: verification.summary, manifest, scope };
+
     try {
-      let sourceTenantId: string | null = null;
-      for (const t of BACKUP_TABLES) {
-        if (envelope.tables[t]?.length) {
-          sourceTenantId = String((envelope.tables[t] as any[])[0].tenant_id || '');
-          if (sourceTenantId) break;
-        }
-      }
-      const isCrossTenant = sourceTenantId ? sourceTenantId !== scope.tenantId : false;
       const idMap = new Map<string, Map<string, string>>();
 
-      await this.db.transaction().execute(async (trx) => { await sql`SET LOCAL session_replication_role = 'replica'`.execute(trx); for (const table of CLEAR_ORDER) { if (!(await this.tableExists(String(table))) || !(await this.tableHasColumn(String(table), 'tenant_id'))) continue; await sql`delete from ${sql.table(table)} where tenant_id = ${scope.tenantId}`.execute(trx); } for (const table of BACKUP_TABLES) { if (!(await this.tableExists(String(table)))) continue; const colMeta = await this.getTableColumns(trx as unknown as Kysely<Database>, String(table)); const hasTenant = colMeta.has('tenant_id'); if (!hasTenant) continue; const alwaysIdentityCols = await this.getAlwaysIdentityColumns(trx as unknown as Kysely<Database>, String(table)); const hasAlwaysIdentity = alwaysIdentityCols.size > 0; let rows = Array.isArray(envelope.tables[table]) ? envelope.tables[table]! : []; if (!rows.length) continue; if (colMeta.has('parent_id') && colMeta.has('id')) { rows = sortSelfReferencing(rows, 'parent_id'); } const fksResult = await sql<{ column_name: string, foreign_table_name: string }>`SELECT kcu.column_name, ccu.table_name AS foreign_table_name FROM information_schema.table_constraints AS tc JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = ${String(table)}`.execute(trx); const fkMap = fksResult.rows; if (!idMap.has(String(table))) idMap.set(String(table), new Map()); const tableIdMap = idMap.get(String(table))!; const idMeta = colMeta.get('id'); const isIdAutoGenerated = idMeta && (idMeta.column_default !== null || idMeta.identity_generation !== null); const isCrossTenantRemappingNeeded = isCrossTenant && isIdAutoGenerated; 
-        
-        if (isCrossTenantRemappingNeeded) {
-          for (const row of rows) { if (!isObjectRecord(row)) continue; for (const fk of fkMap) { if (fk.column_name === 'tenant_id' || fk.column_name === 'account_id') continue; const oldFkVal = row[fk.column_name]; if (oldFkVal != null && idMap.has(fk.foreign_table_name)) { const newFkVal = idMap.get(fk.foreign_table_name)!.get(String(oldFkVal)); if (newFkVal !== undefined) row[fk.column_name] = newFkVal; } } const normalized = normalizeRowForInsert(row, scope, String(table)); const filteredRow: Record<string, unknown> = {}; for (const key of Object.keys(normalized)) { if (colMeta.has(key)) { filteredRow[key] = normalized[key]; } } const oldId = filteredRow.id; delete filteredRow.id; const keys = Object.keys(filteredRow); if (keys.length === 0) continue; if (hasAlwaysIdentity) { const colsSql = sql.join(keys.map(k => sql.ref(k))); const valsSql = sql.join(keys.map(k => sql`${filteredRow[k]}`)); const inserted = await sql<{id: string|number}>`insert into ${sql.table(String(table))} (${colsSql}) overriding system value values (${valsSql}) returning id`.execute(trx); if (oldId != null && inserted.rows[0]?.id != null) tableIdMap.set(String(oldId), String(inserted.rows[0].id)); } else { const inserted = await (trx).insertInto(table).values(filteredRow).returning('id').executeTakeFirst(); if (oldId != null && inserted?.id != null) { tableIdMap.set(String(oldId), String(inserted.id)); } } }
-        } else {
-          const bulkRows: any[] = [];
-          for (const row of rows) {
-            if (!isObjectRecord(row)) continue;
-            if (isCrossTenant) {
-              for (const fk of fkMap) { if (fk.column_name === 'tenant_id' || fk.column_name === 'account_id') continue; const oldFkVal = row[fk.column_name]; if (oldFkVal != null && idMap.has(fk.foreign_table_name)) { const newFkVal = idMap.get(fk.foreign_table_name)!.get(String(oldFkVal)); if (newFkVal !== undefined) row[fk.column_name] = newFkVal; } }
-            }
-            const normalized = normalizeRowForInsert(row, scope, String(table));
-            const filteredRow: Record<string, unknown> = {};
-            for (const key of Object.keys(normalized)) { if (colMeta.has(key)) filteredRow[key] = normalized[key]; }
-            if (Object.keys(filteredRow).length > 0) bulkRows.push(filteredRow);
-          }
-          
-          const CHUNK_SIZE = 500;
-          for (let i = 0; i < bulkRows.length; i += CHUNK_SIZE) {
-            const chunk = bulkRows.slice(i, i + CHUNK_SIZE);
-            if (!chunk.length) continue;
-            if (hasAlwaysIdentity) {
-              const keys = Object.keys(chunk[0]);
-              const colsSql = sql.join(keys.map(k => sql.ref(k)));
-              const valsSql = sql.join(chunk.map(row => sql`(${sql.join(keys.map(k => sql`${row[k]}`))})`));
-              await sql`insert into ${sql.table(String(table))} (${colsSql}) overriding system value values ${valsSql}`.execute(trx);
-            } else {
-              await (trx as any).insertInto(table).values(chunk).execute();
-            }
-          }
+      await this.db.transaction().execute(async (trx) => {
+        await sql`SET LOCAL session_replication_role = 'replica'`.execute(trx);
+
+        // 1. Clear existing tenant data in reverse dependency order
+        for (const table of CLEAR_ORDER) {
+          if (!(await this.tableExists(String(table))) || !(await this.tableHasColumn(String(table), 'tenant_id'))) continue;
+          await sql`delete from ${sql.table(table)} where tenant_id = ${scope.tenantId}`.execute(trx);
         }
-        await this.resetIdentity(trx as unknown as Kysely<Database>, String(table)); } }); 
+
+        // 2. Universal Remapping & Safe Insertion for all tables
+        for (const table of BACKUP_TABLES) {
+          const tableName = String(table);
+          if (!(await this.tableExists(tableName))) continue;
+          const colMeta = await this.getTableColumns(trx as unknown as Kysely<Database>, tableName);
+          const hasTenant = colMeta.has('tenant_id');
+          if (!hasTenant) continue;
+
+          let rows = Array.isArray(envelope.tables[table]) ? envelope.tables[table]! : [];
+          if (!rows.length) continue;
+
+          if (colMeta.has('parent_id') && colMeta.has('id')) {
+            rows = sortSelfReferencing(rows, 'parent_id');
+          }
+
+          const fksResult = await sql<{ column_name: string; foreign_table_name: string }>`
+            SELECT kcu.column_name, ccu.table_name AS foreign_table_name
+            FROM information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+              ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+              ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = ${tableName}
+          `.execute(trx);
+          const fkMap = fksResult.rows;
+
+          if (!idMap.has(tableName)) idMap.set(tableName, new Map());
+          const tableIdMap = idMap.get(tableName)!;
+
+          const idMeta = colMeta.get('id');
+          const isIdAutoGenerated = Boolean(
+            idMeta && (idMeta.column_default !== null || idMeta.identity_generation !== null)
+          );
+
+          const preparedRows: { oldId: unknown; row: Record<string, unknown> }[] = [];
+          for (const rawRow of rows) {
+            if (!isObjectRecord(rawRow)) continue;
+            const row: Record<string, unknown> = { ...rawRow };
+
+            // Remap Foreign Keys
+            for (const fk of fkMap) {
+              if (fk.column_name === 'tenant_id' || fk.column_name === 'account_id') continue;
+              const oldFkVal = row[fk.column_name];
+              if (oldFkVal != null && idMap.has(fk.foreign_table_name)) {
+                const newFkVal = idMap.get(fk.foreign_table_name)!.get(String(oldFkVal));
+                if (newFkVal !== undefined) {
+                  row[fk.column_name] = newFkVal;
+                }
+              }
+            }
+
+            // Remap Self-referencing parent_id
+            if (colMeta.has('parent_id') && row.parent_id != null) {
+              const newParentId = tableIdMap.get(String(row.parent_id));
+              if (newParentId !== undefined) {
+                row.parent_id = newParentId;
+              }
+            }
+
+            // Remap Polymorphic References
+            remapPolymorphicReferences(tableName, row, idMap);
+
+            // Normalize for Tenant
+            const normalized = normalizeRowForInsert(row, scope, tableName);
+            const filteredRow: Record<string, unknown> = {};
+            for (const key of Object.keys(normalized)) {
+              if (colMeta.has(key)) {
+                filteredRow[key] = normalized[key];
+              }
+            }
+
+            const oldId = filteredRow.id;
+            if (isIdAutoGenerated) {
+              delete filteredRow.id;
+            }
+
+            if (Object.keys(filteredRow).length > 0) {
+              preparedRows.push({ oldId, row: filteredRow });
+            }
+          }
+
+          if (!preparedRows.length) continue;
+
+          const insertCols = Array.from(colMeta.keys()).filter((col) =>
+            isIdAutoGenerated ? col !== 'id' : true
+          ).filter((col) => preparedRows.some((p) => p.row[col] !== undefined));
+
+          if (!insertCols.length) continue;
+
+          if (isIdAutoGenerated) {
+            if (colMeta.has('parent_id')) {
+              for (const item of preparedRows) {
+                if (item.row.parent_id != null) {
+                  const newParentId = tableIdMap.get(String(item.row.parent_id));
+                  if (newParentId !== undefined) item.row.parent_id = newParentId;
+                }
+                const activeKeys = insertCols.filter((k) => item.row[k] !== undefined);
+                const colsSql = sql.join(activeKeys.map((k) => sql.ref(k)));
+                const valsSql = sql.join(activeKeys.map((k) => sql`${item.row[k]}`));
+                const inserted = await sql<{ id: string | number }>`
+                  insert into ${sql.table(tableName)} (${colsSql}) values (${valsSql}) returning id
+                `.execute(trx);
+                if (item.oldId != null && inserted.rows[0]?.id != null) {
+                  tableIdMap.set(String(item.oldId), String(inserted.rows[0].id));
+                }
+              }
+            } else {
+              const CHUNK_SIZE = 200;
+              for (let i = 0; i < preparedRows.length; i += CHUNK_SIZE) {
+                const chunk = preparedRows.slice(i, i + CHUNK_SIZE);
+                if (!chunk.length) continue;
+
+                const colsSql = sql.join(insertCols.map((k) => sql.ref(k)));
+                const valsSql = sql.join(
+                  chunk.map(
+                    (item) =>
+                      sql`(${sql.join(
+                        insertCols.map((k) => sql`${item.row[k] !== undefined ? item.row[k] : null}`)
+                      )})`
+                  )
+                );
+
+                const inserted = await sql<{ id: string | number }>`
+                  insert into ${sql.table(tableName)} (${colsSql}) values ${valsSql} returning id
+                `.execute(trx);
+
+                for (let idx = 0; idx < inserted.rows.length; idx++) {
+                  const item = chunk[idx];
+                  const newId = inserted.rows[idx]?.id;
+                  if (item && item.oldId != null && newId != null) {
+                    tableIdMap.set(String(item.oldId), String(newId));
+                  }
+                }
+              }
+            }
+          } else {
+            const CHUNK_SIZE = 200;
+            for (let i = 0; i < preparedRows.length; i += CHUNK_SIZE) {
+              const chunk = preparedRows.slice(i, i + CHUNK_SIZE);
+              if (!chunk.length) continue;
+
+              const colsSql = sql.join(insertCols.map((k) => sql.ref(k)));
+              const valsSql = sql.join(
+                chunk.map(
+                  (item) =>
+                    sql`(${sql.join(
+                      insertCols.map((k) => sql`${item.row[k] !== undefined ? item.row[k] : null}`)
+                    )})`
+                )
+              );
+
+              await sql`
+                insert into ${sql.table(tableName)} (${colsSql}) values ${valsSql}
+              `.execute(trx);
+            }
+          }
+
+          await this.resetIdentity(trx as unknown as Kysely<Database>, tableName);
+        }
+      });
     } catch (error: any) {
-      throw new AppError(`فشل الاستعادة: ${error.message} - ${error.detail || ''} - Table: ${error.table || ''} - Constraint: ${error.constraint || ''}`, 'RESTORE_ERROR', 400);
+      throw new AppError(
+        `فشل الاستعادة: ${error.message} - ${error.detail || ''} - Table: ${error.table || ''} - Constraint: ${error.constraint || ''}`,
+        'RESTORE_ERROR',
+        400
+      );
     }
-    await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${`restore-${new Date().toISOString()}`}, ${'restore'}, ${JSON.stringify(envelope)}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db); await this.audit.log('استعادة نسخة احتياطية', `تمت استعادة نسخة احتياطية بواسطة ${actor.username}`, actor).catch(() => undefined); return { ok: true, restoredAt: new Date().toISOString(), restoredTables: BACKUP_TABLES.length, summary: verification.summary, scope }; }
+
+    await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${`restore-${new Date().toISOString()}`}, ${'restore'}, ${JSON.stringify(envelope)}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
+    await this.audit.log('استعادة نسخة احتياطية', `تمت استعادة نسخة احتياطية بواسطة ${actor.username}`, actor).catch(() => undefined);
+    return { ok: true, restoredAt: new Date().toISOString(), restoredTables: BACKUP_TABLES.length, summary: verification.summary, scope };
+  }
 }

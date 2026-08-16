@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -122,6 +123,7 @@ export function SettingsBackupImportSection({
   importOpeningStock,
   downloadTemplate
 }: SettingsBackupImportSectionProps) {
+  const [isSnapshotsOpen, setIsSnapshotsOpen] = useState(false);
   const summaryPairs = formatSummaryPairs(backupResult);
   const resolvedFolder = backupFolderPathDraft || backupConfigQuery.data?.folderPath || backupConfigQuery.data?.defaultFolderPath || 'D:\\ZS Backups';
   const autoState = backupConfigQuery.data?.automation;
@@ -217,43 +219,85 @@ export function SettingsBackupImportSection({
           </div>
         </div>
 
-        <div className="form-grid two-col-form">
-          <Field label="تحقق من ملف نسخة احتياطية">
-            <input type="file" accept=".zip,application/zip,application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBackupFile(file, 'verify'); e.currentTarget.value = ''; }} />
-          </Field>
-          <Field label="استعادة من ملف نسخة احتياطية">
-            <input type="file" accept=".zip,application/zip,application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }} />
-          </Field>
+        {/* فحص واستعادة من ملف */}
+        <div className="surface-card" style={{ marginBottom: 16, padding: 14 }}>
+          <strong>فحص واستعادة نسخة احتياطية من ملف</strong>
+          <div className="muted small" style={{ marginTop: 4, marginBottom: 12 }}>
+            يمكنك فحص محتويات ملف النسخة للتأكد من سلامته قبل الاستعادة، أو بدء الاستعادة مباشرة.
+          </div>
+          <div className="form-grid two-col-form">
+            <Field label="تحقق من ملف نسخة احتياطية">
+              <input type="file" accept=".zip,application/zip,application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBackupFile(file, 'verify'); e.currentTarget.value = ''; }} />
+            </Field>
+            <Field label="استعادة من ملف نسخة احتياطية">
+              <input type="file" accept=".zip,application/zip,application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }} />
+            </Field>
+          </div>
+
+          <div className="muted small" style={{ marginTop: 10 }}>الاستعادة تستبدل البيانات الحالية.</div>
+          {backupSelectedFileName ? <div className="muted small" style={{ marginTop: 6, fontWeight: '500' }}>آخر ملف تم اختياره: {backupSelectedFileName}</div> : null}
+          {backupMessage ? <div className={backupMessageKind === 'error' ? 'error-box' : 'success-box'} style={{ marginTop: 10 }}>{backupMessage}</div> : null}
+
+          {summaryPairs.length ? (
+            <div className="surface-card" style={{ marginTop: 12, padding: 12, border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--surface-color-subtle, #f8fafc)' }}>
+              <strong style={{ display: 'block', marginBottom: 8 }}>نتيجة آخر فحص / استعادة</strong>
+              <div className="form-grid two-col-form">
+                {summaryPairs.map((item) => (
+                  <div key={item.label} className="list-row" style={{ justifyContent: 'space-between', gap: 12, padding: '4px 0' }}>
+                    <span className="muted small">{item.label}</span>
+                    <strong style={{ fontSize: '13px' }}>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
-        <hr className="divider" />
-        <div className="page-stack">
-          <div className="list-row">
+        {/* ملخص النسخ التلقائية (قابل للطي) */}
+        <div className="surface-card" style={{ marginBottom: 16, padding: 12 }}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setIsSnapshotsOpen((prev) => !prev)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsSnapshotsOpen((prev) => !prev); } }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+          >
             <div>
-              <strong>ملخص النسخ التلقائية</strong>
-              <div className="muted small">اللقطات الداخلية: {snapshots.length} · النسخ التلقائي: {autoBackupEnabled ? 'مفعّل' : 'متوقف'}</div>
+              <strong style={{ fontSize: '14px' }}>ملخص النسخ التلقائية واللقطات السابقة</strong>
+              <div className="muted small" style={{ marginTop: 4 }}>
+                اللقطات المحفوظة داخل النظام: {snapshots.length} · النسخ التلقائي: {autoBackupEnabled ? 'مفعّل' : 'متوقف'}
+              </div>
             </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsSnapshotsOpen((prev) => !prev);
+              }}
+              style={{ fontSize: '12px', padding: '4px 10px' }}
+            >
+              {isSnapshotsOpen ? 'إخفاء النسخ ▲' : `عرض النسخ السابقة (${snapshots.length}) ▼`}
+            </Button>
           </div>
-          <SnapshotList snapshots={snapshots} onDownload={handleSnapshotDownload} onRestore={canManageBackups ? onRequestRestoreSnapshot : () => undefined} restoringId={restoreSnapshotId} />
+
+          {isSnapshotsOpen ? (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-color, #e2e8f0)', maxHeight: '380px', overflowY: 'auto' }}>
+              <SnapshotList
+                snapshots={snapshots}
+                onDownload={handleSnapshotDownload}
+                onRestore={canManageBackups ? onRequestRestoreSnapshot : () => undefined}
+                restoringId={restoreSnapshotId}
+              />
+            </div>
+          ) : null}
         </div>
-
-        <div className="muted small" style={{ marginTop: 12 }}>الاستعادة تستبدل البيانات الحالية.</div>
-        {backupSelectedFileName ? <div className="muted small" style={{ marginTop: 8 }}>آخر ملف تم اختياره: {backupSelectedFileName}</div> : null}
-        {backupMessage ? <div className={backupMessageKind === 'error' ? 'error-box' : 'success-box'} style={{ marginTop: 12 }}>{backupMessage}</div> : null}
-
-        {summaryPairs.length ? (
-          <div className="surface-card" style={{ marginTop: 12, padding: 12 }}>
-            <strong>نتيجة آخر فحص / استعادة</strong>
-            <div className="form-grid two-col-form" style={{ marginTop: 10 }}>
-              {summaryPairs.map((item) => (
-                <div key={item.label} className="list-row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                  <span className="muted small">{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </QueryCard>
 
       <QueryCard className="settings-admin-card settings-import-card" title="استيراد CSV" actions={<span className="nav-pill">ملفات CSV</span>}>

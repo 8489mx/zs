@@ -12,7 +12,13 @@ export type MigrationCommand = 'up' | 'down' | 'list';
 function getMigrationsPath(): string {
   const builtPath = join(__dirname, 'migrations');
   if (existsSync(builtPath)) return builtPath;
-  return join(__dirname, '..', '..', 'src', 'database', 'migrations');
+  const srcPath = join(__dirname, '..', '..', 'src', 'database', 'migrations');
+  if (existsSync(srcPath)) return srcPath;
+  const projectSrcPath = join(process.cwd(), 'src', 'database', 'migrations');
+  if (existsSync(projectSrcPath)) return projectSrcPath;
+  const projectDistPath = join(process.cwd(), 'dist', 'database', 'migrations');
+  if (existsSync(projectDistPath)) return projectDistPath;
+  return builtPath;
 }
 
 type ResolvedDbConfig = {

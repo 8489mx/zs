@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { Migration, MigrationProvider as KyselyMigrationProvider } from 'kysely';
 
@@ -6,12 +6,16 @@ export class FileMigrationProvider implements KyselyMigrationProvider {
   constructor(private readonly migrationsPath: string) {}
 
   async getMigrations(): Promise<Record<string, Migration>> {
+    if (!this.migrationsPath || !existsSync(this.migrationsPath)) {
+      return {};
+    }
+
     const files = readdirSync(this.migrationsPath)
       .filter(
-  (name) =>
-    !name.endsWith('.d.ts') &&
-    (name.endsWith('.ts') || name.endsWith('.js'))
-)
+        (name) =>
+          !name.endsWith('.d.ts') &&
+          (name.endsWith('.ts') || name.endsWith('.js'))
+      )
       .sort();
 
     const migrations: Record<string, Migration> = {};
