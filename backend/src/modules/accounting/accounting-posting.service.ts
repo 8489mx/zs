@@ -368,6 +368,10 @@ export class AccountingPostingService {
       lines: JournalLineDraft[];
     },
   ): Promise<number> {
+    if (!params.lines || params.lines.length === 0) {
+      this.logger.warn(`Skipping journal insertion for ${params.sourceType} ${params.sourceId}; no active journal lines.`);
+      return 0;
+    }
     const tempEntryNo = `JE-TMP-${params.sourceType}-${params.sourceId}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const inserted = await queryable
       .insertInto('journal_entries')
@@ -909,7 +913,7 @@ export class AccountingPostingService {
     const sale = returnDocument.invoice_id
       ? await queryable
         .selectFrom('sales')
-        .select(['id', 'doc_no', 'payment_type', 'customer_id'])
+        .select(['id', 'doc_no', 'payment_type', 'customer_id', 'tax_amount', 'total'])
         .where('id', '=', Number(returnDocument.invoice_id))
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .executeTakeFirst()
@@ -931,17 +935,35 @@ export class AccountingPostingService {
     }
 
     const total = this.toMoney(returnDocument.total);
+    const originalSaleTotal = Number(sale?.total || 0);
+    const originalSaleTax = Number(sale?.tax_amount || 0);
+    const taxRatio = originalSaleTotal > 0 && originalSaleTax > 0 ? (originalSaleTax / originalSaleTotal) : 0;
+    const taxAmount = this.toMoney(total * taxRatio);
+    const netReturnAmount = this.toMoney(Math.max(0, total - taxAmount));
     const customerPartnerId = sale?.customer_id ? Number(sale.customer_id) : null;
     const lines: JournalLineDraft[] = [];
     const branchId = returnDocument.branch_id ? Number(returnDocument.branch_id) : null;
     const locationId = returnDocument.location_id ? Number(returnDocument.location_id) : null;
     const invoiceNo = sale?.doc_no || returnDocument.doc_no || `S-${returnDocument.invoice_id || ''}`;
 
-    if (total > 0) {
+    if (netReturnAmount > 0) {
       this.addLine(lines, {
         accountId: salesReturnsAccountId,
         description: `مردودات مبيعات للفاتورة رقم ${invoiceNo}`,
-        debit: total,
+        debit: netReturnAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+    }
+
+    if (taxAmount > 0 && Number(settings.sales_tax_account_id || 0) > 0) {
+      this.addLine(lines, {
+        accountId: Number(settings.sales_tax_account_id),
+        description: `تخفيض ضريبة مبيعات من مرتجع فاتورة رقم ${invoiceNo}`,
+        debit: taxAmount,
         credit: 0,
         partnerType: 'none',
         partnerId: null,
@@ -2473,9 +2495,9 @@ export class AccountingPostingService {
        .where('id', '=', (await queryable.selectFrom('manufacturing_work_orders').select('bom_id').where('id', '=', workOrderId).executeTakeFirst())!.bom_id)
        .executeTakeFirst();
 
-    const bomQty = Number(bomDetails?.quantity || 1);
+    const bomQty = Number(bomDetails?.quantity || 1) > 0 ? Number(bomDetails?.quantity || 1) : 1;
     const overheadCost = this.toMoney(Number(wo.overhead_cost || 0) * (Number(wo.quantity_to_produce || 0) / bomQty));
-    const rmCost = this.toMoney(fgCost - overheadCost);
+    const rmCost = this.toMoney(Math.max(0, fgCost - overheadCost));
 
     if (fgCost <= 0) return { posted: false, journalEntryId: null };
 

@@ -1,5 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
+import { RequireAnyPermission, RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { AccountingService } from './accounting.service';
 import {
@@ -17,7 +19,8 @@ import {
 } from './dto/accounting.dto';
 
 @Controller('api/accounting')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireAnyPermission('accounting', 'accounts')
 export class AccountingController {
   constructor(private readonly accountingService: AccountingService) {}
 

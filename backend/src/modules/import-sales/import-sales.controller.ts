@@ -2,10 +2,13 @@ import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards, Query, Delet
 import { ImportSalesService } from './import-sales.service';
 import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto, UpdateShipmentItemDto } from './dto/import-sales.dto';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
+import { RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 
 @Controller('api/import-sales')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireAnyPermission('purchases', 'inventory', 'accounting', 'sales')
 export class ImportSalesController {
   constructor(private readonly importSalesService: ImportSalesService) {}
 

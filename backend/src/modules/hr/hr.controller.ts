@@ -373,6 +373,7 @@ export class HrController {
 
   
   @Get('employees/:id/end-of-service/preview')
+  @RequirePermissions('hrEmployees')
   async getEndOfServicePreview(@Param('id', ParseIntPipe) id: number, @Query('endDate') endDate: string, @Req() req: RequestWithAuth) {
     return this.hr.getEndOfServicePreview(id, endDate, req.authContext!);
   }

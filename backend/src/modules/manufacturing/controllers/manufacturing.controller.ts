@@ -53,19 +53,19 @@ export class ManufacturingController {
   }
 
   @Post('work-orders')
-  @RequirePermissions('inventory:write')
+  @RequireAnyPermission('inventory', 'products')
   createWorkOrder(@Body() dto: CreateWorkOrderDto, @Req() req: RequestWithAuth) {
     return this.manufacturingService.createWorkOrder(dto, req.authContext!);
   }
 
   @Get('work-orders')
-  @RequirePermissions('inventory:read')
+  @RequireAnyPermission('inventory', 'products')
   getWorkOrders(@Req() req: RequestWithAuth) {
     return this.manufacturingService.getWorkOrders(req.authContext!);
   }
 
   @Patch('work-orders/:id/complete')
-  @RequirePermissions('inventory:write')
+  @RequireAnyPermission('inventory', 'products')
   completeWorkOrder(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CompleteWorkOrderDto,

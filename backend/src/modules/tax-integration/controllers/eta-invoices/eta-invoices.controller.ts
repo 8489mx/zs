@@ -11,7 +11,7 @@ export class EtaInvoicesController {
   constructor(private readonly etaSubmissionService: EtaSubmissionService) {}
 
   @Get('pending')
-  @RequirePermissions('canViewSales')
+  @RequirePermissions('sales')
   async getPendingInvoices(@Req() req: RequestWithAuth) {
     const invoices = await this.etaSubmissionService.getPendingInvoices(String(req.authContext!.tenantId));
     return {
@@ -21,7 +21,7 @@ export class EtaInvoicesController {
   }
 
   @Post('submit')
-  @RequirePermissions('canEditSales')
+  @RequirePermissions('canEditInvoices')
   async submitInvoices(@Req() req: RequestWithAuth, @Body() body: { invoiceIds: string[] }) {
     const result = await this.etaSubmissionService.submitInvoices(String(req.authContext!.tenantId), body.invoiceIds);
     return result;

@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Req, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { AllowAuthenticated } from '../auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../auth/interfaces/request-with-auth.interface';
 import { Kysely } from 'kysely';
 import { Database } from '../../database/database.types';
@@ -13,6 +14,7 @@ export class IdempotencyController {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   @Get(':operationType/:idempotencyKey/status')
+  @AllowAuthenticated()
   async getOperationStatus(
     @Param('operationType') operationType: string,
     @Param('idempotencyKey') idempotencyKey: string,

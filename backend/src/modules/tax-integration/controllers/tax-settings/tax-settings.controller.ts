@@ -10,7 +10,7 @@ export class TaxSettingsController {
   constructor(private readonly taxSettingsService: TaxSettingsService) {}
 
   @Get()
-  @RequirePermissions('settings.view')
+  @RequirePermissions('settings')
   async getSettings(@Req() req: any) {
     const tenantId = req.authContext?.tenantId || req.tenantId;
     const settings = await this.taxSettingsService.getSettings(tenantId);
@@ -21,7 +21,7 @@ export class TaxSettingsController {
   }
 
   @Post()
-  @RequirePermissions('settings.edit')
+  @RequirePermissions('canManageSettings')
   async updateSettings(@Req() req: any, @Body() payload: TaxSettingsDto) {
     if (!payload.provider) {
       payload.provider = 'ETA_EGYPT';
