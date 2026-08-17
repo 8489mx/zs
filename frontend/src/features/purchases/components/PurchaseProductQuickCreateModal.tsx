@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
+import { sharedProductsApi } from '@/shared/api/products';
+import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { systemAlert } from '@/shared/components/system-alert';
 
 type SimpleOption = { id: string; name: string };
@@ -27,7 +29,13 @@ export function PurchaseProductQuickCreateModal({
   onClose,
   onSuccess
 }: Props) {
-  const createProductMutation = useCreateProductMutation();
+  const queryClient = useQueryClient();
+  const createProductMutation = useMutation({
+    mutationFn: (payload: any) => sharedProductsApi.create(payload),
+    onSuccess: () => {
+      invalidateCatalogDomain(queryClient);
+    }
+  });
 
   const [name, setName] = useState('');
   const [barcode, setBarcode] = useState('');

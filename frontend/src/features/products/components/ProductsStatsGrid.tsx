@@ -1,5 +1,5 @@
 import { formatCurrency } from '@/lib/format';
-import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
+import { ReportMetricCard } from '@/shared/components/report-metric-card';
 
 interface ProductsStatsGridProps {
   total: number;

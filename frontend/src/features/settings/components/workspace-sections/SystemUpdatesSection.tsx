@@ -3,7 +3,7 @@ import { resolveRequestUrl, http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { FormSection } from '@/shared/components/form-section';
 import { useAuthStore } from '@/stores/auth-store';
-import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
+import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { ClientPortal } from '@/shared/components/ClientPortal';
 

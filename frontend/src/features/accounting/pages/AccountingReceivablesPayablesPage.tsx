@@ -5,7 +5,7 @@ import { DataTable } from '@/shared/components/data-table';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { FormSection } from '@/shared/components/form-section';
-import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
+import { ReportMetricCard } from '@/shared/components/report-metric-card';
 import { formatCurrency } from '@/lib/format';
 
 import { accountingApi, type PayableRow, type ReceivableRow } from '@/features/accounting/api/accounting.api';

@@ -8,10 +8,10 @@ import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { getErrorMessage } from '@/lib/errors';
 import type { HrContact, HrContract, HrDocument, HrEmployee, HrEmployeeAsset, HrLedgerEntry, HrLeaveRequest, HrLoan } from '@/types/domain';
 import { useHrEmployeeAssets, useHrLeaveRequests, useHrMutations, useHrProfile, useHrEmployeeAdjustments } from '@/features/hr/hooks/useHr';
-import { ContactsSection, LedgerSection } from '@/features/hr/pages/employee-profile/EmployeeProfileSections';
-import { EndOfServiceModal } from './employee-profile/EndOfServiceModal';
-import { EmployeeAdjustmentsSection } from '@/features/hr/pages/employee-profile/EmployeeAdjustmentsSection';
-import { buildEmployeeProfileDerivedData } from '@/features/hr/pages/employee-profile/employee-profile.derived';
+import { ContactsSection, LedgerSection } from '@/features/hr/components/employee-profile/EmployeeProfileSections';
+import { EndOfServiceModal } from '../components/employee-profile/EndOfServiceModal';
+import { EmployeeAdjustmentsSection } from '@/features/hr/components/employee-profile/EmployeeAdjustmentsSection';
+import { buildEmployeeProfileDerivedData } from '@/features/hr/components/employee-profile/employee-profile.derived';
 import { systemAlert } from '@/shared/components/system-alert';
 
 import {
@@ -36,7 +36,7 @@ import {
   shouldShowProfileSection,
   type DocumentDraft,
   type ProfileSection,
-} from '@/features/hr/pages/employee-profile/employee-profile-page.helpers';
+} from '@/features/hr/components/employee-profile/employee-profile-page.helpers';
 
 export function EmployeeProfilePage() {
   const navigate = useNavigate();

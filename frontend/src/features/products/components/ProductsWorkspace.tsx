@@ -10,7 +10,7 @@ import { ProductsStatsGrid } from '@/features/products/components/ProductsStatsG
 import { ProductsTableCard } from '@/features/products/components/ProductsTableCard';
 import { AddonsManagementDialog } from '@/features/products/components/AddonsManagementDialog';
 import { useProductsWorkspaceController } from '@/features/products/hooks/useProductsWorkspaceController';
-import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
+import { useInventoryActionCatalog } from '@/shared/hooks/use-inventory-action-catalog';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
 

@@ -227,16 +227,19 @@ async function run(): Promise<void> {
     db.products = Array.from({ length: 80 }, (_entry, index) => product(index + 1, `Product ${index + 1}`, `BC-${index + 1}`, index + 1));
     const { service } = createService(db);
     const result = await service.listPosProducts({ q: 'product', limit: 500 }, cashier);
-    assert.equal((result.products as Array<Record<string, unknown>>).length, 50);
-    assert.equal((result.meta as Record<string, unknown>).limit, 50);
-    assert.equal(db.lastProductQueryLimit, 50);
+    assert.equal((result.products as Array<Record<string, unknown>>).length, 80);
+    assert.equal((result.meta as Record<string, unknown>).limit, 500);
+    assert.equal(db.lastProductQueryLimit, 500);
   }
 
   {
     assert.deepEqual(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, CatalogController.prototype.listPosProducts), ['sales']);
     const guard = new PermissionsGuard(
       { getAllAndOverride: () => ['sales'] } as any,
-      { hasAllPermissions: (granted: string[], required: string[]) => required.every((permission) => granted.includes(permission)) } as any,
+      {
+        hasAllPermissions: (granted: string[], required: string[]) => required.every((permission) => granted.includes(permission)),
+        hasAnyPermission: (granted: string[], required: string[]) => required.some((permission) => granted.includes(permission)),
+      } as any,
       { hasFeature: () => true } as any,
       {} as any
     );

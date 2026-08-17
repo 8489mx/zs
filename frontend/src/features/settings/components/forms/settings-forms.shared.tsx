@@ -58,3 +58,34 @@ export interface LocationFormProps {
   onCreated?: (payload: { locationId?: string | null; name: string; branchId: string }) => void;
 }
 
+
+
+import type { CSSProperties, ReactNode } from 'react';
+
+export const requiredStarStyle: CSSProperties = { color: '#dc2626', fontWeight: 700, marginInlineStart: 2 };
+export const comboListStyle: CSSProperties = { border: '1px solid var(--border, #dbe2ea)', borderRadius: 8, background: 'var(--surface, #fff)', marginTop: 6, maxHeight: 180, overflowY: 'auto', padding: 4 };
+export const comboRowStyle: CSSProperties = { width: '100%', textAlign: 'right', background: 'transparent', border: 'none', padding: '8px 10px', borderRadius: 8, cursor: 'pointer' };
+export const comboCreateStyle: CSSProperties = { ...comboRowStyle, fontWeight: 700, color: 'var(--primary, #170c5c)' };
+
+export function normalizeText(value: string) {
+  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+export interface RequiredFieldProps {
+  label: string;
+  error?: string;
+  children: ReactNode;
+}
+
+export function RequiredField({ label, error, children }: RequiredFieldProps) {
+  return (
+    <div className="field">
+      <label>
+        {label}
+        <span style={requiredStarStyle}>*</span>
+      </label>
+      {children}
+      {error ? <small className="field-error">{error}</small> : null}
+    </div>
+  );
+}

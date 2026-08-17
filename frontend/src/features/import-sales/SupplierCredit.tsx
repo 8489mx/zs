@@ -5,7 +5,7 @@ import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
-import { useTreasury } from '@/features/treasury/hooks/useTreasury';
+import { useTreasury } from '@/shared/hooks/use-treasury';
 import { useRecordForeignTransferMutation, useForeignTransfersQuery } from './api/shipments.api';
 import { DataTable } from '@/shared/ui/data-table';
 

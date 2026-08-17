@@ -5,11 +5,11 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { useAddShipmentItemMutation } from './api/shipments.api';
-import { useProductsQuery, useCategoriesQuery, useSuppliersQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { useState } from 'react';
-import { ProductForm } from '@/features/products/components/ProductForm';
+import { QuickProductModal } from '@/shared/components/QuickProductModal';
 
 const schema = z.object({
   productId: z.string().min(1, 'يجب اختيار صنف'),
@@ -21,9 +21,6 @@ type FormData = z.infer<typeof schema>;
 
 export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boolean, onClose: () => void, shipmentId: string }) {
   const { data: products } = useProductsQuery();
-  const { data: categories = [] } = useCategoriesQuery();
-  const { data: suppliers = [] } = useSuppliersQuery();
-  const { data: locations = [] } = useLocationsQuery();
   
   const mutation = useAddShipmentItemMutation(shipmentId);
   
@@ -105,22 +102,17 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
     </DialogShell>
 
     {isQuickProductOpen && (
-      <DialogShell open={isQuickProductOpen} onClose={() => setIsQuickProductOpen(false)} width="1000px">
-        <div style={{ padding: '32px', maxHeight: '85vh', overflowY: 'auto' }}>
-          <h2 style={{ marginBottom: '24px', fontSize: '22px', fontWeight: 'bold' }}>إضافة صنف شامل (مع بيانات الاستيراد)</h2>
-          <ProductForm
-            categories={categories}
-            suppliers={suppliers}
-            locations={locations}
-            initialName={quickProductName}
-            onSuccess={(productId, name) => {
-              form.setValue('productId', productId, { shouldValidate: true });
-              setSearchTerm(name);
-              setIsQuickProductOpen(false);
-            }}
-          />
-        </div>
-      </DialogShell>
+      <QuickProductModal
+        isOpen={isQuickProductOpen}
+        onClose={() => setIsQuickProductOpen(false)}
+        initialName={quickProductName}
+        itemType="product"
+        onSuccess={(product) => {
+          form.setValue('productId', String(product.id), { shouldValidate: true });
+          setSearchTerm(product.name);
+          setIsQuickProductOpen(false);
+        }}
+      />
     )}
     </>
   );

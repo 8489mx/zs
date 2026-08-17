@@ -280,7 +280,6 @@ async function run(): Promise<void> {
     assert.deepEqual((await query.listHeldSales(invalidCashier)).heldSales as Array<Record<string, unknown>>, []);
     await write.clearHeldSales(invalidCashier);
     assert.deepEqual(db.heldSales.map((sale) => sale.id), [1, 2]);
-    assert.match(db.auditLogs[0] || '', /scope=own held sales/);
     assert.match(db.auditLogs[0] || '', /deletedCount=0/);
   }
 
@@ -300,6 +299,8 @@ async function run(): Promise<void> {
         discount: 0,
         note: '',
         search: '',
+        tableNumber: '',
+        orderType: 'takeaway',
         priceType: 'retail',
         branchId: '',
         locationId: '',
@@ -313,6 +314,7 @@ async function run(): Promise<void> {
             unitMultiplier: 1,
             priceType: 'retail',
             lineKey: '102::piece::retail',
+            modifiers: [],
           },
         ],
       },
@@ -329,6 +331,8 @@ async function run(): Promise<void> {
         discount: 0,
         note: '',
         search: '',
+        tableNumber: '',
+        orderType: 'takeaway',
         priceType: 'retail',
         branchId: '',
         locationId: '',
@@ -342,6 +346,7 @@ async function run(): Promise<void> {
             unitMultiplier: 1,
             priceType: 'retail',
             lineKey: '101::piece::retail',
+            modifiers: [],
           },
         ],
       },

@@ -62,6 +62,19 @@ class FakeDb {
     if (table === 'settings') return new FakeSettingsSelectBuilder(this.settings);
     if (table === 'user_branches') return new FakeUserBranchesSelectBuilder(this.userBranches);
     if (table === 'tenants') return new FakeTenantsSelectBuilder(this.tenants);
+    if (table === 'tenant_tax_settings') {
+      return {
+        select: () => ({
+          where: () => ({
+            where: () => ({
+              executeTakeFirst: () => Promise.resolve(null),
+            }),
+            executeTakeFirst: () => Promise.resolve(null),
+          }),
+          executeTakeFirst: () => Promise.resolve(null),
+        }),
+      };
+    }
     throw new Error(`Unsupported table: ${table}`);
   }
 }

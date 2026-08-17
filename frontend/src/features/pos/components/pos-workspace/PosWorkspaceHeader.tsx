@@ -8,7 +8,7 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
-import { PosDeliveryRepsManagementDialog } from '@/features/delivery-reps/components/PosDeliveryRepsManagementDialog';
+import { PosDeliveryRepsManagementDialog } from '@/shared/components/delivery-reps/PosDeliveryRepsManagementDialog';
 
 function buildDescription(pos: PosWorkspaceState, offlineQueueCount: number) {
   if (pos.isLoading) return 'جاري تهيئة بيئة نقطة البيع...';

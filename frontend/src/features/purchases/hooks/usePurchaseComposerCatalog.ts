@@ -3,7 +3,7 @@ import { queryKeys } from '@/app/query-keys';
 import { purchasesApi } from '@/features/purchases/api/purchases.api';
 import { referenceDataApi } from '@/services/reference-data.api';
 import { sharedProductsApi } from '@/shared/api/products';
-import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { inventoryApi } from '@/shared/api/inventory.api';
 
 export function usePurchaseComposerCatalog() {
   const productsQuery = useQuery({ queryKey: queryKeys.products, queryFn: purchasesApi.products });

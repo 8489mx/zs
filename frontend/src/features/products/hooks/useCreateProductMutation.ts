@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { productsApi } from '@/features/products/api/products.api';
-import { bomsApi } from '@/features/manufacturing/api/boms.api';
+import { bomsApi } from '@/shared/api/boms.api';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import type { ProductUnit } from '@/types/domain';

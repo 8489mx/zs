@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { addonsApi } from '@/features/products/api/addons.api';
+import { addonsApi } from '@/shared/api/addons.api';
 import type { PosItem } from '@/features/pos/types/pos.types';
 
 interface PosItemModifiersModalProps {

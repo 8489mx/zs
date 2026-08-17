@@ -14,7 +14,7 @@ import type { ProductCustomerPrice, ProductUnit } from '@/types/domain';
 import { ProductCustomerPricesCard } from '@/features/products/components/workspace-sections/ProductCustomerPricesCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
-import { bomsApi } from '@/features/manufacturing/api/boms.api';
+import { bomsApi } from '@/shared/api/boms.api';
 import { ComboComponentsEditor } from '@/features/products/components/ComboComponentsEditor';
 
 import { useAppToolbar } from '@/stores/toolbar-store';

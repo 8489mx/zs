@@ -21,7 +21,7 @@ export function EndOfServiceModal({ employeeId, employeeName, isOpen, onClose, o
   const [endOfServiceReason, setEndOfServiceReason] = useState('');
   const [error, setError] = useState('');
 
-    const previewQuery = useQuery({
+  const previewQuery = useQuery({
     queryKey: ['eos-preview', employeeId, endOfServiceDate],
     queryFn: () => hrApi.getEndOfServicePreview(employeeId, endOfServiceDate),
     enabled: isOpen && !!endOfServiceDate,
@@ -37,7 +37,6 @@ export function EndOfServiceModal({ employeeId, employeeName, isOpen, onClose, o
 
     if (!endOfServiceDate) {
       setError('تاريخ إنهاء الخدمة مطلوب.');
-      return;
     }
 
     try {

@@ -5,7 +5,7 @@ import { DataTable } from '@/shared/components/data-table/DataTable';
 import type { DataTableColumn } from '@/shared/components/data-table/DataTable.types';
 import { Location } from '@/types/domain';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
-import { useCreateLocationMutation, useUpdateLocationMutation, useDeleteLocationMutation } from '@/features/settings/hooks/useSettingsMutations';
+import { useCreateLocationMutation, useUpdateLocationMutation, useDeleteLocationMutation } from '@/shared/hooks/use-location-mutations';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TaxIntegrationSection } from '@/features/settings/components/workspace-sections/TaxIntegrationSection';
+import { TaxIntegrationSection } from '@/shared/components/TaxIntegrationSection';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
 import { taxInvoicesApi, type EtaPendingInvoice } from '@/features/sales/api/tax-invoices.api';

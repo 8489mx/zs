@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { deliveryRepsApi } from '@/features/delivery-reps/api/delivery-reps.api';
+import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';

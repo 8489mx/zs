@@ -61,6 +61,19 @@ class FakeDb {
     if (table === 'settings') return new SettingsSelectBuilder(this);
     if (table === 'user_branches') return new UserBranchesSelectBuilder(this);
     if (table === 'tenants') return new TenantsSelectBuilder(this);
+    if (table === 'tenant_tax_settings') {
+      return {
+        select: () => ({
+          where: () => ({
+            where: () => ({
+              executeTakeFirst: () => Promise.resolve(null),
+            }),
+            executeTakeFirst: () => Promise.resolve(null),
+          }),
+          executeTakeFirst: () => Promise.resolve(null),
+        }),
+      };
+    }
     throw new Error(`Unsupported select table: ${table}`);
   }
 

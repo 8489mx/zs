@@ -3,7 +3,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { useCreateShipmentMutation } from './api/shipments.api';
 import { useQuery } from '@tanstack/react-query';
-import { suppliersApi } from '@/features/suppliers/api/suppliers.api';
+import { suppliersApi } from '@/shared/api/suppliers.api';
 
 interface NewShipmentDialogProps {
   open: boolean;

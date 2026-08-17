@@ -107,7 +107,7 @@ export function useReportsWorkspaceActions({
   };
 
   const printInventoryMovementsReport = async (locationId: string, detailed: boolean = false) => {
-    const { inventoryApi } = await import('@/features/inventory/api/inventory.api');
+    const { inventoryApi } = await import('@/shared/api/inventory.api');
     const allTransfers = await inventoryApi.listAllTransfers(locationId !== 'all' ? { locationId } : {});
     
     const transfers = allTransfers.filter(t => {

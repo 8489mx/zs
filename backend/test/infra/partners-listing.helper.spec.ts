@@ -13,12 +13,12 @@ assert.equal(unpaged.isUnpagedDefault, true);
 
 assert.deepEqual(
   mapCustomerRow({ id: 7 as never, name: 'Ali', phone: null as never, address: null as never, balance: '4.5' as never, customer_type: 'vip' as never, credit_limit: '10' as never, store_credit_balance: '2' as never, company_name: null as never, tax_number: null as never } as never),
-  { id: '7', name: 'Ali', phone: '', address: '', balance: 4.5, type: 'vip', creditLimit: 10, storeCreditBalance: 2, companyName: '', taxNumber: '' },
+  { id: '7', name: 'Ali', phone: '', address: '', balance: 4.5, type: 'vip', creditLimit: 10, storeCreditBalance: 2, companyName: '', taxNumber: '', metadata: {} },
 );
 
 assert.deepEqual(
   mapSupplierRow({ id: 9 as never, name: 'Supp', phone: null as never, address: null as never, balance: '3.2' as never, notes: null as never } as never),
-  { id: '9', name: 'Supp', phone: '', address: '', balance: 3.2, notes: '' },
+  { id: '9', name: 'Supp', phone: '', address: '', balance: 3.2, notes: '', metadata: {} },
 );
 
 assert.deepEqual(calculatePagination(4, 20, 35), { page: 2, pageSize: 20, totalItems: 35, totalPages: 2 });

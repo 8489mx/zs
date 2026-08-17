@@ -6,7 +6,7 @@ import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { FormSection } from '@/shared/components/form-section';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 import { productsApi } from '@/features/products';
-import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { inventoryApi } from '@/shared/api/inventory.api';
 import { componentsApi, type ManufacturingComponent } from '@/features/manufacturing/api/components.api';
 import { MANUFACTURING_UNITS, calculateConvertedCost, findUnit } from '@/features/manufacturing/utils/units';
 import { bomsApi } from '@/features/manufacturing/api/boms.api';

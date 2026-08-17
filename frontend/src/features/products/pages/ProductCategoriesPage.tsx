@@ -9,7 +9,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { getErrorMessage } from '@/lib/errors';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
-import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { inventoryApi } from '@/shared/api/inventory.api';
 import { useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function ProductCategoriesPage() {

@@ -1,11 +1,11 @@
 import { useState, useEffect, type FormEvent, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { customersApi } from '@/features/customers/api/customers.api';
+import { customersApi } from '@/shared/api/customers.api';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
-import type { DeliveryRep } from '@/features/delivery-reps/api/delivery-reps.api';
+import type { DeliveryRep } from '@/shared/api/delivery-reps.api';
 
 export type PaymentPreset = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit';
 
