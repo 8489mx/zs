@@ -161,18 +161,12 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     [locationById, locationList, params.locationId],
   );
   const ownOpenShift = useMemo(() => {
-    const currentUserId = String(params.authUserId || '');
-    if (!currentUserId && openShiftList.length === 1) {
-      return openShiftList[0];
-    }
+    const currentUserId = String(params.authUserId || '').trim();
+    if (!currentUserId) return null;
     const matched = openShiftByUserId.get(currentUserId)
-      || openShiftList.find((s) => String((s as any).opened_by || (s as any).openedById || '') === currentUserId);
-    if (matched) return matched;
-    if (openShiftList.length === 1 && (authPermissionSet.has('*') || authPermissionSet.has('admin') || authPermissionSet.has('cashDrawer'))) {
-      return openShiftList[0];
-    }
-    return null;
-  }, [openShiftByUserId, openShiftList, params.authUserId, authPermissionSet]);
+      || openShiftList.find((s) => String((s as any).opened_by || (s as any).openedById || (s as any).opened_by_id || (s as any).openedBy || '').trim() === currentUserId);
+    return matched || null;
+  }, [openShiftByUserId, openShiftList, params.authUserId]);
   const canApplyDiscount = authPermissionSet.has('canDiscount') || authPermissionSet.has('*') || Boolean(params.discountApprovalGranted);
   const canEditPrice = authPermissionSet.has('canEditPrice') || authPermissionSet.has('*');
   const hasOperationalSetup = Boolean(branchList.length > 0 && locationList.length > 0);
