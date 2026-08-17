@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/app/query-keys';
 import { invalidateTreasuryDomain } from '@/app/query-invalidation';
 import { cashDrawerApi } from '@/features/cash-drawer/api/cash-drawer.api';
 
@@ -58,7 +59,15 @@ export function useCashDrawerMutations(actions?: {
         branchId: values.branchId || '',
         locationId: values.locationId || ''
       }),
-    onSuccess: async () => {
+    onSuccess: async (response: any) => {
+      if (response && response.cashierShifts && Array.isArray(response.cashierShifts)) {
+        const openShifts = response.cashierShifts.filter((s: any) => s.status === 'open');
+        queryClient.setQueryData(queryKeys.cashierShiftsPage('open:pos'), {
+          rows: openShifts,
+          pagination: response.pagination || { page: 1, pageSize: 50, totalItems: openShifts.length, totalPages: 1 },
+          summary: response.summary || { openShiftCount: openShifts.length },
+        });
+      }
       await refreshAll();
       actions?.onOpenSuccess?.();
     }
@@ -94,7 +103,14 @@ export function useCashDrawerMutations(actions?: {
         note: values.note || '',
         managerPin: values.managerPin || ''
       }),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
+      queryClient.setQueryData(queryKeys.cashierShiftsPage('open:pos'), (old: any) => {
+        if (!old?.rows) return { rows: [], pagination: { page: 1, pageSize: 50, totalItems: 0, totalPages: 1 } };
+        return {
+          ...old,
+          rows: old.rows.filter((s: any) => String(s.id) !== String(variables.shiftId)),
+        };
+      });
       await refreshAll();
       actions?.onCloseSuccess?.();
     }

@@ -244,7 +244,7 @@ export class CatalogProductService {
     const { page, pageSize, q, view, requestedLocationId } = this.parseListProductsQuery(query);
     const canViewCost = this.hasPermission(actor, 'canViewCost');
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
-    const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
+    const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor).catch(() => null) : null;
 
     const [products, categories, suppliers] = await Promise.all([
       this.db
@@ -309,7 +309,7 @@ export class CatalogProductService {
   async listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { q, barcode, limit, requestedLocationId, requestedBranchId, view } = this.parsePosProductLookupQuery(query);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
-    const scopedLocation = requestedLocationId > 0 ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor) : null;
+    const scopedLocation = requestedLocationId > 0 ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor).catch(() => null) : null;
     const productRows = barcode
       ? await this.findPosProductsByBarcode(barcode, limit, actor)
       : await this.searchPosProducts(q, limit, view === 'offers' ? 'offers' : 'all', actor);

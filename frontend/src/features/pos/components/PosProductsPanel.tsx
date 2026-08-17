@@ -317,7 +317,7 @@ function PosProductsPanelComponent({
   }
 
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    const currentQuery = event.currentTarget.value;
+    const currentQuery = event.currentTarget.value || search;
     const pageStep = 8;
     if (event.key === 'ArrowDown') {
       event.preventDefault();

@@ -28,7 +28,11 @@ export function usePosWorkspaceEffects({
 
   products,
   setCart,
+  submitMessage,
   setSubmitMessage,
+  scannerMessage,
+  setScannerMessage,
+  ownOpenShift,
   recentProductIds,
   lastSale,
   lastAddedLineKey,
@@ -62,7 +66,11 @@ export function usePosWorkspaceEffects({
 
   products: Product[];
   setCart: (value: PosItem[] | ((current: PosItem[]) => PosItem[])) => void;
+  submitMessage?: string;
   setSubmitMessage: (value: string) => void;
+  scannerMessage?: string;
+  setScannerMessage?: (value: string) => void;
+  ownOpenShift?: unknown;
   recentProductIds: string[];
   lastSale: Sale | null;
   lastAddedLineKey: string;
@@ -73,6 +81,17 @@ export function usePosWorkspaceEffects({
   setDiscountApprovalSecret: (value: string) => void;
   settings?: { allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown } | null;
 }) {
+  useEffect(() => {
+    if (ownOpenShift) {
+      if (submitMessage && submitMessage.includes('وردية')) {
+        setSubmitMessage('');
+      }
+      if (scannerMessage && scannerMessage.includes('وردية') && setScannerMessage) {
+        setScannerMessage('');
+      }
+    }
+  }, [ownOpenShift, submitMessage, scannerMessage, setSubmitMessage, setScannerMessage]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType, branchId: '', locationId: '' }));

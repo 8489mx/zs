@@ -208,9 +208,18 @@ export class CashDrawerService {
     return { ...row, expected_cash: expectedCash, cash_sales_total: salesBreakdown.cashSalesTotal, card_sales_total: salesBreakdown.cardSalesTotal, wallet_sales_total: salesBreakdown.walletSalesTotal, instapay_sales_total: salesBreakdown.instapaySalesTotal, credit_sales_total: salesBreakdown.creditSalesTotal, shift_sales_total: salesBreakdown.shiftSalesTotal, sale_count: salesBreakdown.saleCount, mixed_sale_count: salesBreakdown.mixedSalesCount, card_operation_count: salesBreakdown.cardOperationCount, wallet_operation_count: salesBreakdown.walletOperationCount, instapay_operation_count: salesBreakdown.instapayOperationCount, cash_drawer_movement_total: cashDrawerMovementTotal, service_cash_total: serviceBreakdown.serviceCashTotal, service_card_total: serviceBreakdown.serviceCardTotal, service_total: serviceBreakdown.serviceTotal, sale_return_cash_refund_total: saleReturnTotals.saleReturnCashRefundTotal, sale_return_card_refund_total: saleReturnTotals.saleReturnCardRefundTotal, sale_return_total: saleReturnTotals.saleReturnTotal };
   }
 
-  private async rawList(auth: AuthContext): Promise<Array<Record<string, unknown>>> {
+  private async rawList(auth: AuthContext, filterStatus?: string): Promise<Array<Record<string, unknown>>> {
     const scope = this.scope(auth);
-    const result = await sql<ShiftRow>`select s.id, s.doc_no, s.branch_id, s.location_id, s.opened_by, s.opening_cash, s.opening_note, s.status, s.expected_cash, s.counted_cash, s.variance, s.close_note, s.closed_by, s.closed_at, s.created_at, coalesce(b.name, '') as branch_name, coalesce(l.name, '') as location_name, coalesce(ou.username, '') as opened_by_name, coalesce(cu.username, '') as closed_by_name from cashier_shifts s left join branches b on b.id = s.branch_id left join stock_locations l on l.id = s.location_id left join users ou on ou.id = s.opened_by left join users cu on cu.id = s.closed_by where s.tenant_id = ${scope.tenantId} order by s.id desc`.execute(this.db);
+    let query = sql<ShiftRow>`select s.id, s.doc_no, s.branch_id, s.location_id, s.opened_by, s.opening_cash, s.opening_note, s.status, s.expected_cash, s.counted_cash, s.variance, s.close_note, s.closed_by, s.closed_at, s.created_at, coalesce(b.name, '') as branch_name, coalesce(l.name, '') as location_name, coalesce(ou.username, '') as opened_by_name, coalesce(cu.username, '') as closed_by_name from cashier_shifts s left join branches b on b.id = s.branch_id left join stock_locations l on l.id = s.location_id left join users ou on ou.id = s.opened_by left join users cu on cu.id = s.closed_by where s.tenant_id = ${scope.tenantId}`;
+    if (filterStatus === 'open') {
+      query = sql<ShiftRow>`${query} and s.status = 'open'`;
+    } else if (filterStatus === 'closed') {
+      query = sql<ShiftRow>`${query} and s.status = 'closed'`;
+    } else if (filterStatus === 'pending_review') {
+      query = sql<ShiftRow>`${query} and s.status = 'pending_review'`;
+    }
+    query = sql<ShiftRow>`${query} order by s.id desc`;
+    const result = await query.execute(this.db);
     const hydratedRows = await Promise.all((result.rows ?? []).map((row) => this.hydrateShiftRow(row, auth)));
     return hydratedRows.map((row) => mapCashDrawerShiftRow(row));
   }
@@ -227,7 +236,9 @@ export class CashDrawerService {
   }
 
   async listCashierShifts(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    const mapped = await this.rawList(auth);
+    const filter = String(query.filter || 'all').trim().toLowerCase();
+    const filterStatus = filter === 'open' || filter === 'closed' || filter === 'pending_review' ? filter : undefined;
+    const mapped = await this.rawList(auth, filterStatus);
     const filtered = filterCashDrawerRows(mapped, query);
     const paged = paginateCashDrawerRows(filtered, query);
     return { cashierShifts: paged.rows, pagination: paged.pagination, summary: summarizeCashDrawerRows(filtered), viewerRole: auth.role };

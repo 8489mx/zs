@@ -4,6 +4,7 @@ import { PosWorkspace } from '@/features/pos/components/PosWorkspace';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { posApi } from '@/features/pos/api/pos.api';
+import { cashDrawerApi } from '@/lib/api/cash-drawer';
 
 // Create a custom query client for testing
 function createTestQueryClient() {
@@ -21,7 +22,7 @@ function createTestQueryClient() {
 vi.mock('@/features/pos/api/pos.api', () => {
   return {
     posApi: {
-      lookupProducts: vi.fn(),
+      lookupProducts: vi.fn().mockResolvedValue([{ id: '1', name: 'dummy catalog item', barcode: '123', retailPrice: 10, costPrice: 5, stock: 10, units: [] }]),
       customers: vi.fn().mockResolvedValue([]),
       settings: vi.fn().mockResolvedValue({
         weightedBarcodeEnabled: true,
@@ -74,6 +75,9 @@ vi.mock('@/lib/http', () => ({
   ApiError: class ApiError extends Error {}
 }));
 
+// Mock scrollIntoView
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
 // Mock Audio
 global.Audio = vi.fn().mockImplementation(() => ({
   play: vi.fn().mockResolvedValue(undefined),
@@ -85,8 +89,23 @@ describe('PosWorkspace - Weighted Barcodes', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     queryClient = createTestQueryClient();
-    queryClient.setQueryData(['settings', 'pos'], {
+    vi.mocked(posApi.customers).mockResolvedValue([]);
+    vi.mocked(posApi.listHeldDrafts).mockResolvedValue([]);
+    vi.mocked(cashDrawerApi.listPage).mockResolvedValue({
+      rows: [{ id: 'shift1', openedById: 'u1', openedByName: 'Tester', docNo: 'SH-01', status: 'open' }],
+      totalCount: 1,
+    } as any);
+    vi.mocked(posApi.branches).mockResolvedValue([
+      { id: 'b1', name: 'فرع 1', salesStockMode: 'single_location', allowExternalSalesStock: false, defaultStockLocationId: 'l1' },
+      { id: 'b2', name: 'فرع 2', salesStockMode: 'all_operational_locations', allowExternalSalesStock: false, defaultStockLocationId: 'l2' },
+    ] as any);
+    vi.mocked(posApi.locations).mockResolvedValue([
+      { id: 'l1', name: 'مخزن 1', branchId: 'b1', locationType: 'internal_warehouse', isActive: true },
+      { id: 'l2', name: 'مخزن 2', branchId: 'b2', locationType: 'internal_warehouse', isActive: true },
+    ] as any);
+    vi.mocked(posApi.settings).mockResolvedValue({
       weightedBarcodeEnabled: true,
       weightedBarcodePrefix: '20',
       weightedBarcodeProductCodeLength: 5,
@@ -94,8 +113,10 @@ describe('PosWorkspace - Weighted Barcodes', () => {
       weightedBarcodeWeightDecimals: 3,
       allowNegativeStockSales: true,
       currentBranchId: 'b1',
-    });
-    vi.clearAllMocks();
+    } as any);
+    vi.mocked(posApi.lookupProducts).mockResolvedValue([
+      { id: '1', name: 'dummy catalog item', barcode: '123', retailPrice: 10, costPrice: 5, stock: 10, units: [] } as any,
+    ]);
   });
 
   afterEach(() => {
@@ -114,16 +135,12 @@ describe('PosWorkspace - Weighted Barcodes', () => {
 
   it('adds product 00009 with qty 1.575 upon scanning 2000009015751 from an empty cache in single_location', async () => {
     // Setup API mock to return product 00009 ONLY when looking up '00009'
-    vi.mocked(posApi.lookupProducts).mockImplementation(async (params = {}) => {
-      console.log('posApi.lookupProducts called with params:', params);
-      if (!params.barcode && !params.q) {
-        return [{ id: 1, name: 'dummy catalog item', barcode: '123', sellPrice: 10, costPrice: 5 } as any];
-      }
+    vi.mocked(posApi.lookupProducts).mockImplementation(async (params: any = {}) => {
       if (params.barcode === '2000009015751' || params.q === '2000009015751') return [];
       
-      if (params.barcode === '00009' || params.q === '9') {
+      if (params.barcode === '00009' || params.q === '9' || params.barcode === '9' || params.q === '00009') {
         return [{
-          id: 9,
+          id: '9',
           name: 'جبنه رومي 00009',
           barcode: '00009',
           styleCode: null,
@@ -131,10 +148,11 @@ describe('PosWorkspace - Weighted Barcodes', () => {
           retailPrice: 100,
           wholesalePrice: 90,
           globalStock: 10,
+          stock: 10,
           units: [],
         } as any];
       }
-      return [];
+      return [{ id: '1', name: 'صنف تجريبي 1', barcode: '123', retailPrice: 10, costPrice: 5, stock: 10, units: [] } as any];
     });
 
     renderWorkspace();
@@ -164,10 +182,6 @@ describe('PosWorkspace - Weighted Barcodes', () => {
     const qtyInput = screen.getByLabelText('الكمية');
     expect(qtyInput).toHaveValue(1.575);
 
-    // Verify backend was called correctly with proper operational context
-    // The component defaults to branch b1 (from our mock and settings)
-    // Wait, the default is whatever usePosOperationalContext resolves. We mocked branches to have b1,b2. 
-    // And settings has no currentBranchId so it picks branches[0] which is b1 ('single_location').
     expect(posApi.lookupProducts).toHaveBeenCalledWith(expect.objectContaining({
       barcode: '00009',
       branchId: 'b1',
@@ -187,14 +201,11 @@ describe('PosWorkspace - Weighted Barcodes', () => {
       currentBranchId: 'b2'
     } as any);
 
-    vi.mocked(posApi.lookupProducts).mockImplementation(async (params = {}) => {
-      console.log('posApi.lookupProducts called with params:', params);
-      if (!params.barcode && !params.q) {
-        return [{ id: 1, name: 'dummy catalog item', barcode: '123', sellPrice: 10, costPrice: 5 } as any];
-      }
-      if (params.barcode === '00002' || params.q === '2') {
+    vi.mocked(posApi.lookupProducts).mockImplementation(async (params: any = {}) => {
+      if (params.barcode === '2000002001355' || params.q === '2000002001355') return [];
+      if (params.barcode === '00002' || params.q === '2' || params.barcode === '2' || params.q === '00002') {
         return [{
-          id: 2,
+          id: '2',
           name: 'جبنه شيدر 00002',
           barcode: '00002',
           styleCode: null,
@@ -202,10 +213,11 @@ describe('PosWorkspace - Weighted Barcodes', () => {
           retailPrice: 200,
           wholesalePrice: 180,
           globalStock: 5,
+          stock: 5,
           units: [],
         } as any];
       }
-      return [];
+      return [{ id: '1', name: 'صنف تجريبي 1', barcode: '123', retailPrice: 10, costPrice: 5, stock: 10, units: [] } as any];
     });
 
     renderWorkspace();
@@ -238,12 +250,11 @@ describe('PosWorkspace - Weighted Barcodes', () => {
   });
 
   it('displays the correct error message if the weighted barcode product does not exist in backend', async () => {
-    vi.mocked(posApi.lookupProducts).mockImplementation(async (params = {}) => {
-      console.log('posApi.lookupProducts called with params:', params);
-      if (!params.barcode && !params.q) {
-        return [{ id: 1, name: 'dummy catalog item', barcode: '123', sellPrice: 10, costPrice: 5 } as any];
+    vi.mocked(posApi.lookupProducts).mockImplementation(async (params: any = {}) => {
+      if (params.barcode === '00009' || params.q === '00009' || params.q === '9' || params.barcode === '2000009015751') {
+        return [];
       }
-      return []; // Return empty for everything else
+      return [{ id: '1', name: 'صنف تجريبي 1', barcode: '123', retailPrice: 10, costPrice: 5, stock: 10, units: [] } as any];
     });
 
     renderWorkspace();

@@ -38,6 +38,9 @@ export function getPostSalePrintHint(mode: PosPostSalePrintMode) {
 }
 
 export function getStartupIssues(pos: PosWorkspaceState) {
+  if (pos.isLoading || pos.productsQuery?.isLoading || pos.productsQuery?.isFetching) {
+    return [];
+  }
   return [
     !pos.hasOperationalSetup ? 'أكمل تعريف المتجر ونقطة التشغيل من الإعدادات قبل استخدام شاشة الكاشير.' : '',
     !pos.hasCatalogReady ? 'أضف صنفًا واحدًا على الأقل قبل بدء البيع.' : '',

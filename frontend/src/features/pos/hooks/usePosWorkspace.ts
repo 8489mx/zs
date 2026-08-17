@@ -80,41 +80,6 @@ export function usePosWorkspace() {
   const heldDrafts = mutations.heldDraftsQuery.data || [];
   const openShiftRows = mutations.openShiftsQuery.data?.rows || [];
 
-  usePosWorkspaceEffects({
-    cart: state.cart,
-    customerId: state.customerId,
-    discount: state.discount,
-    paidAmount,
-    cashAmount: state.cashAmount,
-    setCashAmount: state.setCashAmount,
-    cardAmount: state.cardAmount,
-    setCardAmount: state.setCardAmount,
-    transferAmount: state.transferAmount,
-    setTransferAmount: state.setTransferAmount,
-    paymentType: state.paymentType,
-    paymentChannel: state.paymentChannel,
-    setPaymentChannel: state.setPaymentChannel,
-    note: state.note,
-    search: state.search,
-    priceType: state.priceType,
-    tableNumber: state.tableNumber,
-    orderType: state.orderType,
-    deliveryRepId: state.deliveryRepId,
-    collectionStatus: state.collectionStatus,
-    products: catalogProducts,
-    setCart: state.setCart,
-    setSubmitMessage: state.setSubmitMessage,
-    recentProductIds: state.recentProductIds,
-    lastSale: state.lastSale,
-    lastAddedLineKey: state.lastAddedLineKey,
-    setLastAddedLineKey: state.setLastAddedLineKey,
-    selectedLineKey: state.selectedLineKey,
-    setSelectedLineKey: state.setSelectedLineKey,
-    discountApprovalSecret: state.discountApprovalSecret,
-    setDiscountApprovalSecret: state.setDiscountApprovalSecret,
-    settings: settingsQuery.data || null,
-  });
-
   const derived = usePosWorkspaceDerived({
     saleProducts,
     products: catalogProducts,
@@ -142,6 +107,45 @@ export function usePosWorkspace() {
     lastSale: state.lastSale,
     orderType: state.orderType,
     collectionStatus: state.collectionStatus,
+  });
+
+  usePosWorkspaceEffects({
+    cart: state.cart,
+    customerId: state.customerId,
+    discount: state.discount,
+    paidAmount,
+    cashAmount: state.cashAmount,
+    setCashAmount: state.setCashAmount,
+    cardAmount: state.cardAmount,
+    setCardAmount: state.setCardAmount,
+    transferAmount: state.transferAmount,
+    setTransferAmount: state.setTransferAmount,
+    paymentType: state.paymentType,
+    paymentChannel: state.paymentChannel,
+    setPaymentChannel: state.setPaymentChannel,
+    note: state.note,
+    search: state.search,
+    priceType: state.priceType,
+    tableNumber: state.tableNumber,
+    orderType: state.orderType,
+    deliveryRepId: state.deliveryRepId,
+    collectionStatus: state.collectionStatus,
+    products: catalogProducts,
+    setCart: state.setCart,
+    submitMessage: state.submitMessage,
+    setSubmitMessage: state.setSubmitMessage,
+    scannerMessage: state.scannerMessage,
+    setScannerMessage: state.setScannerMessage,
+    ownOpenShift: derived.ownOpenShift,
+    recentProductIds: state.recentProductIds,
+    lastSale: state.lastSale,
+    lastAddedLineKey: state.lastAddedLineKey,
+    setLastAddedLineKey: state.setLastAddedLineKey,
+    selectedLineKey: state.selectedLineKey,
+    setSelectedLineKey: state.setSelectedLineKey,
+    discountApprovalSecret: state.discountApprovalSecret,
+    setDiscountApprovalSecret: state.setDiscountApprovalSecret,
+    settings: settingsQuery.data || null,
   });
 
   const actions = createPosWorkspaceActions({
@@ -244,7 +248,9 @@ export function usePosWorkspace() {
     branchesQuery.isLoading ||
     locationsQuery.isLoading ||
     productsQuery.isLoading ||
-    mutations.openShiftsQuery.isLoading;
+    productsQuery.isFetching ||
+    mutations.openShiftsQuery.isLoading ||
+    mutations.openShiftsQuery.isFetching;
 
   return {
     isLoading,

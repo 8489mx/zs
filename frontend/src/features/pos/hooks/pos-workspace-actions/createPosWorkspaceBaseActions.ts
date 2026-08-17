@@ -49,12 +49,6 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     unitId?: string,
     options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string } = {},
   ) {
-    if (params.requiresCashierShift && !params.ownOpenShift) {
-      params.setSubmitMessage('عذراً، يجب فتح وردية كاشير أولاً قبل إضافة أصناف للسلة.');
-      params.setScannerMessage('عذراً، يجب فتح وردية كاشير أولاً قبل إضافة أصناف للسلة.');
-      params.requestBarcodeFocus();
-      return false;
-    }
 
     const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
     const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings) || !!product.hasBom;
@@ -137,7 +131,9 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       return false;
     }
     if (result.status === 'not-found') {
-      const weightedBarcode = parseWeightedBarcode(code, params.settings);
+      const weightedBarcode = parseWeightedBarcode(code, params.settings)
+        || parseWeightedBarcode(code, { weightedBarcodeEnabled: true, weightedBarcodePrefix: '20' })
+        || parseWeightedBarcode(code, { weightedBarcodeEnabled: true, weightedBarcodePrefix: '21' });
       if (weightedBarcode) {
         const weightedResult = matchProductByWeightedCode(productsOverride || params.products || [], weightedBarcode.productCode);
         if (weightedResult.status === 'matched') {
@@ -331,13 +327,16 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       }
     }
 
-    const minQty = selectedItem.isWeighted === true ? 0.001 : 1;
     const step = selectedItem.isWeighted === true ? 0.001 : 1;
     const nextQty = selectedItem.isWeighted === true
       ? Number((Number(selectedItem.qty || 0) + (delta > 0 ? step : -step)).toFixed(3))
       : Number(selectedItem.qty || 1) + (delta > 0 ? step : -step);
     
-    setQty(lineKey, Math.max(minQty, nextQty));
+    if (nextQty <= 0) {
+      removeItem(lineKey);
+      return true;
+    }
+    setQty(lineKey, nextQty);
     return true;
   }
 

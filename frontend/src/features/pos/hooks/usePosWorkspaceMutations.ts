@@ -16,9 +16,9 @@ export function usePosWorkspaceMutations({ queryClient, storedHeld }: { queryCli
   const openShiftsQuery = useQuery({
     queryKey: queryKeys.cashierShiftsPage('open:pos'),
     queryFn: () => cashDrawerApi.listPage({ page: 1, pageSize: 50, filter: 'open' }),
-    staleTime: 5 * 60_000,
-    refetchInterval: 5 * 60_000,
-    refetchOnWindowFocus: false,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const quickCustomerMutation = useMutation({

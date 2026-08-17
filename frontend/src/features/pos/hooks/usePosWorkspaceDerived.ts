@@ -98,7 +98,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const branchById = useMemo(() => new Map(branchList.map((branch) => [String(branch.id), branch])), [branchList]);
   const locationById = useMemo(() => new Map(locationList.map((location) => [String(location.id), location])), [locationList]);
   const openShiftByUserId = useMemo(
-    () => new Map(openShiftList.map((shift) => [String(shift.openedById || ''), shift])),
+    () => new Map(openShiftList.map((shift) => [String((shift as any).opened_by || shift.openedById || ''), shift])),
     [openShiftList],
   );
   const defaultPriceByProductId = useMemo(
@@ -160,10 +160,19 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     () => locationById.get(String(params.locationId)) || locationList[0] || null,
     [locationById, locationList, params.locationId],
   );
-  const ownOpenShift = useMemo(
-    () => openShiftByUserId.get(String(params.authUserId || '')) || null,
-    [openShiftByUserId, params.authUserId],
-  );
+  const ownOpenShift = useMemo(() => {
+    const currentUserId = String(params.authUserId || '');
+    if (!currentUserId && openShiftList.length === 1) {
+      return openShiftList[0];
+    }
+    const matched = openShiftByUserId.get(currentUserId)
+      || openShiftList.find((s) => String((s as any).opened_by || (s as any).openedById || '') === currentUserId);
+    if (matched) return matched;
+    if (openShiftList.length === 1 && (authPermissionSet.has('*') || authPermissionSet.has('admin') || authPermissionSet.has('cashDrawer'))) {
+      return openShiftList[0];
+    }
+    return null;
+  }, [openShiftByUserId, openShiftList, params.authUserId, authPermissionSet]);
   const canApplyDiscount = authPermissionSet.has('canDiscount') || authPermissionSet.has('*') || Boolean(params.discountApprovalGranted);
   const canEditPrice = authPermissionSet.has('canEditPrice') || authPermissionSet.has('*');
   const hasOperationalSetup = Boolean(branchList.length > 0 && locationList.length > 0);

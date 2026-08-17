@@ -60,36 +60,48 @@ export class SettingsService {
     // Only process branch and location if they are provided
     if (currentBranchIdRaw) {
       const currentBranchId = Number(currentBranchIdRaw);
-      if (!Number.isFinite(currentBranchId) || currentBranchId <= 0) {
-        throw new AppError('يجب اختيار الفرع الرئيسي بشكل صحيح.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
-      }
-
-      const branch = await this.db
-        .selectFrom('branches')
-        .select(['id', 'default_stock_location_id'])
-        .where('id', '=', currentBranchId)
-        .where(this.tenantPredicate(actor))
-        .executeTakeFirst();
-
-      if (!branch) {
-        throw new AppError('الفرع المختار غير موجود.', 'SETTINGS_MAIN_OPERATION_REQUIRED', 400);
-      }
-
-      normalizedPayload.currentBranchId = String(branch.id);
-
-      let locationId = currentLocationIdRaw ? Number(currentLocationIdRaw) : branch.default_stock_location_id;
-
-      if (locationId && Number.isFinite(locationId) && locationId > 0) {
-        const location = await this.db
-          .selectFrom('stock_locations')
-          .select(['id'])
-          .where('id', '=', locationId)
+      let branch = null;
+      if (Number.isFinite(currentBranchId) && currentBranchId > 0) {
+        branch = await this.db
+          .selectFrom('branches')
+          .select(['id', 'default_stock_location_id'])
+          .where('id', '=', currentBranchId)
           .where(this.tenantPredicate(actor))
           .executeTakeFirst();
-          
-        if (location) {
-          normalizedPayload.currentLocationId = String(location.id);
+      }
+
+      if (!branch) {
+        // Fallback to the tenant's first active branch if available
+        branch = await this.db
+          .selectFrom('branches')
+          .select(['id', 'default_stock_location_id'])
+          .where('is_active', '=', true)
+          .where(this.tenantPredicate(actor))
+          .orderBy('id', 'asc')
+          .executeTakeFirst();
+      }
+
+      if (branch) {
+        normalizedPayload.currentBranchId = String(branch.id);
+        let locationId = currentLocationIdRaw ? Number(currentLocationIdRaw) : branch.default_stock_location_id;
+
+        if (locationId && Number.isFinite(locationId) && locationId > 0) {
+          const location = await this.db
+            .selectFrom('stock_locations')
+            .select(['id'])
+            .where('id', '=', locationId)
+            .where(this.tenantPredicate(actor))
+            .executeTakeFirst();
+            
+          if (location) {
+            normalizedPayload.currentLocationId = String(location.id);
+          } else {
+            delete normalizedPayload.currentLocationId;
+          }
         }
+      } else {
+        delete normalizedPayload.currentBranchId;
+        delete normalizedPayload.currentLocationId;
       }
     }
 
