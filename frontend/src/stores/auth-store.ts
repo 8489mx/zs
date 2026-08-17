@@ -15,7 +15,7 @@ export const isSuperAdmin = (user: AuthUser | null | undefined): boolean => {
 
 export type AppGate = 'loading' | 'activation' | 'setup' | 'login' | 'ready';
 
-interface AuthState {
+export interface AuthState {
   user: AuthUser | null;
   tenant: AuthTenant | null;
   storeName: string;

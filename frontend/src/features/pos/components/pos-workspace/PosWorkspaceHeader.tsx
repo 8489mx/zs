@@ -29,9 +29,10 @@ interface PosWorkspaceHeaderProps {
   onModeChange: (mode: PosSaleMode) => void;
   onFocusSearch: () => void;
   onPrintDraft: () => void;
+  onRequestOpenShift?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onRequestOpenShift }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
   const [showDeliveryReps, setShowDeliveryReps] = useState(false);
 
@@ -70,7 +71,15 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
-          <Link to="/cash-drawer"><Button type="button" variant={pos.ownOpenShift ? 'secondary' : 'primary'}>{pos.ownOpenShift ? 'تقفيل الوردية' : 'فتح وردية'}</Button></Link>
+          {pos.ownOpenShift ? (
+            <Link to="/cash-drawer">
+              <Button type="button" variant="secondary">تقفيل الوردية</Button>
+            </Link>
+          ) : (
+            <Button type="button" variant="primary" onClick={onRequestOpenShift}>
+              فتح وردية
+            </Button>
+          )}
         </div>
       )}
     />

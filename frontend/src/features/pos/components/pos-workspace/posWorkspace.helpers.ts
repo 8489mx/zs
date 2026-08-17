@@ -38,13 +38,13 @@ export function getPostSalePrintHint(mode: PosPostSalePrintMode) {
 }
 
 export function getStartupIssues(pos: PosWorkspaceState) {
-  if (pos.isLoading || pos.productsQuery?.isLoading || pos.productsQuery?.isFetching) {
+  if (pos.isLoading) {
     return [];
   }
   return [
     !pos.hasOperationalSetup ? 'أكمل تعريف المتجر ونقطة التشغيل من الإعدادات قبل استخدام شاشة الكاشير.' : '',
     !pos.hasCatalogReady ? 'أضف صنفًا واحدًا على الأقل قبل بدء البيع.' : '',
-    pos.requiresCashierShift && !pos.ownOpenShift ? 'لا توجد وردية مفتوحة لهذا المستخدم. افتح وردية من شاشة الخزنة ثم ارجع للكاشير.' : '',
+    pos.requiresCashierShift && !pos.ownOpenShift ? 'لا توجد وردية مفتوحة لهذا المستخدم. افتح وردية لبدء البيع.' : '',
   ].filter(Boolean);
 }
 

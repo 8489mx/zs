@@ -9,6 +9,7 @@ import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCh
 import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/PosHeldDraftsDialog';
 import { PosItemModifiersModal } from '@/features/pos/components/pos-cart-panel/PosItemModifiersModal';
 import { PosDraftSwitcherOverlay } from '@/features/pos/components/pos-workspace/PosDraftSwitcherOverlay';
+import { PosOpenShiftModal } from '@/features/pos/components/pos-workspace/PosOpenShiftModal';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -34,6 +35,7 @@ export function PosWorkspace() {
   const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
+  const [openShiftModalOpen, setOpenShiftModalOpen] = useState(false);
   const [modifiersModalLineKey, setModifiersModalLineKey] = useState<string>('');
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
@@ -115,12 +117,16 @@ export function PosWorkspace() {
 
   const requestCheckoutDialog = useCallback(() => {
     if (pos.createSale.isPending) return;
+    if (pos.requiresCashierShift && !pos.ownOpenShift) {
+      setOpenShiftModalOpen(true);
+      return;
+    }
     if (!pos.canOpenCheckout) {
       if (pos.checkoutDisabledReason) pos.setSubmitMessage(pos.checkoutDisabledReason);
       return;
     }
     setCheckoutDialogOpen(true);
-  }, [pos.canOpenCheckout, pos.checkoutDisabledReason, pos.createSale.isPending, pos.setSubmitMessage]);
+  }, [pos.canOpenCheckout, pos.checkoutDisabledReason, pos.createSale.isPending, pos.ownOpenShift, pos.requiresCashierShift, pos.setSubmitMessage]);
 
   const requestRecallHeldDraftByIndex = useCallback(async (index: number) => {
     const draftId = pos.heldDraftSummaries[index]?.id;
@@ -298,9 +304,19 @@ export function PosWorkspace() {
 
   return (
     <div className={`page-stack page-shell pos-workspace pos-premium-shell pos-sale-mode-${posMode}`.trim()}>
-      <PosWorkspaceHeader pos={pos} posMode={posMode} onModeChange={setPosMode} onFocusSearch={focusBarcodeEntry} onPrintDraft={printCurrentDraft} />
+      <PosWorkspaceHeader
+        pos={pos}
+        posMode={posMode}
+        onModeChange={setPosMode}
+        onFocusSearch={focusBarcodeEntry}
+        onPrintDraft={printCurrentDraft}
+        onRequestOpenShift={() => setOpenShiftModalOpen(true)}
+      />
 
-      <PosWorkspaceStartupIssues pos={pos} />
+      <PosWorkspaceStartupIssues
+        pos={pos}
+        onRequestOpenShift={() => setOpenShiftModalOpen(true)}
+      />
 
       <PosWorkspaceMainContent
         pos={pos}
@@ -437,6 +453,18 @@ export function PosWorkspace() {
           if (modifiersModalLineKey) {
             pos.setItemModifiers(modifiersModalLineKey, modifiers);
           }
+        }}
+      />
+
+      <PosOpenShiftModal
+        open={openShiftModalOpen}
+        onClose={() => setOpenShiftModalOpen(false)}
+        branches={pos.branchesQuery.data || []}
+        locations={pos.locationsQuery.data || []}
+        defaultBranchId={pos.branchId}
+        defaultLocationId={pos.locationId}
+        onShiftOpened={() => {
+          void pos.refetchCatalogs();
         }}
       />
     </div>
