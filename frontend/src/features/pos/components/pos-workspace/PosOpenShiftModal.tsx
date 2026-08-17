@@ -1,8 +1,7 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
-import { Button } from '@/shared/ui/button';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { cashDrawerApi } from '@/lib/api/cash-drawer';
@@ -101,43 +100,21 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
   };
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(520px, 95vw)">
-      <div style={{ background: '#ffffff', padding: '24px', borderRadius: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-          <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: '12px',
-            background: '#ecfdf5',
-            color: '#059669',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.4rem',
-            border: '1px solid #a7f3d0'
-          }}>
-            💵
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>فتح وردية كاشير جديدة</h2>
-            <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#64748b' }}>أدخل عهدة البداية وحدد نقطة التشغيل لبدء البيع فوراً</p>
-          </div>
-        </div>
-
+    <DialogShell open={open} onClose={onClose} width="min(600px, 100%)">
+      <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
+        <h2 style={{ marginTop: 0, marginBottom: '24px' }}>فتح وردية نقطة بيع</h2>
         <form className="form-grid" onSubmit={handleSubmit(onSubmit)}>
-          <Field label="رصيد الفتح (العهدة النقدية بالدرج)">
+          <Field label="رصيد الفتح">
             <input
               type="number"
               step="0.01"
               autoFocus
               {...register('openingCash', { valueAsNumber: true })}
               disabled={isPending}
-              placeholder="0.00"
-              style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}
             />
           </Field>
 
-          {!SINGLE_STORE_MODE && (
+          {!SINGLE_STORE_MODE ? (
             <Field label="الفرع">
               <select
                 {...register('branchId')}
@@ -162,11 +139,11 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
                 ))}
               </select>
             </Field>
-          )}
+          ) : null}
 
           {SINGLE_STORE_MODE ? (
             <Field label="المخزن الأساسي">
-              <input value={locationList[0]?.name || 'المخزن الرئيسي'} disabled readOnly />
+              <input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly />
             </Field>
           ) : (
             <Field label="المخزن">
@@ -179,13 +156,8 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
             </Field>
           )}
 
-          <Field label="ملاحظة الافتتاح (اختياري)">
-            <textarea
-              rows={2}
-              {...register('note')}
-              disabled={isPending}
-              placeholder="اكتب أي ملاحظة تخص بداية الوردية..."
-            />
+          <Field label="ملاحظة الافتتاح">
+            <textarea rows={2} {...register('note')} disabled={isPending} />
           </Field>
 
           <MutationFeedback
@@ -193,20 +165,15 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
             isSuccess={isSuccess}
             error={error}
             errorFallback="تعذر فتح وردية نقطة البيع"
-            successText="تم فتح الوردية بنجاح! جاري تحضير شاشة البيع..."
+            successText="تم فتح وردية نقطة البيع بنجاح."
           />
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '12px', justifyContent: 'flex-end' }}>
-            <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
-              إلغاء
-            </Button>
-            <SubmitButton
-              type="submit"
-              isPending={isPending}
-              idleText="فتح الوردية وبدء البيع"
-              pendingText="جارٍ فتح الوردية..."
-            />
-          </div>
+          <SubmitButton
+            type="submit"
+            isPending={isPending}
+            idleText="فتح وردية نقطة البيع"
+            pendingText="جارٍ الفتح..."
+          />
         </form>
       </div>
     </DialogShell>

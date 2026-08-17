@@ -3,6 +3,7 @@ import { Button } from '@/shared/ui/button';
 import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
 import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWorkspaceDock';
+import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import { useSplitter } from '@/shared/hooks/useSplitter';
 import { useAuthStore } from '@/stores/auth-store';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
@@ -31,6 +32,7 @@ interface PosWorkspaceMainContentProps {
   onOpenHeldDrafts: () => void;
   onPrintCurrentDraft: () => void;
   onFocusBarcodeEntry: () => void;
+  onRequestOpenShift?: () => void;
 }
 
 export function PosWorkspaceMainContent({
@@ -55,6 +57,7 @@ export function PosWorkspaceMainContent({
   onOpenHeldDrafts,
   onPrintCurrentDraft,
   onFocusBarcodeEntry,
+  onRequestOpenShift,
 }: PosWorkspaceMainContentProps) {
   const user = useAuthStore((state) => state.user);
   const defaultLeft = posMode === 'scanner' ? 75 : 65;
@@ -80,20 +83,24 @@ export function PosWorkspaceMainContent({
       <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <div className="pos-grid-premium" style={gridStyle}>
 
-          <PosProductsPanel
-          search={pos.search}
-          onSearchChange={pos.setSearch}
-          onSearchSubmitFirstResult={onSubmitFirstSearchResult}
-          priceType={pos.priceType}
-          onPriceTypeChange={pos.setPriceType}
-          products={pos.filteredSaleProducts}
-          recentProducts={pos.recentProducts}
-          productFilter={pos.productFilter}
-          onProductFilterChange={pos.setProductFilter}
-          onAddProduct={pos.handleAddProduct}
-          searchInputRef={searchInputRef}
-          posMode={posMode}
-        />
+          {/* Products column: startup issues banner + products panel stacked */}
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <PosWorkspaceStartupIssues pos={pos} onRequestOpenShift={onRequestOpenShift} />
+            <PosProductsPanel
+            search={pos.search}
+            onSearchChange={pos.setSearch}
+            onSearchSubmitFirstResult={onSubmitFirstSearchResult}
+            priceType={pos.priceType}
+            onPriceTypeChange={pos.setPriceType}
+            products={pos.filteredSaleProducts}
+            recentProducts={pos.recentProducts}
+            productFilter={pos.productFilter}
+            onProductFilterChange={pos.setProductFilter}
+            onAddProduct={pos.handleAddProduct}
+            searchInputRef={searchInputRef}
+            posMode={posMode}
+          />
+          </div>
 
         <div className="pos-checkout-column">
           <PosCartPanel

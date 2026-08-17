@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
 import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
-import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import { PosWorkspaceDiscountDialog } from '@/features/pos/components/pos-workspace/PosWorkspaceDiscountDialog';
 import { PosWorkspaceMainContent } from '@/features/pos/components/pos-workspace/PosWorkspaceMainContent';
 import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCheckoutDialog';
@@ -313,11 +312,6 @@ export function PosWorkspace() {
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
       />
 
-      <PosWorkspaceStartupIssues
-        pos={pos}
-        onRequestOpenShift={() => setOpenShiftModalOpen(true)}
-      />
-
       <PosWorkspaceMainContent
         pos={pos}
         posMode={posMode}
@@ -340,6 +334,7 @@ export function PosWorkspace() {
         onOpenHeldDrafts={() => setHeldDraftsDialogOpen(true)}
         onPrintCurrentDraft={printCurrentDraft}
         onFocusBarcodeEntry={focusBarcodeEntry}
+        onRequestOpenShift={() => setOpenShiftModalOpen(true)}
       />
 
       <PosCheckoutDialog

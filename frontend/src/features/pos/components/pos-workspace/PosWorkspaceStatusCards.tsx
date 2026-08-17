@@ -26,25 +26,25 @@ export function PosWorkspaceStartupIssues({ pos, onRequestOpenShift }: { pos: Po
   const hasNoShift = pos.requiresCashierShift && !pos.ownOpenShift;
 
   return (
-    <div style={{ margin: '0 0 16px' }}>
+    <div>
       {hasNoShift && (
         <div style={{
           background: '#fffbeb',
           border: '1px solid #fde68a',
-          borderRadius: '12px',
-          padding: '12px 18px',
+          borderRadius: '8px',
+          padding: '8px 12px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px',
+          gap: '10px',
           color: '#92400e',
-          fontWeight: 600,
-          boxShadow: '0 2px 6px rgba(245, 158, 11, 0.08)',
-          marginBottom: '10px'
+          fontWeight: 500,
+          fontSize: '0.82rem',
+          marginBottom: '6px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.25rem' }}>⚠️</span>
-            <span>لا توجد وردية كاشير مفتوحة لهذا المستخدم. يلزم فتح وردية لبدء تسجيل المبيعات النقدية والشبكة.</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>⚠️</span>
+            <span>لا توجد وردية مفتوحة — يلزم فتح وردية لتسجيل المبيعات.</span>
           </div>
           <Button
             type="button"
@@ -54,14 +54,15 @@ export function PosWorkspaceStartupIssues({ pos, onRequestOpenShift }: { pos: Po
               background: '#d97706',
               borderColor: '#b45309',
               color: '#ffffff',
-              fontWeight: 700,
-              padding: '8px 18px',
-              borderRadius: '8px',
+              fontWeight: 600,
+              padding: '4px 12px',
+              fontSize: '0.78rem',
+              borderRadius: '6px',
               cursor: 'pointer',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
             }}
           >
-            فتح وردية الآن
+            فتح وردية
           </Button>
         </div>
       )}
