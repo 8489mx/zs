@@ -236,17 +236,24 @@ export function useNewPurchaseOrderController() {
       setAddressesList([]);
       return;
     }
+    const supplierObj = suppliers.find(s => s.name === supplier || s.id === supplier);
+    const supplierId = supplierObj?.id || supplier;
+    if (!supplierId || !/^\d+$/.test(String(supplierId).trim())) {
+      setContactsList([]);
+      setAddressesList([]);
+      return;
+    }
     const load = async () => {
       try {
         const { accountsApi } = await import('@/features/accounts/api/accounts.api');
-        const contacts = await accountsApi.partnerContacts('supplier', supplier);
+        const contacts = await accountsApi.partnerContacts('supplier', String(supplierId));
         setContactsList(contacts.map((c: any) => ({ id: String(c.id), name: c.name, phone: c.phone || '' })));
       } catch (err) {
         console.error('Failed to load supplier contacts', err);
       }
     };
     load();
-  }, [supplier]);
+  }, [supplier, suppliers]);
 
   const supplierInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);

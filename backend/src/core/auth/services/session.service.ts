@@ -10,6 +10,7 @@ import { createPasswordRecord, verifyPassword } from '../utils/password-hasher';
 import { assertStrongPassword } from '../utils/password-policy';
 import { resolveTenantContext } from '../utils/tenant-context';
 import { requireTenantScope } from '../utils/tenant-boundary';
+import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
 
 function safeJsonArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
@@ -160,7 +161,8 @@ export class SessionService {
     if (row.locked_until && row.locked_until > new Date()) return null;
     const tenantContext = this.resolveUserTenantContext(row);
     try { await this.assertTenantLoginAllowed(tenantContext.tenantId); } catch { return null; }
-    return { userId: row.user_id, sessionId: row.session_id, username: row.username, role: row.role, permissions: safeJsonArray(row.permissions_json), planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
+    const permissions = row.role === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(row.permissions_json)])) : safeJsonArray(row.permissions_json);
+    return { userId: row.user_id, sessionId: row.session_id, username: row.username, role: row.role, permissions, planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
   }
 
   async authenticate(identifier: string, password: string, meta?: { ipAddress?: string; userAgent?: string }): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
@@ -241,7 +243,8 @@ export class SessionService {
     }
     await this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute();
     await this.audit.log('تسجيل الدخول', `نجاح تسجيل الدخول للمستخدم ${user.username}`, { userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId }, { targetTenantId: tenantContext.tenantId });
-    return { sessionId, expiresAt, auth: { userId: user.id, sessionId, username: user.username, role: user.role, permissions: safeJsonArray(user.permissions_json), ...tenantContext } };
+    const userPermissions = user.role === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : safeJsonArray(user.permissions_json);
+    return { sessionId, expiresAt, auth: { userId: user.id, sessionId, username: user.username, role: user.role, permissions: userPermissions, ...tenantContext } };
   }
 
   async logout(sessionId: string, auth?: AuthContext): Promise<void> {
@@ -285,7 +288,8 @@ export class SessionService {
     const branchIds = branchRows.map((row) => String(row.branch_id || '').trim()).filter(Boolean);
     const defaultBranchId = user.default_branch_id ? String(user.default_branch_id) : '';
     if (defaultBranchId && !branchIds.includes(defaultBranchId)) branchIds.push(defaultBranchId);
-    return { id: Number(user.id), username: String(user.username || auth.username), role: String(user.role || auth.role), permissions: safeJsonArray(user.permissions_json) || auth.permissions, displayName: String(user.display_name || user.username || auth.username), branchIds, defaultBranchId, ...this.resolveUserTenantContext(user), mustChangePassword: Boolean(user.must_change_password), passwordHash: String(user.password_hash || ''), passwordSalt: String(user.password_salt || '') };
+    const effectivePermissions = user.role === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : (safeJsonArray(user.permissions_json) || auth.permissions);
+    return { id: Number(user.id), username: String(user.username || auth.username), role: String(user.role || auth.role), permissions: effectivePermissions, displayName: String(user.display_name || user.username || auth.username), branchIds, defaultBranchId, ...this.resolveUserTenantContext(user), mustChangePassword: Boolean(user.must_change_password), passwordHash: String(user.password_hash || ''), passwordSalt: String(user.password_salt || '') };
   }
 
   async buildLoginPayload(auth: AuthContext): Promise<Record<string, unknown>> {

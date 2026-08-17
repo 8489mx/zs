@@ -46,13 +46,8 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
     const auth = request.authContext;
 
-    const isPlatformAdmin = 
-      auth?.role === 'super_admin' && 
-      this.configService.get<string>('APP_MODE') === 'CLOUD_SAAS' && 
-      auth?.tenantId === this.configService.get<string>('PLATFORM_TENANT_ID');
-
-    // Platform Admins (SaaS Owners) skip everything
-    if (isPlatformAdmin) {
+    // Super Admins have complete access to all system features and endpoints
+    if (auth?.role === 'super_admin') {
       return true;
     }
 
