@@ -59,6 +59,10 @@ export interface CashierShift {
   walletOperationCount?: number;
   instapayOperationCount?: number;
   cashDrawerMovementTotal?: number;
+  cashDrawerCashInTotal?: number;
+  cashDrawerCashOutTotal?: number;
+  supplierPaymentsTotal?: number;
+  expensesTotal?: number;
   serviceCashTotal?: number;
   serviceCardTotal?: number;
   serviceTotal?: number;

@@ -28,6 +28,10 @@ type ShiftRow = {
   wallet_operation_count?: number | string | null;
   instapay_operation_count?: number | string | null;
   cash_drawer_movement_total?: number | string | null;
+  cash_drawer_cash_in_total?: number | string | null;
+  cash_drawer_cash_out_total?: number | string | null;
+  supplier_payments_total?: number | string | null;
+  expenses_total?: number | string | null;
   service_cash_total?: number | string | null;
   service_card_total?: number | string | null;
   service_total?: number | string | null;
@@ -123,10 +127,49 @@ export class CashDrawerService {
     await this.assertCurrentUserPassword(approvalSecret, auth);
   }
 
-  private async computeShiftCashDrawerMovementTotal(shiftId: number, auth: AuthContext): Promise<number> {
+  private async computeShiftCashDrawerMovements(shiftId: number, auth: AuthContext): Promise<{ cashInTotal: number; cashOutTotal: number; netMovementTotal: number }> {
     const scope = this.scope(auth);
-    const result = await sql<CashDrawerMovementRow>`select coalesce(sum(tt.amount), 0) as cash_drawer_movement_total from treasury_transactions tt where tt.tenant_id = ${scope.tenantId} and tt.reference_type = 'cashier_shift' and tt.reference_id = ${shiftId} and tt.return_document_id is null`.execute(this.db);
-    return this.toMoney(result.rows?.[0]?.cash_drawer_movement_total || 0);
+    const result = await sql<{ cash_in_total?: number | string | null; cash_out_total?: number | string | null; net_total?: number | string | null }>`
+      select coalesce(sum(case when tt.amount > 0 then tt.amount else 0 end), 0) as cash_in_total,
+             coalesce(sum(case when tt.amount < 0 then abs(tt.amount) else 0 end), 0) as cash_out_total,
+             coalesce(sum(tt.amount), 0) as net_total
+      from treasury_transactions tt
+      where tt.tenant_id = ${scope.tenantId} and tt.reference_type = 'cashier_shift' and tt.reference_id = ${shiftId} and tt.return_document_id is null
+    `.execute(this.db);
+    const row = result.rows?.[0] || {};
+    return {
+      cashInTotal: this.toMoney(row.cash_in_total || 0),
+      cashOutTotal: this.toMoney(row.cash_out_total || 0),
+      netMovementTotal: this.toMoney(row.net_total || 0),
+    };
+  }
+
+  private async computeShiftSupplierPaymentsTotal(shift: ShiftRow, auth: AuthContext): Promise<number> {
+    const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
+    if (!(openerId > 0) || !shift.created_at) return 0;
+    const result = await sql<{ total?: number | string | null }>`
+      select coalesce(sum(sp.amount), 0) as total
+      from supplier_payments sp
+      where sp.tenant_id = ${scope.tenantId} and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
+        and (${shift.closed_at || null}::timestamptz is null or sp.payment_date <= ${shift.closed_at || null})
+        and (${shift.branch_id || null}::int is null or sp.branch_id is null or sp.branch_id = ${Number(shift.branch_id || 0) || null})
+        and (${shift.location_id || null}::int is null or sp.location_id is null or sp.location_id = ${Number(shift.location_id || 0) || null})
+    `.execute(this.db);
+    return this.toMoney(result.rows?.[0]?.total || 0);
+  }
+
+  private async computeShiftExpensesTotal(shift: ShiftRow, auth: AuthContext): Promise<number> {
+    const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
+    if (!(openerId > 0) || !shift.created_at) return 0;
+    const result = await sql<{ total?: number | string | null }>`
+      select coalesce(sum(e.amount), 0) as total
+      from expenses e
+      where e.tenant_id = ${scope.tenantId} and e.created_by = ${openerId} and e.expense_date >= ${shift.created_at}
+        and (${shift.closed_at || null}::timestamptz is null or e.expense_date <= ${shift.closed_at || null})
+        and (${shift.branch_id || null}::int is null or e.branch_id is null or e.branch_id = ${Number(shift.branch_id || 0) || null})
+        and (${shift.location_id || null}::int is null or e.location_id is null or e.location_id = ${Number(shift.location_id || 0) || null})
+    `.execute(this.db);
+    return this.toMoney(result.rows?.[0]?.total || 0);
   }
 
   private async computeShiftServiceBreakdown(shift: ShiftRow, auth: AuthContext): Promise<ShiftServiceBreakdown> {
@@ -190,11 +233,13 @@ export class CashDrawerService {
   private async computeShiftExpectedCashFromShift(shift: ShiftRow, auth: AuthContext, salesBreakdown?: ShiftSalesBreakdown, serviceBreakdown?: ShiftServiceBreakdown): Promise<number> {
     const shiftId = Number(shift.id || 0);
     if (!(shiftId > 0)) return this.toMoney(shift.opening_cash || 0);
-    const cashDrawerMovementTotal = await this.computeShiftCashDrawerMovementTotal(shiftId, auth);
+    const movements = await this.computeShiftCashDrawerMovements(shiftId, auth);
     const breakdown = salesBreakdown || await this.computeShiftSalesBreakdown(shift, auth);
     const services = serviceBreakdown || await this.computeShiftServiceBreakdown(shift, auth);
     const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift, auth);
-    return this.toMoney(Number(shift.opening_cash || 0) + cashDrawerMovementTotal + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal);
+    const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(shift, auth);
+    const expensesTotal = await this.computeShiftExpensesTotal(shift, auth);
+    return this.toMoney(Number(shift.opening_cash || 0) + movements.netMovementTotal + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
   }
 
   private async hydrateShiftRow(row: ShiftRow, auth: AuthContext): Promise<ShiftRow> {
@@ -202,10 +247,37 @@ export class CashDrawerService {
     if (!(shiftId > 0)) return row;
     const salesBreakdown = await this.computeShiftSalesBreakdown(row, auth);
     const serviceBreakdown = await this.computeShiftServiceBreakdown(row, auth);
-    const cashDrawerMovementTotal = await this.computeShiftCashDrawerMovementTotal(shiftId, auth);
+    const movements = await this.computeShiftCashDrawerMovements(shiftId, auth);
     const saleReturnTotals = await this.computeShiftSaleReturnTotals(row, auth);
+    const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(row, auth);
+    const expensesTotal = await this.computeShiftExpensesTotal(row, auth);
     const expectedCash = String(row.status || 'open') === 'open' ? await this.computeShiftExpectedCashFromShift(row, auth, salesBreakdown, serviceBreakdown) : Number(row.expected_cash || 0);
-    return { ...row, expected_cash: expectedCash, cash_sales_total: salesBreakdown.cashSalesTotal, card_sales_total: salesBreakdown.cardSalesTotal, wallet_sales_total: salesBreakdown.walletSalesTotal, instapay_sales_total: salesBreakdown.instapaySalesTotal, credit_sales_total: salesBreakdown.creditSalesTotal, shift_sales_total: salesBreakdown.shiftSalesTotal, sale_count: salesBreakdown.saleCount, mixed_sale_count: salesBreakdown.mixedSalesCount, card_operation_count: salesBreakdown.cardOperationCount, wallet_operation_count: salesBreakdown.walletOperationCount, instapay_operation_count: salesBreakdown.instapayOperationCount, cash_drawer_movement_total: cashDrawerMovementTotal, service_cash_total: serviceBreakdown.serviceCashTotal, service_card_total: serviceBreakdown.serviceCardTotal, service_total: serviceBreakdown.serviceTotal, sale_return_cash_refund_total: saleReturnTotals.saleReturnCashRefundTotal, sale_return_card_refund_total: saleReturnTotals.saleReturnCardRefundTotal, sale_return_total: saleReturnTotals.saleReturnTotal };
+    return {
+      ...row,
+      expected_cash: expectedCash,
+      cash_sales_total: salesBreakdown.cashSalesTotal,
+      card_sales_total: salesBreakdown.cardSalesTotal,
+      wallet_sales_total: salesBreakdown.walletSalesTotal,
+      instapay_sales_total: salesBreakdown.instapaySalesTotal,
+      credit_sales_total: salesBreakdown.creditSalesTotal,
+      shift_sales_total: salesBreakdown.shiftSalesTotal,
+      sale_count: salesBreakdown.saleCount,
+      mixed_sale_count: salesBreakdown.mixedSalesCount,
+      card_operation_count: salesBreakdown.cardOperationCount,
+      wallet_operation_count: salesBreakdown.walletOperationCount,
+      instapay_operation_count: salesBreakdown.instapayOperationCount,
+      cash_drawer_movement_total: movements.netMovementTotal,
+      cash_drawer_cash_in_total: movements.cashInTotal,
+      cash_drawer_cash_out_total: movements.cashOutTotal,
+      supplier_payments_total: supplierPaymentsTotal,
+      expenses_total: expensesTotal,
+      service_cash_total: serviceBreakdown.serviceCashTotal,
+      service_card_total: serviceBreakdown.serviceCardTotal,
+      service_total: serviceBreakdown.serviceTotal,
+      sale_return_cash_refund_total: saleReturnTotals.saleReturnCashRefundTotal,
+      sale_return_card_refund_total: saleReturnTotals.saleReturnCardRefundTotal,
+      sale_return_total: saleReturnTotals.saleReturnTotal
+    };
   }
 
   private async rawList(auth: AuthContext, filterStatus?: string): Promise<Array<Record<string, unknown>>> {
