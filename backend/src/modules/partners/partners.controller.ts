@@ -82,7 +82,7 @@ export class PartnersController {
     return this.partnersService.deleteSupplier(id, req.authContext!);
   }
 
-  @Get(':partnerType/:partnerId/contacts')
+  @Get([':partnerType/:partnerId/contacts', 'partners/:partnerType/:partnerId/contacts'])
   @AllowAuthenticated()
   listContacts(
     @Param('partnerType') partnerType: string,
@@ -92,7 +92,7 @@ export class PartnersController {
     return this.partnersService.listContacts(partnerType, partnerId, req.authContext!);
   }
 
-  @Post(':partnerType/:partnerId/contacts')
+  @Post([':partnerType/:partnerId/contacts', 'partners/:partnerType/:partnerId/contacts'])
   @AllowAuthenticated()
   createContact(
     @Param('partnerType') partnerType: string,
@@ -103,7 +103,7 @@ export class PartnersController {
     return this.partnersService.createContact(partnerType, partnerId, payload, req.authContext!);
   }
 
-  @Get(':partnerType/:partnerId/addresses')
+  @Get([':partnerType/:partnerId/addresses', 'partners/:partnerType/:partnerId/addresses'])
   @AllowAuthenticated()
   listAddresses(
     @Param('partnerType') partnerType: string,
@@ -113,7 +113,7 @@ export class PartnersController {
     return this.partnersService.listAddresses(partnerType, partnerId, req.authContext!);
   }
 
-  @Post(':partnerType/:partnerId/addresses')
+  @Post([':partnerType/:partnerId/addresses', 'partners/:partnerType/:partnerId/addresses'])
   @AllowAuthenticated()
   createAddress(
     @Param('partnerType') partnerType: string,
