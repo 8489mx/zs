@@ -1422,5 +1422,6 @@ export function useNewPurchaseOrderController() {
     handleResetDraft,
     handleConfirmInvoice,
     handleNewPurchaseOrder,
+    setCreatedPurchase,
   };
 }

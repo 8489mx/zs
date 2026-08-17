@@ -1,3 +1,4 @@
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 
 interface PurchaseOrderSuccessModalProps {
@@ -5,6 +6,7 @@ interface PurchaseOrderSuccessModalProps {
   rawSettings: any;
   onNewOrder: () => void;
   onNavigateToList: () => void;
+  onClose?: () => void;
 }
 
 export function PurchaseOrderSuccessModal({
@@ -12,23 +14,32 @@ export function PurchaseOrderSuccessModal({
   rawSettings,
   onNewOrder,
   onNavigateToList,
+  onClose,
 }: PurchaseOrderSuccessModalProps) {
   if (!createdPurchase) return null;
 
+  const handleClose = onClose || onNavigateToList;
+
   return (
-    <div className="purchase-prototype-create-backdrop" style={{ zIndex: 1000 }}>
-      <div className="purchase-prototype-create-card" style={{ maxWidth: '400px', textAlign: 'center', padding: '24px' }}>
+    <DialogShell
+      open={Boolean(createdPurchase)}
+      onClose={handleClose}
+      width="420px"
+      showCloseButton={true}
+      ariaLabel="تم إنشاء الفاتورة بنجاح"
+    >
+      <div style={{ textAlign: 'center', padding: '24px 20px 16px' }}>
         <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="24" height="24">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="26" height="26">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
         </div>
-        <h3 className="text-lg font-bold mb-2">تم إنشاء الفاتورة بنجاح!</h3>
-        <p className="text-gray-500 mb-6 text-sm">
-          رقم الفاتورة: <strong>{createdPurchase?.invoiceNumber || createdPurchase?.id}</strong>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '6px', color: '#0f172a' }}>تم إنشاء الفاتورة بنجاح!</h3>
+        <p style={{ color: '#64748b', marginBottom: '20px', fontSize: '0.9rem' }}>
+          رقم الفاتورة: <strong style={{ color: '#0f172a' }}>{createdPurchase?.invoiceNumber || createdPurchase?.id}</strong>
         </p>
 
-        <div className="flex flex-col gap-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <Button
             type="button"
             onClick={() => {
@@ -46,13 +57,13 @@ export function PurchaseOrderSuccessModal({
           <button
             type="button"
             onClick={onNavigateToList}
-            className="btn w-full justify-center mt-2 bg-transparent text-gray-600 hover:bg-gray-100 border-none shadow-none"
-            style={{ marginTop: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}
+            style={{ marginTop: '4px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '8px', fontSize: '0.875rem', borderRadius: '6px' }}
+            className="hover:bg-gray-100"
           >
             العودة لسجل الفواتير
           </button>
         </div>
       </div>
-    </div>
+    </DialogShell>
   );
 }

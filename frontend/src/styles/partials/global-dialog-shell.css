@@ -32,6 +32,36 @@
   outline: none;
 }
 
+.dialog-shell-close-btn {
+  position: absolute;
+  top: 14px;
+  inset-inline-end: 14px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dialog-shell-close-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.dialog-shell-close-btn:focus-visible {
+  outline: 2px solid var(--primary, #170c5c);
+  outline-offset: 2px;
+}
+
 .dialog-card {
   border: 0;
   box-shadow: none;

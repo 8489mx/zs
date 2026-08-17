@@ -18,6 +18,7 @@ export function NewPurchaseOrderPage() {
         rawSettings={ctrl.rawSettings}
         onNewOrder={ctrl.handleNewPurchaseOrder}
         onNavigateToList={() => ctrl.navigate('/purchases')}
+        onClose={() => ctrl.setCreatedPurchase(null)}
       />
 
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>

@@ -26,6 +26,18 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
     }
   }, [open, item]);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
+
   if (!open || !item) return null;
 
   const activeAddons = addons.filter(a => a.isActive !== false);

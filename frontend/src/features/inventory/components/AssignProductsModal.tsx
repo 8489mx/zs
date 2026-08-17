@@ -18,6 +18,17 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(new Set());
   const [transferSelections, setTransferSelections] = useState<Record<number, { fromLocationId: number, qty: number }>>({});
 
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const catalogQuery = useQuery({
     queryKey: ['catalogProducts'],
     queryFn: () => inventoryApi.products(),
