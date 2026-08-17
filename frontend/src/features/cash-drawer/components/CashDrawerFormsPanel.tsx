@@ -129,6 +129,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const walletDetailsDiff = Number((walletDetailsTotal - walletDeclaredTotal).toFixed(2));
   const instapayDetailsDiff = Number((instapayDetailsTotal - instapayDeclaredTotal).toFixed(2));
 
+  const watchedBranchId = props.openForm.watch('branchId');
+  const availableLocations = useMemo(() => {
+    if (!watchedBranchId) return locationList;
+    const branchSpecific = locationList.filter((loc) => !loc.branchId || String(loc.branchId) === String(watchedBranchId));
+    return branchSpecific.length > 0 ? branchSpecific : locationList;
+  }, [locationList, watchedBranchId]);
+
   return (
     <DialogShell open={!!props.activeForm} onClose={props.onCloseForm} width="min(600px, 100%)">
       {props.activeForm === 'open' && (
@@ -137,7 +144,23 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
         <form className="form-grid" onSubmit={props.openForm.handleSubmit((values) => props.openMutation.mutate(values))}>
           <Field label="رصيد الفتح"><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} /></Field>
           {!SINGLE_STORE_MODE ? <Field label="الفرع">
-            <select {...props.openForm.register('branchId')} disabled={props.openMutation.isPending}>
+            <select
+              {...props.openForm.register('branchId')}
+              disabled={props.openMutation.isPending}
+              onChange={(e) => {
+                const nextBranchId = e.target.value;
+                props.openForm.setValue('branchId', nextBranchId);
+                const branchObj = props.branches.find(b => String(b.id) === String(nextBranchId));
+                const nextLocs = locationList.filter(l => !l.branchId || String(l.branchId) === String(nextBranchId));
+                const nextDefaultLoc = (branchObj?.defaultStockLocationId && locationList.find(l => String(l.id) === String(branchObj.defaultStockLocationId)))
+                  || nextLocs.find(l => l.name.includes('الرئيسي') || l.name.toLowerCase().includes('main'))
+                  || nextLocs[0]
+                  || locationList[0];
+                if (nextDefaultLoc?.id) {
+                  props.openForm.setValue('locationId', nextDefaultLoc.id);
+                }
+              }}
+            >
               <option value="">بدون فرع</option>
               {props.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
             </select>
@@ -145,7 +168,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           {SINGLE_STORE_MODE ? <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field> : <Field label="المخزن">
             <select {...props.openForm.register('locationId')} disabled={props.openMutation.isPending}>
               <option value="">بدون مخزن</option>
-              {locationList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+              {availableLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
             </select>
           </Field>}
           <Field label="ملاحظة الافتتاح"><textarea rows={2} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>

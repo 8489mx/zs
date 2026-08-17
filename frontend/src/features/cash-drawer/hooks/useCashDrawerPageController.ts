@@ -5,7 +5,6 @@ import { useCashierShifts } from '@/features/cash-drawer/hooks/useCashierShifts'
 import { useCashDrawerCatalog } from '@/features/cash-drawer/hooks/useCashDrawerCatalog';
 import { useCashDrawerMutations } from '@/features/cash-drawer/hooks/useCashDrawerMutations';
 import { useCashDrawerPageActions } from '@/features/cash-drawer/hooks/useCashDrawerPageActions';
-import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { useAuthStore } from '@/stores/auth-store';
 import type { CashierShift } from '@/types/domain';
 
@@ -88,12 +87,23 @@ export function useCashDrawerPageController() {
   });
 
   const { openMutation, movementMutation, closeMutation, reviewMutation } = useCashDrawerMutations({
-    onOpenSuccess: () => openForm.reset({
-      openingCash: 0,
-      note: '',
-      branchId: SINGLE_STORE_MODE ? (branches[0]?.id || '') : '',
-      locationId: SINGLE_STORE_MODE ? (locations[0]?.id || '') : '',
-    }),
+    onOpenSuccess: () => {
+      const defaultBranch = (currentUser?.defaultBranchId && branches.find(b => String(b.id) === String(currentUser.defaultBranchId)))
+        || branches.find(b => b.name.includes('الرئيسي') || b.name.toLowerCase().includes('main'))
+        || branches[0];
+      const branchId = defaultBranch?.id || '';
+      const branchLocations = locations.filter(l => !l.branchId || String(l.branchId) === String(branchId));
+      const defaultLocation = (defaultBranch?.defaultStockLocationId && locations.find(l => String(l.id) === String(defaultBranch.defaultStockLocationId)))
+        || branchLocations.find(l => l.name.includes('الرئيسي') || l.name.toLowerCase().includes('main'))
+        || branchLocations[0]
+        || locations[0];
+      openForm.reset({
+        openingCash: 0,
+        note: '',
+        branchId,
+        locationId: defaultLocation?.id || '',
+      });
+    },
     onMovementSuccess: () => movementForm.reset({ shiftId: '', type: 'cash_in', amount: 0, note: '' }),
     onCloseSuccess: () => closeForm.reset({
       shiftId: '',
@@ -117,12 +127,28 @@ export function useCashDrawerPageController() {
   });
 
   useEffect(() => {
-    if (!SINGLE_STORE_MODE) return;
+    if (branches.length === 0 && locations.length === 0) return;
     const currentBranchId = openForm.getValues('branchId');
+    const defaultBranch = (currentUser?.defaultBranchId && branches.find(b => String(b.id) === String(currentUser.defaultBranchId)))
+      || branches.find(b => b.name.includes('الرئيسي') || b.name.toLowerCase().includes('main'))
+      || branches[0];
+    const resolvedBranchId = currentBranchId || defaultBranch?.id || '';
+
+    if (!currentBranchId && resolvedBranchId) {
+      openForm.setValue('branchId', resolvedBranchId);
+    }
+
     const currentLocationId = openForm.getValues('locationId');
-    if (!currentBranchId && branches[0]?.id) openForm.setValue('branchId', branches[0].id);
-    if (!currentLocationId && locations[0]?.id) openForm.setValue('locationId', locations[0].id);
-  }, [branches, locations, openForm]);
+    const branchLocations = locations.filter(l => !l.branchId || String(l.branchId) === String(resolvedBranchId));
+    const defaultLocation = (defaultBranch?.defaultStockLocationId && locations.find(l => String(l.id) === String(defaultBranch.defaultStockLocationId)))
+      || branchLocations.find(l => l.name.includes('الرئيسي') || l.name.toLowerCase().includes('main'))
+      || branchLocations[0]
+      || locations[0];
+
+    if (!currentLocationId && defaultLocation?.id) {
+      openForm.setValue('locationId', defaultLocation.id);
+    }
+  }, [branches, locations, currentUser?.defaultBranchId, openForm]);
 
   useEffect(() => {
     setShiftPage(1);
