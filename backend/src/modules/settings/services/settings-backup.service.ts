@@ -223,7 +223,41 @@ export class SettingsBackupService {
     return `ZERP-${storeSlug}-${userSlug}-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}.zip`;
   }
   private async ensureWritableFolder(folderPath: string): Promise<void> { await fs.mkdir(folderPath, { recursive: true }); const probeFile = path.join(folderPath, `.zs-write-test-${Date.now()}.tmp`); await fs.writeFile(probeFile, 'ok', 'utf8'); await fs.unlink(probeFile); }
-  private async saveBackupToFolder(folderPath: string, source: string, actor: AuthContext): Promise<{ filePath: string; fileName: string }> { const resolvedFolder = this.normalizeFolderPath(folderPath); await this.ensureWritableFolder(resolvedFolder); const { zipBuffer, manifest } = await this.exportBackup(actor); const now = new Date(); const fileName = await this.buildBackupFileName(actor, now); const filePath = path.join(resolvedFolder, fileName); const scope = this.scope(actor); await fs.writeFile(filePath, zipBuffer); await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'file-' + now.toISOString()}, ${source}, ${JSON.stringify({ manifest })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db).catch(() => undefined); return { filePath, fileName }; }
+  private async rotateOldBackups(folderPath: string, maxRetention: number = 30): Promise<void> {
+    try {
+      const files = await fs.readdir(folderPath);
+      const backupFiles: { fullPath: string; mtime: number }[] = [];
+      for (const file of files) {
+        if (file.startsWith('ZERP-') && file.endsWith('.zip')) {
+          const fullPath = path.join(folderPath, file);
+          const stat = await fs.stat(fullPath);
+          backupFiles.push({ fullPath, mtime: stat.mtimeMs });
+        }
+      }
+      if (backupFiles.length > maxRetention) {
+        backupFiles.sort((a, b) => b.mtime - a.mtime);
+        const toDelete = backupFiles.slice(maxRetention);
+        for (const item of toDelete) {
+          await fs.unlink(item.fullPath).catch(() => undefined);
+        }
+      }
+    } catch {
+      // Rotation failures should not interrupt the backup process
+    }
+  }
+  private async saveBackupToFolder(folderPath: string, source: string, actor: AuthContext): Promise<{ filePath: string; fileName: string }> {
+    const resolvedFolder = this.normalizeFolderPath(folderPath);
+    await this.ensureWritableFolder(resolvedFolder);
+    const { zipBuffer, manifest } = await this.exportBackup(actor);
+    const now = new Date();
+    const fileName = await this.buildBackupFileName(actor, now);
+    const filePath = path.join(resolvedFolder, fileName);
+    const scope = this.scope(actor);
+    await fs.writeFile(filePath, zipBuffer);
+    await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'file-' + now.toISOString()}, ${source}, ${JSON.stringify({ manifest })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db).catch(() => undefined);
+    await this.rotateOldBackups(resolvedFolder, 30);
+    return { filePath, fileName };
+  }
 
   async runAutoBackupIfDue(actor?: AuthContext | null): Promise<Record<string, unknown>> { if (!actor) return { ok: true, ran: false, reason: 'no-actor' }; this.assertAdmin(actor); try { this.assertDesktopMode(); } catch { return { ok: true, ran: false, reason: 'disabled' }; } const state = await this.getBackupConfigState(actor); if (!state.automation.enabled) return { ok: true, ran: false, reason: 'disabled', config: state }; const now = new Date(); const scheduledAt = this.getLastScheduledDate(now, state.automation); const scheduledIso = scheduledAt.toISOString(); if (String(state.automation.lastScheduledFor || '').trim() === scheduledIso) return { ok: true, ran: false, reason: 'already-attempted', config: state }; const lastSuccessAt = state.automation.lastSuccessAt ? new Date(state.automation.lastSuccessAt) : null; if (lastSuccessAt && lastSuccessAt.getTime() >= scheduledAt.getTime()) { state.automation.lastScheduledFor = scheduledIso; await this.saveBackupConfigState(state, actor); return { ok: true, ran: false, reason: 'already-succeeded', config: state }; } state.automation.lastAttemptAt = now.toISOString(); state.automation.lastScheduledFor = scheduledIso; try { const result = await this.saveBackupToFolder(state.folderPath, 'auto-scheduled', actor); state.automation.lastAttemptStatus = 'success'; state.automation.lastSuccessAt = now.toISOString(); state.automation.lastError = ''; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي تلقائي', `تم إنشاء نسخة احتياطية تلقائية في ${result.filePath}`, actor).catch(() => undefined); return { ok: true, ran: true, success: true, filePath: result.filePath, config: state }; } catch (error) { state.automation.lastAttemptStatus = 'failed'; state.automation.lastError = error instanceof Error ? error.message : 'تعذر تنفيذ النسخ التلقائي'; await this.saveBackupConfigState(state, actor); return { ok: false, ran: true, success: false, error: state.automation.lastError, config: state }; } }
   async getBackupConfig(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); await this.runAutoBackupIfDue(actor); const state = await this.getBackupConfigState(actor); return { ok: true, defaultFolderPath: DEFAULT_BACKUP_FOLDER, folderPath: state.folderPath || DEFAULT_BACKUP_FOLDER, automation: state.automation, scope: this.scope(actor) }; }

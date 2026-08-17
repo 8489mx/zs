@@ -36,7 +36,7 @@ export function usePosOfflineSync() {
         const legacyPayload = buildLegacyPosSalePayload(input);
         const minimalPayload = buildMinimalPosSalePayload(input);
         
-        await posApi.createSale(payload, legacyPayload, minimalPayload);
+        await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });
         removeOfflineSale(sale.id);
       } catch (error: any) {
         // If it's a validation error, mark as failed permanently, otherwise keep pending

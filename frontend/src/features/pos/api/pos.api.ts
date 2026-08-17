@@ -34,8 +34,8 @@ function shouldRetrySaleWithFallback(error: unknown) {
   return !message || message === 'البيانات المرسلة غير صحيحة.' || message === 'تعذر تنفيذ العملية المطلوبة.';
 }
 
-async function postSale(payload: unknown) {
-  return unwrapEntity<Sale>(await http<Sale | SaleMutationEnvelope>('/api/sales', { method: 'POST', body: JSON.stringify(payload) }), 'sale');
+async function postSale(payload: unknown, headers?: Record<string, string>) {
+  return unwrapEntity<Sale>(await http<Sale | SaleMutationEnvelope>('/api/sales', { method: 'POST', body: JSON.stringify(payload), headers }), 'sale');
 }
 
 function buildPosLookupPath(params: PosLookupParams = {}) {
@@ -75,16 +75,16 @@ export const posApi = {
     cartItemsCount?: number;
     note?: string;
   }) => http('/api/sales/pos-audit-event', { method: 'POST', body: JSON.stringify(payload) }),
-  createSale: async (payload: unknown, legacyPayload?: unknown, minimalPayload?: unknown) => {
+  createSale: async (payload: unknown, legacyPayload?: unknown, minimalPayload?: unknown, headers?: Record<string, string>) => {
     try {
-      return await postSale(payload);
+      return await postSale(payload, headers);
     } catch (error) {
       if (!legacyPayload || !shouldRetrySaleWithFallback(error)) throw error;
       try {
-        return await postSale(legacyPayload);
+        return await postSale(legacyPayload, headers);
       } catch (legacyError) {
         if (!minimalPayload || !shouldRetrySaleWithFallback(legacyError)) throw legacyError;
-        return await postSale(minimalPayload);
+        return await postSale(minimalPayload, headers);
       }
     }
   },
