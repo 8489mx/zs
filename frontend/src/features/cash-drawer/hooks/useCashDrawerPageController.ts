@@ -156,12 +156,40 @@ export function useCashDrawerPageController() {
 
   const openOptions = useMemo(() => openShiftOptionsQuery.data?.rows || [], [openShiftOptionsQuery.data?.rows]);
 
+  const myOpenShift = useMemo(() => {
+    if (!currentUser) return null;
+    return openOptions.find(
+      (shift) =>
+        (shift.openedById && String(shift.openedById) === String(currentUser.id)) ||
+        (shift.openedByName && currentUser.username && shift.openedByName.trim().toLowerCase() === currentUser.username.trim().toLowerCase())
+    ) || null;
+  }, [openOptions, currentUser]);
+
+  const hasMyOpenShift = Boolean(myOpenShift);
+  const isSuperAdminOrManager = ['super_admin', 'admin', 'manager'].includes(userRole);
+
+  const canOpenShift = !hasMyOpenShift;
+  const openDisabledHint = hasMyOpenShift ? 'لديك وردية مفتوحة بالفعل، يجب إغلاقها أولاً لفتح وردية جديدة.' : '';
+
+  const canCloseShift = isSuperAdminOrManager ? openOptions.length > 0 : hasMyOpenShift;
+  const closeDisabledHint = isSuperAdminOrManager
+    ? (openOptions.length === 0 ? 'لا توجد أي ورديات مفتوحة حالياً في النظام لإغلاقها.' : '')
+    : (!hasMyOpenShift ? 'لا توجد لديك وردية مفتوحة لإغلاقها.' : '');
+
+  const canRecordMovement = isSuperAdminOrManager ? openOptions.length > 0 : hasMyOpenShift;
+  const movementDisabledHint = isSuperAdminOrManager
+    ? (openOptions.length === 0 ? 'لا توجد أي ورديات مفتوحة لتسجيل حركة نقدية عليها.' : '')
+    : (!hasMyOpenShift ? 'يجب فتح وردية أولاً لتسجيل حركة درج النقدية.' : '');
+
   useEffect(() => {
-    const currentMovementShiftId = movementForm.getValues('shiftId');
-    if (!currentMovementShiftId && openOptions[0]?.id) movementForm.setValue('shiftId', String(openOptions[0].id));
-    const currentCloseShiftId = closeForm.getValues('shiftId');
-    if (!currentCloseShiftId && openOptions[0]?.id) closeForm.setValue('shiftId', String(openOptions[0].id));
-  }, [closeForm, movementForm, openOptions]);
+    const targetShiftId = myOpenShift?.id || openOptions[0]?.id;
+    if (targetShiftId) {
+      const currentMovementShiftId = movementForm.getValues('shiftId');
+      if (!currentMovementShiftId) movementForm.setValue('shiftId', String(targetShiftId));
+      const currentCloseShiftId = closeForm.getValues('shiftId');
+      if (!currentCloseShiftId) closeForm.setValue('shiftId', String(targetShiftId));
+    }
+  }, [closeForm, movementForm, openOptions, myOpenShift]);
 
   const selectedCloseShift = openOptions.find((shift) => String(shift.id) === String(closeForm.watch('shiftId'))) || null;
   const closeExpectedCash = Number(selectedCloseShift?.expectedCash || 0);
@@ -275,6 +303,14 @@ export function useCashDrawerPageController() {
     branches,
     locations,
     openOptions,
+    myOpenShift,
+    hasMyOpenShift,
+    canOpenShift,
+    canCloseShift,
+    canRecordMovement,
+    openDisabledHint,
+    closeDisabledHint,
+    movementDisabledHint,
     closeExpectedCash,
     closeVariancePreview,
     closeNoteValue,

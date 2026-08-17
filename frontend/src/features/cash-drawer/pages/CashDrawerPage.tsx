@@ -53,9 +53,30 @@ export function CashDrawerPage() {
         badge={<span className="nav-pill">متابعة ورديات نقطة البيع</span>}
         actions={
           <div className="actions compact-actions">
-            <Button variant="primary" onClick={() => setActiveForm('open')}>فتح وردية</Button>
-            <Button variant="secondary" onClick={() => setActiveForm('movement')}>تسجيل حركة</Button>
-            <Button variant="danger" onClick={() => setActiveForm('close')}>إغلاق الوردية</Button>
+            <Button
+              variant="primary"
+              onClick={() => setActiveForm('open')}
+              disabled={!controller.canOpenShift}
+              title={!controller.canOpenShift ? controller.openDisabledHint : undefined}
+            >
+              فتح وردية
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setActiveForm('movement')}
+              disabled={!controller.canRecordMovement}
+              title={!controller.canRecordMovement ? controller.movementDisabledHint : undefined}
+            >
+              تسجيل حركة
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => setActiveForm('close')}
+              disabled={!controller.canCloseShift}
+              title={!controller.canCloseShift ? controller.closeDisabledHint : undefined}
+            >
+              إغلاق الوردية
+            </Button>
           </div>
         }
       />
