@@ -76,8 +76,35 @@ export function useNewPurchaseOrderController() {
   const currentPayloadRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const catalog = usePurchaseComposerCatalog();
+  const resetFormFields = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(PURCHASE_DRAFT_STORAGE_KEY);
+    }
+    hasLoadedDraftRef.current = false;
+    setLines([{ id: Date.now(), productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: '' }]);
+    setSupplier('');
+    setPaymentType('credit');
+    setDate(new Date().toISOString().split('T')[0]);
+    setRequiredDate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    setCurrency('EGP');
+    setCompany('');
+    setContact('');
+    setShippingAddress('');
+    setTaxRate(14);
+    setDiscount(0);
+    setCostCenter('');
+    setProject('');
+    setTermsTemplate('');
+    setNotes('');
+    setAttachments([]);
+    setValidationErrors({ rows: {} });
+    setInlineMessage(null);
+    setDocumentStatus('draft');
+  };
+
   const createMutation = useCreatePurchaseMutation((result) => {
     setCreatedPurchase(result.purchase);
+    resetFormFields();
   });
 
   const rawSettings = catalog.settingsQuery.data;
@@ -1288,22 +1315,7 @@ export function useNewPurchaseOrderController() {
 
   const handleNewPurchaseOrder = () => {
     setCreatedPurchase(null);
-    setLines([{ id: Date.now(), productId: null, itemName: '', qty: 1, unitPrice: 0, warehouse: '' }]);
-    setSupplier('');
-    setPaymentType('credit');
-    setDate(new Date().toISOString().split('T')[0]);
-    setRequiredDate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-    setCurrency('');
-    setCompany('');
-    setContact('');
-    setShippingAddress('');
-    setTaxRate(14);
-    setDiscount(0);
-    setCostCenter('');
-    setProject('');
-    setTermsTemplate('');
-    setNotes('');
-    setAttachments([]);
+    resetFormFields();
   };
 
 
