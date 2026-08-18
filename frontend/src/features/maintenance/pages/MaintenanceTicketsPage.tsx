@@ -7,6 +7,7 @@ import { useSettingsQuery, useProductsQuery } from '@/shared/hooks/use-catalog-q
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { maintenanceApi, type UpsertMaintenanceTicketPayload } from '../api/maintenance.api';
 import { MaintenanceReceiptModal } from '../components/MaintenanceReceiptModal';
+import { PatternLockWidget } from '../components/PatternLockWidget';
 import type { MaintenanceTicket, MaintenanceStatus } from '@/types/domain-models/maintenance';
 
 export function MaintenanceTicketsPage() {
@@ -408,7 +409,7 @@ export function MaintenanceTicketsPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>رقم السيريال / IMEI</label>
                   <input
@@ -420,17 +421,13 @@ export function MaintenanceTicketsPage() {
                     placeholder="354892019283741"
                   />
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>رمز قفل الشاشة / النمط</label>
-                  <input
-                    type="text"
-                    dir="ltr"
-                    className="purchase-prototype-field-input"
-                    value={formData.passcode || ''}
-                    onChange={(e) => setFormData({ ...formData, passcode: e.target.value })}
-                    placeholder="مثال: 1234 أو رسمة حرف L"
-                  />
-                </div>
+              </div>
+
+              <div>
+                <PatternLockWidget
+                  value={formData.passcode || ''}
+                  onChange={(val) => setFormData({ ...formData, passcode: val })}
+                />
               </div>
 
               <div>

@@ -46,6 +46,8 @@ export function DashboardPage() {
   const smartAlerts = buildDashboardAlerts(overview.data);
   const quickActions = [
     { to: '/pos', label: 'نقطة البيع', hint: 'ابدأ تسجيل فاتورة' },
+    { to: '/maintenance', label: 'قسم الصيانة', hint: 'متابعة أجهزة وتذاكر الإصلاح' },
+    { to: '/trade-in', label: 'شراء المستعمل', hint: 'تسجيل شراء واستبدال الهواتف' },
     { to: '/treasury', label: 'تسجيل مصروف', hint: 'متابعة مصروفات اليوم' },
     { to: '/inventory', label: 'مراجعة المخزون', hint: 'الأصناف المنخفضة والراكدة' },
     { to: '/reports', label: 'تقرير اليوم', hint: 'ملخص الأداء اليومي' },

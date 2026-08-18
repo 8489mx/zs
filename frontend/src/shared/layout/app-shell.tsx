@@ -171,12 +171,15 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   const visibleNavigationItems = useMemo(() => {
-    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'tax-dispatcher', 'delivery-reps', 'purchases-new', 'purchases', 'returns', 'purchase-returns', 'import-shipments', 'import-supplier-credit', 'import-profit-pool', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'expenses', 'services', 'hr', 'audit', 'saas-admin-tenants', 'saas-admin-plans', 'inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
+    const preferredOrder = ['dashboard', 'pos', 'cash-drawer', 'sales', 'maintenance', 'tax-dispatcher', 'delivery-reps', 'purchases-new', 'purchases', 'trade-in', 'returns', 'purchase-returns', 'import-shipments', 'import-supplier-credit', 'import-profit-pool', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'treasury', 'expenses', 'services', 'hr', 'audit', 'saas-admin-tenants', 'saas-admin-plans', 'inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'imei-history', 'manufacturing-boms', 'manufacturing-work-orders', 'manufacturing-settings', 'pricing-center', 'customers', 'suppliers', 'reports', 'settings'];
     const labelOverrides: Record<string, string> = {
       dashboard: t('sidebar.dashboard'),
       'cash-drawer': t('sidebar.cash-drawer'),
       pos: t('sidebar.pos'),
       sales: t('sidebar.sales'),
+      maintenance: 'قسم الصيانة والإصلاح',
+      'trade-in': 'شراء واستبدال المستعمل',
+      'imei-history': 'سجل وتتبع IMEI',
       returns: 'مرتجعات المبيعات',
       'purchase-returns': 'مرتجعات المشتريات',
       customers: t('sidebar.customers'),
