@@ -295,7 +295,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 </Field>
               )}
               <Field label="ملاحظات"><textarea rows={3} {...adjustmentForm.register('note')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
-              {!isAdmin && <Field label="رمز اعتماد المدير" error={adjustmentForm.formState.errors.managerPin?.message}><input type="text" className="secure-password-field" {...adjustmentForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>}
+              {!isAdmin && <Field label="رمز اعتماد المدير" error={adjustmentForm.formState.errors.managerPin?.message}><input type="text" className="secure-password-field" {...adjustmentForm.register('managerPin')} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>}
               {!canManageInventory ? <div className="muted small">هذا الحساب يملك صلاحية متابعة المخزون فقط. تنفيذ التسويات والتالف يتطلب canAdjustInventory.</div> : null}
               <MutationFeedback isError={adjustmentMutation.isError} isSuccess={adjustmentMutation.isSuccess} error={adjustmentMutation.error} errorFallback="تعذر تنفيذ حركة المخزون" successText="تم حفظ حركة المخزون وتحديث الرصيد بنجاح." />
               <div className="actions">
@@ -363,7 +363,7 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                 </Field>
               )}
               <Field label="ملاحظات"><textarea rows={3} {...damagedForm.register('note')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
-              {!isAdmin && <Field label="رمز اعتماد المدير" error={damagedForm.formState.errors.managerPin?.message}><input type="text" className="secure-password-field" {...damagedForm.register('managerPin')} autoComplete="new-password" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={damagedMutation.isPending || !canManageInventory} /></Field>}
+              {!isAdmin && <Field label="رمز اعتماد المدير" error={damagedForm.formState.errors.managerPin?.message}><input type="text" className="secure-password-field" {...damagedForm.register('managerPin')} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} disabled={damagedMutation.isPending || !canManageInventory} /></Field>}
               <div className="stats-grid compact-grid workspace-stats-grid inventory-damage-mini-grid" style={{ marginTop: 12 }}>
                 <div className="stat-card"><span>المخزون الحالي</span><strong>{selectedDamagedProduct ? selectedDamagedProduct.stock : 0}</strong></div>
                 <div className="stat-card"><span>الكمية التالفة</span><strong>{damagedQty || 0}</strong></div>

@@ -156,11 +156,14 @@ export function ActionConfirmDialog({
                 }}
                 type="text"
                 className="secure-password-field"
-                id="managerApprovalSecret"
-                name="managerApprovalSecret"
+                id="pin_verification_entry"
+                name="pin_verification_entry"
                 placeholder="أدخل الرمز"
                 inputMode="numeric"
-                autoComplete="new-password"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}

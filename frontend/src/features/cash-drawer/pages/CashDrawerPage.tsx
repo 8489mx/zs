@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -21,6 +21,15 @@ export function CashDrawerPage() {
   
   const [activeForm, setActiveForm] = useState<'open' | 'movement' | 'close' | null>(null);
   const controller = useCashDrawerPageController();
+
+  useEffect(() => {
+    if (controller.openMutation.isSuccess || controller.movementMutation.isSuccess || controller.closeMutation.isSuccess) {
+      const timer = setTimeout(() => {
+        setActiveForm(null);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [controller.openMutation.isSuccess, controller.movementMutation.isSuccess, controller.closeMutation.isSuccess]);
   const movementType = controller.confirmAction?.kind === 'movement' ? controller.confirmAction.values.type : '';
   const isCashOut = movementType === 'cash_out';
   const isMovement = controller.confirmAction?.kind === 'movement';

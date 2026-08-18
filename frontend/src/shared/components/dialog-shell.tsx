@@ -26,7 +26,7 @@ export function DialogShell({
   width = 'min(720px, 100%)',
   zIndex = 70,
   closeOnBackdrop = true,
-  showCloseButton = true,
+  showCloseButton = false,
   ariaLabel,
   overlayClassName = '',
   shellClassName = '',

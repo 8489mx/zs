@@ -134,6 +134,7 @@ export interface AppSettings {
   taxRate?: number;
   taxMode?: string;
   paperSize?: 'a4' | 'receipt' | string;
+  invoiceNumberingScheme?: 'daily' | 'sequential' | string;
   managerPin?: string;
   hasManagerPin?: boolean;
   autoBackup?: 'on' | 'off' | string;

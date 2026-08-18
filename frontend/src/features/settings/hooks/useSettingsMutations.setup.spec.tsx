@@ -56,6 +56,7 @@ const baseSettingsMutationValues = {
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,
   defaultBranchIssueMode: 'final_issue' as const,
+  invoiceNumberingScheme: 'daily' as const,
   allowNegativeStockSales: false,
   allowZeroPurchaseCost: false,
   requireCashierShiftForSales: true,

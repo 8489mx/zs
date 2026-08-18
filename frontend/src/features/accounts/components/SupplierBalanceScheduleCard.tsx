@@ -337,7 +337,6 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
           <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label={`تأكيد تسليم الدفعة إلى ${supplierName}`}>
             <div className="dialog-card supplier-payment-dialog-card">
               <div className="supplier-payment-dialog-header supplier-payment-dialog-header--centered">
-                <button type="button" className="supplier-payment-dialog-close" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending} aria-label="إغلاق">×</button>
                 <div>
                   <h3>تأكيد تسليم الدفعة إلى {supplierName}</h3>
                   <p className="muted">دفعة {paymentTarget.installmentNo} — المتبقي {formatCurrency(paymentTarget.remainingAmount)}</p>

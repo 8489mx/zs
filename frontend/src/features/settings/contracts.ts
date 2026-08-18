@@ -84,6 +84,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     dateFormat: values.dateFormat === 'yyyy-MM-dd' ? 'yyyy-MM-dd' : 'dd/MM/yyyy',
     timeFormat: values.timeFormat === '24h' ? '24h' : '12h',
     whatsappLinkMode: values.whatsappLinkMode === 'web' ? 'web' : values.whatsappLinkMode === 'app' ? 'app' : 'wa_me',
+    invoiceNumberingScheme: values.invoiceNumberingScheme === 'sequential' ? 'sequential' : 'daily',
   };
 
   return { settings };

@@ -74,6 +74,13 @@ export function Step1Welcome({ form, updateField, extraData, updateExtra, onNext
             onChange={(e) => updateField('adminPassword', e.target.value)} 
             dir="ltr"
             placeholder="********" 
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
           />
         </Field>
         <div style={{ gridColumn: 'span 2', fontSize: 12, color: 'var(--muted)', textAlign: 'right' }}>

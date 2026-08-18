@@ -90,6 +90,11 @@ export interface ReturnRecord {
   returnType?: string;
   type?: string;
   invoiceId?: string;
+  invoiceDocNo?: string;
+  partyName?: string;
+  customerName?: string;
+  supplierName?: string;
+  orderType?: string;
   productId?: string;
   productName: string;
   qty: number;

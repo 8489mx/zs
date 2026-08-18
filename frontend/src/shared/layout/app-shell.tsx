@@ -414,7 +414,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="sidebar-footer">
             <div className="sidebar-footer-info" style={{ marginBottom: 12 }}>
               <div className="muted small">{t("sidebar.welcome_msg")} {displayName}</div>
-              <div className="muted small" style={{ opacity: 0.7, marginTop: 4, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div className="muted small" style={{ opacity: 0.7, marginTop: 4, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                 الإصدار الحالي: {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
                 {updateInfo?.updateAvailable && (
                   <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--color-warning)', flexShrink: 0 }} title="تحديث جديد متاح" />

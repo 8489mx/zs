@@ -137,11 +137,13 @@ export function DeveloperActivationPanel() {
                 type="text" 
                 className="secure-password-field"
                 name="developer_master_password_no_save"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off" 
                 autoCapitalize="off" 
                 spellCheck={false}
                 data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 value={masterPassword} 
                 onChange={(e) => setMasterPassword(e.target.value)} 
                 placeholder="أدخل كلمة المرور السرية" 

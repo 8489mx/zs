@@ -87,13 +87,13 @@ export function ProfilePage() {
           <FormSection title="تغيير كلمة المرور" className="profile-section">
             <form onSubmit={handlePasswordSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
               <Field label="كلمة المرور الحالية">
-                <input type="text" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="input secure-password-field" required dir="ltr" />
+                <input type="text" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="input secure-password-field" required dir="ltr" autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
               </Field>
               <Field label="كلمة المرور الجديدة">
-                <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input secure-password-field" required dir="ltr" />
+                <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input secure-password-field" required dir="ltr" autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
               </Field>
               <Field label="تأكيد كلمة المرور الجديدة">
-                <input type="text" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input secure-password-field" required dir="ltr" />
+                <input type="text" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="input secure-password-field" required dir="ltr" autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
               </Field>
               <div className="actions" style={{ gridColumn: '1 / -1' }}>
                 <Button type="submit" variant="primary" disabled={isSavingPassword}>تغيير كلمة المرور</Button>

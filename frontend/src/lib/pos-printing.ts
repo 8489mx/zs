@@ -14,6 +14,8 @@ interface PrintReceiptOptions {
   pageSize?: PosPrintPageSize;
   settings?: Partial<AppSettings> | null;
   cashierName?: string;
+  isReturn?: boolean;
+  footerText?: string;
 }
 
 export function openReceiptDocument(
@@ -23,9 +25,15 @@ export function openReceiptDocument(
   options: PrintReceiptOptions,
   subtitle = '',
 ) {
+  const defaultFooter = options.isReturn
+    ? 'تم استلام المرتجع وقيد المبلغ للعميل بنجاح.'
+    : defaultInvoiceFooter(options.settings);
+
   printHtmlDocument(title, documentHtml, {
     subtitle,
-    footerHtml: getPrintOption(options.settings, 'printShowFooter', true) ? escapeHtml(defaultInvoiceFooter(options.settings)) : '',
+    footerHtml: getPrintOption(options.settings, 'printShowFooter', true)
+      ? escapeHtml(options.footerText ?? defaultFooter)
+      : '',
     pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4',
     extraStyles: getInvoiceStyles(compact),
     deviceName: options.settings?.posElectronCashierPrinter || undefined,

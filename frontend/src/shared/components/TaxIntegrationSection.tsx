@@ -93,7 +93,7 @@ export function TaxIntegrationSection() {
 
           <div className="form-group">
             <label>Client Secret</label>
-            <input type="password" className="input" {...form.register('client_secret')} autoComplete="new-password" />
+            <input type="text" className="input secure-password-field" {...form.register('client_secret')} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} />
           </div>
 
           <label htmlFor="is_active_tax" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-start', margin: '16px 0 8px 0', cursor: 'pointer' }}>

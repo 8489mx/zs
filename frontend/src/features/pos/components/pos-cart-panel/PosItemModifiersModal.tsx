@@ -118,29 +118,6 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
           flexShrink: 0
         }}>
           <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#0f172a' }}>إضافات: {item.name}</h2>
-          <button 
-            type="button" 
-            onClick={onClose} 
-            aria-label="إغلاق"
-            style={{ 
-              background: '#e2e8f0', 
-              border: 'none', 
-              cursor: 'pointer', 
-              color: '#475569',
-              padding: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '50%',
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.background = '#cbd5e1'; e.currentTarget.style.color = '#0f172a'; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#475569'; }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M18 6L6 18M6 6l12 12"></path>
-            </svg>
-          </button>
         </header>
 
         <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>

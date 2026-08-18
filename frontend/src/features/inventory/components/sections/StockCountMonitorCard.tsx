@@ -126,7 +126,10 @@ export function StockCountMonitorCard({
             value={postingPin}
             onChange={(e) => onPostingPinChange(e.target.value)}
             placeholder="يستخدم عند اعتماد أي جلسة"
-            autoComplete="new-password"
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}

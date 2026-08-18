@@ -44,7 +44,7 @@ export class SalesQueryService {
   private mapSaleShells(sales: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
     return sales.map((sale) => ({
       id: String(sale.id),
-      docNo: sale.doc_no || `S-${sale.id}`,
+      docNo: sale.doc_no || `Z-${sale.id}`,
       createdById: sale.created_by_id ? String(sale.created_by_id) : '',
       customerId: sale.customer_id ? String(sale.customer_id) : '',
       customerName: sale.customer_name_ref || sale.customer_name || 'عميل نقدي',

@@ -33,12 +33,6 @@ interface CashDrawerShiftsCardProps {
   onPageSizeChange: (value: number) => void;
 }
 
-function getDisplaySaleReturnCashRefundTotal(row: CashierShift): number {
-  const rawTotal = Number(row.saleReturnCashRefundTotal || 0);
-  if (rawTotal > 0) return rawTotal;
-  const inferredTotal = Number(row.openingCash || 0) + Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0) + Number(row.cashDrawerMovementTotal || 0) - Number(row.expectedCash || 0);
-  return Math.max(0, Number(inferredTotal.toFixed(2)));
-}
 
 function renderStatusBadge(status: string) {
   if (status === 'open') {
@@ -361,7 +355,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                             {/* Card 2: Movements & Returns */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
                               <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                                🔄 الحركات والمسحوبات والموردين
+                                🔄 الحركات والمسحوبات والمصروفات
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -369,28 +363,35 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                   <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerCashInTotal || 0)}</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>مسحوبات نقدية / مصروفات:</span>
-                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.cashDrawerCashOutTotal || (row.cashDrawerMovementTotal && row.cashDrawerMovementTotal < 0 ? Math.abs(row.cashDrawerMovementTotal) : 0))}</strong>
+                                  <span style={{ color: '#64748b' }}>مسحوبات نقدية من الدرج:</span>
+                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.cashDrawerCashOutTotal || 0)}</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ color: '#64748b' }}>مصروفات تشغيلية مسجلة:</span>
+                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.expensesTotal || 0)}</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                   <span style={{ color: '#64748b' }}>دفعات وسداد موردين من الدرج:</span>
                                   <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.supplierPaymentsTotal || 0)}</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>مرتجعات نقدية مستردة:</span>
-                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(getDisplaySaleReturnCashRefundTotal(row))}</strong>
+                                  <span style={{ color: '#64748b' }}>مرتجعات مبيعات نقدية للعملاء:</span>
+                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.saleReturnCashRefundTotal || 0)}</strong>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>مرتجعات بطاقات (فيزا):</span>
-                                  <strong style={{ color: '#64748b' }}>{formatCurrency(row.saleReturnCardRefundTotal || 0)}</strong>
-                                </div>
+                                {Number(row.saleReturnCardRefundTotal || 0) > 0 && (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>مرتجعات بطاقات (فيزا):</span>
+                                    <strong style={{ color: '#64748b' }}>{formatCurrency(row.saleReturnCardRefundTotal || 0)}</strong>
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
                                   <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي المنصرف من الدرج:</span>
                                   <strong style={{ fontWeight: 800, color: '#dc2626' }}>
                                     -{formatCurrency(
-                                      Number(row.cashDrawerCashOutTotal || (row.cashDrawerMovementTotal && row.cashDrawerMovementTotal < 0 ? Math.abs(row.cashDrawerMovementTotal) : 0)) +
+                                      Number(row.cashDrawerCashOutTotal || 0) +
+                                      Number(row.expensesTotal || 0) +
                                       Number(row.supplierPaymentsTotal || 0) +
-                                      Number(getDisplaySaleReturnCashRefundTotal(row))
+                                      Number(row.saleReturnCashRefundTotal || 0)
                                     )}
                                   </strong>
                                 </div>
@@ -415,9 +416,10 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                   <span style={{ color: '#64748b' }}>(-) خصومات ومنصرفات الدرج:</span>
                                   <strong style={{ color: '#dc2626' }}>
                                     -{formatCurrency(
-                                      Number(row.cashDrawerCashOutTotal || (row.cashDrawerMovementTotal && row.cashDrawerMovementTotal < 0 ? Math.abs(row.cashDrawerMovementTotal) : 0)) +
+                                      Number(row.cashDrawerCashOutTotal || 0) +
+                                      Number(row.expensesTotal || 0) +
                                       Number(row.supplierPaymentsTotal || 0) +
-                                      Number(getDisplaySaleReturnCashRefundTotal(row))
+                                      Number(row.saleReturnCashRefundTotal || 0)
                                     )}
                                   </strong>
                                 </div>

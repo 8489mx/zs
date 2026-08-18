@@ -74,6 +74,7 @@ export const settingsFormSchema = z.object({
   timeFormat: z.enum(['24h', '12h']).default('12h'),
   whatsappLinkMode: z.enum(['wa_me', 'web', 'app']).default('wa_me'),
   defaultBranchIssueMode: z.enum(['final_issue', 'transfer_to_branch_stock']).default('final_issue'),
+  invoiceNumberingScheme: z.enum(['daily', 'sequential']).default('daily'),
 });
 
 export const branchFormSchema = z.object({

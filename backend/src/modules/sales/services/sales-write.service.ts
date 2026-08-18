@@ -539,7 +539,8 @@ export class SalesWriteService {
         .executeTakeFirstOrThrow();
 
       const id = Number(saleInsert.id);
-      await trx.updateTable('sales').set({ doc_no: `S-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      const docNo = await this.generateSaleDocNo(trx, id, scope.tenantId);
+      await trx.updateTable('sales').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       for (const payment of payments) {
         await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();
@@ -1528,5 +1529,46 @@ export class SalesWriteService {
     const countLabel = Number.isFinite(deletedCount) ? ` | deletedCount=${deletedCount}` : '';
     await this.audit.log('حذف كل الفواتير المعلقة', `تم حذف كل الفواتير المعلقة بواسطة ${auth.username} | scope=${scopeLabel}${countLabel}`, auth);
     return { ok: true, heldSales: (await this.query.listHeldSales(auth)).heldSales };
+  }
+
+  private async generateSaleDocNo(trx: Kysely<Database>, saleId: number, tenantId: string): Promise<string> {
+    const settingRow = await trx
+      .selectFrom('settings')
+      .select(['value'])
+      .where('key', '=', 'invoiceNumberingScheme')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+
+    let scheme = 'daily';
+    if (settingRow?.value) {
+      try {
+        scheme = JSON.parse(settingRow.value);
+      } catch {
+        scheme = String(settingRow.value);
+      }
+    }
+
+    if (scheme === 'sequential') {
+      return `Z-${saleId}`;
+    }
+
+    // Daily date-based numbering: Z-YYMMDD-0001
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${yy}${mm}${dd}`;
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    const countResult = await trx
+      .selectFrom('sales')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('created_at', '>=', startOfDay)
+      .executeTakeFirst();
+
+    const count = Number(countResult?.count || 1);
+    const seq = String(count).padStart(4, '0');
+    return `Z-${datePrefix}-${seq}`;
   }
 }

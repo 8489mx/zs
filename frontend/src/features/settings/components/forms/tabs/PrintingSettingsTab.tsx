@@ -38,13 +38,22 @@ export function PrintingSettingsTab({ form, disabled, activeTab }: PrintingTabPr
         {/* ===== عناصر الطباعة ===== */}
         <FormSection title="عناصر الطباعة على الفاتورة">
           <div className="settings-print-options-grid" style={checkboxGridStyle}>
-            <div style={{ display: 'grid', gap: '4px', marginBottom: '12px', gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: '13px', fontWeight: 600 }}>شكل الإيصال (Receipt Theme)</label>
-              <select className="purchase-prototype-field-input" {...form.register('posReceiptTheme')} disabled={disabled}>
-                <option value="boxed">نمط المربعات (Boxed)</option>
-                <option value="classic">النمط الكلاسيكي (Classic)</option>
-                <option value="ultra-compact">نمط مصغر جداً لتوفير الورق (Ultra Compact)</option>
-              </select>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '12px', gridColumn: '1 / -1' }}>
+              <div style={{ display: 'grid', gap: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>شكل الإيصال (Receipt Theme)</label>
+                <select className="purchase-prototype-field-input" {...form.register('posReceiptTheme')} disabled={disabled}>
+                  <option value="boxed">نمط المربعات (Boxed)</option>
+                  <option value="classic">النمط الكلاسيكي (Classic)</option>
+                  <option value="ultra-compact">نمط مصغر جداً لتوفير الورق (Ultra Compact)</option>
+                </select>
+              </div>
+              <div style={{ display: 'grid', gap: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>نمط ترقيم الفواتير والمرتجعات</label>
+                <select className="purchase-prototype-field-input" {...form.register('invoiceNumberingScheme')} disabled={disabled}>
+                  <option value="daily">ترقيم يومي مدمج بالتاريخ (Z-260818-0001)</option>
+                  <option value="sequential">ترقيم تسلسلي كلاسيكي مستمر (Z-1, Z-2...)</option>
+                </select>
+              </div>
             </div>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printCompactReceipt')} disabled={disabled} /> خطوط إيصال مضغوطة</label>
             <label className="settings-print-option" style={checkboxStyle}><input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentType')} disabled={disabled} /> إظهار نوع المستند</label>

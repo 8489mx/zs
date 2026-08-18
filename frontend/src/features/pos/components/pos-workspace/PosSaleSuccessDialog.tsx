@@ -168,45 +168,6 @@ export function PosSaleSuccessDialog({
           padding: 18,
         }}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="إغلاق"
-          title="إغلاق (Esc)"
-          style={{
-            position: 'absolute',
-            top: 14,
-            left: 14,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 32,
-            height: 32,
-            padding: 0,
-            color: '#64748b',
-            background: 'transparent',
-            border: '1px solid transparent',
-            borderRadius: 6,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.color = '#0f172a';
-            e.currentTarget.style.background = '#f1f5f9';
-            e.currentTarget.style.borderColor = '#e2e8f0';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.color = '#64748b';
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.borderColor = 'transparent';
-          }}
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-
         <div className="pos-sale-success-head">
           <div>
             <span>عملية مكتملة</span>

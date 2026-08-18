@@ -53,54 +53,35 @@ export function printReturnsRegister(rows: ReturnRecord[], meta?: { totalItems?:
 }
 
 export function printReturnRecord(row: ReturnRecord, settings?: Partial<AppSettings> | null) {
-  if (settings?.paperSize === 'receipt') {
-    const document = buildReceiptDocument({
-      pageSize: 'receipt',
-      settings,
-      documentLabel: 'مستند مرتجع',
-      documentNumber: row.docNo || row.id,
-      dateText: formatDate(getReturnDateValue(row)),
-      orderType: returnTypeLabel(row),
-      customerName: returnTypeLabel(row),
-      note: row.note || undefined,
-      items: row.items && row.items.length > 0 ? row.items.map(item => ({
-        name: item.productName || '—',
-        qty: Number(item.qty || 0),
-        price: Number(item.total || 0) / Math.max(1, Number(item.qty || 1)),
-        total: Number(item.total || 0)
-      })) : [{
-        name: row.productName || '—',
-        qty: Number(row.qty || 0),
-        price: Number(row.total || 0) / Math.max(1, Number(row.qty || 1)),
-        total: Number(row.total || 0),
-      }],
-      subtotal: Number(row.total || 0),
-      discount: 0,
-      taxAmount: 0,
-      total: Number(row.total || 0),
-      paidAmount: Number(row.total || 0),
-    });
-    openReceiptDocument(`مستند مرتجع ${row.docNo || row.id}`, document.html, document.compact, { pageSize: 'receipt', settings });
-    return;
-  }
+  const isSaleReturn = row.returnType === 'sale' || row.type === 'sale';
+  const docLabel = isSaleReturn ? 'إيصال مرتجع مبيعات' : 'إشعار مرتجع مشتريات';
+  const partyLabel = row.partyName || row.customerName || row.supplierName || (isSaleReturn ? 'عميل نقدي' : 'مورد');
+  const cashierName = row.createdByName || undefined;
+  const originalInvoice = row.invoiceDocNo || (row.invoiceId ? (isSaleReturn ? `Z-${row.invoiceId}` : `PO-${row.invoiceId}`) : undefined);
+  const refundMethodLabel = row.refundMethod === 'card' ? 'بطاقة / فيزا' : row.settlementMode === 'store_credit' ? 'رصيد عميل (Store Credit)' : 'نقدي (من الدرج)';
+  const pageSize = settings?.paperSize === 'receipt' ? 'receipt' : 'a4';
 
   const document = buildReceiptDocument({
-    pageSize: 'a4',
+    pageSize,
     settings,
-    documentLabel: 'مستند مرتجع',
-    documentNumber: row.docNo || row.id,
+    documentLabel: docLabel,
+    documentNumber: row.docNo || (row.id ? `ZR-${row.id}` : '—'),
+    referenceInvoice: originalInvoice,
+    isReturn: true,
     dateText: formatDate(getReturnDateValue(row)),
-    orderType: returnTypeLabel(row),
-    customerName: returnTypeLabel(row),
+    orderType: row.orderType || undefined,
+    customerName: partyLabel,
+    cashierName,
+    paymentText: refundMethodLabel,
     note: row.note || undefined,
     items: row.items && row.items.length > 0 ? row.items.map(item => ({
       name: item.productName || '—',
       qty: Number(item.qty || 0),
       price: Number(item.total || 0) / Math.max(1, Number(item.qty || 1)),
       total: Number(item.total || 0)
-    })) : [{ 
-      name: row.productName || '—', 
-      qty: Number(row.qty || 0), 
+    })) : [{
+      name: row.productName || '—',
+      qty: Number(row.qty || 0),
       price: Number(row.total || 0) / Math.max(1, Number(row.qty || 1)),
       total: Number(row.total || 0),
     }],
@@ -110,7 +91,13 @@ export function printReturnRecord(row: ReturnRecord, settings?: Partial<AppSetti
     total: Number(row.total || 0),
     paidAmount: Number(row.total || 0),
   });
-  openReceiptDocument(`مستند مرتجع ${row.docNo || row.id}`, document.html, document.compact, { pageSize: 'a4', settings });
+
+  openReceiptDocument(
+    `${docLabel} ${row.docNo || row.id}`,
+    document.html,
+    document.compact,
+    { pageSize, settings, isReturn: true }
+  );
 }
 
 

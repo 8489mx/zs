@@ -67,7 +67,7 @@ export function useCashDrawerPageController() {
   const summary = query.data?.summary || { totalItems: 0, openShiftCount: 0, pendingReviewCount: 0, openShiftDocNo: '', totalVariance: 0 };
 
   const openForm = useForm<OpenShiftValues>({ defaultValues: { openingCash: 0, note: '', branchId: '', locationId: '' } });
-  const movementForm = useForm<MovementValues>({ defaultValues: { shiftId: '', type: 'cash_in', amount: 0, note: '' } });
+  const movementForm = useForm<MovementValues>({ defaultValues: { shiftId: '', type: 'cash_in', amount: 0, note: '', managerPin: '' } });
   const closeForm = useForm<CloseShiftValues>({
     defaultValues: {
       shiftId: '',
@@ -104,7 +104,7 @@ export function useCashDrawerPageController() {
         locationId: defaultLocation?.id || '',
       });
     },
-    onMovementSuccess: () => movementForm.reset({ shiftId: '', type: 'cash_in', amount: 0, note: '' }),
+    onMovementSuccess: () => movementForm.reset({ shiftId: '', type: 'cash_in', amount: 0, note: '', managerPin: '' }),
     onCloseSuccess: () => closeForm.reset({
       shiftId: '',
       countedCash: 0,
@@ -246,8 +246,12 @@ export function useCashDrawerPageController() {
     }
   };
 
-  const handleMovementSubmit = movementForm.handleSubmit((values) => {
-    setConfirmAction({ kind: 'movement', values });
+  const handleMovementSubmit = movementForm.handleSubmit(async (values) => {
+    try {
+      await movementMutation.mutateAsync(values);
+    } catch {
+      // mutation hook exposes error
+    }
   });
 
   const handleCloseSubmit = closeForm.handleSubmit(async (values) => {

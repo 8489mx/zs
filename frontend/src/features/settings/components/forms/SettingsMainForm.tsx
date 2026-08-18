@@ -94,6 +94,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       timeFormat: '12h',
       whatsappLinkMode: 'wa_me',
       defaultBranchIssueMode: 'final_issue',
+      invoiceNumberingScheme: 'daily',
     },
   });
 
@@ -255,6 +256,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       timeFormat: settings.timeFormat === '12h' ? '12h' : '24h',
       whatsappLinkMode: settings.whatsappLinkMode === 'app' ? 'app' : settings.whatsappLinkMode === 'web' ? 'web' : 'wa_me',
       defaultBranchIssueMode: settings.defaultBranchIssueMode === 'transfer_to_branch_stock' ? 'transfer_to_branch_stock' : 'final_issue',
+      invoiceNumberingScheme: settings.invoiceNumberingScheme === 'sequential' ? 'sequential' : 'daily',
     });
   }, [settings, form, branches]);
 

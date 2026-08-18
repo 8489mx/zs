@@ -5,6 +5,9 @@ export type ReturnListRow = {
   returnType: 'sale' | 'purchase';
   type: 'sale' | 'purchase';
   invoiceId: string;
+  invoiceDocNo?: string;
+  partyName?: string;
+  orderType?: string;
   productId: string;
   productName: string;
   qty: number;
@@ -28,10 +31,13 @@ export function mapReturnRows(rows: Array<Record<string, unknown>>): ReturnListR
       docMap.set(docId, {
         id: docId,
         rowId: docId,
-        docNo: String(row.doc_no || 'RET-' + docId),
+        docNo: String(row.doc_no || 'ZR-' + docId),
         returnType: (row.return_type === 'purchase' ? 'purchase' : 'sale'),
         type: (row.return_type === 'purchase' ? 'purchase' : 'sale'),
         invoiceId: row.invoice_id ? String(row.invoice_id) : '',
+        invoiceDocNo: String(row.invoice_doc_no || (row.invoice_id ? (row.return_type === 'purchase' ? 'PO-' + row.invoice_id : 'Z-' + row.invoice_id) : '')),
+        partyName: String(row.party_name || (row.return_type === 'sale' ? 'عميل نقدي' : 'مورد')),
+        orderType: String(row.order_type || ''),
         productId: '',
         productName: '',
         qty: 0,

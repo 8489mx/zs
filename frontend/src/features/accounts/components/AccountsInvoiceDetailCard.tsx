@@ -110,7 +110,7 @@ function normalizeSale(value: unknown): Sale | null {
   const normalized = {
     ...record,
     id,
-    docNo: firstText(record, ['docNo', 'doc_no'], id ? `S-${id}` : ''),
+    docNo: firstText(record, ['docNo', 'doc_no'], id ? `Z-${id}` : ''),
     customerId: firstText(record, ['customerId', 'customer_id'], ''),
     customerName: firstText(record, ['customerName', 'customer_name_ref', 'customer_name'], 'عميل نقدي'),
     paymentType: firstText(record, ['paymentType', 'payment_type'], 'cash'),

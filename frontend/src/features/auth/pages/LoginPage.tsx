@@ -184,7 +184,10 @@ export function LoginPage() {
                     {...form.register('password')} 
                     type="text" 
                     className={`login-input-pro ${!showPassword ? 'secure-password-field' : ''}`}
-                    autoComplete="new-password" 
+                    autoComplete="off" 
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
                     autoCorrect="off" 
                     autoCapitalize="off" 
                     spellCheck={false}

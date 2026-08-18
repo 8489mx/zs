@@ -79,11 +79,12 @@ export function ReturnsRegisterCard({
               itemLabel: 'مرتجع'
             }}
             columns={[
-              { key: 'docNo', header: 'رقم المستند', cell: (row) => row.docNo || '—' },
+              { key: 'docNo', header: 'رقم المستند', cell: (row) => <div><strong>{row.docNo || '—'}</strong>{row.invoiceDocNo ? <div className="muted small" style={{ fontSize: '0.78rem' }}>أصل: {row.invoiceDocNo}</div> : null}</div> },
               { key: 'type', header: 'النوع', cell: (row) => returnTypeLabel(row) },
+              { key: 'party', header: 'الجهة / العميل', cell: (row) => row.partyName || '—' },
               { key: 'product', header: 'الصنف', cell: (row) => row.productName || '—' },
               { key: 'qty', header: 'الكمية', cell: (row) => row.qty },
-              { key: 'total', header: 'الإجمالي', cell: (row) => formatCurrency(row.total) },
+              { key: 'total', header: 'المسترد', cell: (row) => formatCurrency(row.total) },
               { key: 'note', header: 'ملاحظات', cell: (row) => row.note || '—' },
               { key: 'date', header: 'التاريخ', cell: (row) => formatDate(getReturnDateValue(row)) },
               { key: 'createdBy', header: 'منفذ المرتجع', cell: (row) => row.createdByName || row.createdBy || '—' },

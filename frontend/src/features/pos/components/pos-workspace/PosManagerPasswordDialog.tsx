@@ -51,15 +51,18 @@ export function PosManagerPasswordDialog({ open, isPending = false, onClose, onA
                 data-autofocus
                 type="text"
                 className="secure-password-field"
-                id="discountApprovalSecret"
-                name="discountApprovalSecret"
+                id="discount_approval_token"
+                name="discount_approval_token"
                 value={password}
                 onChange={(event) => {
                   setPassword(event.target.value);
                   if (submitError) setSubmitError('');
                 }}
                 placeholder="أدخل كلمة المرور"
-                autoComplete="new-password"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}

@@ -340,7 +340,6 @@ export class CashDrawerService {
     const amount = Number(payload.amount || 0);
     const note = String(payload.note || '').trim();
     assertCashDrawerAmount(amount); assertCashDrawerNote(note);
-    await this.assertCashDrawerApproval(movementType, String(payload.managerPin || '').trim(), auth);
     const signedAmount = toSignedCashDrawerAmount(movementType, amount);
     await sql`insert into treasury_transactions (txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id) values (${movementType}, ${signedAmount}, ${`وردية ${shift.doc_no || shift.id}: ${note}`}, 'cashier_shift', ${shiftId}, ${shift.branch_id ? Number(shift.branch_id) : null}, ${shift.location_id ? Number(shift.location_id) : null}, ${auth.userId}, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
     const expectedCash = await this.computeShiftExpectedCash(shiftId, auth);

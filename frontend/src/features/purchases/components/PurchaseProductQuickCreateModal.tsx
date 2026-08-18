@@ -191,9 +191,6 @@ export function PurchaseProductQuickCreateModal({
             <h4 id="purchase-product-create-title">إنشاء صنف جديد</h4>
             <p>للاستخدام المحلي فقط</p>
           </div>
-          <button type="button" className="purchase-prototype-create-close" aria-label="إغلاق" onClick={requestClose}>
-            ×
-          </button>
         </div>
 
         <div className="purchase-prototype-create-grid compact-grid-2">

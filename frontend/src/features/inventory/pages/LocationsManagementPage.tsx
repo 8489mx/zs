@@ -112,7 +112,6 @@ export function LocationsManagementPage() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{editingLocation ? 'تعديل المخزن' : 'إضافة مخزن جديد'}</h3>
-            <button className="icon-btn" onClick={() => setModalOpen(false)} aria-label="إغلاق">✕</button>
           </div>
           <div style={{ padding: '24px' }}>
             <form onSubmit={onSave} className="form-grid single-col" id="location-form">

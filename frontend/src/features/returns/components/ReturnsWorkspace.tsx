@@ -117,7 +117,7 @@ export function ReturnsWorkspace() {
   }, [isPurchaseMode]);
 
   const createMutation = useMutation({
-    mutationFn: ({ managerPin, reason }: { managerPin: string; reason: string }) => returnsApi.create({
+    mutationFn: ({ managerPin, reason }: { managerPin?: string; reason: string }) => returnsApi.create({
       type: form.type,
       invoiceId: form.invoiceId,
       items: selectedReturnItems.map(({ item, qty }) => ({ 
@@ -319,9 +319,6 @@ export function ReturnsWorkspace() {
         description={selectedInvoice ? `سيتم إنشاء مرتجع على الفاتورة ${selectedInvoice.docNo || selectedInvoice.id} بعدد ${selectedItemsCount} بند بقيمة متوقعة ${formatCurrency(expectedReturnValue)}.` : 'راجع البيانات قبل حفظ المرتجع.'}
         confirmLabel={form.type === 'sale' ? 'تسجيل مرتجع البيع' : 'تسجيل مرتجع الشراء'}
         confirmVariant="danger"
-        managerPinRequired
-        managerPinLabel="كلمة مرور المستخدم"
-        managerPinHint="أدخل كلمة مرور المستخدم الحالي لتأكيد العملية."
         reasonRequired
         reasonLabel="سبب المرتجع"
         reasonPlaceholder="اكتب سبب المرتجع"
@@ -329,7 +326,7 @@ export function ReturnsWorkspace() {
         minReasonLength={1}
         isBusy={createMutation.isPending}
         onCancel={() => setConfirmReturn(false)}
-        onConfirm={({ managerPin, reason }) => void createMutation.mutate({ managerPin, reason })}
+        onConfirm={({ reason }) => void createMutation.mutate({ reason })}
       />
     </div>
   );

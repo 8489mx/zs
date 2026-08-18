@@ -65,12 +65,54 @@ export class ReturnsService {
     await trx.updateTable('customers').set({ store_credit_balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(auth)).execute();
   }
 
-  private async insertReturnDocument(trx: Kysely<Database>, row: ReturnDocumentInput, auth: AuthContext): Promise<number> {
+  private async generateReturnDocNo(trx: Kysely<Database>, returnDocId: number, auth: AuthContext): Promise<string> {
+    const settingRow = await trx
+      .selectFrom('settings')
+      .select(['value'])
+      .where('key', '=', 'invoiceNumberingScheme')
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
+
+    let scheme = 'daily';
+    if (settingRow?.value) {
+      try {
+        scheme = JSON.parse(settingRow.value);
+      } catch {
+        scheme = String(settingRow.value);
+      }
+    }
+
+    if (scheme === 'sequential') {
+      return `ZR-${returnDocId}`;
+    }
+
+    // Daily date-based numbering: ZR-YYMMDD-0001
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${yy}${mm}${dd}`;
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    const countResult = await trx
+      .selectFrom('return_documents')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where(this.tenantPredicate(auth))
+      .where('created_at', '>=', startOfDay)
+      .executeTakeFirst();
+
+    const count = Number(countResult?.count || 1);
+    const seq = String(count).padStart(4, '0');
+    return `ZR-${datePrefix}-${seq}`;
+  }
+
+  private async insertReturnDocument(trx: Kysely<Database>, row: ReturnDocumentInput, auth: AuthContext): Promise<{ id: number; docNo: string }> {
     const scope = this.scope(auth);
     const insert = await sql<{ id: number }>`INSERT INTO return_documents (return_type, invoice_id, settlement_mode, refund_method, total, note, branch_id, location_id, created_by, tenant_id, account_id) VALUES (${row.returnType}, ${row.invoiceId}, ${row.settlementMode}, ${row.refundMethod}, ${row.total}, ${row.note}, ${row.branchId}, ${row.locationId}, ${auth.userId}, ${scope.tenantId}, ${scope.accountId}) RETURNING id`.execute(trx);
     const id = Number(insert.rows[0]?.id || 0);
-    await sql`UPDATE return_documents SET doc_no = ${'RET-' + String(id)} WHERE tenant_id = ${scope.tenantId} AND id = ${id}`.execute(trx);
-    return id;
+    const docNo = await this.generateReturnDocNo(trx, id, auth);
+    await sql`UPDATE return_documents SET doc_no = ${docNo} WHERE tenant_id = ${scope.tenantId} AND id = ${id}`.execute(trx);
+    return { id, docNo };
   }
 
   private async insertReturnItem(trx: Kysely<Database>, row: { returnDocumentId: number; productId: number | null; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }, auth: AuthContext): Promise<void> {
@@ -93,7 +135,38 @@ export class ReturnsService {
   }
 
   async listReturns(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    const rows = await this.db.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').leftJoin('users as u', 'u.id', 'rd.created_by').select(['ri.id', 'rd.id as return_document_id', 'rd.doc_no', 'rd.return_type', 'rd.invoice_id', 'ri.product_id', 'ri.product_name', 'ri.qty', 'ri.line_total', 'rd.note', 'rd.settlement_mode', 'rd.refund_method', 'rd.created_at', 'rd.created_by', 'u.username as created_by_name']).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri')).orderBy('rd.id', 'desc').orderBy('ri.id', 'asc').execute();
+    const rows = await this.db.selectFrom('return_items as ri')
+      .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
+      .leftJoin('users as u', 'u.id', 'rd.created_by')
+      .leftJoin('sales as s', (join) => join.on('rd.return_type', '=', 'sale').onRef('s.id', '=', 'rd.invoice_id'))
+      .leftJoin('customers as c', 'c.id', 's.customer_id')
+      .leftJoin('purchases as p', (join) => join.on('rd.return_type', '=', 'purchase').onRef('p.id', '=', 'rd.invoice_id'))
+      .leftJoin('suppliers as sup', 'sup.id', 'p.supplier_id')
+      .select([
+        'ri.id',
+        'rd.id as return_document_id',
+        'rd.doc_no',
+        'rd.return_type',
+        'rd.invoice_id',
+        'ri.product_id',
+        'ri.product_name',
+        'ri.qty',
+        'ri.line_total',
+        'rd.note',
+        'rd.settlement_mode',
+        'rd.refund_method',
+        'rd.created_at',
+        'rd.created_by',
+        'u.username as created_by_name',
+        sql<string>`coalesce(s.doc_no, p.doc_no, '')`.as('invoice_doc_no'),
+        sql<string>`coalesce(c.name, sup.name, case when rd.return_type = 'sale' then 'عميل نقدي' else 'مورد' end)`.as('party_name'),
+        sql<string>`coalesce(s.order_type, '')`.as('order_type'),
+      ])
+      .where(this.tenantPredicate(auth, 'rd'))
+      .where(this.tenantPredicate(auth, 'ri'))
+      .orderBy('rd.id', 'desc')
+      .orderBy('ri.id', 'asc')
+      .execute();
     const today = new Date().toISOString().slice(0, 10);
     const mapped = filterReturnRows(mapReturnRows(rows as Array<Record<string, unknown>>), query, today);
     const paged = paginateRows(mapped, query, { defaultSize: 20 });
@@ -229,12 +302,12 @@ export class ReturnsService {
     // TODO(accounting): Sale returns here can be partial line-level returns.
     // Do not post full-sale reversal journals for this flow.
     // Implement dedicated partial return accounting entries when reliable line-level accounting mapping is finalized.
-    const returnDocumentId = await this.insertReturnDocument(trx, { returnType: 'sale', invoiceId: Number(payload.invoiceId), settlementMode, refundMethod, total, note: String(payload.note || '').trim(), branchId: sale.branch_id, locationId: sale.location_id }, auth);
+    const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, { returnType: 'sale', invoiceId: Number(payload.invoiceId), settlementMode, refundMethod, total, note: String(payload.note || '').trim(), branchId: sale.branch_id, locationId: sale.location_id }, auth);
     for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, saleItemId: line.saleItemId }, auth);
     const customerId = sale.customer_id ? Number(sale.customer_id) : null;
     if (settlementMode === 'store_credit' && customerId) await this.addStoreCredit(trx, customerId, total, auth);
-    else if (sale.payment_type === 'credit' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -total, 'sale_return', 'sale return RET-' + String(returnDocumentId), returnDocumentId, auth, sale.branch_id, sale.location_id);
-    else if (refundMethod === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return RET-' + String(returnDocumentId), returnDocumentId, auth, sale.branch_id, sale.location_id);
+    else if (sale.payment_type === 'credit' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -total, 'sale_return', 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
+    else if (refundMethod === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
 
     try {
       await this.accountingPosting.postSalesReturn(trx, returnDocumentId, auth);
@@ -290,10 +363,10 @@ export class ReturnsService {
 
     const total = calculateReturnDocumentTotal(normalizedLines);
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
-    const returnDocumentId = await this.insertReturnDocument(trx, { returnType: 'purchase', invoiceId: Number(payload.invoiceId), settlementMode: 'refund', refundMethod, total, note: String(payload.note || '').trim(), branchId: purchase.branch_id, locationId: purchase.location_id }, auth);
+    const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, { returnType: 'purchase', invoiceId: Number(payload.invoiceId), settlementMode: 'refund', refundMethod, total, note: String(payload.note || '').trim(), branchId: purchase.branch_id, locationId: purchase.location_id }, auth);
     for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, purchaseItemId: line.purchaseItemId }, auth);
-    if (purchase.payment_type === 'credit' && purchase.supplier_id) await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -total, 'purchase_return', 'purchase return RET-' + String(returnDocumentId), returnDocumentId, auth, purchase.branch_id, purchase.location_id);
-    else await this.addTreasuryTransaction(trx, 'purchase_return_refund', total, 'purchase return RET-' + String(returnDocumentId), returnDocumentId, auth, purchase.branch_id, purchase.location_id);
+    if (purchase.payment_type === 'credit' && purchase.supplier_id) await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -total, 'purchase_return', 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
+    else await this.addTreasuryTransaction(trx, 'purchase_return_refund', total, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
     return [returnDocumentId];
   }
 }

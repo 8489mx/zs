@@ -89,6 +89,12 @@ export interface ReturnRecord {
   returnType?: string;
   type?: string;
   invoiceId?: string;
+  invoiceDocNo?: string;
+  partyName?: string;
+  customerName?: string;
+  supplierName?: string;
+  orderType?: string;
+  createdByName?: string;
   productId?: string;
   productName: string;
   qty: number;
@@ -98,6 +104,7 @@ export interface ReturnRecord {
   date?: string;
   settlementMode?: string;
   refundMethod?: string;
+  items?: Array<{ productId?: string; productName?: string; qty?: number; total?: number; unitTotal?: number }>;
 }
 
 export interface TreasuryTransaction {
@@ -146,4 +153,21 @@ export interface CashierShift {
   closedAt?: string;
   openedByName?: string;
   closedByName?: string;
+  cashSalesTotal?: number;
+  cardSalesTotal?: number;
+  walletSalesTotal?: number;
+  instapaySalesTotal?: number;
+  creditSalesTotal?: number;
+  shiftSalesTotal?: number;
+  serviceCashTotal?: number;
+  serviceCardTotal?: number;
+  serviceTotal?: number;
+  cashDrawerMovementTotal?: number;
+  cashDrawerCashInTotal?: number;
+  cashDrawerCashOutTotal?: number;
+  supplierPaymentsTotal?: number;
+  expensesTotal?: number;
+  saleReturnCashRefundTotal?: number;
+  saleReturnCardRefundTotal?: number;
+  saleReturnTotal?: number;
 }

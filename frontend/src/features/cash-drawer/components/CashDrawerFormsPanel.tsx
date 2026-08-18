@@ -60,14 +60,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const closeCreditSalesTotal = Number(selectedCloseShift?.creditSalesTotal || 0);
   const closeShiftSalesTotal = Number(selectedCloseShift?.shiftSalesTotal || 0);
   const closeServiceCashTotal = Number(selectedCloseShift?.serviceCashTotal || 0);
-  const closeServiceCardTotal = Number(selectedCloseShift?.serviceCardTotal || 0);
   const closeCashDrawerMovementTotal = Number(selectedCloseShift?.cashDrawerMovementTotal || 0);
-  const rawCloseSaleReturnCashRefundTotal = Number(selectedCloseShift?.saleReturnCashRefundTotal || 0);
-  const inferredCloseSaleReturnCashRefundTotal = selectedCloseShift
-    ? Math.max(0, Number((Number(selectedCloseShift.openingCash || 0) + closeCashSalesTotal + closeServiceCashTotal + closeCashDrawerMovementTotal - Number(selectedCloseShift.expectedCash || 0)).toFixed(2)))
-    : 0;
-  const closeSaleReturnCashRefundTotal = rawCloseSaleReturnCashRefundTotal > 0 ? rawCloseSaleReturnCashRefundTotal : inferredCloseSaleReturnCashRefundTotal;
-  const closeSaleReturnCardRefundTotal = Number(selectedCloseShift?.saleReturnCardRefundTotal || 0);
+  const closeSaleReturnCashRefundTotal = Number(selectedCloseShift?.saleReturnCashRefundTotal || 0);
+  const closeExpensesTotal = Number(selectedCloseShift?.expensesTotal || 0);
+  const closeSupplierPaymentsTotal = Number(selectedCloseShift?.supplierPaymentsTotal || 0);
 
   const cardOperationCount = normalizeCount(props.closeForm.watch('cardOperationCount'));
   const walletOperationCount = normalizeCount(props.closeForm.watch('walletOperationCount'));
@@ -195,9 +191,15 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             </select>
           </Field>
           <Field label="المبلغ"><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} /></Field>
-          <Field label="سبب الحركة"><textarea rows={2} placeholder="اكتب السبب بوضوح" {...props.movementForm.register('note')} disabled={props.movementMutation.isPending} /></Field>
+          <Field label="سبب الحركة (إجباري)"><textarea rows={2} placeholder="اكتب سبب الصرف أو الإيداع بوضوح" required {...props.movementForm.register('note', { required: true })} disabled={props.movementMutation.isPending} /></Field>
           <MutationFeedback isError={props.movementMutation.isError} isSuccess={props.movementMutation.isSuccess} error={props.movementMutation.error} errorFallback="تعذر تسجيل الحركة" successText="تم تسجيل حركة درج النقدية بنجاح." />
-          <SubmitButton type="submit" isPending={props.movementMutation.isPending} idleText="حفظ الحركة" pendingText="جارٍ الحفظ..." />
+          <SubmitButton
+            type="submit"
+            isPending={props.movementMutation.isPending}
+            disabled={!props.movementForm.watch('shiftId') || !(Number(props.movementForm.watch('amount')) > 0) || !String(props.movementForm.watch('note') || '').trim()}
+            idleText="حفظ الحركة"
+            pendingText="جارٍ الحفظ..."
+          />
         </form>
         </div>
       )}
@@ -307,13 +309,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   <span>مبيعات نقدي: <strong>{formatCurrency(closeCashSalesTotal)}</strong></span>
                   <span>مبيعات فيزا: <strong>{formatCurrency(closeCardSalesTotal)}</strong></span>
                   {closeServiceCashTotal > 0 ? <span>خدمات نقدي: <strong>{formatCurrency(closeServiceCashTotal)}</strong></span> : null}
-                  {closeServiceCardTotal > 0 ? <span>خدمات فيزا: <strong>{formatCurrency(closeServiceCardTotal)}</strong></span> : null}
                   {closeCreditSalesTotal > 0 ? <span>مبيعات آجل: <strong>{formatCurrency(closeCreditSalesTotal)}</strong></span> : null}
-                  <span>مرتجعات نقدي: <strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong></span>
-                  {closeSaleReturnCardRefundTotal > 0 ? <span>مرتجعات فيزا: <strong>{formatCurrency(closeSaleReturnCardRefundTotal)}</strong></span> : null}
-                  <span>حركات درج النقدية: <strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong></span>
-                  <span>إجمالي مبيعات وردية نقطة البيع: <strong>{formatCurrency(closeShiftSalesTotal)}</strong></span>
-                  <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات النقدي + خدمات النقدي - مرتجعات النقدي + حركات درج النقدية فقط.</span>
+                  {closeSaleReturnCashRefundTotal > 0 ? <span>مرتجعات نقدي: <strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong></span> : null}
+                  {closeCashDrawerMovementTotal !== 0 ? <span>حركات درج النقدية: <strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong></span> : null}
+                  {closeExpensesTotal > 0 ? <span>مصروفات مسجلة: <strong>{formatCurrency(closeExpensesTotal)}</strong></span> : null}
+                  {closeSupplierPaymentsTotal > 0 ? <span>دفعات موردين: <strong>{formatCurrency(closeSupplierPaymentsTotal)}</strong></span> : null}
+                  <span>إجمالي مبيعات الوردية: <strong>{formatCurrency(closeShiftSalesTotal)}</strong></span>
+                  <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.</span>
                 </div>
               ) : null}
               <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
@@ -326,7 +328,21 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           )}
 
           <Field label="كلمة مرور المستخدم الحالي (تأكيد)">
-            <input type="password" placeholder="أدخل كلمة المرور لتأكيد الإغلاق" required {...props.closeForm.register('managerPin')} disabled={props.closeMutation.isPending} />
+            <input
+              type="text"
+              className="secure-password-field"
+              placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
+              required
+              {...props.closeForm.register('managerPin')}
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              disabled={props.closeMutation.isPending}
+            />
           </Field>
 
           <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق وردية نقطة البيع" successText="تم إغلاق وردية نقطة البيع بنجاح." />

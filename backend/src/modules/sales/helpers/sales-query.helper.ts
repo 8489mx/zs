@@ -49,7 +49,7 @@ export function mapSaleRows(
 
   return sales.map((sale) => ({
     id: String(sale.id),
-    docNo: sale.doc_no || sale.docNo || `S-${sale.id}`,
+    docNo: sale.doc_no || sale.docNo || `Z-${sale.id}`,
     createdById: sale.created_by_id || sale.createdById ? String(sale.created_by_id || sale.createdById) : '',
     customerId: sale.customer_id || sale.customerId ? String(sale.customer_id || sale.customerId) : '',
     customerName: sale.customer_name_ref || sale.customerName || sale.customer_name || 'عميل نقدي',

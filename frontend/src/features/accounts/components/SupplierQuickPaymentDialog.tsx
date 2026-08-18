@@ -135,7 +135,6 @@ export function SupplierQuickPaymentDialog() {
         <div className="dialog-shell supplier-payment-dialog supplier-quick-payment-dialog" role="dialog" aria-modal="true" aria-label="تسجيل دفعة مورد سريعة">
           <div className="dialog-card supplier-payment-dialog-card supplier-quick-payment-card">
           <div className="supplier-payment-dialog-header supplier-payment-dialog-header--centered">
-            <button type="button" className="supplier-payment-dialog-close" onClick={closeDialog} disabled={settleMutation.isPending} aria-label="إغلاق">×</button>
             <div>
               <h3>تسجيل دفعة مورد</h3>
               <p className="muted">اختصار Ctrl + Alt + D — اختر المورد والدفعة وسجّل المبلغ بسرعة.</p>

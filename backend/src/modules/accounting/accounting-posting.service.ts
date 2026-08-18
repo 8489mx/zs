@@ -609,7 +609,7 @@ export class AccountingPostingService {
       tenantId: scope.tenantId,
       accountId: scope.accountId,
       entryDate: sale.created_at ? new Date(sale.created_at) : new Date(),
-      description: `قيد بيع تلقائي للفاتورة رقم ${sale.doc_no || `S-${saleId}`}`,
+      description: `قيد بيع تلقائي للفاتورة رقم ${sale.doc_no || `Z-${saleId}`}`,
       branchId: sale.branch_id ? Number(sale.branch_id) : null,
       locationId: sale.location_id ? Number(sale.location_id) : null,
       createdBy: sale.created_by ? Number(sale.created_by) : auth.userId,
@@ -792,7 +792,7 @@ export class AccountingPostingService {
       tenantId: scope.tenantId,
       accountId: scope.accountId,
       entryDate: new Date(),
-      description: `قيد تعديل بيع تلقائي للفاتورة رقم ${sale.doc_no || `S-${saleId}`}`,
+      description: `قيد تعديل بيع تلقائي للفاتورة رقم ${sale.doc_no || `Z-${saleId}`}`,
       branchId: sale.branch_id ? Number(sale.branch_id) : null,
       locationId: sale.location_id ? Number(sale.location_id) : null,
       createdBy: sale.created_by ? Number(sale.created_by) : auth.userId,
@@ -832,7 +832,7 @@ export class AccountingPostingService {
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .executeTakeFirst();
-    const docNo = sale?.doc_no || `S-${saleId}`;
+    const docNo = sale?.doc_no || `Z-${saleId}`;
 
     const sourceLines = await queryable
       .selectFrom('journal_entry_lines')
@@ -944,7 +944,7 @@ export class AccountingPostingService {
     const lines: JournalLineDraft[] = [];
     const branchId = returnDocument.branch_id ? Number(returnDocument.branch_id) : null;
     const locationId = returnDocument.location_id ? Number(returnDocument.location_id) : null;
-    const invoiceNo = sale?.doc_no || returnDocument.doc_no || `S-${returnDocument.invoice_id || ''}`;
+    const invoiceNo = sale?.doc_no || returnDocument.doc_no || `Z-${returnDocument.invoice_id || ''}`;
 
     if (netReturnAmount > 0) {
       this.addLine(lines, {

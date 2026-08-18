@@ -121,11 +121,6 @@ export function AccountingAccountForm({
               {mode === 'create' ? (parentAccount ? `إضافة حساب فرعي تحت (${parentAccount.nameAr})` : 'إضافة حساب جديد') : 'تعديل الحساب'}
             </h3>
           </div>
-          <div className="section-title-actions">
-            <button type="button" onClick={onClose} aria-label="إغلاق" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 24, lineHeight: 1, padding: 4 }}>
-              ×
-            </button>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

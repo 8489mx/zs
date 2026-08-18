@@ -262,7 +262,6 @@ export function ProductCategoriesPage() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>تعديل اسم القسم</h3>
-            <button className="icon-btn" onClick={() => setEditingCategory(null)} aria-label="إغلاق" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
           </div>
           <div className="form-grid single-col" style={{ padding: '24px' }}>
             <Field label="اسم القسم">
@@ -292,7 +291,6 @@ export function ProductCategoriesPage() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>إضافة قسم جديد</h3>
-            <button className="icon-btn" onClick={() => setIsCreatingCategory(false)} aria-label="إغلاق" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
           </div>
           <div className="form-grid single-col" style={{ padding: '24px' }}>
             <Field label="اسم القسم">
@@ -325,7 +323,6 @@ export function ProductCategoriesPage() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>نقل أصناف القسم</h3>
-            <button className="icon-btn" onClick={() => setTransferringCategory(null)} aria-label="إغلاق" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '32px 24px', backgroundColor: 'var(--surface-color)' }}>
             <div style={{ padding: '16px', backgroundColor: 'var(--blue-50)', color: 'var(--blue-800)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -438,7 +435,6 @@ export function ProductCategoriesPage() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>نقل أرصدة القسم: {transferringWarehouseCategory.name}</h3>
-            <button className="icon-btn" onClick={() => setTransferringWarehouseCategory(null)} aria-label="إغلاق" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--text-muted)' }}>✕</button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '32px 24px', backgroundColor: 'var(--surface-color)' }}>
             <div style={{ padding: '16px', backgroundColor: 'var(--blue-50)', color: 'var(--blue-800)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>

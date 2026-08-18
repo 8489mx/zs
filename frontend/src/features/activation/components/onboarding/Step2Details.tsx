@@ -44,6 +44,13 @@ export function Step2Details({ form, updateField, onNext, onBack }: Step2Props) 
             placeholder="••••••••" 
             dir="ltr"
             style={{ textAlign: 'left' }}
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
           />
         </Field>
       </div>
