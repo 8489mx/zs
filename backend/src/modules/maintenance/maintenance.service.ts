@@ -175,8 +175,7 @@ export class MaintenanceService {
       .where('tenant_id', '=', scope.tenantId)
       .executeTakeFirst();
     const nextNum = Number(countRes?.count || 0) + 1;
-    const year = new Date().getFullYear();
-    const ticketNo = `REP-${year}-${String(nextNum).padStart(4, '0')}`;
+    const ticketNo = `ZM-${String(nextNum).padStart(4, '0')}`;
 
     const result = await this.db
       .insertInto('maintenance_tickets')
@@ -200,8 +199,8 @@ export class MaintenanceService {
         technician_id: payload.technicianId ?? null,
         technician_name: payload.technicianName?.trim() ?? null,
         technician_notes: payload.technicianNotes?.trim() ?? null,
-        branchId: payload.branchId ?? null,
-        locationId: payload.locationId ?? null,
+        branch_id: payload.branchId ?? null,
+        location_id: payload.locationId ?? null,
         warranty_days: payload.warrantyDays ?? 30,
         received_at: new Date(),
       } as any)
@@ -210,6 +209,29 @@ export class MaintenanceService {
 
     if (!result?.id) {
       throw new AppError('تعذر إنشاء تذكرة الصيانة', 'CREATE_TICKET_FAILED', 400);
+    }
+
+    // If advance payment was made, record cash-in to treasury
+    if (payload.advancePayment && Number(payload.advancePayment) > 0) {
+      try {
+        await this.db
+          .insertInto('treasury_transactions')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            txn_type: 'revenue',
+            amount: Number(payload.advancePayment),
+            note: `عربون صيانة تذكرة ${ticketNo} - العميل: ${payload.customerName.trim()}`,
+            reference_type: 'maintenance_ticket',
+            reference_id: Number(result.id),
+            branch_id: payload.branchId ?? null,
+            location_id: payload.locationId ?? null,
+            created_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record advance payment to treasury:', err);
+      }
     }
 
     await this.audit.log('Create Maintenance Ticket', `Created ticket ${ticketNo} for ${payload.customerName}`, auth);
@@ -299,6 +321,34 @@ export class MaintenanceService {
       .where('id', '=', id)
       .execute();
 
+    // When status changes to delivered, collect remaining balance into treasury
+    if (payload.status === 'delivered' && existing.status !== 'delivered') {
+      const finalCost = payload.finalCost !== undefined ? Number(payload.finalCost) : Number(existing.final_cost || existing.expected_cost || 0);
+      const advance = Number(existing.advance_payment || 0);
+      const remaining = Math.max(0, finalCost - advance);
+      if (remaining > 0) {
+        try {
+          await this.db
+            .insertInto('treasury_transactions')
+            .values({
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              txn_type: 'revenue',
+              amount: remaining,
+              note: `تحصيل صيانة وتسليم جهاز ${existing.ticket_no} - العميل: ${existing.customer_name}`,
+              reference_type: 'maintenance_ticket',
+              reference_id: Number(existing.id),
+              branch_id: existing.branch_id ? Number(existing.branch_id) : null,
+              location_id: existing.location_id ? Number(existing.location_id) : null,
+              created_by: auth.userId ? Number(auth.userId) : null,
+            })
+            .execute();
+        } catch (err) {
+          console.warn('Failed to record delivery payment to treasury:', err);
+        }
+      }
+    }
+
     await this.audit.log('Update Ticket Status', `Updated ticket ${existing.ticket_no} status to ${payload.status}`, auth);
     return { ok: true };
   }
@@ -332,6 +382,24 @@ export class MaintenanceService {
       .returning('id')
       .executeTakeFirst();
 
+    // Automatically deduct inventory from products table
+    const prod = await this.db
+      .selectFrom('products')
+      .select(['stock_qty'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('id', '=', payload.productId)
+      .executeTakeFirst();
+
+    if (prod) {
+      const currentQty = Number(prod.stock_qty || 0);
+      await this.db
+        .updateTable('products')
+        .set({ stock_qty: Math.max(0, currentQty - Number(payload.qty)) })
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', payload.productId)
+        .execute();
+    }
+
     // Automatically update final cost of the ticket by adding the part price
     const addedAmount = Number(payload.qty) * Number(payload.unitPrice);
     const newFinalCost = Number(ticket.final_cost) + addedAmount;
@@ -364,6 +432,24 @@ export class MaintenanceService {
       .where('tenant_id', '=', scope.tenantId)
       .where('id', '=', partId)
       .execute();
+
+    // Return stock back to products table
+    const prod = await this.db
+      .selectFrom('products')
+      .select(['stock_qty'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('id', '=', part.product_id)
+      .executeTakeFirst();
+
+    if (prod) {
+      const currentQty = Number(prod.stock_qty || 0);
+      await this.db
+        .updateTable('products')
+        .set({ stock_qty: currentQty + Number(part.qty) })
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', part.product_id)
+        .execute();
+    }
 
     const ticket = await this.db
       .selectFrom('maintenance_tickets')

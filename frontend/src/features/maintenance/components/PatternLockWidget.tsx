@@ -6,8 +6,15 @@ interface PatternLockWidgetProps {
 }
 
 export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetProps) {
-  const [mode, setMode] = useState<'text' | 'pattern'>('text');
-  const [selectedDots, setSelectedDots] = useState<number[]>([]);
+  const isPatternInitially = value.startsWith('نمط:') || value.startsWith('pattern:');
+  const [mode, setMode] = useState<'text' | 'pattern'>(isPatternInitially ? 'pattern' : 'text');
+  const [selectedDots, setSelectedDots] = useState<number[]>(() => {
+    if (isPatternInitially) {
+      const match = value.match(/\d+/g);
+      return match ? match.map(Number) : [];
+    }
+    return [];
+  });
 
   const handleDotClick = (num: number) => {
     if (selectedDots.includes(num)) return;
@@ -22,50 +29,90 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
   };
 
   return (
-    <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
-          🔒 رمز القفل أو النمط (Pattern):
-        </label>
-        <div style={{ display: 'flex', gap: '4px' }}>
+        <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          رمز أو قفل الشاشة (Screen Lock)
+        </span>
+        
+        {/* Clean Segmented Switch */}
+        <div style={{ display: 'inline-flex', background: '#e2e8f0', padding: '2px', borderRadius: '6px', gap: '2px' }}>
           <button
             type="button"
-            className={`btn btn-sm ${mode === 'text' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setMode('text')}
-            style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+            style={{
+              padding: '3px 10px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              background: mode === 'text' ? '#fff' : 'transparent',
+              color: mode === 'text' ? '#0f172a' : '#64748b',
+              boxShadow: mode === 'text' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
           >
-            رمز / PIN
+            كلمة المرور / PIN
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${mode === 'pattern' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setMode('pattern')}
-            style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+            style={{
+              padding: '3px 10px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              background: mode === 'pattern' ? '#fff' : 'transparent',
+              color: mode === 'pattern' ? '#0f172a' : '#64748b',
+              boxShadow: mode === 'pattern' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
           >
-            رسمة النمط (3x3)
+            نمط الشاشة (Pattern)
           </button>
         </div>
       </div>
 
       {mode === 'text' ? (
-        <input
-          type="text"
-          dir="ltr"
-          className="purchase-prototype-field-input"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="مثال: 1234 أو كلمة المرور..."
-          style={{ width: '100%' }}
-        />
+        <div>
+          <input
+            type="text"
+            dir="ltr"
+            className="purchase-prototype-field-input"
+            value={value.startsWith('نمط:') ? '' : value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="مثال: 1234 أو Passcode أو لا يوجد قفل..."
+            style={{
+              width: '100%',
+              fontSize: '0.9rem',
+              padding: '7px 10px',
+              background: '#fff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
       ) : (
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', marginBottom: '6px' }}>
+            اضغط على النقاط بالتتابع لرسم النمط المطلوب:
+          </div>
+
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 44px)',
-              gap: '12px',
+              gridTemplateColumns: 'repeat(3, 40px)',
+              gap: '10px',
               justifyContent: 'center',
-              margin: '8px auto',
+              margin: '2px auto 10px',
             }}
           >
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((dot) => {
@@ -77,11 +124,11 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
                   type="button"
                   onClick={() => handleDotClick(dot)}
                   style={{
-                    width: '44px',
-                    height: '44px',
+                    width: '40px',
+                    height: '40px',
                     borderRadius: '50%',
-                    border: isSelected ? '2px solid #2563eb' : '2px solid #cbd5e1',
-                    background: isSelected ? '#3b82f6' : '#fff',
+                    border: isSelected ? '2px solid #2563eb' : '1px dashed #cbd5e1',
+                    background: isSelected ? '#2563eb' : '#f8fafc',
                     color: isSelected ? '#fff' : '#64748b',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -90,29 +137,35 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '0.85rem',
+                    boxShadow: isSelected ? '0 2px 4px rgba(37,99,235,0.25)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   <span>{dot}</span>
                   {isSelected && (
-                    <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>#{orderIndex + 1}</span>
+                    <span style={{ fontSize: '0.6rem', lineHeight: 1, opacity: 0.9 }}>
+                      #{orderIndex + 1}
+                    </span>
                   )}
                 </button>
               );
             })}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-              النمط المحدد: <strong dir="ltr">{value || 'لم يتم التحديد'}</strong>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '6px' }}>
+            <span style={{ fontSize: '0.8rem', color: '#334155' }}>
+              النمط المسجل:{' '}
+              <strong dir="ltr" style={{ color: selectedDots.length ? '#2563eb' : '#94a3b8' }}>
+                {selectedDots.length ? `[ ${selectedDots.join(' → ')} ]` : 'لم يتم تحديد نمط'}
+              </strong>
             </span>
             <button
               type="button"
               className="btn btn-sm btn-secondary"
               onClick={handleClear}
-              style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+              style={{ fontSize: '0.7rem', padding: '2px 8px' }}
             >
-              مسح
+              إعادة ضبط
             </button>
           </div>
         </div>
@@ -120,3 +173,5 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
     </div>
   );
 }
+
+

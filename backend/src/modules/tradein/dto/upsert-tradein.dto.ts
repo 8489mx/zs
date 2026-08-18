@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpsertTradeInDto {
   @IsNotEmpty({ message: 'اسم البائع / العميل مطلوب' })
@@ -31,6 +31,10 @@ export class UpsertTradeInDto {
 
   @IsOptional()
   @IsString()
+  deviceConditionState?: 'new_sealed' | 'like_new' | 'used' | 'for_parts';
+
+  @IsOptional()
+  @IsString()
   deviceConditionNotes?: string;
 
   @IsNotEmpty({ message: 'سعر الشراء المتفق عليه مطلوب' })
@@ -45,6 +49,14 @@ export class UpsertTradeInDto {
   @IsOptional()
   @IsNumber()
   createdProductId?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  autoAddToInventory?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  resalePrice?: number;
 
   @IsOptional()
   @IsNumber()

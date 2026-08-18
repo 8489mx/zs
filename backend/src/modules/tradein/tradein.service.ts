@@ -140,6 +140,79 @@ export class TradeInService {
     const year = new Date().getFullYear();
     const docNo = `TRD-${year}-${String(nextNum).padStart(4, '0')}`;
 
+    let targetProductId = payload.createdProductId ?? null;
+
+    const conditionState = payload.deviceConditionState || 'used';
+    const stateSuffixMap: Record<string, string> = {
+      new_sealed: '(جديد متبرشم)',
+      like_new: '(كسر زيرو)',
+      used: '(مستعمل)',
+      for_parts: '(قطع غيار)',
+    };
+    const conditionLabelMap: Record<string, string> = {
+      new_sealed: 'جديد متبرشم (Sealed)',
+      like_new: 'كسر زيرو (Like New)',
+      used: 'مستعمل (Used)',
+      for_parts: 'قطع غيار / تالف (For Parts)',
+    };
+
+    const conditionTag = conditionLabelMap[conditionState] || 'مستعمل';
+    const rawNotes = payload.deviceConditionNotes?.trim() || '';
+    const formattedConditionNotes = `[الحالة: ${conditionTag}] ${rawNotes}`.trim();
+
+    // If autoAddToInventory is requested, find or create the product in catalog
+    if (payload.autoAddToInventory && !targetProductId) {
+      const brandPrefix = payload.deviceBrand?.trim() ? `${payload.deviceBrand.trim()} ` : '';
+      const stateSuffix = stateSuffixMap[conditionState] || '(مستعمل)';
+      const productName = `${brandPrefix}${payload.deviceModel.trim()} ${stateSuffix}`;
+
+      const existingProd = await this.db
+        .selectFrom('products')
+        .select(['id', 'stock_qty'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('name', '=', productName)
+        .executeTakeFirst();
+
+      if (existingProd) {
+        targetProductId = Number(existingProd.id);
+        // Increase stock_qty
+        const currentQty = Number(existingProd.stock_qty || 0);
+        await this.db
+          .updateTable('products')
+          .set({
+            stock_qty: currentQty + 1,
+            track_serials: true,
+          })
+          .where('tenant_id', '=', scope.tenantId)
+          .where('id', '=', targetProductId)
+          .execute();
+      } else {
+        const resalePrice = payload.resalePrice && payload.resalePrice > 0 ? payload.resalePrice : payload.agreedPurchasePrice;
+        const insertedProd = await this.db
+          .insertInto('products')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            name: productName,
+            barcode: `DEV-${payload.serialNumber.trim().slice(-8)}`,
+            cost_price: payload.agreedPurchasePrice,
+            retail_price: resalePrice,
+            wholesale_price: payload.agreedPurchasePrice,
+            stock_qty: 1,
+            min_stock_qty: 0,
+            is_active: true,
+            notes: `تم شراؤه وتنازل العميل عبر إيصال ${docNo} [${conditionTag}]`,
+            track_serials: true,
+          })
+          .returning('id')
+          .executeTakeFirst();
+
+        if (insertedProd?.id) {
+          targetProductId = Number(insertedProd.id);
+        }
+      }
+    }
+
     const result = await this.db
       .insertInto('trade_in_transactions')
       .values({
@@ -153,10 +226,10 @@ export class TradeInService {
         device_model: payload.deviceModel.trim(),
         serial_number: payload.serialNumber.trim(),
         imei_2: payload.imei2?.trim() ?? null,
-        device_condition_notes: payload.deviceConditionNotes?.trim() ?? null,
+        device_condition_notes: formattedConditionNotes,
         agreed_purchase_price: payload.agreedPurchasePrice,
         transaction_type: payload.transactionType ?? 'cash_purchase',
-        created_product_id: payload.createdProductId ?? null,
+        created_product_id: targetProductId,
         sale_id: payload.saleId ?? null,
         payment_method: payload.paymentMethod ?? 'cash',
         signature_data: payload.signatureData ?? null,
@@ -171,8 +244,8 @@ export class TradeInService {
       throw new AppError('تعذر تسجيل عملية الشراء', 'CREATE_TRADEIN_FAILED', 400);
     }
 
-    // If a product ID was linked, automatically register the IMEI in product_serials
-    if (payload.createdProductId) {
+    // If a product ID was linked or auto-created, automatically register the IMEI in product_serials
+    if (targetProductId) {
       const existingSerial = await this.db
         .selectFrom('product_serials')
         .select(['id'])
@@ -186,7 +259,7 @@ export class TradeInService {
           .values({
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
-            product_id: payload.createdProductId,
+            product_id: targetProductId,
             serial_number: payload.serialNumber.trim(),
             imei_2: payload.imei2?.trim() ?? null,
             status: 'in_stock',
@@ -196,6 +269,29 @@ export class TradeInService {
             notes: `شراء مستعمل إيصال رقم ${docNo} من ${payload.sellerName}`,
           })
           .execute();
+      }
+    }
+
+    // Record cash outflow from treasury if paid via cash
+    if (payload.agreedPurchasePrice && Number(payload.agreedPurchasePrice) > 0 && (!payload.paymentMethod || payload.paymentMethod === 'cash')) {
+      try {
+        await this.db
+          .insertInto('treasury_transactions')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            txn_type: 'expense',
+            amount: -Math.abs(Number(payload.agreedPurchasePrice)),
+            note: `سداد شراء جهاز ${payload.deviceBrand ? `${payload.deviceBrand} ` : ''}${payload.deviceModel} (إقرار ${docNo}) - البائع: ${payload.sellerName}`,
+            reference_type: 'trade_in',
+            reference_id: Number(result.id),
+            branch_id: payload.branchId ?? null,
+            location_id: payload.locationId ?? null,
+            created_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record trade-in purchase to treasury:', err);
       }
     }
 

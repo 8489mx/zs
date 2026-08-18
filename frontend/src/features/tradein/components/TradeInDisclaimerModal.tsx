@@ -24,12 +24,12 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
   const barcodeSvg = buildCode128Svg(transaction.docNo);
 
   return (
-    <DialogShell open={open} onClose={onClose} ariaLabel="عقد وإقرار بيع جهاز مستعمل">
+    <DialogShell open={open} onClose={onClose} ariaLabel="عقد وإقرار بيع وتنازل عن جهاز">
       <div className="page-stack" dir="rtl" style={{ gap: '16px', maxWidth: '540px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>📄 عقد وإقرار شراء جهاز مستعمل</h3>
+          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>عقد وإقرار بيع وتنازل عن جهاز</h3>
           <Button variant="primary" onClick={handlePrint}>
-            🖨️ طباعة الإقرار
+            طباعة الإقرار
           </Button>
         </div>
 
@@ -51,7 +51,7 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
           <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '10px', marginBottom: '14px' }}>
             <h2 style={{ margin: '0 0 4px', fontSize: '1.3rem', fontWeight: 800 }}>{settings?.storeName || 'متجر الإلكترونيات'}</h2>
             <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>
-              إقرار وتعهد بيع جهاز مستعمل وإخلاء مسؤولية أمنية
+              إقرار وتعهد بيع وتنازل عن جهاز وإخلاء مسؤولية أمنية
             </div>
             <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
               رقم العملية: {transaction.docNo} • التاريخ: {new Date(transaction.createdAt).toLocaleDateString('ar-EG')}

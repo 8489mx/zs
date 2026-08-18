@@ -26,10 +26,13 @@ export interface UpsertTradeInPayload {
   deviceModel: string;
   serialNumber: string;
   imei2?: string;
+  deviceConditionState?: 'new_sealed' | 'like_new' | 'used' | 'for_parts';
   deviceConditionNotes?: string;
   agreedPurchasePrice: number;
   transactionType?: 'cash_purchase' | 'exchange_trade_in';
   createdProductId?: number;
+  autoAddToInventory?: boolean;
+  resalePrice?: number;
   saleId?: number;
   paymentMethod?: string;
   signatureData?: string;
