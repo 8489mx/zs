@@ -15,6 +15,7 @@ interface PrintReceiptOptions {
   settings?: Partial<AppSettings> | null;
   cashierName?: string;
   isReturn?: boolean;
+  isPurchase?: boolean;
   footerText?: string;
 }
 
@@ -25,9 +26,11 @@ export function openReceiptDocument(
   options: PrintReceiptOptions,
   subtitle = '',
 ) {
-  const defaultFooter = options.isReturn
-    ? 'تم استلام المرتجع وقيد المبلغ للعميل بنجاح.'
-    : defaultInvoiceFooter(options.settings);
+  const defaultFooter = options.isPurchase
+    ? 'فاتورة توريد مشتريات — تم استلام الأصناف وقيدها في المخزن بنجاح.'
+    : (options.isReturn
+      ? 'تم استلام المرتجع وقيد المبلغ للعميل بنجاح.'
+      : defaultInvoiceFooter(options.settings));
 
   printHtmlDocument(title, documentHtml, {
     subtitle,

@@ -304,7 +304,8 @@ export class PurchasesWriteService {
         .executeTakeFirstOrThrow();
 
       const id = Number(insert.id);
-      await trx.updateTable('purchases').set({ doc_no: `PUR-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      const docNo = await this.generatePurchaseDocNo(trx, id, scope.tenantId);
+      await trx.updateTable('purchases').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
       for (const item of allocatedItems) {
@@ -742,7 +743,7 @@ export class PurchasesWriteService {
 
   async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const paymentId = await this.tx.runInTransaction(this.db, async (trx) => {
+    const paymentResult = await this.tx.runInTransaction(this.db, async (trx) => {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const amount = Number(payload.amount || 0);
@@ -768,25 +769,33 @@ export class PurchasesWriteService {
         .executeTakeFirstOrThrow();
 
       const id = Number(insert.id);
-      await trx.updateTable('supplier_payments').set({ doc_no: `PO-${id}` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      const docNo = await this.generateSupplierPaymentDocNo(trx, id, scope.tenantId);
+      await trx.updateTable('supplier_payments').set({ doc_no: docNo }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       const paymentNote = normalizeOptionalNote(payload.note);
       await this.financeService.addSupplierLedgerEntry(trx, supplier.id, -amount, 'supplier_payment', `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
       await this.accountingPosting.postSupplierPayment(trx, id, auth);
-      return id;
+      return { id, docNo };
     });
 
-    await this.audit.log('دفع لمورد', `تم تسجيل دفع لمورد PO-${paymentId} بواسطة ${auth.username}`, auth);
+    await this.audit.log('دفع لمورد', `تم تسجيل دفع لمورد ${paymentResult.docNo} بواسطة ${auth.username}`, auth);
     return { ok: true, supplierPayments: (await this.queryService.listSupplierPayments(auth)).supplierPayments };
   }
 
   async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    const amount = Number(payload.amount);
+    if (!Number.isFinite(amount) || amount <= 0) throw new AppError('Payment amount must be greater than zero', 'INVALID_PAYMENT_AMOUNT', 400);
+
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const customer = await trx.selectFrom('customers').select(['id', 'name', 'balance']).where('id', '=', payload.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+      const customer = await trx
+        .selectFrom('customers')
+        .select(['id', 'name', 'balance'])
+        .where('id', '=', payload.customerId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
       if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
-      const amount = Number(payload.amount || 0);
-      if (!(amount > 0)) throw new AppError('Amount must be greater than zero', 'INVALID_AMOUNT', 400);
+
       const currentBalance = Number(customer.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Customer has no outstanding balance', 'CUSTOMER_NO_BALANCE', 400);
       if (amount > currentBalance + 0.0001) throw new AppError('Customer payment cannot exceed outstanding balance', 'CUSTOMER_OVERPAYMENT', 400);
@@ -816,5 +825,87 @@ export class PurchasesWriteService {
 
     await this.audit.log('تحصيل عميل', `تم تسجيل تحصيل عميل بواسطة ${auth.username}`, auth);
     return { ok: true };
+  }
+
+  private async generatePurchaseDocNo(trx: Kysely<Database>, purchaseId: number, tenantId: string): Promise<string> {
+    const settingRow = await trx
+      .selectFrom('settings')
+      .select(['value'])
+      .where('key', '=', 'invoiceNumberingScheme')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+
+    let scheme = 'daily';
+    if (settingRow?.value) {
+      try {
+        scheme = JSON.parse(settingRow.value);
+      } catch {
+        scheme = String(settingRow.value);
+      }
+    }
+
+    if (scheme === 'sequential') {
+      return `ZP-${purchaseId}`;
+    }
+
+    // Daily date-based numbering: ZP-YYMMDD-0001
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${yy}${mm}${dd}`;
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    const countResult = await trx
+      .selectFrom('purchases')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('created_at', '>=', startOfDay)
+      .executeTakeFirst();
+
+    const count = Number(countResult?.count || 1);
+    const seq = String(count).padStart(4, '0');
+    return `ZP-${datePrefix}-${seq}`;
+  }
+
+  private async generateSupplierPaymentDocNo(trx: Kysely<Database>, paymentId: number, tenantId: string): Promise<string> {
+    const settingRow = await trx
+      .selectFrom('settings')
+      .select(['value'])
+      .where('key', '=', 'invoiceNumberingScheme')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+
+    let scheme = 'daily';
+    if (settingRow?.value) {
+      try {
+        scheme = JSON.parse(settingRow.value);
+      } catch {
+        scheme = String(settingRow.value);
+      }
+    }
+
+    if (scheme === 'sequential') {
+      return `ZPV-${paymentId}`;
+    }
+
+    // Daily date-based numbering: ZPV-YYMMDD-0001
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${yy}${mm}${dd}`;
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    const countResult = await trx
+      .selectFrom('supplier_payments')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('payment_date', '>=', startOfDay)
+      .executeTakeFirst();
+
+    const count = Number(countResult?.count || 1);
+    const seq = String(count).padStart(4, '0');
+    return `ZPV-${datePrefix}-${seq}`;
   }
 }

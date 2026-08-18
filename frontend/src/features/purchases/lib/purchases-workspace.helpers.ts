@@ -28,7 +28,9 @@ export function printPurchaseDocument(purchase: Purchase, settings?: Partial<App
       documentLabel: 'فاتورة شراء',
       documentNumber: purchase.docNo || purchase.id,
       dateText: formatDate(purchase.date),
-      customerName: purchase.supplierName || '—',
+      supplierName: purchase.supplierName || '—',
+      cashierName: (purchase as any).createdByName || purchase.createdBy || undefined,
+      isPurchase: true,
       paymentText: purchase.paymentType === 'cash' ? 'نقدي' : 'آجل',
       branchName: purchase.branchName || undefined,
       locationName: purchase.locationName || undefined,
@@ -46,7 +48,7 @@ export function printPurchaseDocument(purchase: Purchase, settings?: Partial<App
       total: Number(purchase.total || 0),
       paidAmount: Number(purchase.total || 0),
     });
-    openReceiptDocument(`فاتورة شراء ${purchase.docNo || purchase.id}`, document.html, document.compact, { pageSize: 'receipt', settings });
+    openReceiptDocument(`فاتورة شراء ${purchase.docNo || purchase.id}`, document.html, document.compact, { pageSize: 'receipt', settings, isPurchase: true });
     return;
   }
 

@@ -1239,7 +1239,7 @@ export class AccountingPostingService {
       tenantId: scope.tenantId,
       accountId: scope.accountId,
       entryDate: purchase.created_at ? new Date(purchase.created_at) : new Date(),
-      description: `قيد شراء تلقائي للفاتورة رقم ${purchase.doc_no || `PUR-${purchaseId}`}`,
+      description: `قيد شراء تلقائي للفاتورة رقم ${purchase.doc_no || `ZP-${purchaseId}`}`,
       branchId,
       locationId,
       createdBy: purchase.created_by ? Number(purchase.created_by) : auth.userId,
@@ -1279,7 +1279,7 @@ export class AccountingPostingService {
       .where('id', '=', purchaseId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .executeTakeFirst();
-    const docNo = purchase?.doc_no || `PUR-${purchaseId}`;
+    const docNo = purchase?.doc_no || `ZP-${purchaseId}`;
 
     const sourceLines = await queryable
       .selectFrom('journal_entry_lines')
@@ -1366,7 +1366,7 @@ export class AccountingPostingService {
     const branchId = payment.branch_id ? Number(payment.branch_id) : null;
     const locationId = payment.location_id ? Number(payment.location_id) : null;
     const supplierName = String(payment.supplier_name || '').trim();
-    const docNo = String(payment.doc_no || `PO-${paymentId}`).trim();
+    const docNo = String(payment.doc_no || `ZPV-${paymentId}`).trim();
 
     // No explicit payment method is stored for supplier_payments in current schema.
     // Fallback to cash account to match existing treasury flow behavior for this endpoint.

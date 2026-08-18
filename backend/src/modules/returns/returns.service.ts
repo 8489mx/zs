@@ -65,7 +65,7 @@ export class ReturnsService {
     await trx.updateTable('customers').set({ store_credit_balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(auth)).execute();
   }
 
-  private async generateReturnDocNo(trx: Kysely<Database>, returnDocId: number, auth: AuthContext): Promise<string> {
+  private async generateReturnDocNo(trx: Kysely<Database>, returnDocId: number, returnType: 'sale' | 'purchase', auth: AuthContext): Promise<string> {
     const settingRow = await trx
       .selectFrom('settings')
       .select(['value'])
@@ -82,11 +82,13 @@ export class ReturnsService {
       }
     }
 
+    const prefix = returnType === 'purchase' ? 'ZPR' : 'ZR';
+
     if (scheme === 'sequential') {
-      return `ZR-${returnDocId}`;
+      return `${prefix}-${returnDocId}`;
     }
 
-    // Daily date-based numbering: ZR-YYMMDD-0001
+    // Daily date-based numbering: ZR-YYMMDD-0001 or ZPR-YYMMDD-0001
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -98,20 +100,34 @@ export class ReturnsService {
       .selectFrom('return_documents')
       .select((eb) => eb.fn.countAll<number>().as('count'))
       .where(this.tenantPredicate(auth))
+      .where('return_type', '=', returnType)
       .where('created_at', '>=', startOfDay)
       .executeTakeFirst();
 
     const count = Number(countResult?.count || 1);
     const seq = String(count).padStart(4, '0');
-    return `ZR-${datePrefix}-${seq}`;
+    return `${prefix}-${datePrefix}-${seq}`;
   }
 
   private async insertReturnDocument(trx: Kysely<Database>, row: ReturnDocumentInput, auth: AuthContext): Promise<{ id: number; docNo: string }> {
     const scope = this.scope(auth);
-    const insert = await sql<{ id: number }>`INSERT INTO return_documents (return_type, invoice_id, settlement_mode, refund_method, total, note, branch_id, location_id, created_by, tenant_id, account_id) VALUES (${row.returnType}, ${row.invoiceId}, ${row.settlementMode}, ${row.refundMethod}, ${row.total}, ${row.note}, ${row.branchId}, ${row.locationId}, ${auth.userId}, ${scope.tenantId}, ${scope.accountId}) RETURNING id`.execute(trx);
-    const id = Number(insert.rows[0]?.id || 0);
-    const docNo = await this.generateReturnDocNo(trx, id, auth);
-    await sql`UPDATE return_documents SET doc_no = ${docNo} WHERE tenant_id = ${scope.tenantId} AND id = ${id}`.execute(trx);
+    const insert = await trx.insertInto('return_documents').values({
+      doc_no: 'TMP',
+      return_type: row.returnType,
+      invoice_id: row.invoiceId,
+      settlement_mode: row.settlementMode,
+      refund_method: row.refundMethod,
+      total: row.total,
+      note: row.note,
+      branch_id: row.branchId,
+      location_id: row.locationId,
+      created_by: auth.userId,
+      ...this.tenantFields(auth),
+    }).returning('id').executeTakeFirstOrThrow();
+
+    const id = Number(insert.id);
+    const docNo = await this.generateReturnDocNo(trx, id, row.returnType, auth);
+    await trx.updateTable('return_documents').set({ doc_no: docNo }).where('id', '=', id).where(this.tenantPredicate(auth)).execute();
     return { id, docNo };
   }
 

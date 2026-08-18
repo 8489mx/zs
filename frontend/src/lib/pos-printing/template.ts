@@ -358,6 +358,7 @@ export function buildReceiptDocument(options: {
   customerName?: string;
   customerPhone?: string;
   customerAddress?: string;
+  supplierName?: string;
   paymentText?: string;
   cashierName?: string;
   branchName?: string;
@@ -367,6 +368,7 @@ export function buildReceiptDocument(options: {
   deliveryRepName?: string;
   referenceInvoice?: string;
   isReturn?: boolean;
+  isPurchase?: boolean;
   note?: string;
   items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[] }>;
   subtotal: number;
@@ -390,20 +392,27 @@ export function buildReceiptDocument(options: {
   const showDocumentNumber = getPrintOption(options.settings, 'printShowDocumentNumber', true);
   const showOrderType = getPrintOption(options.settings, 'printShowOrderType', true);
 
+  const partyLabel = options.isPurchase ? 'المورد' : (options.isReturn ? 'العميل' : 'العميل');
+  const partyValue = options.isPurchase
+    ? (options.supplierName || options.customerName || '—')
+    : (options.customerName || 'عميل نقدي');
+
   const metaRows = [
-    ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || (options.isReturn ? 'إيصال مرتجع مبيعات' : 'فاتورة') }] : []),
+    ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || (options.isPurchase ? 'فاتورة شراء' : (options.isReturn ? 'إيصال مرتجع مبيعات' : 'فاتورة')) }] : []),
     ...(showDocumentNumber ? [{ label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' }] : []),
     ...(options.referenceInvoice ? [{ label: 'مرجع الفاتورة الأصلية', value: options.referenceInvoice }] : []),
     { label: 'التاريخ', value: options.dateText || '—' },
-    ...(showCustomer ? [{ label: 'العميل', value: options.customerName || 'عميل نقدي' }] : []),
+    ...(showCustomer ? [{ label: partyLabel, value: partyValue }] : []),
     ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
     ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerAddress ? [{ label: 'عنوان العميل', value: options.customerAddress }] : []),
-    ...(showPaymentMethod ? [{ label: options.isReturn ? 'طريقة رد المبلغ' : 'طريقة الدفع', value: options.paymentText || 'نقدي' }] : []),
-    ...(showCashier ? [{ label: 'الكاشير', value: options.cashierName || '—' }] : []),
+    ...(showPaymentMethod ? [{ label: options.isReturn ? 'طريقة رد المبلغ' : (options.isPurchase ? 'طريقة السداد' : 'طريقة الدفع'), value: options.paymentText || 'نقدي' }] : []),
+    ...(options.isPurchase
+      ? (options.cashierName && options.cashierName !== '—' ? [{ label: 'المسؤول', value: options.cashierName }] : [])
+      : (showCashier ? [{ label: 'الكاشير', value: options.cashierName || '—' }] : [])),
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
-    ...(options.settings?.restaurantModuleEnabled && !options.isReturn && options.orderType && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : 'تيك أواي' }] : []),
+    ...(options.settings?.restaurantModuleEnabled && !options.isReturn && !options.isPurchase && options.orderType && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : 'تيك أواي' }] : []),
     ...(options.settings?.printDeliveryRepOnReceipt && options.deliveryRepName ? [{ label: 'المندوب', value: options.deliveryRepName }] : []),
     ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
   ];

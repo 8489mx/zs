@@ -112,7 +112,8 @@ export class InventoryTransferService {
         ...this.tenantFields(auth)
       }).returning('id').executeTakeFirstOrThrow();
       const id = Number(result.id);
-      await trx.updateTable('stock_transfers').set({ doc_no: `TR-${id}`, updated_at: sql`NOW()` }).where('id', '=', id).where(this.tenantPredicate(auth)).execute();
+      const docNo = await this.generateTransferDocNo(trx, id, auth);
+      await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', id).where(this.tenantPredicate(auth)).execute();
 
       let inTransitLocationId: number | null = null;
       if (initialStatus === 'sent') {
@@ -297,7 +298,8 @@ export class InventoryTransferService {
       }).returning('id').executeTakeFirstOrThrow();
 
       const transferId = Number(result.id);
-      await trx.updateTable('stock_transfers').set({ doc_no: `TR-${transferId}`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      const docNo = await this.generateTransferDocNo(trx, transferId, auth);
+      await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
 
       for (const stock of stocks) {
         const qty = Number(stock.qty);
@@ -348,7 +350,8 @@ export class InventoryTransferService {
         }).returning('id').executeTakeFirstOrThrow();
         
         transferId = Number(transferRecord.id);
-        await trx.updateTable('stock_transfers').set({ doc_no: `TR-${transferId}`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+        const docNo = await this.generateTransferDocNo(trx, transferId, auth);
+        await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
       }
 
       for (const item of payload.items) {
@@ -438,7 +441,8 @@ export class InventoryTransferService {
       }).returning('id').executeTakeFirstOrThrow();
       
       const transferId = Number(transferRecord.id);
-      await trx.updateTable('stock_transfers').set({ doc_no: `TR-${transferId}`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
+      const docNo = await this.generateTransferDocNo(trx, transferId, auth);
+      await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
 
       for (const stock of stocks) {
         const qty = Number(stock.qty);
@@ -471,5 +475,46 @@ export class InventoryTransferService {
 
     await this.audit.log('نقل قسم داخلياً', `تم نقل أرصدة القسم داخلياً من ${from.name} إلى ${to.name}`, auth);
     return result;
+  }
+
+  private async generateTransferDocNo(trx: Kysely<Database>, transferId: number, auth: AuthContext): Promise<string> {
+    const settingRow = await trx
+      .selectFrom('settings')
+      .select(['value'])
+      .where('key', '=', 'invoiceNumberingScheme')
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
+
+    let scheme = 'daily';
+    if (settingRow?.value) {
+      try {
+        scheme = JSON.parse(settingRow.value);
+      } catch {
+        scheme = String(settingRow.value);
+      }
+    }
+
+    if (scheme === 'sequential') {
+      return `ZTR-${transferId}`;
+    }
+
+    // Daily date-based numbering: ZTR-YYMMDD-0001
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${yy}${mm}${dd}`;
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    const countResult = await trx
+      .selectFrom('stock_transfers')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where(this.tenantPredicate(auth))
+      .where('created_at', '>=', startOfDay)
+      .executeTakeFirst();
+
+    const count = Number(countResult?.count || 1);
+    const seq = String(count).padStart(4, '0');
+    return `ZTR-${datePrefix}-${seq}`;
   }
 }

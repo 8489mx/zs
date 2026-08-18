@@ -47,7 +47,12 @@ export function assertInventoryLocationBranchMatch(selectedBranchId: number | st
 }
 
 export function buildStockCountSessionDocNo(now = Date.now()): string {
-  return `COUNT-${now}`;
+  const d = new Date(now);
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const suffix = String(now).slice(-4);
+  return `ZSC-${yy}${mm}${dd}-${suffix}`;
 }
 
 export function buildStockCountItemValues(product: StockCountProductSnapshot, item: StockCountInputItem, sessionId: number) {

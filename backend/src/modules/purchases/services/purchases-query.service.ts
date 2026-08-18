@@ -97,7 +97,7 @@ export class PurchasesQueryService {
       .execute();
     return {
       supplierPayments: rows.map((row) => ({
-        id: String(row.id), docNo: row.doc_no || `PO-${row.id}`, supplierId: String(row.supplier_id), amount: Number(row.amount || 0), note: row.note || '', date: row.payment_date, createdBy: row.created_by_name || '', branchId: row.branch_id ? String(row.branch_id) : '', locationId: row.location_id ? String(row.location_id) : '', branchName: row.branch_name || '', locationName: row.location_name || '',
+        id: String(row.id), docNo: row.doc_no || `ZPV-${row.id}`, supplierId: String(row.supplier_id), amount: Number(row.amount || 0), note: row.note || '', date: row.payment_date, createdBy: row.created_by_name || '', branchId: row.branch_id ? String(row.branch_id) : '', locationId: row.location_id ? String(row.location_id) : '', branchName: row.branch_name || '', locationName: row.location_name || '',
       })),
       scope,
     };

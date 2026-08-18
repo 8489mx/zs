@@ -36,7 +36,7 @@ export function mapPurchaseRows(
 
   return purchases.map((entry) => ({
     id: String(entry.id),
-    docNo: entry.doc_no || `PUR-${entry.id}`,
+    docNo: entry.doc_no || `ZP-${entry.id}`,
     supplierId: entry.supplier_id ? String(entry.supplier_id) : '',
     supplierName: entry.supplier_name || '',
     paymentType: entry.payment_type || 'cash',
