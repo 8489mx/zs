@@ -18,18 +18,40 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
         setIsActivated(true);
         return;
       }
-      const id = await getHardwareId();
-      setHardwareId(id);
+      try {
+        const id = await getHardwareId();
+        setHardwareId(id);
 
-      const savedKey = localStorage.getItem('zsystems_license_key');
-      if (savedKey) {
-        const isValid = await verifyLicense(id, savedKey);
-        if (isValid) {
-          setIsActivated(true);
-          return;
+        // 1. Check disk-persisted license from Electron first
+        if ((window as any).electronAPI.getSavedLicense) {
+          const diskLicense = await (window as any).electronAPI.getSavedLicense();
+          if (diskLicense && diskLicense.licenseKey) {
+            const isValid = await verifyLicense(id, diskLicense.licenseKey);
+            if (isValid) {
+              localStorage.setItem('zsystems_license_key', diskLicense.licenseKey);
+              setIsActivated(true);
+              return;
+            }
+          }
         }
+
+        // 2. Check localStorage fallback
+        const savedKey = localStorage.getItem('zsystems_license_key');
+        if (savedKey) {
+          const isValid = await verifyLicense(id, savedKey);
+          if (isValid) {
+            if ((window as any).electronAPI.saveLicenseKey) {
+              await (window as any).electronAPI.saveLicenseKey(savedKey);
+            }
+            setIsActivated(true);
+            return;
+          }
+        }
+        setIsActivated(false);
+      } catch (err) {
+        console.error('[ACTIVATION] Error verifying license:', err);
+        setIsActivated(false);
       }
-      setIsActivated(false);
     }
     checkLicense();
   }, []);
@@ -43,6 +65,13 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
     const isValid = await verifyLicense(hardwareId, licenseInput.trim());
     if (isValid) {
       localStorage.setItem('zsystems_license_key', licenseInput.trim());
+      if (typeof window !== 'undefined' && (window as any).electronAPI && (window as any).electronAPI.saveLicenseKey) {
+        try {
+          await (window as any).electronAPI.saveLicenseKey(licenseInput.trim());
+        } catch (e) {
+          console.error('[ACTIVATION] Failed to persist license to disk:', e);
+        }
+      }
       setIsActivated(true);
     } else {
       setErrorMsg('مفتاح التفعيل غير صحيح.');

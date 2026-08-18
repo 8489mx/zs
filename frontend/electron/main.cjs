@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
 const path = require('path');
-const { exec } = require('child_process');
+const fs = require('fs');
+const { exec, execSync } = require('child_process');
 const RuntimeConfig = require('./runtime-config.cjs');
 let runtimeConfigInstance = null;
 let currentConfig = null;
@@ -374,9 +375,43 @@ app.whenReady().then(async () => {
     }
   });
 
-  // Handle IPC for hardware ID
-  ipcMain.handle('get-hardware-id', async () => {
+  // Handle License Storage & Hardware ID Resolution
+  const getLicenseFilePath = () => path.join(app.getPath('userData'), 'license.json');
+
+  const readLicenseFile = () => {
+    try {
+      const filePath = getLicenseFilePath();
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf8');
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.error('[ELECTRON] Failed to read license.json:', e);
+    }
+    return null;
+  };
+
+  const writeLicenseFile = (data) => {
+    try {
+      const filePath = getLicenseFilePath();
+      const existing = readLicenseFile() || {};
+      const updated = { ...existing, ...data, updatedAt: new Date().toISOString() };
+      fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), 'utf8');
+      return true;
+    } catch (e) {
+      console.error('[ELECTRON] Failed to write license.json:', e);
+      return false;
+    }
+  };
+
+  const computeHardwareId = () => {
     return new Promise((resolve) => {
+      // 1. Return cached hardwareId if already persisted on this machine
+      const cached = readLicenseFile();
+      if (cached && cached.hardwareId && typeof cached.hardwareId === 'string' && cached.hardwareId.trim().length > 3) {
+        return resolve(cached.hardwareId.trim());
+      }
+
       const isInvalid = (val) => {
         if (!val) return true;
         const lower = val.toLowerCase().trim();
@@ -385,81 +420,106 @@ app.whenReady().then(async () => {
                lower.includes('to be filled by o.e.m') || 
                lower.includes('ffffffff') || 
                lower === 'none' ||
+               lower === '00000000' ||
                lower === '0000000000000000';
       };
 
-      const finalizeHardwareId = (u, s) => {
-        if (u || s) {
-          resolve(`${u || 'NOUUID'}-${s || 'NOSERIAL'}`);
-        } else {
-          try {
-            const os = require('os');
-            const interfaces = os.networkInterfaces();
+      const cleanStr = (s) => (s || '').replace(/[^A-Za-z0-9_-]/g, '').trim().toUpperCase();
+
+      // 2. Primary on Windows: Physical Hardware Fingerprint (Disk Serial + CPU ID + Motherboard)
+      if (process.platform === 'win32') {
+        const psScript = `
+$disk = (Get-CimInstance Win32_DiskDrive -ErrorAction SilentlyContinue | Select-Object -ExpandProperty SerialNumber -First 1);
+$cpu = (Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessorId -First 1);
+$uuid = (Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID;
+$bb = (Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue).SerialNumber;
+$mac = (Get-CimInstance Win32_NetworkAdapter -Filter "PhysicalAdapter=True and MACAddress IS NOT NULL" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty MACAddress -First 1);
+Write-Output "$disk|$cpu|$uuid|$bb|$mac"
+`;
+        try {
+          const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
+          exec(`powershell.exe -NoProfile -NonInteractive -EncodedCommand ${encoded}`, { timeout: 4500 }, (err, stdout) => {
+            let disk = '';
+            let cpu = '';
+            let uuid = '';
+            let bb = '';
             let mac = '';
-            for (const name of Object.keys(interfaces)) {
-              for (const iface of interfaces[name]) {
-                if (!iface.internal && iface.mac && iface.mac !== '00:00:00:00:00:00') {
-                  mac = iface.mac.toUpperCase().replace(/:/g, '');
-                  break;
-                }
+
+            if (!err && stdout) {
+              const parts = stdout.trim().split('|');
+              if (parts.length >= 5) {
+                disk = isInvalid(parts[0]) ? '' : cleanStr(parts[0]);
+                cpu = isInvalid(parts[1]) ? '' : cleanStr(parts[1]);
+                uuid = isInvalid(parts[2]) ? '' : cleanStr(parts[2]);
+                bb = isInvalid(parts[3]) ? '' : cleanStr(parts[3]);
+                mac = isInvalid(parts[4]) ? '' : cleanStr(parts[4]);
               }
-              if (mac) break;
             }
-            const userInfo = os.userInfo();
-            const username = userInfo ? userInfo.username.toUpperCase() : 'USER';
-            
-            if (mac) {
-              resolve(`MAC-${mac}-${username}`);
+
+            let generatedHwId = '';
+            if (disk && cpu) {
+              generatedHwId = `HW-${disk}-${cpu}`;
+            } else if (disk) {
+              generatedHwId = `DISK-${disk}-${uuid || mac || 'PC'}`;
+            } else if (cpu) {
+              generatedHwId = `CPU-${cpu}-${uuid || bb || mac || 'PC'}`;
+            } else if (uuid && uuid !== '03000200040005000006000700080009') {
+              generatedHwId = `UUID-${uuid}-${bb || 'PC'}`;
+            } else if (mac) {
+              generatedHwId = `MAC-${mac}-PC`;
             } else {
-              resolve(`HOST-${os.hostname().toUpperCase()}-${username}`);
-            }
-          } catch (e) {
-            resolve('UNKNOWN-HARDWARE-ID');
-          }
-        }
-      };
+              // Secondary fallback: Windows Registry MachineGuid
+              try {
+                const regOutput = execSync('reg query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', { encoding: 'utf8', timeout: 1500 });
+                const match = regOutput.match(/MachineGuid\s+REG_SZ\s+(\S+)/i);
+                if (match && match[1] && !isInvalid(match[1])) {
+                  generatedHwId = `WIN-${cleanStr(match[1])}`;
+                }
+              } catch (e) {}
 
-      const tryWmic = () => {
-        exec('wmic csproduct get uuid', (err1, std1) => {
-          let uuid = '';
-          if (!err1 && std1) {
-            const lines = std1.split('\n').map(l => l.trim()).filter(l => l);
-            if (lines.length > 1 && !isInvalid(lines[1])) uuid = lines[1].toUpperCase();
-          }
-          exec('wmic baseboard get serialnumber', (err2, std2) => {
-            let serial = '';
-            if (!err2 && std2) {
-              const lines = std2.split('\n').map(l => l.trim()).filter(l => l);
-              if (lines.length > 1 && !isInvalid(lines[1])) serial = lines[1].toUpperCase();
+              if (!generatedHwId) {
+                const os = require('os');
+                generatedHwId = `HOST-${cleanStr(os.hostname())}-${cleanStr(os.userInfo() ? os.userInfo().username : 'USER')}`;
+              }
             }
-            finalizeHardwareId(uuid, serial);
+
+            writeLicenseFile({ hardwareId: generatedHwId });
+            resolve(generatedHwId);
           });
-        });
-      };
+          return;
+        } catch (e) {
+          console.warn('[ELECTRON] Hardware ID PowerShell execution failed:', e);
+        }
+      }
 
-      const psCommand = "powershell.exe -NoProfile -NonInteractive -Command \"$u = (Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; $s = (Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue).SerialNumber; Write-Host \\\"$u|$s\\\"\"";
-      
-      exec(psCommand, (err, stdout) => {
-        let uuid = '';
-        let serial = '';
-        if (!err && stdout) {
-          const parts = stdout.trim().split('|');
-          if (parts.length >= 2) {
-            uuid = parts[0].trim().toUpperCase();
-            serial = parts[1].trim().toUpperCase();
-          }
-        }
-        
-        if (isInvalid(uuid)) uuid = '';
-        if (isInvalid(serial)) serial = '';
-        
-        if (!uuid && !serial) {
-          tryWmic();
-        } else {
-          finalizeHardwareId(uuid, serial);
-        }
-      });
+      // 3. Fallback for non-Windows or if PowerShell completely failed
+      try {
+        const os = require('os');
+        const fallback = `HOST-${cleanStr(os.hostname())}-${cleanStr(os.userInfo() ? os.userInfo().username : 'USER')}`;
+        writeLicenseFile({ hardwareId: fallback });
+        resolve(fallback);
+      } catch (e) {
+        const fallback = 'UNKNOWN-HARDWARE-ID';
+        writeLicenseFile({ hardwareId: fallback });
+        resolve(fallback);
+      }
     });
+  };
+
+  // Handle IPC for hardware ID & License
+  ipcMain.handle('get-hardware-id', async () => {
+    return await computeHardwareId();
+  });
+
+  ipcMain.handle('get-saved-license', async () => {
+    return readLicenseFile();
+  });
+
+  ipcMain.handle('save-license-key', async (event, key) => {
+    const trimmedKey = (key || '').trim();
+    const id = await computeHardwareId();
+    writeLicenseFile({ hardwareId: id, licenseKey: trimmedKey, activatedAt: new Date().toISOString() });
+    return { ok: true };
   });
 
   // Wait for backend to be ready then load the actual app

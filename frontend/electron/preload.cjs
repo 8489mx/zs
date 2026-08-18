@@ -17,7 +17,9 @@ for (const arg of process.argv) {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  getHardwareId: () => ipcRenderer.invoke('get-hardware-id')
+  getHardwareId: () => ipcRenderer.invoke('get-hardware-id'),
+  getSavedLicense: () => ipcRenderer.invoke('get-saved-license'),
+  saveLicenseKey: (key) => ipcRenderer.invoke('save-license-key', key)
 });
 
 contextBridge.exposeInMainWorld('electronRuntime', {
