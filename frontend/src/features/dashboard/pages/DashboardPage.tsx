@@ -12,6 +12,7 @@ import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardS
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
 import { DashboardMonthlySnapshot } from '@/features/dashboard/components/DashboardMonthlySnapshot';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import {
   buildDashboardAlerts,
   exportDashboardSnapshot,
@@ -23,6 +24,7 @@ export function DashboardPage() {
   const overview = useDashboardOverview();
   const managerActions = useManagerActions(4);
   const managerOverview = useDashboardManagerOverview();
+  const settingsQuery = useSettingsQuery();
 
   if (overview.isLoading && !overview.data) {
     return (
@@ -44,10 +46,14 @@ export function DashboardPage() {
 
   const { summary, stats, topToday } = overview.data;
   const smartAlerts = buildDashboardAlerts(overview.data);
+  const isMobileEnabled = settingsQuery.data?.enableMobileStoreFeatures === true;
+
   const quickActions = [
     { to: '/pos', label: 'نقطة البيع', hint: 'ابدأ تسجيل فاتورة' },
-    { to: '/maintenance', label: 'قسم الصيانة', hint: 'متابعة أجهزة وتذاكر الإصلاح' },
-    { to: '/trade-in', label: 'شراء المستعمل', hint: 'تسجيل شراء واستبدال الهواتف' },
+    ...(isMobileEnabled ? [
+      { to: '/maintenance', label: 'قسم الصيانة', hint: 'متابعة أجهزة وتذاكر الإصلاح' },
+      { to: '/trade-in', label: 'شراء المستعمل', hint: 'تسجيل شراء واستبدال الهواتف' },
+    ] : []),
     { to: '/treasury', label: 'تسجيل مصروف', hint: 'متابعة مصروفات اليوم' },
     { to: '/inventory', label: 'مراجعة المخزون', hint: 'الأصناف المنخفضة والراكدة' },
     { to: '/reports', label: 'تقرير اليوم', hint: 'ملخص الأداء اليومي' },

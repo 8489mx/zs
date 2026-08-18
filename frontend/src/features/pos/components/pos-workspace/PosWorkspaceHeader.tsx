@@ -67,15 +67,19 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
                <span>{(pos.currentBranch as any).salesStockMode === 'all_operational_locations' ? 'كل المخازن' : 'مخزن أساسي'}</span>
              </div>
           )}
-          {onOpenSerialLookup && (
-            <Button type="button" variant="secondary" style={{ color: '#7e22ce', borderColor: '#d8b4fe', background: '#faf5ff' }} onClick={onOpenSerialLookup}>📱 فحص IMEI</Button>
+          {pos.settingsQuery.data?.enableMobileStoreFeatures && (
+            <>
+              {onOpenSerialLookup && (
+                <Button type="button" variant="secondary" style={{ color: '#7e22ce', borderColor: '#d8b4fe', background: '#faf5ff' }} onClick={onOpenSerialLookup}>📱 فحص IMEI</Button>
+              )}
+              <Link to="/maintenance">
+                <Button type="button" variant="secondary" style={{ color: '#0284c7', borderColor: '#bae6fd', background: '#f0f9ff' }}>🛠️ الصيانة</Button>
+              </Link>
+              <Link to="/trade-in">
+                <Button type="button" variant="secondary" style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }}>🔄 شراء مستعمل</Button>
+              </Link>
+            </>
           )}
-          <Link to="/maintenance">
-            <Button type="button" variant="secondary" style={{ color: '#0284c7', borderColor: '#bae6fd', background: '#f0f9ff' }}>🛠️ الصيانة</Button>
-          </Link>
-          <Link to="/trade-in">
-            <Button type="button" variant="secondary" style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }}>🔄 شراء مستعمل</Button>
-          </Link>
           <Button type="button" variant="secondary" onClick={() => setShowDeliveryReps(true)}>إدارة المناديب</Button>
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>
           <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>
@@ -112,6 +116,7 @@ function areEqual(prev: PosWorkspaceHeaderProps, next: PosWorkspaceHeaderProps) 
     && prev.pos.lastSale === next.pos.lastSale
     && prev.pos.canSubmitSale === next.pos.canSubmitSale
     && prev.pos.canSubmitHint === next.pos.canSubmitHint
+    && prev.pos.settingsQuery.data?.enableMobileStoreFeatures === next.pos.settingsQuery.data?.enableMobileStoreFeatures
     && prev.posMode === next.posMode
     && prev.onFocusSearch === next.onFocusSearch
     && prev.onModeChange === next.onModeChange

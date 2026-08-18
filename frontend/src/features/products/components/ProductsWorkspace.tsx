@@ -53,9 +53,11 @@ export function ProductsWorkspace() {
               <Button onClick={() => navigate('/products/new')}>
                 {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
               </Button>
-              <Button variant="secondary" onClick={() => setSerialLookupOpen(true)}>
-                🔍 فحص سيريال / IMEI
-              </Button>
+              {settingsQuery.data?.enableMobileStoreFeatures === true && (
+                <Button variant="secondary" onClick={() => setSerialLookupOpen(true)}>
+                  🔍 فحص سيريال / IMEI
+                </Button>
+              )}
               {settingsQuery.data?.restaurantModuleEnabled === true && (
                 <Button onClick={() => setAddonsDialogOpen(true)}>
                   إدارة الإضافات
