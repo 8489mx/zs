@@ -7,7 +7,7 @@ import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { supplierBalanceScheduleApi, type SupplierPaymentScheduleItem } from '@/features/accounts/api/supplier-balance-schedule.api';
-import { formatCurrency, formatDate, formatWhatsAppNumber } from '@/lib/format';
+import { formatCurrency, formatDateOnly, formatWhatsAppNumber } from '@/lib/format';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Supplier } from '@/types/domain';
@@ -89,7 +89,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const [paymentNote, setPaymentNote] = useState('');
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('all');
   const [showAppendForm, setShowAppendForm] = useState(false);
-  const [successReceipt, setSuccessReceipt] = useState<{ row: SupplierPaymentScheduleItem; amountPaid: number } | null>(null);
+  const [successReceipt, setSuccessReceipt] = useState<{ row: SupplierPaymentScheduleItem; amountPaid: number; remainingBalance: number } | null>(null);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -144,9 +144,11 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
     onSuccess: (nextRows, variables) => {
       queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), nextRows);
       refreshAccounts();
+      const nextRemaining = summarize(nextRows).remaining;
       setSuccessReceipt({
         row: variables.row,
         amountPaid: variables.amount || variables.row.remainingAmount || 0,
+        remainingBalance: nextRemaining,
       });
       setPaymentTarget(null);
       setPaymentAmount('');
@@ -207,7 +209,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
           <div>
             <span>الدفعة القادمة إلى {supplierName}</span>
             <strong>{formatCurrency(nextDue.remainingAmount || nextDue.amount)}</strong>
-            <small>تستحق في {formatDate(nextDue.dueDate)}</small>
+            <small>تستحق في {formatDateOnly(nextDue.dueDate)}</small>
           </div>
           <Button type="button" variant="secondary" disabled={disabled || settleMutation.isPending} onClick={() => openPaymentDialog(nextDue)}>تسجيل دفع</Button>
         </div>
@@ -238,14 +240,14 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       ) : null}
 
       {canSchedule && rows.length && !showAppendForm ? (
-        <div className="surface-note" style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="surface-note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>يوجد رصيد غير مجدول بقيمة {formatCurrency(unscheduledBalance)}. يمكنك إضافته كدفعات إضافية.</span>
           <Button type="button" variant="secondary" onClick={() => setShowAppendForm(true)}>إضافة دفعات للرصيد المتبقي</Button>
         </div>
       ) : null}
 
-      {!canSchedule && supplierBalance <= 0 ? <div className="surface-note" style={{ marginTop: 12 }}>لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.</div> : null}
-      {!canSchedule && supplierBalance > 0 && unscheduledBalance <= 0 ? <div className="surface-note" style={{ marginTop: 12 }}>تمت جدولة جميع مستحقات هذا المورد بالكامل.</div> : null}
+      {!canSchedule && supplierBalance <= 0 ? <div className="surface-note">لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.</div> : null}
+      {!canSchedule && supplierBalance > 0 && unscheduledBalance <= 0 ? <div className="surface-note">تمت جدولة جميع مستحقات هذا المورد بالكامل.</div> : null}
 
       <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback={((createMutation.error as any)?.message) || ((settleMutation.error as any)?.message) || "تعذر تنفيذ عملية جدولة المورد"} successText="تم تحديث جدول مستحقات المورد." />
 
@@ -290,7 +292,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                       <td>
                         <span className="supplier-schedule-installment-label">دفعة {row.installmentNo} {isExpanded ? '▴' : '▾'}</span>
                       </td>
-                      <td>{formatDate(row.dueDate)}</td>
+                      <td>{formatDateOnly(row.dueDate)}</td>
                       <td>{formatCurrency(row.amount)}</td>
                       <td className="muted">{formatCurrency(row.paidAmount)}</td>
                       <td><strong>{formatCurrency(row.remainingAmount)}</strong></td>
@@ -383,7 +385,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
               <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل الدفعة بنجاح</h3>
               <p className="muted" style={{ marginBottom: '1.5rem' }}>
-                تم سداد {formatCurrency(successReceipt.amountPaid)} لصالح {supplierName}.
+                تم سداد {formatCurrency(successReceipt.amountPaid)} لصالح {supplierName} (المتبقي: {formatCurrency(successReceipt.remainingBalance)}).
               </p>
               
               <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -392,8 +394,8 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                   onClick={() => {
                     const rawPhone = supplier?.phone || ''; 
                     const phone = formatWhatsAppNumber(rawPhone);
-                    const newBalance = Math.max(0, supplierBalance - successReceipt.amountPaid);
-                    const text = `مرحباً ${supplierName}،\nتم تسجيل استلام دفعة نقدية بقيمة ${formatCurrency(successReceipt.amountPaid)} (تسوية لدفعة رقم ${successReceipt.row.installmentNo}).\nإجمالي الرصيد المتبقي لكم هو ${formatCurrency(newBalance)}.\nشكراً لتعاملكم.`;
+                    const remaining = successReceipt.remainingBalance;
+                    const text = `مرحباً ${supplierName}،\nتم سداد دفعة نقدية لكم بقيمة ${formatCurrency(successReceipt.amountPaid)} (تسوية للدفعة رقم ${successReceipt.row.installmentNo}).\nإجمالي الرصيد المتبقي لكم هو ${formatCurrency(remaining)}.\nشكراً لتعاملكم.`;
                     const encodedText = encodeURIComponent(text);
                     let url = `https://wa.me/${phone}?text=${encodedText}`;
                     if (settings?.whatsappLinkMode === 'web') {

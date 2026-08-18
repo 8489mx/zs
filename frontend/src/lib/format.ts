@@ -28,6 +28,17 @@ export function formatDate(value?: string) {
   }).format(date);
 }
 
+export function formatDateOnly(value?: string) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('ar-EG', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).format(date);
+}
+
 function toIsoUtc(date: Date) {
   return new Date(Date.UTC(
     date.getFullYear(),

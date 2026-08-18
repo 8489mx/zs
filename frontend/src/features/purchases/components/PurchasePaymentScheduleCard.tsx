@@ -7,7 +7,7 @@ import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { purchasePaymentScheduleApi, type SupplierPaymentScheduleItem } from '@/features/purchases/api/purchase-payment-schedule.api';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCurrency, formatDateOnly } from '@/lib/format';
 import type { Purchase } from '@/types/domain';
 
 function todayIso() {
@@ -153,7 +153,7 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
                 return (
                   <tr key={row.id}>
                     <td>{row.installmentNo}</td>
-                    <td>{formatDate(row.dueDate)}</td>
+                    <td>{formatDateOnly(row.dueDate)}</td>
                     <td>{formatCurrency(row.amount)}</td>
                     <td>{formatCurrency(row.paidAmount)}</td>
                     <td>{formatCurrency(row.remainingAmount)}</td>
