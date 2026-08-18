@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { FormSection } from '@/shared/components/form-section';
@@ -90,6 +90,18 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('all');
   const [showAppendForm, setShowAppendForm] = useState(false);
   const [successReceipt, setSuccessReceipt] = useState<{ row: SupplierPaymentScheduleItem; amountPaid: number } | null>(null);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((paymentTarget || successReceipt) && (event.key === 'Escape' || event.key === 'Esc')) {
+        event.preventDefault();
+        setPaymentTarget(null);
+        setSuccessReceipt(null);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [paymentTarget, successReceipt]);
 
   function refreshAccounts() {
     queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances });
@@ -226,7 +238,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
           <Button type="button" variant="secondary" onClick={() => setShowAppendForm(true)}>إضافة دفعات للرصيد المتبقي</Button>
         </div>
       ) : null}
-      
+
       {!canSchedule && supplierBalance <= 0 ? <div className="surface-note" style={{ marginTop: 12 }}>لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.</div> : null}
       {!canSchedule && supplierBalance > 0 && unscheduledBalance <= 0 ? <div className="surface-note" style={{ marginTop: 12 }}>تمت جدولة جميع مستحقات هذا المورد بالكامل.</div> : null}
 
@@ -333,12 +345,12 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       </div>
 
       {paymentTarget ? (
-        <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation">
+        <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setPaymentTarget(null); }}>
           <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label={`تأكيد تسليم الدفعة إلى ${supplierName}`}>
             <div className="dialog-card supplier-payment-dialog-card">
               <div className="supplier-payment-dialog-header supplier-payment-dialog-header--centered">
                 <div>
-                  <h3>تأكيد تسليم الدفعة إلى {supplierName}</h3>
+                  <h3>تأكيد تسليم الدفعة إلى ${supplierName}</h3>
                   <p className="muted">دفعة {paymentTarget.installmentNo} — المتبقي {formatCurrency(paymentTarget.remainingAmount)}</p>
                 </div>
               </div>
@@ -360,7 +372,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       ) : null}
 
       {successReceipt ? (
-        <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation">
+        <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setSuccessReceipt(null); }}>
           <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم الدفع بنجاح">
             <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>

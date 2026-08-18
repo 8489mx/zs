@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { FormSection } from '@/shared/components/form-section';
@@ -97,6 +97,28 @@ export function SaasTenantsPage() {
     campaign: '',
     notes: '',
   });
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        (isCreateOpen || resetTenant || createResult || ownerResetResult || upgradeTenant || updatePlanTenant || renewTenant || recordPaymentTenant || detailsTenantId) &&
+        (event.key === 'Escape' || event.key === 'Esc')
+      ) {
+        event.preventDefault();
+        setIsCreateOpen(false);
+        setResetTenant(null);
+        setCreateResult(null);
+        setOwnerResetResult(null);
+        setUpgradeTenant(null);
+        setUpdatePlanTenant(null);
+        setRenewTenant(null);
+        setRecordPaymentTenant(null);
+        setDetailsTenantId(null);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCreateOpen, resetTenant, createResult, ownerResetResult, upgradeTenant, updatePlanTenant, renewTenant, recordPaymentTenant, detailsTenantId]);
 
   const tenantsQuery = useQuery<SaasTenantsResponse>({
     queryKey: ['saas-admin-tenants', status, search],
@@ -400,7 +422,7 @@ export function SaasTenantsPage() {
       </FormSection>
 
       {isCreateOpen ? (
-        <div className="dialog-overlay" role="presentation">
+        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setIsCreateOpen(false); }}>
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إنشاء نسخة تجريبية">
             <FormSection title="إنشاء نسخة تجريبية" actions={<button type="button" className="button button-secondary" onClick={() => setIsCreateOpen(false)}>إغلاق</button>}>
               <div className="grid-2">
@@ -436,7 +458,7 @@ export function SaasTenantsPage() {
         </div>
       ) : null}
       {resetTenant ? (
-        <div className="dialog-overlay" role="presentation">
+        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setResetTenant(null); }}>
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إعادة كلمة المرور">
             <FormSection title={`إعادة كلمة المرور لنسخة: ${resetTenant.name}`} actions={<button type="button" className="button button-secondary" onClick={() => setResetTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">
@@ -459,7 +481,7 @@ export function SaasTenantsPage() {
       ) : null}
 
       {upgradeTenant ? (
-        <div className="dialog-overlay" role="presentation">
+        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setUpgradeTenant(null); }}>
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="ترقية النسخة">
             <FormSection title="تفعيل / ترقية النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">
@@ -512,7 +534,7 @@ export function SaasTenantsPage() {
       ) : null}
 
       {renewTenant ? (
-        <div className="dialog-overlay" role="presentation">
+        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setRenewTenant(null); }}>
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="تجديد الاشتراك">
             <FormSection title="تجديد اشتراك النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setRenewTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">
@@ -551,6 +573,7 @@ export function SaasTenantsPage() {
                       paymentAmount: renewPaymentAmount ? Number(renewPaymentAmount) : undefined,
                       paymentMethod: renewPaymentMethod,
                     });
+                    setRenewTenant(null);
                   }} disabled={renewMutation.isPending || !renewPlanId}>
                     تأكيد التجديد
                   </button>
@@ -562,7 +585,7 @@ export function SaasTenantsPage() {
       ) : null}
 
       {recordPaymentTenant ? (
-        <div className="dialog-overlay" role="presentation">
+        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setRecordPaymentTenant(null); }}>
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="تسجيل دفعة">
             <FormSection title="تسجيل دفعة يدوية" actions={<button type="button" className="button button-secondary" onClick={() => setRecordPaymentTenant(null)}>إغلاق</button>}>
               <div className="stack gap-12">

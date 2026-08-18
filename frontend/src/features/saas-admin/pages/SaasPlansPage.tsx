@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
@@ -55,6 +55,18 @@ export function SaasPlansPage() {
       setFeedback(error.message || 'فشل حفظ الخطة');
     },
   });
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((isCreateModalOpen || editingPlan) && (event.key === 'Escape' || event.key === 'Esc')) {
+        event.preventDefault();
+        setIsCreateModalOpen(false);
+        setEditingPlan(null);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCreateModalOpen, editingPlan]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +188,7 @@ export function SaasPlansPage() {
       </FormSection>
 
       {isCreateModalOpen ? (
-        <div className="dialog-overlay" role="presentation">
+        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setIsCreateModalOpen(false); }}>
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إضافة خطة جديدة">
             <FormSection title="إضافة خطة جديدة" actions={<button type="button" className="button button-secondary" onClick={() => setIsCreateModalOpen(false)}>إغلاق</button>}>
               <form onSubmit={handleCreate} className="stack gap-12">
@@ -279,7 +291,7 @@ export function SaasPlansPage() {
       ) : null}
 
       {editingPlan ? (
-        <div className="dialog-overlay" role="presentation">
+        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setEditingPlan(null); }}>
           <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="تعديل الخطة">
             <FormSection title="تعديل الخطة" actions={<button type="button" className="button button-secondary" onClick={() => setEditingPlan(null)}>إغلاق</button>}>
               <form onSubmit={handleUpdate} className="stack gap-12">

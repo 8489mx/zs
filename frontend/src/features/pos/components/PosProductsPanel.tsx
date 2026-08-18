@@ -90,6 +90,18 @@ function InlineGroupPicker({
     setSelectedSize(group.sizes[0] || '');
   }, [group]);
 
+  useEffect(() => {
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === 'Escape' || event.key === 'Esc') {
+        event.preventDefault();
+        onClose();
+        focusSearchInput(searchInputRef);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, searchInputRef]);
+
   const deferredColor = useDeferredValue(selectedColor);
   const deferredSize = useDeferredValue(selectedSize);
 

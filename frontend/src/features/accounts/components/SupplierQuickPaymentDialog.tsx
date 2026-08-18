@@ -64,6 +64,12 @@ export function SupplierQuickPaymentDialog() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (isOpen && (event.key === 'Escape' || event.key === 'Esc')) {
+        event.preventDefault();
+        closeDialog();
+        return;
+      }
+
       const key = String(event.key || '').toLowerCase();
       const isSupplierPaymentShortcut = event.ctrlKey
         && event.altKey
@@ -77,7 +83,7 @@ export function SupplierQuickPaymentDialog() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -130,7 +136,7 @@ export function SupplierQuickPaymentDialog() {
   if (!isOpen) return null;
 
   return (
-    <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation">
+    <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) closeDialog(); }}>
       {!successReceipt ? (
         <div className="dialog-shell supplier-payment-dialog supplier-quick-payment-dialog" role="dialog" aria-modal="true" aria-label="تسجيل دفعة مورد سريعة">
           <div className="dialog-card supplier-payment-dialog-card supplier-quick-payment-card">
@@ -217,7 +223,11 @@ export function SupplierQuickPaymentDialog() {
                 <Button type="button" variant="secondary" onClick={closeDialog} disabled={settleMutation.isPending}>إغلاق</Button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'flex-end', marginTop: 16 }}>
+              <Button type="button" variant="secondary" onClick={closeDialog}>إغلاق النافذة</Button>
+            </div>
+          )}
 
           <MutationFeedback isError={settleMutation.isError} isSuccess={false} error={settleMutation.error} errorFallback="تعذر تسجيل دفعة المورد" successText="" />
         </div>
