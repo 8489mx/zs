@@ -44,6 +44,7 @@ export interface ProductsTableCardProps {
   onPageChange: (value: number) => void;
   onPageSizeChange: (value: number) => void;
   clothingEnabled: boolean;
+  mobileStoreEnabled?: boolean;
 }
 
 type ProductGroup = {
@@ -214,7 +215,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>عروض</Button>
-                          {product.trackSerials && props.onOpenSerialsDialog ? (
+                          {props.mobileStoreEnabled && product.trackSerials && props.onOpenSerialsDialog ? (
                             <Button variant="secondary" type="button" style={{ color: '#7e22ce', borderColor: '#d8b4fe', background: '#faf5ff' }} onClick={() => props.onOpenSerialsDialog?.(product)}>📱 سيريالات</Button>
                           ) : (
                             <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>+باركود</Button>

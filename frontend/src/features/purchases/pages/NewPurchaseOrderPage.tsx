@@ -104,6 +104,7 @@ export function NewPurchaseOrderPage() {
           applyDiscount={ctrl.applyDiscount}
           markDocumentDirty={ctrl.markDocumentDirty}
           setLineError={ctrl.setLineError}
+          enableMobileStoreFeatures={ctrl.rawSettings?.enableMobileStoreFeatures === true}
         />
 
         <PurchaseOrderAccountingSection

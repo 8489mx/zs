@@ -130,6 +130,7 @@ export function ProductsWorkspace() {
           onPageChange={controller.setPage}
           onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
           clothingEnabled={clothingEnabled}
+          mobileStoreEnabled={settingsQuery.data?.enableMobileStoreFeatures === true}
           onOpenSerialsDialog={(product) => setSerialsProduct(product)}
         />
 

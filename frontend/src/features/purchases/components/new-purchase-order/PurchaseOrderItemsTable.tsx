@@ -21,6 +21,7 @@ interface ItemsTableProps {
   setDiscount: (val: number) => void;
   validationErrors: ValidationErrors;
   purchaseDropdownClassName: string;
+  enableMobileStoreFeatures?: boolean;
 
   onAddLine: () => void;
   onAddServiceLine: () => void;
@@ -202,7 +203,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                       error={rowErrors.product}
                       dropdownClassName={props.purchaseDropdownClassName}
                     />
-                    {line.trackSerials ? (
+                    {props.enableMobileStoreFeatures && line.trackSerials ? (
                       <div style={{ marginTop: '4px' }}>
                         <button
                           type="button"
