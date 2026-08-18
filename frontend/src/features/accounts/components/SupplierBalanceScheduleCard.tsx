@@ -7,7 +7,7 @@ import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { supplierBalanceScheduleApi, type SupplierPaymentScheduleItem } from '@/features/accounts/api/supplier-balance-schedule.api';
-import { formatCurrency, formatDateOnly, formatWhatsAppNumber } from '@/lib/format';
+import { formatCurrency, formatDateOnly, formatDateTimeArabic, formatWhatsAppNumber } from '@/lib/format';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Supplier } from '@/types/domain';
@@ -395,7 +395,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                     const rawPhone = supplier?.phone || ''; 
                     const phone = formatWhatsAppNumber(rawPhone);
                     const remaining = successReceipt.remainingBalance;
-                    const text = `مرحباً ${supplierName}،\nتم سداد دفعة نقدية لكم بقيمة ${formatCurrency(successReceipt.amountPaid)} (تسوية للدفعة رقم ${successReceipt.row.installmentNo}).\nإجمالي الرصيد المتبقي لكم هو ${formatCurrency(remaining)}.\nشكراً لتعاملكم.`;
+                    const text = `مرحباً ${supplierName}،\nتم سداد دفعة نقدية لكم بقيمة: *${formatCurrency(successReceipt.amountPaid)} ج.م* (تسوية للدفعة رقم ${successReceipt.row.installmentNo})\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ج.م*\nشكراً لتعاملكم معنا.`;
                     const encodedText = encodeURIComponent(text);
                     let url = `https://wa.me/${phone}?text=${encodedText}`;
                     if (settings?.whatsappLinkMode === 'web') {

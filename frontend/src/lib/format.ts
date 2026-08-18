@@ -28,15 +28,46 @@ export function formatDate(value?: string) {
   }).format(date);
 }
 
-export function formatDateOnly(value?: string) {
+export function toArabicDigits(str: string): string {
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return String(str || '').replace(/[0-9]/g, (d) => arabicDigits[Number(d)]);
+}
+
+export function formatDateOnly(value?: string | Date) {
   if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('ar-EG', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  }).format(date);
+  let year = '';
+  let month = '';
+  let day = '';
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      year = match[1];
+      month = match[2];
+      day = match[3];
+    }
+  }
+  if (!year) {
+    const date = typeof value === 'string' ? new Date(value) : value;
+    if (Number.isNaN(date.getTime())) return String(value);
+    day = String(date.getDate()).padStart(2, '0');
+    month = String(date.getMonth() + 1).padStart(2, '0');
+    year = String(date.getFullYear());
+  }
+  return `${toArabicDigits(year)}/${toArabicDigits(month)}/${toArabicDigits(day)}`;
+}
+
+export function formatDateTimeArabic(date?: Date | string | null) {
+  const d = date ? (typeof date === 'string' ? new Date(date) : date) : new Date();
+  if (Number.isNaN(d.getTime())) return '—';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const time = new Intl.DateTimeFormat('ar-EG', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).format(d);
+  return `${toArabicDigits(`${day}/${month}/${year}`)} في ${time}`;
 }
 
 function toIsoUtc(date: Date) {

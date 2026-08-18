@@ -20,23 +20,25 @@ export function getKitchenTicketStyles() {
     .note-line { font-size: 12px; font-style: italic; color: #d32f2f; margin-top: 1px; }
     
     /* Mini Mode Styles */
-    .mini-ticket { text-align: center; padding: 4px 0; }
-    .mini-title { font-size: 24px; font-weight: 900; margin-bottom: 4px; border: 2px solid #000; padding: 4px; border-radius: 4px; display: inline-block; }
-    .mini-date { font-size: 13px; font-weight: 700; }
+    .mini-ticket { text-align: center; padding: 2px 0; }
+    .mini-title { font-size: 26px; font-weight: 900; margin-bottom: 4px; border: 2px solid #000; padding: 3px 14px; border-radius: 6px; display: inline-block; letter-spacing: 0.5px; }
+    .mini-meta { font-size: 11.5px; font-weight: 700; color: #111; direction: rtl; }
 
     body.receipt-mode .print-shell { width: 100%; max-width: 100%; padding-top: 0; margin: 0; box-sizing: border-box; }
   `;
 }
 
 export function buildKitchenTicketDocument(sale: Sale, settings?: Partial<AppSettings> | null) {
-  const documentNumber = sale.docNo || sale.id;
-  const dateText = formatDateTime(sale.date);
+  const documentNumber = String(sale.docNo || sale.id || '');
+  const shortOrderMatch = documentNumber.match(/-0*(\d+)$/);
+  const shortOrderNo = shortOrderMatch ? shortOrderMatch[1] : (sale.id ? String(sale.id) : documentNumber);
+  const dateText = formatDateTime(sale.date, settings);
   
   if (settings?.posKitchenPrinterMode === 'mini') {
     return `
       <div class="mini-ticket" dir="rtl">
-        <div class="mini-title">طلب #${escapeHtml(documentNumber)}</div>
-        <div class="mini-date">${escapeHtml(dateText)}</div>
+        <div class="mini-title">طلب # ${escapeHtml(shortOrderNo)}</div>
+        <div class="mini-meta">${escapeHtml(documentNumber)} &bull; ${escapeHtml(dateText)}</div>
       </div>
     `;
   }

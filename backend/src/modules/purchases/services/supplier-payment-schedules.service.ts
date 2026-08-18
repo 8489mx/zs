@@ -129,10 +129,23 @@ export class SupplierPaymentSchedulesService {
     };
   }
 
+  private formatIsoDate(dateValue: string | Date | null | undefined): string {
+    if (!dateValue) return '';
+    if (dateValue instanceof Date) {
+      return !Number.isNaN(dateValue.getTime()) ? dateValue.toISOString().slice(0, 10) : '';
+    }
+    const str = String(dateValue).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      return str.slice(0, 10);
+    }
+    const parsed = new Date(str);
+    return !Number.isNaN(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : str.slice(0, 10);
+  }
+
   private map(row: ScheduleRow, paymentLogs: SchedulePaymentLogRow[] = []): Record<string, unknown> {
     const amount = Number(row.amount || 0);
     const paidAmount = Number(row.paid_amount || 0);
-    const dueDate = String(row.due_date || '').slice(0, 10);
+    const dueDate = this.formatIsoDate(row.due_date);
     const today = new Date().toISOString().slice(0, 10);
     const baseStatus = String(row.status || 'pending');
     const status = baseStatus === 'pending' && dueDate < today ? 'overdue' : baseStatus;

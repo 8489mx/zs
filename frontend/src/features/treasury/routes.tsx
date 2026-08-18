@@ -8,6 +8,6 @@ export const treasuryRouteModule: FeatureRouteModule = {
   ],
   navigation: [
     { key: 'treasury', label: 'الخزينة', to: '/treasury' },
-    { key: 'expenses', label: 'سجل المصروفات', to: '/expenses' }
+    { key: 'expenses', label: 'المصروفات', to: '/expenses' }
   ]
 };

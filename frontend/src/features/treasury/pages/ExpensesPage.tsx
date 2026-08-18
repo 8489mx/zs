@@ -55,7 +55,7 @@ export function ExpensesPage() {
     <div className="page-stack page-shell treasury-workspace treasury-workspace--compact" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
         <PageHeader 
-          title="سجل المصروفات" 
+          title="المصروفات" 
           description="سجل مصاريف التشغيل اليومية والرواتب والإيجارات وغيرها." 
           badge={<span className="nav-pill">الخدمات والحسابات</span>}
           actions={

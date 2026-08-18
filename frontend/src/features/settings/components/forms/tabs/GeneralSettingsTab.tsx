@@ -226,13 +226,6 @@ export function GeneralSettingsTab({
                 <option value="touch">تاتش</option>
               </select>
             </RequiredField>
-
-            <RequiredField label="مقاس الطباعة">
-              <select className="purchase-prototype-field-input" {...form.register('paperSize')} disabled={disabled}>
-                <option value="a4">A4</option>
-                <option value="receipt">Receipt</option>
-              </select>
-            </RequiredField>
           </div>
         </FormSection>
 

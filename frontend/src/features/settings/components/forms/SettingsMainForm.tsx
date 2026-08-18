@@ -469,18 +469,22 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         form={form}
         disabled={disabled}
         activeTab={activeTab}
-        settings={settings}
-        systemPrinters={systemPrinters}
-        savedCashierPrinter={form.watch('posElectronCashierPrinter')}
-        savedKitchenPrinter={form.watch('posElectronKitchenPrinter')}
-        posKitchenPrinterEnabled={form.watch('posKitchenPrinterEnabled')}
       />
 
       <ModulesSettingsTab form={form} disabled={disabled} activeTab={activeTab} />
 
       <SecuritySettingsTab form={form} disabled={disabled} activeTab={activeTab} settings={settings} />
 
-      <PrintingSettingsTab form={form} disabled={disabled} activeTab={activeTab} />
+      <PrintingSettingsTab
+        form={form}
+        disabled={disabled}
+        activeTab={activeTab}
+        settings={settings}
+        systemPrinters={systemPrinters}
+        savedCashierPrinter={form.watch('posElectronCashierPrinter')}
+        savedKitchenPrinter={form.watch('posElectronKitchenPrinter')}
+        posKitchenPrinterEnabled={form.watch('posKitchenPrinterEnabled')}
+      />
 
       <div className="actions compact-actions sticky-form-actions settings-save-actions">
         <button type="button" className="btn btn-secondary" onClick={() => form.setValue('logoData', '', { shouldDirty: true })} disabled={mutation.isPending || !form.watch('logoData')}>حذف الشعار</button>

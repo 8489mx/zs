@@ -188,7 +188,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'inventory-issue-orders': 'سجل أذونات الصرف',
       products: t('sidebar.products'),
       treasury: t('sidebar.treasury'),
-      expenses: 'سجل المصروفات',
+      expenses: 'المصروفات',
       services: t('sidebar.services'),
       accounts: t('sidebar.accounts'),
       'accounting-accounts': t('sidebar.accounting-accounts'),
