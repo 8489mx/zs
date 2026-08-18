@@ -105,6 +105,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
 
   function refreshAccounts() {
     queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances });
+    queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
     queryClient.invalidateQueries({ queryKey: queryKeys.treasury });
     if (supplierId) queryClient.invalidateQueries({ queryKey: queryKeys.supplierLedger(supplierId) });
   }
@@ -128,6 +129,10 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
     }),
     onSuccess: (nextRows) => {
       queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), nextRows);
+      refreshAccounts();
+      setShowAppendForm(false);
+      setScheduleAmount('');
+      setNote('');
     },
   });
 

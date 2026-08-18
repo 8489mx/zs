@@ -231,6 +231,14 @@
   grid-column: 1 / -1;
 }
 
+.supplier-quick-payment-dialog-overlay {
+  z-index: 100 !important;
+}
+
+.supplier-payment-dialog-overlay {
+  z-index: 120 !important;
+}
+
 .supplier-payment-dialog {
   width: min(560px, calc(100vw - 36px));
 }
@@ -293,12 +301,22 @@
 }
 
 .supplier-quick-payment-dialog {
-  width: min(760px, calc(100vw - 36px));
+  width: min(1000px, calc(100vw - 36px));
 }
 
 .supplier-quick-payment-card {
-  max-height: min(86vh, 760px);
-  overflow: auto;
+  max-height: min(90vh, 880px);
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.supplier-quick-payment-embedded-card {
+  margin-top: 12px;
+}
+
+.supplier-quick-payment-embedded-card .form-section {
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
 }
 
 .supplier-quick-payment-grid {
