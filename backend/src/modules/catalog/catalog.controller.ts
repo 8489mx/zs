@@ -96,6 +96,32 @@ export class CatalogController {
     return this.catalogService.updateProduct(id, payload, req.authContext!);
   }
 
+  @Get('catalog/serials/lookup')
+  @RequirePermissions('sales')
+  lookupSerial(@Query('serial') serial: string, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.catalogService.lookupSerial(serial || '', req.authContext!);
+  }
+
+  @Get('products/:id/serials')
+  @RequirePermissions('products')
+  listProductSerials(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: Record<string, unknown>,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.catalogService.listProductSerials(id, query, req.authContext!);
+  }
+
+  @Post('products/:id/serials')
+  @RequirePermissions('products')
+  addProductSerials(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: { items: any[] },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.catalogService.addProductSerials(id, payload?.items || [], req.authContext!);
+  }
+
   @HttpRemove('products/:id')
   @RequirePermissions('canDelete')
   removeProduct(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

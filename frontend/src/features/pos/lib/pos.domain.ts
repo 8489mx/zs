@@ -185,6 +185,7 @@ interface AddPosItemOptions {
   quantity?: number;
   isWeighted?: boolean;
   sourceBarcode?: string;
+  serialNumber?: string;
 }
 
 export function addPosItem(cart: PosItem[], product: Product, options: AddPosItemOptions) {
@@ -206,15 +207,25 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
   const priceType = options.priceType;
   const lineKey = `${product.id}::${unit.id || unit.name}::${priceType}`;
   const existing = cart.find((item) => item.lineKey === lineKey);
+  const incomingSerial = options.serialNumber || product.matchedSerialNumber || undefined;
+  const isSerialized = Boolean(product.trackSerials || incomingSerial);
+
   if (existing) {
     const nextQty = roundQuantity(Number(existing.qty || 0) + requestedQty);
     if (nextQty > stockLimit) throw new Error('الكمية المطلوبة أكبر من المخزون المتاح');
+    const existingSerials = existing.serials || [];
+    const nextSerials = incomingSerial && !existingSerials.includes(incomingSerial)
+      ? [...existingSerials, incomingSerial]
+      : existingSerials;
+
     return cart.map((item) => item.lineKey === lineKey
       ? repriceCartLine({
           ...item,
           isWeighted: item.isWeighted === true || isWeighted ? true : undefined,
           sourceBarcode: options.sourceBarcode || item.sourceBarcode,
           stockLimit,
+          trackSerials: isSerialized || item.trackSerials,
+          serials: nextSerials.length > 0 ? nextSerials : undefined,
           quantityChunks: (item.isWeighted === true || isWeighted) && options.sourceBarcode 
             ? [...(item.quantityChunks || [Number(item.qty || 0)]), requestedQty] 
             : item.quantityChunks,
@@ -239,6 +250,8 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     isWeighted: isWeighted ? true : undefined,
     sourceBarcode: options.sourceBarcode || undefined,
     quantityChunks: isWeighted && options.sourceBarcode ? [requestedQty] : undefined,
+    trackSerials: isSerialized ? true : undefined,
+    serials: incomingSerial ? [incomingSerial] : undefined,
   };
 
   return [repriceCartLine(newItem, product, requestedQty), ...cart];

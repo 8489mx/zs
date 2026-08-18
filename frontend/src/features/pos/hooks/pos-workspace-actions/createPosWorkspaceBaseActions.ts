@@ -47,7 +47,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   function handleAddProduct(
     product: Product,
     unitId?: string,
-    options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string } = {},
+    options: { quantity?: number; isWeighted?: boolean; sourceBarcode?: string; serialNumber?: string } = {},
   ) {
 
     const lineKey = unitId ? resolveUnitLineKey(product, unitId) : buildSaleLineKey(product, params.priceType);
@@ -90,6 +90,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
             quantity: options.quantity,
             isWeighted: options.isWeighted,
             sourceBarcode: options.sourceBarcode,
+            serialNumber: options.serialNumber,
           });
         } catch (error) {
           caughtError = error;

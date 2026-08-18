@@ -549,6 +549,7 @@ export class SalesWriteService {
       await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);
 
       for (const item of preparedItems) {
+        const itemSerials = Array.isArray(item.serials) ? item.serials : [];
         const insertedLine = await trx
           .insertInto('sale_items')
           .values({
@@ -564,12 +565,34 @@ export class SalesWriteService {
             price_type: item.priceType as 'retail' | 'wholesale',
             notes: item.notes,
             modifiers: item.modifiers ? JSON.stringify(item.modifiers) : '[]',
+            serials: itemSerials.length > 0 ? JSON.stringify(itemSerials) : '[]',
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           } as any)
           .returning('id')
           .executeTakeFirstOrThrow();
         const saleLineId = Number(insertedLine.id);
+
+        if (itemSerials.length > 0) {
+          const cleanSerials = itemSerials.map((s: any) =>
+            (typeof s === 'string' ? s : s?.serialNumber || s?.serial || '').trim().toLowerCase()
+          ).filter(Boolean);
+
+          if (cleanSerials.length > 0) {
+            await trx
+              .updateTable('product_serials')
+              .set({
+                status: 'sold',
+                sale_id: id,
+                sale_item_id: saleLineId,
+                updated_at: sql`NOW()`,
+              })
+              .where('product_id', '=', item.productId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .where(sql<boolean>`LOWER(serial_number) in (${sql.join(cleanSerials)})`)
+              .execute();
+          }
+        }
 
         let remainingQty = item.requiredQty;
         let allocationOrder = 1;
@@ -1032,6 +1055,7 @@ export class SalesWriteService {
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
 
       for (const item of preparedItems) {
+        const itemSerials = Array.isArray(item.serials) ? item.serials : [];
         const insertedLine = await trx.insertInto('sale_items').values({
           sale_id: saleId,
           product_id: item.productId,
@@ -1044,10 +1068,32 @@ export class SalesWriteService {
           cost_price: item.costPrice,
           price_type: item.priceType as 'retail' | 'wholesale',
           modifiers: item.modifiers ? JSON.stringify(item.modifiers) : '[]',
+          serials: itemSerials.length > 0 ? JSON.stringify(itemSerials) : '[]',
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        }).returning('id').executeTakeFirstOrThrow();
+        } as any).returning('id').executeTakeFirstOrThrow();
         const saleLineId = Number(insertedLine.id);
+
+        if (itemSerials.length > 0) {
+          const cleanSerials = itemSerials.map((s: any) =>
+            (typeof s === 'string' ? s : s?.serialNumber || s?.serial || '').trim().toLowerCase()
+          ).filter(Boolean);
+
+          if (cleanSerials.length > 0) {
+            await trx
+              .updateTable('product_serials')
+              .set({
+                status: 'sold',
+                sale_id: saleId,
+                sale_item_id: saleLineId,
+                updated_at: sql`NOW()`,
+              })
+              .where('product_id', '=', item.productId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .where(sql<boolean>`LOWER(serial_number) in (${sql.join(cleanSerials)})`)
+              .execute();
+          }
+        }
 
         let remainingQty = item.requiredQty;
         let allocationOrder = 1;

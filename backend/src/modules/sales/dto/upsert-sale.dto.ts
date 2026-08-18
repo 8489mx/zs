@@ -47,6 +47,10 @@ class SaleItemDto {
 
   @IsOptional()
   modifiers?: any;
+
+  @IsOptional()
+  @IsArray()
+  serials?: string[];
 }
 
 export class UpsertSaleDto {
@@ -183,7 +187,7 @@ export type NormalizedSalePayload = {
   branchId: number | null;
   locationId: number | null;
   source: 'pos' | 'dashboard';
-  items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; notes: string; modifiers: any }>;
+  items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; notes: string; modifiers: any; serials?: string[] }>;
   payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }>;
   tenderedAmount: number;
   tableNumber: string | null;

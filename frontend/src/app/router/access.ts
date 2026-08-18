@@ -116,6 +116,8 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   'inventory-issue-orders': 'inventory',
   'inventory-warehouses': 'inventory',
   'product-categories': 'products',
+  qz: null,
+  '/qz': null,
 };
 
 export const routeFeatureMap: Record<string, string> = {

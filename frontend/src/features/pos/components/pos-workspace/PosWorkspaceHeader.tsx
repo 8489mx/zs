@@ -30,9 +30,10 @@ interface PosWorkspaceHeaderProps {
   onFocusSearch: () => void;
   onPrintDraft: () => void;
   onRequestOpenShift?: () => void;
+  onOpenSerialLookup?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onRequestOpenShift }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onRequestOpenShift, onOpenSerialLookup }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
   const [showDeliveryReps, setShowDeliveryReps] = useState(false);
 
@@ -65,6 +66,9 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
                <span style={{ opacity: 0.5 }}>|</span>
                <span>{(pos.currentBranch as any).salesStockMode === 'all_operational_locations' ? 'كل المخازن' : 'مخزن أساسي'}</span>
              </div>
+          )}
+          {onOpenSerialLookup && (
+            <Button type="button" variant="secondary" style={{ color: '#7e22ce', borderColor: '#d8b4fe', background: '#faf5ff' }} onClick={onOpenSerialLookup}>📱 فحص IMEI</Button>
           )}
           <Button type="button" variant="secondary" onClick={() => setShowDeliveryReps(true)}>إدارة المناديب</Button>
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F3</Button>

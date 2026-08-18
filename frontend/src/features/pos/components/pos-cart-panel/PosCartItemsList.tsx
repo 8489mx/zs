@@ -121,6 +121,11 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                     ✨ {item.offerName}
                   </div>
                 )}
+                {item.serials && item.serials.length > 0 && (
+                  <div style={{ fontSize: '0.72rem', color: '#7e22ce', background: '#faf5ff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e9d5ff', marginTop: '3px', direction: 'ltr', textAlign: 'right' }}>
+                    📱 IMEI: <strong>{item.serials.join(', ')}</strong>
+                  </div>
+                )}
                 {onItemModifiersClick && allowItemModifiers && (
                   <button
                     type="button"

@@ -32,6 +32,7 @@ export const settingsFormSchema = z.object({
   posShowCartMeta: z.boolean().default(false),
   printDeliveryRepOnReceipt: z.boolean().default(false),
   clothingModuleEnabled: z.boolean().default(false),
+  enableMobileStoreFeatures: z.boolean().default(false),
   defaultProductKind: z.enum(['standard', 'fashion']).default('standard'),
   defaultPosMode: z.enum(['scanner', 'touch']).default('scanner'),
   allowNegativeStockSales: z.boolean().default(false),

@@ -169,6 +169,7 @@ export interface AppSettings {
   restaurantModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
   clothingModuleEnabled?: boolean;
+  enableMobileStoreFeatures?: boolean;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;
   allowNegativeStockSales?: boolean;

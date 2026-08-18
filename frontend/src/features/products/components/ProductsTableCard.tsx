@@ -26,6 +26,7 @@ export interface ProductsTableCardProps {
   onOpenOfferDialog: (product: Product) => void;
   onOpenBarcodeDialog: (product: Product, mode?: 'scan' | 'generate') => void;
   onOpenPrintDialog: (product: Product) => void;
+  onOpenSerialsDialog?: (product: Product) => void;
   canDelete: boolean;
   canPrint: boolean;
   onExportCsv: () => void;
@@ -213,7 +214,11 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>عروض</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>+باركود</Button>
+                          {product.trackSerials && props.onOpenSerialsDialog ? (
+                            <Button variant="secondary" type="button" style={{ color: '#7e22ce', borderColor: '#d8b4fe', background: '#faf5ff' }} onClick={() => props.onOpenSerialsDialog?.(product)}>📱 سيريالات</Button>
+                          ) : (
+                            <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>+باركود</Button>
+                          )}
                           <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'generate')}>توليد</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(product)} disabled={!props.canPrint}>ملصقات</Button>
                           <Button variant="danger" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>

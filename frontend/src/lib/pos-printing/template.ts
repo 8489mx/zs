@@ -98,7 +98,7 @@ function renderMetaPanel(rows: Array<{ label: string; value?: string | number | 
   `;
 }
 
-function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[] }>, compact = false, settings?: Partial<AppSettings> | null) {
+function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[]; serials?: string[] }>, compact = false, settings?: Partial<AppSettings> | null) {
   const body = (items || []).map((item, index) => {
     const modifiersHtml = item.modifiers?.length 
       ? `<div class="item-modifiers" style="font-size: 0.85em; color: #000; margin-top: 2px;">
@@ -114,10 +114,15 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
           }).join('')}
          </div>`
       : '';
+    const serialsHtml = item.serials?.length
+      ? `<div class="item-serials" style="font-size: 0.8em; color: #000; margin-top: 2px; font-family: monospace;">
+          <strong>IMEI:</strong> ${item.serials.map(escapeHtml).join(', ')}
+         </div>`
+      : '';
     return `
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
-      <td class="name-cell">${escapeHtml(item.name || '—')}${modifiersHtml}</td>
+      <td class="name-cell">${escapeHtml(item.name || '—')}${modifiersHtml}${serialsHtml}</td>
       ${compact ? '' : `<td>${escapeHtml(item.unitName || 'قطعة')}</td>`}
       <td>${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
       <td>${formatReceiptMoney(Number(item.price || 0), settings)}</td>

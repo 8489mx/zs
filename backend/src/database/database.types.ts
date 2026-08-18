@@ -298,6 +298,28 @@ export interface ProductTable {
   tax_code_type: string | null;
   tax_code: string | null;
   metadata: any | null;
+  track_serials?: boolean | null;
+}
+
+export interface ProductSerialTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  product_id: number;
+  serial_number: string;
+  imei_2: string | null;
+  status: 'in_stock' | 'sold' | 'returned' | 'in_repair' | 'scrapped';
+  branch_id: number | null;
+  location_id: number | null;
+  cost_price: number;
+  purchase_id: number | null;
+  purchase_item_id: number | null;
+  sale_id: number | null;
+  sale_item_id: number | null;
+  warranty_end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
 export interface StyleCodeCounterTable {
@@ -567,6 +589,7 @@ export interface SaleItemTable {
   price_type: 'retail' | 'wholesale';
   notes: ColumnType<string, string | undefined, string | undefined>;
   modifiers: ColumnType<unknown, unknown | undefined, unknown | undefined>;
+  serials?: any;
 }
 
 export interface SalePaymentTable {
@@ -618,6 +641,7 @@ export interface HeldSaleItemTable {
   unit_multiplier: number;
   price_type: 'retail' | 'wholesale';
   modifiers: ColumnType<unknown, unknown | undefined, unknown | undefined>;
+  serials?: any;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -959,6 +983,7 @@ export interface PurchaseItemTable {
   unit_multiplier: number;
   category_id: number | null;
   location_id: number | null;
+  serials?: any;
 }
 
 export interface SupplierPaymentTable {
@@ -1461,6 +1486,7 @@ export interface Database {
   suppliers: SupplierTable;
   customers: CustomerTable;
   products: ProductTable;
+  product_serials: ProductSerialTable;
   product_units: ProductUnitTable;
   product_offers: ProductOfferTable;
   product_customer_prices: ProductCustomerPriceTable;
@@ -1713,6 +1739,7 @@ export interface Database {
   suppliers: SupplierTable;
   customers: CustomerTable;
   products: ProductTable;
+  product_serials: ProductSerialTable;
   product_units: ProductUnitTable;
   product_offers: ProductOfferTable;
   product_customer_prices: ProductCustomerPriceTable;

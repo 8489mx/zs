@@ -5,10 +5,12 @@ import { CatalogController } from './catalog.controller';
 import { CatalogService } from './catalog.service';
 import { CatalogCategoryService } from './services/catalog-category.service';
 import { CatalogProductService } from './services/catalog-product.service';
+import { ProductSerialsService } from './services/product-serials.service';
 
 @Module({
   imports: [AuditModule, InventoryModule],
   controllers: [CatalogController],
-  providers: [CatalogService, CatalogCategoryService, CatalogProductService],
+  providers: [CatalogService, CatalogCategoryService, CatalogProductService, ProductSerialsService],
+  exports: [ProductSerialsService],
 })
 export class CatalogModule {}

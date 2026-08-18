@@ -21,4 +21,6 @@ export interface PosItem {
   offerName?: string;
   modifiers?: any[];
   quantityChunks?: number[];
+  trackSerials?: boolean;
+  serials?: string[];
 }

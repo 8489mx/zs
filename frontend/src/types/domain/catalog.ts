@@ -49,6 +49,8 @@ export interface Product {
   bomId?: number;
   hasBom?: boolean;
   binLocation?: string;
+  trackSerials?: boolean;
+  matchedSerialNumber?: string | null;
   metadata?: Record<string, any>;
 }
 

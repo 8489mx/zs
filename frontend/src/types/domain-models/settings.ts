@@ -45,6 +45,7 @@ export interface AppSettings {
   posShowCartMeta?: boolean;
   printDeliveryRepOnReceipt?: boolean;
   clothingModuleEnabled?: boolean;
+  enableMobileStoreFeatures?: boolean;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;
   allowNegativeStockSales?: boolean;

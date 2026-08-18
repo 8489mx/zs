@@ -70,6 +70,7 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): Produc
     supplierId: '',
     warehouseId: '',
     notes: '',
+    trackSerials: false,
     taxCodeType: 'GS1',
     taxCode: '',
     metadata: {
@@ -412,6 +413,16 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
             </Field>
           </div>
         ) : null}
+
+        <div className="field span-full" style={{ padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', marginTop: '4px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#166534', margin: 0 }}>
+            <input type="checkbox" {...form.register('trackSerials')} disabled={mutation.isPending} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+            <span>📱 تتبع أرقام السيريال / الـ IMEI لهذا الصنف (للهواتف، الأجهزة، وقطع الإلكترونيات)</span>
+          </label>
+          <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: '4px', marginInlineStart: '28px' }}>
+            يتيح تتبع كل جهاز برقم السيريال/IMEI المنفرد، تسجيل السيريالات عند الشراء، وخصمها بالمسح المباشر في الكاشير ومتابعة الضمان.
+          </div>
+        </div>
 
         <Field label="ملاحظات" className="span-full"><textarea {...form.register('notes')} rows={4} disabled={mutation.isPending} style={{ width: '100%' }} /></Field>
       </div>

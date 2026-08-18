@@ -9,6 +9,8 @@ export type PrototypeLine = {
   category?: string;
   categoryId?: string;
   isService?: boolean;
+  trackSerials?: boolean;
+  serials?: string[];
 };
 
 export type SupplierOption = {
@@ -54,6 +56,7 @@ export type ProductOption = {
   defaultLocationName?: string;
   activeLocationIds?: string[];
   costPrice?: number;
+  trackSerials?: boolean;
 };
 
 export type CategoryOption = {

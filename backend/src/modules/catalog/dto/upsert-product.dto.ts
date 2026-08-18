@@ -126,6 +126,11 @@ export class UpsertProductDto {
   binLocation?: string;
 
   @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  trackSerials?: boolean;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -239,6 +244,7 @@ export type NormalizedUpsertProduct = {
   color: string;
   size: string;
   binLocation?: string;
+  trackSerials?: boolean;
   categoryId: number | null;
   supplierId: number | null;
   costPrice: number;

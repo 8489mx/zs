@@ -54,6 +54,8 @@ export interface Product {
   defaultLocationId?: string;
   defaultLocationName?: string;
   activeLocationIds?: string[];
+  trackSerials?: boolean;
+  matchedSerialNumber?: string | null;
 }
 
 export interface Category {

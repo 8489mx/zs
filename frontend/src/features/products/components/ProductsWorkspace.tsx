@@ -13,10 +13,13 @@ import { useProductsWorkspaceController } from '@/features/products/hooks/usePro
 import { useInventoryActionCatalog } from '@/shared/hooks/use-inventory-action-catalog';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
+import type { Product } from '@/types/domain';
 
 const LazyProductOfferDialog = lazy(() => import('@/features/products/components/ProductOfferDialog').then((module) => ({ default: module.ProductOfferDialog })));
 const LazyProductBarcodeDialog = lazy(() => import('@/features/products/components/ProductBarcodeDialog').then((module) => ({ default: module.ProductBarcodeDialog })));
 const LazyBarcodePrintDialog = lazy(() => import('@/features/products/components/BarcodePrintDialog').then((module) => ({ default: module.BarcodePrintDialog })));
+const LazyProductSerialsDialog = lazy(() => import('@/features/products/components/ProductSerialsDialog').then((module) => ({ default: module.ProductSerialsDialog })));
+const LazySerialLookupModal = lazy(() => import('@/features/products/components/SerialLookupModal').then((module) => ({ default: module.SerialLookupModal })));
 
 const productsWorkspaceRegressionLabels = ['باركود', 'وحدات'];
 void productsWorkspaceRegressionLabels;
@@ -33,6 +36,8 @@ export function ProductsWorkspace() {
   const locationNames = Object.fromEntries((locationsQuery.data || []).map((l: any) => [l.id, l.name]));
   const hasProducts = controller.metrics.total > 0;
   const [addonsDialogOpen, setAddonsDialogOpen] = useState(false);
+  const [serialLookupOpen, setSerialLookupOpen] = useState(false);
+  const [serialsProduct, setSerialsProduct] = useState<Product | null>(null);
 
   useAppToolbar([{ label: 'المنتجات' }]);
 
@@ -47,6 +52,9 @@ export function ProductsWorkspace() {
             <div className="actions compact-actions page-header-actions">
               <Button onClick={() => navigate('/products/new')}>
                 {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
+              </Button>
+              <Button variant="secondary" onClick={() => setSerialLookupOpen(true)}>
+                🔍 فحص سيريال / IMEI
               </Button>
               {settingsQuery.data?.restaurantModuleEnabled === true && (
                 <Button onClick={() => setAddonsDialogOpen(true)}>
@@ -120,9 +128,27 @@ export function ProductsWorkspace() {
           onPageChange={controller.setPage}
           onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
           clothingEnabled={clothingEnabled}
+          onOpenSerialsDialog={(product) => setSerialsProduct(product)}
         />
 
         <div ref={toolsRef}></div>
+
+        <Suspense fallback={null}>
+          {serialLookupOpen && (
+            <LazySerialLookupModal
+              open={serialLookupOpen}
+              onClose={() => setSerialLookupOpen(false)}
+            />
+          )}
+
+          {serialsProduct && (
+            <LazyProductSerialsDialog
+              open={Boolean(serialsProduct)}
+              product={serialsProduct}
+              onClose={() => setSerialsProduct(null)}
+            />
+          )}
+        </Suspense>
 
         {(controller.offerDialogProduct || controller.barcodeDialogProduct || controller.printDialogState) ? (
           <Suspense fallback={<div className="loading-card">جاري تحميل الأدوات الإضافية...</div>}>

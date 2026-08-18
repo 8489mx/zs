@@ -31,6 +31,7 @@ type ProductRow = {
   default_location_id?: number | null;
   default_location_name?: string | null;
   notes: string;
+  track_serials?: boolean | null;
 };
 
 type ProductWriteExecutor = Kysely<Database> | Transaction<Database>;
@@ -67,11 +68,12 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials'> & {
   matched_unit_id?: number | null;
   matched_unit_name?: string | null;
   matched_unit_multiplier?: string | number | null;
   matched_unit_barcode?: string | null;
+  matched_serial_number?: string | null;
 };
 
 type CustomerPriceReadRow = {
@@ -251,7 +253,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
+        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
         .where('products.is_active', '=', true)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -383,7 +385,7 @@ export class CatalogProductService {
     const productMatches = await this.db
       .selectFrom('products as p')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id'])
+      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
@@ -392,8 +394,49 @@ export class CatalogProductService {
       .execute() as PosProductLookupRow[];
 
     const seenProductIds = productMatches.map((product) => Number(product.id));
-    const remaining = limit - productMatches.length;
-    if (remaining <= 0) return productMatches;
+    let remaining = limit - productMatches.length;
+
+    let serialMatches: PosProductLookupRow[] = [];
+    if (remaining > 0) {
+      const serialRows = await this.db
+        .selectFrom('product_serials as ps')
+        .innerJoin('products as p', 'p.id', 'ps.product_id')
+        .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+        .select([
+          'p.id',
+          'p.name',
+          'p.barcode',
+          'p.item_type',
+          'p.item_kind',
+          'p.style_code',
+          'p.color',
+          'p.size',
+          'p.retail_price',
+          'p.wholesale_price',
+          'p.stock_qty',
+          'p.min_stock_qty',
+          'b.id as bom_id',
+          'p.category_id',
+          'p.track_serials',
+          'ps.serial_number as matched_serial_number',
+        ])
+        .where('p.is_active', '=', true)
+        .where('ps.status', '=', 'in_stock')
+        .where(this.tenantPredicate(actor, 'ps'))
+        .where((eb) =>
+          eb.or([
+            sql<boolean>`LOWER(ps.serial_number) = ${barcode.trim().toLowerCase()}`,
+            sql<boolean>`LOWER(ps.imei_2) = ${barcode.trim().toLowerCase()}`,
+          ]),
+        )
+        .limit(remaining)
+        .execute() as PosProductLookupRow[];
+      serialMatches = serialRows;
+      for (const sm of serialMatches) seenProductIds.push(Number(sm.id));
+      remaining = limit - productMatches.length - serialMatches.length;
+    }
+
+    if (remaining <= 0) return [...productMatches, ...serialMatches];
 
     let unitQuery = this.db
       .selectFrom('product_units as pu')
@@ -414,6 +457,7 @@ export class CatalogProductService {
         'p.min_stock_qty',
         'b.id as bom_id',
         'p.category_id',
+        'p.track_serials',
         'pu.id as matched_unit_id',
         'pu.name as matched_unit_name',
         'pu.multiplier as matched_unit_multiplier',
@@ -430,7 +474,7 @@ export class CatalogProductService {
       .limit(remaining)
       .execute() as PosProductLookupRow[];
 
-    return [...productMatches, ...unitMatches];
+    return [...productMatches, ...serialMatches, ...unitMatches];
   }
 
   private async searchPosProducts(q: string, limit: number, view: 'all' | 'offers' = 'all', actor: AuthContext): Promise<PosProductLookupRow[]> {
@@ -455,6 +499,7 @@ export class CatalogProductService {
         'p.min_stock_qty',
         'b.id as bom_id',
         'p.category_id',
+        'p.track_serials',
       ])
       .where('p.is_active', '=', true)
       .where(this.tenantPredicate(actor, 'p'));
@@ -618,6 +663,8 @@ export class CatalogProductService {
         : null,
       bomId: product.bom_id ? Number(product.bom_id) : undefined,
       hasBom: !!product.bom_id,
+      trackSerials: Boolean(product.track_serials),
+      matchedSerialNumber: product.matched_serial_number || null,
       units,
       offers: context.offersByProduct.get(String(product.id)) || [],
     };
@@ -868,6 +915,7 @@ export class CatalogProductService {
         color: product.color || '',
         size: product.size || '',
         binLocation: product.bin_location || '',
+        trackSerials: Boolean(product.track_serials),
         costPrice: Number(product.cost_price || 0),
         retailPrice: Number(product.retail_price || 0),
         wholesalePrice: Number(product.wholesale_price || 0),
@@ -990,6 +1038,7 @@ export class CatalogProductService {
       color: normalizeArabicInput(payload.color),
       size: normalizeArabicInput(payload.size),
       binLocation: String(payload.binLocation || '').trim(),
+      trackSerials: Boolean(payload.trackSerials),
       categoryId: payload.categoryId ? Number(payload.categoryId) : null,
       supplierId: payload.supplierId ? Number(payload.supplierId) : null,
       costPrice: Number(payload.costPrice || 0),
@@ -1257,6 +1306,7 @@ export class CatalogProductService {
             color: draft.color || null,
             size: draft.size || null,
             bin_location: draft.binLocation || null,
+            track_serials: Boolean(draft.trackSerials),
             category_id: draft.categoryId,
             supplier_id: draft.supplierId,
             cost_price: draft.costPrice,
@@ -1329,6 +1379,7 @@ export class CatalogProductService {
         color: normalized.color || null,
         size: normalized.size || null,
         bin_location: normalized.binLocation || null,
+        track_serials: normalized.trackSerials !== undefined ? Boolean(normalized.trackSerials) : undefined,
         category_id: normalized.categoryId,
         supplier_id: normalized.supplierId,
         cost_price: normalized.costPrice,
@@ -1367,7 +1418,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'b.id as bom_id', 'sl.name as default_location_name'])
       .where('products.id', '=', id)
       .where('products.is_active', '=', true)
       .where(this.tenantPredicate(actor, 'products'))

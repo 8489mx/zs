@@ -309,7 +309,8 @@ export class PurchasesWriteService {
 
       const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
       for (const item of allocatedItems) {
-        await trx.insertInto('purchase_items').values({
+        const itemSerials = Array.isArray(item.serials) ? item.serials : [];
+        const insertedItem = await trx.insertInto('purchase_items').values({
           purchase_id: id,
           product_id: item.productId,
           product_name: item.name,
@@ -320,13 +321,39 @@ export class PurchasesWriteService {
           unit_multiplier: item.unitMultiplier,
           category_id: item.categoryId ?? null,
           location_id: item.locationId ?? null,
+          serials: itemSerials.length > 0 ? JSON.stringify(itemSerials) : '[]',
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-        }).execute();
+        } as any).returning('id').executeTakeFirst();
 
+        const itemLocationId = item.locationId!;
+        if (itemSerials.length > 0) {
+          const serialRows = itemSerials.map((s: any) => {
+            const serialNumber = typeof s === 'string' ? s.trim() : (s?.serialNumber || s?.serial || '').trim();
+            const imei2 = typeof s === 'object' ? s?.imei2 || null : null;
+            return {
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              product_id: item.productId,
+              serial_number: serialNumber,
+              imei_2: imei2,
+              status: 'in_stock' as const,
+              branch_id: branchId || null,
+              location_id: itemLocationId || null,
+              cost_price: item.effectiveUnitCost,
+              purchase_id: id,
+              purchase_item_id: insertedItem ? Number(insertedItem.id) : null,
+              warranty_end_date: null,
+              notes: null,
+            };
+          }).filter((r) => r.serial_number);
+
+          if (serialRows.length > 0) {
+            await trx.insertInto('product_serials').values(serialRows as any).execute();
+          }
+        }
 
         const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
-        const itemLocationId = item.locationId!;
         const stockChange = await applyStockDelta(trx, {
           productId: item.productId,
           delta: increasedQty,

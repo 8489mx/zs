@@ -4,12 +4,14 @@ import { UpsertCategoryDto } from './dto/upsert-category.dto';
 import { UpsertProductDto } from './dto/upsert-product.dto';
 import { CatalogCategoryService } from './services/catalog-category.service';
 import { CatalogProductService } from './services/catalog-product.service';
+import { ProductSerialsService, ProductSerialItemInput } from './services/product-serials.service';
 
 @Injectable()
 export class CatalogService {
   constructor(
     private readonly categoryService: CatalogCategoryService,
     private readonly productService: CatalogProductService,
+    private readonly serialsService: ProductSerialsService,
   ) {}
 
   listCategories(actor: AuthContext): Promise<Record<string, unknown>> { return this.categoryService.listCategories(actor); }
@@ -25,4 +27,15 @@ export class CatalogService {
   deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.deleteProduct(id, actor); }
   getNextStyleCode(actor: AuthContext): Promise<{ styleCode: string }> { return this.productService.getNextStyleCode(actor); }
   allocateStyleCode(actor: AuthContext): Promise<{ styleCode: string }> { return this.productService.allocateStyleCode(actor); }
+
+  listProductSerials(productId: number, query: Record<string, unknown>, actor: AuthContext) {
+    return this.serialsService.listSerials(productId, query as any, actor);
+  }
+  addProductSerials(productId: number, items: ProductSerialItemInput[], actor: AuthContext) {
+    return this.serialsService.addSerials(productId, items, actor);
+  }
+  lookupSerial(serial: string, actor: AuthContext) {
+    return this.serialsService.lookupSerial(serial, actor);
+  }
 }
+

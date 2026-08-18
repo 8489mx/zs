@@ -40,6 +40,10 @@ class PurchaseItemDto {
   @IsOptional()
   @IsNumber()
   locationId?: number;
+
+  @IsOptional()
+  @IsArray()
+  serials?: string[];
 }
 
 export class UpsertPurchaseDto {

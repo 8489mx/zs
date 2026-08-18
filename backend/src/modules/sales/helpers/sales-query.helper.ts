@@ -33,6 +33,7 @@ export function mapSaleRows(
       cost: Number(item.cost_price || 0),
       priceType: item.price_type || 'retail',
       modifiers: typeof item.modifiers === 'string' ? JSON.parse(item.modifiers || '[]') : (item.modifiers || []),
+      serials: typeof item.serials === 'string' ? JSON.parse(item.serials || '[]') : (item.serials || []),
     });
   }
 

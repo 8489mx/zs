@@ -377,6 +377,23 @@ export function EditProductPage() {
           </div>
         </FormSection>
 
+        <FormSection title="تتبع الأجهزة والسيريال (IMEI / Serial Number)">
+          <div style={{ padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#166534', margin: 0 }}>
+              <input
+                type="checkbox"
+                {...form.register('trackSerials')}
+                disabled={isFormDisabled}
+                style={{ width: 18, height: 18, cursor: 'pointer' }}
+              />
+              <span>📱 تتبع أرقام السيريال / الـ IMEI لهذا الصنف (للهواتف، الأجهزة، وقطع الإلكترونيات)</span>
+            </label>
+            <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: '4px', marginInlineStart: '28px' }}>
+              يتيح تتبع كل جهاز برقم السيريال/IMEI المنفرد، تسجيل السيريالات عند الشراء، وخصمها بالمسح المباشر في الكاشير ومتابعة الضمان.
+            </div>
+          </div>
+        </FormSection>
+
         {importModuleEnabled ? (
           <FormSection title="بيانات قطعة الغيار (Auto Parts)">
             <div className="document-prototype-grid compact-grid-2">

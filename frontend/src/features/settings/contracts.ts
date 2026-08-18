@@ -36,6 +36,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     currentBranchId: cleanText(values.currentBranchId),
     currentLocationId: cleanText(values.currentLocationId),
     clothingModuleEnabled,
+    enableMobileStoreFeatures: values.enableMobileStoreFeatures === true,
     defaultProductKind,
     defaultPosMode,
     manufacturingModuleEnabled: values.manufacturingModuleEnabled === true,

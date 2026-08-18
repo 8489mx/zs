@@ -57,7 +57,8 @@ function normalizeCart(items: PosItem[]) {
     price: normalizeMoney(Number(item.price || 0)),
     priceType: item.priceType,
     notes: item.notes,
-    modifiers: item.modifiers
+    modifiers: item.modifiers,
+    ...(item.serials && item.serials.length > 0 ? { serials: item.serials } : {}),
   }));
 }
 

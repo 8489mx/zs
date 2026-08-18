@@ -28,6 +28,7 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     warehouseId: product.defaultLocationId || '',
     binLocation: product.binLocation || '',
     notes: product.notes || '',
+    trackSerials: Boolean(product.trackSerials),
     isCombo: false,
     comboComponents: []
   };
@@ -73,6 +74,7 @@ export function buildUpdatePayload(
     retailPrice: Number(values.retailPrice || 0),
     wholesalePrice: Number(values.wholesalePrice || 0),
     minStock: Number(values.minStock || 0),
+    trackSerials: Boolean(values.trackSerials),
     ...(categoryId ? { categoryId } : {}),
     ...(supplierId ? { supplierId } : {}),
     ...(warehouseId ? { warehouseId } : {}),

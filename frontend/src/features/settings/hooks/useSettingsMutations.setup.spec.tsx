@@ -53,6 +53,7 @@ const baseSettingsMutationValues = {
   posShowCartMeta: false,
   printDeliveryRepOnReceipt: false,
   clothingModuleEnabled: false,
+  enableMobileStoreFeatures: false,
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,
   defaultBranchIssueMode: 'final_issue' as const,

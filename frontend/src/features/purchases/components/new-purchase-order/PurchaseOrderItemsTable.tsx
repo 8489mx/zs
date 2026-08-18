@@ -202,6 +202,42 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                       error={rowErrors.product}
                       dropdownClassName={props.purchaseDropdownClassName}
                     />
+                    {line.trackSerials ? (
+                      <div style={{ marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #c084fc',
+                            background: '#faf5ff',
+                            color: '#7e22ce',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                          onClick={() => {
+                            const currentText = (line.serials || []).join('\n');
+                            const input = window.prompt(
+                              `أدخل أرقام السيريال / IMEI للصنف "${line.itemName}" (رقم في كل سطر أو مفصولة بفواصل):\nالكمية الحالية: ${line.qty}`,
+                              currentText
+                            );
+                            if (input !== null) {
+                              const serials = input
+                                .split(/[\n,]+/)
+                                .map((s) => s.trim())
+                                .filter(Boolean);
+                              props.onUpdateLine(line.id, 'serials', serials);
+                              if (serials.length > 0 && line.qty !== serials.length) {
+                                props.onUpdateLine(line.id, 'qty', serials.length);
+                              }
+                            }
+                          }}
+                        >
+                          📱 {line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : '+ إدخال أرقام السيريال / الـ IMEI'}
+                        </button>
+                      </div>
+                    ) : null}
                   </td>
                   <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category">
                     {line.isService ? (

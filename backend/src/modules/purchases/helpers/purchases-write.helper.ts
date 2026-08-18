@@ -22,6 +22,7 @@ export type NormalizedPurchaseItem = {
   total: number;
   categoryId?: number | null;
   locationId?: number | null;
+  serials?: any;
 };
 
 export type DiscountAllocatedPurchaseItem = NormalizedPurchaseItem & {
@@ -69,6 +70,7 @@ export function buildNormalizedPurchaseItem(
     total: roundCurrency(qty * cost),
     categoryId: item.categoryId ? Number(item.categoryId) : null,
     locationId: item.locationId ? Number(item.locationId) : null,
+    ...(item.serials !== undefined ? { serials: item.serials } : {}),
   };
 }
 

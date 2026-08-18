@@ -532,7 +532,8 @@ export function useNewPurchaseOrderController() {
           defaultLocationId: p.defaultLocationId?.toString(),
           defaultLocationName: p.defaultLocationName || loc?.name,
           activeLocationIds: Array.isArray(p.activeLocationIds) ? p.activeLocationIds.map(String) : [],
-          costPrice: p.costPrice
+          costPrice: p.costPrice,
+          trackSerials: Boolean(p.trackSerials)
         };
       }) as ProductOption[];
 
@@ -586,7 +587,9 @@ export function useNewPurchaseOrderController() {
           warehouseId: suggestedLocation.warehouseId,
           category,
           categoryId: option.categoryId,
-          isService: option.type === 'service'
+          isService: option.type === 'service',
+          trackSerials: Boolean(option.trackSerials),
+          serials: line.serials || [],
         };
         return newLine;
       })
@@ -625,7 +628,9 @@ export function useNewPurchaseOrderController() {
       warehouseId: suggestedLocation.warehouseId,
       category,
       categoryId: option.categoryId,
-      isService: option.type === 'service'
+      isService: option.type === 'service',
+      trackSerials: Boolean(option.trackSerials),
+      serials: [],
     };
 
 
@@ -1147,7 +1152,8 @@ export function useNewPurchaseOrderController() {
       unitName: 'Piece',
       unitMultiplier: 1,
       locationId: line.warehouseId,
-      categoryId: line.categoryId
+      categoryId: line.categoryId,
+      serials: line.serials && line.serials.length > 0 ? line.serials : undefined,
     }));
 
     try {

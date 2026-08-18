@@ -9,6 +9,7 @@ import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/Pos
 import { PosItemModifiersModal } from '@/features/pos/components/pos-cart-panel/PosItemModifiersModal';
 import { PosDraftSwitcherOverlay } from '@/features/pos/components/pos-workspace/PosDraftSwitcherOverlay';
 import { PosOpenShiftModal } from '@/features/pos/components/pos-workspace/PosOpenShiftModal';
+import { SerialLookupModal } from '@/features/products/components/SerialLookupModal';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -35,6 +36,7 @@ export function PosWorkspace() {
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
   const [openShiftModalOpen, setOpenShiftModalOpen] = useState(false);
+  const [serialLookupOpen, setSerialLookupOpen] = useState(false);
   const [modifiersModalLineKey, setModifiersModalLineKey] = useState<string>('');
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
@@ -310,6 +312,7 @@ export function PosWorkspace() {
         onFocusSearch={focusBarcodeEntry}
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
+        onOpenSerialLookup={() => setSerialLookupOpen(true)}
       />
 
       <PosWorkspaceMainContent
@@ -460,6 +463,14 @@ export function PosWorkspace() {
         defaultLocationId={pos.locationId}
         onShiftOpened={() => {
           void pos.refetchCatalogs();
+        }}
+      />
+
+      <SerialLookupModal
+        open={serialLookupOpen}
+        onClose={() => {
+          setSerialLookupOpen(false);
+          focusBarcodeEntry();
         }}
       />
     </div>

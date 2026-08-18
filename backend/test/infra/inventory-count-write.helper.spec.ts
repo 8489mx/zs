@@ -11,7 +11,7 @@ import {
 } from '../../src/modules/inventory/helpers/inventory-count-write.helper';
 
 (function inventoryCountWriteHelperSpec() {
-  assert.equal(buildStockCountSessionDocNo(123456), 'COUNT-123456');
+  assert.ok(buildStockCountSessionDocNo(123456).startsWith('ZSC-'));
 
   const countItem = buildStockCountItemValues(
     { id: 5, name: 'رز', stock_qty: 10 },

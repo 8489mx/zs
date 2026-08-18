@@ -85,6 +85,13 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
 
             <label style={premiumCardStyle}>
               <div style={premiumCardTextStyle}>
+                <strong>📱 موديول محلات الموبايل والإلكترونيات</strong>
+                <small className="muted">يفعّل تتبع السيريال/IMEI للأجهزة، وفحص الضمان والمبيعات المتخصصة</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enableMobileStoreFeatures')} disabled={disabled} />
+            </label>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
                 <strong>👗 موديل الملابس والمتغيرات</strong>
                 <small className="muted">يفعّل موديلات الملابس والأحجام والألوان</small>
               </div>
