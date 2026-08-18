@@ -18,10 +18,15 @@ export const productsRouteModule: FeatureRouteModule = {
     {
       path: 'products/:id/edit',
       element: createLazyRoute(() => import('./pages/EditProductPage').then((m) => ({ default: m.EditProductPage }))),
+    },
+    {
+      path: 'products/imei-history',
+      element: createLazyRoute(() => import('./pages/ImeiHistoryPage').then((m) => ({ default: m.ImeiHistoryPage }))),
     }
   ],
   navigation: [
     { key: 'products', label: 'الأصناف', to: '/products', end: true },
-    { key: 'product-categories', label: 'أقسام الأصناف', to: '/products/categories' }
+    { key: 'product-categories', label: 'أقسام الأصناف', to: '/products/categories' },
+    { key: 'imei-history', label: 'سجل وتتبع IMEI', to: '/products/imei-history' }
   ]
 };

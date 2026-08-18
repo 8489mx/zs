@@ -223,10 +223,10 @@ export function AppShell({ children }: PropsWithChildren) {
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
-    { key: 'sales-group', label: t('sidebar.sales-group'), itemKeys: ['sales', 'tax-dispatcher', 'returns', 'delivery-reps', 'customers', 'reports'] },
-    { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'] },
+    { key: 'sales-group', label: t('sidebar.sales-group'), itemKeys: ['sales', 'maintenance', 'tax-dispatcher', 'returns', 'delivery-reps', 'customers', 'reports'] },
+    { key: 'purchases-group', label: t('sidebar.purchases-group'), itemKeys: ['purchases-new', 'purchases', 'trade-in', 'purchase-returns', 'suppliers'] },
     { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'] },
-    { key: 'inventory-group', label: t('sidebar.inventory-group'), itemKeys: ['inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories'] },
+    { key: 'inventory-group', label: t('sidebar.inventory-group'), itemKeys: ['inventory-issue-order-new', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'products', 'product-categories', 'imei-history'] },
     { key: 'manufacturing-group', label: t('sidebar.manufacturing-group'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
     { key: 'services-group', label: t('sidebar.services-group'), itemKeys: ['services', 'treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings', 'pricing-center'] },
     { key: 'admin-group', label: t('sidebar.admin-group'), itemKeys: ['hr', 'audit', 'saas-admin-tenants', 'saas-admin-plans', 'settings'] },

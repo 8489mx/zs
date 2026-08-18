@@ -322,6 +322,78 @@ export interface ProductSerialTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface MaintenanceTicketTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  ticket_no: string;
+  customer_id: number | null;
+  customer_name: string;
+  customer_phone: string;
+  device_brand: string | null;
+  device_model: string;
+  serial_number: string | null;
+  passcode: string | null;
+  problem_description: string;
+  device_condition: string | null;
+  expected_cost: number;
+  final_cost: number;
+  advance_payment: number;
+  status: 'received' | 'inspecting' | 'in_progress' | 'repaired' | 'delivered' | 'unrepairable' | 'cancelled';
+  technician_id: number | null;
+  technician_name: string | null;
+  technician_notes: string | null;
+  branch_id: number | null;
+  location_id: number | null;
+  sale_id: number | null;
+  warranty_days: number;
+  received_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  repaired_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  delivered_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaintenanceTicketPartTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  ticket_id: number;
+  product_id: number;
+  product_name: string;
+  qty: number;
+  unit_cost: number;
+  unit_price: number;
+  location_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface TradeInTransactionTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  doc_no: string;
+  seller_name: string;
+  seller_phone: string;
+  seller_national_id: string;
+  device_brand: string | null;
+  device_model: string;
+  serial_number: string;
+  imei_2: string | null;
+  device_condition_notes: string | null;
+  agreed_purchase_price: number;
+  transaction_type: 'cash_purchase' | 'exchange_trade_in';
+  created_product_id: number | null;
+  sale_id: number | null;
+  payment_method: string;
+  signature_data: string | null;
+  branch_id: number | null;
+  location_id: number | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface StyleCodeCounterTable {
   tenant_id: string;
   scope: string;
@@ -1810,6 +1882,9 @@ export interface Database {
   style_code_counters: StyleCodeCounterTable;
   addons: AddonTable;
   tenant_tax_settings: TenantTaxSettingsTable;
+  maintenance_tickets: MaintenanceTicketTable;
+  maintenance_ticket_parts: MaintenanceTicketPartTable;
+  trade_in_transactions: TradeInTransactionTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;

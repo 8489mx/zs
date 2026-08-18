@@ -22,6 +22,8 @@ import { saasAdminRouteModule } from '@/features/saas-admin/routes';
 import { manufacturingRouteModule } from '@/features/manufacturing/routes';
 import { deliveryRepsRoutes } from '@/features/delivery-reps/routes';
 import { importSalesRouteModule } from '@/features/import-sales/routes';
+import { maintenanceRouteModule } from '@/features/maintenance/routes';
+import { tradeInRouteModule } from '@/features/tradein/routes';
 
 export const featureRouteModules: FeatureRouteModule[] = [
   dashboardRouteModule,
@@ -38,6 +40,8 @@ export const featureRouteModules: FeatureRouteModule[] = [
   reportsRouteModule,
   auditRouteModule,
   treasuryRouteModule,
+  maintenanceRouteModule,
+  tradeInRouteModule,
   servicesRouteModule,
   hrRouteModule,
   accountingRouteModule,
