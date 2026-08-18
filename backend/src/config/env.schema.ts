@@ -88,16 +88,20 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
 
   const isPortable = process.env.PORTABLE_MODE === 'true';
 
-  const raw = {
-    ...config,
-    APP_MODE: appMode,
-    DATABASE_HOST: isPortable ? 'localhost' : (config.DATABASE_HOST ?? config.DB_HOST),
-    DATABASE_PORT: isPortable ? 5432 : (config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT),
-    DATABASE_NAME: isPortable ? 'pglite' : (config.DATABASE_NAME ?? config.DB_NAME),
-    DATABASE_USER: isPortable ? 'pglite' : (config.DATABASE_USER ?? config.DB_USER),
-    DATABASE_PASSWORD: isPortable ? 'pglite' : (config.DATABASE_PASSWORD ?? config.DB_PASSWORD),
-    DATABASE_SSL: config.DATABASE_SSL ?? config.DB_SSL ?? 'false',
-    DATABASE_SSL_REJECT_UNAUTHORIZED: config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'false',
+    const dbHost = isPortable ? 'localhost' : (config.DATABASE_HOST ?? config.DB_HOST);
+    const isLocalHost = typeof dbHost === 'string' && isLocalDatabaseHost(dbHost);
+    const forceDisableSsl = isPortable || appMode === 'SELF_CONTAINED' || isLocalHost;
+
+    const raw = {
+      ...config,
+      APP_MODE: appMode,
+      DATABASE_HOST: dbHost,
+      DATABASE_PORT: isPortable ? 5432 : (config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT),
+      DATABASE_NAME: isPortable ? 'pglite' : (config.DATABASE_NAME ?? config.DB_NAME),
+      DATABASE_USER: isPortable ? 'pglite' : (config.DATABASE_USER ?? config.DB_USER),
+      DATABASE_PASSWORD: isPortable ? 'pglite' : (config.DATABASE_PASSWORD ?? config.DB_PASSWORD),
+      DATABASE_SSL: forceDisableSsl ? 'false' : (config.DATABASE_SSL ?? config.DB_SSL ?? 'false'),
+      DATABASE_SSL_REJECT_UNAUTHORIZED: forceDisableSsl ? 'false' : (config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'false'),
     DATABASE_POOL_MAX: config.DATABASE_POOL_MAX ?? 10,
     DATABASE_POOL_IDLE_TIMEOUT_MS: config.DATABASE_POOL_IDLE_TIMEOUT_MS ?? 10000,
     DATABASE_POOL_CONNECTION_TIMEOUT_MS: config.DATABASE_POOL_CONNECTION_TIMEOUT_MS ?? 10000,

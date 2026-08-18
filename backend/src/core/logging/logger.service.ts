@@ -56,7 +56,17 @@ export class LoggerService implements NestLoggerService {
   }
 
   error(message: unknown, ...optionalParams: unknown[]): void {
-    this.logger.error({ context: optionalParams }, typeof message === 'string' ? message : 'error');
+    const errorParam = optionalParams.find((p) => p instanceof Error) || (message instanceof Error ? message : undefined);
+    const stackTrace = !errorParam ? optionalParams.find((p) => typeof p === 'string' && p.includes('\n')) : undefined;
+
+    const payload: any = { context: optionalParams };
+    if (errorParam) {
+      payload.err = errorParam;
+    } else if (stackTrace) {
+      payload.err = { message: typeof message === 'string' ? message : 'error', stack: stackTrace };
+    }
+
+    this.logger.error(payload, typeof message === 'string' ? message : 'error');
   }
 
   warn(message: string, ...optionalParams: unknown[]): void {

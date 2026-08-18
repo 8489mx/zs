@@ -89,17 +89,29 @@ export function resolveDatabaseConfigFromEnv(): ResolvedDbConfig {
   }
 
   const parsed = validateEnv(validationEnv);
-  const ssl =
-    sslMode === 'require' || sslMode === 'no-verify'
+  
+  function isLocalDatabaseHost(host: string): boolean {
+    return ['postgres', 'localhost', '127.0.0.1', '::1'].includes(host.trim().toLowerCase());
+  }
+
+  const isPortableOrSelfContained = parsed.APP_MODE === 'SELF_CONTAINED' || process.env.PORTABLE_MODE === 'true';
+  const forceDisableSsl = isPortableOrSelfContained || isLocalDatabaseHost(parsed.DATABASE_HOST);
+
+  const ssl = forceDisableSsl
+    ? false
+    : sslMode === 'require' || sslMode === 'no-verify'
       ? true
       : sslMode === 'disable'
         ? false
         : parsed.DATABASE_SSL;
-  const sslRejectUnauthorized = sslMode === 'no-verify'
+
+  const sslRejectUnauthorized = forceDisableSsl
     ? false
-    : sslMode === 'require'
-      ? true
-      : parsed.DATABASE_SSL_REJECT_UNAUTHORIZED;
+    : sslMode === 'no-verify'
+      ? false
+      : sslMode === 'require'
+        ? true
+        : parsed.DATABASE_SSL_REJECT_UNAUTHORIZED;
 
   return {
     host: parsed.DATABASE_HOST,
