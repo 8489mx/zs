@@ -326,6 +326,55 @@
   align-items: end;
 }
 
+.quick-party-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding-bottom: 12px;
+}
+
+.quick-party-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-party-tab-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.quick-party-tab-btn--active {
+  background: #1e1b4b;
+  color: #ffffff;
+  border-color: #1e1b4b;
+}
+
+.customer-quick-collection-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: #ffffff;
+}
+
+.customer-quick-amount-shortcuts {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
 .supplier-quick-payment-summary,
 .supplier-quick-payment-target {
   display: grid;

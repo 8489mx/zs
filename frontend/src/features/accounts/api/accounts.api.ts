@@ -109,5 +109,18 @@ export const accountsApi = {
     return { supplier, entries, summary } as SupplierLedger;
   },
   customerPaymentCreate: (payload: unknown) => http('/api/customer-payments', { method: 'POST', body: JSON.stringify(payload) }),
-  supplierPaymentCreate: (payload: unknown) => http('/api/supplier-payments', { method: 'POST', body: JSON.stringify(payload) })
+  supplierPaymentCreate: (payload: unknown) => http('/api/supplier-payments', { method: 'POST', body: JSON.stringify(payload) }),
+  listCustomersWithDebt: async (): Promise<Customer[]> => {
+    const pageSize = 200;
+    let page = 1;
+    const rows: Customer[] = [];
+    while (true) {
+      const payload = await http<{ customers?: Customer[]; pagination?: { page: number; pageSize: number; totalPages: number } }>(`/api/customers?filter=debt&page=${page}&pageSize=${pageSize}`);
+      rows.push(...(payload.customers || []));
+      const totalPages = payload.pagination?.totalPages || 1;
+      if (page >= totalPages) break;
+      page += 1;
+    }
+    return rows;
+  },
 };
