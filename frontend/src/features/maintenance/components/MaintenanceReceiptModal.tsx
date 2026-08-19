@@ -97,36 +97,38 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
             </div>
 
             {/* Barcode & Ticket No */}
-            <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-              <div dangerouslySetInnerHTML={{ __html: barcodeSvg }} style={{ height: '45px', margin: '0 auto' }} />
-              <strong style={{ fontSize: '1.25rem', letterSpacing: '1px', display: 'block', marginTop: '4px', fontFamily: 'monospace', color: '#0284c7' }}>
+            <div style={{ textAlign: 'center', padding: '6px 0 10px', borderBottom: '1px dashed #cbd5e1', marginBottom: '12px' }}>
+              <div style={{ width: '210px', height: '46px', margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
+              <strong style={{ fontSize: '1.25rem', letterSpacing: '2px', display: 'block', marginTop: '6px', fontFamily: 'monospace', color: '#0284c7' }}>
                 {ticket.ticketNo}
               </strong>
-              <small style={{ color: '#64748b' }}>
-                التاريخ: {new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
+              <small style={{ color: '#64748b', display: 'block', marginTop: '2px' }}>
+                تاريخ الاستلام: {new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
               </small>
             </div>
 
             {/* Customer & Device Details Table */}
-            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', marginBottom: '12px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '6px', marginBottom: '12px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
                 <div>العميل: <strong>{ticket.customerName}</strong></div>
                 <div>الهاتف: <strong dir="ltr">{ticket.customerPhone}</strong></div>
-                <div>الجهاز: <strong>{ticket.deviceBrand ? `${ticket.deviceBrand} ` : ''}{ticket.deviceModel}</strong></div>
-                {ticket.serialNumber && <div>السيريال/IMEI: <strong dir="ltr">{ticket.serialNumber}</strong></div>}
-                {ticket.passcode && <div style={{ gridColumn: 'span 2' }}>الرمز/النمط: <strong dir="ltr">{ticket.passcode}</strong></div>}
+                <div style={{ gridColumn: 'span 2' }}>
+                  الجهاز: <strong>{ticket.deviceBrand ? `${ticket.deviceBrand} - ` : ''}{ticket.deviceModel}</strong>
+                </div>
+                {ticket.serialNumber && <div style={{ gridColumn: 'span 2' }}>السيريال / IMEI: <strong dir="ltr">{ticket.serialNumber}</strong></div>}
+                {ticket.passcode && <div style={{ gridColumn: 'span 2' }}>الرمز / قفل الشاشة: <strong dir="ltr" style={{ color: '#2563eb' }}>{ticket.passcode}</strong></div>}
               </div>
             </div>
 
             {/* Problem & Condition */}
             <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontWeight: 600, color: '#dc2626' }}>العطل المشتكى منه:</div>
-              <div style={{ background: '#fef2f2', padding: '6px 8px', borderRadius: '4px', border: '1px solid #fee2e2' }}>
+              <div style={{ fontWeight: 700, color: '#dc2626', marginBottom: '3px' }}>العطل المشتكى منه:</div>
+              <div style={{ background: '#fef2f2', padding: '6px 10px', borderRadius: '4px', border: '1px solid #fee2e2', color: '#991b1b' }}>
                 {ticket.problemDescription}
               </div>
 
               {ticket.deviceCondition && (
-                <div style={{ marginTop: '6px' }}>
+                <div style={{ marginTop: '6px', fontSize: '0.8rem' }}>
                   <span style={{ fontWeight: 600, color: '#475569' }}>حالة الجهاز الظاهرية: </span>
                   <span>{ticket.deviceCondition}</span>
                 </div>
@@ -141,18 +143,20 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
               </div>
               {ticket.advancePayment > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
-                  <span>المدفوع مقدماً:</span>
+                  <span>المدفوع مقدماً (عربون):</span>
                   <strong>{ticket.advancePayment.toFixed(2)} ج.م</strong>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800 }}>
                 <span>المتبقي عند الاستلام:</span>
-                <span>{remainingAmount.toFixed(2)} ج.م</span>
+                <span style={{ color: remainingAmount > 0 ? '#dc2626' : '#16a34a' }}>
+                  {remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓'}
+                </span>
               </div>
             </div>
 
             {/* Disclaimer / Terms */}
-            <div style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'justify', lineHeight: 1.3 }}>
+            <div style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'justify', lineHeight: 1.35 }}>
               <strong>شروط الاستلام:</strong>
               <ul style={{ paddingRight: '16px', margin: '4px 0' }}>
                 <li>المركز غير مسؤول عن الأجهزة المتروكة لأكثر من 30 يوماً من تاريخ الإصلاح.</li>
@@ -185,25 +189,25 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
               {settings?.storeName || 'مركز الصيانة'} - بطاقة تعريف الجهاز
             </div>
 
-            <div dangerouslySetInnerHTML={{ __html: barcodeSvg }} style={{ height: '36px', margin: '0 auto' }} />
+            <div style={{ width: '190px', height: '40px', margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
 
-            <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'monospace', color: '#0284c7', margin: '4px 0' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', color: '#0284c7', margin: '6px 0 8px' }}>
               {ticket.ticketNo}
             </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px', textAlign: 'right', fontSize: '0.75rem', lineHeight: 1.4 }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', textAlign: 'right', fontSize: '0.75rem', lineHeight: 1.45 }}>
               <div>العميل: <strong>{ticket.customerName}</strong> ({ticket.customerPhone})</div>
-              <div>الجهاز: <strong>{ticket.deviceBrand ? `${ticket.deviceBrand} ` : ''}{ticket.deviceModel}</strong></div>
-              {ticket.passcode && <div>الرمز: <strong dir="ltr">{ticket.passcode}</strong></div>}
+              <div>الجهاز: <strong>{ticket.deviceBrand ? `${ticket.deviceBrand} - ` : ''}{ticket.deviceModel}</strong></div>
+              {ticket.passcode && <div>الرمز / القفل: <strong dir="ltr" style={{ color: '#2563eb' }}>{ticket.passcode}</strong></div>}
               <div style={{ color: '#dc2626', fontWeight: 600 }}>العطل: {ticket.problemDescription}</div>
             </div>
 
             <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '6px' }}>
-              تاريخ الدخول: {new Date(ticket.receivedAt).toLocaleDateString('ar-EG')}
+              تاريخ الاستلام: {new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
             </div>
           </div>
         )}
