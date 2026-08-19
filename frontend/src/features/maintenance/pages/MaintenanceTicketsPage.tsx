@@ -49,6 +49,47 @@ export function MaintenanceTicketsPage() {
   const [partPrice, setPartPrice] = useState(0);
   const [editingCost, setEditingCost] = useState<number | null>(null);
 
+  // Settlement delivery state
+  const [settlementTicket, setSettlementTicket] = useState<MaintenanceTicket | null>(null);
+  const [collectedAmount, setCollectedAmount] = useState<number>(0);
+  const [discountReason, setDiscountReason] = useState<string>('فصال ومراضاة للعميل');
+  const [customReason, setCustomReason] = useState<string>('');
+
+  const openSettlementModal = (ticket: MaintenanceTicket) => {
+    const totalCost = ticket.finalCost || ticket.expectedCost || 0;
+    const advancePaid = ticket.advancePayment || 0;
+    const rem = Math.max(0, totalCost - advancePaid);
+    setSettlementTicket(ticket);
+    setCollectedAmount(rem);
+    setDiscountReason('فصال ومراضاة للعميل');
+    setCustomReason('');
+  };
+
+  const handleConfirmSettlement = () => {
+    if (!settlementTicket) return;
+    const totalCost = settlementTicket.finalCost || settlementTicket.expectedCost || 0;
+    const advancePaid = settlementTicket.advancePayment || 0;
+    const rem = Math.max(0, totalCost - advancePaid);
+    const diff = rem - collectedAmount;
+
+    let notes = settlementTicket.technicianNotes || '';
+    let finalCost = totalCost;
+
+    if (diff > 0) {
+      const finalReason = discountReason === 'custom' ? customReason.trim() || 'خصم عند التسليم' : discountReason;
+      notes = `[خصم تسليم: ${diff.toFixed(2)} ج.م - السبب: ${finalReason}] ${notes}`.trim();
+      finalCost = advancePaid + collectedAmount;
+    }
+
+    updateStatusMutation.mutate({
+      id: settlementTicket.id,
+      status: 'delivered',
+      finalCost,
+      technicianNotes: notes,
+    });
+    setSettlementTicket(null);
+  };
+
   useAppToolbar([{ label: 'قسم الصيانة وتذاكر الإصلاح' }]);
 
   const { data, isLoading, refetch } = useQuery({
@@ -347,9 +388,11 @@ export function MaintenanceTicketsPage() {
                 <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>لا توجد تذاكر صيانة مسجلة تطابق البحث.</td></tr>
               ) : (
                 tickets.map((t) => {
+                  const isDelivered = t.status === 'delivered';
+                  const isCancelled = t.status === 'cancelled' || t.status === 'unrepairable';
                   const totalCost = t.finalCost || t.expectedCost || 0;
                   const advancePaid = t.advancePayment || 0;
-                  const remaining = Math.max(0, totalCost - advancePaid);
+                  const remaining = isDelivered || isCancelled ? 0 : Math.max(0, totalCost - advancePaid);
                   return (
                     <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '10px 14px' }}>
@@ -419,7 +462,15 @@ export function MaintenanceTicketsPage() {
                             <span style={{ color: '#94a3b8' }}>بدون مقدم</span>
                           )}
                           <span style={{ color: '#cbd5e1' }}>•</span>
-                          {remaining > 0 ? (
+                          {isDelivered ? (
+                            <span style={{ color: '#16a34a', fontWeight: 700 }}>
+                              خالص ✓
+                            </span>
+                          ) : isCancelled ? (
+                            <span style={{ color: '#94a3b8', fontWeight: 600 }}>
+                              {advancePaid > 0 ? `مسترد: ${advancePaid.toFixed(2)}` : 'ملغي'}
+                            </span>
+                          ) : remaining > 0 ? (
                             <span style={{ color: '#dc2626', fontWeight: 700 }}>
                               متبقي: {remaining.toFixed(2)}
                             </span>
@@ -435,7 +486,11 @@ export function MaintenanceTicketsPage() {
                           value={t.status}
                           onChange={(e) => {
                             const newStatus = e.target.value as MaintenanceStatus;
-                            updateStatusMutation.mutate({ id: t.id, status: newStatus });
+                            if (newStatus === 'delivered') {
+                              openSettlementModal(t);
+                            } else {
+                              updateStatusMutation.mutate({ id: t.id, status: newStatus });
+                            }
                           }}
                           disabled={updateStatusMutation.isPending}
                           style={{
@@ -1103,49 +1158,211 @@ export function MaintenanceTicketsPage() {
                 );
               })()}
 
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>إجمالي حساب الصيانة والقطع:</div>
-                  <strong style={{ fontSize: '1.25rem', color: '#0f172a' }}>
-                    {(selectedTicket.finalCost || selectedTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ج.م</span>
-                  </strong>
-                  {selectedTicket.advancePayment > 0 && (
-                    <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: '2px' }}>
-                      (المدفوع مقدماً: {selectedTicket.advancePayment.toFixed(2)} ج.م)
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#dc2626', fontWeight: 700 }}>المتبقي للتحصيل:</div>
-                    <strong style={{ fontSize: '1.35rem', color: '#dc2626', fontWeight: 800 }}>
-                      {Math.max(0, (selectedTicket.finalCost || selectedTicket.expectedCost || 0) - (selectedTicket.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.85rem' }}>ج.م</span>
+              {selectedTicket.status === 'delivered' ? (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>إجمالي حساب الصيانة والتسليم:</div>
+                    <strong style={{ fontSize: '1.25rem', color: '#14532d' }}>
+                      {(selectedTicket.finalCost || selectedTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ج.م</span>
                     </strong>
+                    <div style={{ fontSize: '0.78rem', color: '#16a34a', marginTop: '2px', fontWeight: 700 }}>
+                      ✓ تم السداد والتحصيل في الخزينة بالكامل
+                      {selectedTicket.advancePayment > 0 && ` (مقدم: ${selectedTicket.advancePayment.toFixed(2)} ج.م + عند الاستلام: ${(Math.max(0, (selectedTicket.finalCost || selectedTicket.expectedCost || 0) - selectedTicket.advancePayment)).toFixed(2)} ج.م)`}
+                    </div>
+                    {selectedTicket.technicianNotes && selectedTicket.technicianNotes.includes('[خصم تسليم:') && (
+                      <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '4px', background: '#fef3c7', padding: '3px 8px', borderRadius: '4px', display: 'inline-block' }}>
+                        📝 {selectedTicket.technicianNotes}
+                      </div>
+                    )}
                   </div>
 
-                  {selectedTicket.status !== 'delivered' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700 }}>الرصيد المتبقي:</div>
+                      <strong style={{ fontSize: '1.35rem', color: '#16a34a', fontWeight: 800 }}>
+                        0.00 <span style={{ fontSize: '0.85rem' }}>ج.م (خالص)</span>
+                      </strong>
+                    </div>
+                    <span style={{ padding: '8px 16px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontWeight: 800, fontSize: '0.9rem', border: '1px solid #86efac' }}>
+                      ✓ تم تسليم الجهاز والتحصيل
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>إجمالي حساب الصيانة والقطع:</div>
+                    <strong style={{ fontSize: '1.25rem', color: '#0f172a' }}>
+                      {(selectedTicket.finalCost || selectedTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ج.م</span>
+                    </strong>
+                    {selectedTicket.advancePayment > 0 && (
+                      <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: '2px' }}>
+                        (المدفوع مقدماً: {selectedTicket.advancePayment.toFixed(2)} ج.م)
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#dc2626', fontWeight: 700 }}>المتبقي للتحصيل:</div>
+                      <strong style={{ fontSize: '1.35rem', color: '#dc2626', fontWeight: 800 }}>
+                        {Math.max(0, (selectedTicket.finalCost || selectedTicket.expectedCost || 0) - (selectedTicket.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.85rem' }}>ج.م</span>
+                      </strong>
+                    </div>
+
                     <Button
                       variant="primary"
-                      onClick={() => updateStatusMutation.mutate({ id: selectedTicket.id, status: 'delivered' })}
+                      onClick={() => openSettlementModal(selectedTicket)}
                       disabled={updateStatusMutation.isPending}
                       style={{ padding: '8px 18px', fontWeight: 700, fontSize: '0.9rem', background: '#16a34a', borderColor: '#16a34a' }}
                     >
                       ✓ تسليم الجهاز والتحصيل
                     </Button>
-                  ) : (
-                    <span style={{ padding: '6px 14px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontWeight: 800, fontSize: '0.85rem' }}>
-                      ✓ تم تسليم الجهاز والتحصيل
-                    </span>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                 <Button variant="secondary" onClick={() => setSelectedTicket(null)}>
                   إغلاق
                 </Button>
               </div>
+            </div>
+          </DialogShell>
+        )}
+
+        {/* Delivery & Settlement Modal */}
+        {settlementTicket && (
+          <DialogShell
+            open={Boolean(settlementTicket)}
+            onClose={() => setSettlementTicket(null)}
+            width="min(520px, 95vw)"
+            ariaLabel="تأكيد تحصيل وتسليم جهاز الصيانة"
+          >
+            <div className="page-stack" dir="rtl" style={{ gap: '14px', padding: '18px 22px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800 }}>
+                    ✓
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                      تحصيل وتسليم الجهاز: <span style={{ fontFamily: 'monospace', color: '#0284c7' }}>{settlementTicket.ticketNo}</span>
+                    </h3>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                      العميل: <strong>{settlementTicket.customerName}</strong> ({settlementTicket.deviceBrand ? `${settlementTicket.deviceBrand} ` : ''}{settlementTicket.deviceModel})
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettlementTicket(null)}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontWeight: 700 }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {(() => {
+                const totalCost = settlementTicket.finalCost || settlementTicket.expectedCost || 0;
+                const advancePaid = settlementTicket.advancePayment || 0;
+                const expectedRem = Math.max(0, totalCost - advancePaid);
+                const diff = expectedRem - collectedAmount;
+
+                return (
+                  <>
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center', fontSize: '0.8rem' }}>
+                      <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ color: '#64748b' }}>إجمالي الحساب</div>
+                        <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{totalCost.toFixed(2)} ج.م</strong>
+                      </div>
+                      <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ color: '#64748b' }}>المدفوع مقدماً</div>
+                        <strong style={{ fontSize: '0.95rem', color: '#16a34a' }}>{advancePaid.toFixed(2)} ج.م</strong>
+                      </div>
+                      <div style={{ background: '#eff6ff', padding: '8px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                        <div style={{ color: '#1e40af' }}>المطلوب تحصيله</div>
+                        <strong style={{ fontSize: '1rem', color: '#1d4ed8' }}>{expectedRem.toFixed(2)} ج.م</strong>
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                        💵 المبلغ المستلم فعلياً من العميل الآن:
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="5"
+                          className="purchase-prototype-field-input"
+                          value={collectedAmount}
+                          onChange={(e) => setCollectedAmount(Number(e.target.value))}
+                          style={{ width: '100%', height: '40px', fontSize: '1.15rem', fontWeight: 800, padding: '0 12px', borderRadius: '6px', border: '2px solid #3b82f6', color: '#0f172a' }}
+                        />
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
+                      </div>
+                    </div>
+
+                    {diff > 0 && (
+                      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#b45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            ⚠️ فرق / خصم ممنوح للعميل:
+                          </span>
+                          <strong style={{ fontSize: '1rem', color: '#d97706' }}>{diff.toFixed(2)} ج.م</strong>
+                        </div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#92400e', marginBottom: '4px' }}>
+                          اختر سبب الخصم / الفرق:
+                        </label>
+                        <select
+                          value={discountReason}
+                          onChange={(e) => setDiscountReason(e.target.value)}
+                          className="purchase-prototype-field-input"
+                          style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', fontWeight: 600, fontSize: '0.85rem', marginBottom: discountReason === 'custom' ? '8px' : '0' }}
+                        >
+                          <option value="فصال ومراضاة للعميل">🏷️ فصال ومراضاة للعميل (خصم مسموح به)</option>
+                          <option value="خصم عميل مميز / إكرامية">🎁 خصم عميل مميز / إكرامية</option>
+                          <option value="تقريب كسور وفكة">🪙 تقريب كسور وفكة</option>
+                          <option value="custom">✍️ سبب آخر (اكتب يدوياً)</option>
+                        </select>
+                        {discountReason === 'custom' && (
+                          <input
+                            type="text"
+                            placeholder="اكتب سبب الخصم..."
+                            value={customReason}
+                            onChange={(e) => setCustomReason(e.target.value)}
+                            className="purchase-prototype-field-input"
+                            style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', fontSize: '0.85rem' }}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {diff < 0 && (
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>🪙 باقي مستحق للعميل:</span>
+                        <strong style={{ fontSize: '1rem', color: '#16a34a' }}>{Math.abs(diff).toFixed(2)} ج.م</strong>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                      <Button type="button" variant="secondary" onClick={() => setSettlementTicket(null)}>
+                        إلغاء
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={handleConfirmSettlement}
+                        disabled={updateStatusMutation.isPending}
+                        style={{ padding: '8px 24px', fontWeight: 800, fontSize: '0.92rem', background: '#16a34a', borderColor: '#16a34a' }}
+                      >
+                        {updateStatusMutation.isPending ? 'جاري التحصيل...' : '✓ تأكيد التحصيل والتسليم النهائي'}
+                      </Button>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </DialogShell>
         )}
