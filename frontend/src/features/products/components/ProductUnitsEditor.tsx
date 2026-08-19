@@ -165,38 +165,59 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                 />
               </div>
 
-              {/* Usage Chips in 1 Single Line */}
+              {/* Usage Chips or Single-Unit Badge */}
               <div className="product-unit-roles-group" style={{ flex: '2.5', minWidth: 0 }}>
-                <label className={`product-unit-chip-btn ${unit.isBaseUnit ? 'active' : ''}`} title="أساس حساب المخزون والتحويلات">
-                  <input
-                    type="radio"
-                    name={`${title}-isBaseUnit`}
-                    checked={Boolean(unit.isBaseUnit)}
-                    disabled={disabled}
-                    onChange={() => setExclusive(index, 'isBaseUnit')}
-                  />
-                  <span>📦 أساسية (المخزون)</span>
-                </label>
-                <label className={`product-unit-chip-btn ${unit.isSaleUnit ? 'active' : ''}`} title="الوحدة الافتراضية للبيع في شاشة الكاشير">
-                  <input
-                    type="radio"
-                    name={`${title}-isSaleUnit`}
-                    checked={Boolean(unit.isSaleUnit)}
-                    disabled={disabled}
-                    onChange={() => setExclusive(index, 'isSaleUnit')}
-                  />
-                  <span>🛒 بيع (الكاشير)</span>
-                </label>
-                <label className={`product-unit-chip-btn ${unit.isPurchaseUnit ? 'active' : ''}`} title="الوحدة الافتراضية في فواتير الشراء">
-                  <input
-                    type="radio"
-                    name={`${title}-isPurchaseUnit`}
-                    checked={Boolean(unit.isPurchaseUnit)}
-                    disabled={disabled}
-                    onChange={() => setExclusive(index, 'isPurchaseUnit')}
-                  />
-                  <span>🚚 شراء (المورد)</span>
-                </label>
+                {normalized.length === 1 ? (
+                  <span
+                    style={{
+                      fontSize: '0.8rem',
+                      color: '#334155',
+                      background: '#f1f5f9',
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>✨ وحدة افتراضية شاملة (المخزون • البيع • الشراء)</span>
+                  </span>
+                ) : (
+                  <>
+                    <label className={`product-unit-chip-btn ${unit.isBaseUnit ? 'active' : ''}`} title="أساس حساب المخزون والتحويلات">
+                      <input
+                        type="radio"
+                        name={`${title}-isBaseUnit`}
+                        checked={Boolean(unit.isBaseUnit)}
+                        disabled={disabled}
+                        onChange={() => setExclusive(index, 'isBaseUnit')}
+                      />
+                      <span>📦 أساسية (المخزون)</span>
+                    </label>
+                    <label className={`product-unit-chip-btn ${unit.isSaleUnit ? 'active' : ''}`} title="الوحدة الافتراضية للبيع في شاشة الكاشير">
+                      <input
+                        type="radio"
+                        name={`${title}-isSaleUnit`}
+                        checked={Boolean(unit.isSaleUnit)}
+                        disabled={disabled}
+                        onChange={() => setExclusive(index, 'isSaleUnit')}
+                      />
+                      <span>🛒 بيع (الكاشير)</span>
+                    </label>
+                    <label className={`product-unit-chip-btn ${unit.isPurchaseUnit ? 'active' : ''}`} title="الوحدة الافتراضية في فواتير الشراء">
+                      <input
+                        type="radio"
+                        name={`${title}-isPurchaseUnit`}
+                        checked={Boolean(unit.isPurchaseUnit)}
+                        disabled={disabled}
+                        onChange={() => setExclusive(index, 'isPurchaseUnit')}
+                      />
+                      <span>🚚 شراء (المورد)</span>
+                    </label>
+                  </>
+                )}
               </div>
 
               {/* Delete Button */}

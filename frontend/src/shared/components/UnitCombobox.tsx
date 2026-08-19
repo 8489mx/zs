@@ -36,10 +36,19 @@ interface UnitComboboxProps {
 
 export function UnitCombobox({ value, onChange, placeholder = 'اختر أو اكتب...', disabled = false, style }: UnitComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(value || '');
   const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Keep search term in sync when value changes externally while closed
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm(value || '');
+    }
+  }, [value, isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -51,17 +60,28 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filtered = POPULAR_UNITS.filter(
-    (u) => !value || matchesArabic(u.name, value) || matchesArabic(u.hint, value)
+  // If search term matches the current value exactly or is empty, show ALL units
+  const isExactCurrent = searchTerm.trim() === value.trim();
+  const isSearching = Boolean(searchTerm.trim()) && !isExactCurrent;
+
+  const filtered = POPULAR_UNITS.filter((u) => {
+    if (!isSearching) return true;
+    return matchesArabic(u.name, searchTerm) || matchesArabic(u.hint, searchTerm);
+  });
+
+  const hasExactPresetMatch = POPULAR_UNITS.some(
+    (u) => matchesArabic(u.name, searchTerm) && u.name.trim().toLowerCase() === searchTerm.trim().toLowerCase()
   );
 
   useEffect(() => {
     if (filtered.length > 0) {
-      setHighlightedIndex(0);
+      // Highlight the selected item if present in filtered list
+      const selectedIdx = filtered.findIndex((u) => u.name.trim() === value.trim());
+      setHighlightedIndex(selectedIdx >= 0 ? selectedIdx : 0);
     } else {
       setHighlightedIndex(-1);
     }
-  }, [value, filtered.length]);
+  }, [searchTerm, filtered.length, value]);
 
   useEffect(() => {
     if (isOpen && highlightedIndex >= 0 && itemRefs.current[highlightedIndex]) {
@@ -79,7 +99,6 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
       e.preventDefault();
       if (!isOpen) {
         setIsOpen(true);
-        setHighlightedIndex(0);
         return;
       }
       if (filtered.length > 0) {
@@ -92,7 +111,6 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
       e.preventDefault();
       if (!isOpen) {
         setIsOpen(true);
-        setHighlightedIndex(filtered.length - 1);
         return;
       }
       if (filtered.length > 0) {
@@ -105,7 +123,11 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
       if (isOpen) {
         e.preventDefault();
         if (filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
-          onChange(filtered[highlightedIndex].name);
+          const selected = filtered[highlightedIndex].name;
+          onChange(selected);
+          setSearchTerm(selected);
+        } else if (searchTerm.trim()) {
+          onChange(searchTerm.trim());
         }
         setIsOpen(false);
       }
@@ -115,6 +137,7 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
     if (e.key === 'Escape') {
       if (isOpen) {
         e.preventDefault();
+        setSearchTerm(value);
         setIsOpen(false);
       }
       return;
@@ -122,30 +145,39 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
 
     if (e.key === 'Tab') {
       if (isOpen && filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
-        onChange(filtered[highlightedIndex].name);
+        const selected = filtered[highlightedIndex].name;
+        onChange(selected);
+        setSearchTerm(selected);
       }
       setIsOpen(false);
     }
+  };
+
+  const handleSelectUnit = (unitName: string) => {
+    onChange(unitName);
+    setSearchTerm(unitName);
+    setIsOpen(false);
   };
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <input
+          ref={inputRef}
           type="text"
           className="purchase-prototype-field-input"
-          value={value}
+          value={searchTerm}
           disabled={disabled}
           onChange={(e) => {
-            onChange(e.target.value);
+            const nextVal = e.target.value;
+            setSearchTerm(nextVal);
+            onChange(nextVal);
             if (!isOpen) setIsOpen(true);
           }}
-          onFocus={() => {
+          onFocus={(e) => {
             if (!disabled) {
               setIsOpen(true);
-              if (filtered.length > 0 && highlightedIndex === -1) {
-                setHighlightedIndex(0);
-              }
+              e.target.select();
             }
           }}
           onKeyDown={handleKeyDown}
@@ -169,8 +201,12 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
           disabled={disabled}
           onClick={() => {
             if (disabled) return;
-            setIsOpen((prev) => !prev);
-            if (!isOpen && filtered.length > 0) setHighlightedIndex(0);
+            const nextOpen = !isOpen;
+            setIsOpen(nextOpen);
+            if (nextOpen) {
+              inputRef.current?.focus();
+              inputRef.current?.select();
+            }
           }}
           style={{
             position: 'absolute',
@@ -179,7 +215,7 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
             transform: 'translateY(-50%)',
             background: 'none',
             border: 'none',
-            padding: 0,
+            padding: '4px',
             cursor: disabled ? 'default' : 'pointer',
             color: '#64748b',
             display: 'flex',
@@ -214,66 +250,86 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
             top: 'calc(100% + 4px)',
             left: 0,
             right: 0,
-            minWidth: '170px',
+            minWidth: '200px',
             zIndex: 1200,
             background: '#ffffff',
             border: '1px solid #cbd5e1',
             borderRadius: '8px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06)',
-            maxHeight: '210px',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.14), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
+            maxHeight: '220px',
             overflowY: 'auto',
             padding: '4px',
           }}
         >
           {filtered.length > 0 ? (
-            filtered.map((u, index) => {
-              const isSelected = value.trim() === u.name.trim();
-              const isHighlighted = highlightedIndex === index;
-              return (
+            <>
+              {filtered.map((u, index) => {
+                const isSelected = value.trim() === u.name.trim();
+                const isHighlighted = highlightedIndex === index;
+                return (
+                  <div
+                    key={u.name}
+                    ref={(el) => {
+                      itemRefs.current[index] = el;
+                    }}
+                    onClick={() => handleSelectUnit(u.name)}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 10px',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      background: isHighlighted ? '#e0e7ff' : isSelected ? '#eff6ff' : 'transparent',
+                      color: isHighlighted ? '#1e40af' : isSelected ? '#1d4ed8' : '#1e293b',
+                      fontSize: '0.84rem',
+                      fontWeight: isHighlighted || isSelected ? 700 : 500,
+                      transition: 'background 0.1s ease',
+                    }}
+                  >
+                    <span style={{ fontWeight: 700 }}>{u.name}</span>
+                    <span style={{ fontSize: '0.74rem', color: isHighlighted ? '#2563eb' : '#64748b' }}>{u.hint}</span>
+                  </div>
+                );
+              })}
+
+              {/* If custom input typed and not exact preset */}
+              {isSearching && !hasExactPresetMatch && (
                 <div
-                  key={u.name}
-                  ref={(el) => {
-                    itemRefs.current[index] = el;
-                  }}
-                  onClick={() => {
-                    onChange(u.name);
-                    setIsOpen(false);
-                  }}
-                  onMouseEnter={() => setHighlightedIndex(index)}
+                  onClick={() => handleSelectUnit(searchTerm.trim())}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '6px 10px',
-                    borderRadius: '5px',
+                    marginTop: '4px',
+                    padding: '7px 10px',
+                    fontSize: '0.8rem',
+                    color: '#2563eb',
+                    textAlign: 'center',
                     cursor: 'pointer',
-                    background: isHighlighted ? '#e0e7ff' : isSelected ? '#eff6ff' : 'transparent',
-                    color: isHighlighted ? '#1e40af' : isSelected ? '#1d4ed8' : '#1e293b',
-                    fontSize: '0.84rem',
-                    fontWeight: isHighlighted ? 700 : isSelected ? 600 : 400,
-                    transition: 'background 0.1s ease',
+                    background: '#eff6ff',
+                    borderTop: '1px dashed #bfdbfe',
+                    borderRadius: '5px',
+                    fontWeight: 700,
                   }}
                 >
-                  <span style={{ fontWeight: 700 }}>{u.name}</span>
-                  <span style={{ fontSize: '0.74rem', color: isHighlighted ? '#2563eb' : '#64748b' }}>{u.hint}</span>
+                  + استخدام <strong>"{searchTerm}"</strong> كوحدة مخصصة ↵
                 </div>
-              );
-            })
+              )}
+            </>
           ) : (
             <div
-              onClick={() => setIsOpen(false)}
+              onClick={() => handleSelectUnit(searchTerm.trim())}
               style={{
                 padding: '8px 10px',
-                fontSize: '0.8rem',
+                fontSize: '0.82rem',
                 color: '#2563eb',
                 textAlign: 'center',
                 cursor: 'pointer',
                 background: '#eff6ff',
                 borderRadius: '5px',
-                fontWeight: 600,
+                fontWeight: 700,
               }}
             >
-              استخدام <strong>"{value}"</strong> كوحدة مخصصة ↵
+              + استخدام <strong>"{searchTerm}"</strong> كوحدة مخصصة ↵
             </div>
           )}
         </div>
