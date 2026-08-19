@@ -35,9 +35,9 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
       </div>
     </div>
 
-    <div style="text-align: center; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 8px;">
-      <div style="width: 220px; height: 46px; margin: 0 auto 10px; display: block;">${barcodeSvg}</div>
-      <div style="font-size: 16px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #000; margin: 10px 0 3px; padding-top: 4px;">
+    <div style="text-align: center; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 6px;">
+      <div style="width: 220px; height: 46px; margin: 0 auto; display: block;">${barcodeSvg}</div>
+      <div style="font-size: 16px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #000; margin: 6px 0 2px; padding-top: 2px;">
         ${escapeHtml(ticket.ticketNo)}
       </div>
       <div style="font-size: 10px; color: #000; font-weight: 600;">تاريخ الاستلام: ${escapeHtml(dateFormatted)}</div>
@@ -136,9 +136,9 @@ export function printMaintenanceSticker(ticket: MaintenanceTicket, settings?: Ap
       .print-content { padding: 0 !important; margin: 0 !important; }
       .sticker-box { width: 100%; max-width: 48mm; margin: 0 auto; text-align: center; box-sizing: border-box; }
       .sticker-store { font-size: 7.5px; font-weight: 800; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .sticker-barcode { width: 100%; height: 26px; margin: 2px auto 4px; }
+      .sticker-barcode { width: 100%; height: 26px; margin: 2px auto 3px; }
       .sticker-barcode svg { width: 100%; height: 100%; display: block; }
-      .sticker-code { font-size: 11px; font-weight: 900; font-family: monospace; letter-spacing: 1px; margin: 4px 0; }
+      .sticker-code { font-size: 11px; font-weight: 900; font-family: monospace; letter-spacing: 1px; margin: 3px 0; }
       .sticker-details { text-align: right; font-size: 7px; line-height: 1.25; border-top: 0.5px solid #000; border-bottom: 0.5px solid #000; padding: 1px 0; }
       .sticker-date { font-size: 6px; color: #333; margin-top: 1px; }
     `,
@@ -166,12 +166,12 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
         </div>
       </div>
 
-      <div style="text-align: center; padding: 6px 0 16px; border-bottom: 2px dashed #94a3b8; margin-bottom: 16px;">
-        <div style="width: 240px; height: 48px; margin: 0 auto 12px; display: block;">${barcodeSvg}</div>
-        <div style="font-size: 20px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #0284c7; margin: 12px 0 4px; padding-top: 4px;">
+      <div style="text-align: center; padding: 6px 0 14px; border-bottom: 2px dashed #94a3b8; margin-bottom: 14px;">
+        <div style="width: 240px; height: 48px; margin: 0 auto 6px; display: block;">${barcodeSvg}</div>
+        <div style="font-size: 19px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #0284c7; margin: 6px 0 3px; padding-top: 2px;">
           ${escapeHtml(ticket.ticketNo)}
         </div>
-        <div style="font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600;">
+        <div style="font-size: 11px; color: #64748b; margin-top: 3px; font-weight: 600;">
           تاريخ الاستلام: ${escapeHtml(dateFormatted)}
         </div>
       </div>
@@ -341,10 +341,11 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
   const remainingAmount = Math.max(0, (ticket.finalCost || ticket.expectedCost || 0) - (ticket.advancePayment || 0));
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(560px, 95vw)" ariaLabel="طباعة إيصال استلام الصيانة والستيكر">
-      <div className="page-stack" dir="rtl" style={{ gap: '14px', maxWidth: '520px', margin: '0 auto', padding: '12px 16px' }}>
+    <DialogShell open={open} onClose={onClose} width="min(580px, 95vw)" ariaLabel="طباعة إيصال استلام الصيانة والستيكر">
+      <div className="page-stack" dir="rtl" style={{ gap: '14px', maxWidth: '540px', margin: '0 auto', padding: '14px 18px' }}>
         {/* Top Header & Actions Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+          {/* Right: Tabs */}
           <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
             <button
               type="button"
@@ -382,6 +383,7 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
             </button>
           </div>
 
+          {/* Left: Actions (PDF, WhatsApp, Print) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <button
               type="button"
@@ -392,7 +394,7 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
               title="تنزيل الإيصال كملف PDF"
             >
               <span>📄</span>
-              <span>{isExportingPdf ? 'جاري التجهيز...' : 'PDF'}</span>
+              <span>{isExportingPdf ? 'جاري التحميل...' : 'PDF'}</span>
             </button>
             <button
               type="button"
@@ -436,12 +438,12 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
             </div>
 
             {/* Barcode & Ticket No */}
-            <div style={{ textAlign: 'center', padding: '6px 0 14px', borderBottom: '1px dashed #cbd5e1', marginBottom: '14px' }}>
-              <div style={{ width: '230px', height: '48px', margin: '0 auto 12px' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
-              <strong style={{ fontSize: '1.35rem', letterSpacing: '2px', display: 'block', margin: '12px 0 4px', fontFamily: 'monospace', color: '#0284c7' }}>
+            <div style={{ textAlign: 'center', padding: '6px 0 10px', borderBottom: '1px dashed #cbd5e1', marginBottom: '12px' }}>
+              <div style={{ width: '230px', height: '48px', margin: '0 auto 6px' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
+              <strong style={{ fontSize: '1.3rem', letterSpacing: '2px', display: 'block', margin: '6px 0 2px', fontFamily: 'monospace', color: '#0284c7' }}>
                 {ticket.ticketNo}
               </strong>
-              <small style={{ color: '#64748b', display: 'block', marginTop: '3px' }}>
+              <small style={{ color: '#64748b', display: 'block', marginTop: '2px' }}>
                 تاريخ الاستلام: {new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
               </small>
             </div>
@@ -531,9 +533,9 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
               {settings?.storeName || 'مركز الصيانة'} - بطاقة تعريف الجهاز
             </div>
 
-            <div style={{ width: '200px', height: '44px', margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
+            <div style={{ width: '200px', height: '44px', margin: '0 auto 4px' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
 
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', color: '#0284c7', margin: '6px 0 8px' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', color: '#0284c7', margin: '4px 0 6px' }}>
               {ticket.ticketNo}
             </div>
 
@@ -550,34 +552,10 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
-          <Button variant="secondary" onClick={onClose}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+          <Button variant="secondary" onClick={onClose} style={{ padding: '6px 20px', fontWeight: 700 }}>
             إغلاق
           </Button>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isExportingPdf}
-              className="btn btn-sm btn-secondary"
-              style={{ fontWeight: 700, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              <span>📄</span>
-              <span>{isExportingPdf ? 'جاري التحميل...' : 'تحميل PDF'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleSendWhatsApp}
-              disabled={isExportingPdf}
-              className="btn btn-sm"
-              style={{ background: '#22c55e', color: '#fff', border: 'none', fontWeight: 700, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer' }}
-            >
-              📱 إرسال واتساب
-            </button>
-            <Button variant="primary" onClick={handlePrint} style={{ fontWeight: 800 }}>
-              {printMode === 'receipt' ? '🧾 طباعة إيصال' : '🏷️ طباعة استيكر'}
-            </Button>
-          </div>
         </div>
       </div>
     </DialogShell>
