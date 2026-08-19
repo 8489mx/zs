@@ -86,15 +86,20 @@ function groupProducts(products: Product[]): ProductGroup[] {
 
 export function ProductsTableCard(props: ProductsTableCardProps) {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const groupedRows = useMemo(() => groupProducts(props.visibleProducts), [props.visibleProducts]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategoryId) return props.visibleProducts;
+    return props.visibleProducts.filter((p) => String(p.categoryId || '') === selectedCategoryId);
+  }, [props.visibleProducts, selectedCategoryId]);
+
+  const groupedRows = useMemo(() => groupProducts(filteredProducts), [filteredProducts]);
   const visibleLeafIds = groupedRows.flatMap((group) => group.children.map((product) => String(product.id)));
   const allVisibleSelected = Boolean(visibleLeafIds.length && visibleLeafIds.every((id) => props.selectedIds.includes(id)));
   const someVisibleSelected = Boolean(!allVisibleSelected && visibleLeafIds.some((id) => props.selectedIds.includes(id)));
   const totalPages = Math.max(1, Math.ceil((props.totalItems || 0) / props.pageSize));
   const rangeStart = props.totalItems ? ((props.page - 1) * props.pageSize) + 1 : 0;
   const rangeEnd = Math.min(props.page * props.pageSize, props.totalItems || 0);
-
-
 
   function toggleExpand(key: string) {
     setExpandedKeys((current) => current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key]);
@@ -111,7 +116,29 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
 
   return (
     <FormSection title="قائمة الأصناف الحالية" description="يعرض السجل الآن الصنف الرئيسي مرة واحدة، ويمكن فتح الأصناف الفرعية تحته بدل تكرار كل لون أو رائحة أو مقاس كسطر أولي مستقل." actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير Excel</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
-      <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو الخاصية الفرعية" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+        <div style={{ flex: '1 1 280px' }}>
+          <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو الخاصية الفرعية" />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <select
+            value={selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
+            className="purchase-prototype-field-input"
+            style={{ minWidth: '180px', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 600, fontSize: '0.85rem', color: '#1e293b' }}
+          >
+            <option value="">📁 كل الأقسام ({Object.keys(props.categoryNames).length})</option>
+            {Object.entries(props.categoryNames).map(([id, name]) => (
+              <option key={id} value={id}>📁 {name}</option>
+            ))}
+          </select>
+          {selectedCategoryId && (
+            <Button variant="secondary" onClick={() => setSelectedCategoryId('')} style={{ padding: '6px 10px', fontSize: '0.8rem' }} title="إلغاء تصفية القسم">
+              ✕ إلغاء
+            </Button>
+          )}
+        </div>
+      </div>
       <div className="filter-chip-row">
         <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')}>الكل</Button>
         <Button variant={props.viewFilter === 'low' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('low')}>منخفضة</Button>
