@@ -18,7 +18,12 @@ export interface TreasuryTransactionRow {
   date?: string;
 }
 
-export const initialExpenseForm = () => ({ title: '', amount: '0', note: '', date: new Date().toISOString().slice(0, 16), branchId: '', locationId: '' });
+export function getLocalDatetimeInputValue(date: Date = new Date()): string {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+export const initialExpenseForm = () => ({ title: '', amount: '0', note: '', date: getLocalDatetimeInputValue(), branchId: '', locationId: '' });
 export type ExpenseFormState = ReturnType<typeof initialExpenseForm>;
 
 export function validateExpenseForm(form: ExpenseFormState, allLocations: Location[]) {

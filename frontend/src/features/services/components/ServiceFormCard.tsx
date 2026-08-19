@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -27,12 +27,19 @@ export interface ServiceSuggestionOption {
   defaultAmount?: number | null;
 }
 
+function toLocalDatetimeString(dateStr?: string | null): string {
+  const date = dateStr ? new Date(dateStr) : new Date();
+  if (Number.isNaN(date.getTime())) return '';
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 function buildDefaultValues(service?: ServiceRecord): ServiceFormValues {
   return {
     name: service?.name || '',
     amount: Number(service?.amount || 0),
     notes: service?.notes || '',
-    date: (service?.serviceDate || new Date().toISOString()).slice(0, 16),
+    date: toLocalDatetimeString(service?.serviceDate),
     paymentChannel: service?.paymentChannel === 'card' ? 'card' : 'cash',
   };
 }

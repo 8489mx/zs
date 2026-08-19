@@ -182,8 +182,9 @@ export class CashDrawerService {
     const result = await sql<{ total?: number | string | null }>`
       select coalesce(sum(e.amount), 0) as total
       from expenses e
-      where e.tenant_id = ${scope.tenantId} and e.created_by = ${openerId} and e.expense_date >= ${shift.created_at}
-        and (${shift.closed_at || null}::timestamptz is null or e.expense_date <= ${shift.closed_at || null})
+      where e.tenant_id = ${scope.tenantId} and e.created_by = ${openerId}
+        and (e.expense_date >= ${shift.created_at} or e.created_at >= ${shift.created_at})
+        and (${shift.closed_at || null}::timestamptz is null or (e.expense_date <= ${shift.closed_at || null} and e.created_at <= ${shift.closed_at || null}))
         and (${shift.branch_id || null}::int is null or e.branch_id is null or e.branch_id = ${Number(shift.branch_id || 0) || null})
         and (${shift.location_id || null}::int is null or e.location_id is null or e.location_id = ${Number(shift.location_id || 0) || null})
     `.execute(this.db);
@@ -198,8 +199,9 @@ export class CashDrawerService {
              coalesce(sum(case when coalesce(s.payment_channel, 'cash') = 'card' then s.amount else 0 end), 0) as service_card_total,
              coalesce(sum(s.amount), 0) as service_total
       from services s
-      where s.tenant_id = ${scope.tenantId} and s.created_by = ${openerId} and s.service_date >= ${shift.created_at}
-        and (${shift.closed_at || null}::timestamptz is null or s.service_date <= ${shift.closed_at || null})
+      where s.tenant_id = ${scope.tenantId} and s.created_by = ${openerId}
+        and (s.service_date >= ${shift.created_at} or s.created_at >= ${shift.created_at})
+        and (${shift.closed_at || null}::timestamptz is null or (s.service_date <= ${shift.closed_at || null} and s.created_at <= ${shift.closed_at || null}))
         and (${shift.branch_id || null}::int is null or s.branch_id is null or s.branch_id = ${Number(shift.branch_id || 0) || null})
         and (${shift.location_id || null}::int is null or s.location_id is null or s.location_id = ${Number(shift.location_id || 0) || null})
     `.execute(this.db);
