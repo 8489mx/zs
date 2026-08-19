@@ -27,7 +27,10 @@ interface BrandComboboxProps {
 
 export function BrandCombobox({ value, onChange, placeholder = '...Apple, Samsung', style }: BrandComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -46,6 +49,77 @@ export function BrandCombobox({ value, onChange, placeholder = '...Apple, Samsun
       matchesArabic(b.ar, value)
   );
 
+  useEffect(() => {
+    if (filtered.length > 0) {
+      setHighlightedIndex(0);
+    } else {
+      setHighlightedIndex(-1);
+    }
+  }, [value, filtered.length]);
+
+  useEffect(() => {
+    if (isOpen && highlightedIndex >= 0 && itemRefs.current[highlightedIndex]) {
+      itemRefs.current[highlightedIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [highlightedIndex, isOpen]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        setHighlightedIndex(0);
+        return;
+      }
+      if (filtered.length > 0) {
+        setHighlightedIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : 0));
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        setHighlightedIndex(filtered.length - 1);
+        return;
+      }
+      if (filtered.length > 0) {
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : filtered.length - 1));
+      }
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      if (isOpen) {
+        e.preventDefault();
+        if (filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
+          onChange(filtered[highlightedIndex].en);
+        }
+        setIsOpen(false);
+      }
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      if (isOpen) {
+        e.preventDefault();
+        setIsOpen(false);
+      }
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      if (isOpen && filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
+        onChange(filtered[highlightedIndex].en);
+      }
+      setIsOpen(false);
+    }
+  };
+
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
       <div style={{ position: 'relative' }}>
@@ -57,7 +131,13 @@ export function BrandCombobox({ value, onChange, placeholder = '...Apple, Samsun
             onChange(e.target.value);
             if (!isOpen) setIsOpen(true);
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => {
+            setIsOpen(true);
+            if (filtered.length > 0 && highlightedIndex === -1) {
+              setHighlightedIndex(0);
+            }
+          }}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           style={{
             width: '100%',
@@ -73,7 +153,10 @@ export function BrandCombobox({ value, onChange, placeholder = '...Apple, Samsun
         <button
           type="button"
           tabIndex={-1}
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => {
+            setIsOpen((prev) => !prev);
+            if (!isOpen && filtered.length > 0) setHighlightedIndex(0);
+          }}
           style={{
             position: 'absolute',
             left: '8px',
@@ -110,6 +193,7 @@ export function BrandCombobox({ value, onChange, placeholder = '...Apple, Samsun
 
       {isOpen && (
         <div
+          ref={dropdownRef}
           style={{
             position: 'absolute',
             top: 'calc(100% + 4px)',
@@ -126,15 +210,20 @@ export function BrandCombobox({ value, onChange, placeholder = '...Apple, Samsun
           }}
         >
           {filtered.length > 0 ? (
-            filtered.map((b) => {
+            filtered.map((b, index) => {
               const isSelected = value.toLowerCase() === b.en.toLowerCase();
+              const isHighlighted = highlightedIndex === index;
               return (
                 <div
                   key={b.en}
+                  ref={(el) => {
+                    itemRefs.current[index] = el;
+                  }}
                   onClick={() => {
                     onChange(b.en);
                     setIsOpen(false);
                   }}
+                  onMouseEnter={() => setHighlightedIndex(index)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -142,20 +231,15 @@ export function BrandCombobox({ value, onChange, placeholder = '...Apple, Samsun
                     padding: '7px 10px',
                     borderRadius: '5px',
                     cursor: 'pointer',
-                    background: isSelected ? '#eff6ff' : 'transparent',
-                    color: isSelected ? '#1d4ed8' : '#1e293b',
+                    background: isHighlighted ? '#e0e7ff' : isSelected ? '#eff6ff' : 'transparent',
+                    color: isHighlighted ? '#1e40af' : isSelected ? '#1d4ed8' : '#1e293b',
                     fontSize: '0.85rem',
+                    fontWeight: isHighlighted ? 600 : 400,
                     transition: 'background 0.12s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) (e.currentTarget as HTMLElement).style.background = '#f1f5f9';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent';
                   }}
                 >
                   <span style={{ fontWeight: 700 }}>{b.en}</span>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{b.ar}</span>
+                  <span style={{ fontSize: '0.75rem', color: isHighlighted ? '#3b82f6' : '#64748b' }}>{b.ar}</span>
                 </div>
               );
             })
