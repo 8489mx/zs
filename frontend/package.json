@@ -1,7 +1,7 @@
 {
   "name": "zsystems-frontend",
   "private": true,
-  "version": "1.1.13",
+  "version": "1.1.14",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -114,6 +114,10 @@
       {
         "from": "../portable/tools/launcher",
         "to": "tools/launcher"
+      },
+      {
+        "from": "../zmt.bat",
+        "to": "zmt.bat"
       }
     ],
     "files": [
