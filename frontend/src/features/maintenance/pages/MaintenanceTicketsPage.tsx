@@ -1100,10 +1100,9 @@ export function MaintenanceTicketsPage() {
               {(() => {
                 const totalCost = selectedTicket.finalCost || selectedTicket.expectedCost || 0;
                 const partsCost = (selectedTicket.parts || []).reduce((acc, p) => acc + (p.qty * p.unitCost), 0);
-                const partsPrice = (selectedTicket.parts || []).reduce((acc, p) => acc + (p.qty * p.unitPrice), 0);
-                const laborPrice = Math.max(0, totalCost - partsPrice);
+                const laborPrice = Math.max(0, totalCost - partsCost);
                 const technicianCommission = laborPrice * 0.3; 
-                const storeProfit = Math.max(0, totalCost - partsCost - technicianCommission);
+                const storeProfit = Math.max(0, laborPrice - technicianCommission);
 
                 return (
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>

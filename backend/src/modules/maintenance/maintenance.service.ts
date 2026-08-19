@@ -356,7 +356,7 @@ export class MaintenanceService {
     const scope = requireTenantScope(auth);
     const ticket = await this.db
       .selectFrom('maintenance_tickets')
-      .select(['id', 'final_cost'])
+      .select(['id', 'expected_cost', 'final_cost'])
       .where('tenant_id', '=', scope.tenantId)
       .where('id', '=', ticketId)
       .executeTakeFirst();
@@ -399,15 +399,19 @@ export class MaintenanceService {
         .execute();
     }
 
-    // Automatically update final cost of the ticket by adding the part price
-    const addedAmount = Number(payload.qty) * Number(payload.unitPrice);
-    const newFinalCost = Number(ticket.final_cost) + addedAmount;
-    await this.db
-      .updateTable('maintenance_tickets')
-      .set({ final_cost: newFinalCost, updated_at: new Date() })
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', ticketId)
-      .execute();
+    // If ticket has 0 cost set initially, initialize it to the part price.
+    // If ticket already has an agreed price, preserve it (all-inclusive pricing).
+    let newFinalCost = Number(ticket.final_cost || 0);
+    if (newFinalCost === 0 && Number(ticket.expected_cost || 0) === 0) {
+      const addedAmount = Number(payload.qty) * Number(payload.unitPrice);
+      newFinalCost = addedAmount;
+      await this.db
+        .updateTable('maintenance_tickets')
+        .set({ final_cost: newFinalCost, updated_at: new Date() })
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', ticketId)
+        .execute();
+    }
 
     return { ok: true, partId: String(partRes?.id), newFinalCost };
   }
@@ -447,24 +451,6 @@ export class MaintenanceService {
         .set({ stock_qty: currentQty + Number(part.qty) })
         .where('tenant_id', '=', scope.tenantId)
         .where('id', '=', part.product_id)
-        .execute();
-    }
-
-    const ticket = await this.db
-      .selectFrom('maintenance_tickets')
-      .select(['final_cost'])
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', ticketId)
-      .executeTakeFirst();
-
-    if (ticket) {
-      const partTotal = Number(part.qty) * Number(part.unit_price);
-      const newFinalCost = Math.max(0, Number(ticket.final_cost) - partTotal);
-      await this.db
-        .updateTable('maintenance_tickets')
-        .set({ final_cost: newFinalCost, updated_at: new Date() })
-        .where('tenant_id', '=', scope.tenantId)
-        .where('id', '=', ticketId)
         .execute();
     }
 
