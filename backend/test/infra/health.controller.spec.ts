@@ -6,7 +6,13 @@ async function run(): Promise<void> {
   process.env.NODE_ENV = 'test';
   process.env.APP_VERSION = 'test-build';
 
-  const controller = new HealthController({} as any);
+  const mockMaintenanceService = {
+    getLastResults: () => null,
+    runFullOptimization: async () => ({ ok: true }),
+    runFastCleanup: async () => ({ ok: true }),
+  };
+
+  const controller = new HealthController({} as any, mockMaintenanceService as any);
   (controller as any).checkDatabase = async () => ({ status: 'ok', database: 'up' });
 
   const live = controller.getLiveness();
@@ -21,7 +27,7 @@ async function run(): Promise<void> {
   assert.equal(health.environment, 'test');
   assert.equal(health.version, 'test-build');
 
-  const degradedController = new HealthController({} as any);
+  const degradedController = new HealthController({} as any, mockMaintenanceService as any);
   (degradedController as any).checkDatabase = async () => ({ status: 'degraded', database: 'down' });
 
   let threw = false;

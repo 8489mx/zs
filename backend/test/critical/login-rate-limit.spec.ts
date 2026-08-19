@@ -78,7 +78,7 @@ function runEnvGuards(): void {
   const base = {
     NODE_ENV: 'production',
     APP_MODE: 'CLOUD_SAAS',
-    DATABASE_HOST: 'localhost',
+    DATABASE_HOST: 'db.example.com',
     DATABASE_PORT: '5432',
     DATABASE_NAME: 'app',
     DATABASE_USER: 'user',

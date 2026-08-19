@@ -47,7 +47,7 @@ export class PermissionsGuard implements CanActivate {
     const auth = request.authContext;
 
     // Check feature gates for all tenant users except platform admin
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || this.configService.get<string>('PLATFORM_TENANT_ID') || '').trim();
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || this.configService?.get?.('PLATFORM_TENANT_ID') || '').trim();
     const isPlatformAdmin = Boolean(auth?.role === 'super_admin' && platformTenantId && auth?.tenantId === platformTenantId);
 
     if (!isPlatformAdmin && requiredFeature && auth) {
