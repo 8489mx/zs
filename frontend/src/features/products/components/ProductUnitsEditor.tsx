@@ -1,25 +1,6 @@
 import type { ProductUnit } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
-
-const UNIT_PRESETS = [
-  'قطعة',
-  'علبة',
-  'كرتونة',
-  'باكيت',
-  'شريط',
-  'زجاجة',
-  'كيلو',
-  'جرام',
-  'لتر',
-  'متر',
-  'دستة',
-  'زوج',
-  'شيكارة',
-  'طرد',
-  'برميل',
-  'متر مربع',
-  'رول'
-];
+import { UnitCombobox } from '@/shared/components/UnitCombobox';
 
 function nextEmptyUnit(): ProductUnit {
   return {
@@ -140,64 +121,16 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
       {/* Data Rows */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
         {normalized.map((unit, index) => {
-          const isKnownPreset = UNIT_PRESETS.includes(unit.name);
-          const isCustomMode = !isKnownPreset;
-
           return (
             <div key={unit.id || `${index}`} className="product-units-data-row">
-              {/* Unit Dropdown / Custom Name */}
+              {/* Unit Searchable Combobox */}
               <div style={{ flex: '1.4', minWidth: 0 }}>
-                {isCustomMode ? (
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <input
-                      className="purchase-prototype-field-input"
-                      value={unit.name}
-                      autoFocus
-                      disabled={disabled}
-                      onChange={(event) => patchRow(index, { name: event.target.value })}
-                      placeholder="اكتب اسم الوحدة..."
-                      style={{ height: '34px', fontSize: '0.86rem', flex: 1 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => patchRow(index, { name: 'قطعة' })}
-                      disabled={disabled}
-                      title="الرجوع للقائمة الجاهزة"
-                      style={{
-                        height: '34px',
-                        padding: '0 8px',
-                        fontSize: '0.78rem',
-                        cursor: 'pointer',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '6px',
-                        background: '#f8fafc',
-                        color: '#475569',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      قائمة
-                    </button>
-                  </div>
-                ) : (
-                  <select
-                    className="purchase-prototype-field-input"
-                    value={unit.name}
-                    disabled={disabled}
-                    onChange={(event) => {
-                      const val = event.target.value;
-                      patchRow(index, { name: val === '__custom__' ? '' : val });
-                    }}
-                    style={{ height: '34px', fontSize: '0.86rem', cursor: 'pointer', fontWeight: 600 }}
-                  >
-                    {UNIT_PRESETS.map((preset) => (
-                      <option key={preset} value={preset}>
-                        {preset}
-                      </option>
-                    ))}
-                    <option value="__custom__">✏️ اسم مخصص آخر...</option>
-                  </select>
-                )}
+                <UnitCombobox
+                  value={unit.name}
+                  disabled={disabled}
+                  onChange={(val) => patchRow(index, { name: val })}
+                  placeholder="ابحث أو اكتب..."
+                />
               </div>
 
               {/* Multiplier */}
