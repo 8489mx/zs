@@ -171,9 +171,56 @@ class PostgresManager {
       await this.initializeDatabase();
     }
     
+    this.applyPerformanceTuning();
     await this.startServer();
     await this.waitForReady();
     await this.ensureDatabaseExists();
+  }
+
+  /**
+   * Writes optimized PostgreSQL performance settings to postgresql.auto.conf.
+   * These override the defaults in postgresql.conf and are tuned for desktop/SSD usage.
+   * Safe to call on every startup - file is idempotent.
+   */
+  applyPerformanceTuning() {
+    const autoConfPath = path.join(this.postgresDataDir, 'postgresql.auto.conf');
+    const marker = '# --- ZSystems Performance Tuning ---';
+
+    try {
+      let currentContent = '';
+      if (fs.existsSync(autoConfPath)) {
+        currentContent = fs.readFileSync(autoConfPath, 'utf8');
+      }
+
+      // If our tuning block already exists, skip
+      if (currentContent.includes(marker)) {
+        console.log('[PostgresManager] Performance tuning already applied.');
+        return;
+      }
+
+      const tuningBlock = [
+        '',
+        marker,
+        "# Optimized for desktop/portable use on SSD/NVMe drives",
+        "random_page_cost = 1.1",
+        "effective_cache_size = '512MB'",
+        "work_mem = '16MB'",
+        "maintenance_work_mem = '128MB'",
+        "checkpoint_completion_target = 0.9",
+        "max_wal_size = '256MB'",
+        "# Aggressive autovacuum for tables with frequent updates",
+        "autovacuum_vacuum_scale_factor = 0.05",
+        "autovacuum_analyze_scale_factor = 0.02",
+        "autovacuum_vacuum_cost_delay = '0'",
+        marker + ' END',
+        '',
+      ].join('\n');
+
+      fs.appendFileSync(autoConfPath, tuningBlock, 'utf8');
+      console.log('[PostgresManager] Applied PostgreSQL performance tuning to postgresql.auto.conf.');
+    } catch (err) {
+      console.error('[PostgresManager] Failed to apply performance tuning:', err.message);
+    }
   }
 
   stopServer() {

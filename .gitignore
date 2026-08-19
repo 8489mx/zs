@@ -65,3 +65,5 @@ backend/runtime/
  
 .env.production.local
 *.production.local
+.last_migrated_*
+**/.last_migrated_*

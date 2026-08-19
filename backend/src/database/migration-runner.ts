@@ -167,6 +167,45 @@ function createDb(): Kysely<Database> {
   });
 }
 
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import * as crypto from 'node:crypto';
+
+export function getMigrationsFingerprint(): string {
+  const migrationsDir = getMigrationsPath();
+  if (!existsSync(migrationsDir)) return 'no-migrations-dir';
+  try {
+    const files = readdirSync(migrationsDir)
+      .filter((f) => f.endsWith('.ts') || f.endsWith('.js'))
+      .sort();
+    const hash = crypto.createHash('sha256').update(files.join('|')).digest('hex');
+    return `${files.length}-${hash.slice(0, 16)}`;
+  } catch {
+    return 'fingerprint-error';
+  }
+}
+
+export function isMigrationUpToDate(dataDir?: string): boolean {
+  const targetDir = dataDir || process.env.Z_DATA_DIR || process.cwd();
+  const markerPath = join(targetDir, '.last_migrated_fingerprint');
+  if (!existsSync(markerPath)) return false;
+  try {
+    const saved = readFileSync(markerPath, 'utf8').trim();
+    const current = getMigrationsFingerprint();
+    return saved === current && current !== 'fingerprint-error';
+  } catch {
+    return false;
+  }
+}
+
+export function recordMigrationFingerprint(dataDir?: string): void {
+  const targetDir = dataDir || process.env.Z_DATA_DIR || process.cwd();
+  const markerPath = join(targetDir, '.last_migrated_fingerprint');
+  try {
+    const current = getMigrationsFingerprint();
+    writeFileSync(markerPath, current, 'utf8');
+  } catch {}
+}
+
 export async function runMigrationCommand(command: MigrationCommand): Promise<void> {
   const db = createDb();
   const migrator = new Migrator({
@@ -196,4 +235,7 @@ export async function runMigrationCommand(command: MigrationCommand): Promise<vo
   }
 
   await db.destroy();
+  if (command === 'up') {
+    recordMigrationFingerprint();
+  }
 }
