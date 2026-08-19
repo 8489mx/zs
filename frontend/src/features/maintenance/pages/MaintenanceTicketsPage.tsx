@@ -896,8 +896,10 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                   <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{(selectedTicket.parts || []).length} قطعة مسجلة</span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 100px auto', gap: '8px', marginBottom: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'flex-start' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 85px 105px auto', gap: '8px', marginBottom: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center' }}>
                   <SearchableCombobox
+                    inline
+                    inputClassName="purchase-prototype-field-input"
                     placeholder="ابحث عن قطعة غيار في المخزن بالاسم أو الباركود..."
                     value={partSearchText}
                     onChange={setPartSearchText}
@@ -923,7 +925,7 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                     className="purchase-prototype-field-input"
                     value={partQty}
                     onChange={(e) => setPartQty(Number(e.target.value))}
-                    style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
+                    style={{ height: '38px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box', margin: 0 }}
                   />
                   <input
                     type="number"
@@ -933,7 +935,7 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                     className="purchase-prototype-field-input"
                     value={partPrice}
                     onChange={(e) => setPartPrice(Number(e.target.value))}
-                    style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
+                    style={{ height: '38px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box', margin: 0 }}
                   />
                   <Button
                     type="button"
@@ -943,7 +945,7 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                       setPartSearchText('');
                     }}
                     disabled={!selectedProductId || addPartMutation.isPending}
-                    style={{ padding: '7px 16px', height: '36px', whiteSpace: 'nowrap' }}
+                    style={{ height: '38px', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', margin: 0 }}
                   >
                     {addPartMutation.isPending ? 'جاري الصرف...' : '+ صرف على الجهاز'}
                   </Button>
