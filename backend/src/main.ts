@@ -120,23 +120,19 @@ async function bootstrap(): Promise<void> {
     if (process.env.SKIP_MIGRATIONS === 'true') {
       logger.log('Skipping migrations (SKIP_MIGRATIONS=true).');
     } else {
+      logger.log('Running database migrations to ensure schema compatibility...');
       try {
-        const { isMigrationUpToDate, runMigrationCommand } = await import('./database/migration-runner');
-        if (isMigrationUpToDate()) {
-          logger.log('Database schema is up to date (fingerprint match), skipping migration runner.');
-        } else {
-          logger.log('Database migrations required: running database migrations...');
-          await runMigrationCommand('up');
-          logger.log('Database migrations completed.');
-          
-          try {
-            const { PlanFeatureService } = await import('./core/auth/services/plan-feature.service');
-            const planFeatureService = app.get(PlanFeatureService);
-            await planFeatureService.refreshCache();
-            logger.log('Plan features cache refreshed successfully.');
-          } catch (e: any) {
-            logger.warn(`Could not refresh plan features cache after migrations: ${e.message}`);
-          }
+        const { runMigrationCommand } = await import('./database/migration-runner');
+        await runMigrationCommand('up');
+        logger.log('Database migrations completed successfully.');
+        
+        try {
+          const { PlanFeatureService } = await import('./core/auth/services/plan-feature.service');
+          const planFeatureService = app.get(PlanFeatureService);
+          await planFeatureService.refreshCache();
+          logger.log('Plan features cache refreshed successfully.');
+        } catch (e: any) {
+          logger.warn(`Could not refresh plan features cache after migrations: ${e.message}`);
         }
       } catch (error) {
         logger.error('Failed to run database migrations during bootstrap', error);
