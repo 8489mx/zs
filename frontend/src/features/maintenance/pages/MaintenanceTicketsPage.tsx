@@ -198,70 +198,70 @@ export function MaintenanceTicketsPage() {
     const deviceName = `${ticket.deviceBrand ? `${ticket.deviceBrand} - ` : ''}${ticket.deviceModel}`.trim();
 
     let lines: string[] = [];
-    lines.push(`مرحباً أستاذ *${ticket.customerName}* 👋`);
+    lines.push(`مرحباً أستاذ *${ticket.customerName}*`);
     lines.push(`معك *${storeName}* بخصوص جهازك: *${deviceName}*`);
-    lines.push(`🔹 *كود الجهاز:* ${ticket.ticketNo}`);
+    lines.push(`▪ *كود الجهاز:* ${ticket.ticketNo}`);
     lines.push(``);
 
     if (ticket.status === 'unrepairable' || ticket.status === 'cancelled') {
-      lines.push(`🔸 *الحالة:* نعتذر منك، تعذر إصلاح الجهاز ويمكنك استلامه.`);
+      lines.push(`[!] *الحالة:* نعتذر منك، تعذر إصلاح الجهاز ويمكنك استلامه.`);
       if (advancePaid > 0) {
-        lines.push(`💵 *المبلغ المسترد لك:* ${advancePaid.toFixed(2)} ج.م`);
+        lines.push(`▪ *المبلغ المسترد لك:* ${advancePaid.toFixed(2)} ج.م`);
         lines.push(`(يرجى التفضل بزيارة الفرع لاستلام الجهاز واسترداد العربون المدفوع بالكامل).`);
       } else {
         lines.push(`(يمكنك التفضل باستلام جهازك - لا توجد أي رسوم مطلوبة).`);
       }
     } else if (ticket.status === 'delivered') {
-      lines.push(`✅ *الحالة:* تم تسليم الجهاز بنجاح.`);
-      lines.push(`💰 *إجمالي الحساب:* ${totalCost.toFixed(2)} ج.م (تم السداد بالكامل ✓)`);
+      lines.push(`[✓] *الحالة:* تم تسليم الجهاز بنجاح.`);
+      lines.push(`▪ *إجمالي الحساب:* ${totalCost.toFixed(2)} ج.م (تم السداد بالكامل)`);
       if (ticket.warrantyDays) {
-        lines.push(`🔹 *فترة الضمان:* ${ticket.warrantyDays} يوماً بموجب إيصال الاستلام.`);
+        lines.push(`▪ *فترة الضمان:* ${ticket.warrantyDays} يوماً بموجب إيصال الاستلام.`);
       }
       lines.push(``);
-      lines.push(`شكراً لثقتك بنا! ✨`);
+      lines.push(`شكراً لثقتك بنا!`);
     } else if (ticket.status === 'repaired') {
-      lines.push(`✅ *الحالة:* تم الانتهاء من صيانة جهازك بنجاح وهو جاهز للاستلام الآن!`);
-      lines.push(`💰 *إجمالي حساب الصيانة:* ${totalCost.toFixed(2)} ج.م`);
+      lines.push(`[✓] *الحالة:* تم الانتهاء من صيانة جهازك بنجاح وهو جاهز للاستلام الآن!`);
+      lines.push(`▪ *إجمالي حساب الصيانة:* ${totalCost.toFixed(2)} ج.م`);
       if (advancePaid > 0) {
-        lines.push(`💵 *المدفوع مقدماً:* ${advancePaid.toFixed(2)} ج.م`);
+        lines.push(`▪ *المدفوع مقدماً:* ${advancePaid.toFixed(2)} ج.م`);
       }
       if (remaining > 0) {
-        lines.push(`⏳ *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م`);
+        lines.push(`▪ *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م`);
       } else {
-        lines.push(`✅ *الحساب خالص بالكامل ✓*`);
+        lines.push(`[✓] *الحساب خالص بالكامل*`);
       }
       lines.push(``);
       lines.push(`نحن بانتظارك لاستلام الجهاز في أي وقت.`);
     } else if (ticket.status === 'in_progress') {
-      lines.push(`⚙️ *الحالة:* جهازك الآن قيد أعمال الصيانة والإصلاح.`);
-      lines.push(`💰 *التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`);
+      lines.push(`▪ *الحالة:* جهازك الآن قيد أعمال الصيانة والإصلاح.`);
+      lines.push(`▪ *التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`);
       if (advancePaid > 0) {
-        lines.push(`💵 *المدفوع مقدماً:* ${advancePaid.toFixed(2)} ج.م`);
+        lines.push(`▪ *المدفوع مقدماً:* ${advancePaid.toFixed(2)} ج.م`);
       }
       if (remaining > 0) {
-        lines.push(`⏳ *المتبقي المتوقع:* ${remaining.toFixed(2)} ج.م`);
+        lines.push(`▪ *المتبقي المتوقع:* ${remaining.toFixed(2)} ج.م`);
       }
     } else if (ticket.status === 'inspecting') {
-      lines.push(`🔍 *الحالة:* جهازك الآن قيد الفحص الفني والتسعير.`);
+      lines.push(`▪ *الحالة:* جهازك الآن قيد الفحص الفني والتسعير.`);
       if (totalCost > 0) {
-        lines.push(`💰 *التكلفة المبدئية المتوقعة:* ${totalCost.toFixed(2)} ج.م`);
+        lines.push(`▪ *التكلفة المبدئية المتوقعة:* ${totalCost.toFixed(2)} ج.م`);
       }
     } else {
       // received
-      lines.push(`📱 *الحالة:* تم استلام جهازك بنجاح في قسم الصيانة وجارٍ الفحص.`);
+      lines.push(`[✓] *الحالة:* تم استلام جهازك بنجاح في قسم الصيانة وجارٍ الفحص.`);
       if (totalCost > 0) {
-        lines.push(`💰 *التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`);
+        lines.push(`▪ *التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`);
       }
       if (advancePaid > 0) {
-        lines.push(`💵 *العربون المدفوع:* ${advancePaid.toFixed(2)} ج.م`);
+        lines.push(`▪ *العربون المدفوع:* ${advancePaid.toFixed(2)} ج.م`);
       }
     }
 
     lines.push(``);
-    lines.push(`نسعد دائماً بخدمتك! ✨`);
+    lines.push(`نسعد دائماً بخدمتكم!`);
 
     const message = lines.join('\n');
-    const url = `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(message)}`;
+    const url = `https://api.whatsapp.com/send/?phone=${phoneFormatted}&text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
 

@@ -384,29 +384,30 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
     const remaining = Math.max(0, totalCost - advancePaid);
 
     const lines = [
-      `🧾 *إيصال استلام جهاز صيانة* 🧾`,
-      `مرحباً بك أستاذ *${ticket.customerName}* 👋`,
+      `*إيصال استلام جهاز صيانة*`,
+      `-----------------------------------`,
+      `مرحباً بك أستاذ *${ticket.customerName}*`,
       `معك *${storeName}* بخصوص جهازك:`,
       ``,
-      `📱 *الجهاز:* ${ticket.deviceBrand ? `${ticket.deviceBrand} - ` : ''}${ticket.deviceModel}`,
-      `🔹 *كود الجهاز:* ${ticket.ticketNo}`,
-      `🔹 *العطل المسجل:* ${ticket.problemDescription}`,
+      `▪ *الجهاز:* ${ticket.deviceBrand ? `${ticket.deviceBrand} - ` : ''}${ticket.deviceModel}`,
+      `▪ *كود الجهاز:* ${ticket.ticketNo}`,
+      `▪ *العطل المسجل:* ${ticket.problemDescription}`,
       ``,
-      `💰 *إجمالي التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`,
-      ...(advancePaid > 0 ? [`💵 *المدفوع مقدماً:* ${advancePaid.toFixed(2)} ج.م`] : []),
-      `⏳ *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م`,
+      `▪ *إجمالي التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`,
+      ...(advancePaid > 0 ? [`▪ *المدفوع مقدماً (عربون):* ${advancePaid.toFixed(2)} ج.م`] : []),
+      `▪ *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م`,
+      `-----------------------------------`,
+      `[✓] *تم إرفاق إيصال الاستلام الرسمي بصيغة PDF.*`,
       ``,
-      `📄 *تم إرفاق إيصال الاستلام الرسمي بصيغة PDF.*`,
-      ``,
-      `🔹 *شروط الاستلام:*`,
+      `▪ *شروط الاستلام:*`,
       `• يرجى الاحتفاظ بكود الاستلام (${ticket.ticketNo}) للاستعلام عن الجهاز.`,
       `• لا يتم تسليم الجهاز إلا من خلال رقم الهاتف المسجل أو إثبات الشخصية.`,
       `• فترة الضمان على قطع الغيار ${ticket.warrantyDays || 30} يوماً من تاريخ الإصلاح.`,
-      ``,
-      `نسعد دائماً بخدمتكم! ✨`,
+      `-----------------------------------`,
+      `نسعد دائماً بخدمتكم!`,
     ];
 
-    const url = `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(lines.join('\n'))}`;
+    const url = `https://api.whatsapp.com/send/?phone=${phoneFormatted}&text=${encodeURIComponent(lines.join('\n'))}`;
     window.open(url, '_blank');
   };
 
