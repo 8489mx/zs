@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
@@ -7,12 +7,16 @@ let runtimeConfigInstance = null;
 let currentConfig = null;
 
 let mainWindow = null;
+const packageVersion = require('../package.json').version || '1.0.0';
 
 const createWindow = () => {
+  Menu.setApplicationMenu(null);
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     icon: path.join(__dirname, '../public/logo_cropped.png'),
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -22,6 +26,7 @@ const createWindow = () => {
     show: false,
   });
 
+  mainWindow.setMenuBarVisibility(false);
   mainWindow.maximize();
   mainWindow.show();
 
@@ -32,13 +37,10 @@ const createWindow = () => {
 
   mainWindow.webContents.on('will-prevent-unload', (event) => {
     mainWindow.webContents.send('show-custom-close-dialog');
-    // We do NOT call event.preventDefault() here.
-    // By not preventing default, the window will wait for the beforeunload event to be resolved,
-    // effectively keeping it open.
   });
 
-  // Load loading page immediately while backend starts
-  mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+  // Load loading page immediately while backend starts with dynamic version
+  mainWindow.loadFile(path.join(__dirname, 'loading.html'), { query: { v: packageVersion } });
 };
 
 const loadApp = () => {

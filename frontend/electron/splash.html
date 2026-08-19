@@ -4,38 +4,46 @@
   <meta charset="UTF-8">
   <title>ZSystems Loading</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin: 0;
-      padding: 0;
-      background-color: #0f172a;
-      color: white;
-      font-family: Tahoma, sans-serif;
+      background: radial-gradient(circle at 50% 40%, #1e1b4b 0%, #0f172a 70%, #020617 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       overflow: hidden;
-      border-radius: 10px;
-      border: 1px solid #1e293b;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      user-select: none;
     }
-    .logo {
-      width: 120px;
-      height: auto;
-      margin-bottom: 20px;
+    .logo-wrap {
+      margin-bottom: 18px;
+    }
+    .logo-img {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 16px rgba(99, 102, 241, 0.4));
     }
     .loader {
-      border: 4px solid rgba(255, 255, 255, 0.1);
-      border-top: 4px solid #3b82f6;
+      border: 3px solid rgba(255, 255, 255, 0.08);
+      border-top: 3px solid #6366f1;
+      border-right: 3px solid #3b82f6;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
+      width: 32px;
+      height: 32px;
+      animation: spin 0.8s linear infinite;
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
     }
     .text {
-      margin-top: 20px;
-      font-size: 1.2rem;
-      font-weight: bold;
+      margin-top: 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
       color: #94a3b8;
     }
     @keyframes spin {
@@ -45,7 +53,10 @@
   </style>
 </head>
 <body>
+  <div class="logo-wrap">
+    <img class="logo-img" src="../public/logo_cropped.png" alt="ZSystems Logo" onerror="this.style.display='none'">
+  </div>
   <div class="loader"></div>
-  <div class="text">جاري بدء تشغيل النظام...</div>
+  <div class="text">جاري تشغيل النظام...</div>
 </body>
 </html>
