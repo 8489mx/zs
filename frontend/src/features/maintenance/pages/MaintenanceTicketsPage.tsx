@@ -9,6 +9,7 @@ import { maintenanceApi, type UpsertMaintenanceTicketPayload } from '../api/main
 import { MaintenanceReceiptModal } from '../components/MaintenanceReceiptModal';
 import { PatternLockWidget } from '../components/PatternLockWidget';
 import { BrandCombobox } from '@/shared/components/BrandCombobox';
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import type { MaintenanceTicket, MaintenanceStatus } from '@/types/domain-models/maintenance';
 
 export function MaintenanceTicketsPage() {
@@ -43,8 +44,10 @@ export function MaintenanceTicketsPage() {
 
   // Part adding state
   const [selectedProductId, setSelectedProductId] = useState('');
+  const [partSearchText, setPartSearchText] = useState('');
   const [partQty, setPartQty] = useState(1);
   const [partPrice, setPartPrice] = useState(0);
+  const [editingCost, setEditingCost] = useState<number | null>(null);
 
   useAppToolbar([{ label: 'قسم الصيانة وتذاكر الإصلاح' }]);
 
@@ -125,14 +128,6 @@ export function MaintenanceTicketsPage() {
       return;
     }
     createMutation.mutate(formData);
-  };
-
-  const handleProductSelectForPart = (prodId: string) => {
-    setSelectedProductId(prodId);
-    const prod = (productsQuery.data || []).find((p: any) => String(p.id) === prodId);
-    if (prod) {
-      setPartPrice(Number(prod.retailPrice || 0));
-    }
   };
 
   const handleAddPartSubmit = () => {
@@ -844,8 +839,28 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
                     الجهاز:
                   </div>
-                  <strong>{selectedTicket.deviceBrand ? `${selectedTicket.deviceBrand} ` : ''}{selectedTicket.deviceModel}</strong>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#64748b' }}>IMEI: {selectedTicket.serialNumber || '—'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                    {selectedTicket.deviceBrand && (
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          background: '#f1f5f9',
+                          color: '#334155',
+                          border: '1px solid #e2e8f0',
+                        }}
+                      >
+                        {selectedTicket.deviceBrand}
+                      </span>
+                    )}
+                    <strong>{selectedTicket.deviceModel}</strong>
+                  </div>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <span>📱</span>
+                    <span dir="ltr">IMEI: {selectedTicket.serialNumber || '—'}</span>
+                  </div>
                 </div>
 
                 <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
@@ -881,20 +896,26 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                   <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{(selectedTicket.parts || []).length} قطعة مسجلة</span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '8px', marginBottom: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <select
-                    className="purchase-prototype-field-input"
-                    value={selectedProductId}
-                    onChange={(e) => handleProductSelectForPart(e.target.value)}
-                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
-                  >
-                    <option value="">-- اختر قطعة غيار من المخزن --</option>
-                    {(productsQuery.data || []).map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (متاح: {p.stock || 0}) - {p.retailPrice} ج.م
-                      </option>
-                    ))}
-                  </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 100px auto', gap: '8px', marginBottom: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'flex-start' }}>
+                  <SearchableCombobox
+                    placeholder="ابحث عن قطعة غيار في المخزن بالاسم أو الباركود..."
+                    value={partSearchText}
+                    onChange={setPartSearchText}
+                    options={(productsQuery.data || []).map((p: any) => ({
+                      id: String(p.id),
+                      name: p.name,
+                      stock: p.stock ?? p.stock_qty ?? 0,
+                      retailPrice: p.retailPrice ?? p.retail_price ?? 0,
+                      barcode: p.barcode || '',
+                    }))}
+                    getLabel={(p) => `${p.name} (متاح: ${p.stock}) - ${p.retailPrice} ج.م`}
+                    getMeta={(p) => `${p.barcode} ${p.name}`}
+                    onSelect={(p) => {
+                      setSelectedProductId(p.id);
+                      setPartSearchText(p.name);
+                      setPartPrice(Number(p.retailPrice || 0));
+                    }}
+                  />
                   <input
                     type="number"
                     min="1"
@@ -902,7 +923,7 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                     className="purchase-prototype-field-input"
                     value={partQty}
                     onChange={(e) => setPartQty(Number(e.target.value))}
-                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+                    style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
                   />
                   <input
                     type="number"
@@ -912,16 +933,19 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                     className="purchase-prototype-field-input"
                     value={partPrice}
                     onChange={(e) => setPartPrice(Number(e.target.value))}
-                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+                    style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
                   />
                   <Button
                     type="button"
                     variant="primary"
-                    onClick={handleAddPartSubmit}
+                    onClick={() => {
+                      handleAddPartSubmit();
+                      setPartSearchText('');
+                    }}
                     disabled={!selectedProductId || addPartMutation.isPending}
-                    style={{ padding: '6px 16px' }}
+                    style={{ padding: '7px 16px', height: '36px', whiteSpace: 'nowrap' }}
                   >
-                    + صرف على الجهاز
+                    {addPartMutation.isPending ? 'جاري الصرف...' : '+ صرف على الجهاز'}
                   </Button>
                 </div>
 
@@ -974,9 +998,37 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
 
                 return (
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                      حساب أرباح الصيانة وعمولة الفني:
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                        حساب أرباح الصيانة وعمولة الفني:
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                        <span style={{ color: '#64748b' }}>تعديل إجمالي الحساب:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="10"
+                          className="purchase-prototype-field-input"
+                          value={editingCost ?? totalCost}
+                          onChange={(e) => setEditingCost(Number(e.target.value))}
+                          style={{ width: '90px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, textAlign: 'center' }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          disabled={editingCost === null || editingCost === totalCost || updateStatusMutation.isPending}
+                          onClick={() => {
+                            if (editingCost !== null) {
+                              updateStatusMutation.mutate({ id: selectedTicket.id, status: selectedTicket.status, finalCost: editingCost });
+                              setEditingCost(null);
+                            }
+                          }}
+                          style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                        >
+                          تحديث الحساب
+                        </button>
+                      </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '0.8rem', textAlign: 'center' }}>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
