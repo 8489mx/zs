@@ -135,7 +135,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 4px 9px;
+  padding: 4px 8px;
   border-radius: 6px;
   font-size: 0.76rem;
   font-weight: 600;
@@ -153,11 +153,13 @@
   width: 13px;
   height: 13px;
   margin: 0;
+  accent-color: #2563eb;
+  outline: none;
 }
 
 .product-unit-chip-btn:hover {
   border-color: #94a3b8;
-  background: #f1f5f9;
+  background: #f8fafc;
 }
 
 .product-unit-chip-btn.active {

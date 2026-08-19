@@ -1,12 +1,30 @@
 import type { ProductUnit } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
 
-const UNIT_PRESETS = ['قطعة', 'علبة', 'كرتونة', 'باكيت', 'زجاجة', 'شريط', 'كيلو', 'جرام', 'لتر', 'متر', 'دستة', 'زوج', 'شيكارة', 'طرد', 'برميل'];
+const UNIT_PRESETS = [
+  'قطعة',
+  'علبة',
+  'كرتونة',
+  'باكيت',
+  'شريط',
+  'زجاجة',
+  'كيلو',
+  'جرام',
+  'لتر',
+  'متر',
+  'دستة',
+  'زوج',
+  'شيكارة',
+  'طرد',
+  'برميل',
+  'متر مربع',
+  'رول'
+];
 
 function nextEmptyUnit(): ProductUnit {
   return {
     id: `unit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    name: '',
+    name: 'علبة',
     multiplier: 1,
     barcode: '',
     isBaseUnit: false,
@@ -110,15 +128,9 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
 
   return (
     <div className="product-units-table-container">
-      <datalist id="unit-preset-suggestions">
-        {UNIT_PRESETS.map((preset) => (
-          <option key={preset} value={preset} />
-        ))}
-      </datalist>
-
       {/* Header Row */}
       <div className="product-units-header-row">
-        <div style={{ flex: '1.3' }}>اسم الوحدة</div>
+        <div style={{ flex: '1.4' }}>اسم / نوع الوحدة</div>
         <div style={{ flex: '0.9' }}>المضاعف ({baseUnitName})</div>
         <div style={{ flex: '1.3' }}>باركود الوحدة</div>
         <div style={{ flex: '2.5' }}>دور واستخدام الوحدة الافتراضي</div>
@@ -128,19 +140,64 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
       {/* Data Rows */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
         {normalized.map((unit, index) => {
+          const isKnownPreset = UNIT_PRESETS.includes(unit.name);
+          const isCustomMode = !isKnownPreset;
+
           return (
             <div key={unit.id || `${index}`} className="product-units-data-row">
-              {/* Unit Name / Preset with smart datalist */}
-              <div style={{ flex: '1.3', minWidth: 0 }}>
-                <input
-                  list="unit-preset-suggestions"
-                  className="purchase-prototype-field-input"
-                  value={unit.name}
-                  disabled={disabled}
-                  onChange={(event) => patchRow(index, { name: event.target.value })}
-                  placeholder="مثال: قطعة، علبة، كرتونة..."
-                  style={{ height: '34px', fontSize: '0.86rem' }}
-                />
+              {/* Unit Dropdown / Custom Name */}
+              <div style={{ flex: '1.4', minWidth: 0 }}>
+                {isCustomMode ? (
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <input
+                      className="purchase-prototype-field-input"
+                      value={unit.name}
+                      autoFocus
+                      disabled={disabled}
+                      onChange={(event) => patchRow(index, { name: event.target.value })}
+                      placeholder="اكتب اسم الوحدة..."
+                      style={{ height: '34px', fontSize: '0.86rem', flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => patchRow(index, { name: 'قطعة' })}
+                      disabled={disabled}
+                      title="الرجوع للقائمة الجاهزة"
+                      style={{
+                        height: '34px',
+                        padding: '0 8px',
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        background: '#f8fafc',
+                        color: '#475569',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      قائمة
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    className="purchase-prototype-field-input"
+                    value={unit.name}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      const val = event.target.value;
+                      patchRow(index, { name: val === '__custom__' ? '' : val });
+                    }}
+                    style={{ height: '34px', fontSize: '0.86rem', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    {UNIT_PRESETS.map((preset) => (
+                      <option key={preset} value={preset}>
+                        {preset}
+                      </option>
+                    ))}
+                    <option value="__custom__">✏️ اسم مخصص آخر...</option>
+                  </select>
+                )}
               </div>
 
               {/* Multiplier */}
