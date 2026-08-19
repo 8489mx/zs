@@ -599,22 +599,22 @@ export function NewProductPage() {
         )}
 
         <FormSection title="بيانات الصنف الأساسية">
-          <div className="actions compact-actions" style={{ flexWrap: 'wrap', marginBottom: 24 }}>
-            {clothingModuleEnabled ? (
+          {clothingModuleEnabled && (
+            <div className="actions compact-actions" style={{ flexWrap: 'wrap', marginBottom: 24 }}>
               <div className="field" style={{ minWidth: 220 }}>
                 <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>
                   <option value="standard">صنف عادي</option>
                   <option value="fashion">موديل ملابس</option>
                 </select>
               </div>
-            ) : null}
-            {watchedItemKind === 'standard' ? (
-              <>
-                <Button type="button" variant={!groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(false)} disabled={isFormDisabled}>صنف عادي (بسيط)</Button>
-                <Button type="button" variant={groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(true)} disabled={isFormDisabled}>صنف بمتغيرات (أنواع/أحجام)</Button>
-              </>
-            ) : null}
-          </div>
+              {watchedItemKind === 'standard' ? (
+                <>
+                  <Button type="button" variant={!groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(false)} disabled={isFormDisabled}>صنف عادي (بسيط)</Button>
+                  <Button type="button" variant={groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(true)} disabled={isFormDisabled}>صنف بمتغيرات (أنواع/أحجام)</Button>
+                </>
+              ) : null}
+            </div>
+          )}
 
           <div className="document-prototype-grid compact-grid-2">
             {manufacturingModuleEnabled ? (

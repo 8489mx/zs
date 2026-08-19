@@ -292,25 +292,24 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
     <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...values, itemKind: watchedItemKind, units, fashionVariantRows, groupedEntryEnabled: usesVariantBuilder }))}>
       <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="بيانات الصنف الحالي لم تُحفظ بعد" hint="يشمل ذلك الوحدات الجديدة أو الإضافة السريعة للقسم والمورد من نفس النموذج، ومعها تجهيز الأصناف الفرعية قبل الإنشاء." />
 
-      <div className="surface-note" style={{ padding: 12 }}>
-        <div className="actions compact-actions" style={{ flexWrap: 'wrap' }}>
-
-          {clothingModuleEnabled ? (
+      {clothingModuleEnabled && (
+        <div className="surface-note" style={{ padding: 12 }}>
+          <div className="actions compact-actions" style={{ flexWrap: 'wrap' }}>
             <div className="field" style={{ minWidth: 220 }}><label>نوع الصنف</label>
               <select {...form.register('itemKind')} disabled={mutation.isPending}>
                 <option value="standard">صنف عادي</option>
                 <option value="fashion">موديل ملابس</option>
               </select>
             </div>
-          ) : null}
-          {watchedItemKind === 'standard' ? (
-            <>
-              <Button type="button" variant={!groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(false)} disabled={mutation.isPending}>صنف عادي (بسيط)</Button>
-              <Button type="button" variant={groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(true)} disabled={mutation.isPending}>صنف بمتغيرات (أنواع/أحجام)</Button>
-            </>
-          ) : null}
+            {watchedItemKind === 'standard' ? (
+              <>
+                <Button type="button" variant={!groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(false)} disabled={mutation.isPending}>صنف عادي (بسيط)</Button>
+                <Button type="button" variant={groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(true)} disabled={mutation.isPending}>صنف بمتغيرات (أنواع/أحجام)</Button>
+              </>
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="form-grid">
         {manufacturingModuleEnabled ? (

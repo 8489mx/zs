@@ -292,6 +292,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'tax-dispatcher' && !isEtaActive) return false;
         if (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true) return false;
         if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && settings?.enableMobileStoreFeatures !== true) return false;
+        if (item.key?.startsWith('manufacturing-') && settings?.manufacturingModuleEnabled !== true) return false;
         return true;
       })
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
@@ -300,7 +301,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures]);
+  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.manufacturingModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
