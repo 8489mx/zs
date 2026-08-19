@@ -1,12 +1,13 @@
 {
   "name": "zs-main",
   "private": true,
-  "version": "1.1.11",
+  "version": "1.1.12",
   "scripts": {
     "install:all": "npm --prefix backend ci && npm --prefix frontend ci",
     "build": "node ./scripts/build-root.cjs",
     "build:all": "npm --prefix backend run build && npm --prefix frontend run build",
     "build:exe": "npm --prefix frontend run build:exe",
+    "build:new": "node ./scripts/bump-and-build.cjs",
     "build:up": "node ./scripts/build-update-patch.cjs",
     "sync:portable-backend": "node ./scripts/sync-portable-backend-runtime.cjs",
     "sync:electron-backend": "node ./scripts/sync-electron-backend.cjs",

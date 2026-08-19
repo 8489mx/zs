@@ -54,6 +54,71 @@ interface SettingsBackupImportSectionProps {
   downloadTemplate: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => void;
 }
 
+import { http } from '@/lib/http';
+import { useQuery, useMutation } from '@tanstack/react-query';
+
+function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+
+  const statsQuery = useQuery({
+    queryKey: ['health', 'db-stats'],
+    queryFn: () => http<{ database_size_mb: number; pg_uptime_hours: number; maintenance_last_run?: any }>('/api/health/db-stats'),
+    staleTime: 30_000,
+  });
+
+  const optimizeMutation = useMutation({
+    mutationFn: () => http<{ ok: boolean; message: string; database_size_mb?: number }>('/api/health/optimize-db', { method: 'POST' }),
+    onSuccess: (data) => {
+      setFeedback({ kind: 'success', message: data.message || 'تم تحسين قاعدة البيانات وضغط المساحة بنجاح!' });
+      statsQuery.refetch();
+    },
+    onError: (err: any) => {
+      setFeedback({ kind: 'error', message: err.message || 'فشل تشغيل عملية الصيانة.' });
+    },
+  });
+
+  const dbSize = statsQuery.data?.database_size_mb ? `${statsQuery.data.database_size_mb} MB` : '...';
+
+  return (
+    <QueryCard
+      className="settings-admin-card"
+      title="صيانة وتسريع قاعدة البيانات"
+      actions={<span className="nav-pill">أداء النظام ⚡</span>}
+    >
+      <div className="page-stack">
+        <p className="muted small">
+          يقوم هذا الإجراء بتنظيف البيانات المؤقتة المنتهية، إعادة ترتيب الفهارس (Indexes)، وضغط مساحة قاعدة البيانات (VACUUM ANALYZE) لتحسين سرعة واستجابة النظام.
+        </p>
+
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
+          <div style={{ background: 'var(--bg-card, #f8fafc)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '8px', padding: '10px 16px', minWidth: '140px' }}>
+            <div className="muted small" style={{ fontSize: '11px' }}>حجم قاعدة البيانات</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', marginTop: '2px' }}>{dbSize}</div>
+          </div>
+
+          <Button
+            type="button"
+            variant="primary"
+            disabled={!canManage || optimizeMutation.isPending}
+            onClick={() => {
+              setFeedback(null);
+              optimizeMutation.mutate();
+            }}
+          >
+            {optimizeMutation.isPending ? 'جاري تحسين قاعدة البيانات...' : '⚡ تحسين وسرعة قاعدة البيانات الآن'}
+          </Button>
+        </div>
+
+        {feedback ? (
+          <div className={feedback.kind === 'success' ? 'form-feedback success' : 'form-feedback error'} style={{ marginTop: '12px' }}>
+            {feedback.message}
+          </div>
+        ) : null}
+      </div>
+    </QueryCard>
+  );
+}
+
 function formatSummaryPairs(result: unknown): Array<{ label: string; value: string }> {
   if (!result || typeof result !== 'object') return [];
   const payload = result as Record<string, unknown>;
@@ -299,6 +364,8 @@ export function SettingsBackupImportSection({
           ) : null}
         </div>
       </QueryCard>
+
+      <DatabaseOptimizationCard canManage={canManageBackups} />
 
       <QueryCard className="settings-admin-card settings-import-card" title="استيراد CSV" actions={<span className="nav-pill">ملفات CSV</span>}>
         <div className="two-column-grid">
