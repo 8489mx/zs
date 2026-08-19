@@ -35,9 +35,9 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
       </div>
     </div>
 
-    <div style="text-align: center; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 6px;">
-      <div style="width: 220px; height: 50px; margin: 0 auto;">${barcodeSvg}</div>
-      <div style="font-size: 16px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #000; margin-top: 4px;">
+    <div style="text-align: center; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 8px;">
+      <div style="width: 220px; height: 46px; margin: 0 auto 10px; display: block;">${barcodeSvg}</div>
+      <div style="font-size: 16px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #000; margin: 10px 0 3px; padding-top: 4px;">
         ${escapeHtml(ticket.ticketNo)}
       </div>
       <div style="font-size: 10px; color: #000; font-weight: 600;">تاريخ الاستلام: ${escapeHtml(dateFormatted)}</div>
@@ -136,9 +136,9 @@ export function printMaintenanceSticker(ticket: MaintenanceTicket, settings?: Ap
       .print-content { padding: 0 !important; margin: 0 !important; }
       .sticker-box { width: 100%; max-width: 48mm; margin: 0 auto; text-align: center; box-sizing: border-box; }
       .sticker-store { font-size: 7.5px; font-weight: 800; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .sticker-barcode { width: 100%; height: 26px; margin: 1px auto; }
+      .sticker-barcode { width: 100%; height: 26px; margin: 2px auto 4px; }
       .sticker-barcode svg { width: 100%; height: 100%; display: block; }
-      .sticker-code { font-size: 11px; font-weight: 900; font-family: monospace; letter-spacing: 1px; margin: 1px 0; }
+      .sticker-code { font-size: 11px; font-weight: 900; font-family: monospace; letter-spacing: 1px; margin: 4px 0; }
       .sticker-details { text-align: right; font-size: 7px; line-height: 1.25; border-top: 0.5px solid #000; border-bottom: 0.5px solid #000; padding: 1px 0; }
       .sticker-date { font-size: 6px; color: #333; margin-top: 1px; }
     `,
@@ -166,12 +166,12 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
         </div>
       </div>
 
-      <div style="text-align: center; padding: 6px 0 14px; border-bottom: 2px dashed #94a3b8; margin-bottom: 14px;">
-        <div style="width: 250px; height: 54px; margin: 0 auto;">${barcodeSvg}</div>
-        <div style="font-size: 20px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #0284c7; margin-top: 6px;">
+      <div style="text-align: center; padding: 6px 0 16px; border-bottom: 2px dashed #94a3b8; margin-bottom: 16px;">
+        <div style="width: 240px; height: 48px; margin: 0 auto 12px; display: block;">${barcodeSvg}</div>
+        <div style="font-size: 20px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #0284c7; margin: 12px 0 4px; padding-top: 4px;">
           ${escapeHtml(ticket.ticketNo)}
         </div>
-        <div style="font-size: 11px; color: #64748b; margin-top: 3px; font-weight: 600;">
+        <div style="font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600;">
           تاريخ الاستلام: ${escapeHtml(dateFormatted)}
         </div>
       </div>
@@ -436,12 +436,12 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
             </div>
 
             {/* Barcode & Ticket No */}
-            <div style={{ textAlign: 'center', padding: '6px 0 10px', borderBottom: '1px dashed #cbd5e1', marginBottom: '12px' }}>
-              <div style={{ width: '230px', height: '50px', margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
-              <strong style={{ fontSize: '1.3rem', letterSpacing: '2px', display: 'block', marginTop: '6px', fontFamily: 'monospace', color: '#0284c7' }}>
+            <div style={{ textAlign: 'center', padding: '6px 0 14px', borderBottom: '1px dashed #cbd5e1', marginBottom: '14px' }}>
+              <div style={{ width: '230px', height: '48px', margin: '0 auto 12px' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
+              <strong style={{ fontSize: '1.35rem', letterSpacing: '2px', display: 'block', margin: '12px 0 4px', fontFamily: 'monospace', color: '#0284c7' }}>
                 {ticket.ticketNo}
               </strong>
-              <small style={{ color: '#64748b', display: 'block', marginTop: '2px' }}>
+              <small style={{ color: '#64748b', display: 'block', marginTop: '3px' }}>
                 تاريخ الاستلام: {new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
               </small>
             </div>

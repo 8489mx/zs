@@ -57,7 +57,7 @@ export function buildCode128Svg(value: unknown) {
   });
 
   const totalWidth = x + quietZone;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${height}" preserveAspectRatio="none" aria-label="Barcode ${escapeHtml(normalized)}">${rects.join('')}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${height}" preserveAspectRatio="none" style="display:block;width:100%;height:100%;" aria-label="Barcode ${escapeHtml(normalized)}">${rects.join('')}</svg>`;
 }
 
 export function createGeneratedBarcode(existingValues: string[], prefix = 'ZS') {
