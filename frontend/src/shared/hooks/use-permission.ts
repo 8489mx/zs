@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 
 function normalizePermissions(input: Array<string | null | undefined>) {
   return input.map((value) => String(value || '').trim()).filter(Boolean);
@@ -25,7 +26,7 @@ export function useHasFeature(feature: string) {
   const user = useAuthStore((state) => state.user);
   const tenant = useAuthStore((state) => state.tenant);
   return useMemo(() => {
-    if (String(user?.role || '').trim() === 'super_admin' || String(user?.role || '').trim() === 'platform_admin') return true;
+    if (isPlatformAdmin(user)) return true;
     if (!tenant) return true;
     return tenant.features?.includes(feature) ?? false;
   }, [user, tenant, feature]);

@@ -9,5 +9,13 @@ export const reportsRouteModule: FeatureRouteModule = {
     { path: 'reports', element: <Navigate to="/reports/overview" replace /> },
     { path: 'reports/:section', element: reportsPage }
   ],
-  navigation: [{ key: 'reports', label: 'التقارير', to: '/reports' }]
+  navigation: [
+    { key: 'reports-overview', label: 'ملخص الأرباح والأداء', to: '/reports/overview' },
+    { key: 'reports-sales', label: 'تقارير المبيعات', to: '/reports/sales' },
+    { key: 'reports-treasury', label: 'الخزينة والمصروفات', to: '/reports/treasury' },
+    { key: 'reports-inventory', label: 'تقارير المخزون', to: '/reports/inventory' },
+    { key: 'reports-purchases', label: 'تقارير المشتريات', to: '/reports/purchases' },
+    { key: 'reports-balances', label: 'أرصدة وذمم الحسابات', to: '/reports/balances' },
+    { key: 'reports-employees', label: 'تقارير الموظفين', to: '/reports/employees' },
+  ]
 };

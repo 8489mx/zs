@@ -34,11 +34,14 @@ export class PlanFeatureService implements OnModuleInit {
   }
 
   hasFeature(planId: string | undefined, extraFeatures: string[] | undefined, requiredFeature: string): boolean {
+    if (extraFeatures && extraFeatures.includes(`-${requiredFeature}`)) {
+      return false;
+    }
     if (extraFeatures && extraFeatures.includes(requiredFeature)) {
       return true;
     }
     if (!planId) {
-      return true; // If no plan is assigned, assume backward compatibility or handle securely based on your policy
+      return true; // If no plan is assigned, assume backward compatibility
     }
     
     // Hardcoded ultimate check just in case cache misses

@@ -1,10 +1,15 @@
 import { NavLink } from 'react-router-dom';
 import { reportsSections, type ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
+import { canAccessPath } from '@/app/router/access';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function ReportsSectionTabs({ currentSection }: { currentSection: ReportsSectionKey }) {
+  const user = useAuthStore((state) => state.user);
+  const visibleSections = reportsSections.filter((section) => canAccessPath(user, `/reports/${section.key}`));
+
   return (
     <div className="filter-chip-row toolbar-chip-row reports-section-tabs">
-      {reportsSections.map((section) => (
+      {visibleSections.map((section) => (
         <NavLink
           key={section.key}
           to={`/reports/${section.key}`}

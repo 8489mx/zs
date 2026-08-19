@@ -60,9 +60,25 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
   if (!tenant) return null;
 
   const toggleFeature = (featId: string) => {
-    setExtraFeatures(prev => 
-      prev.includes(featId) ? prev.filter(f => f !== featId) : [...prev, featId]
-    );
+    setExtraFeatures(prev => {
+      const isBaseIncluded = selectedPlanFeatures.includes(featId);
+      
+      if (isBaseIncluded) {
+        // If it's in the base plan, we negate it to exclude it
+        if (prev.includes(`-${featId}`)) {
+          return prev.filter(f => f !== `-${featId}`); // Re-include it
+        } else {
+          return [...prev, `-${featId}`]; // Exclude it
+        }
+      } else {
+        // Normal extra feature logic
+        if (prev.includes(featId)) {
+          return prev.filter(f => f !== featId);
+        } else {
+          return [...prev, featId];
+        }
+      }
+    });
   };
 
   const selectedPlanFeatures = featurePlans.find(p => String(p.id) === planId)?.features || [];
@@ -100,21 +116,29 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           </div>
 
           <div style={{ marginTop: '1rem' }}>
-            <h3 className="font-bold mb-3">الميزات الإضافية المستثناة لهذه النسخة:</h3>
-            <p className="muted small mb-4">هذه الميزات ستكون مفعلة للنسخة حتى لو لم تكن متوفرة في باقتها الأساسية.</p>
+            <h3 className="font-bold mb-3">الميزات الإضافية والمستثناة لهذه النسخة:</h3>
+            <p className="muted small mb-4">يمكنك تفعيل ميزات إضافية أو استثناء ميزات أساسية من الباقة المختارة.</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               {AVAILABLE_FEATURES.map((feat) => {
-                const isIncludedInPlan = selectedPlanFeatures.includes(feat.id);
+                const isBaseIncluded = selectedPlanFeatures.includes(feat.id);
+                const isExcluded = extraFeatures.includes(`-${feat.id}`);
+                const isExtraIncluded = extraFeatures.includes(feat.id);
+                
+                const isChecked = (isBaseIncluded && !isExcluded) || isExtraIncluded;
+
                 return (
-                  <label key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isIncludedInPlan ? 'not-allowed' : 'pointer', opacity: isIncludedInPlan ? 0.6 : 1 }}>
+                  <label key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', opacity: isExcluded ? 0.6 : 1 }}>
                     <input 
                       type="checkbox" 
-                      checked={isIncludedInPlan || extraFeatures.includes(feat.id)} 
+                      checked={isChecked} 
                       onChange={() => toggleFeature(feat.id)}
-                      disabled={isIncludedInPlan}
                       style={{ width: '16px', height: '16px' }}
                     />
-                    <span>{feat.name} {isIncludedInPlan && <small className="muted">(متوفرة في الباقة)</small>}</span>
+                    <span>
+                      {feat.name}{' '}
+                      {isBaseIncluded && !isExcluded && <small className="muted">(متوفرة في الباقة)</small>}
+                      {isBaseIncluded && isExcluded && <small style={{ color: 'var(--danger, #dc2626)' }}>(مستثناة من الباقة)</small>}
+                    </span>
                   </label>
                 );
               })}

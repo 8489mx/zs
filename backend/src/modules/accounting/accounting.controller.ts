@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, R
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { RequireAnyPermission, RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { AccountingService } from './accounting.service';
 import {
@@ -20,6 +21,7 @@ import {
 
 @Controller('api/accounting')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('accounting')
 @RequireAnyPermission('accounting', 'accounts')
 export class AccountingController {
   constructor(private readonly accountingService: AccountingService) {}

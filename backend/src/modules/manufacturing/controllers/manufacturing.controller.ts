@@ -3,11 +3,13 @@ import { ManufacturingService } from '../services/manufacturing.service';
 import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto } from '../dto/manufacturing.dto';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { RequirePermissions, RequireAnyPermission } from '../../../core/auth/decorators/permissions.decorator';
+import { RequireFeature } from '../../../core/auth/decorators/feature.decorator';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 
 @Controller('api/manufacturing')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('manufacturing')
 export class ManufacturingController {
   constructor(private readonly manufacturingService: ManufacturingService) {}
 
