@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { buildCode128Svg } from '@/lib/barcode';
+import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { MaintenanceTicket } from '@/types/domain-models/maintenance';
 import type { AppSettings } from '@/types/domain';
 
@@ -12,23 +13,192 @@ interface MaintenanceReceiptModalProps {
   onClose: () => void;
 }
 
+export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: AppSettings | null) {
+  const barcodeSvg = buildCode128Svg(ticket.ticketNo);
+  const totalCost = ticket.finalCost || ticket.expectedCost || 0;
+  const advancePaid = ticket.advancePayment || 0;
+  const remainingAmount = Math.max(0, totalCost - advancePaid);
+  const dateFormatted = new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+  const storeName = settings?.storeName || 'مركز الصيانة';
+  const phone = settings?.phone || '';
+  const address = settings?.address || '';
+
+  const html = `
+    <div style="text-align: center; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 6px;">
+      <h2 style="margin: 0 0 2px; font-size: 16px; font-weight: 800; color: #000;">${escapeHtml(storeName)}</h2>
+      ${phone ? `<div style="font-size: 11px; font-weight: 700; color: #000;">هاتف: ${escapeHtml(phone)}</div>` : ''}
+      ${address ? `<div style="font-size: 10px; color: #333;">${escapeHtml(address)}</div>` : ''}
+      <div style="margin-top: 4px; display: inline-block; padding: 2px 8px; border: 1px solid #000; border-radius: 4px; font-weight: 800; font-size: 12px; color: #000;">
+        إيصال استلام جهاز للإصلاح
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 6px;">
+      <div style="width: 220px; height: 50px; margin: 0 auto;">${barcodeSvg}</div>
+      <div style="font-size: 16px; font-weight: 900; letter-spacing: 2px; font-family: monospace; color: #000; margin-top: 4px;">
+        ${escapeHtml(ticket.ticketNo)}
+      </div>
+      <div style="font-size: 10px; color: #000; font-weight: 600;">تاريخ الاستلام: ${escapeHtml(dateFormatted)}</div>
+    </div>
+
+    <div style="border: 1px solid #000; border-radius: 4px; padding: 6px 8px; margin-bottom: 8px; font-size: 11px; line-height: 1.4; color: #000;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 3px; margin-bottom: 3px;">
+        <span>العميل: <strong>${escapeHtml(ticket.customerName)}</strong></span>
+        <span dir="ltr"><strong>${escapeHtml(ticket.customerPhone)}</strong></span>
+      </div>
+      <div style="font-weight: 700; font-size: 12px; margin-bottom: 2px;">
+        الجهاز: ${escapeHtml(ticket.deviceBrand ? `${ticket.deviceBrand} - ` : '')}${escapeHtml(ticket.deviceModel)}
+      </div>
+      ${ticket.serialNumber ? `<div style="font-size: 10px; font-family: monospace;" dir="ltr">IMEI: ${escapeHtml(ticket.serialNumber)}</div>` : ''}
+      ${ticket.passcode ? `<div style="font-weight: 700; color: #000;">الرمز / قفل الشاشة: <span dir="ltr">${escapeHtml(ticket.passcode)}</span></div>` : ''}
+    </div>
+
+    <div style="border: 1px solid #000; border-radius: 4px; padding: 6px 8px; margin-bottom: 8px; font-size: 11px; color: #000;">
+      <div style="font-weight: 800; text-decoration: underline; margin-bottom: 2px;">العطل المشتكى منه:</div>
+      <div style="font-weight: 700;">${escapeHtml(ticket.problemDescription)}</div>
+      ${ticket.deviceCondition ? `<div style="font-size: 10px; margin-top: 3px; color: #333;">الحالة الظاهرية: ${escapeHtml(ticket.deviceCondition)}</div>` : ''}
+    </div>
+
+    <div style="border: 1px solid #000; border-radius: 4px; padding: 6px 8px; margin-bottom: 8px; font-size: 11px; color: #000;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+        <span>التكلفة التقديرية:</span>
+        <strong>${totalCost.toFixed(2)} ج.م</strong>
+      </div>
+      ${advancePaid > 0 ? `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+          <span>المدفوع مقدماً (عربون):</span>
+          <strong>${advancePaid.toFixed(2)} ج.م</strong>
+        </div>
+      ` : ''}
+      <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; border-top: 1px dashed #000; padding-top: 3px; margin-top: 2px;">
+        <span>المتبقي عند الاستلام:</span>
+        <strong>${remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓'}</strong>
+      </div>
+    </div>
+
+    <div style="font-size: 9px; line-height: 1.3; color: #000; margin-bottom: 8px;">
+      <strong style="display: block; text-decoration: underline; margin-bottom: 2px;">شروط الاستلام:</strong>
+      <div style="padding-right: 4px;">
+        • المركز غير مسؤول عن الأجهزة المتروكة لأكثر من 30 يوماً من تاريخ الإصلاح.<br />
+        • المركز غير مسؤول عن فقدان البيانات (Data Loss) أثناء عمليات الصيانة.<br />
+        • الضمان على القطع المستبدلة ${ticket.warrantyDays || 30} يوماً بموجب هذا الإيصال.<br />
+        • لا يتم تسليم الجهاز إلا بأصل هذا الإيصال.
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 6px; border-top: 1px dashed #000; font-size: 10px; font-weight: 700; text-align: center; color: #000;">
+      <div>توقيع الفني / المستلم<br /><br />...................</div>
+      <div>توقيع العميل<br /><br />...................</div>
+    </div>
+  `;
+
+  printHtmlDocument(`إيصال استلام ${ticket.ticketNo}`, html, {
+    pageSize: 'receipt',
+    layout: 'centered',
+    extraStyles: `
+      @media print {
+        body.receipt-mode { width: 76mm !important; max-width: 76mm !important; margin: 0 auto !important; padding: 0 !important; color: #000 !important; }
+        * { color: #000 !important; font-weight: 600; }
+        strong, h2, h3 { font-weight: 900 !important; }
+      }
+    `,
+  });
+}
+
+export function printMaintenanceSticker(ticket: MaintenanceTicket, settings?: AppSettings | null) {
+  const barcodeSvg = buildCode128Svg(ticket.ticketNo);
+  const dateFormatted = new Date(ticket.receivedAt).toLocaleDateString('ar-EG');
+  const storeName = settings?.storeName || 'مركز الصيانة';
+
+  const html = `
+    <div class="sticker-box">
+      <div class="sticker-store">${escapeHtml(storeName)} - كود الصيانة</div>
+      <div class="sticker-barcode">${barcodeSvg}</div>
+      <div class="sticker-code">${escapeHtml(ticket.ticketNo)}</div>
+      <div class="sticker-details">
+        <div><b>العميل:</b> ${escapeHtml(ticket.customerName)} (${escapeHtml(ticket.customerPhone)})</div>
+        <div><b>الجهاز:</b> ${escapeHtml(ticket.deviceBrand ? `${ticket.deviceBrand} - ` : '')}${escapeHtml(ticket.deviceModel)}</div>
+        ${ticket.passcode ? `<div><b>الرمز:</b> <span dir="ltr">${escapeHtml(ticket.passcode)}</span></div>` : ''}
+        <div><b>العطل:</b> ${escapeHtml(ticket.problemDescription)}</div>
+      </div>
+      <div class="sticker-date">تاريخ الدخول: ${escapeHtml(dateFormatted)}</div>
+    </div>
+  `;
+
+  printHtmlDocument(`ستيكر ${ticket.ticketNo}`, html, {
+    pageSize: 'auto',
+    extraStyles: `
+      @page { size: 50mm 30mm; margin: 1mm; }
+      body { margin: 0; padding: 0; background: #fff; font-family: Tahoma, Arial, sans-serif; font-size: 8px; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-shell { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+      .print-content { padding: 0 !important; margin: 0 !important; }
+      .sticker-box { width: 100%; max-width: 48mm; margin: 0 auto; text-align: center; box-sizing: border-box; }
+      .sticker-store { font-size: 7.5px; font-weight: 800; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sticker-barcode { width: 100%; height: 26px; margin: 1px auto; }
+      .sticker-barcode svg { width: 100%; height: 100%; display: block; }
+      .sticker-code { font-size: 11px; font-weight: 900; font-family: monospace; letter-spacing: 1px; margin: 1px 0; }
+      .sticker-details { text-align: right; font-size: 7px; line-height: 1.25; border-top: 0.5px solid #000; border-bottom: 0.5px solid #000; padding: 1px 0; }
+      .sticker-date { font-size: 6px; color: #333; margin-top: 1px; }
+    `,
+  });
+}
+
 export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: MaintenanceReceiptModalProps) {
-  const printAreaRef = useRef<HTMLDivElement | null>(null);
   const [printMode, setPrintMode] = useState<'receipt' | 'sticker'>('receipt');
 
   if (!open || !ticket) return null;
 
   const handlePrint = () => {
-    window.print();
+    if (printMode === 'receipt') {
+      printMaintenanceReceipt(ticket, settings);
+    } else {
+      printMaintenanceSticker(ticket, settings);
+    }
+  };
+
+  const handleSendWhatsApp = () => {
+    let phoneFormatted = ticket.customerPhone.trim().replace(/\D/g, '');
+    if (phoneFormatted.startsWith('01')) {
+      phoneFormatted = '20' + phoneFormatted.substring(1);
+    }
+    const storeName = settings?.storeName || 'مخازن رجب العطار';
+    const totalCost = ticket.finalCost || ticket.expectedCost || 0;
+    const advancePaid = ticket.advancePayment || 0;
+    const remaining = Math.max(0, totalCost - advancePaid);
+
+    const lines = [
+      `🧾 *إيصال استلام جهاز صيانة* 🧾`,
+      `مرحباً بك أستاذ *${ticket.customerName}* 👋`,
+      `معك *${storeName}* بخصوص جهازك:`,
+      ``,
+      `📱 *الجهاز:* ${ticket.deviceBrand ? `${ticket.deviceBrand} - ` : ''}${ticket.deviceModel}`,
+      `🔢 *كود الجهاز:* ${ticket.ticketNo}`,
+      `🔧 *العطل المسجل:* ${ticket.problemDescription}`,
+      ``,
+      `💰 *إجمالي التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`,
+      ...(advancePaid > 0 ? [`💵 *المدفوع مقدماً:* ${advancePaid.toFixed(2)} ج.م`] : []),
+      `⏳ *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م`,
+      ``,
+      `⚠️ *شروط الاستلام:*`,
+      `• يرجى الاحتفاظ بكود الاستلام (${ticket.ticketNo}) للاستعلام عن الجهاز.`,
+      `• لا يتم تسليم الجهاز إلا من خلال رقم الهاتف المسجل أو إثبات الشخصية.`,
+      `• فترة الضمان على قطع الغيار 30 يوماً من تاريخ الإصلاح.`,
+      ``,
+      `نسعد دائماً بخدمتكم! ✨`,
+    ];
+
+    const url = `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(lines.join('\n'))}`;
+    window.open(url, '_blank');
   };
 
   const barcodeSvg = buildCode128Svg(ticket.ticketNo);
   const remainingAmount = Math.max(0, (ticket.finalCost || ticket.expectedCost || 0) - (ticket.advancePayment || 0));
 
   return (
-    <DialogShell open={open} onClose={onClose} ariaLabel="طباعة إيصال استلام الصيانة والستيكر">
-      <div className="page-stack" dir="rtl" style={{ gap: '16px', maxWidth: '500px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <DialogShell open={open} onClose={onClose} width="min(540px, 95vw)" ariaLabel="طباعة إيصال استلام الصيانة والستيكر">
+      <div className="page-stack" dir="rtl" style={{ gap: '14px', maxWidth: '500px', margin: '0 auto', padding: '12px 16px' }}>
+        {/* Top Header & Actions Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
           <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
             <button
               type="button"
@@ -38,14 +208,14 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
                 borderRadius: '6px',
                 border: 'none',
                 background: printMode === 'receipt' ? '#fff' : 'transparent',
-                fontWeight: printMode === 'receipt' ? 700 : 500,
+                fontWeight: printMode === 'receipt' ? 800 : 500,
                 color: printMode === 'receipt' ? '#0f172a' : '#64748b',
-                boxShadow: printMode === 'receipt' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                boxShadow: printMode === 'receipt' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
               }}
             >
-              إيصال العميل
+              🧾 إيصال العميل
             </button>
             <button
               type="button"
@@ -55,30 +225,40 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
                 borderRadius: '6px',
                 border: 'none',
                 background: printMode === 'sticker' ? '#fff' : 'transparent',
-                fontWeight: printMode === 'sticker' ? 700 : 500,
+                fontWeight: printMode === 'sticker' ? 800 : 500,
                 color: printMode === 'sticker' ? '#0f172a' : '#64748b',
-                boxShadow: printMode === 'sticker' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                boxShadow: printMode === 'sticker' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
               }}
             >
-              ستيكر لاصق للجهاز
+              🏷️ ستيكر ظهر الجهاز
             </button>
           </div>
 
-          <Button variant="primary" onClick={handlePrint}>
-            {printMode === 'receipt' ? 'طباعة الإيصال' : 'طباعة الستيكر'}
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={handleSendWhatsApp}
+              className="btn btn-sm"
+              style={{ background: '#22c55e', color: '#fff', border: 'none', fontWeight: 700, padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span>واتساب</span>
+              <span>💬</span>
+            </button>
+            <Button variant="primary" onClick={handlePrint} style={{ fontWeight: 800, padding: '6px 14px' }}>
+              {printMode === 'receipt' ? '🖨️ طباعة إيصال (80mm)' : '🖨️ طباعة الستيكر'}
+            </Button>
+          </div>
         </div>
 
         {printMode === 'receipt' ? (
-          /* Standard Customer Receipt */
+          /* Standard Customer Receipt Preview */
           <div
-            ref={printAreaRef}
             className="maintenance-printable-receipt"
             style={{
               background: '#fff',
-              border: '1px dashed #cbd5e1',
+              border: '1px dashed #94a3b8',
               borderRadius: '8px',
               padding: '16px',
               fontSize: '0.85rem',
@@ -98,8 +278,8 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
 
             {/* Barcode & Ticket No */}
             <div style={{ textAlign: 'center', padding: '6px 0 10px', borderBottom: '1px dashed #cbd5e1', marginBottom: '12px' }}>
-              <div style={{ width: '210px', height: '46px', margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
-              <strong style={{ fontSize: '1.25rem', letterSpacing: '2px', display: 'block', marginTop: '6px', fontFamily: 'monospace', color: '#0284c7' }}>
+              <div style={{ width: '230px', height: '50px', margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
+              <strong style={{ fontSize: '1.3rem', letterSpacing: '2px', display: 'block', marginTop: '6px', fontFamily: 'monospace', color: '#0284c7' }}>
                 {ticket.ticketNo}
               </strong>
               <small style={{ color: '#64748b', display: 'block', marginTop: '2px' }}>
@@ -173,9 +353,8 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
             </div>
           </div>
         ) : (
-          /* Mini Sticker Tag for Phone Back */
+          /* Mini Sticker Tag Preview */
           <div
-            ref={printAreaRef}
             className="maintenance-printable-sticker"
             style={{
               background: '#fff',
@@ -193,7 +372,7 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
               {settings?.storeName || 'مركز الصيانة'} - بطاقة تعريف الجهاز
             </div>
 
-            <div style={{ width: '190px', height: '40px', margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
+            <div style={{ width: '200px', height: '44px', margin: '0 auto' }} dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
 
             <div style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', color: '#0284c7', margin: '6px 0 8px' }}>
               {ticket.ticketNo}
@@ -212,10 +391,23 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
           <Button variant="secondary" onClick={onClose}>
             إغلاق
           </Button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={handleSendWhatsApp}
+              className="btn btn-sm"
+              style={{ background: '#22c55e', color: '#fff', border: 'none', fontWeight: 700, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer' }}
+            >
+              📱 إرسال واتساب للعميل
+            </button>
+            <Button variant="primary" onClick={handlePrint} style={{ fontWeight: 800 }}>
+              {printMode === 'receipt' ? '🧾 طباعة إيصال استلام' : '🏷️ طباعة استيكر'}
+            </Button>
+          </div>
         </div>
       </div>
     </DialogShell>
