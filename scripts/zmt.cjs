@@ -21,16 +21,21 @@ const colors = {
 
 function showWindowsPopup(title, message, isError = false) {
   try {
-    const icon = isError ? 'Error' : 'Information';
-    const cleanMsg = message.replace(/'/g, "''").replace(/\n/g, '`n');
-    const cleanTitle = title.replace(/'/g, "''");
-    const script = `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('${cleanMsg}', '${cleanTitle}', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::${icon})`;
-    spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], { stdio: 'ignore' });
+    const icon = isError ? 'Warning' : 'Information';
+    // Format newlines for PowerShell multiline string
+    const psScript = `
+      Add-Type -AssemblyName System.Windows.Forms
+      $msg = @"
+${message}
+"@
+      [System.Windows.Forms.MessageBox]::Show($msg, '${title}', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::${icon})
+    `;
+    spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psScript], { stdio: 'ignore' });
   } catch {}
 }
 
 function waitAndExit(code = 0) {
-  rl.question('\n' + colors.yellow + '>> Press Enter to exit / اضغط Enter للإغلاق...' + colors.reset, () => {
+  rl.question('\n' + colors.yellow + '>> Press Enter to exit...' + colors.reset, () => {
     rl.close();
     process.exit(code);
   });
@@ -100,8 +105,8 @@ async function main() {
     console.log(colors.red + '---------------------------------------------------------------------' + colors.reset);
 
     showWindowsPopup(
-      'تحذير أمني - ZSystems',
-      'برنامج ZSystems POS قيد التشغيل حالياً!\n\nيجب إغلاق البرنامج أولاً قبل تشغيل الصيانة لضمان سلامة البيانات.',
+      'ZSystems - Safety Warning',
+      'ZSystems POS is currently running!\n\nPlease close the application completely before running the maintenance tool to ensure database safety.',
       true
     );
 
@@ -116,7 +121,7 @@ async function main() {
     console.log(colors.red + '[X] ERROR: Database engine or data directory not found.' + colors.reset);
     console.log(colors.yellow + 'Ensure the runtime directory exists alongside the executable.' + colors.reset);
 
-    showWindowsPopup('خطأ', 'لم يتم العثور على محرك قاعدة البيانات أو ملفات البيانات.', true);
+    showWindowsPopup('ZSystems - Error', 'Database engine or data directory not found.', true);
     return waitAndExit(1);
   }
 
@@ -140,7 +145,7 @@ async function main() {
       execSync(`"${pg.pgCtl}" start -D "${pg.dataDir}" -w -l "${logFile}" -o "-p 5444"`, { stdio: 'ignore' });
     } catch (err) {
       console.log(colors.red + '[X] Failed to start database engine for maintenance.' + colors.reset);
-      showWindowsPopup('خطأ', 'تعذر تشغيل محرك قاعدة البيانات للصيانة.', true);
+      showWindowsPopup('ZSystems - Error', 'Failed to start database engine for maintenance.', true);
       return waitAndExit(1);
     }
   }
@@ -154,7 +159,7 @@ async function main() {
   const env = { ...process.env, PGPASSWORD: 'postgres' };
 
   // Step A: Clean temporary records
-  console.log(colors.cyan + '[1/3] Cleaning expired sessions & stale temporary logs...' + colors.reset);
+  console.log(colors.cyan + '[1/3] Cleaning expired sessions & temporary records...' + colors.reset);
   const sql = "DELETE FROM sessions WHERE expires_at < NOW(); DELETE FROM operation_executions WHERE status IN ('committed', 'failed') AND completed_at < NOW() - INTERVAL '30 days'; DELETE FROM auth_rate_limits WHERE reset_at < NOW() - INTERVAL '1 hour';";
   try {
     spawnSync(pg.psql, ['-U', 'postgres', '-p', '5444', '-d', 'zs_offline', '-c', sql], { env, stdio: 'ignore' });
@@ -167,7 +172,7 @@ async function main() {
   } catch {}
 
   // Step C: REINDEX
-  console.log(colors.cyan + '[3/3] Rebuilding database indexes (REINDEX DATABASE)...' + colors.reset);
+  console.log(colors.cyan + '[3/3] Rebuilding database search indexes (REINDEX DATABASE)...' + colors.reset);
   try {
     spawnSync(pg.reindexDb, ['-U', 'postgres', '-p', '5444', '-d', 'zs_offline'], { env, stdio: 'ignore' });
   } catch {}
@@ -195,8 +200,8 @@ async function main() {
   console.log('');
 
   showWindowsPopup(
-    'ZSystems ERP - تم اكتمال الصيانة',
-    '🎉 تمت عملية صيانة وتسريع قاعدة البيانات بنجاح تام!\n\n✔ تم تنظيف الجلسات والسجلات المؤقتة.\n✔ تم ضغط مساحة الجداول واستعادة المساحة الميتة.\n✔ تم إعادة بناء وترتيب كافة فهارس البحث.\n\nيمكنك الآن تشغيل البرنامج كالمعتاد وستلاحظ سرعة فائقة.'
+    'ZSystems ERP - Maintenance Complete',
+    'Database maintenance completed successfully!\n\n[✔] Expired sessions & temporary data cleaned.\n[✔] Dead disk space reclaimed (VACUUM).\n[✔] Database search indexes rebuilt (REINDEX).\n\nYou can now launch ZSystems POS as normal.'
   );
 
   waitAndExit(0);
