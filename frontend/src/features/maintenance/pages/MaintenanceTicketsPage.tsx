@@ -1099,10 +1099,13 @@ export function MaintenanceTicketsPage() {
 
               {(() => {
                 const totalCost = selectedTicket.finalCost || selectedTicket.expectedCost || 0;
-                const partsCost = (selectedTicket.parts || []).reduce((acc, p) => acc + (p.qty * p.unitCost), 0);
-                const laborPrice = Math.max(0, totalCost - partsCost);
-                const technicianCommission = laborPrice * 0.3; 
-                const storeProfit = Math.max(0, laborPrice - technicianCommission);
+                const partsCost = (selectedTicket.parts || []).reduce((acc, p) => acc + (p.qty * (p.unitCost || 0)), 0);
+                const partsPrice = (selectedTicket.parts || []).reduce((acc, p) => acc + (p.qty * (p.unitPrice || 0)), 0);
+                const partsProfit = Math.max(0, partsPrice - partsCost);
+                const laborPrice = Math.max(0, totalCost - partsPrice);
+                const commissionRate = Number(settingsQuery.data?.technicianCommissionRate ?? 30);
+                const technicianCommission = laborPrice * (commissionRate / 100);
+                const storeProfit = Math.max(0, (laborPrice - technicianCommission) + partsProfit);
 
                 return (
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
@@ -1140,15 +1143,16 @@ export function MaintenanceTicketsPage() {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '0.8rem', textAlign: 'center' }}>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ color: '#64748b' }}>تكلفة قطع الغيار</div>
-                        <strong style={{ color: '#0f172a' }}>{partsCost.toFixed(2)} ج.م</strong>
+                        <div style={{ color: '#64748b' }}>قطع الغيار (قطاعي)</div>
+                        <strong style={{ color: '#0f172a' }}>{partsPrice.toFixed(2)} ج.م</strong>
+                        {partsProfit > 0 && <div style={{ fontSize: '0.7rem', color: '#16a34a' }}>ربح بضاعة: +{partsProfit.toFixed(0)}</div>}
                       </div>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                         <div style={{ color: '#64748b' }}>صافي المصنعية</div>
                         <strong style={{ color: '#0284c7' }}>{laborPrice.toFixed(2)} ج.م</strong>
                       </div>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ color: '#64748b' }}>عمولة الفني (30%)</div>
+                        <div style={{ color: '#64748b' }}>عمولة الفني ({commissionRate}%)</div>
                         <strong style={{ color: '#d97706' }}>{technicianCommission.toFixed(2)} ج.م</strong>
                       </div>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>

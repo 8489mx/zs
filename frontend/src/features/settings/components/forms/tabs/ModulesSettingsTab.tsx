@@ -106,6 +106,28 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             </label>
           </div>
 
+          {form.watch('enableMobileStoreFeatures') ? (
+            <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
+              <div className="field">
+                <label style={{ fontWeight: 600, color: '#0f172a', marginBottom: '4px', display: 'block' }}>
+                  ⚙️ نسبة عمولة فني الصيانة من صافي المصنعية (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  className="purchase-prototype-field-input"
+                  {...form.register('technicianCommissionRate')}
+                  disabled={disabled}
+                  placeholder="30"
+                  style={{ fontWeight: 700 }}
+                />
+                <small className="muted">تُحسب العمولة تلقائيًا كنسبة مئوية من صافي ربح المصنعية وشغل اليد بعد خصم سعر قطع الغيار القطاعي.</small>
+              </div>
+            </div>
+          ) : null}
+
           {clothingModuleEnabled ? (
             <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
               <div className="field">

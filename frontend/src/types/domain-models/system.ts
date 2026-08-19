@@ -170,6 +170,7 @@ export interface AppSettings {
   posShowCartMeta?: boolean;
   clothingModuleEnabled?: boolean;
   enableMobileStoreFeatures?: boolean;
+  technicianCommissionRate?: number;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;
   allowNegativeStockSales?: boolean;
