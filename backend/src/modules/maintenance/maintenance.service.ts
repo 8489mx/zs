@@ -324,7 +324,9 @@ export class MaintenanceService {
     if (payload.status === 'delivered' && existing.status !== 'delivered') {
       const finalCost = payload.finalCost !== undefined ? Number(payload.finalCost) : Number(existing.final_cost || existing.expected_cost || 0);
       const advance = Number(existing.advance_payment || 0);
-      const remaining = Math.max(0, finalCost - advance);
+      const remaining = payload.collectedAmount !== undefined
+        ? Number(payload.collectedAmount)
+        : Math.max(0, finalCost - advance);
       if (remaining > 0) {
         try {
           await this.db

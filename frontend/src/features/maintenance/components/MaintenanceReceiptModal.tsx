@@ -15,11 +15,23 @@ interface MaintenanceReceiptModalProps {
   onClose: () => void;
 }
 
+export function extractTicketDiscount(notes?: string | null) {
+  if (!notes) return { amount: 0, reason: '' };
+  const match = notes.match(/\[خصم تسليم:\s*([\d.]+)\s*ج\.م\s*-\s*السبب:\s*([^\]]+)\]/);
+  if (!match) return { amount: 0, reason: '' };
+  return {
+    amount: Number(match[1]) || 0,
+    reason: match[2].trim(),
+  };
+}
+
 export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: AppSettings | null) {
   const barcodeSvg = buildCode128Svg(ticket.ticketNo);
   const totalCost = ticket.finalCost || ticket.expectedCost || 0;
+  const discountInfo = extractTicketDiscount(ticket.technicianNotes);
+  const netTotal = Math.max(0, totalCost - discountInfo.amount);
   const advancePaid = ticket.advancePayment || 0;
-  const remainingAmount = Math.max(0, totalCost - advancePaid);
+  const remainingAmount = ticket.status === 'delivered' ? 0 : Math.max(0, netTotal - advancePaid);
   const dateFormatted = new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
   const storeName = settings?.storeName || 'مركز الصيانة';
   const phone = settings?.phone || '';
@@ -64,9 +76,19 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
 
       <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10px; color: #000; box-sizing: border-box;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-          <span>التكلفة التقديرية:</span>
+          <span>قيمة الإصلاح الإجمالية:</span>
           <span style="font-weight: 600;">${totalCost.toFixed(2)} ج.م</span>
         </div>
+        ${discountInfo.amount > 0 ? `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; color: #000;">
+            <span>خصم (${escapeHtml(discountInfo.reason)}):</span>
+            <span style="font-weight: 700;">-${discountInfo.amount.toFixed(2)} ج.م</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; font-weight: 700;">
+            <span>الصافي بعد الخصم:</span>
+            <span>${netTotal.toFixed(2)} ج.م</span>
+          </div>
+        ` : ''}
         ${advancePaid > 0 ? `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
             <span>المدفوع مقدماً (عربون):</span>
@@ -75,7 +97,7 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
         ` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; border-top: 1px dashed #000; padding-top: 3px; margin-top: 2px;">
           <span>المتبقي عند الاستلام:</span>
-          <span>${remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓'}</span>
+          <span>${ticket.status === 'delivered' ? 'خالص بالكامل ✓' : (remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓')}</span>
         </div>
       </div>
 
@@ -220,8 +242,10 @@ export function printMaintenanceSticker(
 export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, settings?: Partial<AppSettings> | null) {
   const barcodeSvg = buildCode128Svg(ticket.ticketNo);
   const totalCost = ticket.finalCost || ticket.expectedCost || 0;
+  const discountInfo = extractTicketDiscount(ticket.technicianNotes);
+  const netTotal = Math.max(0, totalCost - discountInfo.amount);
   const advancePaid = ticket.advancePayment || 0;
-  const remainingAmount = Math.max(0, totalCost - advancePaid);
+  const remainingAmount = ticket.status === 'delivered' ? 0 : Math.max(0, netTotal - advancePaid);
   const dateFormatted = new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
   const storeName = settings?.storeName || 'مركز الصيانة';
   const phone = settings?.phone || '';
@@ -270,9 +294,19 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
 
       <div style="border-top: 2px dashed #94a3b8; border-bottom: 2px dashed #94a3b8; padding: 10px 0; margin-bottom: 14px; font-size: 12px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span style="color: #64748b;">التكلفة التقديرية / النهائية:</span>
+          <span style="color: #64748b;">قيمة الإصلاح الإجمالية:</span>
           <strong style="font-size: 13px;">${totalCost.toFixed(2)} ج.م</strong>
         </div>
+        ${discountInfo.amount > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #b45309;">
+            <span>خصم (${escapeHtml(discountInfo.reason)}):</span>
+            <strong style="font-size: 13px;">-${discountInfo.amount.toFixed(2)} ج.م</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-weight: 800;">
+            <span>الصافي بعد الخصم:</span>
+            <strong style="font-size: 13px;">${netTotal.toFixed(2)} ج.م</strong>
+          </div>
+        ` : ''}
         ${advancePaid > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;">
             <span>المدفوع مقدماً (عربون):</span>
@@ -281,8 +315,8 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
         ` : ''}
         <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; border-top: 1px dashed #cbd5e1; padding-top: 5px; margin-top: 4px;">
           <span>المتبقي عند الاستلام:</span>
-          <span style="color: ${remainingAmount > 0 ? '#dc2626' : '#16a34a'};">
-            ${remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓'}
+          <span style="color: ${ticket.status === 'delivered' ? '#16a34a' : (remainingAmount > 0 ? '#dc2626' : '#16a34a')};">
+            ${ticket.status === 'delivered' ? 'خالص بالكامل ✓' : (remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓')}
           </span>
         </div>
       </div>
@@ -323,14 +357,18 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
       logging: false,
     });
 
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-    const imgData = canvas.toDataURL('image/png');
-    const pdfWidth = 210;
-    const imgWidth = 140;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const marginX = (pdfWidth - imgWidth) / 2;
-    pdf.addImage(imgData, 'PNG', marginX, 15, imgWidth, imgHeight);
-    pdf.save(`إيصال_صيانة_${ticket.ticketNo}.pdf`);
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, Math.max(120, (canvas.height * 80) / canvas.width)],
+    });
+
+    const pdfWidth = 80;
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`ايصال_صيانة_${ticket.ticketNo}.pdf`);
+  } catch (err) {
+    console.error('Failed to generate PDF receipt:', err);
   } finally {
     renderRoot.remove();
   }
@@ -380,8 +418,10 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
     }
     const storeName = settings?.storeName || 'مخازن رجب العطار';
     const totalCost = ticket.finalCost || ticket.expectedCost || 0;
+    const discountInfo = extractTicketDiscount(ticket.technicianNotes);
+    const netTotal = Math.max(0, totalCost - discountInfo.amount);
     const advancePaid = ticket.advancePayment || 0;
-    const remaining = Math.max(0, totalCost - advancePaid);
+    const remaining = ticket.status === 'delivered' ? 0 : Math.max(0, netTotal - advancePaid);
 
     const lines = [
       `*إيصال استلام جهاز صيانة*`,
@@ -393,9 +433,13 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
       `- *كود الجهاز:* ${ticket.ticketNo}`,
       `- *العطل المسجل:* ${ticket.problemDescription}`,
       ``,
-      `- *إجمالي التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`,
+      `- *إجمالي قيمة الإصلاح:* ${totalCost.toFixed(2)} ج.م`,
+      ...(discountInfo.amount > 0 ? [
+        `- *خصم خاص للعميل (${discountInfo.reason}):* -${discountInfo.amount.toFixed(2)} ج.م`,
+        `- *الصافي بعد الخصم:* ${netTotal.toFixed(2)} ج.م`,
+      ] : []),
       ...(advancePaid > 0 ? [`- *المدفوع مقدماً (عربون):* ${advancePaid.toFixed(2)} ج.م`] : []),
-      `- *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م`,
+      `- *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م ${ticket.status === 'delivered' ? '(خالص بالكامل ✓)' : ''}`,
       `----------------------------------------`,
       `- *تم إرفاق إيصال الاستلام الرسمي بصيغة PDF.*`,
       ``,
@@ -412,7 +456,10 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
   };
 
   const barcodeSvg = buildCode128Svg(ticket.ticketNo);
-  const remainingAmount = Math.max(0, (ticket.finalCost || ticket.expectedCost || 0) - (ticket.advancePayment || 0));
+  const totalCost = ticket.finalCost || ticket.expectedCost || 0;
+  const discountInfo = extractTicketDiscount(ticket.technicianNotes);
+  const netTotal = Math.max(0, totalCost - discountInfo.amount);
+  const remainingAmount = ticket.status === 'delivered' ? 0 : Math.max(0, netTotal - (ticket.advancePayment || 0));
 
   return (
     <DialogShell open={open} onClose={onClose} width="min(580px, 95vw)" ariaLabel="طباعة إيصال استلام الصيانة والستيكر">
@@ -557,9 +604,21 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
             {/* Financials */}
             <div style={{ borderTop: '1px dashed #94a3b8', borderBottom: '1px dashed #94a3b8', padding: '8px 0', marginBottom: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span>التكلفة التقديرية / النهائية:</span>
-                <strong>{(ticket.finalCost || ticket.expectedCost || 0).toFixed(2)} ج.م</strong>
+                <span>قيمة الإصلاح الإجمالية:</span>
+                <strong>{totalCost.toFixed(2)} ج.م</strong>
               </div>
+              {discountInfo.amount > 0 && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#b45309' }}>
+                    <span>خصم ممنوح للعميل ({discountInfo.reason}):</span>
+                    <strong>-{discountInfo.amount.toFixed(2)} ج.م</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontWeight: 800, color: '#0f172a' }}>
+                    <span>الصافي بعد الخصم:</span>
+                    <strong>{netTotal.toFixed(2)} ج.م</strong>
+                  </div>
+                </>
+              )}
               {ticket.advancePayment > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
                   <span>المدفوع مقدماً (عربون):</span>
@@ -568,8 +627,8 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800 }}>
                 <span>المتبقي عند الاستلام:</span>
-                <span style={{ color: remainingAmount > 0 ? '#dc2626' : '#16a34a' }}>
-                  {remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓'}
+                <span style={{ color: ticket.status === 'delivered' ? '#16a34a' : (remainingAmount > 0 ? '#dc2626' : '#16a34a') }}>
+                  {ticket.status === 'delivered' ? 'خالص بالكامل ✓' : (remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓')}
                 </span>
               </div>
             </div>

@@ -11,6 +11,11 @@ export class UpdateTicketStatusDto {
   finalCost?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  collectedAmount?: number;
+
+  @IsOptional()
   @IsString()
   technicianNotes?: string;
 

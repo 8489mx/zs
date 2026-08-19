@@ -6,7 +6,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { useSettingsQuery, useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { maintenanceApi, type UpsertMaintenanceTicketPayload } from '../api/maintenance.api';
-import { MaintenanceReceiptModal } from '../components/MaintenanceReceiptModal';
+import { MaintenanceReceiptModal, extractTicketDiscount } from '../components/MaintenanceReceiptModal';
 import { PatternLockWidget } from '../components/PatternLockWidget';
 import { BrandCombobox } from '@/shared/components/BrandCombobox';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -73,18 +73,17 @@ export function MaintenanceTicketsPage() {
     const diff = rem - collectedAmount;
 
     let notes = settlementTicket.technicianNotes || '';
-    let finalCost = totalCost;
 
     if (diff > 0) {
       const finalReason = discountReason === 'custom' ? customReason.trim() || 'خصم عند التسليم' : discountReason;
       notes = `[خصم تسليم: ${diff.toFixed(2)} ج.م - السبب: ${finalReason}] ${notes}`.trim();
-      finalCost = advancePaid + collectedAmount;
     }
 
     updateStatusMutation.mutate({
       id: settlementTicket.id,
       status: 'delivered',
-      finalCost,
+      finalCost: totalCost,
+      collectedAmount,
       technicianNotes: notes,
     });
     setSettlementTicket(null);
@@ -114,8 +113,8 @@ export function MaintenanceTicketsPage() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status, finalCost, technicianNotes }: { id: string; status: MaintenanceStatus; finalCost?: number; technicianNotes?: string }) =>
-      maintenanceApi.updateStatus(id, { status, finalCost, technicianNotes }),
+    mutationFn: ({ id, status, finalCost, collectedAmount, technicianNotes }: { id: string; status: MaintenanceStatus; finalCost?: number; collectedAmount?: number; technicianNotes?: string }) =>
+      maintenanceApi.updateStatus(id, { status, finalCost, collectedAmount, technicianNotes }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['maintenance-tickets'] });
       if (selectedTicket) {
@@ -1164,37 +1163,52 @@ export function MaintenanceTicketsPage() {
                 );
               })()}
 
-              {selectedTicket.status === 'delivered' ? (
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>إجمالي حساب الصيانة والتسليم:</div>
-                    <strong style={{ fontSize: '1.25rem', color: '#14532d' }}>
-                      {(selectedTicket.finalCost || selectedTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ج.م</span>
-                    </strong>
-                    <div style={{ fontSize: '0.78rem', color: '#16a34a', marginTop: '2px', fontWeight: 700 }}>
-                      ✓ تم السداد والتحصيل في الخزينة بالكامل
-                      {selectedTicket.advancePayment > 0 && ` (مقدم: ${selectedTicket.advancePayment.toFixed(2)} ج.م + عند الاستلام: ${(Math.max(0, (selectedTicket.finalCost || selectedTicket.expectedCost || 0) - selectedTicket.advancePayment)).toFixed(2)} ج.م)`}
-                    </div>
-                    {selectedTicket.technicianNotes && selectedTicket.technicianNotes.includes('[خصم تسليم:') && (
-                      <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '4px', background: '#fef3c7', padding: '3px 8px', borderRadius: '4px', display: 'inline-block' }}>
-                        📝 {selectedTicket.technicianNotes}
-                      </div>
-                    )}
-                  </div>
+              {selectedTicket.status === 'delivered' ? (() => {
+                const totalCost = selectedTicket.finalCost || selectedTicket.expectedCost || 0;
+                const discountInfo = extractTicketDiscount(selectedTicket.technicianNotes);
+                const netTotal = Math.max(0, totalCost - discountInfo.amount);
+                const advancePaid = selectedTicket.advancePayment || 0;
+                const collectedAtDelivery = Math.max(0, netTotal - advancePaid);
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700 }}>الرصيد المتبقي:</div>
-                      <strong style={{ fontSize: '1.35rem', color: '#16a34a', fontWeight: 800 }}>
-                        0.00 <span style={{ fontSize: '0.85rem' }}>ج.م (خالص)</span>
-                      </strong>
+                return (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>إجمالي حساب الصيانة والتسليم:</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: '1.25rem', color: '#14532d' }}>
+                          {totalCost.toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ج.م</span>
+                        </strong>
+                        {discountInfo.amount > 0 && (
+                          <span style={{ fontSize: '0.8rem', color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                            خصم: -{discountInfo.amount.toFixed(2)} ج.م (الصافي: {netTotal.toFixed(2)} ج.م)
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#16a34a', marginTop: '2px', fontWeight: 700 }}>
+                        ✓ تم السداد والتحصيل في الخزينة بالكامل
+                        {advancePaid > 0 ? ` (مقدم: ${advancePaid.toFixed(2)} ج.م + عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)` : ` (المحصل عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)`}
+                      </div>
+                      {discountInfo.amount > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '4px', background: '#fef3c7', padding: '3px 8px', borderRadius: '4px', display: 'inline-block' }}>
+                          📝 سبب الخصم: {discountInfo.reason}
+                        </div>
+                      )}
                     </div>
-                    <span style={{ padding: '8px 16px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontWeight: 800, fontSize: '0.9rem', border: '1px solid #86efac' }}>
-                      ✓ تم تسليم الجهاز والتحصيل
-                    </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700 }}>الرصيد المتبقي:</div>
+                        <strong style={{ fontSize: '1.35rem', color: '#16a34a', fontWeight: 800 }}>
+                          0.00 <span style={{ fontSize: '0.85rem' }}>ج.م (خالص)</span>
+                        </strong>
+                      </div>
+                      <span style={{ padding: '8px 16px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontWeight: 800, fontSize: '0.9rem', border: '1px solid #86efac' }}>
+                        ✓ تم تسليم الجهاز والتحصيل
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ) : (
+                );
+              })() : (
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>إجمالي حساب الصيانة والقطع:</div>

@@ -65,6 +65,7 @@ export const maintenanceApi = {
     payload: {
       status: MaintenanceStatus;
       finalCost?: number;
+      collectedAmount?: number;
       technicianNotes?: string;
       paymentMethod?: string;
     },
