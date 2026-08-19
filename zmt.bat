@@ -1,141 +1,152 @@
+<# :
 @echo off
+setlocal
 chcp 65001 > nul
-setlocal enabledelayedexpansion
-title ZSystems Database Maintenance Tool (zmt)
+title ZSystems Database Maintenance Tool (ZMT)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$PSScriptRoot = '%~dp0'; iex ((Get-Content -LiteralPath '%~f0' -Encoding UTF8) -join [Environment]::NewLine)"
+exit /b %errorlevel%
+#>
 
-color 0B
-cls
-echo =====================================================================
-echo       ZSystems ERP - أداة صيانة وتسريع قاعدة البيانات (ZMT)
-echo =====================================================================
-echo.
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$Host.UI.RawUI.WindowTitle = "ZSystems Database Maintenance Tool (ZMT)"
 
-:: 1. Check if the Main Electron Application or Backend is Running
-set "APP_RUNNING=0"
+Clear-Host
+Write-Host "=====================================================================" -ForegroundColor Cyan
+Write-Host "       ZSystems ERP - أداة صيانة وتسريع قاعدة البيانات (ZMT)         " -ForegroundColor Cyan
+Write-Host "=====================================================================" -ForegroundColor Cyan
+Write-Host ""
 
-tasklist /FI "IMAGENAME eq ZSystems POS.exe" 2>NUL | find /I /N "ZSystems POS.exe" >NUL
-if "%ERRORLEVEL%"=="0" set "APP_RUNNING=1"
+# 1. Check if the application or backend is running
+$appRunning = $false
 
-tasklist /FI "IMAGENAME eq electron.exe" 2>NUL | find /I /N "electron.exe" >NUL
-if "%ERRORLEVEL%"=="0" set "APP_RUNNING=1"
+$processes = Get-Process | Where-Object { 
+    $_.ProcessName -like "*ZSystems*" -or 
+    $_.ProcessName -eq "electron"
+}
 
-netstat -ano | findstr ":3001 " | findstr "LISTENING" >NUL
-if "%ERRORLEVEL%"=="0" set "APP_RUNNING=1"
+if ($processes) {
+    $appRunning = $true
+}
 
-if "%APP_RUNNING%"=="1" (
-    color 0C
-    echo ---------------------------------------------------------------------
-    echo  [!] تحذير أمني: برنامج ZSystems POS قيد التشغيل حالياً!
-    echo ---------------------------------------------------------------------
-    echo.
-    echo  لا يمكن تنفيذ الصيانة وقاعدة البيانات قيد الاستخدام.
-    echo  يرجى إغلاق البرنامج بالكامل أولاً ثم تشغيل هذا الملف مرة أخرى.
-    echo.
-    echo ---------------------------------------------------------------------
-    echo.
-    pause
-    exit /b 1
+# Also check if backend port 3001 is active
+try {
+    $portActive = Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue
+    if ($portActive) { $appRunning = $true }
+} catch {}
+
+if ($appRunning) {
+    Write-Host "---------------------------------------------------------------------" -ForegroundColor Red
+    Write-Host " [!] تحذير أمني: برنامج ZSystems POS قيد التشغيل حالياً!" -ForegroundColor Red
+    Write-Host "---------------------------------------------------------------------" -ForegroundColor Red
+    Write-Host ""
+    Write-Host " لا يمكن تنفيذ الصيانة وقاعدة البيانات قيد الاستخدام." -ForegroundColor Yellow
+    Write-Host " يرجى إغلاق البرنامج بالكامل أولاً ثم تشغيل هذه الأداة مرة أخرى." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "---------------------------------------------------------------------" -ForegroundColor Red
+    Write-Host ""
+    Read-Host "اضغط Enter للإغلاق..."
+    exit 1
+}
+
+Write-Host "[*] جاري فحص مسارات قاعدة البيانات..." -ForegroundColor Gray
+
+# 2. Locate Postgres runtime and data folder
+$baseDir = $PSScriptRoot
+if (-not $baseDir) { $baseDir = Get-Location }
+
+$runtimeDir = $null
+$dataDir = $null
+
+$candidates = @(
+    "$baseDir\runtime",
+    "$baseDir\portable\runtime",
+    "C:\zn\portable\runtime",
+    "D:\zn\portable\runtime"
 )
 
-echo [*] جاري فحص مسارات قاعدة البيانات...
+foreach ($cand in $candidates) {
+    if (Test-Path "$cand\postgres\bin\pg_ctl.exe") {
+        $runtimeDir = $cand
+        $dataDir = "$cand\data"
+        break
+    }
+}
 
-:: 2. Locate Postgres Binaries and Data Directory
-set "RUNTIME_DIR="
-set "DATA_DIR="
+if (-not $runtimeDir -or -not (Test-Path "$dataDir\PG_VERSION")) {
+    Write-Host "[X] خطأ: لم يتم العثور على محرك قاعدة البيانات أو ملفات البيانات." -ForegroundColor Red
+    Write-Host "تأكد من وجود مجلد runtime وبيانات قاعدة البيانات بجوار ملف البرنامج." -ForegroundColor Yellow
+    Write-Host ""
+    Read-Host "اضغط Enter للإغلاق..."
+    exit 1
+}
 
-if exist "%~dp0runtime\postgres\bin\pg_ctl.exe" (
-    set "RUNTIME_DIR=%~dp0runtime"
-    set "DATA_DIR=%~dp0runtime\data"
-) else if exist "%~dp0portable\runtime\postgres\bin\pg_ctl.exe" (
-    set "RUNTIME_DIR=%~dp0portable\runtime"
-    set "DATA_DIR=%~dp0portable\runtime\data"
-) else if exist "C:\zn\portable\runtime\postgres\bin\pg_ctl.exe" (
-    set "RUNTIME_DIR=C:\zn\portable\runtime"
-    set "DATA_DIR=C:\zn\portable\runtime\data"
-)
+Write-Host "[✔] تم تحديد موقع قاعدة البيانات: $dataDir" -ForegroundColor Green
+Write-Host ""
 
-if "%RUNTIME_DIR%"=="" (
-    color 0C
-    echo [X] خطأ: لم يتم العثور على محرك قاعدة البيانات (Postgres runtime).
-    echo يرجى التأكد من وجود مجلد runtime بجوار ملف البرنامج.
-    echo.
-    pause
-    exit /b 1
-)
+$pgBin = "$runtimeDir\postgres\bin"
+$pgCtl = "$pgBin\pg_ctl.exe"
+$vacuumDb = "$pgBin\vacuumdb.exe"
+$reindexDb = "$pgBin\reindexdb.exe"
+$psql = "$pgBin\psql.exe"
 
-set "PG_BIN=%RUNTIME_DIR%\postgres\bin"
-set "PG_CTL=%PG_BIN%\pg_ctl.exe"
-set "VACUUMDB=%PG_BIN%\vacuumdb.exe"
-set "REINDEXDB=%PG_BIN%\reindexdb.exe"
-set "PSQL=%PG_BIN%\psql.exe"
+$logsDir = "$runtimeDir\logs"
+if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir -Force | Out-Null }
 
-if not exist "%DATA_DIR%\PG_VERSION" (
-    color 0C
-    echo [X] خطأ: لم يتم العثور على بيانات في المسار: %DATA_DIR%
-    echo.
-    pause
-    exit /b 1
-)
+# 3. Check if Postgres service is already active or start it safely
+$pgAlreadyRunning = $false
+& $pgCtl status -D $dataDir *> $null
+if ($LASTEXITCODE -eq 0) {
+    $pgAlreadyRunning = $true
+    Write-Host "[*] محرك قاعدة البيانات يعمل بالفعل، جاري بدء الصيانة..." -ForegroundColor Gray
+} else {
+    Write-Host "[*] جاري تشغيل محرك قاعدة البيانات مؤقتاً لتنفيذ الصيانة..." -ForegroundColor Gray
+    & $pgCtl start -D $dataDir -w -l "$logsDir\maint_pg.log" -o "-p 5444" *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[X] تعذر تشغيل محرك قاعدة البيانات. راجع اللوج في: $logsDir\maint_pg.log" -ForegroundColor Red
+        Write-Host ""
+        Read-Host "اضغط Enter للإغلاق..."
+        exit 1
+    }
+}
 
-echo [✔] تم تحديد موقع قاعدة البيانات: %DATA_DIR%
-echo.
+Write-Host ""
+Write-Host "=====================================================================" -ForegroundColor Yellow
+Write-Host " جاري تنظيف وضغط الفهارس والجداول (قد يستغرق بضع ثوانٍ)..." -ForegroundColor Yellow
+Write-Host "=====================================================================" -ForegroundColor Yellow
+Write-Host ""
 
-:: 3. Check if Postgres is already running or start it safely
-set "PG_ALREADY_RUNNING=0"
-"%PG_CTL%" status -D "%DATA_DIR%" >NUL 2>&1
-if "%ERRORLEVEL%"=="0" (
-    set "PG_ALREADY_RUNNING=1"
-    echo [*] محرك قاعدة البيانات يعمل بالفعل، جاري بدء الصيانة المباشرة...
-) else (
-    echo [*] جاري تشغيل محرك قاعدة البيانات مؤقتاً لتنفيذ الصيانة...
-    "%PG_CTL%" start -D "%DATA_DIR%" -w -l "%RUNTIME_DIR%\logs\maint_pg.log" -o "-p 5444" >NUL 2>&1
-    if "%ERRORLEVEL%" NEQ "0" (
-        color 0C
-        echo [X] تعذر تشغيل محرك قاعدة البيانات للصيانة. راجع اللوج في: %RUNTIME_DIR%\logs\maint_pg.log
-        echo.
-        pause
-        exit /b 1
-    )
-)
+$env:PGPASSWORD = "postgres"
 
-echo.
-echo =====================================================================
-echo  جاري تنظيف وضغط الفهارس والجداول (قد يستغرق بضع ثوانٍ)...
-echo =====================================================================
-echo.
+# Step A: Clean stale temporary rows
+Write-Host "[1/3] تنظيف الجلسات المنتهية والسجلات المؤقتة..." -ForegroundColor Cyan
+$sqlCleanup = "DELETE FROM sessions WHERE expires_at < NOW(); DELETE FROM operation_executions WHERE status IN ('committed', 'failed') AND completed_at < NOW() - INTERVAL '30 days'; DELETE FROM auth_rate_limits WHERE reset_at < NOW() - INTERVAL '1 hour';"
+& $psql -U postgres -p 5444 -d zs_offline -c $sqlCleanup *> $null
 
-set "PGPASSWORD=postgres"
+# Step B: VACUUM ANALYZE
+Write-Host "[2/3] تفريغ وضغط مساحة الجداول الميتة (VACUUM ANALYZE)..." -ForegroundColor Cyan
+& $vacuumDb -U postgres -p 5444 -d zs_offline -z *> $null
 
-:: Step A: Fast cleanup of stale sessions & executions
-echo [1/3] تنظيف الجلسات المنتهية والسجلات المؤقتة...
-"%PSQL%" -U postgres -p 5444 -d zs_offline -c "DELETE FROM sessions WHERE expires_at < NOW(); DELETE FROM operation_executions WHERE status IN ('committed', 'failed') AND completed_at < NOW() - INTERVAL '30 days'; DELETE FROM auth_rate_limits WHERE reset_at < NOW() - INTERVAL '1 hour';" >NUL 2>&1
+# Step C: REINDEX
+Write-Host "[3/3] إعادة بناء وترتيب كافة فهارس البحث (REINDEX DATABASE)..." -ForegroundColor Cyan
+& $reindexDb -U postgres -p 5444 -d zs_offline *> $null
 
-:: Step B: VACUUM ANALYZE FULL to reclaim dead space
-echo [2/3] تفريغ وضغط مساحة الجداول الميتة (VACUUM ANALYZE)...
-"%VACUUMDB%" -U postgres -p 5444 -d zs_offline -z -v >NUL 2>&1
+# Stop Postgres if started temporarily
+if (-not $pgAlreadyRunning) {
+    Write-Host ""
+    Write-Host "[*] إيقاف محرك قاعدة البيانات بأمان..." -ForegroundColor Gray
+    & $pgCtl stop -D $dataDir -m fast *> $null
+}
 
-:: Step C: REINDEX all indexes to eliminate B-tree bloat
-echo [3/3] إعادة بناء وترتيب كافة الفهارس (REINDEX DATABASE)...
-"%REINDEXDB%" -U postgres -p 5444 -d zs_offline >NUL 2>&1
-
-:: 4. Stop Postgres if we started it
-if "%PG_ALREADY_RUNNING%"=="0" (
-    echo.
-    echo [*] إيقاف محرك قاعدة البيانات بأمان...
-    "%PG_CTL%" stop -D "%DATA_DIR%" -m fast >NUL 2>&1
-)
-
-color 0A
-cls
-echo =====================================================================
-echo            🎉 تمت عملية الصيانة والتسريع بنجاح تام!
-echo =====================================================================
-echo.
-echo  [✔] تم حذف جميع الجلسات المؤقتة والبيانات المنتهية.
-echo  [✔] تم ضغط الجداول واستعادة المساحات الميتة على القرص الصلب.
-echo  [✔] تم إعادة بناء فهارس قاعدة البيانات بالكامل لأقصى سرعة بحث.
-echo.
-echo  يمكنك الآن تشغيل برنامج ZSystems POS كالمعتاد وستلاحظ سرعة فائقة.
-echo =====================================================================
-echo.
-pause
+Clear-Host
+Write-Host "=====================================================================" -ForegroundColor Green
+Write-Host "              🎉 تمت عملية الصيانة والتسريع بنجاح تام!               " -ForegroundColor Green
+Write-Host "=====================================================================" -ForegroundColor Green
+Write-Host ""
+Write-Host " [✔] تم تنظيف الجلسات والسجلات المؤقتة المنتهية." -ForegroundColor White
+Write-Host " [✔] تم ضغط الجداول واستعادة المساحات الميتة على القرص الصلب." -ForegroundColor White
+Write-Host " [✔] تم إعادة بناء فهارس قاعدة البيانات بالكامل لتسريع البحث." -ForegroundColor White
+Write-Host ""
+Write-Host " يمكنك الآن تشغيل برنامج ZSystems POS كالمعتاد وستلاحظ سرعة فائقة." -ForegroundColor Yellow
+Write-Host "=====================================================================" -ForegroundColor Green
+Write-Host ""
+Read-Host "اضغط Enter للإغلاق..."
