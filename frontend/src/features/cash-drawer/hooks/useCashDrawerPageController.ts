@@ -263,11 +263,13 @@ export function useCashDrawerPageController() {
   });
 
   const openReviewDialog = (shift: CashierShift) => {
+    reviewMutation.reset?.();
     setReviewManagerNote('');
     setReviewTargetShift(shift);
   };
 
   const closeReviewDialog = () => {
+    reviewMutation.reset?.();
     setReviewManagerNote('');
     setReviewTargetShift(null);
   };

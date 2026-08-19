@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -22,14 +22,20 @@ export function CashDrawerPage() {
   const [activeForm, setActiveForm] = useState<'open' | 'movement' | 'close' | null>(null);
   const controller = useCashDrawerPageController();
 
-  useEffect(() => {
-    if (controller.openMutation.isSuccess || controller.movementMutation.isSuccess || controller.closeMutation.isSuccess) {
-      const timer = setTimeout(() => {
-        setActiveForm(null);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [controller.openMutation.isSuccess, controller.movementMutation.isSuccess, controller.closeMutation.isSuccess]);
+  const handleOpenForm = (form: 'open' | 'movement' | 'close') => {
+    controller.openMutation.reset();
+    controller.movementMutation.reset();
+    controller.closeMutation.reset();
+    setActiveForm(form);
+  };
+
+  const handleCloseForm = () => {
+    controller.openMutation.reset();
+    controller.movementMutation.reset();
+    controller.closeMutation.reset();
+    setActiveForm(null);
+  };
+
   const movementType = controller.confirmAction?.kind === 'movement' ? controller.confirmAction.values.type : '';
   const isCashOut = movementType === 'cash_out';
   const isMovement = controller.confirmAction?.kind === 'movement';
@@ -64,7 +70,7 @@ export function CashDrawerPage() {
           <div className="actions compact-actions">
             <Button
               variant="primary"
-              onClick={() => setActiveForm('open')}
+              onClick={() => handleOpenForm('open')}
               disabled={!controller.canOpenShift}
               title={!controller.canOpenShift ? controller.openDisabledHint : undefined}
             >
@@ -72,7 +78,7 @@ export function CashDrawerPage() {
             </Button>
             <Button
               variant="secondary"
-              onClick={() => setActiveForm('movement')}
+              onClick={() => handleOpenForm('movement')}
               disabled={!controller.canRecordMovement}
               title={!controller.canRecordMovement ? controller.movementDisabledHint : undefined}
             >
@@ -80,7 +86,7 @@ export function CashDrawerPage() {
             </Button>
             <Button
               variant="danger"
-              onClick={() => setActiveForm('close')}
+              onClick={() => handleOpenForm('close')}
               disabled={!controller.canCloseShift}
               title={!controller.canCloseShift ? controller.closeDisabledHint : undefined}
             >
@@ -130,7 +136,7 @@ export function CashDrawerPage() {
 
       <CashDrawerFormsPanel
         activeForm={activeForm}
-        onCloseForm={() => setActiveForm(null)}
+        onCloseForm={handleCloseForm}
         branches={controller.branches}
         locations={controller.locations}
         openOptions={controller.openOptions}

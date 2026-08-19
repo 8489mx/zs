@@ -15,6 +15,7 @@ interface MutationLike {
   isError: boolean;
   isSuccess: boolean;
   error: unknown;
+  reset?: () => void;
 }
 
 interface CashDrawerFormsPanelProps {
@@ -99,15 +100,35 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   }, [instapayOperationCount]);
 
   useEffect(() => {
-    if (props.openMutation.isSuccess || props.movementMutation.isSuccess || props.closeMutation.isSuccess) {
+    if (props.activeForm) {
+      props.openMutation.reset?.();
+      props.movementMutation.reset?.();
+      props.closeMutation.reset?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.activeForm]);
+
+  useEffect(() => {
+    if (!props.activeForm) return;
+
+    const isCurrentSuccess =
+      (props.activeForm === 'open' && props.openMutation.isSuccess) ||
+      (props.activeForm === 'movement' && props.movementMutation.isSuccess) ||
+      (props.activeForm === 'close' && props.closeMutation.isSuccess);
+
+    if (isCurrentSuccess) {
       const timeout = setTimeout(() => {
-        if (props.openMutation.isSuccess || props.movementMutation.isSuccess || props.closeMutation.isSuccess) {
-           props.onCloseForm();
-        }
-      }, 1500);
+        props.onCloseForm();
+      }, 1200);
       return () => clearTimeout(timeout);
     }
-  }, [props.openMutation.isSuccess, props.movementMutation.isSuccess, props.closeMutation.isSuccess, props.onCloseForm]);
+  }, [
+    props.activeForm,
+    props.openMutation.isSuccess,
+    props.movementMutation.isSuccess,
+    props.closeMutation.isSuccess,
+    props.onCloseForm,
+  ]);
 
   const cardDeclaredTotal = Number(props.closeForm.watch('cardDeclaredTotal') || 0);
   const walletDeclaredTotal = Number(props.closeForm.watch('walletDeclaredTotal') || 0);
