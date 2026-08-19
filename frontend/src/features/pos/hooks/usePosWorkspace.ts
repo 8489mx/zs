@@ -59,7 +59,7 @@ export function usePosWorkspace() {
         : Number(state.cashAmount || 0) + Number(state.cardAmount || 0)
     ).toFixed(2));
 
-  const customersQuery = useQuery({ queryKey: queryKeys.posCustomers, queryFn: posApi.customers, staleTime: posReferenceStaleTime });
+  const customersQuery = useQuery({ queryKey: queryKeys.posCustomers, queryFn: () => posApi.customers({ limit: 50 }), staleTime: posReferenceStaleTime });
   const settingsQuery = useQuery({ queryKey: queryKeys.posSettings, queryFn: posApi.settings, staleTime: posReferenceStaleTime });
   const branchesQuery = useQuery({ queryKey: queryKeys.posBranches, queryFn: posApi.branches, staleTime: posReferenceStaleTime });
   const locationsQuery = useQuery({ queryKey: queryKeys.posLocations, queryFn: posApi.locations, staleTime: posReferenceStaleTime });

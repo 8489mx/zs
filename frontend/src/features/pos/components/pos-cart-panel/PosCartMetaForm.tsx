@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
 import { writeCheckoutIntent } from '@/features/pos/lib/pos-checkout-integrity';
@@ -39,11 +39,37 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
-  const selectedCustomer = useMemo(
-    () => props.customers.find((customer) => String(customer.id) === String(props.customerId)) || null,
-    [props.customerId, props.customers],
-  );
-  const selectedCustomerId = selectedCustomer ? String(selectedCustomer.id) : '';
+  const queryClient = useQueryClient();
+  const selectedCustomerId = String(props.customerId || '');
+  const missingInList = Boolean(selectedCustomerId && !props.customers.some((c) => String(c.id) === selectedCustomerId));
+  
+  const specificCustomerQuery = useQuery({
+    queryKey: ['posSpecificCustomer', selectedCustomerId],
+    queryFn: () => posApi.customers({ search: selectedCustomerId, limit: 1 }),
+    enabled: missingInList,
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (specificCustomerQuery.data?.length) {
+      const customerObj = specificCustomerQuery.data.find(c => String(c.id) === selectedCustomerId);
+      if (customerObj) {
+        queryClient.setQueryData(queryKeys.posCustomers, (old: any) => {
+          if (!old) return [customerObj];
+          if (old.find((c: any) => String(c.id) === selectedCustomerId)) return old;
+          return [...old, customerObj];
+        });
+      }
+    }
+  }, [specificCustomerQuery.data, selectedCustomerId, queryClient]);
+
+  const selectedCustomer = useMemo(() => {
+    if (!selectedCustomerId) return null;
+    return props.customers.find((customer) => String(customer.id) === selectedCustomerId) 
+      || (specificCustomerQuery.data?.find((c) => String(c.id) === selectedCustomerId))
+      || null;
+  }, [selectedCustomerId, props.customers, specificCustomerQuery.data]);
+
   const customerSummaryQuery = useQuery({
     queryKey: queryKeys.posCustomerSummary(selectedCustomerId),
     queryFn: () => posApi.customerPosSummary(selectedCustomerId),
@@ -64,24 +90,36 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
         ? 'عميل مهم'
         : '';
 
+  const searchCustomersQuery = useQuery({
+    queryKey: ['posCustomersSearch', query],
+    queryFn: () => posApi.customers({ search: query, limit: 10 }),
+    enabled: Boolean(query.trim()),
+    staleTime: 30_000,
+  });
+
   const filteredCustomers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    const matches = normalized ? props.customers.filter((customer) => {
-      const name = String(customer.name || '').toLowerCase();
-      const phone = String(customer.phone || '').toLowerCase();
-      const id = String(customer.id || '').toLowerCase();
-      const type = String(customer.type || '').toLowerCase();
-      return name.includes(normalized) || phone.includes(normalized) || id.includes(normalized) || type.includes(normalized);
-    }) : props.customers;
-
-    if (normalized) return matches.slice(0, 5);
+    
+    // Use search results from API if we have a query
+    if (normalized) {
+      if (searchCustomersQuery.data) return searchCustomersQuery.data.slice(0, 5);
+      
+      // Fallback to local filter while loading
+      return props.customers.filter((customer) => {
+        const name = String(customer.name || '').toLowerCase();
+        const phone = String(customer.phone || '').toLowerCase();
+        const id = String(customer.id || '').toLowerCase();
+        const type = String(customer.type || '').toLowerCase();
+        return name.includes(normalized) || phone.includes(normalized) || id.includes(normalized) || type.includes(normalized);
+      }).slice(0, 5);
+    }
 
     const recent = recentCustomerIds
-      .map((id) => matches.find((customer) => String(customer.id) === id))
-      .filter((customer): customer is typeof matches[number] => Boolean(customer));
+      .map((id) => props.customers.find((customer) => String(customer.id) === id))
+      .filter((customer): customer is NonNullable<typeof customer> => Boolean(customer));
     const recentSet = new Set(recent.map((customer) => String(customer.id)));
-    return [...recent, ...matches.filter((customer) => !recentSet.has(String(customer.id)))].slice(0, 5);
-  }, [props.customers, query, recentCustomerIds]);
+    return [...recent, ...props.customers.filter((customer) => !recentSet.has(String(customer.id)))].slice(0, 5);
+  }, [props.customers, query, recentCustomerIds, searchCustomersQuery.data]);
 
   useEffect(() => {
     writeCheckoutIntent({ customerId: String(props.customerId || '').trim() });
@@ -138,6 +176,19 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   function selectCustomer(id: string) {
     const normalizedId = String(id || '').trim();
     writeCheckoutIntent({ customerId: normalizedId });
+    
+    // Cache the selected customer so it's available globally in the POS workspace
+    if (normalizedId) {
+      const customerObj = filteredCustomers.find((c) => String(c.id) === normalizedId);
+      if (customerObj) {
+        queryClient.setQueryData(queryKeys.posCustomers, (old: any) => {
+          if (!old) return [customerObj];
+          if (old.find((c: any) => String(c.id) === normalizedId)) return old;
+          return [...old, customerObj];
+        });
+      }
+    }
+    
     flushSync(() => {
       props.onCustomerChange(normalizedId);
     });

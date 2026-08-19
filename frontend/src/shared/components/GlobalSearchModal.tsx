@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ClientPortal } from '@/shared/components/ClientPortal';
@@ -12,6 +12,12 @@ export function GlobalSearchModal() {
   const { isGlobalSearchOpen, setGlobalSearchOpen, globalSearchQuery, setGlobalSearchQuery } = useToolbarStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [debouncedQuery, setDebouncedQuery] = useState(globalSearchQuery);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(globalSearchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [globalSearchQuery]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -38,24 +44,24 @@ export function GlobalSearchModal() {
     setGlobalSearchQuery('');
   };
 
-  const hasQuery = globalSearchQuery.trim().length > 0;
+  const hasQuery = debouncedQuery.trim().length > 0;
 
   // Real API queries
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
-    queryKey: ['products-search', globalSearchQuery],
-    queryFn: () => productsApi.listPage({ q: globalSearchQuery, page: 1, pageSize: 5 }),
+    queryKey: ['products-search', debouncedQuery],
+    queryFn: () => productsApi.listPage({ q: debouncedQuery, page: 1, pageSize: 5 }),
     enabled: hasQuery && isGlobalSearchOpen,
   });
 
   const { data: salesData, isLoading: isLoadingSales } = useQuery({
-    queryKey: ['sales-search', globalSearchQuery],
-    queryFn: () => salesApi.listPage({ search: globalSearchQuery, page: 1, pageSize: 5 }),
+    queryKey: ['sales-search', debouncedQuery],
+    queryFn: () => salesApi.listPage({ search: debouncedQuery, page: 1, pageSize: 5 }),
     enabled: hasQuery && isGlobalSearchOpen,
   });
 
   const { data: customersData, isLoading: isLoadingCustomers } = useQuery({
-    queryKey: ['customers-search', globalSearchQuery],
-    queryFn: () => customersApi.listPage({ q: globalSearchQuery, page: 1, pageSize: 5 }),
+    queryKey: ['customers-search', debouncedQuery],
+    queryFn: () => customersApi.listPage({ q: debouncedQuery, page: 1, pageSize: 5 }),
     enabled: hasQuery && isGlobalSearchOpen,
   });
 
@@ -90,7 +96,7 @@ export function GlobalSearchModal() {
     if (products.length === 0 && sales.length === 0 && customers.length === 0) {
       return (
         <div className="global-search-empty">
-          <p>لم يتم العثور على نتائج مطابقة لـ "{globalSearchQuery}"</p>
+          <p>لم يتم العثور على نتائج مطابقة لـ "{debouncedQuery}"</p>
         </div>
       );
     }

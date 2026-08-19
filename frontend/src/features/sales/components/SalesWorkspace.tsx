@@ -1,9 +1,5 @@
-import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FormSection } from '@/shared/components/form-section';
-import { Button } from '@/shared/ui/button';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { useSalesPage } from '@/features/sales/hooks/useSalesPage';
 import { useSaleActions } from '@/features/sales/hooks/useSaleActions';
@@ -37,12 +33,11 @@ export function SalesWorkspace() {
   const [pageSize, setPageSize] = useState(30);
   const detailsRef = useRef<HTMLDivElement>(null);
 
-  const { salesQuery, availableProducts, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter, cashier: cashierFilter });
+  const { salesQuery, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter, cashier: cashierFilter });
   const { saleDetailQuery, cancelMutation, updateMutation } = useSaleActions(selectedSaleId);
   const usersQuery = useQuery({ queryKey: ['sales-cashier-filter-users'], queryFn: userDirectoryApi.users, staleTime: 60_000 });
   const settingsQuery = useSettingsQuery();
 
-  const hasSellableProducts = availableProducts.length > 0;
   const canPrint = useHasAnyPermission('canPrint');
   const canEditInvoices = useHasAnyPermission('canEditInvoices');
   const selectedSale = saleDetailQuery.data;
@@ -116,15 +111,6 @@ export function SalesWorkspace() {
         <SalesWorkspaceHeader totalItems={totalItems} description={headerDescription} onCopySummary={copySalesSummary} />
         {editFeedback ? <div className="success-box">{editFeedback}</div> : null}
 
-        {!hasSellableProducts ? (
-          <FormSection title={t('sales.0189e9')} actions={<span className="nav-pill">{t('sales.b7a7f1')}</span>} className="workspace-panel">
-            <EmptyState title={t('sales.0e9afb')} hint={t('sales.0aede7')} />
-            <div className="actions section-actions-clean">
-              <Link to="/purchases"><Button variant="secondary">{t('sales.4a5f34')}</Button></Link>
-              <Link to="/inventory"><Button variant="secondary">{t('sales.83c654')}</Button></Link>
-            </div>
-          </FormSection>
-        ) : null}
         <SalesRegisterCard
           search={search}
           viewFilter={viewFilter}

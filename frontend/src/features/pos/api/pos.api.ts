@@ -60,7 +60,14 @@ function buildPosLookupPath(params: PosLookupParams = {}) {
 
 export const posApi = {
   lookupProducts: async (params: PosLookupParams = {}) => unwrapArray<Product>(await http<Product[] | { products: Product[] }>(buildPosLookupPath(params)), 'products'),
-  customers: async () => unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>('/api/customers'), 'customers'),
+  customers: async (params?: { search?: string; limit?: number; recentIds?: string[] }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.recentIds?.length) searchParams.set('recentIds', params.recentIds.join(','));
+    const query = searchParams.toString();
+    return unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>(`/api/customers${query ? `?${query}` : ''}`), 'customers');
+  },
   customerPosSummary: (customerId: string) => http<PosCustomerSummary>(`/api/customers/${customerId}/pos-summary`),
   settings: async () => unwrapByKey<AppSettings>(await http<AppSettings | { settings: AppSettings }>('/api/settings'), 'settings', {} as AppSettings),
   branches: async () => unwrapArray<Branch>(await http<Branch[] | { branches: Branch[] }>('/api/branches'), 'branches'),

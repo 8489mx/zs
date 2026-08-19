@@ -14,10 +14,11 @@ function makeParamsKey(params: EmployeeReportsQueryParams) {
   });
 }
 
-export function useEmployeeReportsPage(params: EmployeeReportsQueryParams) {
+export function useEmployeeReportsPage(params: EmployeeReportsQueryParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['reports', 'employees', makeParamsKey(params)],
     queryFn: () => reportsApi.employeeReportsPage(params),
     placeholderData: (previous) => previous,
+    enabled: options?.enabled,
   });
 }

@@ -12,23 +12,25 @@ import { formatPercent } from '@/features/reports/lib/reports-format';
 
 export function useReportsWorkspaceController(currentSection: ReportsSectionKey) {
   const state = useReportsWorkspaceState();
-  const { reportQuery } = useReportsOverview(state.submittedRange.from, state.submittedRange.to);
+  const { reportQuery } = useReportsOverview(state.submittedRange.from, state.submittedRange.to, {
+    enabled: ['overview', 'sales', 'purchases'].includes(currentSection),
+  });
   const accountingFinancialSummaryQuery = useQuery({
     queryKey: ['reports', 'accounting-financial-summary', state.submittedRange.from, state.submittedRange.to],
     queryFn: () => accountingReportsApi.financialSummary({ date_from: state.submittedRange.from, date_to: state.submittedRange.to }),
-    enabled: Boolean(state.submittedRange.from && state.submittedRange.to),
+    enabled: Boolean(state.submittedRange.from && state.submittedRange.to) && ['overview', 'sales', 'treasury'].includes(currentSection),
     retry: false,
   });
   const accountingCashMovementQuery = useQuery({
     queryKey: ['reports', 'accounting-cash-movement', state.submittedRange.from, state.submittedRange.to],
     queryFn: () => accountingReportsApi.cashMovement({ date_from: state.submittedRange.from, date_to: state.submittedRange.to }),
-    enabled: Boolean(state.submittedRange.from && state.submittedRange.to),
+    enabled: Boolean(state.submittedRange.from && state.submittedRange.to) && ['overview', 'treasury'].includes(currentSection),
     retry: false,
   });
   const accountingReceivablesPayablesQuery = useQuery({
     queryKey: ['reports', 'accounting-receivables-payables', state.submittedRange.to],
     queryFn: () => accountingReportsApi.receivablesPayables({ date_to: state.submittedRange.to }),
-    enabled: Boolean(state.submittedRange.to),
+    enabled: Boolean(state.submittedRange.to) && currentSection === 'balances',
     retry: false,
   });
   const accountingInventoryValueQuery = useQuery({
@@ -36,6 +38,7 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     queryFn: () => accountingReportsApi.inventoryValue({
       ...(state.locationId !== 'all' ? { locationId: state.locationId } : {})
     }),
+    enabled: currentSection === 'inventory',
     retry: false,
   });
   const inventoryQuery = useReportInventoryPage({ 
@@ -44,8 +47,8 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     search: state.inventorySearch, 
     filter: state.inventoryFilter,
     ...(state.locationId !== 'all' ? { locationId: state.locationId } : {})
-  });
-  const balancesQuery = useCustomerBalancesPage({ page: state.balancesPage, pageSize: state.balancesPageSize, search: state.balancesSearch, filter: state.balancesFilter });
+  }, { enabled: ['overview', 'inventory'].includes(currentSection) });
+  const balancesQuery = useCustomerBalancesPage({ page: state.balancesPage, pageSize: state.balancesPageSize, search: state.balancesSearch, filter: state.balancesFilter }, { enabled: ['overview', 'balances'].includes(currentSection) });
   const employeesQuery = useEmployeeReportsPage({
     page: state.employeesPage,
     pageSize: state.employeesPageSize,
@@ -55,7 +58,7 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     activityType: state.employeeActivityType,
     from: state.submittedRange.from,
     to: state.submittedRange.to,
-  });
+  }, { enabled: currentSection === 'employees' });
 
   const report = reportQuery.data ?? null;
   const metrics = useReportsWorkspaceMetrics({

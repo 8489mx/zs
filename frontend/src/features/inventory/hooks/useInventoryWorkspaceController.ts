@@ -21,7 +21,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 export function useInventoryWorkspaceController(currentSection: InventorySectionKey) {
   const queryClient = useQueryClient();
   const state = useInventoryWorkspaceState();
-  const { productsQuery, rows, inventory } = useInventoryPage(state.search, state.statusFilter);
+  const { productsQuery, rows, inventory, pagination: inventoryPagination } = useInventoryPage(state.search, state.statusFilter, state.inventoryPage, state.inventoryPageSize);
   const { transferFilter, sessionFilter, setTransfersPage, setSelectedTransferIds, setSelectedTransferId, setSessionsPage, setSelectedSessionIds, setSelectedSessionId } = state;
   const actionCatalog = useInventoryActionCatalog();
   const products = actionCatalog.productsQuery.data || [];
@@ -278,6 +278,11 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     setDamagedPage: state.setDamagedPage,
     damagedPageSize: state.damagedPageSize,
     setDamagedPageSize: state.setDamagedPageSize,
+    inventoryPagination,
+    inventoryPage: state.inventoryPage,
+    setInventoryPage: state.setInventoryPage,
+    inventoryPageSize: state.inventoryPageSize,
+    setInventoryPageSize: state.setInventoryPageSize,
     ...sectionActions,
   };
 }

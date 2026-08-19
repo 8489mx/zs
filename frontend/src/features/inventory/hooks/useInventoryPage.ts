@@ -1,13 +1,31 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
-import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { productsApi, type ProductsListParams } from '@/features/products/api/products.api';
 import { buildInventorySummary, filterInventoryRows, type InventoryStatusFilter } from '@/features/inventory/utils/inventory-mappers';
 
-export function useInventoryPage(search: string, statusFilter: InventoryStatusFilter) {
-  const productsQuery = useQuery({ queryKey: queryKeys.products, queryFn: inventoryApi.products });
-  const allProducts = useMemo(() => productsQuery.data || [], [productsQuery.data]);
-  const rows = useMemo(() => filterInventoryRows(allProducts, search, statusFilter), [allProducts, search, statusFilter]);
-  const inventory = useMemo(() => buildInventorySummary(allProducts), [allProducts]);
-  return { productsQuery, rows, inventory };
+export function useInventoryPage(search: string, statusFilter: InventoryStatusFilter, page = 1, pageSize = 50) {
+  const viewMap: Record<InventoryStatusFilter, ProductsListParams['view']> = {
+    all: 'all',
+    low: 'low',
+    out: 'out',
+    healthy: 'all',
+  };
+
+  const productsQuery = useQuery({
+    queryKey: [...queryKeys.products, 'inventory', page, pageSize, search, statusFilter],
+    queryFn: () => productsApi.listPage({ page, pageSize, q: search || undefined, view: viewMap[statusFilter] || 'all' }),
+    placeholderData: (prev) => prev,
+  });
+
+  const allProducts = useMemo(() => productsQuery.data?.products || [], [productsQuery.data]);
+  const rows = useMemo(() => filterInventoryRows(allProducts, '', statusFilter === 'all' ? 'all' : statusFilter), [allProducts, statusFilter]);
+  const inventory = useMemo(() => {
+    return buildInventorySummary(allProducts);
+  }, [allProducts]);
+
+  const pagination = productsQuery.data?.pagination || { page: 1, pageSize, totalItems: 0, totalPages: 1 };
+
+  return { productsQuery, rows, inventory, pagination };
 }
+

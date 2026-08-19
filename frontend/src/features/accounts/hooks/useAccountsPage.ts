@@ -8,10 +8,10 @@ export function useAccountsPage(
   customerLedgerParams: { page: number; pageSize: number; search: string },
   supplierLedgerParams: { page: number; pageSize: number; search: string }
 ) {
-  const customersQuery = useQuery({ queryKey: queryKeys.customers, queryFn: accountsApi.customers });
-  const suppliersQuery = useQuery({ queryKey: queryKeys.suppliers, queryFn: accountsApi.suppliers });
-  const customerBalancesQuery = useQuery({ queryKey: queryKeys.customerBalances, queryFn: accountsApi.customerBalances });
-  const supplierBalancesQuery = useQuery({ queryKey: queryKeys.supplierBalances, queryFn: accountsApi.supplierBalances });
+  const customersQuery = useQuery({ queryKey: queryKeys.customers, queryFn: accountsApi.customers, staleTime: 60_000 });
+  const suppliersQuery = useQuery({ queryKey: queryKeys.suppliers, queryFn: accountsApi.suppliers, staleTime: 60_000 });
+  const customerBalancesQuery = useQuery({ queryKey: queryKeys.customerBalances, queryFn: accountsApi.customerBalances, staleTime: 60_000 });
+  const supplierBalancesQuery = useQuery({ queryKey: queryKeys.supplierBalances, queryFn: accountsApi.supplierBalances, staleTime: 60_000 });
 
   const customerLedgerParamsKey = JSON.stringify(customerLedgerParams);
   const supplierLedgerParamsKey = JSON.stringify(supplierLedgerParams);

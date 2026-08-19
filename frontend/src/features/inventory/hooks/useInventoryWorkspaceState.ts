@@ -35,6 +35,8 @@ export function useInventoryWorkspaceState() {
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [selectedTransferIds, setSelectedTransferIds] = useState<string[]>([]);
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [inventoryPageSize, setInventoryPageSize] = useState(50);
 
   return {
     search,
@@ -83,5 +85,9 @@ export function useInventoryWorkspaceState() {
     setSelectedTransferIds,
     selectedSessionIds,
     setSelectedSessionIds,
+    inventoryPage,
+    setInventoryPage,
+    inventoryPageSize,
+    setInventoryPageSize,
   };
 }
