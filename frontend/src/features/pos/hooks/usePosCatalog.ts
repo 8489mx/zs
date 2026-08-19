@@ -22,7 +22,8 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
       locationId,
       limit: POS_PRODUCT_LOOKUP_LIMIT,
     }),
-    staleTime: 10_000,
+    placeholderData: (previousData) => previousData,
+    staleTime: 60_000,
   });
   useEffect(() => {
     setProductCache([]);
