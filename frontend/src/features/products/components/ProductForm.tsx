@@ -30,7 +30,9 @@ interface ProductFormProps {
   initialName?: string;
 }
 
-const normalizeLookupText = (value: unknown) => String(value ?? '').trim().toLocaleLowerCase();
+import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
+
+const normalizeLookupText = (value: unknown) => normalizeArabicSearchKey(value);
 
 const findCreatedCategoryId = (categories: Category[], name: string) => {
   const normalizedName = normalizeLookupText(name);

@@ -478,7 +478,7 @@ export class CatalogProductService {
   }
 
   private async searchPosProducts(q: string, limit: number, view: 'all' | 'offers' = 'all', actor: AuthContext): Promise<PosProductLookupRow[]> {
-    const normalized = q.trim().toLowerCase();
+    const normalized = normalizeArabicSearch(q);
     const tokens = normalized.split(/\s+/).filter(Boolean);
     let productQuery = this.db
       .selectFrom('products as p')
@@ -507,13 +507,13 @@ export class CatalogProductService {
     for (const token of tokens) {
       const pattern = `%${token}%`;
       productQuery = productQuery.where(sql<boolean>`(
-        LOWER(p.name) LIKE ${pattern}
+        TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
         OR LOWER(COALESCE(p.barcode, '')) LIKE ${pattern}
         OR LOWER(COALESCE(p.style_code, '')) LIKE ${pattern}
-        OR LOWER(COALESCE(p.color, '')) LIKE ${pattern}
+        OR TRANSLATE(LOWER(COALESCE(p.color, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
         OR LOWER(COALESCE(p.size, '')) LIKE ${pattern}
         OR LOWER(COALESCE(pu.barcode, '')) LIKE ${pattern}
-        OR LOWER(COALESCE(pu.name, '')) LIKE ${pattern}
+        OR TRANSLATE(LOWER(COALESCE(pu.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
       )`);
     }
 

@@ -9,6 +9,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { UpsertMaintenanceTicketDto } from './dto/upsert-maintenance-ticket.dto';
 import { UpdateTicketStatusDto, AddTicketPartDto } from './dto/update-ticket-status.dto';
+import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
 
 @Injectable()
 export class MaintenanceService {
@@ -37,16 +38,14 @@ export class MaintenanceService {
     }
 
     if (filters?.q && filters.q.trim()) {
-      const term = `%${filters.q.trim()}%`;
-      query = query.where((eb) =>
-        eb.or([
-          eb('ticket_no', 'ilike', term),
-          eb('customer_name', 'ilike', term),
-          eb('customer_phone', 'ilike', term),
-          eb('serial_number', 'ilike', term),
-          eb('device_model', 'ilike', term),
-        ]),
-      );
+      const term = `%${normalizeArabicSearch(filters.q)}%`;
+      query = query.where(sql<boolean>`(
+        lower(ticket_no) like ${term}
+        OR TRANSLATE(LOWER(COALESCE(customer_name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+        OR lower(customer_phone) like ${term}
+        OR lower(serial_number) like ${term}
+        OR TRANSLATE(LOWER(COALESCE(device_model, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+      )`);
     }
 
     const totalRes = await query

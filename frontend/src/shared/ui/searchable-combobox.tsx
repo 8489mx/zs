@@ -2,6 +2,8 @@ import { CSSProperties, KeyboardEvent, RefObject, useEffect, useMemo, useRef, us
 import { createPortal } from 'react-dom';
 import { Field } from '@/shared/ui/field';
 
+import { matchesArabic } from '@/lib/arabic-normalization';
+
 export type ComboboxOption = {
   id: string;
   label?: string;
@@ -13,7 +15,7 @@ type SearchableComboboxProps<T extends ComboboxOption> = {
   value: string;
   onChange: (value: string) => void;
   options: T[];
-  search: (option: T, query: string) => boolean;
+  search?: (option: T, query: string) => boolean;
   getLabel: (option: T) => string;
   getMeta?: (option: T) => string | undefined;
   onSelect: (option: T) => void;
@@ -81,8 +83,15 @@ export function SearchableCombobox<T extends ComboboxOption>({
   const hasDigitLikeSearch = containsDigitLikeCharacter(value);
   const hasSearchIntent = normalizedValue.length >= minSearchLength || (searchOnSingleDigit && hasDigitLikeSearch);
   const filteredOptions = useMemo(
-    () => (hasSearchIntent ? options.filter((option) => search(option, value)).slice(0, 8) : []),
-    [hasSearchIntent, options, search, value]
+    () => (hasSearchIntent ? options.filter((option) => {
+      if (search && search(option, value)) return true;
+      const labelText = getLabel(option);
+      if (matchesArabic(labelText, value)) return true;
+      const metaText = getMeta?.(option);
+      if (metaText && matchesArabic(metaText, value)) return true;
+      return false;
+    }).slice(0, 8) : []),
+    [getLabel, getMeta, hasSearchIntent, options, search, value]
   );
   const showCreate = Boolean(onCreate && normalizedValue && hasSearchIntent && filteredOptions.length === 0);
   const optionCount = filteredOptions.length + (showCreate ? 1 : 0);

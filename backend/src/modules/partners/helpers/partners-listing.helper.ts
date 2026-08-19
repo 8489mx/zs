@@ -1,5 +1,6 @@
 import { Selectable, sql } from '../../../database/kysely';
 import { CustomerTable, SupplierTable } from '../../../database/database.types';
+import { normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 
 type CustomerRow = Selectable<CustomerTable>;
 type SupplierRow = Selectable<SupplierTable>;
@@ -14,10 +15,10 @@ export type PartnersListQuery = {
 
 export function parsePartnersListQuery(query: Record<string, unknown>): PartnersListQuery {
   const page = Math.max(1, Number(query.page || 1));
-  const pageSize = Math.min(100, Math.max(5, Number(query.pageSize || 20)));
-  const q = String(query.q || '').trim().toLowerCase();
+  const pageSize = Math.max(1, Math.min(100, Number(query.pageSize || 10)));
+  const q = String(query.q || '').trim();
   const filter = String(query.filter || 'all').trim();
-  const isUnpagedDefault = !('page' in query) && !('pageSize' in query) && !q && filter === 'all';
+  const isUnpagedDefault = query.pageSize === undefined && query.page === undefined;
   return { page, pageSize, q, filter, isUnpagedDefault };
 }
 
@@ -51,25 +52,25 @@ export function mapSupplierRow(row: SupplierRow): Record<string, unknown> {
 
 export function buildCustomerSearchPredicate(q: string) {
   if (!q) return null;
-  const term = `%${q}%`;
+  const term = `%${normalizeArabicSearch(q)}%`;
   return sql<boolean>`(
-    lower(name) like ${term}
-    or lower(phone) like ${term}
-    or lower(address) like ${term}
-    or lower(customer_type) like ${term}
-    or lower(company_name) like ${term}
-    or lower(tax_number) like ${term}
+    TRANSLATE(LOWER(COALESCE(name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+    OR lower(phone) like ${term}
+    OR TRANSLATE(LOWER(COALESCE(address, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+    OR lower(customer_type) like ${term}
+    OR TRANSLATE(LOWER(COALESCE(company_name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+    OR lower(tax_number) like ${term}
   )`;
 }
 
 export function buildSupplierSearchPredicate(q: string) {
   if (!q) return null;
-  const term = `%${q}%`;
+  const term = `%${normalizeArabicSearch(q)}%`;
   return sql<boolean>`(
-    lower(name) like ${term}
-    or lower(phone) like ${term}
-    or lower(address) like ${term}
-    or lower(notes) like ${term}
+    TRANSLATE(LOWER(COALESCE(name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+    OR lower(phone) like ${term}
+    OR TRANSLATE(LOWER(COALESCE(address, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+    OR TRANSLATE(LOWER(COALESCE(notes, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
   )`;
 }
 

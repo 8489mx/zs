@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { matchesArabic } from '@/lib/arabic-normalization';
 
 const POPULAR_BRANDS = [
   { en: 'Apple', ar: 'آبل / آيفون' },
@@ -41,8 +42,8 @@ export function BrandCombobox({ value, onChange, placeholder = '...Apple, Samsun
   const filtered = POPULAR_BRANDS.filter(
     (b) =>
       !value ||
-      b.en.toLowerCase().includes(value.toLowerCase()) ||
-      b.ar.includes(value)
+      matchesArabic(b.en, value) ||
+      matchesArabic(b.ar, value)
   );
 
   return (

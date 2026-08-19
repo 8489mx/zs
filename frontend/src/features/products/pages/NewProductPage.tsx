@@ -18,8 +18,9 @@ import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 import { useAppToolbar } from '@/stores/toolbar-store';
+import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 
-const normalizeLookupText = (value: unknown) => String(value ?? '').trim().toLocaleLowerCase();
+const normalizeLookupText = (value: unknown) => normalizeArabicSearchKey(value);
 
 const findCreatedCategoryId = (categories: Category[], name: string) => {
   const normalizedName = normalizeLookupText(name);
