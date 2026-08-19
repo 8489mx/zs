@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
-import { dayRangeLast30 } from '@/lib/format';
 import { buildRange, buildTodayRange } from '@/features/reports/lib/reports-format';
 
 export function useReportsWorkspaceState() {
-  const defaultRange = useMemo(() => dayRangeLast30(), []);
+  const defaultRange = useMemo(() => buildRange(30), []);
   const [from, setFrom] = useState(defaultRange.from);
   const [to, setTo] = useState(defaultRange.to);
   const [submittedRange, setSubmittedRange] = useState(defaultRange);

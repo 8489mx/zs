@@ -1,7 +1,9 @@
 export function buildRange(days: number) {
   const end = new Date();
-  const start = new Date(end);
+  end.setHours(23, 59, 59, 999);
+  const start = new Date();
   start.setDate(start.getDate() - days);
+  start.setHours(0, 0, 0, 0);
   return { from: start.toISOString(), to: end.toISOString() };
 }
 
@@ -9,19 +11,35 @@ export function buildTodayRange() {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const end = new Date();
+  end.setHours(23, 59, 59, 999);
   return { from: start.toISOString(), to: end.toISOString() };
 }
 
-export function toDateTimeInputValue(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
-
-export function fromDateTimeInputValue(value: string) {
+export function toDateInputValue(value: string) {
   if (!value) return '';
   const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function fromDateInputValueStart(value: string) {
+  if (!value) return '';
+  const parts = value.split('-').map(Number);
+  if (parts.length < 3) return '';
+  const [year, month, day] = parts;
+  const date = new Date(year, month - 1, day, 0, 0, 0, 0);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
+export function fromDateInputValueEnd(value: string) {
+  if (!value) return '';
+  const parts = value.split('-').map(Number);
+  if (parts.length < 3) return '';
+  const [year, month, day] = parts;
+  const date = new Date(year, month - 1, day, 23, 59, 59, 999);
   return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 }
 

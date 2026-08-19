@@ -1,7 +1,7 @@
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
-import { fromDateTimeInputValue, toDateTimeInputValue } from '@/features/reports/lib/reports-format';
+import { fromDateInputValueEnd, fromDateInputValueStart, toDateInputValue } from '@/features/reports/lib/reports-format';
 
 export function ReportsRangeCard({
   from,
@@ -37,10 +37,10 @@ export function ReportsRangeCard({
     <FormSection title="الفترة" actions={<span className="nav-pill">تحديث مباشر</span>} className="reports-scope-card reports-scope-card--compact">
       <div className="reports-range-grid reports-range-grid--compact">
         <Field label="من">
-          <input type="datetime-local" value={toDateTimeInputValue(from)} onChange={(event) => onFromChange(fromDateTimeInputValue(event.target.value) || from)} />
+          <input type="date" value={toDateInputValue(from)} onChange={(event) => onFromChange(fromDateInputValueStart(event.target.value) || from)} />
         </Field>
         <Field label="إلى">
-          <input type="datetime-local" value={toDateTimeInputValue(to)} onChange={(event) => onToChange(fromDateTimeInputValue(event.target.value) || to)} />
+          <input type="date" value={toDateInputValue(to)} onChange={(event) => onToChange(fromDateInputValueEnd(event.target.value) || to)} />
         </Field>
         <Field label="الفرع / المخزن">
           <select value={locationId || 'all'} onChange={(event) => onLocationChange?.(event.target.value)}>
