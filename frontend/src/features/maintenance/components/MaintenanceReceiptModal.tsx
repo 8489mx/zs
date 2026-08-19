@@ -28,60 +28,60 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
   const html = `
     <div class="maintenance-receipt-container" style="width: 100%; max-width: 68mm; margin: 0 auto; box-sizing: border-box; font-family: Tahoma, Arial, sans-serif; font-size: 11px; line-height: 1.35; color: #000;">
       <div style="text-align: center; margin-bottom: 6px; border-bottom: 1px dashed #000; padding-bottom: 6px;">
-        <h2 style="margin: 0 0 2px; font-size: 15px; font-weight: 900; color: #000;">${escapeHtml(storeName)}</h2>
-        ${phone ? `<div style="font-size: 10.5px; font-weight: 700; color: #000;">هاتف: ${escapeHtml(phone)}</div>` : ''}
-        ${address ? `<div style="font-size: 9.5px; color: #333;">${escapeHtml(address)}</div>` : ''}
-        <div style="margin-top: 4px; display: inline-block; padding: 2px 8px; border: 1px solid #000; border-radius: 4px; font-weight: 800; font-size: 11px; color: #000;">
+        <h2 style="margin: 0 0 2px; font-size: 15px; font-weight: 800; color: #000;">${escapeHtml(storeName)}</h2>
+        ${phone ? `<div style="font-size: 10.5px; font-weight: 500; color: #111;">هاتف: ${escapeHtml(phone)}</div>` : ''}
+        ${address ? `<div style="font-size: 9px; font-weight: 400; color: #333;">${escapeHtml(address)}</div>` : ''}
+        <div style="margin-top: 4px; display: inline-block; padding: 2px 8px; border: 1px solid #000; border-radius: 4px; font-weight: 700; font-size: 10.5px; color: #000;">
           إيصال استلام جهاز للإصلاح
         </div>
       </div>
 
       <div style="text-align: center; margin-bottom: 6px; border-bottom: 1px dashed #000; padding-bottom: 6px;">
         <div style="width: 100%; max-width: 200px; height: 42px; margin: 0 auto; display: block;">${barcodeSvg}</div>
-        <div style="font-size: 15px; font-weight: 900; letter-spacing: 1.5px; font-family: monospace; color: #000; margin: 5px 0 2px; padding-top: 2px;">
+        <div style="font-size: 16px; font-weight: 900; letter-spacing: 1.5px; font-family: monospace; color: #000; margin: 5px 0 2px; padding-top: 2px;">
           ${escapeHtml(ticket.ticketNo)}
         </div>
-        <div style="font-size: 9.5px; color: #000; font-weight: 600;">تاريخ الاستلام: ${escapeHtml(dateFormatted)}</div>
+        <div style="font-size: 9.5px; font-weight: 400; color: #222;">تاريخ الاستلام: ${escapeHtml(dateFormatted)}</div>
       </div>
 
-      <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10.5px; line-height: 1.35; color: #000; box-sizing: border-box;">
+      <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10px; line-height: 1.35; color: #000; box-sizing: border-box;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 3px; margin-bottom: 3px;">
-          <span>العميل: <strong>${escapeHtml(ticket.customerName)}</strong></span>
-          <span dir="ltr" style="font-weight: 800; font-family: monospace;">${escapeHtml(ticket.customerPhone)}</span>
+          <span>العميل: <strong style="font-weight: 700;">${escapeHtml(ticket.customerName)}</strong></span>
+          <span dir="ltr" style="font-weight: 600; font-family: monospace;">${escapeHtml(ticket.customerPhone)}</span>
         </div>
-        <div style="font-weight: 700; font-size: 11px; margin-bottom: 2px;">
-          الجهاز: ${escapeHtml(ticket.deviceBrand ? `${ticket.deviceBrand} - ` : '')}${escapeHtml(ticket.deviceModel)}
+        <div style="font-size: 10.5px; margin-bottom: 2px;">
+          الجهاز: <strong style="font-weight: 700;">${escapeHtml(ticket.deviceBrand ? `${ticket.deviceBrand} - ` : '')}${escapeHtml(ticket.deviceModel)}</strong>
         </div>
         ${ticket.serialNumber ? `<div style="font-size: 9.5px; font-family: monospace;" dir="ltr">IMEI: ${escapeHtml(ticket.serialNumber)}</div>` : ''}
-        ${ticket.passcode ? `<div style="font-weight: 700; color: #000;">الرمز / قفل الشاشة: <span dir="ltr">${escapeHtml(ticket.passcode)}</span></div>` : ''}
+        ${ticket.passcode ? `<div style="color: #000;">الرمز / قفل الشاشة: <span dir="ltr" style="font-weight: 700;">${escapeHtml(ticket.passcode)}</span></div>` : ''}
       </div>
 
-      <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10.5px; color: #000; box-sizing: border-box;">
-        <div style="font-weight: 800; text-decoration: underline; margin-bottom: 2px;">العطل المشتكى منه:</div>
-        <div style="font-weight: 700;">${escapeHtml(ticket.problemDescription)}</div>
-        ${ticket.deviceCondition ? `<div style="font-size: 9.5px; margin-top: 3px; color: #333;">الحالة الظاهرية: ${escapeHtml(ticket.deviceCondition)}</div>` : ''}
+      <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10px; color: #000; box-sizing: border-box;">
+        <div style="font-weight: 700; text-decoration: underline; margin-bottom: 2px;">العطل المشتكى منه:</div>
+        <div style="font-weight: 500;">${escapeHtml(ticket.problemDescription)}</div>
+        ${ticket.deviceCondition ? `<div style="font-size: 9px; font-weight: 400; margin-top: 3px; color: #222;">الحالة الظاهرية: ${escapeHtml(ticket.deviceCondition)}</div>` : ''}
       </div>
 
-      <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10.5px; color: #000; box-sizing: border-box;">
+      <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10px; color: #000; box-sizing: border-box;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
           <span>التكلفة التقديرية:</span>
-          <strong>${totalCost.toFixed(2)} ج.م</strong>
+          <span style="font-weight: 600;">${totalCost.toFixed(2)} ج.م</span>
         </div>
         ${advancePaid > 0 ? `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
             <span>المدفوع مقدماً (عربون):</span>
-            <strong>${advancePaid.toFixed(2)} ج.م</strong>
+            <span style="font-weight: 600;">${advancePaid.toFixed(2)} ج.م</span>
           </div>
         ` : ''}
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 900; border-top: 1px dashed #000; padding-top: 3px; margin-top: 2px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; border-top: 1px dashed #000; padding-top: 3px; margin-top: 2px;">
           <span>المتبقي عند الاستلام:</span>
-          <strong>${remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓'}</strong>
+          <span>${remainingAmount > 0 ? `${remainingAmount.toFixed(2)} ج.م` : 'خالص بالكامل ✓'}</span>
         </div>
       </div>
 
-      <div style="font-size: 8.5px; line-height: 1.3; color: #000; margin-bottom: 6px; padding: 0 2px;">
-        <strong style="display: block; text-decoration: underline; margin-bottom: 2px;">شروط الاستلام:</strong>
-        <div>
+      <div style="font-size: 8px; line-height: 1.35; color: #111; margin-bottom: 6px; padding: 0 2px;">
+        <strong style="display: block; font-weight: 700; text-decoration: underline; margin-bottom: 2px;">شروط الاستلام:</strong>
+        <div style="font-weight: 400;">
           • المركز غير مسؤول عن الأجهزة المتروكة لأكثر من 30 يوماً.<br />
           • المركز غير مسؤول عن فقدان البيانات أثناء الصيانة.<br />
           • الضمان على القطع المستبدلة ${ticket.warrantyDays || 30} يوماً بموجب هذا الإيصال.<br />
@@ -89,7 +89,7 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #000; font-size: 9.5px; font-weight: 700; text-align: center; color: #000; box-sizing: border-box;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #000; font-size: 9px; font-weight: 600; text-align: center; color: #000; box-sizing: border-box;">
         <div>توقيع المستلم<br /><br />...................</div>
         <div>توقيع العميل<br /><br />...................</div>
       </div>
@@ -105,8 +105,7 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
         html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; background: #fff !important; }
         body.receipt-mode { width: 100% !important; max-width: 100% !important; margin: 0 auto !important; padding: 0 !important; color: #000 !important; }
         .print-shell { width: 100% !important; max-width: 68mm !important; margin: 0 auto !important; padding: 1mm 2mm !important; box-sizing: border-box !important; }
-        * { color: #000 !important; font-weight: 600; box-sizing: border-box !important; }
-        strong, h2, h3 { font-weight: 900 !important; }
+        * { color: #000 !important; box-sizing: border-box !important; }
       }
     `,
   });
