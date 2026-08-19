@@ -103,7 +103,7 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
                 {ticket.ticketNo}
               </strong>
               <small style={{ color: '#64748b' }}>
-                التاريخ: {new Date(ticket.receivedAt).toLocaleDateString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' } as any)}
+                التاريخ: {new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
               </small>
             </div>
 

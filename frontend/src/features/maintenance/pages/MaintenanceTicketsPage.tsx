@@ -698,7 +698,7 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                     </span>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-                    تاريخ الاستلام: {new Date(selectedTicket.receivedAt).toLocaleDateString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' } as any)}
+                    تاريخ الاستلام: {new Date(selectedTicket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
                   </div>
                 </div>
 
