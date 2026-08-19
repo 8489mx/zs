@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { FormSection } from '@/shared/components/form-section';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -250,185 +249,235 @@ export function EditProductPage() {
         </div>
       </div>
       
-      <main className="document-prototype-column">
-        {mutation.isError && (
-          <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444' }}>
-            <div style={{ color: '#b91c1c' }}>تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى.</div>
-          </div>
-        )}
-
-        {hasDraftChanges && !mutation.isPending && (
-          <div className="document-prototype-section" style={{ backgroundColor: '#fffbeb', borderColor: '#fcd34d' }}>
-            <div style={{ color: '#92400e' }}>تعديلات الصنف الحالية غير محفوظة. احفظ الصنف أو أعد القيم الأصلية.</div>
-          </div>
-        )}
-
-        <FormSection title="بيانات الصنف الأساسية">
-          <div className="document-prototype-grid compact-grid-2">
-            {manufacturingModuleEnabled ? (
-              <Field label="تصنيف الصنف">
-                <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
-                  <option value="product">منتج نهائي للبيع</option>
-                  <option value="raw_material">مادة خام / مكون تصنيع</option>
-                </select>
-              </Field>
-            ) : null}
-            {clothingModuleEnabled ? (
-              <Field label="نوع الصنف">
-                <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>
-                  <option value="standard">صنف عادي</option>
-                  <option value="fashion">ملابس / Variant</option>
-                </select>
-              </Field>
-            ) : null}
-            <Field label="اسم الصنف" error={form.formState.errors.name?.message}>
-              <input className="purchase-prototype-field-input" {...form.register('name')} disabled={isFormDisabled} />
-            </Field>
-            <Field label="الباركود">
-              <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} />
-            </Field>
-            {clothingModuleEnabled ? (
-              <Field label="كود الموديل">
-                <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري - أرقام فقط" />
-              </Field>
-            ) : null}
-            {clothingModuleEnabled ? <Field label="اللون"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
-            {clothingModuleEnabled ? <Field label="المقاس"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
-          </div>
-        </FormSection>
-
-        <FormSection title="التصنيف والربط">
-          <div className="document-prototype-grid compact-grid-3">
-            <Field label="القسم" error={form.formState.errors.categoryId?.message}>
-              <select className="purchase-prototype-field-input" {...form.register('categoryId')} disabled={isFormDisabled}>
-                <option value="">بدون قسم</option>
-                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
-            </Field>
-            <Field label="المورد" error={form.formState.errors.supplierId?.message}>
-              <select className="purchase-prototype-field-input" {...form.register('supplierId')} disabled={isFormDisabled}>
-                <option value="">بدون مورد</option>
-                {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-              </select>
-            </Field>
-            <Field label="المخزن (موقع التخزين)" error={form.formState.errors.warehouseId?.message}>
-              <select className="purchase-prototype-field-input" {...form.register('warehouseId')} disabled={isFormDisabled || locations.length === 1}>
-                {locations.length !== 1 && <option value="">اختر المخزن...</option>}
-                {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
-              </select>
-            </Field>
-          </div>
-          <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
-            <Field label="مكان التخزين (Bin Location)">
-              <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" />
-            </Field>
-          </div>
-        </FormSection>
-
-        {comboModuleEnabled && (
-          <FormSection title="العروض المجمعة والوجبات (Combo/BOM)">
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
-                <input
-                  type="checkbox"
-                  {...form.register('isCombo')}
-                  disabled={isFormDisabled}
-                  style={{ width: 18, height: 18 }}
-                />
-                هذا الصنف عبارة عن عرض مجمع / وجبة
-              </label>
-              <p className="muted small" style={{ marginTop: 4 }}>
-                يتيح لك هذا الخيار إضافة مكونات (أصناف فرعية) سيتم خصمها من المخزون عند بيع هذا الصنف.
-              </p>
+      <main className="product-form-layout-2col">
+        {/* Main Column (Right) */}
+        <div className="product-form-main-col">
+          {mutation.isError && (
+            <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444' }}>
+              <div style={{ color: '#b91c1c' }}>تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى.</div>
             </div>
-            
-            {watchedIsCombo && (
-              <Controller
-                control={form.control}
-                name="comboComponents"
-                render={({ field }) => (
-                  <ComboComponentsEditor
-                    value={field.value || []}
-                    onChange={field.onChange}
-                    products={allProducts}
-                    disabled={isFormDisabled}
-                  />
-                )}
-              />
-            )}
-          </FormSection>
-        )}
+          )}
 
-        <FormSection title="الأسعار">
-          <div className="document-prototype-grid compact-grid-3">
-            <Field label="سعر الشراء"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} /></Field>
-            <Field label="سعر القطاعي"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} /></Field>
-            <Field label="سعر الجملة"><input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} /></Field>
-          </div>
-        </FormSection>
+          {hasDraftChanges && !mutation.isPending && (
+            <div className="document-prototype-section" style={{ backgroundColor: '#fffbeb', borderColor: '#fcd34d' }}>
+              <div style={{ color: '#92400e' }}>تعديلات الصنف الحالية غير محفوظة. احفظ الصنف أو أعد القيم الأصلية.</div>
+            </div>
+          )}
 
-        <FormSection title="المخزون">
-          <div className="document-prototype-alert info" style={{ marginBottom: 16 }}>
-            <strong>تنبيه:</strong> تعديل الكمية بعد إنشاء الصنف يتم من حركات المخزون فقط.
-          </div>
-          <div className="document-prototype-grid compact-grid-2">
-            <Field label="المخزون الحالي (للعرض فقط)"><input className="purchase-prototype-field-input" type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
-            <Field label="الحد الأدنى للمخزون"><input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} /></Field>
-          </div>
-        </FormSection>
+          {/* 1. Core Info & Pricing */}
+          <div className="product-compact-card">
+            <div className="product-compact-card-header">
+              <h3 className="product-compact-card-title">بيانات الصنف والأسعار</h3>
+              <span className="muted small">المعلومات الأساسية وقائمة الأسعار</span>
+            </div>
 
-        {settingsQuery.data?.enableMobileStoreFeatures === true && (
-          <FormSection title="تتبع الأجهزة والسيريال (IMEI / Serial Number)">
-            <div style={{ padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#166534', margin: 0 }}>
-                <input
-                  type="checkbox"
-                  {...form.register('trackSerials')}
-                  disabled={isFormDisabled}
-                  style={{ width: 18, height: 18, cursor: 'pointer' }}
-                />
-                <span>📱 تتبع أرقام السيريال / الـ IMEI لهذا الصنف (للهواتف، الأجهزة، وقطع الإلكترونيات)</span>
-              </label>
-              <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: '4px', marginInlineStart: '28px' }}>
-                يتيح تتبع كل جهاز برقم السيريال/IMEI المنفرد، تسجيل السيريالات عند الشراء، وخصمها بالمسح المباشر في الكاشير ومتابعة الضمان.
+            <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
+              {manufacturingModuleEnabled ? (
+                <Field label="تصنيف الصنف">
+                  <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
+                    <option value="product">منتج نهائي للبيع</option>
+                    <option value="raw_material">مادة خام / مكون تصنيع</option>
+                  </select>
+                </Field>
+              ) : null}
+              {clothingModuleEnabled ? (
+                <Field label="نوع الصنف">
+                  <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>
+                    <option value="standard">صنف عادي</option>
+                    <option value="fashion">ملابس / Variant</option>
+                  </select>
+                </Field>
+              ) : null}
+              <Field label="اسم الصنف" error={form.formState.errors.name?.message}>
+                <input className="purchase-prototype-field-input" {...form.register('name')} disabled={isFormDisabled} style={{ fontWeight: 600 }} />
+              </Field>
+              <Field label="الباركود">
+                <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
+              </Field>
+              {clothingModuleEnabled ? (
+                <Field label="كود الموديل">
+                  <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري - أرقام فقط" />
+                </Field>
+              ) : null}
+              {clothingModuleEnabled ? <Field label="اللون"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
+              {clothingModuleEnabled ? <Field label="المقاس"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
+            </div>
+
+            <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
+              <div className="product-form-grid-3">
+                <Field label="سعر الشراء (التكلفة)">
+                  <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} />
+                </Field>
+                <div className="field product-retail-price-field">
+                  <label style={{ color: '#1e3a8a', fontWeight: 700 }}>سعر البيع (قطاعي)</label>
+                  <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} />
+                </div>
+                <Field label="سعر الجملة">
+                  <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} />
+                </Field>
               </div>
             </div>
-          </FormSection>
-        )}
+          </div>
 
-        {importModuleEnabled ? (
-          <FormSection title="بيانات قطعة الغيار (Auto Parts)">
-            <div className="document-prototype-grid compact-grid-2">
-              <Field label="رقم القطعة (OEM)"><input className="purchase-prototype-field-input" {...form.register('metadata.oemNumber')} disabled={isFormDisabled} placeholder="مثال: 1J0907530" /></Field>
-              <Field label="الماركة (Brand)"><input className="purchase-prototype-field-input" {...form.register('metadata.carBrand')} disabled={isFormDisabled} placeholder="مثال: Toyota, Audi" /></Field>
-              <Field label="الموديل (Model)"><input className="purchase-prototype-field-input" {...form.register('metadata.carModel')} disabled={isFormDisabled} placeholder="مثال: Corolla" /></Field>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <Field label="سنة الصنع (من)"><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearFrom')} disabled={isFormDisabled} placeholder="2015" /></Field>
-                <Field label="سنة الصنع (إلى)"><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearTo')} disabled={isFormDisabled} placeholder="2020" /></Field>
-              </div>
-              <Field label="بلد المنشأ"><input className="purchase-prototype-field-input" {...form.register('metadata.origin')} disabled={isFormDisabled} placeholder="مثال: China, Japan" /></Field>
-              <Field label="الحالة">
-                <select className="purchase-prototype-field-input" {...form.register('metadata.condition')} disabled={isFormDisabled}>
-                  <option value="">غير محدد</option>
-                  <option value="new">جديد (New)</option>
-                  <option value="used">استيراد/مستعمل (Used)</option>
+          {/* 2. Categorization & Inventory Location */}
+          <div className="product-compact-card">
+            <div className="product-compact-card-header">
+              <h3 className="product-compact-card-title">التصنيف والتخزين والمخزون</h3>
+            </div>
+            <div className="product-form-grid-4" style={{ marginBottom: '0.85rem' }}>
+              <Field label="القسم" error={form.formState.errors.categoryId?.message}>
+                <select className="purchase-prototype-field-input" {...form.register('categoryId')} disabled={isFormDisabled}>
+                  <option value="">بدون قسم</option>
+                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                 </select>
               </Field>
-              <Field label="مكان التخزين (Bin Location)"><input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: مخزن رئيسي، رف 5، شقة 2" /></Field>
+              <Field label="المورد" error={form.formState.errors.supplierId?.message}>
+                <select className="purchase-prototype-field-input" {...form.register('supplierId')} disabled={isFormDisabled}>
+                  <option value="">بدون مورد</option>
+                  {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                </select>
+              </Field>
+              <Field label="المخزن" error={form.formState.errors.warehouseId?.message}>
+                <select className="purchase-prototype-field-input" {...form.register('warehouseId')} disabled={isFormDisabled || locations.length === 1}>
+                  {locations.length !== 1 && <option value="">اختر المخزن...</option>}
+                  {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+                </select>
+              </Field>
+              <Field label="مكان الرف (Bin)">
+                <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: رف 5" />
+              </Field>
             </div>
-          </FormSection>
-        ) : null}
+            <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
+              <div className="product-form-grid-2">
+                <Field label="المخزون الحالي (للعرض فقط)">
+                  <input className="purchase-prototype-field-input" type="number" value={Number(product.stock || 0)} disabled readOnly style={{ background: '#f8fafc', fontWeight: 700 }} />
+                </Field>
+                <Field label="الحد الأدنى للتنبيه (نواقص)">
+                  <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
+                </Field>
+              </div>
+            </div>
+          </div>
 
-        <FormSection title="ملاحظات">
-          <Field label="ملاحظات"><textarea className="purchase-prototype-field-input" rows={4} {...form.register('notes')} disabled={isFormDisabled} /></Field>
-        </FormSection>
+          {/* 3. Product Units */}
+          <div className="product-compact-card">
+            <div className="product-compact-card-header">
+              <h3 className="product-compact-card-title">وحدات الصنف (Units)</h3>
+            </div>
+            <ProductUnitsEditor units={units} onChange={setUnits} disabled={isFormDisabled} />
+          </div>
 
-        <FormSection title="وحدات الصنف">
-          <ProductUnitsEditor units={units} onChange={setUnits} disabled={isFormDisabled} />
-        </FormSection>
+          {/* 4. Combo / BOM */}
+          {comboModuleEnabled && (
+            <div className="product-compact-card">
+              <div className="product-compact-card-header">
+                <h3 className="product-compact-card-title">العروض المجمعة والوجبات (Combo)</h3>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                  <input type="checkbox" {...form.register('isCombo')} disabled={isFormDisabled} style={{ width: 18, height: 18 }} />
+                  هذا الصنف عبارة عن عرض مجمع / وجبة
+                </label>
+              </div>
+              {watchedIsCombo && (
+                <Controller
+                  control={form.control}
+                  name="comboComponents"
+                  render={({ field }) => (
+                    <ComboComponentsEditor
+                      value={field.value || []}
+                      onChange={field.onChange}
+                      products={allProducts}
+                      disabled={isFormDisabled}
+                    />
+                  )}
+                />
+              )}
+            </div>
+          )}
 
-        <div className="document-prototype-section">
-          <ProductCustomerPricesCard product={product} customers={customers} customerPrices={customerPrices} onChange={setCustomerPrices} onSave={saveCustomerPricesOnly} isSaving={mutation.isPending} />
+          {/* 5. Auto Parts */}
+          {importModuleEnabled && (
+            <div className="product-compact-card">
+              <div className="product-compact-card-header">
+                <h3 className="product-compact-card-title">بيانات قطعة الغيار (Auto Parts)</h3>
+              </div>
+              <div className="product-form-grid-2">
+                <Field label="رقم القطعة (OEM)"><input className="purchase-prototype-field-input" {...form.register('metadata.oemNumber')} disabled={isFormDisabled} placeholder="1J0907530" /></Field>
+                <Field label="الماركة"><input className="purchase-prototype-field-input" {...form.register('metadata.carBrand')} disabled={isFormDisabled} placeholder="Toyota" /></Field>
+                <Field label="الموديل"><input className="purchase-prototype-field-input" {...form.register('metadata.carModel')} disabled={isFormDisabled} placeholder="Corolla" /></Field>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <Field label="من سنة"><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearFrom')} disabled={isFormDisabled} placeholder="2015" /></Field>
+                  <Field label="إلى سنة"><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearTo')} disabled={isFormDisabled} placeholder="2020" /></Field>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. Customer Specific Prices */}
+          <div className="product-compact-card product-collapsible-card">
+            <details>
+              <summary className="product-compact-card-header" style={{ marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>
+                <h3 className="product-compact-card-title">
+                  أسعار خاصة للعملاء ({customerPrices.length})
+                </h3>
+                <span className="muted small" style={{ fontSize: '0.78rem' }}>اضغط لفتح / إغلاق الأسعار المخصصة ▾</span>
+              </summary>
+              <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
+                <ProductCustomerPricesCard product={product} customers={customers} customerPrices={customerPrices} onChange={setCustomerPrices} onSave={saveCustomerPricesOnly} isSaving={mutation.isPending} />
+              </div>
+            </details>
+          </div>
+        </div>
+
+        {/* Side Column (Left) */}
+        <div className="product-form-side-col">
+          {/* Quick Summary Card */}
+          <div className="product-compact-card" style={{ background: '#f8fafc', borderColor: '#cbd5e1' }}>
+            <h3 className="product-compact-card-title" style={{ fontSize: '0.88rem', color: '#475569' }}>ملخص الصنف</h3>
+            <div className="product-sidebar-metric">
+              <span className="product-sidebar-metric-label">المخزون المتوفر:</span>
+              <span className="product-sidebar-metric-value" style={{ color: Number(product.stock || 0) <= Number(form.watch('minStock') || 0) ? '#dc2626' : '#16a34a' }}>
+                {Number(product.stock || 0)} قطعة
+              </span>
+            </div>
+            <div className="product-sidebar-metric">
+              <span className="product-sidebar-metric-label">نوع الصنف:</span>
+              <span className="product-sidebar-metric-value" style={{ fontSize: '0.88rem' }}>
+                {form.watch('itemType') === 'raw_material' ? 'مادة خام' : 'منتج للبيع'}
+              </span>
+            </div>
+            <div className="product-sidebar-metric">
+              <span className="product-sidebar-metric-label">القسم الحالي:</span>
+              <span className="product-sidebar-metric-value" style={{ fontSize: '0.88rem' }}>
+                {categories.find((c) => String(c.id) === String(form.watch('categoryId')))?.name || 'بدون قسم'}
+              </span>
+            </div>
+          </div>
+
+          {/* Mobile Store & IMEI Toggle */}
+          {settingsQuery.data?.enableMobileStoreFeatures === true && (
+            <div className="product-compact-card" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
+              <h3 className="product-compact-card-title" style={{ fontSize: '0.88rem', color: '#166534' }}>📱 تتبع السيريال (IMEI)</h3>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>
+                <input type="checkbox" {...form.register('trackSerials')} disabled={isFormDisabled} style={{ width: 18, height: 18, marginTop: 2 }} />
+                <span>تتبع أرقام IMEI / السيريال المنفرد للهواتف والأجهزة</span>
+              </label>
+            </div>
+          )}
+
+          {/* Notes */}
+          <div className="product-compact-card">
+            <h3 className="product-compact-card-title">ملاحظات الصنف</h3>
+            <textarea
+              className="purchase-prototype-field-input"
+              rows={3}
+              {...form.register('notes')}
+              disabled={isFormDisabled}
+              placeholder="أي ملاحظات إضافية حول الصنف..."
+              style={{ minHeight: '75px', resize: 'vertical' }}
+            />
+          </div>
         </div>
       </main>
     </div>

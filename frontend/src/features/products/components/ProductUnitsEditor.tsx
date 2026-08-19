@@ -82,15 +82,6 @@ function unitName(unit: ProductUnit, fallback = 'وحدة') {
   return String(unit.name || '').trim() || fallback;
 }
 
-function roleSummary(unit: ProductUnit) {
-  const roles = [
-    unit.isBaseUnit ? 'أساسية' : '',
-    unit.isSaleUnit ? 'بيع' : '',
-    unit.isPurchaseUnit ? 'شراء' : '',
-  ].filter(Boolean);
-  return roles.length ? roles.join(' / ') : 'بدون دور محدد';
-}
-
 function conversionText(unit: ProductUnit, baseUnitName: string) {
   const currentName = unitName(unit);
   const multiplier = Number(unit.multiplier || 1) || 1;
@@ -98,18 +89,10 @@ function conversionText(unit: ProductUnit, baseUnitName: string) {
   return `1 ${currentName} = ${multiplier} ${baseUnitName}`;
 }
 
-function roleHelpText(key: 'isBaseUnit' | 'isSaleUnit' | 'isPurchaseUnit') {
-  if (key === 'isBaseUnit') return 'أساس حساب المخزون والتحويلات.';
-  if (key === 'isSaleUnit') return 'الوحدة الافتراضية في الكاشير.';
-  return 'الوحدة الافتراضية في فواتير الشراء.';
-}
-
 export function ProductUnitsEditor({ units, onChange, disabled = false, title = 'وحدات الصنف' }: ProductUnitsEditorProps) {
   const normalized = normalizeUnits(units);
   const baseUnit = normalized.find((unit) => unit.isBaseUnit) || normalized[0];
   const baseUnitName = unitName(baseUnit, 'الوحدة الأساسية');
-  const saleUnit = normalized.find((unit) => unit.isSaleUnit) || baseUnit;
-  const purchaseUnit = normalized.find((unit) => unit.isPurchaseUnit) || baseUnit;
 
   function patchRow(index: number, patch: Partial<ProductUnit>) {
     const next = normalized.map((unit, currentIndex) => (currentIndex === index ? { ...unit, ...patch } : unit));
@@ -133,96 +116,27 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
     onChange(normalizeUnits([...normalized, nextEmptyUnit()]));
   }
 
-  function roleOption(index: number, unit: ProductUnit, key: 'isBaseUnit' | 'isSaleUnit' | 'isPurchaseUnit', label: string) {
-    const checked = Boolean(unit[key]);
-    return (
-      <label
-        className="card-soft"
-        style={{
-          alignItems: 'center',
-          background: checked ? 'rgba(239, 246, 255, 0.96)' : 'rgba(255, 255, 255, 0.92)',
-          borderColor: checked ? 'rgba(37, 99, 235, 0.34)' : 'rgba(226, 232, 240, 0.88)',
-          cursor: disabled ? 'default' : 'pointer',
-          display: 'flex',
-          gap: 10,
-          justifyContent: 'space-between',
-          margin: 0,
-          minHeight: 58,
-          overflow: 'hidden',
-          padding: '10px 12px',
-        }}
-      >
-        <span style={{ minWidth: 0 }}>
-          <strong style={{ color: checked ? 'rgb(29, 78, 216)' : 'rgb(15, 23, 42)', display: 'block', fontSize: 13, lineHeight: 1.7 }}>{label}</strong>
-          <span className="muted small" style={{ display: 'block', lineHeight: 1.6, whiteSpace: 'normal' }}>{roleHelpText(key)}</span>
-        </span>
-        <input type="radio" name={`${title}-${key}`} checked={checked} disabled={disabled} onChange={() => setExclusive(index, key)} style={{ flex: '0 0 auto' }} />
-      </label>
-    );
-  }
-
   return (
-    <div className="page-stack">
-      <div className="section-title" style={{ alignItems: 'center', gap: 10, marginBottom: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
         <div>
-          <h3 style={{ fontSize: 16, margin: 0 }}>{title}</h3>
-          <p className="muted small" style={{ margin: '4px 0 0' }}>عرّف أصغر وحدة للمخزون، ثم حدد وحدة البيع ووحدة الشراء.</p>
+          <span className="muted small">عرّف أصغر وحدة للمخزون، ثم حدد وحدة البيع ووحدة الشراء الافتراضية.</span>
         </div>
-        <Button type="button" variant="secondary" onClick={addRow} disabled={disabled}>إضافة وحدة</Button>
+        <Button type="button" variant="secondary" onClick={addRow} disabled={disabled} style={{ minHeight: '32px', padding: '4px 12px', fontSize: '0.82rem' }}>
+          + إضافة وحدة
+        </Button>
       </div>
 
-      <div className="card-soft" style={{ background: 'rgba(239, 246, 255, 0.58)', borderColor: 'rgba(37, 99, 235, 0.16)', padding: 12 }}>
-        <strong style={{ display: 'block', marginBottom: 8 }}>ملخص الوحدات الحالي</strong>
-        <div className="form-grid">
-          <div className="field" style={{ margin: 0 }}>
-            <span>الوحدة الأساسية</span>
-            <strong>{unitName(baseUnit)}</strong>
-            <small className="muted">المخزون يتحسب بها داخليًا.</small>
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <span>وحدة البيع</span>
-            <strong>{unitName(saleUnit)}</strong>
-            <small className="muted">تظهر افتراضيًا في الكاشير.</small>
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <span>وحدة الشراء</span>
-            <strong>{unitName(purchaseUnit)}</strong>
-            <small className="muted">تستخدم افتراضيًا عند الشراء من المورد.</small>
-          </div>
-        </div>
-        <p className="muted small" style={{ margin: '10px 0 0' }}>
-          مثال: لو الوحدة الأساسية قطعة ووحدة الشراء كرتونة بمضاعف 12، فشراء 1 كرتونة يضيف 12 قطعة للمخزون.
-        </p>
-      </div>
-
-      <div className="page-stack">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
         {normalized.map((unit, index) => {
           const presetValue = UNIT_PRESETS.includes(unit.name) ? unit.name : '__custom__';
           const customNameReadonly = presetValue !== '__custom__';
           return (
-            <div key={unit.id || `${index}`} className="list-row" style={{ alignItems: 'stretch', flexDirection: 'column', gap: 12, overflow: 'hidden', padding: 14 }}>
-              <div className="section-title" style={{ alignItems: 'flex-start', gap: 10, margin: 0 }}>
-                <div style={{ minWidth: 0 }}>
-                  <strong style={{ display: 'block', fontSize: 15, lineHeight: 1.7 }}>{unitName(unit, `وحدة ${index + 1}`)}</strong>
-                  <span className="muted small" style={{ display: 'block', lineHeight: 1.7 }}>{conversionText(unit, baseUnitName)}</span>
-                </div>
-                <span
-                  className="nav-pill"
-                  style={{
-                    background: 'rgba(241, 245, 249, 0.92)',
-                    flex: '0 0 auto',
-                    fontWeight: 800,
-                    maxWidth: '100%',
-                    whiteSpace: 'normal',
-                  }}
-                >
-                  {roleSummary(unit)}
-                </span>
-              </div>
-
-              <div className="form-grid" style={{ width: '100%' }}>
-                <Field label="الوحدة">
+            <div key={unit.id || `${index}`} className="product-units-compact-row">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr)) auto', gap: '0.65rem', alignItems: 'flex-end' }}>
+                <Field label="نوع الوحدة">
                   <select
+                    className="purchase-prototype-field-input"
                     value={presetValue}
                     disabled={disabled}
                     onChange={(event) => {
@@ -234,47 +148,43 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                     <option value="__custom__">اسم مخصص</option>
                   </select>
                 </Field>
-                <Field label="اسم الوحدة المخصص">
-                  <input value={unit.name} readOnly={customNameReadonly} disabled={disabled} onChange={(event) => patchRow(index, { name: event.target.value })} placeholder="مثال: قطعة أو كرتونة" />
+                <Field label="اسم الوحدة">
+                  <input className="purchase-prototype-field-input" value={unit.name} readOnly={customNameReadonly} disabled={disabled} onChange={(event) => patchRow(index, { name: event.target.value })} placeholder="مثال: قطعة" />
                 </Field>
-                <Field label={`المضاعف مقارنة بـ ${baseUnitName}`}>
-                  <input type="number" min="1" step="1" value={unit.multiplier} disabled={disabled || unit.isBaseUnit} onChange={(event) => patchRow(index, { multiplier: Number(event.target.value || 1) })} />
+                <Field label={`المضاعف (${baseUnitName})`}>
+                  <input className="purchase-prototype-field-input" type="number" min="1" step="1" value={unit.multiplier} disabled={disabled || unit.isBaseUnit} onChange={(event) => patchRow(index, { multiplier: Number(event.target.value || 1) })} />
                 </Field>
                 <Field label="باركود الوحدة">
-                  <input value={unit.barcode} disabled={disabled} onChange={(event) => patchRow(index, { barcode: event.target.value })} placeholder="اختياري" />
+                  <input className="purchase-prototype-field-input" value={unit.barcode} disabled={disabled} onChange={(event) => patchRow(index, { barcode: event.target.value })} placeholder="اختياري" />
                 </Field>
+                {normalized.length > 1 && (
+                  <Button type="button" variant="danger" onClick={() => removeRow(index)} disabled={disabled} style={{ minHeight: '38px', padding: '0 12px' }}>
+                    حذف
+                  </Button>
+                )}
               </div>
 
-              <div className="card-soft" style={{ background: 'rgba(248, 250, 252, 0.88)', overflow: 'hidden', padding: 10 }}>
-                <strong style={{ display: 'block', fontSize: 13, marginBottom: 8 }}>استخدام هذه الوحدة</strong>
-                <div
-                  style={{
-                    display: 'grid',
-                    gap: 8,
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-                    width: '100%',
-                  }}
-                >
-                  {roleOption(index, unit, 'isBaseUnit', 'الوحدة الأساسية')}
-                  {roleOption(index, unit, 'isSaleUnit', 'وحدة البيع')}
-                  {roleOption(index, unit, 'isPurchaseUnit', 'وحدة الشراء')}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.65rem', paddingTop: '0.5rem', borderTop: '1px solid #edf2f7', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span className="muted small" style={{ fontWeight: 600 }}>استخدام الوحدة:</span>
+                  <label className={`product-unit-chip-btn ${unit.isBaseUnit ? 'active' : ''}`}>
+                    <input type="radio" name={`${title}-isBaseUnit`} checked={Boolean(unit.isBaseUnit)} disabled={disabled} onChange={() => setExclusive(index, 'isBaseUnit')} />
+                    <span>الوحدة الأساسية (المخزون)</span>
+                  </label>
+                  <label className={`product-unit-chip-btn ${unit.isSaleUnit ? 'active' : ''}`}>
+                    <input type="radio" name={`${title}-isSaleUnit`} checked={Boolean(unit.isSaleUnit)} disabled={disabled} onChange={() => setExclusive(index, 'isSaleUnit')} />
+                    <span>وحدة البيع (الكاشير)</span>
+                  </label>
+                  <label className={`product-unit-chip-btn ${unit.isPurchaseUnit ? 'active' : ''}`}>
+                    <input type="radio" name={`${title}-isPurchaseUnit`} checked={Boolean(unit.isPurchaseUnit)} disabled={disabled} onChange={() => setExclusive(index, 'isPurchaseUnit')} />
+                    <span>وحدة الشراء (المورد)</span>
+                  </label>
                 </div>
-              </div>
-
-              <div className="actions" style={{ justifyContent: 'space-between', width: '100%' }}>
-                <span className="muted small" style={{ lineHeight: 1.7 }}>{conversionText(unit, baseUnitName)}</span>
-                <Button type="button" variant="danger" onClick={() => removeRow(index)} disabled={disabled || normalized.length === 1}>حذف الوحدة</Button>
+                <span className="muted small" style={{ fontSize: '0.78rem' }}>{conversionText(unit, baseUnitName)}</span>
               </div>
             </div>
           );
         })}
-      </div>
-
-      <div className="card-soft" style={{ background: 'rgba(248, 250, 252, 0.92)', padding: 12 }}>
-        <strong style={{ display: 'block', marginBottom: 6 }}>قاعدة مهمة</strong>
-        <p className="muted small" style={{ margin: 0 }}>
-          السيستم لا يخمّن معنى الوحدة؛ هو يعتمد على الاسم والمضاعف. اكتب مثلًا: قطعة = 1، كرتونة = 12، ثم حدد أي وحدة للبيع وأي وحدة للشراء.
-        </p>
       </div>
     </div>
   );
