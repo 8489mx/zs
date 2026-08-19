@@ -505,13 +505,13 @@ export function MaintenanceTicketsPage() {
                             outline: 'none',
                           }}
                         >
-                          <option value="received">🟡 استلام جديد</option>
-                          <option value="inspecting">🔵 قيد الفحص والتسعير</option>
-                          <option value="in_progress">🟠 قيد الصيانة</option>
-                          <option value="repaired">🟢 جاهز للتسليم</option>
-                          <option value="delivered">✔️ تم التسليم والتحصيل</option>
-                          <option value="unrepairable">❌ تعذر الإصلاح</option>
-                          <option value="cancelled">⚪ ملغي</option>
+                          <option value="received">استلام جديد</option>
+                          <option value="inspecting">قيد الفحص والتسعير</option>
+                          <option value="in_progress">قيد الصيانة</option>
+                          <option value="repaired">جاهز للتسليم</option>
+                          <option value="delivered">تم التسليم والتحصيل</option>
+                          <option value="unrepairable">تعذر الإصلاح</option>
+                          <option value="cancelled">ملغي</option>
                         </select>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -1321,10 +1321,10 @@ export function MaintenanceTicketsPage() {
                           className="purchase-prototype-field-input"
                           style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', fontWeight: 600, fontSize: '0.85rem', marginBottom: discountReason === 'custom' ? '8px' : '0' }}
                         >
-                          <option value="فصال ومراضاة للعميل">🏷️ فصال ومراضاة للعميل (خصم مسموح به)</option>
-                          <option value="خصم عميل مميز / إكرامية">🎁 خصم عميل مميز / إكرامية</option>
-                          <option value="تقريب كسور وفكة">🪙 تقريب كسور وفكة</option>
-                          <option value="custom">✍️ سبب آخر (اكتب يدوياً)</option>
+                          <option value="فصال ومراضاة للعميل">فصال ومراضاة للعميل (خصم مسموح به)</option>
+                          <option value="خصم عميل مميز / إكرامية">خصم عميل مميز / إكرامية</option>
+                          <option value="تقريب كسور وفكة">تقريب كسور وفكة</option>
+                          <option value="custom">سبب آخر (اكتب يدوياً)</option>
                         </select>
                         {discountReason === 'custom' && (
                           <input
@@ -1341,7 +1341,7 @@ export function MaintenanceTicketsPage() {
 
                     {diff < 0 && (
                       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>🪙 باقي مستحق للعميل:</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>باقي مستحق للعميل:</span>
                         <strong style={{ fontSize: '1rem', color: '#16a34a' }}>{Math.abs(diff).toFixed(2)} ج.م</strong>
                       </div>
                     )}
