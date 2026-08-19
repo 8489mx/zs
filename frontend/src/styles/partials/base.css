@@ -24,16 +24,16 @@ html {
 html, body, #root { height: 100%; min-height: 100%; }
 
 /* ========================================================
-   ✨ Premium Sleek & Smooth Custom Scrollbar for Electron
+   ✨ Ultra-Premium Floating Rounded Pill Scrollbar
    ======================================================== */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.38) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -41,17 +41,22 @@ html, body, #root { height: 100%; min-height: 100%; }
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(148, 163, 184, 0.38);
+  background-color: rgba(148, 163, 184, 0.4);
+  border: 2px solid transparent;
+  background-clip: content-box;
   border-radius: 9999px;
-  transition: background-color 0.2s ease;
+  min-height: 40px;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(100, 116, 139, 0.7);
+  background-color: rgba(100, 116, 139, 0.75);
+  border: 1.5px solid transparent;
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background-color: rgba(30, 41, 59, 0.9);
+  background-color: rgba(15, 23, 42, 0.9);
+  border: 1px solid transparent;
 }
 
 ::-webkit-scrollbar-corner {
