@@ -291,7 +291,7 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                 <th style={{ padding: '10px 14px' }}>العميل / الهاتف</th>
                 <th style={{ padding: '10px 14px' }}>الجهاز / IMEI</th>
                 <th style={{ padding: '10px 14px' }}>العطل</th>
-                <th style={{ padding: '10px 14px' }}>التكلفة / المتبقي</th>
+                <th style={{ padding: '10px 14px' }}>التكلفة / المدفوع / المتبقي</th>
                 <th style={{ padding: '10px 14px' }}>الحالة</th>
                 <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
               </tr>
@@ -303,31 +303,117 @@ ${ticket.advancePayment > 0 ? `💵 المدفوع مقدماً: ${ticket.advanc
                 <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>لا توجد تذاكر صيانة مسجلة تطابق البحث.</td></tr>
               ) : (
                 tickets.map((t) => {
-                  const remaining = Math.max(0, (t.finalCost || t.expectedCost || 0) - (t.advancePayment || 0));
+                  const totalCost = t.finalCost || t.expectedCost || 0;
+                  const advancePaid = t.advancePayment || 0;
+                  const remaining = Math.max(0, totalCost - advancePaid);
                   return (
                     <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '10px 14px' }}>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.95rem', color: '#0284c7', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px', display: 'inline-block' }}>
+                        <button
+                          type="button"
+                          onClick={() => void maintenanceApi.get(t.id).then((r) => setSelectedTicket(r.ticket))}
+                          title="فتح تفاصيل التذكرة"
+                          style={{
+                            fontFamily: 'monospace',
+                            fontWeight: 800,
+                            fontSize: '0.92rem',
+                            color: '#0284c7',
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'inline-block',
+                          }}
+                        >
                           {t.ticketNo}
-                        </span>
+                        </button>
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <strong>{t.customerName}</strong>
+                        <strong style={{ display: 'block', color: '#1e293b' }}>{t.customerName}</strong>
                         <div style={{ fontSize: '0.75rem', color: '#64748b' }} dir="ltr">{t.customerPhone}</div>
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <strong>{t.deviceBrand ? `${t.deviceBrand} ` : ''}{t.deviceModel}</strong>
-                        {t.serialNumber && <div style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>IMEI: {t.serialNumber}</div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                          {t.deviceBrand && (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                background: '#f1f5f9',
+                                color: '#334155',
+                                border: '1px solid #e2e8f0',
+                              }}
+                            >
+                              {t.deviceBrand}
+                            </span>
+                          )}
+                          <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>{t.deviceModel}</strong>
+                        </div>
+                        {t.serialNumber && (
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <span>📱</span>
+                            <span dir="ltr">IMEI: {t.serialNumber}</span>
+                          </div>
+                        )}
                       </td>
-                      <td style={{ padding: '10px 14px', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.problemDescription}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div>{(t.finalCost || t.expectedCost || 0).toFixed(2)} ج.م</div>
-                        {remaining > 0 && <small style={{ color: '#dc2626', fontWeight: 600 }}>متبقي: {remaining.toFixed(2)} ج.م</small>}
+                      <td style={{ padding: '10px 14px', maxWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.problemDescription}>
+                        {t.problemDescription}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: statusLabels[t.status]?.bg || '#f1f5f9', color: statusLabels[t.status]?.color || '#334155' }}>
-                          {statusLabels[t.status]?.label || t.status}
-                        </span>
+                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>
+                          {totalCost.toFixed(2)} <span style={{ fontSize: '0.7rem', color: '#64748b' }}>ج.م</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', marginTop: '2px', flexWrap: 'wrap' }}>
+                          {advancePaid > 0 ? (
+                            <span style={{ color: '#16a34a', fontWeight: 600 }}>
+                              مدفوع: {advancePaid.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>بدون مقدم</span>
+                          )}
+                          <span style={{ color: '#cbd5e1' }}>•</span>
+                          {remaining > 0 ? (
+                            <span style={{ color: '#dc2626', fontWeight: 700 }}>
+                              متبقي: {remaining.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#16a34a', fontWeight: 700 }}>
+                              خالص ✓
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <select
+                          value={t.status}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as MaintenanceStatus;
+                            updateStatusMutation.mutate({ id: t.id, status: newStatus });
+                          }}
+                          disabled={updateStatusMutation.isPending}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: '1px solid transparent',
+                            background: statusLabels[t.status]?.bg || '#f1f5f9',
+                            color: statusLabels[t.status]?.color || '#334155',
+                            outline: 'none',
+                          }}
+                        >
+                          <option value="received">🟡 استلام جديد</option>
+                          <option value="inspecting">🔵 قيد الفحص والتسعير</option>
+                          <option value="in_progress">🟠 قيد الصيانة</option>
+                          <option value="repaired">🟢 جاهز للتسليم</option>
+                          <option value="delivered">✔️ تم التسليم والتحصيل</option>
+                          <option value="unrepairable">❌ تعذر الإصلاح</option>
+                          <option value="cancelled">⚪ ملغي</option>
+                        </select>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', gap: '4px' }}>
