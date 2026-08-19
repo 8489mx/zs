@@ -5,7 +5,9 @@ import { formatCurrency } from '@/lib/format';
 import { reportsSections, type ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
 import { formatPercent, relativePercent } from '@/features/reports/lib/reports-format';
 
-type InventorySummary = { lowStock?: number };
+import type { EmployeeReportsSummary } from '@/features/reports/api/reports.api';
+
+type InventorySummary = { totalItems?: number; lowStock?: number; outOfStock?: number; healthy?: number; trackedLocations?: number };
 type BalancesSummary = { totalItems?: number; overLimit?: number };
 
 type MetricsInput = {
@@ -18,6 +20,7 @@ type MetricsInput = {
   accountingInventoryValue?: InventoryValueResponse | null;
   inventoryQuery: { data?: { summary?: InventorySummary } };
   balancesQuery: { data?: { summary?: BalancesSummary } };
+  employeesQuery?: { data?: { summary?: EmployeeReportsSummary; pagination?: { totalItems?: number } } };
 };
 
 export function useReportsWorkspaceMetrics({
@@ -30,6 +33,7 @@ export function useReportsWorkspaceMetrics({
   accountingInventoryValue,
   inventoryQuery,
   balancesQuery,
+  employeesQuery,
 }: MetricsInput) {
   const financialCards = accountingFinancialSummary?.cards;
   const cashTotals = accountingCashMovement?.totals;
@@ -62,12 +66,76 @@ export function useReportsWorkspaceMetrics({
     return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
   }, [submittedRange]);
 
-  const reportHealthRows = useMemo(() => ([
-    { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
-    { label: 'أصناف حرجة', value: `${inventoryQuery.data?.summary?.lowStock || 0} صنف` },
-    { label: 'عملاء بمديونية', value: `${balancesQuery.data?.summary?.totalItems || 0} عميل` },
-    { label: 'صافي حركة النقدية', value: formatCurrency(cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0) },
-  ]), [balancesQuery.data?.summary?.totalItems, cashTotals?.netMovement, financialCards?.netCashMovement, inventoryQuery.data?.summary?.lowStock, rangeDays, report?.treasury.net]);
+  const reportHealthRows = useMemo(() => {
+    switch (currentSection) {
+      case 'inventory':
+        return [
+          { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
+          { label: 'أصناف نافدة', value: `${inventoryQuery.data?.summary?.outOfStock ?? 0} صنف` },
+          { label: 'أصناف حرجة / منخفضة', value: `${inventoryQuery.data?.summary?.lowStock ?? 0} صنف` },
+          { label: 'أصناف بحالة سليمة', value: `${inventoryQuery.data?.summary?.healthy ?? 0} صنف` },
+        ];
+      case 'sales':
+        return [
+          { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
+          { label: 'صافي المبيعات', value: formatCurrency(financialCards?.netSales ?? report?.sales.netSales ?? 0) },
+          { label: 'عدد الفواتير', value: `${report?.sales.count ?? 0} فاتورة` },
+          { label: 'المرتجعات والخصم', value: formatCurrency(financialCards ? financialCards.salesReturns + financialCards.salesDiscounts : report?.returns.total ?? 0) },
+        ];
+      case 'treasury':
+        return [
+          { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
+          { label: 'المقبوضات الكاش', value: formatCurrency(cashTotals?.totalIn ?? report?.treasury.cashIn ?? 0) },
+          { label: 'المدفوعات والمصروفات', value: formatCurrency(cashTotals?.totalOut ?? report?.treasury.cashOut ?? 0) },
+          { label: 'صافي حركة النقدية', value: formatCurrency(cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0) },
+        ];
+      case 'purchases':
+        return [
+          { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
+          { label: 'صافي المشتريات', value: formatCurrency(report?.purchases.netPurchases ?? report?.purchases.total ?? 0) },
+          { label: 'فواتير الشراء', value: `${report?.purchases.count ?? 0} فاتورة` },
+          { label: 'مرتجعات الشراء', value: formatCurrency(report?.returns.purchasesTotal ?? 0) },
+        ];
+      case 'balances':
+        return [
+          { label: 'مديونيات العملاء', value: formatCurrency(receivablesTotals?.customerReceivables ?? 0) },
+          { label: 'مستحقات الموردين', value: formatCurrency(receivablesTotals?.supplierPayables ?? 0) },
+          { label: 'عملاء بمديونية', value: `${balancesQuery.data?.summary?.totalItems ?? 0} عميل` },
+          { label: 'تجاوزوا الحد الائتماني', value: `${balancesQuery.data?.summary?.overLimit ?? 0} عميل` },
+        ];
+      case 'employees':
+        return [
+          { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
+          { label: 'إجمالي الموظفين', value: `${employeesQuery?.data?.summary?.totalUsers ?? 0} موظف` },
+          { label: 'سجلات النشاط', value: `${employeesQuery?.data?.pagination?.totalItems ?? 0} حركة` },
+          { label: 'الموظفون النشطون', value: `${employeesQuery?.data?.summary?.activeUsers ?? 0} نشط` },
+        ];
+      case 'overview':
+      default:
+        return [
+          { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
+          { label: 'أصناف حرجة', value: `${inventoryQuery.data?.summary?.lowStock ?? 0} صنف` },
+          { label: 'عملاء بمديونية', value: `${balancesQuery.data?.summary?.totalItems ?? 0} عميل` },
+          { label: 'صافي حركة النقدية', value: formatCurrency(cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0) },
+        ];
+    }
+  }, [
+    currentSection,
+    rangeDays,
+    inventoryQuery.data?.summary?.outOfStock,
+    inventoryQuery.data?.summary?.lowStock,
+    inventoryQuery.data?.summary?.healthy,
+    balancesQuery.data?.summary?.totalItems,
+    balancesQuery.data?.summary?.overLimit,
+    cashTotals?.totalIn,
+    cashTotals?.totalOut,
+    cashTotals?.netMovement,
+    financialCards,
+    report,
+    receivablesTotals,
+    employeesQuery?.data?.summary,
+    employeesQuery?.data?.pagination?.totalItems,
+  ]);
 
   const operatingSignalRows = useMemo(() => ([
     { label: 'الفجوة بيع/شراء', value: formatCurrency((financialCards?.netSales ?? report?.sales.netSales ?? 0) - (report?.purchases.netPurchases || 0)) },

@@ -68,6 +68,7 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     accountingInventoryValue: accountingInventoryValueQuery.data ?? null,
     inventoryQuery,
     balancesQuery,
+    employeesQuery,
   });
   const actions = useReportsWorkspaceActions({
     report,
