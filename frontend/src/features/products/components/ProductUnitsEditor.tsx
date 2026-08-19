@@ -1,8 +1,7 @@
 import type { ProductUnit } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
-import { Field } from '@/shared/ui/field';
 
-const UNIT_PRESETS = ['قطعة', 'علبة', 'كرتونة', 'باكيت', 'زجاجة', 'شريط', 'كيلو', 'جرام', 'لتر', 'متر', 'دستة', 'زوج'];
+const UNIT_PRESETS = ['قطعة', 'علبة', 'كرتونة', 'باكيت', 'زجاجة', 'شريط', 'كيلو', 'جرام', 'لتر', 'متر', 'دستة', 'زوج', 'شيكارة', 'طرد', 'برميل'];
 
 function nextEmptyUnit(): ProductUnit {
   return {
@@ -82,13 +81,6 @@ function unitName(unit: ProductUnit, fallback = 'وحدة') {
   return String(unit.name || '').trim() || fallback;
 }
 
-function conversionText(unit: ProductUnit, baseUnitName: string) {
-  const currentName = unitName(unit);
-  const multiplier = Number(unit.multiplier || 1) || 1;
-  if (unit.isBaseUnit) return `هي أساس المخزون: 1 ${currentName} = 1 ${baseUnitName}`;
-  return `1 ${currentName} = ${multiplier} ${baseUnitName}`;
-}
-
 export function ProductUnitsEditor({ units, onChange, disabled = false, title = 'وحدات الصنف' }: ProductUnitsEditorProps) {
   const normalized = normalizeUnits(units);
   const baseUnit = normalized.find((unit) => unit.isBaseUnit) || normalized[0];
@@ -117,74 +109,139 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-        <div>
-          <span className="muted small">عرّف أصغر وحدة للمخزون، ثم حدد وحدة البيع ووحدة الشراء الافتراضية.</span>
-        </div>
-        <Button type="button" variant="secondary" onClick={addRow} disabled={disabled} style={{ minHeight: '32px', padding: '4px 12px', fontSize: '0.82rem' }}>
-          + إضافة وحدة
-        </Button>
+    <div className="product-units-table-container">
+      <datalist id="unit-preset-suggestions">
+        {UNIT_PRESETS.map((preset) => (
+          <option key={preset} value={preset} />
+        ))}
+      </datalist>
+
+      {/* Header Row */}
+      <div className="product-units-header-row">
+        <div style={{ flex: '1.3' }}>اسم الوحدة</div>
+        <div style={{ flex: '0.9' }}>المضاعف ({baseUnitName})</div>
+        <div style={{ flex: '1.3' }}>باركود الوحدة</div>
+        <div style={{ flex: '2.5' }}>دور واستخدام الوحدة الافتراضي</div>
+        {normalized.length > 1 && <div style={{ width: '36px' }}></div>}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+      {/* Data Rows */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
         {normalized.map((unit, index) => {
-          const presetValue = UNIT_PRESETS.includes(unit.name) ? unit.name : '__custom__';
-          const customNameReadonly = presetValue !== '__custom__';
           return (
-            <div key={unit.id || `${index}`} className="product-units-compact-row">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr)) auto', gap: '0.65rem', alignItems: 'flex-end' }}>
-                <Field label="نوع الوحدة">
-                  <select
-                    className="purchase-prototype-field-input"
-                    value={presetValue}
-                    disabled={disabled}
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      patchRow(index, { name: nextValue === '__custom__' ? '' : nextValue });
-                    }}
-                  >
-                    {UNIT_PRESETS.map((option) => <option key={option} value={option}>{option}</option>)}
-                    <option value="__custom__">اسم مخصص</option>
-                  </select>
-                </Field>
-                <Field label="اسم الوحدة">
-                  <input className="purchase-prototype-field-input" value={unit.name} readOnly={customNameReadonly} disabled={disabled} onChange={(event) => patchRow(index, { name: event.target.value })} placeholder="مثال: قطعة" />
-                </Field>
-                <Field label={`المضاعف (${baseUnitName})`}>
-                  <input className="purchase-prototype-field-input" type="number" min="1" step="1" value={unit.multiplier} disabled={disabled || unit.isBaseUnit} onChange={(event) => patchRow(index, { multiplier: Number(event.target.value || 1) })} />
-                </Field>
-                <Field label="باركود الوحدة">
-                  <input className="purchase-prototype-field-input" value={unit.barcode} disabled={disabled} onChange={(event) => patchRow(index, { barcode: event.target.value })} placeholder="اختياري" />
-                </Field>
-                {normalized.length > 1 && (
-                  <Button type="button" variant="danger" onClick={() => removeRow(index)} disabled={disabled} style={{ minHeight: '38px', padding: '0 12px' }}>
-                    حذف
-                  </Button>
-                )}
+            <div key={unit.id || `${index}`} className="product-units-data-row">
+              {/* Unit Name / Preset with smart datalist */}
+              <div style={{ flex: '1.3', minWidth: 0 }}>
+                <input
+                  list="unit-preset-suggestions"
+                  className="purchase-prototype-field-input"
+                  value={unit.name}
+                  disabled={disabled}
+                  onChange={(event) => patchRow(index, { name: event.target.value })}
+                  placeholder="مثال: قطعة، علبة، كرتونة..."
+                  style={{ height: '34px', fontSize: '0.86rem' }}
+                />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.65rem', paddingTop: '0.5rem', borderTop: '1px solid #edf2f7', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span className="muted small" style={{ fontWeight: 600 }}>استخدام الوحدة:</span>
-                  <label className={`product-unit-chip-btn ${unit.isBaseUnit ? 'active' : ''}`}>
-                    <input type="radio" name={`${title}-isBaseUnit`} checked={Boolean(unit.isBaseUnit)} disabled={disabled} onChange={() => setExclusive(index, 'isBaseUnit')} />
-                    <span>الوحدة الأساسية (المخزون)</span>
-                  </label>
-                  <label className={`product-unit-chip-btn ${unit.isSaleUnit ? 'active' : ''}`}>
-                    <input type="radio" name={`${title}-isSaleUnit`} checked={Boolean(unit.isSaleUnit)} disabled={disabled} onChange={() => setExclusive(index, 'isSaleUnit')} />
-                    <span>وحدة البيع (الكاشير)</span>
-                  </label>
-                  <label className={`product-unit-chip-btn ${unit.isPurchaseUnit ? 'active' : ''}`}>
-                    <input type="radio" name={`${title}-isPurchaseUnit`} checked={Boolean(unit.isPurchaseUnit)} disabled={disabled} onChange={() => setExclusive(index, 'isPurchaseUnit')} />
-                    <span>وحدة الشراء (المورد)</span>
-                  </label>
-                </div>
-                <span className="muted small" style={{ fontSize: '0.78rem' }}>{conversionText(unit, baseUnitName)}</span>
+              {/* Multiplier */}
+              <div style={{ flex: '0.9', minWidth: 0 }}>
+                <input
+                  className="purchase-prototype-field-input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={unit.multiplier}
+                  disabled={disabled || unit.isBaseUnit}
+                  onChange={(event) => patchRow(index, { multiplier: Number(event.target.value || 1) })}
+                  style={{
+                    height: '34px',
+                    fontSize: '0.86rem',
+                    background: unit.isBaseUnit ? '#f1f5f9' : '#fff',
+                    cursor: unit.isBaseUnit ? 'not-allowed' : 'text'
+                  }}
+                  title={unit.isBaseUnit ? 'الوحدة الأساسية مضاعفها دائماً 1' : `تحتوي على كم ${baseUnitName}`}
+                />
               </div>
+
+              {/* Barcode */}
+              <div style={{ flex: '1.3', minWidth: 0 }}>
+                <input
+                  className="purchase-prototype-field-input"
+                  value={unit.barcode}
+                  disabled={disabled}
+                  onChange={(event) => patchRow(index, { barcode: event.target.value })}
+                  placeholder="باركود الوحدة (اختياري)"
+                  style={{ height: '34px', fontSize: '0.86rem' }}
+                />
+              </div>
+
+              {/* Usage Chips in 1 Single Line */}
+              <div className="product-unit-roles-group" style={{ flex: '2.5', minWidth: 0 }}>
+                <label className={`product-unit-chip-btn ${unit.isBaseUnit ? 'active' : ''}`} title="أساس حساب المخزون والتحويلات">
+                  <input
+                    type="radio"
+                    name={`${title}-isBaseUnit`}
+                    checked={Boolean(unit.isBaseUnit)}
+                    disabled={disabled}
+                    onChange={() => setExclusive(index, 'isBaseUnit')}
+                  />
+                  <span>📦 أساسية (المخزون)</span>
+                </label>
+                <label className={`product-unit-chip-btn ${unit.isSaleUnit ? 'active' : ''}`} title="الوحدة الافتراضية للبيع في شاشة الكاشير">
+                  <input
+                    type="radio"
+                    name={`${title}-isSaleUnit`}
+                    checked={Boolean(unit.isSaleUnit)}
+                    disabled={disabled}
+                    onChange={() => setExclusive(index, 'isSaleUnit')}
+                  />
+                  <span>🛒 بيع (الكاشير)</span>
+                </label>
+                <label className={`product-unit-chip-btn ${unit.isPurchaseUnit ? 'active' : ''}`} title="الوحدة الافتراضية في فواتير الشراء">
+                  <input
+                    type="radio"
+                    name={`${title}-isPurchaseUnit`}
+                    checked={Boolean(unit.isPurchaseUnit)}
+                    disabled={disabled}
+                    onChange={() => setExclusive(index, 'isPurchaseUnit')}
+                  />
+                  <span>🚚 شراء (المورد)</span>
+                </label>
+              </div>
+
+              {/* Delete Button */}
+              {normalized.length > 1 && (
+                <div style={{ width: '36px', display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => removeRow(index)}
+                    disabled={disabled}
+                    className="unit-delete-btn"
+                    title="حذف هذه الوحدة"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
+      </div>
+
+      {/* Footer Helper & Add Button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.65rem', paddingTop: '0.45rem', borderTop: '1px solid #f1f5f9' }}>
+        <span className="muted small" style={{ fontSize: '0.78rem' }}>
+          * حدد أصغر وحدة كأساسية للمخزون، واختر وحدة البيع الافتراضية للكاشير ووحدة الشراء للموردين.
+        </span>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={addRow}
+          disabled={disabled}
+          style={{ minHeight: '30px', padding: '3px 12px', fontSize: '0.82rem' }}
+        >
+          + إضافة وحدة جديدة
+        </Button>
       </div>
     </div>
   );
