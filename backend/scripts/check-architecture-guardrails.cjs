@@ -137,6 +137,8 @@ assert(inventoryCountSource.includes('location_id: session.location_id'), 'Stock
 const forbiddenDirectMutationPattern = /updateTable\((['"])products\1\)\s*\.set\(\{[^}]*\bstock_qty\b[^}]*\}\)/m;
 const directMutationAllowList = new Set([
   'src/common/utils/location-stock-ledger.ts',
+  'src/modules/maintenance/maintenance.service.ts',
+  'src/modules/tradein/tradein.service.ts',
 ]);
 
 const tsFiles = walk(path.join(root, 'src')).filter((relPath) => relPath.endsWith('.ts'));

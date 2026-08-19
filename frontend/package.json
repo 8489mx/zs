@@ -118,6 +118,14 @@
       {
         "from": "../zmt.bat",
         "to": "zmt.bat"
+      },
+      {
+        "from": "../scripts/zmt.cjs",
+        "to": "scripts/zmt.cjs"
+      },
+      {
+        "from": "../scripts/zmt.ps1",
+        "to": "scripts/zmt.ps1"
       }
     ],
     "files": [
