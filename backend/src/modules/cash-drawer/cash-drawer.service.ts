@@ -134,7 +134,11 @@ export class CashDrawerService {
              coalesce(sum(case when tt.amount < 0 then abs(tt.amount) else 0 end), 0) as cash_out_total,
              coalesce(sum(tt.amount), 0) as net_total
       from treasury_transactions tt
-      where tt.tenant_id = ${scope.tenantId} and tt.reference_type = 'cashier_shift' and tt.reference_id = ${shiftId} and tt.return_document_id is null
+      where tt.tenant_id = ${scope.tenantId}
+        and tt.reference_type = 'cashier_shift'
+        and tt.reference_id = ${shiftId}
+        and tt.return_document_id is null
+        and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
     `.execute(this.db);
     const row = result.rows?.[0] || {};
     return {
@@ -147,13 +151,27 @@ export class CashDrawerService {
   private async computeShiftSupplierPaymentsTotal(shift: ShiftRow, auth: AuthContext): Promise<number> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return 0;
+    const shiftId = Number(shift.id || 0);
     const result = await sql<{ total?: number | string | null }>`
-      select coalesce(sum(sp.amount), 0) as total
-      from supplier_payments sp
-      where sp.tenant_id = ${scope.tenantId} and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
-        and (${shift.closed_at || null}::timestamptz is null or sp.payment_date <= ${shift.closed_at || null})
-        and (${shift.branch_id || null}::int is null or sp.branch_id is null or sp.branch_id = ${Number(shift.branch_id || 0) || null})
-        and (${shift.location_id || null}::int is null or sp.location_id is null or sp.location_id = ${Number(shift.location_id || 0) || null})
+      select (
+        coalesce((
+          select sum(sp.amount)
+          from supplier_payments sp
+          where sp.tenant_id = ${scope.tenantId} and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
+            and (${shift.closed_at || null}::timestamptz is null or sp.payment_date <= ${shift.closed_at || null})
+            and (${shift.branch_id || null}::int is null or sp.branch_id is null or sp.branch_id = ${Number(shift.branch_id || 0) || null})
+            and (${shift.location_id || null}::int is null or sp.location_id is null or sp.location_id = ${Number(shift.location_id || 0) || null})
+        ), 0)
+        +
+        coalesce((
+          select sum(abs(tt.amount))
+          from treasury_transactions tt
+          where tt.tenant_id = ${scope.tenantId}
+            and tt.txn_type in ('supplier_payment_schedule', 'supplier_payment')
+            and tt.reference_type = 'cashier_shift'
+            and tt.reference_id = ${shiftId}
+        ), 0)
+      ) as total
     `.execute(this.db);
     return this.toMoney(result.rows?.[0]?.total || 0);
   }
