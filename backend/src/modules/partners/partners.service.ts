@@ -413,7 +413,7 @@ export class PartnersService {
     await this.audit.log('إضافة مورد', `تم إضافة المورد ${name} بواسطة ${actor.username}`, actor);
 
     const listing = await this.listSuppliers({}, actor);
-    return { ok: true, suppliers: listing.suppliers };
+    return { ok: true, suppliers: listing.suppliers, id: inserted.id, supplier: { id: inserted.id, name } };
   }
 
   async updateSupplier(id: number, payload: UpsertSupplierDto, actor: AuthContext): Promise<Record<string, unknown>> {

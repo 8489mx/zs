@@ -52,17 +52,20 @@ async function main() {
     assert.ok(loc2Id, 'loc2Id is missing');
 
     // 3. Create a supplier
-    await client.post('/api/suppliers', {
+    const createdSupplier = await client.post('/api/suppliers', {
       name: supplierName,
       phone: '',
       address: '',
       balance: 0,
       notes: 'Multi loc supplier',
     }, 201);
-    const suppliersPayload = await client.get(`/api/suppliers?q=${encodeURIComponent(supplierName)}`);
-    const suppliersList = expectArray(suppliersPayload.suppliers, 'suppliers');
-    supplierId = String(suppliersList.find((s: any) => s.name === supplierName)?.id);
-    assert.ok(supplierId !== 'undefined', 'supplierId is missing');
+    supplierId = String(createdSupplier?.id || createdSupplier?.supplier?.id || '');
+    if (!supplierId || supplierId === 'undefined') {
+      const suppliersPayload = await client.get(`/api/suppliers?q=${encodeURIComponent(supplierName)}`);
+      const suppliersList = expectArray(suppliersPayload.suppliers, 'suppliers');
+      supplierId = String(suppliersList.find((s: any) => s.name === supplierName)?.id);
+    }
+    assert.ok(supplierId && supplierId !== 'undefined', 'supplierId is missing');
 
     // 4. Create two products (no default category or location)
     const productPayload = {
