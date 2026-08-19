@@ -28,18 +28,17 @@ export class MaintenanceService {
     },
   ) {
     const scope = requireTenantScope(auth);
-    let query = this.db
+    let baseQuery = this.db
       .selectFrom('maintenance_tickets')
-      .selectAll()
       .where('tenant_id', '=', scope.tenantId);
 
     if (filters?.status && filters.status !== 'all') {
-      query = query.where('status', '=', filters.status as any);
+      baseQuery = baseQuery.where('status', '=', filters.status as any);
     }
 
     if (filters?.q && filters.q.trim()) {
       const term = `%${normalizeArabicSearch(filters.q)}%`;
-      query = query.where(sql<boolean>`(
+      baseQuery = baseQuery.where(sql<boolean>`(
         lower(ticket_no) like ${term}
         OR TRANSLATE(LOWER(COALESCE(customer_name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
         OR lower(customer_phone) like ${term}
@@ -48,7 +47,7 @@ export class MaintenanceService {
       )`);
     }
 
-    const totalRes = await query
+    const totalRes = await baseQuery
       .select((eb) => eb.fn.count('id').as('count'))
       .executeTakeFirst();
     const total = Number(totalRes?.count || 0);
@@ -57,7 +56,8 @@ export class MaintenanceService {
     const pageSize = Math.min(100, Math.max(1, Number(filters?.pageSize || 25)));
     const offset = (page - 1) * pageSize;
 
-    const tickets = await query
+    const tickets = await baseQuery
+      .selectAll()
       .orderBy('id', 'desc')
       .limit(pageSize)
       .offset(offset)

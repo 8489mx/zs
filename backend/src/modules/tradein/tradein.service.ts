@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely } from '../../database/kysely';
+import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
@@ -7,6 +7,7 @@ import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { UpsertTradeInDto } from './dto/upsert-tradein.dto';
+import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
 
 @Injectable()
 export class TradeInService {
@@ -24,26 +25,23 @@ export class TradeInService {
     },
   ) {
     const scope = requireTenantScope(auth);
-    let query = this.db
+    let baseQuery = this.db
       .selectFrom('trade_in_transactions')
-      .selectAll()
       .where('tenant_id', '=', scope.tenantId);
 
     if (filters?.q && filters.q.trim()) {
-      const term = `%${filters.q.trim()}%`;
-      query = query.where((eb) =>
-        eb.or([
-          eb('doc_no', 'ilike', term),
-          eb('seller_name', 'ilike', term),
-          eb('seller_phone', 'ilike', term),
-          eb('seller_national_id', 'ilike', term),
-          eb('serial_number', 'ilike', term),
-          eb('device_model', 'ilike', term),
-        ]),
-      );
+      const term = `%${normalizeArabicSearch(filters.q)}%`;
+      baseQuery = baseQuery.where(sql<boolean>`(
+        lower(doc_no) like ${term}
+        OR TRANSLATE(LOWER(COALESCE(seller_name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+        OR lower(seller_phone) like ${term}
+        OR lower(seller_national_id) like ${term}
+        OR lower(serial_number) like ${term}
+        OR TRANSLATE(LOWER(COALESCE(device_model, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+      )`);
     }
 
-    const totalRes = await query
+    const totalRes = await baseQuery
       .select((eb) => eb.fn.count('id').as('count'))
       .executeTakeFirst();
     const total = Number(totalRes?.count || 0);
@@ -52,7 +50,8 @@ export class TradeInService {
     const pageSize = Math.min(100, Math.max(1, Number(filters?.pageSize || 25)));
     const offset = (page - 1) * pageSize;
 
-    const items = await query
+    const items = await baseQuery
+      .selectAll()
       .orderBy('id', 'desc')
       .limit(pageSize)
       .offset(offset)
