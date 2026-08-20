@@ -107,13 +107,13 @@ function CategorySection({
       {/* Sub-header */}
       {!collapsed && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 110px 80px 1fr 140px', gap: '8px', padding: '8px 18px', background: '#fafbfc', borderBottom: '1px solid var(--border, #e2e8f0)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '40px minmax(200px, 2fr) 120px 100px minmax(220px, 3fr) 150px', gap: '12px', padding: '10px 18px', background: '#f8fafc', borderBottom: '1px solid var(--border, #e2e8f0)', alignItems: 'center' }}>
             <span />
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>الصنف</span>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>القسم</span>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textAlign: 'center' }}>الرصيد الكلي</span>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>أماكن التخزين والرصيد</span>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textAlign: 'left' }}>إجراءات</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>الصنف</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>القسم</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الرصيد الكلي</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>أماكن التخزين والرصيد</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'end', paddingInlineEnd: '8px' }}>إجراءات</span>
           </div>
           {products.map((product) => (
             <ProductTreeRow

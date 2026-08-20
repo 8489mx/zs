@@ -29,10 +29,10 @@ function ProductTreeRow({
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '36px 1fr 110px 80px 1fr 140px',
+        gridTemplateColumns: '40px minmax(200px, 2fr) 120px 100px minmax(220px, 3fr) 150px',
         alignItems: 'center',
-        padding: '10px 18px',
-        gap: '8px',
+        padding: '8px 18px',
+        gap: '12px',
         transition: 'background 0.15s ease',
         borderBottom: '1px solid var(--border, #f1f5f9)',
         background: isSelected ? 'rgba(99, 102, 241, 0.05)' : 'transparent',
@@ -53,25 +53,28 @@ function ProductTreeRow({
       </div>
 
       {/* Name + barcode */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        <span style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a' }}>{product.name}</span>
-        {product.barcode && <span style={{ fontSize: '11px', color: '#64748b' }}>{product.barcode}</span>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+        <span style={{ fontWeight: 600, fontSize: '13.5px', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</span>
+        {product.barcode && <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{product.barcode}</span>}
         {isUnassigned && (
-          <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', width: 'fit-content' }}>
+          <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '10.5px', fontWeight: 700, padding: '1px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', width: 'fit-content' }}>
             غير مربوط بمخزن ⚠️
           </span>
         )}
       </div>
 
       {/* Category */}
-      <span style={{ fontSize: '11.5px', color: '#64748b' }}>{product.categoryName || '—'}</span>
+      <span style={{ fontSize: '12px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.categoryName || '—'}</span>
 
       {/* Global total qty */}
       <div style={{ textAlign: 'center' }}>
         <span style={{
           fontWeight: 800,
-          fontSize: '14px',
-          color: product.totalQty === 0 ? '#ef4444' : product.totalQty > 50 ? '#059669' : '#d97706',
+          fontSize: '13.5px',
+          padding: '2px 8px',
+          borderRadius: '6px',
+          background: product.totalQty === 0 ? '#fee2e2' : '#f1f5f9',
+          color: product.totalQty === 0 ? '#dc2626' : '#0f172a',
         }}>
           {product.totalQty}
         </span>
@@ -83,23 +86,24 @@ function ProductTreeRow({
           <span style={{ fontSize: '12px', color: '#94a3b8' }}>—</span>
         ) : (
           visibleStocks.map((s) => (
-            <div key={s.locationId} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '3px 8px', fontSize: '11.5px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-              <span style={{ fontWeight: 600, color: '#334155' }}>{s.locationName}:</span>
-              <span style={{ background: s.qty > 0 ? '#ecfdf5' : '#fef2f2', color: s.qty > 0 ? '#059669' : '#dc2626', borderRadius: '8px', padding: '1px 6px', fontWeight: 700, fontSize: '11px' }}>
+            <div key={s.locationId} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '2px 8px', fontSize: '11.5px' }}>
+              <span style={{ fontWeight: 600, color: '#475569' }}>{s.locationName}:</span>
+              <span style={{ background: s.qty > 0 ? '#dcfce7' : '#fee2e2', color: s.qty > 0 ? '#15803d' : '#dc2626', borderRadius: '6px', padding: '1px 6px', fontWeight: 700, fontSize: '11px' }}>
                 {s.qty}
               </span>
               {s.qty === 0 && (
-                <div
+                <button
+                  type="button"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     onRemoveLocation(product.id, s.locationId);
                   }}
-                  style={{ background: '#fee2e2', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '1px 5px', fontSize: '12px', fontWeight: 'bold', marginRight: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: '12px', fontWeight: 'bold' }}
                   title="حذف هذا المخزن من الصنف"
                 >
                   ✕
-                </div>
+                </button>
               )}
             </div>
           ))
@@ -107,7 +111,7 @@ function ProductTreeRow({
       </div>
 
       {/* Total + Action */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', paddingInlineEnd: '4px' }} onClick={(e) => e.stopPropagation()}>
         {isUnassigned ? (
           <button 
             type="button"
@@ -121,7 +125,7 @@ function ProductTreeRow({
             <button 
               type="button"
               onClick={() => onTransfer(product)} 
-              style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
+              style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: 'var(--primary, #170c5c)', fontSize: '11.5px', cursor: 'pointer', fontWeight: 700 }}
             >
               نقل ↔
             </button>

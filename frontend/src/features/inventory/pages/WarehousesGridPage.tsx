@@ -73,9 +73,11 @@ export function WarehousesGridPage() {
         ) : locations.length === 0 ? (
           <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>لا توجد مخازن مسجلة حاليًا</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px', marginTop: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px', marginTop: '14px' }}>
             {locations.map((loc) => {
-              const locValue = overviewData?.locations?.find((l: any) => String(l.id) === String(loc.id))?.totalValue || 0;
+              const locInfo = overviewData?.locations?.find((l: any) => String(l.id) === String(loc.id));
+              const locValue = locInfo?.totalValue || 0;
+              const productCount = locInfo?.categories?.reduce((sum: number, c: any) => sum + (c.productCount || 0), 0) || 0;
 
               return (
                 <div 
@@ -86,21 +88,21 @@ export function WarehousesGridPage() {
                     cursor: 'pointer', 
                     display: 'flex', 
                     flexDirection: 'column', 
-                    gap: '14px',
-                    border: '1px solid var(--border)',
-                    borderRadius: '12px',
+                    gap: '16px',
+                    border: '1px solid var(--border, #e2e8f0)',
+                    borderRadius: '14px',
                     backgroundColor: '#ffffff',
-                    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+                    transition: 'all 0.2s ease-in-out',
                   }}
                   onClick={() => navigate(`/inventory/warehouses/${loc.id}`)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{
-                      width: '42px',
-                      height: '42px',
+                      width: '44px',
+                      height: '44px',
                       borderRadius: '10px',
-                      backgroundColor: '#f1f5f9',
+                      backgroundColor: 'rgba(99, 102, 241, 0.08)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -116,10 +118,10 @@ export function WarehousesGridPage() {
                     <span style={{ 
                       fontSize: '11.5px', 
                       fontWeight: 700, 
-                      padding: '3px 10px', 
-                      borderRadius: '12px', 
+                      padding: '4px 10px', 
+                      borderRadius: '9999px', 
                       backgroundColor: '#ecfdf5', 
-                      color: '#059669',
+                      color: '#047857',
                       border: '1px solid #a7f3d0'
                     }}>
                       {formatLocationType(loc.locationType)}
@@ -127,10 +129,10 @@ export function WarehousesGridPage() {
                   </div>
 
                   <div>
-                    <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
+                    <h3 style={{ margin: '0 0 4px 0', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                       {loc.name}
                     </h3>
-                    <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
                       {loc.branchName ? `الفرع: ${loc.branchName}` : loc.code ? `كود المخزن: ${loc.code}` : 'موقع تخزين رئيسي'}
                     </div>
                   </div>
@@ -140,17 +142,19 @@ export function WarehousesGridPage() {
                     paddingTop: '14px', 
                     borderTop: '1px solid #f1f5f9', 
                     display: 'flex', 
-                    alignItems: 'center', 
+                    alignItems: 'flex-end', 
                     justifyContent: 'space-between' 
                   }}>
                     <div>
-                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>قيمة المخزون</span>
-                      <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary, #170c5c)' }}>
+                      <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                        <span>📦 {productCount} {productCount === 1 ? 'صنف' : 'أصناف'}</span>
+                      </span>
+                      <strong style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary, #170c5c)' }}>
                         {formatCurrency(locValue)}
                       </strong>
                     </div>
-                    <span style={{ fontSize: '12.5px', color: 'var(--primary, #170c5c)', fontWeight: 700 }}>
-                      عرض الأصناف ←
+                    <span style={{ fontSize: '12.5px', color: 'var(--primary, #170c5c)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      عرض الأصناف <span>←</span>
                     </span>
                   </div>
                 </div>
