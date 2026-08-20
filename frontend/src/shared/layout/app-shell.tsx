@@ -27,12 +27,14 @@ import { QuickAttendanceShortcut } from '@/shared/layout/quick-attendance-shortc
 import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 
 type SidebarGroupDefinition = {
   key: string;
   label: string;
   itemKeys: string[];
+  iconKey?: string;
 };
 
 type IconTone = {
@@ -51,7 +53,7 @@ const iconToneMap: Record<string, IconTone> = {
   'cash-drawer': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#a16207', glow: 'rgba(245, 158, 11, 0.24)' },
   purchases: { bg: 'linear-gradient(135deg, #cffafe, #a5f3fc)', border: '#67e8f9', fg: '#0f766e', glow: 'rgba(6, 182, 212, 0.22)' },
   'purchases-new': { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#065f46', glow: 'rgba(16, 185, 129, 0.22)' },
-  inventory: { bg: 'linear-gradient(135deg, #ccfbf1, #99f6e4)', border: '#5eead4', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.22)' },
+  inventory: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#166534', glow: 'rgba(34, 197, 94, 0.22)' },
   suppliers: { bg: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border: '#cbd5e1', fg: '#334155', glow: 'rgba(100, 116, 139, 0.18)' },
   customers: { bg: 'linear-gradient(135deg, #ffe4e6, #fecdd3)', border: '#fda4af', fg: '#be123c', glow: 'rgba(244, 63, 94, 0.2)' },
   accounts: { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
@@ -71,6 +73,7 @@ const iconToneMap: Record<string, IconTone> = {
   hr: { bg: 'linear-gradient(135deg, #fee2e2, #e0f2fe)', border: '#fca5a5', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.2)' },
   'pricing-center': { bg: 'linear-gradient(135deg, #fef9c3, #fde68a)', border: '#facc15', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.24)' },
   settings: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
+  admin: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
   'tax-dispatcher': { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#334155', glow: 'rgba(71, 85, 105, 0.18)' },
   'saas-admin-tenants': { bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', border: '#fca5a5', fg: '#991b1b', glow: 'rgba(239, 68, 68, 0.2)' },
   'saas-admin-plans': { bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', border: '#fca5a5', fg: '#991b1b', glow: 'rgba(239, 68, 68, 0.2)' },
@@ -80,6 +83,8 @@ const iconToneMap: Record<string, IconTone> = {
   'accounting-financial-summary': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
   'accounting-receivables-payables': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
   'accounting-inventory-value': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  mobile: { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#f59e0b', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
+  import: { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0284c7', glow: 'rgba(14, 165, 233, 0.22)' },
   manufacturing: { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
   maintenance: { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#f59e0b', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
   'trade-in': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#38bdf8', fg: '#0284c7', glow: 'rgba(14, 165, 233, 0.22)' },
@@ -99,56 +104,61 @@ const iconToneMap: Record<string, IconTone> = {
 const iconPathMap: Record<string, string> = {
   dashboard: 'M4 11h16M6 9l6-5 6 5v10H6V9z',
   pos: 'M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4',
-  'cash-drawer': 'M5 8h14l1 5H4l1-5zM4 13h16v6H4v-6zM8 16h8',
+  'cash-drawer': 'M3 10h18v10H3V10zm3-6h12v4H6V4zm6 9v2m-4 0h8',
   sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
+  purchases: 'M1 3h3l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L22 6H6M10 21a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm10 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z',
+  'purchases-new': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M12 18v-6M9 15h6',
+  inventory: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
+  products: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
+  'product-categories': 'M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01',
+  'pricing-center': 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+  'inventory-warehouses': 'M3 21h18M3 7v14M21 7v14M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4M3 7l9-4 9 4',
+  'inventory-tree': 'M6 3v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V3M12 12v9',
+  'inventory-issue-order-new': 'M12 5v14M5 12h14M3 21h18',
+  'inventory-issue-orders': 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
+  treasury: 'M2 6h20v12H2V6zm4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm12 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-6 2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  expenses: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+  accounts: 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'accounting-accounts': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'accounting-journal-entries': 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15zM9 7h6M9 11h6',
+  'accounting-settings': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
+  mobile: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 17h2',
   maintenance: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
   'trade-in': 'M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4',
   'imei-history': 'M12 18h.01M8 21h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z',
-  'delivery-reps': 'M4 7v10c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V7c0-1.1-.9-2-2-2H6a2 2 0 0 0-2 2zM12 9v4l2 2',
+  import: 'M2 19h20l-2-6H4l-2 6zm2-6V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4m3 0V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7',
+  'import-shipments': 'M2 19h20l-2-6H4l-2 6zm2-6V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4m3 0V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7',
+  'import-supplier-credit': 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+  'import-profit-pool': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  manufacturing: 'M2 20h20V8l-6 4V8l-6 4V4H2v16zm4-8h2v2H6v-2zm0 4h2v2H6v-2zm6-4h2v2h-2v-2zm0 4h2v2h-2v-2z',
+  'manufacturing-components': 'M4 6h16M4 12h16M4 18h16',
+  'manufacturing-boms': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
+  'manufacturing-work-orders': 'M2 12h4l2-2h4l2 2h8M6 14v6M18 14v6M10 6L8 10h8l-2-4h-4z',
+  'manufacturing-settings': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
+  reports: 'M18 20V10M12 20V4M6 20v-6M3 20h18',
+  'reports-overview': 'M18 20V10M12 20V4M6 20v-6M3 20h18',
+  'reports-sales': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
+  'reports-treasury': 'M2 6h20v12H2V6zm4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm12 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  'reports-inventory': 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
+  'reports-purchases': 'M1 3h3l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L22 6H6',
+  'reports-balances': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'reports-employees': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  hr: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  audit: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zm0 9l2 2 4-4',
+  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
+  admin: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
+  'delivery-reps': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
   returns: 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
   'purchase-returns': 'M8 7h8a5 5 0 1 1 0 10h-6M8 7l4-4M8 7l4 4',
   customers: 'M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M17 14a5 5 0 0 1 5 5',
-  reports: 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
-  'reports-overview': 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
-  'reports-sales': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
-  'reports-treasury': 'M4 7h16v10H4V7zM7 10h2M15 14h2M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
-  'reports-inventory': 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
-  'reports-purchases': 'M6 7h15l-2 8H8L6 3H3M9 20h.01M18 20h.01',
-  'reports-balances': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'reports-employees': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
-  purchases: 'M6 7h15l-2 8H8L6 3H3M9 20h.01M18 20h.01',
-  'purchases-new': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M12 18v-6M9 15h6',
-  suppliers: 'M3 7h11v10H3V7zM14 10h4l3 3v4h-7v-7zM7 20h.01M18 20h.01',
-  inventory: 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
-  'inventory-issue-order-new': 'M3 21V9l9-5 9 5v12H3zM9 21v-5a3 3 0 0 1 6 0v5',
-  'inventory-issue-orders': 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
-  'inventory-warehouses': 'M3 21V9l9-5 9 5v12H3zM9 21v-5a3 3 0 0 1 6 0v5',
-  'inventory-tree': 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z',
-  products: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
-  'product-categories': 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z',
-  treasury: 'M4 7h16v10H4V7zM7 10h2M15 14h2M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
-  expenses: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+  suppliers: 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
   services: 'M6 4h12v16H6V4zM9 8h6M9 12h6M9 16h3',
-  accounts: 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'pricing-center': 'M20 12V5h-7L4 14l6 6 10-8zM16 8h.01',
-  hr: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
-  audit: 'M5 4h14v16H5V4zM9 8h6M9 12h6M9 16h4',
-  settings: 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19 12h2M3 12h2M12 3v2M12 19v2M17 7l1.4-1.4M5.6 18.4 7 17M17 17l1.4 1.4M5.6 5.6 7 7',
   'tax-dispatcher': 'M12 2l8 4v6c0 5.5-3.6 10.7-8 12-4.4-1.3-8-6.5-8-12V6l8-4zM12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 11c-2.7 0-5 1.8-5 4v1h10v-1c0-2.2-2.3-4-5-4z',
   'saas-admin-tenants': 'M4 5h16v14H4V5zM8 9h8M8 13h8M8 17h5',
   'saas-admin-plans': 'M4 5h16v14H4V5zM8 9h8M8 13h8M8 17h5',
-  'accounting-accounts': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'accounting-journal-entries': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'accounting-settings': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
-  'accounting-financial-summary': 'M5 19V5h14v14H5zM9 16v-5M12 16V8M15 16v-3',
-  'accounting-inventory-value': 'M12 3 4 7l8 4 8-4-8-4zM4 11l8 4 8-4M4 15l8 4 8-4',
-  'import-shipments': 'M3 13h18M3 17h18M2 9l3-4h14l3 4v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z',
-  'import-supplier-credit': 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
-  'import-profit-pool': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  'manufacturing-components': 'M4 6h16M4 12h16M4 18h16',
-  'manufacturing-boms': 'M4 6h16M4 12h16M4 18h16',
-  'manufacturing-work-orders': 'M2 12h4l2-2h4l2 2h8M6 14v6M18 14v6M10 6L8 10h8l-2-4h-4z',
-  'manufacturing-settings': 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19 12h2M3 12h2M12 3v2M12 19v2M17 7l1.4-1.4M5.6 18.4 7 17M17 17l1.4 1.4M5.6 5.6 7 7',
+  'accounting-financial-summary': 'M18 20V10M12 20V4M6 20v-6M3 20h18',
+  'accounting-receivables-payables': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'accounting-inventory-value': 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
 };
 
 function AppNavIcon({ itemKey }: { itemKey: string }) {
@@ -188,6 +198,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const isPosRoute = location.pathname.startsWith('/pos');
   const [isPosChromeHidden, setIsPosChromeHidden] = useState(false);
   const [quickAttendanceOpen, setQuickAttendanceOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') return window.localStorage.getItem('zsystems_sidebar_collapsed') === 'true';
     return false;
@@ -392,15 +403,15 @@ export function AppShell({ children }: PropsWithChildren) {
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
-    { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher'] },
-    { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'] },
-    { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'] },
-    { key: 'accounting-group', label: t('sidebar.accounting-group', 'المالية والمحاسبة'), itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings'] },
-    { key: 'mobile-group', label: t('sidebar.mobile-group', 'قسم الموبايل والأجهزة'), itemKeys: ['maintenance', 'trade-in', 'imei-history'] },
-    { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'] },
-    { key: 'manufacturing-group', label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'] },
-    { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'] },
-    { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings', 'saas-admin-tenants', 'saas-admin-plans'] },
+    { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher'], iconKey: 'sales' },
+    { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
+    { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'], iconKey: 'inventory' },
+    { key: 'accounting-group', label: t('sidebar.accounting-group', 'المالية والمحاسبة'), itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings'], iconKey: 'treasury' },
+    { key: 'mobile-group', label: t('sidebar.mobile-group', 'قسم الموبايل والأجهزة'), itemKeys: ['maintenance', 'trade-in', 'imei-history'], iconKey: 'mobile' },
+    { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'], iconKey: 'import' },
+    { key: 'manufacturing-group', label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'], iconKey: 'manufacturing' },
+    { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },
+    { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings', 'saas-admin-tenants', 'saas-admin-plans'], iconKey: 'admin' },
   ]), [t]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
@@ -594,15 +605,29 @@ export function AppShell({ children }: PropsWithChildren) {
         <>
           <aside ref={sidebarRef} className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
             <div className="brand">
-            <div className="brand-copy">
-              <div className="brand-title" title={cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName)}</div>
-              <div className="brand-sub muted" style={{ lineHeight: 1.1 }}>
-                <span style={{ display: 'block' }}>Powered by</span>
-                <span style={{ display: 'block', fontSize: '12px', fontWeight: 800, marginTop: '2px', color: '#1e293b' }}>Z System's</span>
+              <div className="brand-copy">
+                <div className="brand-title" title={cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName)}</div>
+                <div 
+                  className="brand-sub-interactive" 
+                  onClick={() => setIsAboutModalOpen(true)}
+                  title="About Z System's & Tech Support"
+                >
+                  <span className="brand-powered-label">Powered by</span>
+                  <span className="brand-powered-name">
+                    Z System's
+                  </span>
+                </div>
+              </div>
+              <div 
+                className="brand-logo" 
+                onClick={() => navigate('/')} 
+                style={{ cursor: 'pointer' }}
+                title="الانتقال إلى لوحة التحكم الرئيسية"
+              >
+                <span className="z-mark">Z</span>
+                <span className="systems-mark">Systems</span>
               </div>
             </div>
-            <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
-          </div>
 
           {/* Centered Expandable Search Micro-Interaction */}
           <div ref={sidebarSearchWrapperRef} className="sidebar-search-wrapper">
@@ -668,7 +693,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <nav className="sidebar-nav">
             {filteredPrimaryNavigationItems.map((item) => renderNavItem(item, 'primary'))}
             {filteredSidebarGroups.map(({ group, groupItems, isActive, isOpen }) => {
-              const groupIconItemKey = groupItems[0]?.key || 'settings';
+              const groupIconItemKey = group.iconKey || groupItems[0]?.key || 'settings';
               const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
               const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
               return (
@@ -746,6 +771,125 @@ export function AppShell({ children }: PropsWithChildren) {
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
       <GlobalSearchModal />
       <DeveloperActivationPanel />
+      {isAboutModalOpen && (
+        <DialogShell
+          open={true}
+          onClose={() => setIsAboutModalOpen(false)}
+          width="460px"
+        >
+          <div style={{ textAlign: 'center', padding: '28px 24px 20px 24px' }}>
+            <div style={{
+              width: '84px',
+              height: '84px',
+              margin: '0 auto 14px auto',
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 10px 25px rgba(15, 23, 42, 0.2)',
+              padding: '10px'
+            }}>
+              <img 
+                src="./brand/z-erp-approved-icon.png" 
+                alt="Z Systems" 
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
+            </div>
+            
+            <h2 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
+              Z Systems ERP
+            </h2>
+            <p style={{ margin: '0 0 14px 0', fontSize: '12.5px', color: '#64748b' }}>
+              منظومة إدارة المبيعات، المخازن، الحسابات، ونقاط البيع
+            </p>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '4px 14px',
+              borderRadius: '20px',
+              backgroundColor: '#f1f5f9',
+              border: '1px solid #e2e8f0',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#334155',
+              marginBottom: '18px'
+            }}>
+              <span>الإصدار:</span>
+              <span style={{ color: '#2563eb' }}>v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.14'}</span>
+              <span style={{ color: '#10b981' }}>● نسخة مفعلة</span>
+            </div>
+
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              textAlign: 'right',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              fontSize: '12.5px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#64748b' }}>المؤسسة:</span>
+                <strong style={{ color: '#0f172a' }}>{cleanWorkspaceName}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#64748b' }}>المستخدم النشط:</span>
+                <strong style={{ color: '#0f172a' }}>{displayName}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#64748b' }}>حالة الربط والبيانات:</span>
+                <span style={{ color: '#059669', fontWeight: 700 }}>✅ متصل ومؤمّن</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button 
+                type="button"
+                onClick={() => {
+                  window.open('https://wa.me/201018017523', '_blank');
+                }}
+                style={{ 
+                  flex: 1, 
+                  padding: '10px 16px', 
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  backgroundColor: '#0f172a',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.2)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e1b4b')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#0f172a')}
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#25D366">
+                  <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.04C9.36 7.04 9.09 7.11 8.87 7.34C8.64 7.58 8 8.18 8 9.4C8 10.62 8.89 11.8 9.01 11.96C9.14 12.12 10.76 14.62 13.23 15.69C13.82 15.94 14.28 16.09 14.64 16.21C15.23 16.4 15.77 16.37 16.2 16.31C16.68 16.24 17.68 15.7 17.89 15.12C18.09 14.54 18.09 14.04 18.03 13.94C17.97 13.84 17.81 13.78 17.56 13.66C17.31 13.53 16.09 12.93 15.86 12.85C15.63 12.77 15.47 12.73 15.3 12.97C15.13 13.22 14.65 13.78 14.51 13.94C14.36 14.11 14.22 14.13 13.97 14C13.72 13.88 12.92 13.62 11.97 12.77C11.23 12.11 10.73 11.29 10.59 11.04C10.44 10.79 10.57 10.66 10.7 10.53C10.81 10.42 10.95 10.24 11.07 10.1C11.19 9.96 11.23 9.85 11.31 9.69C11.39 9.53 11.35 9.39 11.29 9.27C11.23 9.15 10.73 7.93 10.53 7.43C10.33 6.95 10.13 7.01 9.97 7C9.83 7 9.67 7.04 9.53 7.04Z"/>
+                </svg>
+                الدعم الفني عبر واتساب
+              </button>
+              <Button 
+                variant="secondary" 
+                onClick={() => setIsAboutModalOpen(false)}
+                style={{ padding: '10px 20px', fontSize: '13px' }}
+              >
+                إغلاق
+              </Button>
+            </div>
+          </div>
+        </DialogShell>
+      )}
     </div>
   );
 }
