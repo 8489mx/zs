@@ -2207,3 +2207,45 @@
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
 }
+
+/* Expenses Register Card & Table Refinement */
+.expenses-register-section {
+  width: 100%;
+}
+
+.expenses-register-section .table-wrap {
+  overflow-x: hidden !important;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.expenses-register-section .table-wrap table {
+  min-width: 100% !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.expenses-register-section .table-wrap th,
+.expenses-register-section .table-wrap td {
+  padding: 8px 12px !important;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.expenses-register-section .table-wrap th:nth-child(1) { width: 17%; }
+.expenses-register-section .table-wrap th:nth-child(2) { width: 13%; }
+.expenses-register-section .table-wrap th:nth-child(3) { width: 33%; }
+.expenses-register-section .table-wrap th:nth-child(4) { width: 13%; }
+.expenses-register-section .table-wrap th:nth-child(5) { width: 10%; }
+.expenses-register-section .table-wrap th:nth-child(6) { width: 14%; }
+
+.expenses-register-section .table-wrap tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.expenses-register-section .table-wrap tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+

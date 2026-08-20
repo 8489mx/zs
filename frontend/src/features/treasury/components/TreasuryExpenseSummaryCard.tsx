@@ -1,4 +1,4 @@
-import { FormSection } from '@/shared/components/form-section';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import type { ExpenseRecord } from '@/types/domain';
 
@@ -6,14 +6,12 @@ export function TreasuryExpenseSummaryCard({ expenseSummary, expenses }: {
   expenseSummary: { totalItems: number; totalAmount: number };
   expenses: ExpenseRecord[];
 }) {
-  return (
-    <FormSection title="ملخص المصروفات" actions={<span className="nav-pill">المصروفات</span>}>
-      <div className="stats-grid compact-grid" style={{ marginTop: '0.5rem' }}>
-        <div className="stat-card"><span>العدد</span><strong>{expenseSummary.totalItems}</strong></div>
-        <div className="stat-card"><span>الإجمالي</span><strong>{formatCurrency(expenseSummary.totalAmount)}</strong></div>
-        <div className="stat-card"><span>آخر مصروف</span><strong>{expenses[0]?.title || '—'}</strong></div>
-        <div className="stat-card"><span>المنفذ الأخير</span><strong>{expenses[0]?.createdBy || '—'}</strong></div>
-      </div>
-    </FormSection>
-  );
+  const stats = [
+    { key: 'count', label: 'عدد المصروفات', value: expenseSummary.totalItems },
+    { key: 'total', label: 'إجمالي القيمة', value: formatCurrency(expenseSummary.totalAmount) },
+    { key: 'latest', label: 'آخر مصروف', value: expenses[0]?.title || '—' },
+    { key: 'user', label: 'المنفذ الأخير', value: expenses[0]?.createdBy || '—' },
+  ] as const;
+
+  return <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />;
 }

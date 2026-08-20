@@ -1022,8 +1022,8 @@
 
 .document-prototype-column {
   display: grid;
-  gap: 0.9rem;
-  margin: 0.7rem auto 0;
+  gap: 0.65rem;
+  margin: 0.4rem auto 0;
   max-width: 1280px;
   width: min(100%, 1280px);
 }
@@ -1060,15 +1060,15 @@
 }
 
 .purchase-prototype-sticky-stack.is-scrolled + .document-prototype-column {
-  margin-top: 0.55rem;
+  margin-top: 0.4rem;
 }
 
 .document-prototype-section {
   background: #ffffff;
   border: 1px solid rgba(203, 213, 225, 0.75);
   border-radius: 8px; /* Reduced border radius */
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
-  padding: 1.18rem 1.2rem; min-width: 0;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  padding: 0.75rem 1rem; min-width: 0;
   box-sizing: border-box;
   max-width: 100%;
   overflow: visible;
