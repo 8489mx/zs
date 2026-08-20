@@ -36,7 +36,7 @@ export function SearchToolbar({
   inputRef,
   inputAriaLabel,
 }: SearchToolbarProps) {
-  const hasHeading = Boolean(title || description || actions || onReset);
+  const hasHeading = Boolean(title || description || actions);
 
   return (
     <div className={`toolbar-stack ${className}`.trim()}>
@@ -55,17 +55,29 @@ export function SearchToolbar({
 
       {meta ? <div className="toolbar-meta-row">{meta}</div> : null}
 
-      <div className="toolbar-grid compact-toolbar">
-        <Field label={searchLabel}>
-          <input
-            ref={inputRef}
-            value={search}
-            onChange={(event) => onSearchChange(normalizeArabicSearchText(event.target.value))}
-            placeholder={searchPlaceholder}
-            aria-label={inputAriaLabel || searchPlaceholder}
-          />
-        </Field>
+      <div
+        className="toolbar-grid compact-toolbar"
+        style={!hasHeading && onReset ? { display: 'flex', alignItems: 'flex-end', gap: '8px', width: '100%' } : undefined}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Field label={searchLabel}>
+            <input
+              ref={inputRef}
+              value={search}
+              onChange={(event) => onSearchChange(normalizeArabicSearchText(event.target.value))}
+              placeholder={searchPlaceholder}
+              aria-label={inputAriaLabel || searchPlaceholder}
+            />
+          </Field>
+        </div>
         {children ? <div className="toolbar-extra">{children}</div> : null}
+        {!hasHeading && onReset ? (
+          <div style={{ marginBottom: '2px', flexShrink: 0 }}>
+            <Button type="button" variant="secondary" onClick={onReset}>
+              {resetLabel}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
