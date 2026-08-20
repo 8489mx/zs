@@ -1,7 +1,8 @@
-import { CSSProperties, PropsWithChildren, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, PropsWithChildren, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { AppCloseGuard } from './AppCloseGuard';
 import { Button } from '@/shared/ui/button';
 import { authApi } from '@/shared/api/auth';
@@ -183,6 +184,48 @@ export function AppShell({ children }: PropsWithChildren) {
     setMobileSidebarOpen(false);
   }, [location.pathname, setMobileSidebarOpen]);
 
+  const [isSidebarSearchOpen, setIsSidebarSearchOpen] = useState(false);
+  const [sidebarSearchQuery, setSidebarSearchQuery] = useState('');
+  const sidebarRef = useRef<HTMLElement>(null);
+  const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
+  const sidebarSearchWrapperRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenSidebarSearch = () => {
+    if (isSidebarCollapsed) {
+      setIsSidebarCollapsed(false);
+      window.localStorage.setItem('zsystems_sidebar_collapsed', 'false');
+    }
+    setIsSidebarSearchOpen(true);
+    setTimeout(() => {
+      sidebarSearchInputRef.current?.focus();
+    }, 60);
+  };
+
+  const handleCloseSidebarSearch = () => {
+    setIsSidebarSearchOpen(false);
+    setSidebarSearchQuery('');
+  };
+
+  // Close search on route changes
+  useEffect(() => {
+    if (isSidebarSearchOpen) {
+      setIsSidebarSearchOpen(false);
+      setSidebarSearchQuery('');
+    }
+  }, [location.pathname]);
+
+  // Close search when clicking outside the sidebar
+  useEffect(() => {
+    if (!isSidebarSearchOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+        handleCloseSidebarSearch();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSidebarSearchOpen]);
+
   const toggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
       const next = !prev;
@@ -326,6 +369,48 @@ export function AppShell({ children }: PropsWithChildren) {
     return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`);
   }))?.key ?? null, [location.pathname, navigationMap, sidebarGroups]);
 
+  const normalizedSidebarQuery = useMemo(() => normalizeArabicSearchKey(sidebarSearchQuery), [sidebarSearchQuery]);
+  const isSearchingSidebar = normalizedSidebarQuery.length > 0;
+
+  const filteredPrimaryNavigationItems = useMemo(() => {
+    if (!isSearchingSidebar) return visiblePrimaryNavigationItems;
+    return visiblePrimaryNavigationItems.filter((item) => 
+      normalizeArabicSearchKey(item.label).includes(normalizedSidebarQuery)
+    );
+  }, [isSearchingSidebar, normalizedSidebarQuery, visiblePrimaryNavigationItems]);
+
+  const filteredSidebarGroups = useMemo(() => {
+    return sidebarGroups.map((group) => {
+      const groupItems = group.itemKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item));
+      if (!groupItems.length) return null;
+
+      if (!isSearchingSidebar) {
+        return {
+          group,
+          groupItems,
+          isActive: activeSidebarGroupKey === group.key,
+          isOpen: !isSidebarCollapsed,
+        };
+      }
+
+      const matchingItems = groupItems.filter((item) => 
+        normalizeArabicSearchKey(item.label).includes(normalizedSidebarQuery) ||
+        normalizeArabicSearchKey(group.label).includes(normalizedSidebarQuery)
+      );
+
+      if (matchingItems.length === 0) return null;
+
+      return {
+        group,
+        groupItems: matchingItems,
+        isActive: true,
+        isOpen: true,
+      };
+    }).filter((g): g is NonNullable<typeof g> => Boolean(g));
+  }, [activeSidebarGroupKey, isSearchingSidebar, isSidebarCollapsed, navigationMap, normalizedSidebarQuery, sidebarGroups]);
+
+  const totalMatchingItemsCount = filteredPrimaryNavigationItems.length + filteredSidebarGroups.reduce((acc, g) => acc + g.groupItems.length, 0);
+
   useEffect(() => {
     if (!isPosRoute) {
       setIsPosChromeHidden(false);
@@ -441,6 +526,13 @@ export function AppShell({ children }: PropsWithChildren) {
         onMouseDown={(e) => {
           if (e.button === 1) e.preventDefault();
         }} 
+        onClick={() => {
+          if (isSidebarSearchOpen) {
+            setTimeout(() => {
+              handleCloseSidebarSearch();
+            }, 0);
+          }
+        }}
         className={({ isActive }) => {
           const isPathActive = item.activePaths?.includes(location.pathname) || isActive;
           return `sidebar-link ${keyPrefix === 'group' ? 'sidebar-link-sub ' : ''}${isPathActive ? 'active' : ''}`.trim();
@@ -457,7 +549,7 @@ export function AppShell({ children }: PropsWithChildren) {
     <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
       {!isPosRoute || !isPosChromeHidden ? (
         <>
-          <aside className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
+          <aside ref={sidebarRef} className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
             <div className="brand">
             <div className="brand-copy">
               <div className="brand-title" title={cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName)}</div>
@@ -468,17 +560,76 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
             <div className="brand-logo"><span className="z-mark">Z</span><span className="systems-mark">Systems</span></div>
           </div>
+
+          {/* Centered Expandable Search Micro-Interaction */}
+          <div ref={sidebarSearchWrapperRef} className="sidebar-search-wrapper">
+            <div 
+              className={`sidebar-search-pill ${isSidebarSearchOpen ? 'is-expanded' : ''}`}
+              onClick={() => {
+                if (!isSidebarSearchOpen) handleOpenSidebarSearch();
+              }}
+            >
+              <button 
+                type="button" 
+                className="sidebar-search-icon-btn" 
+                title={isSidebarSearchOpen ? 'بحث' : 'بحث سريع في القوائم والتابات'}
+                onClick={(e) => {
+                  if (!isSidebarSearchOpen) {
+                    e.stopPropagation();
+                    handleOpenSidebarSearch();
+                  }
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </button>
+              {isSidebarSearchOpen ? (
+                <>
+                  <input
+                    ref={sidebarSearchInputRef}
+                    type="text"
+                    className="sidebar-search-input"
+                    placeholder="ابحث في التابات والقوائم..."
+                    value={sidebarSearchQuery}
+                    onChange={(e) => setSidebarSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        handleCloseSidebarSearch();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="sidebar-search-close-btn"
+                    title="إغلاق البحث"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (sidebarSearchQuery) {
+                        setSidebarSearchQuery('');
+                        sidebarSearchInputRef.current?.focus();
+                      } else {
+                        handleCloseSidebarSearch();
+                      }
+                    }}
+                  >
+                    ✕
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+
           <nav className="sidebar-nav">
-            {visiblePrimaryNavigationItems.map((item) => renderNavItem(item, 'primary'))}
-            {sidebarGroups.map((group) => {
-              const groupItems = group.itemKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item));
-              if (!groupItems.length) return null;
-              const isActive = activeSidebarGroupKey === group.key;
+            {filteredPrimaryNavigationItems.map((item) => renderNavItem(item, 'primary'))}
+            {filteredSidebarGroups.map(({ group, groupItems, isActive, isOpen }) => {
               const groupIconItemKey = groupItems[0]?.key || 'settings';
               const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
               const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
               return (
-                <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${!isSidebarCollapsed ? 'is-open' : ''}`.trim()}>
+                <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>
                   <div 
                     className="sidebar-group-trigger" 
                     style={toneStyle}
@@ -491,10 +642,16 @@ export function AppShell({ children }: PropsWithChildren) {
                     <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
                     <span className="sidebar-label">{group.label}</span>
                   </div>
-                  {!isSidebarCollapsed ? <div className="sidebar-group-items">{groupItems.map((item) => renderNavItem(item, 'group'))}</div> : null}
+                  {isOpen ? <div className="sidebar-group-items">{groupItems.map((item) => renderNavItem(item, 'group'))}</div> : null}
                 </div>
               );
             })}
+            {isSearchingSidebar && totalMatchingItemsCount === 0 ? (
+              <div className="sidebar-search-empty-state">
+                <span className="sidebar-search-empty-state-icon">🔍</span>
+                <p className="sidebar-search-empty-state-text">لا توجد قوائم تطابق "{sidebarSearchQuery}"</p>
+              </div>
+            ) : null}
           </nav>
           <div className="sidebar-footer">
             <div className="sidebar-footer-info" style={{ marginBottom: 12 }}>

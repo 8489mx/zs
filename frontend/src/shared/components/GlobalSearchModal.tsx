@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ClientPortal } from '@/shared/components/ClientPortal';
 import { useToolbarStore } from '@/stores/toolbar-store';
+import { useAuthStore } from '@/stores/auth-store';
+import { navigationItems } from '@/app/router/registry';
+import { canAccessNavigationItem } from '@/app/router/access';
+import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { productsApi } from '@/features/products/api/products.api';
 import { salesApi } from '@/features/sales/api/sales.api';
 import { customersApi } from '@/features/customers/api/customers.api';
@@ -45,6 +49,16 @@ export function GlobalSearchModal() {
   };
 
   const hasQuery = debouncedQuery.trim().length > 0;
+  const user = useAuthStore((state) => state.user);
+  const normalizedQuery = useMemo(() => normalizeArabicSearchKey(debouncedQuery), [debouncedQuery]);
+
+  const navMatches = useMemo(() => {
+    if (!hasQuery || !user) return [];
+    return navigationItems
+      .filter((item) => canAccessNavigationItem(user, item))
+      .filter((item) => normalizeArabicSearchKey(item.label).includes(normalizedQuery))
+      .slice(0, 6);
+  }, [hasQuery, normalizedQuery, user]);
 
   // Real API queries
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
@@ -76,12 +90,12 @@ export function GlobalSearchModal() {
     if (!hasQuery) {
       return (
         <div className="global-search-empty">
-          <p>اكتب للبحث في الأصناف، الفواتير، والعملاء...</p>
+          <p>اكتب للبحث في الصفحات، الأصناف، الفواتير، والعملاء...</p>
         </div>
       );
     }
 
-    if (isLoading) {
+    if (isLoading && navMatches.length === 0) {
       return (
         <div className="global-search-empty">
           <p>جاري البحث...</p>
@@ -93,7 +107,7 @@ export function GlobalSearchModal() {
     const sales = salesData?.rows || [];
     const customers = customersData?.customers || [];
 
-    if (products.length === 0 && sales.length === 0 && customers.length === 0) {
+    if (products.length === 0 && sales.length === 0 && customers.length === 0 && navMatches.length === 0) {
       return (
         <div className="global-search-empty">
           <p>لم يتم العثور على نتائج مطابقة لـ "{debouncedQuery}"</p>
@@ -103,6 +117,20 @@ export function GlobalSearchModal() {
 
     return (
       <div className="global-search-results">
+        {navMatches.length > 0 && (
+          <>
+            <div className="global-search-group-title">الصفحات والتنقل</div>
+            {navMatches.map((item) => (
+              <div key={item.key} className="global-search-item" onClick={() => handleNavigate(item.to)}>
+                <div className="global-search-item-icon">🧭</div>
+                <div className="global-search-item-content">
+                  <span className="global-search-item-title">{item.label}</span>
+                  <span className="global-search-item-subtitle">{item.to}</span>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
         {products.length > 0 && (
           <>
             <div className="global-search-group-title">المنتجات</div>

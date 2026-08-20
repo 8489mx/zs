@@ -88,6 +88,18 @@ function pageEnvelope<T>(key: string, rows: T[], summaryObj: Record<string, unkn
 }
 
 function apiPayload(pathname: string) {
+  if (pathname === '/api/activation/status') {
+    return {
+      activationRequired: false,
+      activated: true,
+      setupRequired: false,
+      machineId: null,
+      customerName: null,
+      activatedAt: null,
+      licenseMode: 'desktop',
+      deploymentMode: 'standalone',
+    };
+  }
   if (pathname === '/api/auth/me') {
     return {
       user: { id: 'user-1', username: 'admin', role: 'super_admin', permissions, displayName: 'Admin', branchIds: ['branch-1'], defaultBranchId: 'branch-1' },

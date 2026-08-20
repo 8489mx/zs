@@ -118,7 +118,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                 )}
                 {item.offerName && (
                   <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '2px', fontWeight: 500 }}>
-                    ✨ {item.offerName}
+                    🏷️ {item.offerName}
                   </div>
                 )}
                 {item.serials && item.serials.length > 0 && (

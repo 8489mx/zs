@@ -182,7 +182,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                       fontWeight: 600,
                     }}
                   >
-                    <span>✨ وحدة افتراضية شاملة (المخزون • البيع • الشراء)</span>
+                    <span>وحدة افتراضية شاملة (المخزون • البيع • الشراء)</span>
                   </span>
                 ) : (
                   <>
