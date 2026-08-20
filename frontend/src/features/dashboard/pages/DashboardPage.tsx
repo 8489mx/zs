@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { LoadingState } from '@/shared/ui/loading-state';
@@ -7,16 +6,15 @@ import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklis
 import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
-import { DashboardMetricCard } from '@/features/dashboard/components/DashboardMetricCard';
-import { DashboardSummaryGrid } from '@/features/dashboard/components/DashboardSummaryGrid';
+import { StatsGrid, type StatsGridItem } from '@/shared/components/stats-grid';
+import { DashboardExecutiveHero } from '@/features/dashboard/components/DashboardExecutiveHero';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
 import { DashboardMonthlySnapshot } from '@/features/dashboard/components/DashboardMonthlySnapshot';
-import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { formatCurrency } from '@/lib/format';
 import {
   buildDashboardAlerts,
   exportDashboardSnapshot,
-  formatInteger,
   printDashboardSnapshot,
 } from '@/features/dashboard/lib/dashboard-page.utils';
 
@@ -24,7 +22,6 @@ export function DashboardPage() {
   const overview = useDashboardOverview();
   const managerActions = useManagerActions(4);
   const managerOverview = useDashboardManagerOverview();
-  const settingsQuery = useSettingsQuery();
 
   if (overview.isLoading && !overview.data) {
     return (
@@ -46,26 +43,38 @@ export function DashboardPage() {
 
   const { summary, stats, topToday } = overview.data;
   const smartAlerts = buildDashboardAlerts(overview.data);
-  const isMobileEnabled = settingsQuery.data?.enableMobileStoreFeatures === true;
+  const totalStockAlerts = Number(overview.data.summary.lowStockCount || 0) + Number(overview.data.summary.outOfStockCount || 0);
 
-  const quickActions = [
-    { to: '/pos', label: 'نقطة البيع', hint: 'ابدأ تسجيل فاتورة' },
-    ...(isMobileEnabled ? [
-      { to: '/maintenance', label: 'قسم الصيانة', hint: 'متابعة أجهزة وتذاكر الإصلاح' },
-      { to: '/trade-in', label: 'شراء المستعمل', hint: 'تسجيل شراء واستبدال الهواتف' },
-    ] : []),
-    { to: '/treasury', label: 'تسجيل مصروف', hint: 'متابعة مصروفات اليوم' },
-    { to: '/inventory', label: 'مراجعة المخزون', hint: 'الأصناف المنخفضة والراكدة' },
-    { to: '/reports', label: 'تقرير اليوم', hint: 'ملخص الأداء اليومي' },
+  const heroKpis: StatsGridItem[] = [
+    {
+      key: 'sales',
+      label: 'مبيعات اليوم',
+      value: formatCurrency(Number(stats.todaySalesAmount || 0)),
+    },
+    {
+      key: 'invoices',
+      label: 'فواتير البيع اليوم',
+      value: `${stats.todaySalesCount || 0} فاتورة`,
+    },
+    {
+      key: 'treasury',
+      label: 'صافي الخزينة',
+      value: formatCurrency(Number(summary.treasury.net || 0)),
+    },
+    {
+      key: 'stock_alerts',
+      label: 'تنبيهات المخزون',
+      value: totalStockAlerts > 0 ? `${totalStockAlerts} صنف` : 'المخزون مكتمل',
+    },
   ];
 
   return (
-    <div className="page-stack page-shell dashboard-premium-shell dashboard-priority-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ maxWidth: '1100px', paddingBottom: '100px' }}>
+    <div className="page-stack page-shell dashboard-premium-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '100px' }}>
         <PageHeader
-          title="ملخص اليوم"
-          description="نظرة سريعة على المبيعات والخزينة والمخزون والتنبيهات المهمة."
-          badge={<span className="nav-pill">Daily Summary</span>}
+          title="لوحة التحكم اليومية"
+          description="مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية."
+          badge={<span className="nav-pill">ملخص اليوم</span>}
           actions={(
             <div className="actions compact-actions dashboard-header-actions">
               <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير Excel</button>
@@ -76,60 +85,106 @@ export function DashboardPage() {
 
         <FirstRunSetupChecklist />
 
-        {/* 1. المؤشرات الرئيسية - الأهم */}
-        <FormSection title="مؤشرات اليوم" description="أهم أرقام التشغيل دفعة واحدة بدون تمرير أو بحث." actions={<span className="nav-pill">KPIs</span>}>
-          <section className="dashboard-daily-kpi-grid dashboard-primary-kpi-grid" aria-label="ملخص التشغيل">
-            <DashboardMetricCard label="مبيعات اليوم" value={Number(stats.todaySalesAmount || 0)} helper="إجمالي البيع المسجل اليوم" tone="primary" />
-            <DashboardMetricCard label="عدد فواتير اليوم" value={Number(stats.todaySalesCount || 0)} helper="عدد فواتير البيع" tone="success" formatter={formatInteger} />
-            <DashboardMetricCard label="صافي الخزينة" value={Number(summary.treasury.net || 0)} helper="الوضع النقدي الحالي" tone={Number(summary.treasury.net || 0) >= 0 ? 'success' : 'danger'} />
-            <DashboardMetricCard label="مصروفات اليوم" value={Number(summary.expenses.total || 0)} helper="إجمالي المصروفات" tone="warning" />
-            <DashboardMetricCard label="تنبيهات المخزون" value={Number(overview.data.summary.lowStockCount || 0) + Number(overview.data.summary.outOfStockCount || 0)} helper="أصناف نافدة أو منخفضة" tone={(Number(overview.data.summary.lowStockCount || 0) + Number(overview.data.summary.outOfStockCount || 0)) > 0 ? 'danger' : 'success'} formatter={formatInteger} />
-          </section>
-        </FormSection>
-
-        {/* 2. إجراءات سريعة */}
-        <FormSection title="إجراءات سريعة" description="اختصارات للانتقال الفوري إلى أكثر الأقسام استخدامًا." actions={<span className="nav-pill">Quick Actions</span>}>
-          <section className="dashboard-quick-actions-grid" aria-label="إجراءات سريعة">
-            {quickActions.map((action) => (
-              <Link key={action.to} className="dashboard-quick-action" to={action.to}>
-                <strong>{action.label}</strong>
-                <span>{action.hint}</span>
-              </Link>
-            ))}
-          </section>
-        </FormSection>
-
-        {/* 3. الملخص التنفيذي السريع - تنبيهات عاجلة */}
-        <DashboardDailyBrief
-          insights={managerActions.data?.insights || []}
-          isLoading={managerActions.isLoading}
-        />
-
-        {/* 4. قرارات تحتاج مراجعة */}
-        <FormSection title="قرارات تحتاج مراجعة" description="أهم ما يجب اتخاذ قرار فيه اليوم بناءً على حركة المخزون والعملاء والربحية." actions={<span className="nav-pill">Action Center</span>}>
-          <DashboardDailyDecisionGrid
-            data={managerOverview.data}
-            isLoading={managerOverview.isLoading}
-            isError={managerOverview.isError}
-            error={managerOverview.error}
-          />
-        </FormSection>
-
-        {/* 5. ملخص التشغيل والتنبيهات والأصناف */}
-        <DashboardSummaryGrid
+        {/* 1. البانر التنفيذي الفاخر والمخطط الانسيابي المتدرج */}
+        <DashboardExecutiveHero
+          salesTrend={overview.data.trends?.sales}
+          purchasesTrend={overview.data.trends?.purchases}
+          todaySalesAmount={Number(stats.todaySalesAmount || 0)}
           todaySalesCount={Number(stats.todaySalesCount || 0)}
-          todayPurchasesCount={Number(stats.todayPurchasesCount || 0)}
-          todayExpenses={Number(summary.expenses.total || 0)}
-          returnsTotal={Number(summary.returns.total || 0)}
-          smartAlerts={smartAlerts}
-          topToday={topToday}
-          productsCount={Number(stats.productsCount || 0)}
-          inventorySaleValue={Number(stats.inventorySaleValue || 0)}
-          customerDebt={Number(stats.customerDebt || 0)}
-          supplierDebt={Number(stats.supplierDebt || 0)}
+          treasuryNet={Number(summary.treasury.net || 0)}
         />
 
-        {/* 6. اللمحة الشهرية - الأقل إلحاحًا */}
+        {/* 2. المؤشرات القياسية العلوية */}
+        <div style={{ marginBottom: '16px' }}>
+          <StatsGrid items={heroKpis} />
+        </div>
+
+        {/* 2. الهيكل الثنائي المتوازن للداشبورد */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(0, 1fr)', gap: '16px', alignItems: 'start', marginBottom: '16px' }}>
+          
+          {/* العمود الرئيسي (الأيمن) */}
+          <div className="page-stack" style={{ gap: '16px' }}>
+            {/* مركز اتخاذ القرارات التفاعلي */}
+            <DashboardDailyDecisionGrid
+              data={managerOverview.data}
+              isLoading={managerOverview.isLoading}
+              isError={managerOverview.isError}
+              error={managerOverview.error}
+            />
+
+            {/* أعلى الأصناف مبيعاً اليوم */}
+            <FormSection title="أعلى أصناف اليوم مبيعاً" description="الأصناف الأكثر طلباً وحركة خلال فواتير اليوم." actions={<span className="nav-pill">اليوم</span>} className="dashboard-premium-card">
+              {topToday.length ? (
+                <div className="list-stack">
+                  {topToday.slice(0, 5).map((row) => (
+                    <div className="list-row" key={row.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                      <div>
+                        <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{row.name}</strong>
+                        <div className="muted small" style={{ fontSize: '0.75rem', color: '#64748b' }}>الكمية المباعة اليوم: {row.qty}</div>
+                      </div>
+                      <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>{formatCurrency(row.total)}</strong>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px' }}>
+                  لا توجد مبيعات مسجلة اليوم بعد
+                </div>
+              )}
+            </FormSection>
+          </div>
+
+          {/* العمود الجانبي (الأيسر) */}
+          <div className="page-stack" style={{ gap: '16px' }}>
+            {/* الموجز التنفيذي والتنبيهات العاجلة */}
+            <DashboardDailyBrief
+              insights={managerActions.data?.insights || []}
+              isLoading={managerActions.isLoading}
+            />
+
+            {/* الحسابات المستحقة والمخزون */}
+            <FormSection title="الحسابات والمخزون" description="مؤشرات مديونيات العملاء والموردين وقيمة المخزون." className="dashboard-premium-card">
+              <div className="metric-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>قيمة المخزون (بيع)</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{formatCurrency(Number(stats.inventorySaleValue || 0))}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>مستحقات على العملاء</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#b91c1c' }}>{formatCurrency(Number(stats.customerDebt || 0))}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>مستحقات للموردين</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#b91c1c' }}>{formatCurrency(Number(stats.supplierDebt || 0))}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>إجمالي عدد الأصناف</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{stats.productsCount || 0} صنف</strong>
+                </div>
+              </div>
+            </FormSection>
+
+            {/* حركة العمليات اليومية */}
+            <FormSection title="حركة اليوم المالية" description="المصروفات والمشتريات والمرتجعات المسجلة." className="dashboard-premium-card">
+              <div className="metric-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>فواتير الشراء اليوم</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{stats.todayPurchasesCount || 0}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>مصروفات اليوم</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#d97706' }}>{formatCurrency(Number(summary.expenses.total || 0))}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>إجمالي المرتجعات</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{formatCurrency(Number(summary.returns.total || 0))}</strong>
+                </div>
+              </div>
+            </FormSection>
+          </div>
+        </div>
+
+        {/* 3. اللمحة الشهرية */}
         <DashboardMonthlySnapshot data={managerOverview.data} />
       </main>
     </div>

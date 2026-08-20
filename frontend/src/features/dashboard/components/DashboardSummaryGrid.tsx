@@ -6,7 +6,7 @@ import type { DashboardAlert } from '@/features/dashboard/lib/dashboard-page.uti
 import type { DashboardTopItem } from '@/features/dashboard/api/dashboard.types';
 
 interface DashboardSummaryGridProps {
-  todaySalesCount: number;
+  todaySalesCount?: number;
   todayPurchasesCount: number;
   todayExpenses: number;
   returnsTotal: number;
@@ -19,7 +19,6 @@ interface DashboardSummaryGridProps {
 }
 
 export function DashboardSummaryGrid({
-  todaySalesCount,
   todayPurchasesCount,
   todayExpenses,
   returnsTotal,
@@ -43,38 +42,17 @@ export function DashboardSummaryGrid({
   };
 
   return (
-    <div className="page-stack">
-      <FormSection title="ملخص التشغيل" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
-        <div className="metric-list">
-          <div className="metric-row"><span>فواتير البيع اليوم</span><strong>{todaySalesCount}</strong></div>
-          <div className="metric-row"><span>فواتير الشراء اليوم</span><strong>{todayPurchasesCount}</strong></div>
-          <div className="metric-row"><span>مصروفات اليوم</span><strong>{formatCurrency(todayExpenses)}</strong></div>
-          <div className="metric-row"><span>إجمالي المرتجعات</span><strong>{formatCurrency(returnsTotal)}</strong></div>
-        </div>
-      </FormSection>
-
-      <FormSection title="تنبيهات المخزون والحسابات" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
-        <div className="dashboard-alert-grid">
-          {alerts.map((alert) => (
-            <div key={`${alert.title}-${alert.text}`} className={`alert-card ${alert.cls}`}>
-              <strong>{alert.title}</strong>
-              <div className="muted small">{alert.text}</div>
-              <Link className="button button-secondary dashboard-alert-action" to={alertAction(alert).to}>{alertAction(alert).label}</Link>
-            </div>
-          ))}
-        </div>
-      </FormSection>
-
-      <FormSection title="أعلى أصناف اليوم" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+      <FormSection title="أعلى أصناف اليوم مبيعاً" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
         {topToday.length ? (
           <div className="list-stack">
             {topToday.slice(0, 5).map((row) => (
-              <div className="list-row" key={row.productId}>
+              <div className="list-row" key={row.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
                 <div>
-                  <strong>{row.name}</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{row.name}</strong>
                   <div className="muted small">كمية اليوم: {row.qty}</div>
                 </div>
-                <strong>{formatCurrency(row.total)}</strong>
+                <strong style={{ color: '#0f172a' }}>{formatCurrency(row.total)}</strong>
               </div>
             ))}
           </div>
@@ -83,12 +61,32 @@ export function DashboardSummaryGrid({
         )}
       </FormSection>
 
+      <FormSection title="تنبيهات المخزون والائتمان" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
+        <div className="dashboard-alert-grid" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {alerts.map((alert) => (
+            <div key={`${alert.title}-${alert.text}`} className={`alert-card ${alert.cls}`} style={{ padding: '10px 12px', borderRadius: '8px' }}>
+              <strong>{alert.title}</strong>
+              <div className="muted small">{alert.text}</div>
+              <Link className="button button-secondary dashboard-alert-action" to={alertAction(alert).to} style={{ marginTop: '6px', display: 'inline-block' }}>{alertAction(alert).label}</Link>
+            </div>
+          ))}
+        </div>
+      </FormSection>
+
       <FormSection title="الحسابات المستحقة والمخزون" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
-        <div className="metric-list">
-          <div className="metric-row"><span>عدد الأصناف</span><strong>{productsCount}</strong></div>
-          <div className="metric-row"><span>قيمة المخزون بالبيع</span><strong>{formatCurrency(inventorySaleValue)}</strong></div>
-          <div className="metric-row"><span>العملاء عليهم</span><strong>{formatCurrency(customerDebt)}</strong></div>
-          <div className="metric-row"><span>الموردين لهم</span><strong>{formatCurrency(supplierDebt)}</strong></div>
+        <div className="metric-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="metric-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}><span>عدد الأصناف الإجمالي</span><strong>{productsCount}</strong></div>
+          <div className="metric-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}><span>قيمة المخزون بالبيع</span><strong>{formatCurrency(inventorySaleValue)}</strong></div>
+          <div className="metric-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}><span>مستحقات على العملاء</span><strong style={{ color: '#b91c1c' }}>{formatCurrency(customerDebt)}</strong></div>
+          <div className="metric-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}><span>مستحقات للموردين</span><strong style={{ color: '#b91c1c' }}>{formatCurrency(supplierDebt)}</strong></div>
+        </div>
+      </FormSection>
+
+      <FormSection title="حركة العمليات اليومية" className="dashboard-premium-card dashboard-card-compact dashboard-secondary-zone-card">
+        <div className="metric-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="metric-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}><span>فواتير الشراء اليوم</span><strong>{todayPurchasesCount}</strong></div>
+          <div className="metric-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}><span>مصروفات اليوم</span><strong>{formatCurrency(todayExpenses)}</strong></div>
+          <div className="metric-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}><span>إجمالي المرتجعات</span><strong>{formatCurrency(returnsTotal)}</strong></div>
         </div>
       </FormSection>
     </div>

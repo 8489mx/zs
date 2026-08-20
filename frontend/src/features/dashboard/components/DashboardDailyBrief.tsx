@@ -21,42 +21,46 @@ export function DashboardDailyBrief({
   const briefActions = (importantActions.length ? importantActions : sortManagerActionsByImportance(insights)).slice(0, 3);
 
   return (
-    <FormSection title="ملخص تنفيذي سريع" description="أهم ما يحتاج مراجعة الآن من تنبيهات وقرارات عاجلة." actions={<span className="nav-pill">Executive Brief</span>} className="dashboard-daily-brief-card">
-      <div className="daily-brief-layout daily-brief-layout-compact">
-        <div className="daily-brief-copy">
-          <span className="daily-brief-kicker">ملخص تنفيذي سريع</span>
-          <h2>أهم ما يحتاج مراجعة الآن</h2>
-          <p>
-            {isLoading
-              ? 'جاري تجهيز موجز التنبيهات والقرارات.'
-              : briefActions.length
-                ? `لديك ${briefActions.length} نقاط عملية للمراجعة الآن.`
-                : 'لا توجد قرارات عاجلة الآن.'}
-          </p>
-        </div>
-
-        <div className="daily-brief-actions daily-brief-actions-compact">
-          {isLoading ? (
-            <div className="daily-brief-positive">جاري تجهيز موجز القرارات...</div>
-          ) : briefActions.length ? (
-            briefActions.map((action) => (
-              <Link
-                className={`daily-brief-action ${managerActionSeverityClasses[action.severity]}`}
-                key={action.id}
-                to={action.actionHref}
-              >
-                <span>{managerActionSeverityLabels[action.severity]}</span>
-                <strong>{action.title}</strong>
-                <small>{action.message}</small>
-              </Link>
-            ))
-          ) : (
-            <div className="daily-brief-positive">
-              <strong>لا توجد قرارات عاجلة الآن</strong>
-              <span>استمر في المتابعة اليومية المعتادة.</span>
-            </div>
-          )}
-        </div>
+    <FormSection
+      title="تنبيهات عاجلة وموجز تنفيذي"
+      description="أهم ما يتطلب تدخلاً سريعاً من إدارة المخزون أو الحسابات."
+      actions={<span className="nav-pill">تنبيهات</span>}
+      className="dashboard-premium-card"
+    >
+      <div className="daily-brief-actions" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {isLoading ? (
+          <div style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>جاري تجهيز موجز التنبيهات...</div>
+        ) : briefActions.length ? (
+          briefActions.map((action) => (
+            <Link
+              className={`daily-brief-action ${managerActionSeverityClasses[action.severity]}`}
+              key={action.id}
+              to={action.actionHref}
+              style={{
+                textDecoration: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid #fee2e2',
+                background: '#fff5f5',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                <strong style={{ fontSize: '0.86rem', color: '#991b1b' }}>{action.title}</strong>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '1px 6px', borderRadius: '4px' }}>
+                  {managerActionSeverityLabels[action.severity]}
+                </span>
+              </div>
+              <small style={{ fontSize: '0.74rem', color: '#7f1d1d' }}>{action.message}</small>
+            </Link>
+          ))
+        ) : (
+          <div style={{ padding: '16px', textAlign: 'center', color: '#166534', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.84rem', fontWeight: 600 }}>
+            لا توجد تنبيهات عاجلة تتطلب تدخلاً الآن
+          </div>
+        )}
       </div>
     </FormSection>
   );
